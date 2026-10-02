@@ -1,0 +1,91 @@
+{
+  "updatedAt": "2026-10-02T00:31:09.427Z",
+  "createdAt": "2026-10-02T00:26:04.181Z",
+  "id": "QDlfkKxesQEWfyLp",
+  "name": "Teste Python",
+  "description": null,
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "47a3fd4e-bd7b-492e-a511-5ab6fc4c678d",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://python-api:8000/processar",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"texto\": \"Ola SocialME\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        224,
+        0
+      ],
+      "id": "1b3f2ef4-c518-47e6-80f1-d2985b35b63f",
+      "name": "HTTP Request"
+    }
+  ],
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "meta": null,
+  "nodeGroups": [],
+  "pinData": {},
+  "versionId": "76069d28-e75c-4efc-bc2a-50674a41779e",
+  "activeVersionId": null,
+  "versionCounter": 7,
+  "triggerCount": 0,
+  "sourceWorkflowId": null,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-10-02T00:26:04.181Z",
+      "createdAt": "2026-10-02T00:26:04.181Z",
+      "role": "workflow:owner",
+      "workflowId": "QDlfkKxesQEWfyLp",
+      "projectId": "mnqoFQ5ebzxNKxnC",
+      "project": {
+        "updatedAt": "2026-09-23T00:47:44.432Z",
+        "createdAt": "2026-09-23T00:35:06.367Z",
+        "id": "mnqoFQ5ebzxNKxnC",
+        "name": "SocialMEI IA <servermeiiafacepe@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "customTelemetryTags": [],
+        "creatorId": "a09d2add-8abd-47d5-a91d-ffb28b4e39d3"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}

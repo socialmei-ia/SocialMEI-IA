@@ -1,0 +1,133 @@
+{
+  "updatedAt": "2026-09-23T02:51:49.798Z",
+  "createdAt": "2026-09-23T01:47:46.232Z",
+  "id": "6BczTaFNOl24jr4X",
+  "name": "Hello world",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "path": "hworld",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "9537a2bf-4f59-4690-b223-e08fea5baf8a",
+      "name": "Webhook",
+      "webhookId": "1cf5629f-f93d-44e3-9a77-90b1fe8b0b95"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c3b97f9a-e9ed-44b7-8b2f-2078f90ecc58",
+              "name": "mensagem",
+              "value": "Hello World",
+              "type": "string"
+            },
+            {
+              "id": "4ca3cedd-7a4f-4277-b60d-dc66c64fe990",
+              "name": "",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        224,
+        0
+      ],
+      "id": "f5191e54-8556-45f3-b4b9-e8e39cb0fe81",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Hello world",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        400,
+        0
+      ],
+      "id": "1e0393ad-7c58-4bbf-b553-ab6e76ea9c72",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "meta": null,
+  "nodeGroups": [],
+  "pinData": {},
+  "versionId": "b1ba6630-85fc-4c66-bd06-4e07ef996895",
+  "activeVersionId": "b1ba6630-85fc-4c66-bd06-4e07ef996895",
+  "versionCounter": 33,
+  "triggerCount": 1,
+  "sourceWorkflowId": null,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-09-23T01:47:46.232Z",
+      "createdAt": "2026-09-23T01:47:46.232Z",
+      "role": "workflow:owner",
+      "workflowId": "6BczTaFNOl24jr4X",
+      "projectId": "mnqoFQ5ebzxNKxnC",
+      "project": {
+        "updatedAt": "2026-09-23T00:47:44.432Z",
+        "createdAt": "2026-09-23T00:35:06.367Z",
+        "id": "mnqoFQ5ebzxNKxnC",
+        "name": "SocialMEI IA <servermeiiafacepe@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "customTelemetryTags": [],
+        "creatorId": "a09d2add-8abd-47d5-a91d-ffb28b4e39d3"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": "v1",
+    "description": ""
+  }
+}

@@ -1,0 +1,331 @@
+{
+  "updatedAt": "2026-09-28T00:08:17.722Z",
+  "createdAt": "2026-09-27T23:39:01.520Z",
+  "id": "NDNF5doo9pLtj6sb",
+  "name": "Integração n8n e Insta",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "c5219b57-e216-4c31-bec3-d0bd21ef4008",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -352,
+        -32
+      ],
+      "id": "ee70cd0b-b8be-41e4-b0e3-5a32caf9d7d8",
+      "name": "Webhook",
+      "webhookId": "c5219b57-e216-4c31-bec3-d0bd21ef4008"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.query['hub.challenge'] }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/plain"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        608,
+        0
+      ],
+      "id": "e6ec1973-75c2-4f92-b594-abd12391d765",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.entry[0].messaging[0].message.text }}",
+        "options": {
+          "systemMessage": "Você é um assistente virtual de atendimento para pequenos negócios (MEIs).\n\nSua função é atender clientes pelo Instagram Direct de forma educada, natural, clara e objetiva.\n\nREGRAS DE ATENDIMENTO:\n\n1. Cumprimente o cliente de maneira cordial.\n2. Responda sempre em português do Brasil.\n3. Use uma linguagem simples, amigável e humanizada.\n4. Não invente informações sobre preços, produtos, horários ou serviços.\n5. Faça perguntas para entender melhor a necessidade do cliente.\n6. Evite respostas muito longas e desnecessárias.\n7. Seja sempre respeitoso e profissional.\n8. Não repita informações sem necessidade.\n9. Não prometa algo que não tenha sido confirmado.\n\nFORMATAÇÃO DAS MENSAGENS:\n\n* Envie somente texto simples.\n* NÃO utilize asteriscos (*) em nenhuma situação.\n* NÃO utilize Markdown, negrito, itálico ou outras formatações.\n* Não use símbolos para destacar palavras ou frases.\n* As mensagens devem estar prontas para serem enviadas diretamente pelo Instagram Direct.\n* Utilize apenas pontuação comum e emojis quando forem apropriados.\n\nOBJETIVO:\nOferecer um atendimento rápido, útil e acolhedor, ajudando o cliente com suas dúvidas e interesses em produtos ou serviços.\n\nQuando necessário, encaminhe o atendimento para uma pessoa responsável pelo negócio."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        48,
+        -16
+      ],
+      "id": "88927d23-a414-4c3d-9be4-5a037747f019",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        48,
+        144
+      ],
+      "id": "e7c13a94-a0c7-4a70-8851-ef52bcd46125",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "nnca8NzoRzqMe68E",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.body.entry[0].messaging[0].sender.id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        144,
+        288
+      ],
+      "id": "ab9bfc72-409d-4d01-bb8c-a4ff5ec3f1d9",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.entry[0].messaging[0].sender.id }}",
+                    "rightValue": "17841422248754539",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "00c3b9a6-16f5-48b4-af9a-bdbf997274be"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Own Message"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Mensagem Cliente"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -176,
+        -32
+      ],
+      "id": "4f2b6539-ffa4-41a3-9397-be1a1586fb1d",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.instagram.com/v22.0/17841422248754539/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer <TOKEN_REMOVIDO_PARA_VERSIONAMENTO>"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "recipient.id",
+              "value": "={{ $('Webhook').item.json.body.entry[0].messaging[0].sender.id }}"
+            },
+            {
+              "name": "message.text",
+              "value": "={{ $json.output }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        368,
+        -16
+      ],
+      "id": "ed6de664-98d0-4aca-af50-ae6657ff2464",
+      "name": "HTTP Request"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "nodeGroups": [],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "socialmei.54-94-213-7.sslip.io",
+            "user-agent": "facebookexternalua",
+            "content-length": "393",
+            "accept": "*/*",
+            "accept-encoding": "deflate, gzip",
+            "content-type": "application/json",
+            "instagram-api-version": "v26.0",
+            "via": "1.1 Caddy",
+            "x-forwarded-for": "173.252.87.13",
+            "x-forwarded-host": "socialmei.54-94-213-7.sslip.io",
+            "x-forwarded-proto": "https",
+            "x-hub-signature": "sha1=87f8e114dfcdf862f5f3f41f3d75df5f4e63f31f",
+            "x-hub-signature-256": "sha256=c6e16c0bb356910883e2985a45ccf6ea4ecd96f10a4f01cad72febfbc624adc8"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "object": "instagram",
+            "entry": [
+              {
+                "time": 1790552542375,
+                "id": "17841422248754539",
+                "messaging": [
+                  {
+                    "sender": {
+                      "id": "4073633716104359"
+                    },
+                    "recipient": {
+                      "id": "17841422248754539"
+                    },
+                    "timestamp": 1790552540080,
+                    "message": {
+                      "mid": "aWdfZAG1faXRlbToxOklHTWVzc2FnZAUlEOjE3ODQxNDIyMjQ4NzU0NTM5OjM0MDI4MjM2Njg0MTcxMDMwMTI0NDI1OTk5NDA3NDI3MzI2NzA3OTozMzAyOTg2NDQ1NzM5Mjc2MjMwNzg2ODM5MzQwMjc5Mzk4NAZDZD",
+                      "text": "oi"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "webhookUrl": "https://socialmei.54-94-213-7.sslip.io/webhook/c5219b57-e216-4c31-bec3-d0bd21ef4008",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "versionId": "ef063ee3-9bcb-4b20-886d-0022e7bbb972",
+  "activeVersionId": "ef063ee3-9bcb-4b20-886d-0022e7bbb972",
+  "versionCounter": 60,
+  "triggerCount": 1,
+  "sourceWorkflowId": null,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-09-27T23:39:01.520Z",
+      "createdAt": "2026-09-27T23:39:01.520Z",
+      "role": "workflow:owner",
+      "workflowId": "NDNF5doo9pLtj6sb",
+      "projectId": "mnqoFQ5ebzxNKxnC",
+      "project": {
+        "updatedAt": "2026-09-23T00:47:44.432Z",
+        "createdAt": "2026-09-23T00:35:06.367Z",
+        "id": "mnqoFQ5ebzxNKxnC",
+        "name": "SocialMEI IA <servermeiiafacepe@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "customTelemetryTags": [],
+        "creatorId": "a09d2add-8abd-47d5-a91d-ffb28b4e39d3"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": "Teste 1.0",
+    "description": ""
+  }
+}

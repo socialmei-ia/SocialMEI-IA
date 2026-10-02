@@ -1,0 +1,270 @@
+{
+  "updatedAt": "2026-09-28T00:08:57.053Z",
+  "createdAt": "2026-09-27T23:13:00.642Z",
+  "id": "JVPPxXa0cQbE62C2",
+  "name": "error",
+  "description": null,
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.entry[0].messaging[0].message.text }}",
+        "options": {
+          "systemMessage": "Você é um assistente virtual de atendimento para pequenos negócios (MEIs).\n\nSua função é atender clientes pelo Instagram Direct de forma educada, natural, clara e objetiva.\n\nREGRAS DE ATENDIMENTO:\n\n1. Cumprimente o cliente de maneira cordial.\n2. Responda sempre em português do Brasil.\n3. Use uma linguagem simples, amigável e humanizada.\n4. Não invente informações sobre preços, produtos, horários ou serviços.\n5. Faça perguntas para entender melhor a necessidade do cliente.\n6. Evite respostas muito longas e desnecessárias.\n7. Seja sempre respeitoso e profissional.\n8. Não repita informações sem necessidade.\n9. Não prometa algo que não tenha sido confirmado.\n\nFORMATAÇÃO DAS MENSAGENS:\n\n* Envie somente texto simples.\n* NÃO utilize asteriscos (*) em nenhuma situação.\n* NÃO utilize Markdown, negrito, itálico ou outras formatações.\n* Não use símbolos para destacar palavras ou frases.\n* As mensagens devem estar prontas para serem enviadas diretamente pelo Instagram Direct.\n* Utilize apenas pontuação comum e emojis quando forem apropriados.\n\nOBJETIVO:\nOferecer um atendimento rápido, útil e acolhedor, ajudando o cliente com suas dúvidas e interesses em produtos ou serviços.\n\nQuando necessário, encaminhe o atendimento para uma pessoa responsável pelo negócio."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        448,
+        0
+      ],
+      "id": "21bd3f63-353c-4120-a689-0e4981da5900",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        144
+      ],
+      "id": "62d2e735-4ce9-4e40-a8d5-1dacb8bca421",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://graph.instagram.com/v22.0/17841422248754539/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer <TOKEN_REMOVIDO_PARA_VERSIONAMENTO>"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "recipient.id",
+              "value": "={{ $('Webhook').item.json.body.entry[0].messaging[0].sender.id }}"
+            },
+            {
+              "name": "message.text",
+              "value": "={{ $json.output }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        816,
+        0
+      ],
+      "id": "52c0e9fb-cf05-492b-9a90-78473973b1ce",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.entry[0].messaging[0].sender.id }}",
+                    "rightValue": "17841422248754539",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "42aba1a9-fde2-42bb-b0cd-d696235b7722"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Own Message"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Mensagem Cliente"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        192,
+        0
+      ],
+      "id": "60ac7d3a-467c-45a1-bba8-bdb50de1b570",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.body.entry[0].messaging[0].sender.id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        544,
+        256
+      ],
+      "id": "34f23a95-73b7-440a-8cce-f4fd2d40981e",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "path": "72280a45-ebba-4749-8746-7b7063b538e9",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -80,
+        336
+      ],
+      "id": "512a5828-1730-4acf-aa93-faf9d28d3d83",
+      "name": "Webhook",
+      "webhookId": "72280a45-ebba-4749-8746-7b7063b538e9"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.query['hub.challenge'] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        144,
+        336
+      ],
+      "id": "b087a115-e9a4-4894-8bfb-fbe8b45283b4",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "connections": {
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "meta": null,
+  "nodeGroups": [],
+  "pinData": {},
+  "versionId": "3e68fa51-cab5-44ec-8f82-9e4f0bc7c10f",
+  "activeVersionId": null,
+  "versionCounter": 18,
+  "triggerCount": 1,
+  "sourceWorkflowId": null,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-09-27T23:13:00.642Z",
+      "createdAt": "2026-09-27T23:13:00.642Z",
+      "role": "workflow:owner",
+      "workflowId": "JVPPxXa0cQbE62C2",
+      "projectId": "mnqoFQ5ebzxNKxnC",
+      "project": {
+        "updatedAt": "2026-09-23T00:47:44.432Z",
+        "createdAt": "2026-09-23T00:35:06.367Z",
+        "id": "mnqoFQ5ebzxNKxnC",
+        "name": "SocialMEI IA <servermeiiafacepe@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "customTelemetryTags": [],
+        "creatorId": "a09d2add-8abd-47d5-a91d-ffb28b4e39d3"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}

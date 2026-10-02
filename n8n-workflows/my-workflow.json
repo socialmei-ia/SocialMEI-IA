@@ -1,0 +1,116 @@
+{
+  "updatedAt": "2026-10-01T21:03:34.010Z",
+  "createdAt": "2026-10-01T20:36:18.607Z",
+  "id": "vF3jcCJrElfoQTH6",
+  "name": "My workflow",
+  "description": null,
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "5850d8f2-f885-48fa-bb56-3c1c9166ca5d",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        224,
+        0
+      ],
+      "id": "719a64b1-bb2f-4955-9f90-d6fe2fa88316",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        448,
+        0
+      ],
+      "id": "27dac072-07c0-40d4-b93e-606878d50082",
+      "name": "HTTP Request"
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "meta": null,
+  "nodeGroups": [],
+  "pinData": {},
+  "versionId": "75d83126-be14-43bd-b4f5-f06f83103191",
+  "activeVersionId": null,
+  "versionCounter": 5,
+  "triggerCount": 0,
+  "sourceWorkflowId": null,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-10-01T20:36:18.607Z",
+      "createdAt": "2026-10-01T20:36:18.607Z",
+      "role": "workflow:owner",
+      "workflowId": "vF3jcCJrElfoQTH6",
+      "projectId": "mnqoFQ5ebzxNKxnC",
+      "project": {
+        "updatedAt": "2026-09-23T00:47:44.432Z",
+        "createdAt": "2026-09-23T00:35:06.367Z",
+        "id": "mnqoFQ5ebzxNKxnC",
+        "name": "SocialMEI IA <servermeiiafacepe@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "customTelemetryTags": [],
+        "creatorId": "a09d2add-8abd-47d5-a91d-ffb28b4e39d3"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}
