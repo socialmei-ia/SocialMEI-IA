@@ -1,0 +1,3 @@
+socialmei.54-94-213-7.sslip.io {
+    reverse_proxy n8n:5678
+}

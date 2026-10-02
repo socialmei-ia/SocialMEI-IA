@@ -1,0 +1,29 @@
+# Credenciais e segredos
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Backups
+backups/
+*.dump
+*.tar.gz
+
+# Logs
+*.log
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Arquivos temporários do Compose
+compose.yaml.antes-python-*
+
+# Sistema/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
