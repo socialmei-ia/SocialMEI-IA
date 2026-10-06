@@ -25,6 +25,9 @@
 | Ver a API Python | [`python-service/`](./python-service) |
 | Ver a infraestrutura Docker | [`compose.yaml`](./compose.yaml) |
 | Configurar variáveis de ambiente | [`.env.example`](./.env.example) |
+| Guia de entrada da equipe | [`docs/ONBOARDING.md`](./docs/ONBOARDING.md) |
+| Banco de dados | [`docs/BANCO-DE-DADOS.md`](./docs/BANCO-DE-DADOS.md) |
+| Estrutura SQL | [`database/schema.sql`](./database/schema.sql) |
 
 > O arquivo `index.html` é a mesma versão atual do dashboard e deixa o repositório pronto para publicação como site estático pelo GitHub Pages.
 
@@ -139,6 +142,11 @@ socialmei/
 ├── frontend/
 │   └── socialmei-dashboard.html
 ├── n8n-workflows/
+├── database/
+│   └── schema.sql
+├── docs/
+│   ├── ONBOARDING.md
+│   └── BANCO-DE-DADOS.md
 ├── python-service/
 ├── compose.yaml
 ├── compose.override.yaml
