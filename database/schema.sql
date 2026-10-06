@@ -3,7 +3,8 @@
 -- Este arquivo NÃO contém senhas nem credenciais.
 -- Aplicar no PostgreSQL pelo pgAdmin ou por um processo de migração controlado.
 
-CREATE SCHEMA IF NOT EXISTS socialmei;
+-- Pré-requisito: o schema socialmei deve existir e pertencer ao usuário de desenvolvimento.
+-- Veja database/bootstrap.sql para a etapa administrativa inicial.
 
 CREATE TABLE IF NOT EXISTS socialmei.clientes (
     id BIGSERIAL PRIMARY KEY,
