@@ -1,20 +1,42 @@
+<div align="center">
+
 # SocialMEI.IA
 
-Projeto acadêmico para desenvolver uma solução de gestão e atendimento inteligente para microempreendedores individuais (MEIs).
+### Gestão e atendimento inteligente para MEIs
 
-## Estado atual
+**Dashboard web + Caixa Unificada + automações com n8n**
 
-O projeto já possui uma infraestrutura funcional em Docker e um frontend de demonstração do SocialMEI.IA.
+[![Status](https://img.shields.io/badge/status-em%20desenvolvimento-1E73D8)](#status-do-projeto)
+[![Frontend](https://img.shields.io/badge/frontend-HTML%20%7C%20CSS%20%7C%20JS-F2B11B)](./frontend/socialmei-dashboard.html)
+[![n8n](https://img.shields.io/badge/automa%C3%A7%C3%A3o-n8n-EA4B71)](./n8n-workflows)
+[![Docker](https://img.shields.io/badge/infra-Docker-2496ED)](./compose.yaml)
 
-### Frontend
+</div>
 
-O dashboard atual está em:
+---
 
-`frontend/socialmei-dashboard.html`
+## Acesso rápido
 
-Principais áreas disponíveis:
+| Quero... | Abrir |
+|---|---|
+| Ver o dashboard atual | [`index.html`](./index.html) |
+| Trabalhar no frontend | [`frontend/socialmei-dashboard.html`](./frontend/socialmei-dashboard.html) |
+| Ver os workflows do n8n | [`n8n-workflows/`](./n8n-workflows) |
+| Ver a API Python | [`python-service/`](./python-service) |
+| Ver a infraestrutura Docker | [`compose.yaml`](./compose.yaml) |
+| Configurar variáveis de ambiente | [`.env.example`](./.env.example) |
 
-- Visão Geral
+> O arquivo `index.html` é a mesma versão atual do dashboard e deixa o repositório pronto para publicação como site estático pelo GitHub Pages.
+
+## O projeto
+
+O **SocialMEI.IA** é um projeto acadêmico voltado a MEIs e pequenos negócios. A proposta é centralizar gestão, atendimento e automações em uma interface simples, com integração ao n8n.
+
+O dashboard atual já possui identidade visual própria, responsividade, temas configuráveis e uma Caixa Unificada preparada para receber mensagens processadas pelo n8n.
+
+## O que já funciona
+
+- Visão Geral do negócio
 - Financeiro
 - Vendas
 - Clientes
@@ -22,106 +44,182 @@ Principais áreas disponíveis:
 - Caixa Unificada
 - Relatórios
 - Configurações
-- tema claro/escuro
-- layout responsivo para desktop e mobile
+- temas claro/escuro e personalização visual
+- layout responsivo
+- recebimento de mensagens pelo n8n
+- exibição das mensagens recebidas na Caixa Unificada
+- infraestrutura com Docker, PostgreSQL, Caddy e FastAPI
+- HTTPS no ambiente de desenvolvimento
+- backup do PostgreSQL testado
 
 ### Caixa Unificada
 
-A Caixa Unificada centraliza conversas de WhatsApp e Instagram em uma única interface.
-
-O fluxo de entrada já foi validado:
+Fluxo já validado:
 
 ```text
-Mensagem de teste
-      ↓
-n8n
-      ↓
+Mensagem / requisição de teste
+          ↓
+         n8n
+          ↓
 Webhook SocialMEI
-      ↓
+          ↓
 Endpoint de mensagens
-      ↓
-Dashboard / Caixa Unificada
+          ↓
+Caixa Unificada no dashboard
 ```
 
-As mensagens recebidas pelo n8n aparecem no dashboard.
+**Importante:** mensagens recebidas pelo n8n entram no dashboard. As respostas digitadas na interface ainda podem funcionar como demonstração local quando não há endpoint real de saída configurado.
 
-> Importante: as respostas digitadas no dashboard ainda são uma simulação local. O envio real para WhatsApp/Instagram não está implementado nesta etapa.
+## Teste rápido do frontend
 
-## Tecnologias
+Você pode abrir `index.html` diretamente no navegador.
 
-- HTML
-- CSS
-- JavaScript
-- n8n
-- PostgreSQL
-- Caddy
-- Python 3.12
-- FastAPI
-- Docker
-- Docker Compose
-- AWS
+Para uma execução local mais próxima de um site real:
 
-## Arquitetura atual
+```bash
+python -m http.server 5500
+```
+
+Depois acesse:
 
 ```text
-Internet
-   ↓
-Caddy
-   ↓
-n8n ─────→ Python API
-   │
-   └──────→ PostgreSQL
-
-Dashboard
-   ↓
-Webhook / endpoint n8n
+http://localhost:5500
 ```
 
-## Python
+<details>
+<summary><strong>Como testar a Caixa Unificada</strong></summary>
 
-O serviço Python roda em um container separado.
+1. Mantenha o workflow de recebimento do n8n ativo.
+2. Abra o dashboard.
+3. Entre em **Caixa Unificada**.
+4. Execute o workflow de teste ou envie uma requisição para o webhook configurado.
+5. Aguarde a sincronização.
+6. A nova conversa/mensagem deve aparecer na lista.
 
-Endpoints atuais:
+</details>
 
-- `GET /health`
-- `POST /processar`
+<details>
+<summary><strong>Como subir a infraestrutura</strong></summary>
 
-O n8n acessa o Python internamente em:
+Crie o arquivo `.env` a partir do exemplo:
 
-`http://python-api:8000`
+```bash
+cp .env.example .env
+```
 
-## Estrutura principal
+Preencha as variáveis localmente e execute:
 
-- `compose.yaml`
-- `compose.override.yaml`
-- `Caddyfile`
-- `backup.sh`
-- `.env.example`
-- `.gitignore`
-- `python-service/`
-- `n8n-workflows/`
-- `frontend/socialmei-dashboard.html`
+```bash
+docker compose up -d
+```
+
+Nunca envie o arquivo `.env` real para o repositório.
+
+</details>
+
+## Arquitetura
+
+```text
+                    ┌─────────────────┐
+                    │   Dashboard     │
+                    │ SocialMEI.IA    │
+                    └────────┬────────┘
+                             │
+                             ▼
+Internet ──► Caddy ──► n8n ─────────► Python / FastAPI
+                       │
+                       └─────────────► PostgreSQL
+```
+
+## Estrutura do repositório
+
+```text
+socialmei/
+├── index.html
+├── frontend/
+│   └── socialmei-dashboard.html
+├── n8n-workflows/
+├── python-service/
+├── compose.yaml
+├── compose.override.yaml
+├── Caddyfile
+├── backup.sh
+├── .env.example
+└── README.md
+```
+
+## Colaboração
+
+Antes de começar:
+
+```bash
+git pull origin main
+```
+
+Depois das alterações:
+
+```bash
+git status
+git add .
+git commit -m "Descreva a alteração"
+git push origin main
+```
+
+Para mudanças maiores, prefira uma branch separada e Pull Request.
+
+<details>
+<summary><strong>Convenção simples de commits</strong></summary>
+
+- `feat:` nova funcionalidade
+- `fix:` correção
+- `ui:` alteração visual
+- `docs:` documentação
+- `chore:` manutenção
+
+Exemplos:
+
+```text
+ui: improve unified inbox
+fix: preserve conversation scroll
+docs: update project setup
+```
+
+</details>
 
 ## Segurança
 
-Nunca enviar para o GitHub:
+Não envie para o GitHub:
 
 - `.env`
 - arquivos `.pem`
 - senhas
 - tokens
-- credenciais de API
+- chaves de API
+- credenciais do n8n
 - backups
 - dumps do PostgreSQL
 
-## Status
+O arquivo `.env.example` contém apenas valores de exemplo.
 
-- n8n funcionando
-- PostgreSQL funcionando
-- HTTPS funcionando
-- Python funcionando
-- comunicação n8n → Python validada
-- backup do PostgreSQL testado por restauração
-- webhook da Caixa Unificada validado
-- mensagens do n8n aparecendo no dashboard
-- frontend SocialMEI.IA V4 adicionado ao repositório
+## Status do projeto
+
+| Área | Estado |
+|---|---|
+| Dashboard | ✅ Em desenvolvimento ativo |
+| Caixa Unificada | ✅ Protótipo funcional integrado ao n8n |
+| n8n | ✅ Online no ambiente atual |
+| PostgreSQL | ✅ Funcionando |
+| FastAPI | ✅ Funcionando |
+| Docker | ✅ Funcionando |
+| WhatsApp/Instagram oficiais | 🟡 Integração completa ainda em evolução |
+| Persistência definitiva das conversas | 🟡 Próxima evolução |
+
+---
+
+<div align="center">
+
+**SocialMEI.IA — CRM autônomo para MEIs**
+
+Projeto acadêmico em evolução.
+
+</div>
