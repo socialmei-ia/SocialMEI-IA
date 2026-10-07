@@ -1,0 +1,39 @@
+name: "✨ Nova ideia"
+description: "Sugestão de melhoria ou funcionalidade"
+title: "[IDEIA] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Explique primeiro a necessidade. Isso ajuda a equipe a avaliar a melhor implementação.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Qual problema queremos resolver?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Ideia de solução
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área principal
+      options:
+        - Dashboard / UX
+        - Automação n8n
+        - Banco de dados
+        - Integrações
+        - Infraestrutura
+        - Relatórios
+        - Outro
+    validations:
+      required: true
+  - type: textarea
+    id: success
+    attributes:
+      label: Como saberemos que ficou pronto?
+      description: Critérios simples de aceite.
