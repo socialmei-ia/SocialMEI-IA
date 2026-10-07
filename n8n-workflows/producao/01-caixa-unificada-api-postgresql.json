@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {
-        "content": "## Sprint 3 — PostgreSQL\nDepois de importar, abra **Persistir no PostgreSQL** e **Ler mensagens do PostgreSQL** e selecione a credencial **SocialMEI - PostgreSQL App**.\n\nEste workflow fica **Inactive** até os testes terminarem. Não use a credencial administrativa \`socialmei_admin\`.",
+        "content": "## Sprint 3 — PostgreSQL\nDepois de importar, abra **Persistir no PostgreSQL** e **Ler mensagens do PostgreSQL** e selecione a credencial **SocialMEI - PostgreSQL App**.\n\nEste workflow fica **Inactive** até os testes terminarem. Não use a credencial administrativa `socialmei_admin`.",
         "height": 220,
         "width": 520,
         "color": 5
@@ -12,7 +12,10 @@
       "name": "Instruções PostgreSQL",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [560,-300]
+      "position": [
+        560,
+        -300
+      ]
     },
     {
       "parameters": {
@@ -25,23 +28,29 @@
       "name": "Receber mensagem",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "position": [560,0],
+      "position": [
+        560,
+        0
+      ],
       "webhookId": "6404b870-1c8c-4633-b487-6c3971775934"
     },
     {
       "parameters": {
-        "jsCode": "const body = $json.body ?? $json;\\n\\nconst cliente = String(body.cliente ?? 'Cliente').trim() || 'Cliente';\\nconst canalRaw = String(body.canal ?? 'whatsapp').toLowerCase().trim();\\nconst canal = canalRaw.includes('insta') ? 'instagram' : 'whatsapp';\\nconst mensagem = String(body.mensagem ?? '').trim();\\n\\nconst telefone = String(body.telefone ?? '').trim();\\nconst email = String(body.email ?? '').trim();\\n\\nconst fallbackCliente = cliente\\n  .normalize('NFD')\\n  .replace(/[\\\\u0300-\\\\u036f]/g, '')\\n  .toLowerCase()\\n  .replace(/[^a-z0-9]+/g, '-')\\n  .replace(/^-+|-+$/g, '') || 'cliente';\\n\\nconst firstNonEmpty = (...values) => {\\n  for (const value of values) {\\n    if (value === null || value === undefined) continue;\\n    const text = String(value).trim();\\n    if (text) return text;\\n  }\\n  return '';\\n};\\n\\nconst clienteKey = firstNonEmpty(\\n  body.cliente_id,\\n  body.identificador_externo,\\n  telefone,\\n  email,\\n  \\\`\${canal}:\${fallbackCliente}\\\`\\n);\\n\\nconst conversaKey = firstNonEmpty(\\n  body.conversa_id,\\n  body.chat_id,\\n  \\\`\${canal}:\${clienteKey}\\\`\\n);\\n\\nlet horario;\\ntry {\\n  horario = body.horario ? new Date(body.horario).toISOString() : new Date().toISOString();\\n} catch {\\n  horario = new Date().toISOString();\\n}\\n\\nreturn [{\\n  json: {\\n    cliente,\\n    canal,\\n    mensagem,\\n    telefone,\\n    email,\\n    clienteKey,\\n    conversaKey,\\n    horario\\n  }\\n}];"
+        "jsCode": "const body = $json.body ?? $json;\n\nconst cliente = String(body.cliente ?? 'Cliente').trim() || 'Cliente';\nconst canalRaw = String(body.canal ?? 'whatsapp').toLowerCase().trim();\nconst canal = canalRaw.includes('insta') ? 'instagram' : 'whatsapp';\nconst mensagem = String(body.mensagem ?? '').trim();\n\nconst telefone = String(body.telefone ?? '').trim();\nconst email = String(body.email ?? '').trim();\n\nconst fallbackCliente = cliente\n  .normalize('NFD')\n  .replace(/[\\u0300-\\u036f]/g, '')\n  .toLowerCase()\n  .replace(/[^a-z0-9]+/g, '-')\n  .replace(/^-+|-+$/g, '') || 'cliente';\n\nconst firstNonEmpty = (...values) => {\n  for (const value of values) {\n    if (value === null || value === undefined) continue;\n    const text = String(value).trim();\n    if (text) return text;\n  }\n  return '';\n};\n\nconst clienteKey = firstNonEmpty(\n  body.cliente_id,\n  body.identificador_externo,\n  telefone,\n  email,\n  `${canal}:${fallbackCliente}`\n);\n\nconst conversaKey = firstNonEmpty(\n  body.conversa_id,\n  body.chat_id,\n  `${canal}:${clienteKey}`\n);\n\nlet horario;\ntry {\n  horario = body.horario ? new Date(body.horario).toISOString() : new Date().toISOString();\n} catch {\n  horario = new Date().toISOString();\n}\n\nreturn [{\n  json: {\n    cliente,\n    canal,\n    mensagem,\n    telefone,\n    email,\n    clienteKey,\n    conversaKey,\n    horario\n  }\n}];"
       },
       "id": "35759c5f-e683-4c7e-8a93-9e4eb8606de8",
       "name": "Normalizar mensagem",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [800,0]
+      "position": [
+        800,
+        0
+      ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "WITH entrada AS (\\n  SELECT\\n    NULLIF(TRIM($1::text), '') AS cliente,\\n    CASE\\n      WHEN LOWER(TRIM($2::text)) LIKE '%insta%' THEN 'instagram'\\n      ELSE 'whatsapp'\\n    END AS canal,\\n    NULLIF(TRIM($3::text), '') AS mensagem,\\n    NULLIF(TRIM($4::text), '') AS cliente_key,\\n    NULLIF(TRIM($5::text), '') AS conversa_key,\\n    NULLIF(TRIM($6::text), '') AS telefone,\\n    NULLIF(TRIM($7::text), '') AS email,\\n    COALESCE(NULLIF(TRIM($8::text), '')::timestamptz, NOW()) AS horario\\n),\\ncliente_upsert AS (\\n  INSERT INTO socialmei.clientes (nome, telefone, email, identificador_externo, atualizado_em)\\n  SELECT COALESCE(cliente, 'Cliente'), telefone, email, cliente_key, NOW()\\n  FROM entrada\\n  WHERE mensagem IS NOT NULL\\n  ON CONFLICT (identificador_externo) WHERE identificador_externo IS NOT NULL\\n  DO UPDATE SET nome = EXCLUDED.nome, telefone = COALESCE(EXCLUDED.telefone, socialmei.clientes.telefone), email = COALESCE(EXCLUDED.email, socialmei.clientes.email), atualizado_em = NOW()\\n  RETURNING id\\n),\\nconversa_upsert AS (\\n  INSERT INTO socialmei.conversas (cliente_id, canal, identificador_externo, status, nao_lidas, ultima_mensagem_em, atualizado_em)\\n  SELECT c.id, e.canal, e.conversa_key, 'aberto', 1, e.horario, NOW()\\n  FROM cliente_upsert c CROSS JOIN entrada e\\n  ON CONFLICT (canal, identificador_externo) WHERE identificador_externo IS NOT NULL\\n  DO UPDATE SET cliente_id = EXCLUDED.cliente_id, nao_lidas = socialmei.conversas.nao_lidas + 1, ultima_mensagem_em = EXCLUDED.ultima_mensagem_em, atualizado_em = NOW()\\n  RETURNING id\\n),\\nmensagem_insert AS (\\n  INSERT INTO socialmei.mensagens (conversa_id, direcao, conteudo, enviada_em, metadados)\\n  SELECT cv.id, 'entrada', e.mensagem, e.horario, jsonb_build_object('origem', 'webhook_n8n')\\n  FROM conversa_upsert cv CROSS JOIN entrada e\\n  RETURNING id, conversa_id, conteudo, enviada_em\\n)\\nSELECT CASE WHEN e.mensagem IS NULL THEN 'erro' ELSE 'ok' END AS status, (e.mensagem IS NOT NULL) AS recebido, CASE WHEN e.mensagem IS NULL THEN 'Campo mensagem é obrigatório' ELSE NULL END AS erro, mi.id::text AS id, COALESCE(e.cliente, 'Cliente') AS cliente, e.canal, e.mensagem AS mensagem, mi.enviada_em AS horario\\nFROM entrada e LEFT JOIN mensagem_insert mi ON TRUE;",
+        "query": "WITH entrada AS (\n  SELECT\n    NULLIF(TRIM($1::text), '') AS cliente,\n    CASE\n      WHEN LOWER(TRIM($2::text)) LIKE '%insta%' THEN 'instagram'\n      ELSE 'whatsapp'\n    END AS canal,\n    NULLIF(TRIM($3::text), '') AS mensagem,\n    NULLIF(TRIM($4::text), '') AS cliente_key,\n    NULLIF(TRIM($5::text), '') AS conversa_key,\n    NULLIF(TRIM($6::text), '') AS telefone,\n    NULLIF(TRIM($7::text), '') AS email,\n    COALESCE(NULLIF(TRIM($8::text), '')::timestamptz, NOW()) AS horario\n),\ncliente_upsert AS (\n  INSERT INTO socialmei.clientes (\n    nome,\n    telefone,\n    email,\n    identificador_externo,\n    atualizado_em\n  )\n  SELECT\n    COALESCE(cliente, 'Cliente'),\n    telefone,\n    email,\n    cliente_key,\n    NOW()\n  FROM entrada\n  WHERE mensagem IS NOT NULL\n  ON CONFLICT (identificador_externo) WHERE identificador_externo IS NOT NULL\n  DO UPDATE SET\n    nome = EXCLUDED.nome,\n    telefone = COALESCE(EXCLUDED.telefone, socialmei.clientes.telefone),\n    email = COALESCE(EXCLUDED.email, socialmei.clientes.email),\n    atualizado_em = NOW()\n  RETURNING id\n),\nconversa_upsert AS (\n  INSERT INTO socialmei.conversas (\n    cliente_id,\n    canal,\n    identificador_externo,\n    status,\n    nao_lidas,\n    ultima_mensagem_em,\n    atualizado_em\n  )\n  SELECT\n    c.id,\n    e.canal,\n    e.conversa_key,\n    'aberto',\n    1,\n    e.horario,\n    NOW()\n  FROM cliente_upsert c\n  CROSS JOIN entrada e\n  ON CONFLICT (canal, identificador_externo) WHERE identificador_externo IS NOT NULL\n  DO UPDATE SET\n    cliente_id = EXCLUDED.cliente_id,\n    nao_lidas = socialmei.conversas.nao_lidas + 1,\n    ultima_mensagem_em = EXCLUDED.ultima_mensagem_em,\n    atualizado_em = NOW()\n  RETURNING id\n),\nmensagem_insert AS (\n  INSERT INTO socialmei.mensagens (\n    conversa_id,\n    direcao,\n    conteudo,\n    enviada_em,\n    metadados\n  )\n  SELECT\n    cv.id,\n    'entrada',\n    e.mensagem,\n    e.horario,\n    jsonb_build_object('origem', 'webhook_n8n')\n  FROM conversa_upsert cv\n  CROSS JOIN entrada e\n  RETURNING id, conversa_id, conteudo, enviada_em\n)\nSELECT\n  CASE WHEN e.mensagem IS NULL THEN 'erro' ELSE 'ok' END AS status,\n  (e.mensagem IS NOT NULL) AS recebido,\n  CASE WHEN e.mensagem IS NULL THEN 'Campo mensagem é obrigatório' ELSE NULL END AS erro,\n  mi.id::text AS id,\n  COALESCE(e.cliente, 'Cliente') AS cliente,\n  e.canal,\n  e.mensagem AS mensagem,\n  mi.enviada_em AS horario\nFROM entrada e\nLEFT JOIN mensagem_insert mi ON TRUE;",
         "options": {
           "queryReplacement": "={{ [$json.cliente, $json.canal, $json.mensagem, $json.clienteKey, $json.conversaKey, $json.telefone, $json.email, $json.horario] }}"
         }
@@ -50,20 +59,35 @@
       "name": "Persistir no PostgreSQL",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
-      "position": [1060,0],
+      "position": [
+        1060,
+        0
+      ],
       "alwaysOutputData": true
     },
     {
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ $json }}",
-        "options": {"responseHeaders":{"entries":[{"name":"Access-Control-Allow-Origin","value":"*"}]}}
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
       },
       "id": "4ea1314f-8379-4693-b41e-b65525191971",
       "name": "Confirmar recebimento",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
-      "position": [1320,0]
+      "position": [
+        1320,
+        0
+      ]
     },
     {
       "parameters": {
@@ -75,45 +99,120 @@
       "name": "Listar mensagens",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "position": [560,300],
+      "position": [
+        560,
+        300
+      ],
       "webhookId": "5f82c1c2-99de-43f4-9578-42f3aa901fcf"
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "WITH ultimas AS (\\n  SELECT m.id::text AS id, c.nome AS cliente, cv.canal, m.conteudo AS mensagem, m.enviada_em AS horario\\n  FROM socialmei.mensagens m\\n  JOIN socialmei.conversas cv ON cv.id = m.conversa_id\\n  JOIN socialmei.clientes c ON c.id = cv.cliente_id\\n  WHERE m.direcao = 'entrada'\\n  ORDER BY m.enviada_em DESC\\n  LIMIT 50\\n)\\nSELECT 'ok' AS status, COUNT(*)::int AS total, COALESCE(json_agg(json_build_object('id', id, 'cliente', cliente, 'canal', canal, 'mensagem', mensagem, 'horario', horario) ORDER BY horario ASC), '[]'::json) AS mensagens\\nFROM ultimas;",
+        "query": "WITH ultimas AS (\n  SELECT\n    m.id::text AS id,\n    c.nome AS cliente,\n    cv.canal,\n    m.conteudo AS mensagem,\n    m.enviada_em AS horario\n  FROM socialmei.mensagens m\n  JOIN socialmei.conversas cv ON cv.id = m.conversa_id\n  JOIN socialmei.clientes c ON c.id = cv.cliente_id\n  WHERE m.direcao = 'entrada'\n  ORDER BY m.enviada_em DESC\n  LIMIT 50\n)\nSELECT\n  'ok' AS status,\n  COUNT(*)::int AS total,\n  COALESCE(\n    json_agg(\n      json_build_object(\n        'id', id,\n        'cliente', cliente,\n        'canal', canal,\n        'mensagem', mensagem,\n        'horario', horario\n      )\n      ORDER BY horario ASC\n    ),\n    '[]'::json\n  ) AS mensagens\nFROM ultimas;",
         "options": {}
       },
       "id": "ba78f6b7-9073-4efd-8bd0-0d0fc8d11d6e",
       "name": "Ler mensagens do PostgreSQL",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
-      "position": [860,300],
+      "position": [
+        860,
+        300
+      ],
       "alwaysOutputData": true
     },
     {
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ $json }}",
-        "options": {"responseHeaders":{"entries":[{"name":"Access-Control-Allow-Origin","value":"*"},{"name":"Cache-Control","value":"no-store"}]}}
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
       },
       "id": "6e535239-2a83-4d61-a033-633fa9fb4746",
       "name": "Responder mensagens",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
-      "position": [1160,300]
+      "position": [
+        1160,
+        300
+      ]
     }
   ],
   "pinData": {},
   "connections": {
-    "Receber mensagem":{"main":[[{"node":"Normalizar mensagem","type":"main","index":0}]]},
-    "Normalizar mensagem":{"main":[[{"node":"Persistir no PostgreSQL","type":"main","index":0}]]},
-    "Persistir no PostgreSQL":{"main":[[{"node":"Confirmar recebimento","type":"main","index":0}]]},
-    "Listar mensagens":{"main":[[{"node":"Ler mensagens do PostgreSQL","type":"main","index":0}]]},
-    "Ler mensagens do PostgreSQL":{"main":[[{"node":"Responder mensagens","type":"main","index":0}]]}
+    "Receber mensagem": {
+      "main": [
+        [
+          {
+            "node": "Normalizar mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar mensagem": {
+      "main": [
+        [
+          {
+            "node": "Persistir no PostgreSQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Persistir no PostgreSQL": {
+      "main": [
+        [
+          {
+            "node": "Confirmar recebimento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Listar mensagens": {
+      "main": [
+        [
+          {
+            "node": "Ler mensagens do PostgreSQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ler mensagens do PostgreSQL": {
+      "main": [
+        [
+          {
+            "node": "Responder mensagens",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
   "active": false,
-  "settings": {"executionOrder":"v1","binaryMode":"separate"},
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
   "nodeGroups": [],
   "tags": []
 }

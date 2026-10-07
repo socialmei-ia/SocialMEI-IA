@@ -6,7 +6,7 @@
 
 | Quero fazer | Vá para |
 |---|---|
-| Abrir o dashboard | https://socialmei-ia.github.io/socialmei/ |
+| Abrir o dashboard | https://socialmei-ia.github.io/SocialMEI-IA/ |
 | Alterar interface | `frontend/socialmei-dashboard.html` + `index.html` |
 | Trabalhar com automações | n8n + `n8n-workflows/` |
 | Entender o banco | [BANCO-DE-DADOS.md](./BANCO-DE-DADOS.md) |
@@ -17,8 +17,8 @@
 
 ## Links do ambiente
 
-- GitHub: https://github.com/socialmei-ia/socialmei
-- Dashboard: https://socialmei-ia.github.io/socialmei/
+- GitHub: https://github.com/socialmei-ia/SocialMEI-IA
+- Dashboard: https://socialmei-ia.github.io/SocialMEI-IA/
 - n8n: https://socialmei.54-94-213-7.sslip.io/home/workflows
 - pgAdmin: https://db.54-94-213-7.sslip.io *(login necessário)*
 
