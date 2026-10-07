@@ -4,11 +4,24 @@
 
 <div align="center">
 
+# SocialMEI.IA
+
+### Gestão, automação e atendimento inteligente para MEIs
+
+[![Status](https://img.shields.io/badge/status-prot%C3%B3tipo%20funcional-2563EB?style=for-the-badge)](#status-e-próximos-passos)
+[![Sprint 3](https://img.shields.io/badge/Sprint%203-US--018%20validada-16A34A?style=for-the-badge)](#registro-da-sprint-3--us-018)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-persist%C3%AAncia-336791?style=for-the-badge&logo=postgresql&logoColor=white)](./database)
+[![n8n](https://img.shields.io/badge/n8n-automa%C3%A7%C3%A3o-EA4B71?style=for-the-badge&logo=n8n&logoColor=white)](./n8n-workflows)
+[![Docker](https://img.shields.io/badge/Docker-infraestrutura-2496ED?style=for-the-badge&logo=docker&logoColor=white)](./compose.yaml)
+
 Gestão e atendimento para MEIs e pequenos negócios em um dashboard web, com Caixa Unificada e automações em n8n.
 
 **Projeto acadêmico em desenvolvimento · Interface funcional com dados de demonstração**
 
-**[Conhecer a interface](#interface)** · **[Começar a contribuir](./docs/ONBOARDING.md)**
+**[🌐 Abrir dashboard](https://socialmei-ia.github.io/SocialMEI-IA/)** ·
+**[🚀 Onboarding](./docs/ONBOARDING.md)** ·
+**[🏗️ Arquitetura](./docs/ARQUITETURA.md)** ·
+**[🔐 Acessos](./docs/ACESSOS.md)**
 
 [Sobre](#sobre-o-socialmeiia) · [Funcionalidades](#principais-funcionalidades) · [Interface](#interface) · [Tecnologias](#tecnologias) · [Arquitetura](#como-funciona) · [Execução](#executando-o-projeto) · [Status](#status-e-próximos-passos)
 
@@ -45,7 +58,7 @@ A lista reúne conversas identificadas como WhatsApp ou Instagram, com históric
 - **Saída:** respostas digitadas no dashboard são adicionadas localmente. Não há envio externo implementado nesse composer.
 - **Canais oficiais:** há um workflow experimental de Instagram com agente Gemini e requisição à API do canal. Isso não comprova uma integração completa dos dois canais com o dashboard.
 
-> A documentação registra a validação de recebimento e persistência na Sprint 3. Porém, o export PostgreSQL atual contém escapes inválidos de JSON e está marcado como inativo. Ele precisa de revisão antes de ser importado e validado em outro ambiente.
+> O export PostgreSQL versionado é **JSON válido e sanitizado**, sem credenciais embutidas. Ele permanece com `active: false` por segurança: após importar no n8n, selecione a credencial **SocialMEI - PostgreSQL App**, valide os nós e só então publique no ambiente desejado.
 
 ## Interface
 
@@ -82,7 +95,7 @@ Os exports experimentais de Instagram incluem nós de Google Gemini. A API Pytho
 
 ## Como funciona
 
-O dashboard roda no navegador. A leitura de mensagens passa pelo n8n, enquanto a gestão local permanece no navegador. O diagrama representa o fluxo previsto no código e no export versionado; sua reprodução depende de corrigir e configurar esse export.
+O dashboard roda no navegador. A leitura de mensagens passa pelo n8n, enquanto a gestão local permanece no navegador. O diagrama representa o fluxo previsto no código e no export versionado; sua reprodução depende de configurar as credenciais/variáveis do ambiente e validar o workflow antes da publicação.
 
 ```mermaid
 flowchart LR
@@ -134,7 +147,7 @@ A inicialização do histórico não é automática no Compose. Um responsável 
 
 1. Criar a role administrativa e configurar sua senha fora do GitHub.
 2. Aplicar [`bootstrap.sql`](./database/bootstrap.sql), [`schema.sql`](./database/schema.sql) e [`permissions.sql`](./database/permissions.sql). Os scripts de permissões referenciam o banco `n8n`; confira o nome adotado no ambiente.
-3. Revisar o [export PostgreSQL](./n8n-workflows/producao/01-caixa-unificada-api-postgresql.json), corrigir seus escapes e validar JSON, código dos nós e consultas antes da importação.
+3. Importar o [export PostgreSQL](./n8n-workflows/producao/01-caixa-unificada-api-postgresql.json), que é versionado sem credenciais e fica inativo por segurança; valide código dos nós e consultas antes de publicar.
 4. Configurar a credencial técnica PostgreSQL no n8n e validar o workflow antes de ativá-lo.
 5. Configurar o endpoint de leitura do frontend para o ambiente de teste, mantendo `index.html` e `frontend/socialmei-dashboard.html` sincronizados.
 6. Enviar uma mensagem de teste ao webhook configurado e confirmar o registro no banco e na Caixa Unificada.
@@ -152,7 +165,7 @@ Consulte os guias de [Docker](./docs/DOCKER.md), [banco](./docs/BANCO-DE-DADOS.m
 - [ ] Integração oficial completa de WhatsApp/Instagram com o dashboard.
 - [ ] Envio externo de respostas pela Caixa Unificada.
 
-As duas evoluções de integração já constam da documentação do projeto. A revisão do export PostgreSQL é uma pendência identificada nesta auditoria. Serviços configurados no repositório não são, por si só, comprovação de disponibilidade online.
+As duas evoluções de integração já constam da documentação do projeto. O export PostgreSQL está versionado em formato JSON válido e deve ser configurado com credenciais do ambiente após a importação. Serviços configurados no repositório não são, por si só, comprovação de disponibilidade online.
 
 <details>
 <summary><strong>Registro da Sprint 3 — US-018</strong></summary>
@@ -183,7 +196,7 @@ SocialMEI-IA/
 ├── index.html                     # entrada do site estático
 ├── frontend/                      # dashboard editável, sincronizado com index.html
 ├── n8n-workflows/                  # exports de automação e testes
-│   └── producao/                   # export do fluxo PostgreSQL, a revisar
+│   └── producao/                   # export válido do fluxo PostgreSQL (inativo por segurança)
 ├── database/                      # bootstrap, schema e permissões
 ├── python-service/                # API auxiliar FastAPI
 ├── docs/                          # guias da equipe
