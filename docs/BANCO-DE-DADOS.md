@@ -36,13 +36,13 @@ As tabelas internas do n8n continuam separadas.
 
 O endereço do pgAdmin é definido por `PGADMIN_HOST` no `.env` do servidor.
 
-Exemplo de desenvolvimento:
+Acesso web atual:
 
 ```text
 https://db.54-94-213-7.sslip.io
 ```
 
-O valor real deve ser confirmado durante o deploy.
+Endereço confirmado no ambiente atual: `https://db.54-94-213-7.sslip.io`.
 
 Nunca coloque usuário ou senha real no GitHub.
 
