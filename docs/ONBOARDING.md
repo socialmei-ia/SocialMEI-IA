@@ -7,7 +7,7 @@ Este documento existe para que um integrante consiga começar a trabalhar sem de
 - GitHub: https://github.com/socialmei-ia/socialmei
 - Dashboard público: https://socialmei-ia.github.io/socialmei/
 - n8n: https://socialmei.54-94-213-7.sslip.io/home/workflows
-- Banco / pgAdmin: definido por `PGADMIN_HOST` no servidor
+- Banco / pgAdmin: https://db.54-94-213-7.sslip.io (login necessário)
 
 ## 2. Onde modificar cada coisa
 
