@@ -27,6 +27,7 @@
 | Configurar variáveis de ambiente | [`.env.example`](./.env.example) |
 | Guia de entrada da equipe | [`docs/ONBOARDING.md`](./docs/ONBOARDING.md) |
 | Banco de dados | [`docs/BANCO-DE-DADOS.md`](./docs/BANCO-DE-DADOS.md) |
+| Docker / infraestrutura | [`docs/DOCKER.md`](./docs/DOCKER.md) |
 | Abrir pgAdmin | https://db.54-94-213-7.sslip.io *(login necessário)* |
 | Estrutura SQL | [`database/schema.sql`](./database/schema.sql) |
 
