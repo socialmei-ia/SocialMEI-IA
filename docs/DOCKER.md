@@ -1,94 +1,137 @@
 # Docker e infraestrutura — guia da equipe
 
-Este guia explica como integrantes podem propor mudanças na infraestrutura sem depender de acesso administrativo direto à VPS.
+> Guia prático para adicionar, alterar e recuperar serviços sem deixar mudanças apenas na VPS.
 
 ## Regra principal
 
-Qualquer integrante pode **preparar** uma mudança no Docker pelo GitHub. Somente responsáveis autorizados pela infraestrutura devem **aplicar** essa mudança na VPS.
+Qualquer integrante pode **preparar** uma mudança pelo GitHub. Somente responsáveis autorizados pela infraestrutura devem **aplicar** a mudança na VPS.
 
-```text
-integrante → branch no GitHub → Pull Request / revisão
-                                   ↓
-                          responsável pela VPS
-                                   ↓
-                           valida e aplica
+```mermaid
+flowchart LR
+    A["Integrante"] --> B["Branch"]
+    B --> C["Pull Request"]
+    C --> D["Revisão"]
+    D --> E["Responsável pela VPS"]
+    E --> F["docker compose config"]
+    F --> G["Aplicar serviço"]
+    G --> H["Testar + documentar"]
 ```
 
-Ter acesso ao Docker equivale, na prática, a ter poder administrativo elevado sobre o servidor. Por isso, não é recomendado dar acesso Docker a toda a equipe.
+Acesso ao Docker oferece poder administrativo elevado sobre o servidor. Não é necessário dar Docker para toda a equipe.
 
-## Arquivos principais
+## Serviços atuais
 
-- `compose.yaml`: PostgreSQL, n8n, pgAdmin e Caddy.
-- `compose.override.yaml`: serviço Python/FastAPI.
-- `Caddyfile`: proxy HTTPS.
-- `.env.example`: nomes das variáveis, sem valores secretos.
+| Serviço | Container | Função | Exposição |
+|---|---|---|---|
+| Caddy | `socialmei-caddy` | HTTPS / reverse proxy | 80 e 443 |
+| n8n | `socialmei-n8n` | automações e webhooks | rede Docker/Caddy |
+| PostgreSQL | `socialmei-postgres` | banco principal | **5432 apenas interna** |
+| pgAdmin | `socialmei-pgadmin` | administração web do banco | rede Docker/Caddy |
+| FastAPI | `socialmei-python` | API Python | rede Docker |
 
-## Como adicionar um serviço
+## Quero instalar um novo programa
 
-1. Crie uma branch.
-2. Edite `compose.yaml` ou `compose.override.yaml`.
-3. Não coloque senhas no arquivo.
-4. Adicione novas variáveis somente como `${NOME_DA_VARIAVEL}`.
-5. Atualize `.env.example` com placeholders.
-6. Valide localmente ou na VPS antes de aplicar:
+### 1. Criar branch
+
+```bash
+git switch main
+git pull origin main
+git switch -c feat/adicionar-novo-servico
+```
+
+### 2. Alterar o Compose
+
+Boas práticas:
+
+- prefira versão fixa de imagem em vez de `:latest` quando possível;
+- use `restart: unless-stopped`;
+- use volume nomeado para dados persistentes;
+- adicione `healthcheck` quando suportado;
+- mantenha segredos no `.env`;
+- não publique portas sem necessidade;
+- para serviço web, prefira acesso por Caddy;
+- documente variáveis novas em `.env.example`.
+
+### 3. Validar
 
 ```bash
 docker compose config >/dev/null && echo "COMPOSE OK" || echo "ERRO NO COMPOSE"
 ```
 
-7. Abra um Pull Request.
-8. Após revisão, o responsável pela VPS aplica a mudança.
+Se der erro, não aplique.
 
-## Aplicar apenas um serviço novo/alterado
+### 4. Abrir Pull Request
 
-Sempre que possível, evite reiniciar toda a stack:
+Inclua objetivo, teste, variáveis/volumes/portas e rollback.
 
-```bash
-docker compose up -d --no-deps NOME_DO_SERVICO
-```
+### 5. Aplicar somente o necessário
 
-Se for necessário recriar apenas aquele serviço:
-
-```bash
-docker compose up -d --no-deps --force-recreate NOME_DO_SERVICO
-```
-
-Antes de executar, confira o impacto e registre o estado atual com:
+Antes:
 
 ```bash
 docker compose ps
 ```
 
-## Logs
+Subir serviço:
+
+```bash
+docker compose up -d --no-deps NOME_DO_SERVICO
+```
+
+Recriar apenas ele:
+
+```bash
+docker compose up -d --no-deps --force-recreate NOME_DO_SERVICO
+```
+
+## Logs e diagnóstico
 
 ```bash
 docker logs --tail 100 NOME_DO_CONTAINER
+docker compose ps
+docker compose config
 ```
 
-Para acompanhar ao vivo:
+Para acompanhar:
 
 ```bash
 docker logs -f NOME_DO_CONTAINER
 ```
 
-## O que não fazer
+## Cuidado extra
 
-- não editar `compose.yaml` somente na VPS e esquecer de versionar no GitHub;
-- não publicar `.env`, senhas, tokens, arquivos `.pem` ou dumps;
-- não expor a porta 5432 do PostgreSQL diretamente à internet;
-- não usar `docker compose down -v` em produção sem entender que `-v` remove volumes;
-- não apagar volumes, containers ou dados sem backup e autorização;
-- não reiniciar todos os serviços quando basta recriar um único serviço.
+Faça backup e planeje rollback antes de:
 
-## Fluxo recomendado para rollback
+- apagar/recriar volumes;
+- migrations destrutivas;
+- trocar banco;
+- alterar credenciais de produção;
+- trocar a chave de criptografia do n8n;
+- publicar novas portas;
+- usar `docker compose down -v`.
 
-Se uma mudança nova causar problema:
+> Não altere a chave de criptografia do n8n de forma improvisada. Ela protege credenciais salvas.
 
-1. pare de fazer novas alterações;
-2. confirme qual commit/arquivo mudou;
-3. restaure a configuração anterior pelo GitHub;
-4. rode `docker compose config`;
+## Rollback
+
+1. pare novas alterações;
+2. identifique o commit;
+3. reverta/restaure pelo GitHub;
+4. valide `docker compose config`;
 5. recrie somente o serviço afetado;
-6. confira `docker compose ps` e os logs.
+6. confira logs e status;
+7. teste o fluxo.
 
-Mudanças destrutivas em banco ou volumes exigem backup antes de qualquer execução.
+## Não faça
+
+- editar Compose só na VPS e esquecer o GitHub;
+- compartilhar `.env`, `.pem`, tokens ou senhas;
+- expor PostgreSQL diretamente;
+- usar `down -v` sem entender o impacto;
+- apagar volume sem backup;
+- dar Docker a todos por conveniência;
+- instalar manualmente algo que pode ser reproduzido pelo Compose.
+
+## Novos responsáveis
+
+SSH e Docker são concedidos sob demanda. Veja [ACESSOS.md](./ACESSOS.md).
