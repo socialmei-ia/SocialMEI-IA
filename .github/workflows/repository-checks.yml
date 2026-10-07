@@ -1,0 +1,74 @@
+name: Repository checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate JSON files
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          failures = []
+          for path in Path(".").rglob("*.json"):
+              if ".git" in path.parts:
+                  continue
+              try:
+                  json.loads(path.read_text(encoding="utf-8"))
+              except Exception as exc:
+                  failures.append(f"{path}: {exc}")
+          if failures:
+              raise SystemExit("\n".join(failures))
+          print("JSON OK")
+          PY
+
+      - name: Keep published and editable dashboards synchronized
+        run: |
+          cmp -s index.html frontend/socialmei-dashboard.html || {
+            echo "index.html e frontend/socialmei-dashboard.html estão diferentes."
+            exit 1
+          }
+          echo "Dashboard sync OK"
+
+      - name: Check official README assets
+        run: |
+          test -f docs/assets/socialmei-banner.png
+          test -f docs/assets/socialmei-logo.png
+          echo "Assets OK"
+
+      - name: Reject stale repository URLs
+        run: |
+          if grep -R -n -E 'socialmei-ia\.github\.io/socialmei/|github\.com/socialmei-ia/socialmei([/#.]|$)' \
+            --include='*.md' --include='*.yml' --include='*.yaml' \
+            --exclude='repository-checks.yml' .; then
+            echo "Foram encontradas URLs antigas do repositório."
+            exit 1
+          fi
+          echo "Repository URLs OK"
+
+      - name: Validate Docker Compose
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test-password
+          POSTGRES_DB: n8n
+          N8N_ENCRYPTION_KEY: test-encryption-key-32-characters
+          N8N_HOST: n8n.example.test
+          N8N_PROTOCOL: https
+          N8N_EDITOR_BASE_URL: https://n8n.example.test
+          N8N_WEBHOOK_URL: https://n8n.example.test
+          N8N_PROXY_HOPS: "1"
+          PGADMIN_HOST: db.example.test
+          PGADMIN_DEFAULT_EMAIL: admin@example.test
+          PGADMIN_DEFAULT_PASSWORD: test-password
+          TZ: America/Recife
+          GENERIC_TIMEZONE: America/Recife
+        run: docker compose config --quiet
