@@ -9,7 +9,7 @@
 ### Gestão, automação e atendimento inteligente para MEIs
 
 [![Status](https://img.shields.io/badge/status-prot%C3%B3tipo%20funcional-2563EB?style=for-the-badge)](#status-e-próximos-passos)
-[![Sprint 3](https://img.shields.io/badge/Sprint%203-US--018%20validada-16A34A?style=for-the-badge)](#registro-da-sprint-3--us-018)
+[![Sprint 3](https://img.shields.io/badge/Sprint%203-US--018%20validada-16A34A?style=for-the-badge)](#status-e-próximos-passos)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-persist%C3%AAncia-336791?style=for-the-badge&logo=postgresql&logoColor=white)](./database)
 [![n8n](https://img.shields.io/badge/n8n-automa%C3%A7%C3%A3o-EA4B71?style=for-the-badge&logo=n8n&logoColor=white)](./n8n-workflows)
 [![Docker](https://img.shields.io/badge/Docker-infraestrutura-2496ED?style=for-the-badge&logo=docker&logoColor=white)](./compose.yaml)
