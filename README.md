@@ -25,6 +25,11 @@
 | Ver a API Python | [`python-service/`](./python-service) |
 | Ver a infraestrutura Docker | [`compose.yaml`](./compose.yaml) |
 | Configurar variáveis de ambiente | [`.env.example`](./.env.example) |
+| Guia de entrada da equipe | [`docs/ONBOARDING.md`](./docs/ONBOARDING.md) |
+| Banco de dados | [`docs/BANCO-DE-DADOS.md`](./docs/BANCO-DE-DADOS.md) |
+| Docker / infraestrutura | [`docs/DOCKER.md`](./docs/DOCKER.md) |
+| Abrir pgAdmin | https://db.54-94-213-7.sslip.io *(login necessário)* |
+| Estrutura SQL | [`database/schema.sql`](./database/schema.sql) |
 
 > O arquivo `index.html` é a mesma versão atual do dashboard e deixa o repositório pronto para publicação como site estático pelo GitHub Pages.
 
@@ -47,6 +52,7 @@ O dashboard atual já possui identidade visual própria, responsividade, temas c
 - temas claro/escuro e personalização visual
 - layout responsivo
 - recebimento de mensagens pelo n8n
+- persistência de clientes, conversas e mensagens no PostgreSQL
 - exibição das mensagens recebidas na Caixa Unificada
 - infraestrutura com Docker, PostgreSQL, Caddy e FastAPI
 - HTTPS no ambiente de desenvolvimento
@@ -139,6 +145,11 @@ socialmei/
 ├── frontend/
 │   └── socialmei-dashboard.html
 ├── n8n-workflows/
+├── database/
+│   └── schema.sql
+├── docs/
+│   ├── ONBOARDING.md
+│   └── BANCO-DE-DADOS.md
 ├── python-service/
 ├── compose.yaml
 ├── compose.override.yaml
@@ -212,7 +223,7 @@ O arquivo `.env.example` contém apenas valores de exemplo.
 | FastAPI | ✅ Funcionando |
 | Docker | ✅ Funcionando |
 | WhatsApp/Instagram oficiais | 🟡 Integração completa ainda em evolução |
-| Persistência definitiva das conversas | 🟡 Próxima evolução |
+| Persistência das conversas no PostgreSQL | ✅ Implementada na Sprint 3 |
 
 ---
 
