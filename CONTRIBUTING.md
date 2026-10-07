@@ -1,30 +1,54 @@
 # Como contribuir com o SocialMEI.IA
 
+O objetivo é permitir que qualquer integrante contribua sem precisar editar produção diretamente.
+
 ## Fluxo recomendado
 
-1. Atualize seu repositório local:
-   `git pull origin main`
-2. Para mudanças maiores, crie uma branch:
-   `git checkout -b feat/nome-da-tarefa`
-3. Faça alterações pequenas e testáveis.
-4. Confira:
-   `git status`
-5. Faça o commit e envie a branch.
-6. Abra um Pull Request explicando o que mudou e como testar.
+```bash
+git switch main
+git pull origin main
+git switch -c feat/nome-da-tarefa
+```
 
-## Antes de enviar
+Depois das alterações:
 
-- teste o dashboard em desktop e mobile;
-- confirme que a Caixa Unificada continua funcionando;
-- não altere endpoints do n8n sem combinar com a equipe;
-- nunca faça commit de .env, .pem, senhas, tokens ou chaves de API.
+```bash
+git status
+git add .
+git commit -m "feat: descreva a mudança"
+git push origin feat/nome-da-tarefa
+```
 
-## Commits
+Abra um Pull Request para `main`.
 
-Use mensagens curtas:
+## Branches
 
-- feat: nova funcionalidade
-- fix: correção
-- ui: interface
-- docs: documentação
-- chore: manutenção
+- `feat/` — funcionalidade
+- `fix/` — correção
+- `ui/` — visual/interface
+- `docs/` — documentação
+- `chore/` — manutenção
+- `infra/` — Docker, Caddy, servidor/deploy
+
+## Antes do PR
+
+- teste o dashboard em desktop/mobile se alterou UI;
+- valide a Caixa Unificada se mexeu no atendimento;
+- revise SQL se alterou banco;
+- rode `docker compose config` se alterou infraestrutura;
+- atualize documentação;
+- explique como testar;
+- explique rollback se houver impacto em produção;
+- confira que nenhum segredo entrou no diff.
+
+## Infraestrutura
+
+```text
+branch → PR → revisão → responsável pela VPS → validação → aplicação
+```
+
+Veja [docs/DOCKER.md](./docs/DOCKER.md) e [docs/ACESSOS.md](./docs/ACESSOS.md).
+
+## Nunca faça commit de
+
+`.env`, `.pem`, chave privada SSH, senhas, tokens, chaves de API, credenciais exportadas ou dumps sensíveis.

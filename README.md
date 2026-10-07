@@ -1,143 +1,177 @@
 <div align="center">
 
+![SocialMEI.IA](./docs/assets/socialmei-banner.svg)
+
 # SocialMEI.IA
 
-### Gestão e atendimento inteligente para MEIs
+### Gestão, automação e atendimento inteligente para MEIs
 
-**Dashboard web + Caixa Unificada + automações com n8n**
+[![Status](https://img.shields.io/badge/status-em%20desenvolvimento-2563EB?style=for-the-badge)](#-status)
+[![Sprint 3](https://img.shields.io/badge/Sprint%203-US--018%20conclu%C3%ADda-16A34A?style=for-the-badge)](#-sprint-3--us-018)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-persist%C3%AAncia-336791?style=for-the-badge&logo=postgresql&logoColor=white)](./database)
+[![n8n](https://img.shields.io/badge/n8n-automa%C3%A7%C3%A3o-EA4B71?style=for-the-badge&logo=n8n&logoColor=white)](./n8n-workflows)
+[![Docker](https://img.shields.io/badge/Docker-infraestrutura-2496ED?style=for-the-badge&logo=docker&logoColor=white)](./compose.yaml)
 
-[![Status](https://img.shields.io/badge/status-em%20desenvolvimento-1E73D8)](#status-do-projeto)
-[![Frontend](https://img.shields.io/badge/frontend-HTML%20%7C%20CSS%20%7C%20JS-F2B11B)](./frontend/socialmei-dashboard.html)
-[![n8n](https://img.shields.io/badge/automa%C3%A7%C3%A3o-n8n-EA4B71)](./n8n-workflows)
-[![Docker](https://img.shields.io/badge/infra-Docker-2496ED)](./compose.yaml)
+**[🌐 Abrir Dashboard](https://socialmei-ia.github.io/socialmei/)** ·
+**[🚀 Começar no projeto](./docs/ONBOARDING.md)** ·
+**[🏗️ Arquitetura](./docs/ARQUITETURA.md)** ·
+**[🔐 Acessos](./docs/ACESSOS.md)**
 
 </div>
 
 ---
 
-## Acesso rápido
+## ✨ O que é o SocialMEI.IA?
 
-| Quero... | Abrir |
+O **SocialMEI.IA** é um projeto acadêmico de CRM e automação para MEIs e pequenos negócios. Ele combina um dashboard simples com uma **Caixa Unificada**, automações no **n8n**, histórico persistente no **PostgreSQL** e uma infraestrutura reproduzível com **Docker**.
+
+A ideia é reduzir a complexidade de ferramentas empresariais tradicionais e concentrar atendimento, gestão e automação em um fluxo visual e fácil de operar.
+
+## 🚀 Acesso rápido
+
+| 👀 Quero... | Abrir |
 |---|---|
-| Ver o dashboard atual | [`index.html`](./index.html) |
-| Trabalhar no frontend | [`frontend/socialmei-dashboard.html`](./frontend/socialmei-dashboard.html) |
-| Ver os workflows do n8n | [`n8n-workflows/`](./n8n-workflows) |
-| Ver a API Python | [`python-service/`](./python-service) |
-| Ver a infraestrutura Docker | [`compose.yaml`](./compose.yaml) |
-| Configurar variáveis de ambiente | [`.env.example`](./.env.example) |
-| Guia de entrada da equipe | [`docs/ONBOARDING.md`](./docs/ONBOARDING.md) |
-| Banco de dados | [`docs/BANCO-DE-DADOS.md`](./docs/BANCO-DE-DADOS.md) |
-| Docker / infraestrutura | [`docs/DOCKER.md`](./docs/DOCKER.md) |
-| Abrir pgAdmin | https://db.54-94-213-7.sslip.io *(login necessário)* |
-| Estrutura SQL | [`database/schema.sql`](./database/schema.sql) |
+| **Ver o sistema funcionando** | [Dashboard público](https://socialmei-ia.github.io/socialmei/) |
+| **Entrar no projeto como integrante** | [Onboarding](./docs/ONBOARDING.md) |
+| **Entender a arquitetura** | [Arquitetura](./docs/ARQUITETURA.md) |
+| **Entender quem acessa o quê** | [Acessos e permissões](./docs/ACESSOS.md) |
+| **Adicionar/alterar serviço Docker** | [Guia Docker](./docs/DOCKER.md) |
+| **Entender o banco** | [Banco de dados](./docs/BANCO-DE-DADOS.md) |
+| **Editar o dashboard** | [Frontend](./frontend/socialmei-dashboard.html) |
+| **Ver o workflow oficial** | [Caixa Unificada PostgreSQL](./n8n-workflows/producao/01-caixa-unificada-api-postgresql.json) |
+| **Administrar banco via web** | [pgAdmin](https://db.54-94-213-7.sslip.io) *(login necessário)* |
 
-> O arquivo `index.html` é a mesma versão atual do dashboard e deixa o repositório pronto para publicação como site estático pelo GitHub Pages.
+## 🧩 O que já funciona
 
-## O projeto
+<table>
+<tr>
+<td width="50%" valign="top">
 
-O **SocialMEI.IA** é um projeto acadêmico voltado a MEIs e pequenos negócios. A proposta é centralizar gestão, atendimento e automações em uma interface simples, com integração ao n8n.
-
-O dashboard atual já possui identidade visual própria, responsividade, temas configuráveis e uma Caixa Unificada preparada para receber mensagens processadas pelo n8n.
-
-## O que já funciona
-
-- Visão Geral do negócio
+### 🖥️ Dashboard
+- Visão Geral
 - Financeiro
 - Vendas
 - Clientes
-- Produtos e Serviços
-- Caixa Unificada
+- Produtos / Serviços
 - Relatórios
 - Configurações
-- temas claro/escuro e personalização visual
+- temas claro/escuro
 - layout responsivo
-- recebimento de mensagens pelo n8n
-- persistência de clientes, conversas e mensagens no PostgreSQL
-- exibição das mensagens recebidas na Caixa Unificada
-- infraestrutura com Docker, PostgreSQL, Caddy e FastAPI
-- HTTPS no ambiente de desenvolvimento
-- backup do PostgreSQL testado
 
-### Caixa Unificada
+</td>
+<td width="50%" valign="top">
 
-Fluxo já validado:
+### 💬 Caixa Unificada
+- mensagens processadas pelo n8n
+- WhatsApp + Instagram na mesma tela
+- histórico persistente
+- troca entre conversas
+- sincronização com endpoint
+- caracteres UTF-8 validados
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+### ⚙️ Backend / automação
+- n8n
+- PostgreSQL
+- FastAPI
+- webhooks
+- roles separadas para aplicação/administração
+
+</td>
+<td width="50%" valign="top">
+
+### 🐳 Infraestrutura
+- Docker Compose
+- Caddy + HTTPS
+- pgAdmin
+- PostgreSQL sem 5432 pública
+- GitHub como fonte de verdade
+- acesso administrativo sob demanda
+
+</td>
+</tr>
+</table>
+
+> **Limite atual:** a Caixa Unificada já recebe, persiste e exibe mensagens pelo fluxo do n8n. A integração oficial completa com APIs de WhatsApp/Instagram e o envio externo real de respostas continuam como evolução do projeto.
+
+## 🏗️ Arquitetura
+
+```mermaid
+flowchart LR
+    USER["👤 Cliente / teste"] -->|mensagem| N8N["⚙️ n8n"]
+    N8N -->|salva| DB[("🐘 PostgreSQL")]
+    DASH["🖥️ Dashboard"] -->|GET mensagens| N8N
+    N8N -->|consulta| DB
+    TEAM["🧑‍💻 Equipe"] -->|HTTPS| PG["🗄️ pgAdmin"]
+    PG --> DB
+    WEB["🌐 Internet"] --> CADDY["🔐 Caddy / HTTPS"]
+    CADDY --> N8N
+    CADDY --> PG
+```
+
+Mais detalhes em **[docs/ARQUITETURA.md](./docs/ARQUITETURA.md)**.
+
+## 💬 Caixa Unificada: fluxo atual
 
 ```text
-Mensagem / requisição de teste
-          ↓
-         n8n
-          ↓
-Webhook SocialMEI
-          ↓
-Endpoint de mensagens
-          ↓
-Caixa Unificada no dashboard
+Mensagem / requisição
+        ↓
+Webhook n8n
+        ↓
+Normalização
+        ↓
+PostgreSQL
+  ├─ clientes
+  ├─ conversas
+  └─ mensagens
+        ↓
+Endpoint GET n8n
+        ↓
+Dashboard
+        ↓
+WhatsApp + Instagram
 ```
 
-**Importante:** mensagens recebidas pelo n8n entram no dashboard. As respostas digitadas na interface ainda podem funcionar como demonstração local quando não há endpoint real de saída configurado.
+## ✅ Sprint 3 — US-018
 
-## Teste rápido do frontend
+**Integração Webhook + Interface do Dashboard**
 
-Você pode abrir `index.html` diretamente no navegador.
+| Entrega | Estado |
+|---|---|
+| Frontend conectado às saídas dos webhooks | ✅ |
+| Histórico de conversas salvo no PostgreSQL | ✅ |
+| WhatsApp + Instagram em tela única | ✅ |
+| Alternância entre conversas validada | ✅ |
+| UTF-8 validado | ✅ |
+| pgAdmin disponível por HTTPS | ✅ |
+| Workflow PostgreSQL versionado | ✅ |
+| Processo de Docker documentado | ✅ |
+| Política de acesso por integrante | ✅ |
 
-Para uma execução local mais próxima de um site real:
+## 👥 Colaboração sem depender de uma pessoa
 
-```bash
-python -m http.server 5500
+```mermaid
+flowchart TD
+    DEV["Integrante"] --> GIT["GitHub / branch"]
+    GIT --> PR["Pull Request"]
+    PR --> REVIEW["Revisão"]
+    REVIEW -->|frontend/docs| MERGE["Merge"]
+    REVIEW -->|infra| INFRA["Responsável pela VPS"]
+    INFRA --> VALIDATE["docker compose config"]
+    VALIDATE --> DEPLOY["Aplicar serviço"]
 ```
 
-Depois acesse:
+**SSH, Docker e AWS não precisam ser liberados para toda a equipe.** O acesso é individual e concedido sob demanda.
 
-```text
-http://localhost:5500
-```
+→ [Como liberar acesso para um novo integrante](./docs/ACESSOS.md)
 
-<details>
-<summary><strong>Como testar a Caixa Unificada</strong></summary>
+→ [Como instalar um novo serviço no Docker](./docs/DOCKER.md)
 
-1. Mantenha o workflow de recebimento do n8n ativo.
-2. Abra o dashboard.
-3. Entre em **Caixa Unificada**.
-4. Execute o workflow de teste ou envie uma requisição para o webhook configurado.
-5. Aguarde a sincronização.
-6. A nova conversa/mensagem deve aparecer na lista.
-
-</details>
-
-<details>
-<summary><strong>Como subir a infraestrutura</strong></summary>
-
-Crie o arquivo `.env` a partir do exemplo:
-
-```bash
-cp .env.example .env
-```
-
-Preencha as variáveis localmente e execute:
-
-```bash
-docker compose up -d
-```
-
-Nunca envie o arquivo `.env` real para o repositório.
-
-</details>
-
-## Arquitetura
-
-```text
-                    ┌─────────────────┐
-                    │   Dashboard     │
-                    │ SocialMEI.IA    │
-                    └────────┬────────┘
-                             │
-                             ▼
-Internet ──► Caddy ──► n8n ─────────► Python / FastAPI
-                       │
-                       └─────────────► PostgreSQL
-```
-
-## Estrutura do repositório
+## 🗂️ Estrutura do repositório
 
 ```text
 socialmei/
@@ -145,91 +179,99 @@ socialmei/
 ├── frontend/
 │   └── socialmei-dashboard.html
 ├── n8n-workflows/
+│   └── producao/
+│       └── 01-caixa-unificada-api-postgresql.json
 ├── database/
-│   └── schema.sql
+│   ├── bootstrap.sql
+│   ├── schema.sql
+│   └── permissions.sql
 ├── docs/
+│   ├── ACESSOS.md
+│   ├── ARQUITETURA.md
+│   ├── BANCO-DE-DADOS.md
+│   ├── DOCKER.md
 │   ├── ONBOARDING.md
-│   └── BANCO-DE-DADOS.md
+│   └── assets/
+│       └── socialmei-banner.svg
 ├── python-service/
 ├── compose.yaml
 ├── compose.override.yaml
 ├── Caddyfile
-├── backup.sh
 ├── .env.example
-└── README.md
+├── CONTRIBUTING.md
+└── SECURITY.md
 ```
 
-## Colaboração
-
-Antes de começar:
-
-```bash
-git pull origin main
-```
-
-Depois das alterações:
-
-```bash
-git status
-git add .
-git commit -m "Descreva a alteração"
-git push origin main
-```
-
-Para mudanças maiores, prefira uma branch separada e Pull Request.
+## 🧪 Testes rápidos
 
 <details>
-<summary><strong>Convenção simples de commits</strong></summary>
+<summary><strong>▶️ Abrir o frontend localmente</strong></summary>
 
-- `feat:` nova funcionalidade
-- `fix:` correção
-- `ui:` alteração visual
-- `docs:` documentação
-- `chore:` manutenção
-
-Exemplos:
-
-```text
-ui: improve unified inbox
-fix: preserve conversation scroll
-docs: update project setup
+```bash
+python -m http.server 5500
 ```
+
+Depois abra `http://localhost:5500`.
 
 </details>
 
-## Segurança
+<details>
+<summary><strong>💬 Validar a Caixa Unificada</strong></summary>
 
-Não envie para o GitHub:
+1. Confirme que o workflow oficial está publicado no n8n.
+2. Abra o dashboard.
+3. Entre em **Caixa Unificada**.
+4. Envie uma requisição de teste para o webhook.
+5. Aguarde a sincronização.
+6. Confirme a conversa no painel e no PostgreSQL.
 
-- `.env`
-- arquivos `.pem`
-- senhas
-- tokens
-- chaves de API
-- credenciais do n8n
-- backups
-- dumps do PostgreSQL
+</details>
 
-O arquivo `.env.example` contém apenas valores de exemplo.
+<details>
+<summary><strong>🐳 Validar uma mudança Docker</strong></summary>
 
-## Status do projeto
+```bash
+docker compose config >/dev/null && echo "COMPOSE OK" || echo "ERRO NO COMPOSE"
+```
+
+Depois siga [docs/DOCKER.md](./docs/DOCKER.md).
+
+</details>
+
+## 🔐 Segurança
+
+<div align="center">
+
+**Sem senhas no GitHub · Sem .pem compartilhada · PostgreSQL sem 5432 pública · Acesso administrativo individual**
+
+</div>
+
+Nunca publique `.env`, chaves privadas, tokens, credenciais do n8n, dumps ou backups sensíveis.
+
+Consulte **[SECURITY.md](./SECURITY.md)** e **[docs/ACESSOS.md](./docs/ACESSOS.md)**.
+
+## 📊 Status
 
 | Área | Estado |
 |---|---|
-| Dashboard | ✅ Em desenvolvimento ativo |
-| Caixa Unificada | ✅ Protótipo funcional integrado ao n8n |
-| n8n | ✅ Online no ambiente atual |
-| PostgreSQL | ✅ Funcionando |
-| FastAPI | ✅ Funcionando |
-| Docker | ✅ Funcionando |
-| WhatsApp/Instagram oficiais | 🟡 Integração completa ainda em evolução |
-| Persistência das conversas no PostgreSQL | ✅ Implementada na Sprint 3 |
+| Dashboard | 🟢 Funcional / em evolução |
+| Caixa Unificada | 🟢 Protótipo funcional persistente |
+| n8n | 🟢 Online |
+| PostgreSQL | 🟢 Persistência ativa |
+| pgAdmin | 🟢 Acesso web autenticado |
+| FastAPI | 🟢 Serviço ativo |
+| Docker / Caddy | 🟢 Infraestrutura ativa |
+| GitHub Pages | 🟢 Publicado |
+| WhatsApp / Instagram oficiais | 🟡 Integração completa em evolução |
+| Envio externo real pelo dashboard | 🟡 Ainda não integrado |
 
 ---
 
 <div align="center">
 
-**SocialMEI.IA — CRM autônomo para MEIs**
+### SocialMEI.IA
+
+**Tecnologia prática para quem precisa cuidar do negócio — não da complexidade.**
 
 Projeto acadêmico em evolução.
 

@@ -1,65 +1,60 @@
 # Onboarding da equipe — SocialMEI.IA
 
-Este documento existe para que um integrante consiga começar a trabalhar sem depender de outro membro para explicar a estrutura do projeto.
+> Em poucos minutos, um integrante deve conseguir descobrir onde trabalhar, como testar e quem precisa aplicar mudanças de infraestrutura.
 
-## 1. Links principais
+## Comece aqui
+
+| Quero fazer | Vá para |
+|---|---|
+| Abrir o dashboard | https://socialmei-ia.github.io/socialmei/ |
+| Alterar interface | `frontend/socialmei-dashboard.html` + `index.html` |
+| Trabalhar com automações | n8n + `n8n-workflows/` |
+| Entender o banco | [BANCO-DE-DADOS.md](./BANCO-DE-DADOS.md) |
+| Entender acessos | [ACESSOS.md](./ACESSOS.md) |
+| Adicionar serviço Docker | [DOCKER.md](./DOCKER.md) |
+| Entender arquitetura | [ARQUITETURA.md](./ARQUITETURA.md) |
+| Alterar API Python | `python-service/` |
+
+## Links do ambiente
 
 - GitHub: https://github.com/socialmei-ia/socialmei
-- Dashboard público: https://socialmei-ia.github.io/socialmei/
+- Dashboard: https://socialmei-ia.github.io/socialmei/
 - n8n: https://socialmei.54-94-213-7.sslip.io/home/workflows
-- Banco / pgAdmin: https://db.54-94-213-7.sslip.io (login necessário)
+- pgAdmin: https://db.54-94-213-7.sslip.io *(login necessário)*
 
-## 2. Onde modificar cada coisa
-
-| Quero alterar | Onde |
-|---|---|
-| Dashboard | `frontend/socialmei-dashboard.html` |
-| Página publicada | `index.html` |
-| Workflows | n8n + export em `n8n-workflows/` |
-| Estrutura do banco | `database/` |
-| API Python | `python-service/` |
-| Containers | `compose.yaml` / `compose.override.yaml` |
-| HTTPS / proxy | `Caddyfile` |
-| Instruções | `docs/` e `README.md` |
-
-## 3. Fluxo de colaboração
+## Fluxo padrão
 
 ```bash
+git switch main
 git pull origin main
-git checkout -b feat/minha-alteracao
+git switch -c feat/minha-alteracao
+
 # altere e teste
+
 git status
 git add .
 git commit -m "feat: descreva a mudança"
 git push origin feat/minha-alteracao
 ```
 
-Depois, abra um Pull Request para `main`.
+Depois abra Pull Request para `main`.
 
-## 4. Regra importante
+> Evite trabalhar diretamente em `main`. Para infraestrutura, banco e mudanças maiores, branch + PR é a regra.
 
-Nunca envie para o GitHub:
+## Fonte de verdade
 
-- `.env`
-- arquivos `.pem`
-- senhas
-- tokens
-- API keys
-- credenciais do n8n
-- dumps/backups do banco
+| Área | Onde |
+|---|---|
+| Página publicada | `index.html` |
+| Frontend editável | `frontend/socialmei-dashboard.html` |
+| Workflow oficial | `n8n-workflows/producao/01-caixa-unificada-api-postgresql.json` |
+| Banco | `database/` |
+| Containers | `compose.yaml` / `compose.override.yaml` |
+| HTTPS | `Caddyfile` |
+| API Python | `python-service/` |
+| Procedimentos | `docs/` |
 
-## 5. Antes de modificar produção
-
-1. Entenda qual serviço será afetado.
-2. Faça a alteração em branch.
-3. Teste.
-4. Peça revisão quando possível.
-5. Faça backup antes de mudanças destrutivas de banco/infraestrutura.
-6. Só então aplique no servidor.
-
-## 6. n8n
-
-Estrutura atual:
+## n8n
 
 ```text
 Personal/
@@ -69,10 +64,47 @@ Personal/
     └── 03 · Revisar/
 ```
 
-Novos workflows devem entrar na pasta correspondente e ter nomes claros.
+Teste ideias fora de Produção sempre que possível.
 
-## 7. Banco
+## Banco
 
-A estrutura do banco deve ser reproduzível a partir dos arquivos em `database/`.
+```text
+socialmei
+├── clientes
+├── conversas
+└── mensagens
+```
 
-O painel web do banco será o pgAdmin; o PostgreSQL não deve ser aberto diretamente à internet.
+O acesso humano é preferencialmente pelo pgAdmin. PostgreSQL não deve expor 5432 na internet.
+
+## Quero instalar outro programa
+
+Você não precisa ter acesso à VPS para preparar a mudança:
+
+1. crie uma branch;
+2. adicione o serviço ao Compose;
+3. atualize `.env.example` se houver variáveis novas;
+4. valide `docker compose config`;
+5. abra PR;
+6. o responsável pela infraestrutura aplica.
+
+Veja [DOCKER.md](./DOCKER.md).
+
+## Preciso de VPS, Docker ou AWS
+
+Acesso é concedido sob demanda e com identidade individual.
+
+Não compartilhe chave SSH privada, conta root, senha administrativa ou `.pem`.
+
+Veja [ACESSOS.md](./ACESSOS.md).
+
+## Nunca envie ao GitHub
+
+- `.env`;
+- arquivos `.pem`;
+- chaves privadas SSH;
+- senhas;
+- tokens;
+- chaves de API;
+- credenciais do n8n;
+- dumps/backups sensíveis.

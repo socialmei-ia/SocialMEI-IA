@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: "🔐 Problema de segurança"
+    url: "https://github.com/socialmei-ia/socialmei/blob/main/SECURITY.md"
+    about: "Não publique credenciais ou segredos em issues."
