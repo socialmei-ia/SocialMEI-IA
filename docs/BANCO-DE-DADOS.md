@@ -2,87 +2,83 @@
 
 ## Objetivo
 
-O PostgreSQL já faz parte da infraestrutura do projeto. Na Sprint 3 ele passa a guardar o histórico da Caixa Unificada de forma persistente.
-
-A equipe não deve depender do computador de um integrante para acessar o banco. O acesso será feito pelo servidor, usando **pgAdmin no navegador** e contas individuais sempre que possível.
+O PostgreSQL guarda o histórico persistente da Caixa Unificada. A equipe não depende do computador de um integrante: o banco fica no servidor e o acesso humano é feito preferencialmente pelo **pgAdmin via HTTPS**.
 
 ## Arquitetura
 
-```text
-Equipe
-  ↓ HTTPS
-pgAdmin
-  ↓ rede Docker
-PostgreSQL
-  ↑
- n8n
-  ↑
-Webhooks
+```mermaid
+flowchart TD
+    TEAM["🧑‍💻 Equipe autorizada"] -->|HTTPS| PG["🗄️ pgAdmin"]
+    PG --> DB[("🐘 PostgreSQL")]
+    N8N["⚙️ n8n"] -->|socialmei_app| DB
+    WEB["Webhooks"] --> N8N
 ```
 
-A porta 5432 do PostgreSQL continua **sem ser publicada diretamente na internet**.
+A porta 5432 do PostgreSQL continua **sem publicação direta na internet**.
 
-## Estrutura inicial
+## Estrutura funcional
 
-O arquivo versionado em `database/schema.sql` cria o schema `socialmei` com:
-
-- `socialmei.clientes`
-- `socialmei.conversas`
-- `socialmei.mensagens`
-
-As tabelas internas do n8n continuam separadas.
-
-## Como acessar
-
-O endereço do pgAdmin é definido por `PGADMIN_HOST` no `.env` do servidor.
-
-Acesso web atual:
+O schema `socialmei` é versionado em `database/schema.sql`:
 
 ```text
-https://db.54-94-213-7.sslip.io
+socialmei
+├── clientes
+├── conversas
+└── mensagens
 ```
 
-Endereço confirmado no ambiente atual: `https://db.54-94-213-7.sslip.io`.
+As tabelas internas do n8n permanecem separadas.
 
-Nunca coloque usuário ou senha real no GitHub.
+## Acesso web
 
-## Primeiro acesso
+pgAdmin:
 
-1. Um administrador define `PGADMIN_DEFAULT_EMAIL` e `PGADMIN_DEFAULT_PASSWORD` no `.env` da VPS.
-2. A infraestrutura é atualizada.
-3. O administrador entra no pgAdmin.
-4. Registra o servidor PostgreSQL usando host `postgres`, porta `5432`, banco e credenciais do ambiente.
-5. Cria contas individuais de pgAdmin para os integrantes que precisam de acesso.
+`https://db.54-94-213-7.sslip.io`
+
+O login é autenticado. Contas humanas devem ser individuais e criadas somente para quem precisar.
+
+Veja também [ACESSOS.md](./ACESSOS.md).
+
+## Roles atuais
+
+| Role | Uso | Princípio |
+|---|---|---|
+| `socialmei_admin` | manutenção estrutural do schema funcional | administrativo, uso restrito |
+| `socialmei_app` | n8n / automações | leitura e escrita funcional sem privilégios administrativos |
+
+As senhas não ficam no GitHub.
+
+## Arquivos reproduzíveis
+
+- `database/bootstrap.sql` — prepara o schema com a role administrativa já criada;
+- `database/schema.sql` — cria tabelas, índices e restrições;
+- `database/permissions.sql` — aplica permissões da role técnica de automação.
 
 ## Alterando a estrutura
 
-Mudanças de tabela devem ficar registradas no GitHub.
-
-Não faça uma alteração estrutural importante somente pelo painel sem também criar/atualizar um arquivo de migração no repositório.
-
-Fluxo recomendado:
+Mudanças relevantes devem ficar registradas no GitHub:
 
 ```text
-branch → arquivo SQL → revisão → teste → merge → aplicar no banco
+branch → SQL/migration → revisão → teste → merge → backup → aplicar
 ```
 
-## Permissões
+Não faça uma mudança estrutural importante apenas pelo painel sem também versionar a alteração.
 
-Para evitar compartilhar o usuário administrador do PostgreSQL, a equipe deve criar roles individuais conforme necessidade.
+## Novos integrantes
 
-Sugestão:
+Não é necessário criar acesso ao banco para todos antecipadamente. Quando alguém precisar:
 
-- leitura: consultas e inspeção;
-- desenvolvimento: leitura e escrita no schema `socialmei`;
-- administração: somente para responsáveis pela infraestrutura.
-
-As senhas dessas contas nunca devem ser salvas no repositório.
+1. crie uma conta individual no pgAdmin;
+2. crie/atribua uma role PostgreSQL com o menor privilégio necessário, se for preciso acesso SQL próprio;
+3. nunca compartilhe `socialmei_admin` como login coletivo;
+4. documente a finalidade do acesso sem registrar a senha.
 
 ## Segurança
 
-- não expor a porta 5432;
+- não expor 5432;
 - não publicar `.env`;
-- não salvar senha em documentação;
-- não usar o mesmo login para toda a equipe;
+- não salvar senhas em documentação;
+- não usar login administrativo em automações;
 - fazer backup antes de migrations destrutivas;
-- revisar SQL antes de aplicar em produção.
+- revisar SQL antes de produção;
+- revogar acesso quando deixar de ser necessário.
