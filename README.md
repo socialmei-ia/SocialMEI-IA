@@ -8,7 +8,7 @@ Gestão e atendimento para MEIs e pequenos negócios em um dashboard web, com Ca
 
 **Projeto acadêmico em desenvolvimento · Interface funcional com dados de demonstração**
 
-**[Explorar o dashboard](https://socialmei-ia.github.io/socialmei/)** · **[Começar a contribuir](./docs/ONBOARDING.md)**
+**[Conhecer a interface](#interface)** · **[Começar a contribuir](./docs/ONBOARDING.md)**
 
 [Sobre](#sobre-o-socialmeiia) · [Funcionalidades](#principais-funcionalidades) · [Interface](#interface) · [Tecnologias](#tecnologias) · [Arquitetura](#como-funciona) · [Execução](#executando-o-projeto) · [Status](#status-e-próximos-passos)
 
@@ -107,8 +107,8 @@ A API FastAPI fica na rede Docker e é chamada por um workflow de teste separado
 Pré-requisitos: Git, navegador e Python 3 para o servidor HTTP opcional.
 
 ```bash
-git clone https://github.com/socialmei-ia/socialmei.git
-cd socialmei
+git clone https://github.com/socialmei-ia/SocialMEI-IA.git
+cd SocialMEI-IA
 python -m http.server 5500
 ```
 
@@ -179,7 +179,7 @@ Esse registro preserva o histórico da equipe. A disponibilidade atual dos servi
 <summary><strong>Estrutura do repositório</strong></summary>
 
 ```text
-socialmei/
+SocialMEI-IA/
 ├── index.html                     # entrada do site estático
 ├── frontend/                      # dashboard editável, sincronizado com index.html
 ├── n8n-workflows/                  # exports de automação e testes
