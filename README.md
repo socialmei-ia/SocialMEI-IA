@@ -19,6 +19,7 @@ Gestão e atendimento para MEIs e pequenos negócios em um dashboard web, com Ca
 **Projeto acadêmico em desenvolvimento · Interface funcional com dados de demonstração**
 
 **[🌐 Abrir dashboard](https://socialmei-ia.github.io/SocialMEI-IA/)** ·
+**[🧰 Mike DevHub](https://socialmei-ia.github.io/SocialMEI-IA/tools/mike-devhub.html)** ·
 **[🚀 Onboarding](./docs/ONBOARDING.md)** ·
 **[🏗️ Arquitetura](./docs/ARQUITETURA.md)** ·
 **[🔐 Acessos](./docs/ACESSOS.md)**
@@ -156,6 +157,25 @@ Consulte os guias de [Docker](./docs/DOCKER.md), [banco](./docs/BANCO-DE-DADOS.m
 
 </details>
 
+## Mike DevHub — toolbox operacional
+
+Como apoio à manutenção e à colaboração, o repositório inclui o **Mike DevHub**, uma toolbox em HTML único para consultar comandos, links e procedimentos usados no projeto.
+
+Ele foi pensado para responder dúvidas operacionais em linguagem natural, por exemplo:
+
+- `como acessar a VPS?`
+- `como instalar Python no servidor?`
+- `como adicionar um dado no banco?`
+- `como criar tabela ou coluna no PostgreSQL?`
+- `como saber se a VPS está igual ao GitHub?`
+- `n8n caiu, o que eu verifico?`
+
+A versão atual reúne **121 comandos, 32 receitas guiadas e 33 links rápidos**, com áreas para SSH, Git, Linux, Docker, n8n, PostgreSQL, Python/FastAPI, Caddy, Deploy, Dashboard e AWS.
+
+O DevHub não executa comandos no servidor, não faz monitoramento real e não armazena senhas, tokens ou chaves privadas. Ele organiza conhecimento operacional e mantém avisos de risco para tarefas sensíveis.
+
+**[Abrir Mike DevHub](https://socialmei-ia.github.io/SocialMEI-IA/tools/mike-devhub.html)** · **[Documentação](./docs/MIKE-DEVHUB.md)**
+
 ## Status e próximos passos
 
 - [x] Interface responsiva com módulos de gestão e atendimento.
@@ -185,6 +205,7 @@ Esse registro preserva o histórico da equipe. A disponibilidade atual dos servi
 | [Banco de dados](./docs/BANCO-DE-DADOS.md) | Schema, roles e manutenção estrutural. |
 | [Docker](./docs/DOCKER.md) | Serviços, validação, aplicação e rollback. |
 | [Acessos](./docs/ACESSOS.md) | Contas e permissões da equipe. |
+| [Mike DevHub](./docs/MIKE-DEVHUB.md) | Toolbox operacional, comandos, receitas e busca por intenção. |
 | [Contribuição](./CONTRIBUTING.md) | Branches, commits e Pull Requests. |
 | [Segurança](./SECURITY.md) | Tratamento de segredos e acessos sensíveis. |
 
@@ -201,6 +222,8 @@ SocialMEI-IA/
 ├── python-service/                # API auxiliar FastAPI
 ├── docs/                          # guias da equipe
 │   └── assets/                    # imagens de apresentação
+├── tools/
+│   └── mike-devhub.html           # toolbox operacional em HTML único
 ├── compose.yaml                   # infraestrutura principal
 ├── compose.override.yaml          # API Python
 ├── Caddyfile                      # proxy e HTTPS
