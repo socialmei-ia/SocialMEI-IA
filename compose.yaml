@@ -80,7 +80,7 @@ services:
       - caddy_data:/data
       - caddy_config:/config
 
-      waha:
+   waha:
     image: devlikeapro/waha:latest
     platform: linux/amd64
     environment:
