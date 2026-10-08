@@ -80,9 +80,27 @@ services:
       - caddy_data:/data
       - caddy_config:/config
 
+      waha:
+    image: devlikeapro/waha:latest
+    platform: linux/amd64
+    environment:
+      WHATSAPP_HOOK_URL: http://host.docker.internal:5678/webhook/webhook
+      WHATSAPP_DEFAULT_ENGINE: GOWS
+      WHATSAPP_HOOK_EVENTS: message
+      WAHA_NO_API_KEY: true
+      WAHA_DASHBOARD_NO_PASSWORD: true
+      WHATSAPP_SWAGGER_NO_PASSWORD: true
+    volumes:
+      - waha_sessions:/app/.sessions
+      - waha_media:/app/.media
+    ports:
+      - "3000:3000"
+
 volumes:
   postgres_data:
   n8n_data:
   pgadmin_data:
   caddy_data:
   caddy_config:
+  waha_sessions:
+  waha_media:
