@@ -27,7 +27,8 @@ Acesso ao Docker oferece poder administrativo elevado sobre o servidor. Não é 
 | n8n | `socialmei-n8n` | automações e webhooks | rede Docker/Caddy |
 | PostgreSQL | `socialmei-postgres` | banco principal | **5432 apenas interna** |
 | pgAdmin | `socialmei-pgadmin` | administração web do banco | rede Docker/Caddy |
-| FastAPI | `socialmei-python` | API Python | rede Docker |
+| FastAPI | `socialmei-python` | API Python | HTTPS via Caddy + rede Docker |
+| WAHA | `socialmei-waha` | integração com WhatsApp | HTTPS via Caddy; porta 3000 presa ao localhost da VPS |
 
 ## Quero instalar um novo programa
 
@@ -135,3 +136,23 @@ Faça backup e planeje rollback antes de:
 ## Novos responsáveis
 
 SSH e Docker são concedidos sob demanda. Veja [ACESSOS.md](./ACESSOS.md).
+
+
+## WAHA e API Python no ambiente atual
+
+O WAHA roda no mesmo projeto Docker do SocialMEI e persiste sessões no volume `waha_sessions`. O n8n pode acessar o serviço internamente por `http://waha:3000`.
+
+A porta 3000 não é publicada diretamente para a internet: o bind é `127.0.0.1:3000:3000`. O acesso da equipe ao Dashboard passa pelo Caddy em HTTPS:
+
+`https://waha.54-94-213-7.sslip.io/dashboard`
+
+A FastAPI também é publicada pelo Caddy:
+
+`https://api.54-94-213-7.sslip.io`
+
+Endpoints de verificação usados atualmente:
+
+- `https://api.54-94-213-7.sslip.io/health`
+- `https://api.54-94-213-7.sslip.io/docs`
+
+Credenciais do WAHA e sua API key devem permanecer somente no `.env` real do servidor. Nunca faça commit desses valores.
