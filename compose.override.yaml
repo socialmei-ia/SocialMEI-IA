@@ -14,3 +14,24 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+
+  waha:
+    image: devlikeapro/waha:latest
+    container_name: socialmei-waha
+    restart: unless-stopped
+
+    environment:
+      WAHA_DASHBOARD_ENABLED: "true"
+      WAHA_DASHBOARD_USERNAME: ${WAHA_DASHBOARD_USERNAME}
+      WAHA_DASHBOARD_PASSWORD: ${WAHA_DASHBOARD_PASSWORD}
+      WAHA_API_KEY: ${WAHA_API_KEY}
+      WAHA_NAMESPACE: all
+
+    ports:
+      - "127.0.0.1:3000:3000"
+
+    volumes:
+      - waha_sessions:/app/.sessions
+
+volumes:
+  waha_sessions:
