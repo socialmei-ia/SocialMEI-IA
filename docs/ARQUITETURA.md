@@ -9,6 +9,8 @@ flowchart LR
     C --> N["⚙️ n8n"]
     N --> DB[("🐘 PostgreSQL")]
     N --> API["🐍 FastAPI"]
+    N --> W["💬 WAHA"]
+    C --> W
     A["🧑‍💻 Equipe autorizada"] -->|HTTPS| PG["🗄️ pgAdmin"]
     PG --> DB
 ```
@@ -43,6 +45,7 @@ sequenceDiagram
 | Dados | PostgreSQL | histórico persistente |
 | Administração do banco | pgAdmin | interface web autenticada |
 | API auxiliar | FastAPI | serviços Python |
+| WhatsApp | WAHA | sessão e API de integração com WhatsApp |
 | Proxy / HTTPS | Caddy | roteamento e TLS |
 | Infraestrutura | Docker Compose | containers e rede |
 | Colaboração | GitHub | código, revisão e documentação |
@@ -51,6 +54,8 @@ sequenceDiagram
 
 - PostgreSQL não publica 5432.
 - Caddy é o ponto de entrada HTTPS.
+- WAHA não expõe a porta 3000 diretamente à internet; o acesso web passa pelo Caddy.
+- n8n e WAHA se comunicam pela rede Docker interna.
 - n8n usa uma role técnica para os dados funcionais.
 - credenciais reais ficam fora do GitHub;
 - SSH e Docker são concedidos individualmente e sob demanda;
@@ -59,3 +64,13 @@ sequenceDiagram
 ## Limite atual
 
 A Caixa Unificada já demonstra e persiste mensagens de WhatsApp e Instagram recebidas pelo fluxo do n8n. A integração oficial completa com APIs dos canais, especialmente envio externo de respostas, continua como evolução futura.
+
+
+## Endpoints publicados no ambiente atual
+
+- n8n: `https://socialmei.54-94-213-7.sslip.io`
+- pgAdmin: `https://db.54-94-213-7.sslip.io`
+- WAHA Dashboard: `https://waha.54-94-213-7.sslip.io/dashboard`
+- FastAPI: `https://api.54-94-213-7.sslip.io`
+
+O n8n acessa o WAHA internamente por `http://waha:3000`, mantendo a API key fora do frontend.
