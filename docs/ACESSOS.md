@@ -14,6 +14,8 @@
 | VPS / SSH | responsáveis por infraestrutura | usuário Linux + chave própria | acesso sob demanda |
 | Docker | responsáveis por infraestrutura | acesso pela VPS | alto privilégio |
 | AWS | quem administra infraestrutura | IAM/Identity Center individual | nunca compartilhar root |
+| WAHA Dashboard | integrantes autorizados do projeto | HTTPS + login do WAHA | não compartilhar a API key |
+| FastAPI | desenvolvimento e integração | HTTPS | proteger endpoints sensíveis antes de produção |
 
 ## Princípio principal
 
@@ -145,3 +147,21 @@ Quando alguém não precisar mais de acesso administrativo:
 - [ ] AWS root não é compartilhado;
 - [ ] mudanças de infraestrutura passam por PR;
 - [ ] permissões são removidas quando deixam de ser necessárias.
+
+
+## WAHA
+
+Acesso web atual:
+
+`https://waha.54-94-213-7.sslip.io/dashboard`
+
+Compartilhe com a equipe somente o endereço e as credenciais do Dashboard quando necessário. A `WAHA_API_KEY` é credencial técnica e deve permanecer no servidor/n8n, nunca no frontend ou em chats da equipe.
+
+## API Python
+
+Acesso web atual:
+
+- `https://api.54-94-213-7.sslip.io/health`
+- `https://api.54-94-213-7.sslip.io/docs`
+
+A documentação Swagger está acessível pelo navegador no ambiente atual. Antes de uso em produção com dados sensíveis, revise autenticação e exposição dos endpoints.
