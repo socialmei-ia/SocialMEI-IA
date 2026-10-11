@@ -17,7 +17,8 @@
     "logs": "node tools/dev-workspace.mjs logs",
     "dev:config": "node tools/dev-workspace.mjs config",
     "db:migrate": "node tools/db-migrate.mjs migrate",
-    "db:status": "node tools/db-migrate.mjs status"
+    "db:status": "node tools/db-migrate.mjs status",
+    "doctor": "node tools/team-doctor.mjs"
   },
   "devDependencies": {
     "playwright": "1.62.1",

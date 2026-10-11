@@ -56,12 +56,13 @@ O Compose descreve infraestrutura; sua presença no Git não comprova disponibil
 
 ## Começar a desenvolver
 
-Para novos integrantes, o fluxo recomendado é:
+Para novos integrantes, cada computador cria seu próprio ambiente Docker a partir do GitHub. Containers não são sincronizados entre máquinas. O fluxo recomendado é:
 
 ```bash
 git clone https://github.com/socialmei-ia/SocialMEI-IA.git
 cd SocialMEI-IA
 npm ci
+npm run doctor
 npm run setup
 npm run dev
 ```
