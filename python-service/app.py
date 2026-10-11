@@ -8,6 +8,8 @@ from shared_data import database_health_payload, router as shared_data_router
 from client_import import router as client_import_router
 from catalog_data import router as catalog_router
 from product_import import router as product_import_router
+from sales_data import router as sales_router
+from sale_import import router as sale_import_router
 
 app = FastAPI(title="SocialME Python Service")
 cors_origins = [
@@ -29,6 +31,8 @@ app.include_router(shared_data_router)
 app.include_router(client_import_router)
 app.include_router(catalog_router)
 app.include_router(product_import_router)
+app.include_router(sales_router)
+app.include_router(sale_import_router)
 
 
 class TextInput(BaseModel):

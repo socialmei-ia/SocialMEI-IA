@@ -296,6 +296,13 @@ ${escapeHtml(options.value || "")}</textarea>
           />
         </div>`;
 }
+function remoteSaleSelect(label, name, rows, selected) {
+  const match = Number.isSafeInteger(selected)
+    ? rows.filter((r) => r.id === selected)
+    : rows.filter((r) => r.nome === selected);
+  const id = match.length === 1 ? match[0].id : "";
+  return `<div class="form-group full"><label for="f_${name}">${escapeHtml(label)}</label><select class="form-control" id="f_${name}" name="${name}" required><option value="">Selecione um cadastro compartilhado</option>${rows.map((r) => `<option value="${r.id}" ${r.id === id ? "selected" : ""}>${escapeHtml(r.nome)} · #${r.id}</option>`).join("")}</select></div>`;
+}
 function renderCreateFields(type, preset = {}) {
   const h = $("createFields");
   if (!h) {
@@ -336,6 +343,28 @@ function renderCreateFields(type, preset = {}) {
                 placeholder: "Opcional",
               })}
             </details>`;
+    if (SocialMEISales.remote) {
+      $("f_cliente").closest(".form-group").outerHTML = remoteSaleSelect(
+        "Cliente",
+        "cliente",
+        appData.clientes,
+        preset.cliente,
+      );
+      $("f_item").closest(".form-group").outerHTML = remoteSaleSelect(
+        "Produto ou serviço",
+        "item",
+        appData.produtos,
+        preset.item,
+      );
+      $("f_item").addEventListener("change", () => {
+        const product = appData.produtos.find((p) => p.id === Number($("f_item").value));
+        if (product) {
+          $("f_preco").value = product.preco;
+          updateSaleReview();
+        }
+      });
+      $("f_quantidade").step = "1";
+    }
   } else if (type === "cliente") {
     h.innerHTML = [
       createField("Nome", "nome", "text", {
@@ -459,6 +488,24 @@ async function handleCreate(data) {
     if (saved) {
       closeModal("createModal");
       toast("Item criado", "Salvo na API compartilhada.");
+    }
+    return;
+  }
+  if ($("createType").value === "venda" && SocialMEISales.remote) {
+    const saved = await SocialMEISales.create({
+      cliente_id: Number(data.cliente),
+      produto_id: Number(data.item),
+      data: todayISO(),
+      quantidade: Number(data.quantidade),
+      preco: Number(data.preco),
+      desconto: Number(data.desconto) || 0,
+      pagamento: data.pagamento || "Pix",
+      observacao: data.observacao || "",
+      status: "Pendente",
+    });
+    if (saved) {
+      closeModal("createModal");
+      toast("Venda registrada", "Venda e estoque salvos na API.");
     }
     return;
   }

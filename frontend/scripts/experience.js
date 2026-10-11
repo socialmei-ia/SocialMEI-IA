@@ -2037,9 +2037,7 @@ ONBOARDING — JAVASCRIPT
         "Sem data e hora completas do último evento, não é possível confirmar as 2 horas de espera.";
     } else if (r.when.includes("30 dias")) {
       client = appData.clientes.find((c) => {
-        const last = sorted.find(
-          (v) => v.status === "Pago" && normalizedText(v.cliente) === normalizedText(c.nome),
-        );
+        const last = sorted.find((v) => v.status === "Pago" && SocialMEISales.matchesClient(v, c));
         return last && last.data < dateShift(todayISO(), -30);
       });
       eligible = !!client;
@@ -2072,7 +2070,7 @@ ONBOARDING — JAVASCRIPT
         "Prontidão e entrega não têm evento registrado nesta base. Este teste não confirma o gatilho.";
     }
     client ||= sale
-      ? appData.clientes.find((c) => normalizedText(c.nome) === normalizedText(sale.cliente))
+      ? appData.clientes.find((c) => SocialMEISales.matchesClient(sale, c))
       : conversation
         ? clientContext(conversation).client
         : null;

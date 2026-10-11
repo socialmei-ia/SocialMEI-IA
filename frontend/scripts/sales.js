@@ -43,3 +43,11 @@ function updateSaleReview() {
     );
   }
 }
+
+const baseSaleReview = updateSaleReview;
+updateSaleReview = function () {
+  baseSaleReview();
+  if (SocialMEISales.remote && $("createType").value === "venda")
+    $("saleReview").querySelector(".table-help").textContent =
+      "Registrar a venda baixa o estoque na mesma operação. Marcar como paga não cria um lançamento financeiro.";
+};

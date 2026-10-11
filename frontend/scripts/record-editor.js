@@ -75,16 +75,19 @@ function renderRecordActions(type, id) {
   if (!record) {
     return "";
   }
-  return /* HTML */ `<div class="management-review-actions">
+  return /* HTML */ `<div class="management-review-actions">${type === "sales" && SocialMEISales.remote && record.status === "Rascunho" && !record.importada ? `<button class="management-button pr" type="button" data-sale-register="${id}">Registrar venda</button>` : ""}
           <button
             class="management-button"
             type="button"
+            ${type === "sales" && SocialMEISales.remote && (record.importada || !["Pendente", "Rascunho"].includes(record.status)) ? "disabled" : ""}
             data-review-edit="${type}"
             data-review-id="${id}"
           >
             Editar</button
           >${
-            type === "sales" && ["Pendente", "Rascunho"].includes(record.status)
+            type === "sales" &&
+            (["Pendente", "Rascunho"].includes(record.status) ||
+              (SocialMEISales.remote && record.status === "Pago"))
               ? /* HTML */ `<button
                     class="management-button"
                     type="button"
@@ -148,7 +151,13 @@ openCreate = function (type = "venda", preset = {}) {
 };
 async function openRecordEditor(type, id) {
   const record = findBusinessRecord(type, id);
-  if (!record) {
+  if (!record) return;
+  if (
+    type === "sales" &&
+    SocialMEISales.remote &&
+    (record.importada || !["Pendente", "Rascunho"].includes(record.status))
+  ) {
+    toast("Histórico preservado", "Duplique como rascunho para criar outra venda.");
     return;
   }
   const returnFocus = document.activeElement;
@@ -180,9 +189,11 @@ async function openRecordEditor(type, id) {
         : type === "finance"
           ? "Editar lançamento"
           : "Editar produto ou serviço";
-  const values = {
-    ...record,
-  };
+  const values = { ...record };
+  if (type === "sales" && SocialMEISales.remote) {
+    values.cliente = record.cliente_id;
+    values.item = record.produto_id;
+  }
   if (type === "sales") {
     values.quantidade = record.quantidade || 1;
     values.desconto = record.desconto || 0;
@@ -295,6 +306,27 @@ async function saveRecordEdit(form) {
       activeRecordEdit = null;
       closeModal("createModal");
       toast("Alterações salvas", "Catálogo atualizado na API compartilhada.");
+    }
+    return;
+  }
+  if (context.type === "sales" && SocialMEISales.remote) {
+    const saved = await SocialMEISales.update(
+      { ...record, versao: context.versao },
+      {
+        cliente_id: Number(d.cliente),
+        produto_id: Number(d.item),
+        data: d.data,
+        quantidade: Number(d.quantidade),
+        preco: Number(d.preco),
+        desconto: Number(d.desconto) || 0,
+        pagamento: d.pagamento,
+        observacao: d.observacao || "",
+      },
+    );
+    if (saved) {
+      activeRecordEdit = null;
+      closeModal("createModal");
+      toast("Venda atualizada", "Estoque ajustado junto com a venda.");
     }
     return;
   }
@@ -454,6 +486,9 @@ function openRecordConfirmation(type, id, cancel = false) {
   if (type === "products" && SocialMEIProducts.remote)
     $("reviewConfirmText").textContent =
       `${label} será excluído do catálogo compartilhado. As vendas locais permanecem registradas.`;
+  if (type === "sales" && SocialMEISales.remote)
+    $("reviewConfirmText").textContent =
+      `${label}: ${cancel ? "cancelar" : "excluir"} estorna apenas o estoque aplicado por esta venda. O financeiro permanece separado. Vendas importadas não estornam estoque.`;
   $("reviewConfirmAction").textContent = cancel ? "Cancelar venda" : "Excluir registro";
   openModal("reviewConfirm");
 }
@@ -481,6 +516,23 @@ async function confirmRecordChange() {
       await closeModal("reviewConfirm");
       await closeModal("recordModal");
       toast("Item excluído", "Removido da API compartilhada.");
+    }
+    return;
+  }
+  if (pending.type === "sales" && SocialMEISales.remote) {
+    const saved = await SocialMEISales.transition(
+      { ...record, versao: pending.versao },
+      pending.cancel ? "cancelar" : "excluir",
+    );
+    if (saved) {
+      reviewPending = null;
+      await closeModal("reviewConfirm");
+      await closeModal("recordModal");
+      renderCurrentView();
+      toast(
+        pending.cancel ? "Venda cancelada" : "Venda excluída",
+        "Estoque tratado na mesma operação.",
+      );
     }
     return;
   }

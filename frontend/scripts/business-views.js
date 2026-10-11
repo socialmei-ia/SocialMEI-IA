@@ -631,18 +631,14 @@ function renderBusinessHub() {
     );
     return;
   }
-  const cl = appData.clientes.find(
-    (client) => normalizedText(client.nome) === normalizedText(c.cliente),
-  );
+  const cl = appData.clientes.find((client) => SocialMEISales.matchesClient(c, client));
   const cv = sessionData.conversas.find(
     (conversation) =>
       conversation.clientId === cl?.id ||
       normalizedText(displayName(conversation)) === normalizedText(c.cliente),
   );
   const led = appData.financeiro.filter((entry) => entry.descricao === `Venda #${c.id}`);
-  const pr = appData.produtos.find(
-    (product) => normalizedText(product.nome) === normalizedText(c.item || ""),
-  );
+  const pr = appData.produtos.find((product) => SocialMEISales.matchesProduct(c, product));
   const S = (n, k, t, a) => /* HTML */ `<li>
             <i>${n}</i>
             <div><small>${k}</small><b>${t}</b></div>
@@ -844,10 +840,10 @@ function renderSaleDrawer(id) {
   if (!v) {
     return;
   }
-  const cl = appData.clientes.find(
-    (client) => normalizedText(client.nome) === normalizedText(v.cliente),
-  );
-  const led = appData.financeiro.filter((entry) => entry.descricao === `Venda #${v.id}`);
+  const cl = appData.clientes.find((client) => SocialMEISales.matchesClient(v, client));
+  const led = SocialMEISales.remote
+    ? []
+    : appData.financeiro.filter((entry) => entry.descricao === `Venda #${v.id}`);
   const pay =
     v.status === "Pendente" || v.status === "Rascunho"
       ? /* HTML */ `<p class="management-note" style="font-size:14px">
@@ -920,8 +916,7 @@ function renderClients() {
   const cs = $("clientsTypeFilter");
   const ts = $("clientsTagFilter");
   const all = appData.clientes;
-  const rel = (c) =>
-    appData.vendas.filter((sale) => normalizedText(sale.cliente) === normalizedText(c.nome));
+  const rel = (c) => appData.vendas.filter((sale) => SocialMEISales.matchesClient(sale, c));
   const cvs = (c) =>
     sessionData.conversas.filter(
       (conversation) =>
@@ -1066,13 +1061,11 @@ function renderClientPanel() {
   if (!c) {
     return;
   }
-  const rel = appData.vendas.filter(
-    (sale) => normalizedText(sale.cliente) === normalizedText(c.nome),
-  );
+  const rel = appData.vendas.filter((sale) => SocialMEISales.matchesClient(sale, c));
   const fin = appData.financeiro.filter(
     (entry) =>
       normalizedText(entry.pessoa) === normalizedText(c.nome) ||
-      rel.some((v) => entry.descricao === `Venda #${v.id}`),
+      (!SocialMEISales.remote && rel.some((v) => entry.descricao === `Venda #${v.id}`)),
   );
   const cv = sessionData.conversas.filter((conversation) =>
     SocialMEIClients.remote
@@ -1249,7 +1242,7 @@ function getProductUnitsSold(product) {
     (sale) =>
       !["Cancelado", "Rascunho"].includes(sale.status) &&
       sale.item &&
-      normalizedText(sale.item) === normalizedText(product.nome),
+      SocialMEISales.matchesProduct(sale, product),
   ).length;
 }
 function renderProducts() {

@@ -3113,6 +3113,7 @@ VENDAS — HTML
 ================================================== -->
           <section class="page-view" data-view="Vendas" id="salesView">
             <div class="management-stack">
+              <div id="salesSourceStatus" class="management-card" role="status" hidden></div>
               <div id="salesPremiumSummary" class="internal-summary" aria-live="polite"></div>
               <div
                 id="salesSummary"
@@ -3986,6 +3987,25 @@ MODAIS E DRAWERS — HTML
         </div>
       </section>
     </div>
+    <div class="modal-backdrop" id="saleImportModal" aria-hidden="true">
+      <section class="modal" role="dialog" aria-modal="true" aria-labelledby="saleImportTitle">
+        <div class="modal-head">
+          <h3 id="saleImportTitle">Importar vendas locais</h3>
+          <button class="btn" type="button" data-close-modal="saleImportModal">Fechar</button>
+        </div>
+        <div class="modal-body">
+          <p id="saleImportSummary" role="status"></p>
+          <p>
+            Confira a prévia e exporte um backup antes de continuar. A importação não mescla itens
+            com o mesmo nome.
+          </p>
+        </div>
+        <div class="modal-foot">
+          <button class="btn" type="button" data-close-modal="saleImportModal">Cancelar</button
+          ><button class="btn pr" type="button" id="confirmSaleImport">Confirmar importação</button>
+        </div>
+      </section>
+    </div>
     <script src="scripts/home.js"></script>
     <script src="scripts/finance.js"></script>
     <script src="scripts/sales.js"></script>
@@ -4002,6 +4022,7 @@ MODAIS E DRAWERS — HTML
     <script src="config.js"></script>
     <script src="scripts/client-store.js"></script>
     <script src="scripts/product-store.js"></script>
+    <script src="scripts/sale-store.js"></script>
     <script src="scripts/app.js"></script>
     <script src="scripts/experience.js"></script>
     <script id="landingEnhancementsV2" src="scripts/landing-accessibility.js"></script>

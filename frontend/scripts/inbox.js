@@ -373,7 +373,7 @@ function renderMessages(c, { preserveScroll = false } = {}) {
 function clientContext(conversation) {
   const client = SocialMEIClients.conversationClient(conversation);
   const purchases = client
-    ? appData.vendas.filter((sale) => sale.cliente.toLowerCase() === client.nome.toLowerCase())
+    ? appData.vendas.filter((sale) => SocialMEISales.matchesClient(sale, client))
     : [];
   const lastSale = [...purchases].sort((a, b) => b.data.localeCompare(a.data))[0];
   return {

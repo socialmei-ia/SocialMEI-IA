@@ -85,6 +85,10 @@ const SocialMEIProducts = (() => {
               ? "A API recusou os campos enviados. Confira os dados e os limites do cadastro."
               : `API de Catálogo indisponível (HTTP ${response.status}).`,
         );
+        if ([409, 422].includes(response.status)) {
+          const body = await response.json().catch(() => null);
+          if (typeof body?.detail === "string") error.message = body.detail.slice(0, 800);
+        }
         error.status = response.status;
         throw error;
       }
@@ -98,7 +102,7 @@ const SocialMEIProducts = (() => {
     if (!host) return;
     host.hidden = !remote;
     host.innerHTML = remote
-      ? `<div class="management-settings-row"><div><b>Catálogo compartilhado · ${busy ? "aguarde…" : ready ? "conectado" : "indisponível"}</b><p>${escapeHtml(problem ? problem + " A lista exibida pode estar desatualizada; recarregue." : "O catálogo é salvo na API. Vendas continuam locais e não movimentam este estoque automaticamente.")}</p></div><button class="management-button" data-products-reload ${busy ? "disabled" : ""}>Recarregar</button><button class="management-button" data-products-import ${busy || !ready ? "disabled" : ""}>Importar catálogo local</button></div>`
+      ? `<div class="management-settings-row"><div><b>Catálogo compartilhado · ${busy ? "aguarde…" : ready ? "conectado" : "indisponível"}</b><p>${escapeHtml(problem ? problem + " A lista exibida pode estar desatualizada; recarregue." : "O catálogo é salvo na API. " + (SocialMEISales.remote ? "Vendas registradas compartilham a movimentação de estoque." : "Vendas locais não movimentam este estoque automaticamente."))}</p></div><button class="management-button" data-products-reload ${busy ? "disabled" : ""}>Recarregar</button><button class="management-button" data-products-import ${busy || !ready ? "disabled" : ""}>Importar catálogo local</button></div>`
       : "";
   }
   function changed() {

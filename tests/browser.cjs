@@ -248,6 +248,7 @@ async function run() {
     assert.equal(await page.evaluate(() => document.getAnimations().length), 0);
     checks.push(await require("./remote-browser.cjs")(browser, origin, errors));
     checks.push(await require("./catalog-browser.cjs")(browser, origin, errors));
+    checks.push(await require("./sales-browser.cjs")(browser, origin, errors));
     assert.deepEqual(errors, []);
     checks.push("11 módulos, quatro larguras, claro/escuro, toasts e reduced motion");
     fs.writeFileSync(
