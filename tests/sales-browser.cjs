@@ -226,7 +226,10 @@ module.exports = async function salesFlows(browser, origin, errors) {
       ),
     );
   }
-  const page = await browser.newPage({ viewport: { width: 1366, height: 900 } });
+  const page = await browser.newPage({
+    viewport: { width: 1366, height: 900 },
+    reducedMotion: "reduce",
+  });
   await setup(page, true);
   assert.equal(await page.evaluate(() => appData.vendas.length), 0);
   await page.evaluate(() => openCreate("venda"));
@@ -260,6 +263,11 @@ module.exports = async function salesFlows(browser, origin, errors) {
   await page.locator("#reviewConfirmAction").click();
   await page.waitForFunction(() => appData.vendas[0].status === "Cancelado");
   assert.equal(products[0].estoque, 7);
+  await page.waitForFunction(
+    () =>
+      !document.getElementById("reviewConfirm").classList.contains("open") &&
+      !document.getElementById("recordModal").classList.contains("open"),
+  );
   await second.evaluate(() => SocialMEISales.refresh());
   assert.equal(await second.evaluate(() => appData.vendas[0].status), "Cancelado");
   await page.evaluate(() => SocialMEISales.duplicate(appData.vendas[0]));
@@ -279,6 +287,9 @@ module.exports = async function salesFlows(browser, origin, errors) {
     draft.id,
   );
   assert.equal(products[0].estoque, 4);
+  await page.waitForFunction(() =>
+    document.getElementById("salesSourceStatus").textContent.includes("conectado"),
+  );
   await page.evaluate(() => closeModal("recordModal"));
   await page.evaluate(() => openCreate("venda"));
   await page.locator("#f_cliente").selectOption("11");
