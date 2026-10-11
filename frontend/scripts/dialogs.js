@@ -403,6 +403,12 @@ function renderCreateFields(type, preset = {}) {
         options: ["aberto", "pago"],
       }),
     ].join("");
+    if (SocialMEIFinance.remote) {
+      h.insertAdjacentHTML(
+        "beforeend",
+        `<div class="form-group full"><label for="f_cliente_id">Vincular a um cliente (opcional)</label><select id="f_cliente_id" name="cliente_id"><option value="">Sem vínculo — usar pessoa informada</option>${appData.clientes.map((c) => `<option value="${c.id}">${escapeHtml(c.nome)} · #${c.id}</option>`).join("")}</select></div><p class="management-note full">Selecionar um cliente usa o nome desse cadastro. Pagamentos de vendas são registrados separadamente.</p>`,
+      );
+    }
   } else {
     h.innerHTML = [
       createField("Nome", "nome", "text", {
@@ -506,6 +512,22 @@ async function handleCreate(data) {
     if (saved) {
       closeModal("createModal");
       toast("Venda registrada", "Venda e estoque salvos na API.");
+    }
+    return;
+  }
+  if (["receita", "despesa"].includes($("createType").value) && SocialMEIFinance.remote) {
+    const saved = await SocialMEIFinance.create({
+      descricao: data.descricao.trim(),
+      pessoa: data.pessoa || "",
+      tipo: $("createType").value,
+      valor: Number(data.valor),
+      vencimento: data.vencimento,
+      status: data.status === "pago" ? "pago" : "aberto",
+      cliente_id: data.cliente_id ? Number(data.cliente_id) : null,
+    });
+    if (saved) {
+      closeModal("createModal");
+      toast("Lançamento registrado", "Salvo no Financeiro compartilhado.");
     }
     return;
   }

@@ -237,7 +237,7 @@ const SocialMEIClients = (() => {
           .forEach((s) => {
             s.cliente = saved.nome;
           });
-        appData.financeiro
+        (SocialMEIFinance.remote ? [] : appData.financeiro)
           .filter((e) => (e.pessoa || "").toLowerCase() === client.nome.toLowerCase())
           .forEach((e) => {
             e.pessoa = saved.nome;

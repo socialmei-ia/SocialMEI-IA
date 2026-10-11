@@ -407,6 +407,7 @@ let appData = loadAppData();
 SocialMEIClients.attach(appData);
 SocialMEIProducts.attach(appData);
 SocialMEISales.attach(appData);
+SocialMEIFinance.attach(appData);
 appData.prefs = appData.prefs || {
   notificacoes: true,
 };
@@ -868,6 +869,23 @@ document.addEventListener("click", async (event) => {
   if (paid) {
     const x = appData.financeiro.find((entry) => entry.id === Number(paid.dataset.financePaid));
     if (x) {
+      if (SocialMEIFinance.remote) {
+        SocialMEIFinance.transition(x, "pagar").then((saved) => {
+          if (saved) {
+            toast(
+              saved.tipo === "receita" ? "Recebimento registrado" : "Pagamento registrado",
+              saved.descricao,
+            );
+            if (
+              $("recordModal").classList.contains("open") &&
+              recordContext?.type === "finance" &&
+              recordContext.id === saved.id
+            )
+              openRecord("finance", saved.id);
+          }
+        });
+        return;
+      }
       const previous = x.status;
       x.status = "pago";
       if (!saveAppData()) {
@@ -1520,7 +1538,7 @@ $("inboxModalForm").addEventListener("submit", async (event) => {
     appData.vendas
       .filter((sale) => sale.cliente.toLowerCase() === old.toLowerCase())
       .forEach((sale) => (sale.cliente = client.nome));
-    appData.financeiro
+    (SocialMEIFinance.remote ? [] : appData.financeiro)
       .filter((entry) => normalizedText(entry.pessoa || "") === normalizedText(old))
       .forEach((entry) => (entry.pessoa = client.nome));
     sessionData.conversas
@@ -3832,8 +3850,10 @@ document.addEventListener("submit", (event) => {
     !socialmeiStorageSet(
       "socialmei-app-data-v2",
       JSON.stringify({
-        ...SocialMEISales.localData(
-          SocialMEIProducts.localData(SocialMEIClients.localData(appData)),
+        ...SocialMEIFinance.localData(
+          SocialMEISales.localData(
+            SocialMEIProducts.localData(SocialMEIClients.localData(appData)),
+          ),
         ),
         schemaVersion: SOCIALMEI_APP_SCHEMA_VERSION,
       }),

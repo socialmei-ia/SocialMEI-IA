@@ -637,7 +637,10 @@ function renderBusinessHub() {
       conversation.clientId === cl?.id ||
       normalizedText(displayName(conversation)) === normalizedText(c.cliente),
   );
-  const led = appData.financeiro.filter((entry) => entry.descricao === `Venda #${c.id}`);
+  const led =
+    SocialMEISales.remote || SocialMEIFinance.remote
+      ? []
+      : appData.financeiro.filter((entry) => entry.descricao === `Venda #${c.id}`);
   const pr = appData.produtos.find((product) => SocialMEISales.matchesProduct(c, product));
   const S = (n, k, t, a) => /* HTML */ `<li>
             <i>${n}</i>
@@ -841,9 +844,10 @@ function renderSaleDrawer(id) {
     return;
   }
   const cl = appData.clientes.find((client) => SocialMEISales.matchesClient(v, client));
-  const led = SocialMEISales.remote
-    ? []
-    : appData.financeiro.filter((entry) => entry.descricao === `Venda #${v.id}`);
+  const led =
+    SocialMEISales.remote || SocialMEIFinance.remote
+      ? []
+      : appData.financeiro.filter((entry) => entry.descricao === `Venda #${v.id}`);
   const pay =
     v.status === "Pendente" || v.status === "Rascunho"
       ? /* HTML */ `<p class="management-note" style="font-size:14px">
@@ -1064,8 +1068,10 @@ function renderClientPanel() {
   const rel = appData.vendas.filter((sale) => SocialMEISales.matchesClient(sale, c));
   const fin = appData.financeiro.filter(
     (entry) =>
-      normalizedText(entry.pessoa) === normalizedText(c.nome) ||
-      (!SocialMEISales.remote && rel.some((v) => entry.descricao === `Venda #${v.id}`)),
+      SocialMEIFinance.matchesClient(entry, c) ||
+      (!SocialMEIFinance.remote &&
+        !SocialMEISales.remote &&
+        rel.some((v) => entry.descricao === `Venda #${v.id}`)),
   );
   const cv = sessionData.conversas.filter((conversation) =>
     SocialMEIClients.remote

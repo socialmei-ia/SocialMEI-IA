@@ -123,7 +123,7 @@ const SocialMEISales = (() => {
     host.hidden = !remote;
     const pending = stored("socialmei-sale-operation-pending-v1");
     host.innerHTML = remote
-      ? `<div class="management-settings-row"><div><b>Vendas compartilhadas · ${busy ? "aguarde…" : ready ? "conectado" : "indisponível"}</b><p>${escapeHtml(problem ? problem + " A lista exibida pode estar desatualizada; recarregue." : "Vendas e estoque são salvos juntos. O financeiro continua separado e local.")}</p></div><button class="management-button" data-sales-reload ${busy ? "disabled" : ""}>Recarregar</button><button class="management-button" data-sales-import ${busy || !ready ? "disabled" : ""}>Importar vendas locais</button>${pending?.scope === scope ? `<button class="management-button" data-sales-recover ${busy ? "disabled" : ""}>Recuperar operação pendente</button>` : ""}</div>`
+      ? `<div class="management-settings-row"><div><b>Vendas compartilhadas · ${busy ? "aguarde…" : ready ? "conectado" : "indisponível"}</b><p>${escapeHtml(problem ? problem + " A lista exibida pode estar desatualizada; recarregue." : "Vendas e estoque são salvos juntos. " + (SocialMEIFinance.remote ? "O Financeiro compartilhado registra os recebimentos separadamente." : "O financeiro continua separado e local."))}</p></div><button class="management-button" data-sales-reload ${busy ? "disabled" : ""}>Recarregar</button><button class="management-button" data-sales-import ${busy || !ready ? "disabled" : ""}>Importar vendas locais</button>${pending?.scope === scope ? `<button class="management-button" data-sales-recover ${busy ? "disabled" : ""}>Recuperar operação pendente</button>` : ""}</div>`
       : "";
   }
   function changed() {

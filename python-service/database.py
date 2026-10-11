@@ -66,3 +66,12 @@ def check_database() -> None:
         cur.execute(
             "SELECT workspace_id, origem, local_id, venda_id, fingerprint, snapshot FROM socialmei.crm_venda_importacoes LIMIT 0"
         )
+        cur.execute(
+            "SELECT id, cliente_id, descricao, tipo, valor, vencimento, status, data_pagamento, excluida, versao FROM socialmei.crm_financeiro LIMIT 0"
+        )
+        cur.execute(
+            "SELECT workspace_id, operation_id, fingerprint, resposta FROM socialmei.crm_financeiro_operacoes LIMIT 0"
+        )
+        cur.execute(
+            "SELECT workspace_id, origem, local_id, lancamento_id, fingerprint, snapshot FROM socialmei.crm_financeiro_importacoes LIMIT 0"
+        )
