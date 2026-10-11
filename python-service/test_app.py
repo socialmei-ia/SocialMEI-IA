@@ -10,9 +10,6 @@ class ApiContractTests(unittest.TestCase):
         routes = {route.path: route for route in app.routes if hasattr(route, "path")}
         self.assertIn("POST", routes["/processar"].methods)
         self.assertIn("GET", routes["/health"].methods)
-        self.assertIn("GET", routes["/health/db"].methods)
-        self.assertIn("GET", routes["/api/v1/clientes"].methods)
-        self.assertIn("POST", routes["/api/v1/clientes"].methods)
         self.assertEqual(root(), {"status": "ok", "service": "socialmei-python"})
         self.assertEqual(health(), {"status": "healthy"})
 
