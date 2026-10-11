@@ -7,7 +7,7 @@ from app import TextInput, app, health, process_text, root
 
 class ApiContractTests(unittest.TestCase):
     def test_existing_route_contracts(self):
-        routes = {route.path: route for route in app.routes}
+        routes = {route.path: route for route in app.routes if hasattr(route, "path")}
         self.assertIn("POST", routes["/processar"].methods)
         self.assertIn("GET", routes["/health"].methods)
         self.assertEqual(root(), {"status": "ok", "service": "socialmei-python"})

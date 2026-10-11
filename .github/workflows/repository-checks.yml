@@ -12,6 +12,26 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: socialmei_test
+          POSTGRES_PASSWORD: socialmei_test
+          POSTGRES_DB: socialmei_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U socialmei_test -d socialmei_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://socialmei_test:socialmei_test@127.0.0.1:5432/socialmei_test
+      DATABASE_URL: postgresql://socialmei_test:socialmei_test@127.0.0.1:5432/socialmei_test
+      SOCIALMEI_SHARED_DATA_ENABLED: "true"
+      SOCIALMEI_WORKSPACE_SLUG: ci-shared-data
+      SOCIALMEI_WORKSPACE_NAME: CI Shared Data
     steps:
       - name: Checkout
         uses: actions/checkout@v4

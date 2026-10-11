@@ -65,6 +65,18 @@ services:
       context: ./python-service
     container_name: socialmei-dev-python
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: ${POSTGRES_USER:-socialmei_dev}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-socialmei_dev_local}
+      POSTGRES_DB: ${POSTGRES_DB:-socialmei_dev}
+      SOCIALMEI_SHARED_DATA_ENABLED: "true"
+      SOCIALMEI_WORKSPACE_SLUG: ${SOCIALMEI_WORKSPACE_SLUG:-development}
+      SOCIALMEI_WORKSPACE_NAME: ${SOCIALMEI_WORKSPACE_NAME:-SocialMEI Development}
     ports:
       - "127.0.0.1:${PYTHON_API_PORT:-8000}:8000"
     healthcheck:
