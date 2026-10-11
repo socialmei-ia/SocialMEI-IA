@@ -347,3 +347,34 @@ separação dos IDs. Os fluxos de navegador usam uma API simulada para testar
 UI, duas sessões, importação, CRUD e Caixa. Os testes Python com PostgreSQL
 validam a persistência real; um ensaio em dois computadores no mesmo staging
 continua necessário antes de habilitar esse modo para a equipe.
+
+### Teste em outro dispositivo na mesma rede local
+
+Use uma rede privada de confiança e clientes fictícios: a API de desenvolvimento
+não autentica usuários. Não encaminhe portas no roteador nem use esse modo para
+publicar na internet. O notebook precisa ficar ligado e ambos os dispositivos
+precisam acessar a mesma rede sem isolamento entre clientes Wi-Fi.
+
+Para um notebook com IPv4 `192.168.0.3` (substitua pelo IP da sua interface),
+configure em `.env.development`:
+
+```dotenv
+DEV_BIND_HOST=192.168.0.3
+SOCIALMEI_CORS_ORIGINS=http://192.168.0.3:5500,http://localhost:5500,http://127.0.0.1:5500
+```
+
+Em `frontend/config.js`, mantenha modo remoto e a chave do workspace, mudando
+`apiBaseUrl` para `http://192.168.0.3:8000/api/v1`. Execute `npm run dev` para
+recriar os serviços. Acesse `http://192.168.0.3:5500` no notebook e no celular.
+Caso o Windows solicite liberação de firewall, permita somente na rede privada.
+
+A opção `DEV_BIND_HOST` afeta somente frontend e API. PostgreSQL, n8n, pgAdmin
+e WAHA continuam vinculados a loopback. Ela é opt-in e o padrão continua
+`127.0.0.1`. Se o IP mudar, atualize a configuração e reinicie os serviços.
+O adapter usa UUID criptográfico também em navegadores HTTP sem `randomUUID`.
+
+Ao mudar de `localhost` para o IP, o armazenamento do navegador muda de origem.
+Exporte o backup local antes da troca se precisar importar dados antigos. O banco
+remoto permanece o mesmo. Vínculos locais da Caixa não são migrados automaticamente
+entre essas origens. Ao concluir, restaure `DEV_BIND_HOST=127.0.0.1`, a URL da API
+para localhost e as origens CORS anteriores, e execute `npm run dev` novamente.

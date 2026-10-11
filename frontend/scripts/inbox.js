@@ -994,7 +994,7 @@ function sendCurrentMessage(text) {
     hora: nowTime(),
     data: todayISO(),
     localOnly: true,
-    localMessageId: crypto.randomUUID(),
+    localMessageId: SocialMEIClients.newId(),
   };
   conversation.mensagens.push(msg);
   const localKey = `replies:${conversationKey(conversation)}`;

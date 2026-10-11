@@ -52,6 +52,15 @@ const SocialMEIClients = (() => {
     if (!socialmeiStorageSet(key, JSON.stringify(value), "a identidade de importação"))
       throw new Error("Não foi possível preservar a identidade da operação neste navegador.");
   }
+  function newOrigin() {
+    if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
+    // getRandomValues também funciona em HTTP numa rede local; Math.random não serve.
+    const bytes = crypto.getRandomValues(new Uint8Array(16));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = [...bytes].map((value) => value.toString(16).padStart(2, "0")).join("");
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  }
   function payload(client) {
     return Object.fromEntries(
       fields.filter((k) => client[k] !== undefined).map((k) => [k, cloneData(client[k])]),
@@ -186,7 +195,7 @@ const SocialMEIClients = (() => {
           "Há um cadastro anterior sem confirmação. Reenvie os mesmos dados para recuperar o resultado antes de criar outro.",
         );
       if (!pending) {
-        pending = { scope, data, origem: crypto.randomUUID() };
+        pending = { scope, data, origem: newOrigin() };
         persist(key, pending);
       }
       // Uma origem estável por cadastro torna seguro repetir após perda da resposta.
@@ -282,7 +291,7 @@ const SocialMEIClients = (() => {
         );
       let origem = stored("socialmei-client-origin-v1");
       if (!origem) {
-        origem = crypto.randomUUID();
+        origem = newOrigin();
         persist("socialmei-client-origin-v1", origem);
       }
       const lote = {
@@ -333,6 +342,7 @@ const SocialMEIClients = (() => {
     if (remote) refresh();
   });
   return {
+    newId: newOrigin,
     remote,
     refresh,
     create,

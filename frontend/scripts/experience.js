@@ -1973,7 +1973,7 @@ ONBOARDING — JAVASCRIPT
     const old = rules[i];
     const draft = {
       ...old,
-      id: old?.id || "rule-" + crypto.randomUUID(),
+      id: old?.id || "rule-" + SocialMEIClients.newId(),
       name,
       when: q("#ruleWhen").value,
       then: q("#ruleThen").value,
@@ -3382,7 +3382,7 @@ ONBOARDING — JAVASCRIPT
       const model = ruleModels[Number(b.dataset.ruleModel)];
       const r = {
         ...model,
-        id: "rule-" + crypto.randomUUID(),
+        id: "rule-" + SocialMEIClients.newId(),
         enabled: false,
       };
       rules.push(r);
