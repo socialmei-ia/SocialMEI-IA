@@ -3149,6 +3149,7 @@ CLIENTES — HTML
 ================================================== -->
           <section class="page-view" data-view="Clientes" id="clientsView">
             <div class="management-stack">
+              <div id="clientsSourceStatus" class="management-card" role="status" hidden></div>
               <div id="clientsPremiumSummary" class="internal-summary" aria-live="polite"></div>
               <div
                 id="clientsIntro"
@@ -3942,6 +3943,27 @@ MODAIS E DRAWERS — HTML
         </div>
       </section>
     </div>
+    <div class="modal-backdrop" id="clientImportModal" aria-hidden="true">
+      <section class="modal" role="dialog" aria-modal="true" aria-labelledby="clientImportTitle">
+        <div class="modal-head">
+          <h3 id="clientImportTitle">Importar clientes locais</h3>
+          <button class="btn" type="button" data-close-modal="clientImportModal">Fechar</button>
+        </div>
+        <div class="modal-body">
+          <p id="clientImportSummary" role="status"></p>
+          <p>
+            Confira a prévia e exporte um backup antes de continuar. A importação não mescla
+            cadastros com o mesmo nome.
+          </p>
+        </div>
+        <div class="modal-foot">
+          <button class="btn" type="button" data-close-modal="clientImportModal">Cancelar</button
+          ><button class="btn pr" type="button" id="confirmClientImport">
+            Confirmar importação
+          </button>
+        </div>
+      </section>
+    </div>
     <script src="scripts/home.js"></script>
     <script src="scripts/finance.js"></script>
     <script src="scripts/sales.js"></script>
@@ -3956,6 +3978,7 @@ MODAIS E DRAWERS — HTML
     <script src="scripts/inbox-sync.js"></script>
     <script src="scripts/business-views.js"></script>
     <script src="config.js"></script>
+    <script src="scripts/client-store.js"></script>
     <script src="scripts/app.js"></script>
     <script src="scripts/experience.js"></script>
     <script id="landingEnhancementsV2" src="scripts/landing-accessibility.js"></script>

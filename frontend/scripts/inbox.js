@@ -34,9 +34,7 @@ function getConversation(id = activeConversationId) {
   return sessionData.conversas.find((conversation) => conversation.id === Number(id));
 }
 function inboxActiveTags(c) {
-  const client =
-    appData.clientes.find((x) => x.id === c.clientId) ||
-    appData.clientes.find((x) => x.nome.toLowerCase() === c.nome.toLowerCase());
+  const client = SocialMEIClients.conversationClient(c);
   const tags = [...(client?.tags || [])];
   if (c.naoLidas >= 2 && !tags.includes("Urgente")) {
     tags.push("Urgente");
@@ -373,9 +371,7 @@ function renderMessages(c, { preserveScroll = false } = {}) {
   });
 }
 function clientContext(conversation) {
-  const client =
-    appData.clientes.find((x) => x.id === conversation.clientId) ||
-    appData.clientes.find((x) => x.nome.toLowerCase() === conversation.nome.toLowerCase());
+  const client = SocialMEIClients.conversationClient(conversation);
   const purchases = client
     ? appData.vendas.filter((sale) => sale.cliente.toLowerCase() === client.nome.toLowerCase())
     : [];
@@ -1177,12 +1173,15 @@ function applyInboxPreferences() {
     socialmeiStorageSet("socialmei-inbox-tag-v3", inboxSelectedTag, "o filtro de etiquetas");
   } catch (error) {}
 }
-function addClientTag(c, label) {
-  const client =
-    appData.clientes.find((x) => x.id === c.clientId) ||
-    appData.clientes.find((x) => x.nome.toLowerCase() === c.nome.toLowerCase());
+async function addClientTag(c, label) {
+  const client = SocialMEIClients.conversationClient(c);
   if (!client) {
     return false;
+  }
+  if (SocialMEIClients.remote) {
+    return !!(await SocialMEIClients.update(client, {
+      tags: [...new Set([...(client.tags || []), label])],
+    }));
   }
   client.tags = client.tags || [];
   if (!client.tags.includes(label)) {
@@ -1191,11 +1190,19 @@ function addClientTag(c, label) {
   saveAppData();
   return true;
 }
-function removeClientTag(c, label) {
-  const client =
-    appData.clientes.find((x) => x.id === c.clientId) ||
-    appData.clientes.find((x) => x.nome.toLowerCase() === c.nome.toLowerCase());
+async function removeClientTag(c, label) {
+  const client = SocialMEIClients.conversationClient(c);
   if (!client) {
+    return;
+  }
+  if (SocialMEIClients.remote) {
+    const saved = await SocialMEIClients.update(client, {
+      tags: (client.tags || []).filter((x) => x !== label),
+    });
+    if (saved) {
+      renderDetails(c);
+      renderConversationList();
+    }
     return;
   }
   client.tags = (client.tags || []).filter((x) => x !== label);
@@ -1244,6 +1251,7 @@ function persistConversationState(c) {
     status: c.status,
     naoLidas: c.naoLidas,
     clientId: c.clientId,
+    remoteClients: c.remoteClients,
   };
   saveInboxLocal();
 }
@@ -1265,8 +1273,24 @@ function setConversationStatus(c, status) {
   recordEvent(c, "Status alterado para " + statusLabel(status));
   persistConversationState(c);
 }
-function ensureContextClient(c) {
+async function ensureContextClient(c, changes = {}) {
   let client = clientContext(c).client;
+  if (SocialMEIClients.remote) {
+    const saved = client
+      ? Object.keys(changes).length
+        ? await SocialMEIClients.update(client, changes)
+        : client
+      : await SocialMEIClients.create({
+          nome: c.nome,
+          telefone: c.telefone || "—",
+          instagram: c.usuario || "—",
+          status: "Novo",
+          tags: [],
+          ...changes,
+        });
+    if (saved) SocialMEIClients.link(c, saved);
+    return saved;
+  }
   if (!client) {
     client = {
       id: Math.max(0, ...appData.clientes.map((x) => x.id)) + 1,
@@ -1358,12 +1382,12 @@ function refreshTagOptions() {
       .join("");
   $("tagFilter").value = tags.includes(inboxSelectedTag) ? inboxSelectedTag : "all";
 }
-function openTagPicker(anchor) {
+async function openTagPicker(anchor) {
   const conversation = getConversation();
   if (!conversation) {
     return;
   }
-  ensureContextClient(conversation);
+  if (!(await ensureContextClient(conversation))) return;
   const pop = $("tagPicker");
   const assigned = clientContext(conversation).client.tags || [];
   const tags = [
@@ -1424,14 +1448,14 @@ function positionTagPicker() {
   pop.style.left = Math.max(12, Math.min(r.left, innerWidth - pop.offsetWidth - 12)) + "px";
   pop.style.top = Math.max(12, Math.min(r.bottom + 8, innerHeight - pop.offsetHeight - 12)) + "px";
 }
-function finishTag(label) {
+async function finishTag(label) {
   label = label.trim().slice(0, 60);
   const conversation = getConversation();
   if (!label || !conversation) {
     return;
   }
-  ensureContextClient(conversation);
-  if (addClientTag(conversation, label)) {
+  if (!(await ensureContextClient(conversation))) return;
+  if (await addClientTag(conversation, label)) {
     recordEvent(conversation, "Etiqueta adicionada: " + label);
     refreshTagOptions();
     renderDetails(conversation);
@@ -1622,6 +1646,7 @@ function openInboxModal(title, content, submitLabel = "Salvar", mode = "profile"
   modalConversationId = conversation?.id;
   const modal = $("inboxModal");
   modal.dataset.mode = mode;
+  modal._clientVersion = clientContext(getConversation() || { nome: "" }).client?.versao;
   $("inboxModalTitle").textContent = title;
   $("inboxModalContent").innerHTML = content.replace(/\b(id|for)="f_/g, '$1="inbox_f_');
   $("inboxModalSubmit").textContent = submitLabel;

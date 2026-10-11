@@ -168,6 +168,7 @@ async function openRecordEditor(type, id) {
     type,
     id: Number(id),
     returnFocus,
+    versao: record.versao,
   };
   $("createType").disabled = true;
   $("createType").closest(".form-group").hidden = true;
@@ -240,7 +241,7 @@ async function openRecordEditor(type, id) {
   $("createSubmit").textContent = "Salvar alterações";
   requestAnimationFrame(() => $("createFields").querySelector("input,select,textarea")?.focus());
 }
-function saveRecordEdit(form) {
+async function saveRecordEdit(form) {
   if (!validateRequiredFormText(form) || !activeRecordEdit) {
     return;
   }
@@ -251,6 +252,32 @@ function saveRecordEdit(form) {
   }
   const before = cloneData(appData);
   const d = Object.fromEntries(new FormData(form));
+  if (context.type === "clients" && SocialMEIClients.remote) {
+    const saved = await SocialMEIClients.update(
+      { ...record, versao: context.versao },
+      {
+        nome: d.nome.trim(),
+        telefone: d.telefone.trim() || "—",
+        instagram: d.instagram.trim() || "—",
+        observacao: d.observacao.trim(),
+        status: d.status,
+        tags: [
+          ...new Set(
+            d.tags
+              .split(",")
+              .map((t) => t.trim())
+              .filter(Boolean),
+          ),
+        ],
+      },
+    );
+    if (saved) {
+      activeRecordEdit = null;
+      closeModal("createModal");
+      toast("Alterações salvas", "Cliente atualizado na API compartilhada.");
+    }
+    return;
+  }
   const oldName = record.nome;
   if (context.type === "sales") {
     Object.assign(record, {
@@ -395,6 +422,7 @@ function openRecordConfirmation(type, id, cancel = false) {
     type,
     id: Number(id),
     cancel,
+    versao: record.versao,
   };
   $("reviewConfirmTitle").textContent = cancel ? "Cancelar esta venda?" : "Excluir este registro?";
   const label = type === "sales" ? `Venda #${id}` : record.nome || record.descricao;
@@ -413,6 +441,15 @@ async function confirmRecordChange() {
   }
   const record = findBusinessRecord(pending.type, pending.id);
   if (!record) {
+    return;
+  }
+  if (pending.type === "clients" && SocialMEIClients.remote) {
+    if (await SocialMEIClients.remove({ ...record, versao: pending.versao })) {
+      reviewPending = null;
+      await closeModal("reviewConfirm");
+      await closeModal("clientModal");
+      toast("Cliente excluído", "Cadastro removido da API compartilhada.");
+    }
     return;
   }
   const before = cloneData(appData);

@@ -1074,10 +1074,11 @@ function renderClientPanel() {
       normalizedText(entry.pessoa) === normalizedText(c.nome) ||
       rel.some((v) => entry.descricao === `Venda #${v.id}`),
   );
-  const cv = sessionData.conversas.filter(
-    (conversation) =>
-      conversation.clientId === c.id ||
-      normalizedText(displayName(conversation)) === normalizedText(c.nome),
+  const cv = sessionData.conversas.filter((conversation) =>
+    SocialMEIClients.remote
+      ? SocialMEIClients.conversationClient(conversation)?.id === c.id
+      : conversation.clientId === c.id ||
+        normalizedText(displayName(conversation)) === normalizedText(c.nome),
   );
   const li = (a, b, r) => /* HTML */ `<li
             style="display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);font-size:14px"

@@ -268,3 +268,82 @@ A migration 004 é aditiva. O health check agora exige também a tabela de
 importação. Aplicação e rollback seguem as instruções locais acima; manter
 a tabela no rollback evita perder snapshots e identidade de importação.
 O frontend e a produção continuam sem ativação remota nesta etapa.
+
+## Frontend: Clientes no modo remoto
+
+O padrão em `frontend/config.js` continua sendo `mode: "local"`. Em uma
+cópia de desenvolvimento/staging, após aplicar as migrations e verificar
+`/health/db`, configure explicitamente:
+
+```js
+clientes: {
+  mode: "remote",
+  apiBaseUrl: "http://localhost:8000/api/v1",
+  workspaceKey: "development"
+}
+```
+
+`workspaceKey` identifica os vínculos do navegador e deve corresponder ao
+workspace fixo configurado na API. Não escolhe nem autoriza um workspace no
+servidor. Ao trocar o workspace no backend, troque também essa chave. Dois
+computadores precisam apontar para a **mesma API acessível pela rede**, com
+a mesma chave; `localhost` em computadores distintos significa APIs distintas.
+Esta configuração não torna a API apropriada para exposição pública.
+
+Para frontend em outra origem, configure no backend
+`SOCIALMEI_CORS_ORIGINS` com origens exatas separadas por vírgula. O Compose
+de desenvolvimento permite `http://localhost:5500` e
+`http://127.0.0.1:5500`; ajuste para portas diferentes. CORS não autentica
+usuários. Wildcard é rejeitado, credenciais do navegador não são enviadas
+e nenhuma credencial privada deve entrar em `config.js`.
+
+No modo remoto:
+
+- a lista começa vazia e é carregada da API, sem mostrar a demonstração como
+  se fosse compartilhada;
+- falhas de rede, respostas inválidas e conflitos aparecem no painel de
+  Clientes; a última lista da sessão pode continuar visível, mas alterações
+  ficam bloqueadas até recarregar;
+- criar, editar, excluir, observar e etiquetar passam pela API. PATCH e
+  DELETE enviam a versão lida antes da edição/confirmação;
+- a criação usa a confirmação idempotente de importação, com uma origem
+  persistida por cadastro. Após perda da resposta, recarregue a lista e
+  reenvie os mesmos campos. Um cadastro pendente com outros campos é
+  bloqueado para evitar duplicação; erro 422 permite corrigir os campos;
+- mensagens recebidas do n8n não criam clientes automaticamente. Cadastre
+  o perfil explicitamente pela Caixa;
+- os vínculos remotos das conversas são separados de `clientId` local, por
+  API e workspace. Nomes iguais não são associados automaticamente ao servidor;
+- vendas, financeiro, preferências e conversas continuam locais. Renomear
+  um cliente atualiza vínculos locais inequívocos depois da aceitação remota.
+  Falha ao salvar esses vínculos locais é informada sem desfazer o servidor.
+
+### Importação pelo navegador
+
+Em Clientes, escolha **Importar clientes locais**, confira a prévia e
+confirme. Esse fluxo importa até 500 clientes do snapshot local. Campos
+conhecidos são enviados em `cliente`; extensões ficam em `extras`.
+Origem e mapeamento são persistidos com as chaves
+`socialmei-client-origin-v1` e `socialmei-client-links-v1`, incluídas no backup.
+Não apague essas chaves nem gere uma nova origem para repetir a importação.
+Copiar um backup preserva a identidade do dataset.
+
+O snapshot local de Clientes permanece na chave principal. Salvar outros
+módulos no modo remoto não substitui esse snapshot pelos clientes do servidor.
+O backup exporta o snapshot local e, separadamente, `remoteClientsSnapshot`,
+identificado com a API/workspace e data de exportação. Essa cópia remota é
+apenas uma exportação, não cache de leitura nem mecanismo de restauração.
+Restaurar backup local exige modo local; depois confira a prévia antes de
+importar para a API.
+
+O botão **Recarregar** busca alterações feitas em outro computador. Não há
+polling de Clientes nem sincronização offline nesta etapa. Uma recarga da
+página sempre consulta o servidor. Para rollback, volte a configuração para
+`mode: "local"`: o snapshot local é recuperado, mas alterações remotas não
+são mescladas automaticamente. Preserve o backup com o snapshot remoto.
+
+Validação: testes de adapter cobrem falhas, conflitos, criação idempotente e
+separação dos IDs. Os fluxos de navegador usam uma API simulada para testar
+UI, duas sessões, importação, CRUD e Caixa. Os testes Python com PostgreSQL
+validam a persistência real; um ensaio em dois computadores no mesmo staging
+continua necessário antes de habilitar esse modo para a equipe.

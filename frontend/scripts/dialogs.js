@@ -423,8 +423,26 @@ function openCreate(type = "venda", preset = {}) {
   toggleProductInventory();
   openModal("createModal");
 }
-function handleCreate(data) {
+async function handleCreate(data) {
   if (!validateRequiredFormText($("createForm"))) {
+    return;
+  }
+  if ($("createType").value === "cliente" && SocialMEIClients.remote) {
+    const saved = await SocialMEIClients.create({
+      nome: data.nome.trim(),
+      telefone: data.telefone || "—",
+      instagram: data.instagram || "—",
+      status: "Novo",
+      ultima: "Agora",
+      total: 0,
+      pendente: 0,
+      observacao: data.observacao || "",
+      tags: ["Novo cliente"],
+    });
+    if (saved) {
+      closeModal("createModal");
+      toast("Cliente criado", "Salvo na API compartilhada.");
+    }
     return;
   }
   const previous = cloneData(appData);
