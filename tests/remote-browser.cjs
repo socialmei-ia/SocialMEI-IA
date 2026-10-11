@@ -24,6 +24,12 @@ module.exports = async function remoteFlows(browser, origin, errors) {
     prefs: {},
   };
   async function setup(page, local) {
+    await page.addInitScript(() => {
+      Object.defineProperty(Crypto.prototype, "randomUUID", {
+        value: undefined,
+        configurable: true,
+      });
+    });
     page.on("pageerror", (error) => errors.push(error.message));
     if (local)
       await page.addInitScript((data) => {

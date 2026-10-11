@@ -54,7 +54,8 @@ function setup(fetch, config = { mode: "remote", apiBaseUrl: "/api/v1", workspac
   });
   vm.runInContext(source + "\nthis.store = SocialMEIClients", context);
   context.store.attach(appData);
-  return { ...context, storage };
+  context.storage = storage;
+  return context;
 }
 const client = { id: 101, versao: 2, nome: "Remoto", tags: [], telefone: null };
 const reply = (data, status = 200) => ({ ok: status < 400, status, json: async () => data });
@@ -131,4 +132,19 @@ test("invalid remote config and invalid list never show local clients", async ()
   const broken = setup(async () => reply([{ nome: "Sem ID" }]));
   assert.equal(await broken.store.refresh(), null);
   assert.equal(broken.appData.clientes.length, 0);
+});
+
+test("LAN HTTP creation uses cryptographic UUID even without randomUUID", async () => {
+  let origem;
+  const ctx = setup(async (url, options) => {
+    if (url.endsWith("/confirmar")) {
+      origem = JSON.parse(options.body).origem;
+      return reply({ itens: [{ cliente_id: 101 }] });
+    }
+    return reply(url.endsWith("/101") ? client : [client]);
+  });
+  ctx.crypto = { getRandomValues: (bytes) => crypto.webcrypto.getRandomValues(bytes) };
+  await ctx.store.refresh();
+  assert.equal((await ctx.store.create({ nome: "Celular", tags: [] })).id, 101);
+  assert.match(origem, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
 });
