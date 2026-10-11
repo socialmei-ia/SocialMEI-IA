@@ -101,6 +101,18 @@ def lock_product(cur, workspace_id, product_id, version):
     return row
 
 
+def ensure_no_active_stock_sales(cur, workspace_id, product_id):
+    cur.execute(
+        "SELECT 1 FROM socialmei.crm_vendas WHERE workspace_id = %s AND produto_id = %s AND estoque_aplicado LIMIT 1",
+        (workspace_id, product_id),
+    )
+    if cur.fetchone():
+        raise HTTPException(
+            409,
+            "O item possui vendas com estoque aplicado. Cancele essas vendas antes de excluir ou mudar o tipo.",
+        )
+
+
 @router.get("", response_model=list[ProdutoOut])
 def list_products():
     require_shared_data()
@@ -143,6 +155,8 @@ def update_product(produto_id: int, payload: ProdutoUpdate):
     with connect() as conn, conn.cursor(row_factory=dict_row) as cur:
         workspace_id = ensure_workspace(conn)
         current = lock_product(cur, workspace_id, produto_id, version)
+        if "tipo" in values and values["tipo"] != current["tipo"]:
+            ensure_no_active_stock_sales(cur, workspace_id, produto_id)
         merged = {key: current[key] for key in ProdutoFields.model_fields}
         try:
             ProdutoCreate.model_validate({**merged, **values})
@@ -187,6 +201,7 @@ def delete_product(produto_id: int, expected_version: int = Query(ge=1)):
     with connect() as conn, conn.cursor(row_factory=dict_row) as cur:
         workspace_id = ensure_workspace(conn)
         lock_product(cur, workspace_id, produto_id, expected_version)
+        ensure_no_active_stock_sales(cur, workspace_id, produto_id)
         cur.execute(
             "DELETE FROM socialmei.crm_produtos WHERE workspace_id = %s AND id = %s",
             (workspace_id, produto_id),

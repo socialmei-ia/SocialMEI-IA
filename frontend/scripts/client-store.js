@@ -122,7 +122,7 @@ const SocialMEIClients = (() => {
     if (!host) return;
     host.hidden = !remote;
     host.innerHTML = remote
-      ? `<div class="management-settings-row"><div><b>Clientes compartilhados · ${busy ? "aguarde…" : ready ? "conectado" : "indisponível"}</b><p>${escapeHtml(problem ? problem + " A lista exibida pode estar desatualizada; recarregue." : "Clientes são salvos na API. Vendas, financeiro e conversas continuam locais.")}</p></div><button class="management-button" data-clients-reload ${busy ? "disabled" : ""}>Recarregar</button><button class="management-button" data-clients-import ${busy || !ready ? "disabled" : ""}>Importar clientes locais</button></div>`
+      ? `<div class="management-settings-row"><div><b>Clientes compartilhados · ${busy ? "aguarde…" : ready ? "conectado" : "indisponível"}</b><p>${escapeHtml(problem ? problem + " A lista exibida pode estar desatualizada; recarregue." : "Clientes são salvos na API. Confira a conexão dos demais módulos para identificar os dados compartilhados.")}</p></div><button class="management-button" data-clients-reload ${busy ? "disabled" : ""}>Recarregar</button><button class="management-button" data-clients-import ${busy || !ready ? "disabled" : ""}>Importar clientes locais</button></div>`
       : "";
   }
   function changed() {
@@ -227,6 +227,7 @@ const SocialMEIClients = (() => {
         }),
       );
       if (
+        !SocialMEISales.remote &&
         saved.nome !== client.nome &&
         appData.clientes.filter((c) => c.nome.toLowerCase() === client.nome.toLowerCase())
           .length === 1

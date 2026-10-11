@@ -462,3 +462,129 @@ ajuste concorrente e negativo, importação repetida e isolamento por workspace.
 Os testes de UI usam API simulada em duas sessões; os testes Python validam
 persistência e transações no PostgreSQL. Validar notebook/celular com a API real
 antes de habilitar para a equipe.
+
+## Vendas compartilhadas — migration 006
+
+A migration `006_shared_sales.sql` cria vendas, identidade de operações e
+mapeamento de importação. O health check passa a exigir as três tabelas.
+Vendas preservam os nomes, preço, quantidade, desconto, data e pagamento como
+snapshots históricos, junto com IDs de cliente/produto quando disponíveis.
+
+```text
+GET   /api/v1/vendas
+POST  /api/v1/vendas
+GET   /api/v1/vendas/{id}
+PATCH /api/v1/vendas/{id}
+POST  /api/v1/vendas/{id}/registrar
+POST  /api/v1/vendas/{id}/pagar
+POST  /api/v1/vendas/{id}/cancelar
+POST  /api/v1/vendas/{id}/excluir
+POST  /api/v1/vendas/importacoes/preview
+POST  /api/v1/vendas/importacoes/confirmar
+```
+
+### Contrato e efeitos de estoque
+
+Criação recebe `operation_id` (UUID), `cliente_id`, `produto_id`, `data`,
+`quantidade`, `preco`, `desconto`, `pagamento`, `observacao` e `status` inicial
+(`Pendente` ou `Rascunho`). Quantidade é inteiro seguro positivo. Valores
+monetários usam Decimal e NUMERIC(15,2), são não negativos e têm até duas casas.
+O servidor calcula `valor = preco * quantidade - desconto`, rejeitando desconto
+acima do subtotal ou total acima do limite. Cliente e produto precisam pertencer
+ao workspace fixo do ambiente. Não são associados por nome.
+
+| Operação                  | Efeito de estoque                                                        |
+| ------------------------- | ------------------------------------------------------------------------ |
+| Criar pendente            | Baixa unidades de um Produto; Serviço não movimenta estoque              |
+| Criar/duplicar rascunho   | Nenhuma movimentação                                                     |
+| Registrar rascunho        | Aplica a baixa uma vez e passa a Pendente                                |
+| Marcar pendente como paga | Mantém a baixa existente                                                 |
+| Marcar rascunho como paga | Aplica a baixa uma vez e passa a Pago                                    |
+| Editar pendente           | Ajusta a diferença de quantidade ou estorna item anterior e baixa o novo |
+| Editar rascunho           | Não movimenta estoque                                                    |
+| Cancelar/excluir          | Estorna somente a quantidade aplicada por essa venda                     |
+| Importar histórico        | Nunca movimenta estoque                                                  |
+
+Todos os efeitos, a venda e o registro de operação usam a mesma transação.
+O bloqueio do workspace serializa alterações de vendas/catálogo. Linhas de
+produto também são bloqueadas. Estoque insuficiente, saldo negativo, estorno
+acima do limite ou vínculo inválido rejeitam a operação inteira.
+
+Produtos com vendas que aplicaram estoque não podem ser excluídos nem convertidos
+em Serviço antes de cancelar essas vendas. Serviços e clientes excluídos deixam
+os snapshots históricos preservados. Alterar preço/nome do catálogo não altera
+vendas passadas. Vendas pagas/canceladas ou importadas não permitem edição dos
+campos; duplique como rascunho para iniciar outra venda com vínculos atuais.
+Canceladas não são reativadas.
+
+PATCH envia todos os campos editáveis e exige `expected_version`; ações exigem
+`operation_id` e `expected_version`. Uma versão desatualizada retorna 409.
+Excluir é lógico: a venda fica cancelada e oculta na lista, mantendo histórico
+e identidade. Não existe DELETE físico de vendas nesta API.
+
+### Idempotência e resposta perdida
+
+A chave `(workspace, operation_id)` guarda hash de rota, ação e payload, mais
+resposta aceita. Repetir a mesma operação retorna essa resposta, sem repetir
+baixa ou estorno, mesmo com a versão antiga. Reutilizar o UUID com outros campos
+retorna 409. Duas vendas concorrentes com UUIDs distintos também não podem vender
+mais unidades do que o saldo disponível.
+
+Uma resposta repetida representa a aceitação original, podendo anteceder outra
+edição da venda. Após uma operação, o adapter recarrega a lista atual e o catálogo.
+A interface mantém a identidade pendente em `socialmei-sale-operation-pending-v1`
+antecedendo a chamada de escrita. Após falha de rede, use **Recuperar operação
+pendente**; não gere outra identidade para tentar de novo. Rejeições definitivas
+404/409/422 liberam a identidade. Falha numa leitura posterior é informada como
+operação já salva, sem desfazer ou repetir a escrita.
+
+### Histórico local e frontend
+
+Ativação explícita em `config.vendas`, com a mesma URL/workspace de Clientes e
+Catálogo. Os três precisam estar remotos para criar/editar vendas vinculadas.
+Sem a configuração, Vendas continua local. O formulário remoto seleciona IDs,
+exibe o nome e identificador para distinguir cadastros com nomes iguais, preenche
+o preço atual do item como sugestão e permite conferir o preço antes de salvar.
+Rascunhos têm ação explícita **Registrar venda**.
+
+```js
+vendas: {
+  mode: "remote",
+  apiBaseUrl: "http://192.168.0.3:8000/api/v1",
+  workspaceKey: "development"
+}
+```
+
+A importação recebe `{ origem, itens: [{ local_id, venda, extras }] }`. Em `venda`,
+`cliente`, `item`, `data`, `valor` e status preservam o registro histórico;
+quantidade ausente é 1 e preço ausente é nulo. O valor histórico não é recalculado.
+IDs opcionais só são preenchidos a partir dos mapeamentos das importações de
+Clientes/Catálogo e de nomes locais inequívocos. Sem mapeamento, o histórico fica
+sem vínculo remoto. Importe as bases antes das vendas, sem inventar IDs.
+O original completo fica em `extras.original_local` na importação da interface.
+
+Prévia não escreve; confirmação é atômica, com até 500 itens/2 MB, conflitos,
+origens separadas e tombstone para venda excluída. Vendas importadas são sinalizadas
+como histórico e não baixam/estornam estoque ao pagar, cancelar ou excluir.
+Isso evita movimentar novamente um saldo que já pode refletir vendas antigas.
+
+O snapshot local permanece na chave principal. Exportação inclui
+`remoteSalesSnapshot`, identificado por API/workspace e data, separado do backup
+local. Restauração exige todos os módulos em modo local. Origem/mapeamento usam
+`socialmei-sale-origin-v1` e `socialmei-sale-links-v1`; preserve essas identidades.
+
+**Financeiro continua local e separado**: marcar como paga registra o status da
+venda; não cria recebimento. Cancelar/excluir não apaga lançamentos financeiros.
+Não associe uma venda remota a lançamentos locais apenas porque têm o mesmo número.
+A migração e transação de recebimentos ficam para a próxima etapa.
+
+Rollback: volte `vendas` para local, mantendo tabelas e registros remotos. Estoque
+já movimentado não é revertido pelo rollback de configuração; preserve backups e
+reconcilie os dados antes de retomar operações locais. Não apague volumes ou tabelas.
+
+Validação automática inclui baixa/estorno único após replay, concorrência sem
+overselling, edição com troca de item, rollback por estoque insuficiente, serviços,
+rascunhos, pagamentos, importação sem estoque e isolamento por workspace. UI é
+exercitada com API simulada em duas sessões; persistência real usa PostgreSQL.
+O ensaio manual principal é registrar e cancelar uma venda entre notebook/celular,
+conferindo que o estoque muda uma única vez.
