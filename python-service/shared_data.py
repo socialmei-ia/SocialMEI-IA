@@ -1,10 +1,19 @@
 import json
 import os
-from typing import Any
+from datetime import datetime
+from typing import Annotated, Any
 
-from fastapi import APIRouter, HTTPException, Response, status
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, HTTPException, Query, Response, status
+from psycopg.errors import UniqueViolation
 from psycopg.rows import dict_row
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    model_validator,
+)
 
 from database import check_database, connect, shared_data_enabled
 
@@ -24,7 +33,10 @@ def workspace_slug() -> str:
 
 
 def workspace_name() -> str:
-    return os.getenv("SOCIALMEI_WORKSPACE_NAME", "SocialMEI Development").strip() or "SocialMEI Development"
+    return (
+        os.getenv("SOCIALMEI_WORKSPACE_NAME", "SocialMEI Development").strip()
+        or "SocialMEI Development"
+    )
 
 
 def ensure_workspace(conn) -> int:
@@ -46,31 +58,72 @@ def ensure_workspace(conn) -> int:
         return int(row["id"])
 
 
-class ClienteCreate(BaseModel):
-    nome: str = Field(min_length=1, max_length=160)
-    telefone: str | None = Field(default=None, max_length=40)
-    email: str | None = Field(default=None, max_length=255)
-    instagram: str | None = Field(default=None, max_length=160)
-    status: str = Field(default="Ativo", min_length=1, max_length=30)
-    observacao: str | None = Field(default=None, max_length=5000)
-    tags: list[str] = Field(default_factory=list)
-    legacy_local_id: int | None = Field(default=None, ge=0)
+Tag = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80)
+]
+MAX_SAFE_ID = 9_007_199_254_740_991
 
 
-class ClienteUpdate(BaseModel):
+class ClienteFields(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
     nome: str | None = Field(default=None, min_length=1, max_length=160)
     telefone: str | None = Field(default=None, max_length=40)
     email: str | None = Field(default=None, max_length=255)
     instagram: str | None = Field(default=None, max_length=160)
     status: str | None = Field(default=None, min_length=1, max_length=30)
     observacao: str | None = Field(default=None, max_length=5000)
-    tags: list[str] | None = None
+    tags: list[Tag] | None = Field(default=None, max_length=50)
+    cidade: str | None = Field(default=None, max_length=160)
+    desde: str | None = Field(default=None, max_length=160)
+    categoria: str | None = Field(default=None, max_length=160)
+    cadastro_original_em: AwareDatetime | None = Field(default=None, alias="criadoEm")
+    observacao_atualizada_em: AwareDatetime | None = Field(
+        default=None, alias="observacaoAtualizada"
+    )
+    avatar_url: str | None = Field(default=None, alias="avatarUrl", max_length=2048)
+    foto: str | None = Field(default=None, max_length=2048)
+    # Snapshot legado: não representa um saldo calculado pelo backend.
+    ultima: str | None = Field(default=None, max_length=80)
+    total: float | None = Field(default=None, ge=0, allow_inf_nan=False)
+    pendente: float | None = Field(default=None, ge=0, allow_inf_nan=False)
+
+
+class ClienteCreate(ClienteFields):
+    nome: str = Field(min_length=1, max_length=160)
+    status: str = Field(default="Ativo", min_length=1, max_length=30)
+    tags: list[Tag] = Field(default_factory=list, max_length=50)
+    legacy_local_id: int | None = Field(default=None, ge=0, le=MAX_SAFE_ID, strict=True)
+
+
+class ClienteUpdate(ClienteFields):
+    expected_version: int | None = Field(default=None, ge=1, strict=True)
+
+    @model_validator(mode="after")
+    def reject_required_nulls(self):
+        for field in ("nome", "status", "tags", "expected_version"):
+            if field in self.model_fields_set and getattr(self, field) is None:
+                raise ValueError(f"{field} não pode ser nulo.")
+        return self
 
 
 class ClienteOut(ClienteCreate):
+    # Os campos internos usam os aliases públicos já presentes no frontend.
+    model_config = ConfigDict(
+        extra="forbid", populate_by_name=True, str_strip_whitespace=True
+    )
     id: int
-    criado_em: Any
-    atualizado_em: Any
+    versao: int
+    criado_em: datetime
+    atualizado_em: datetime
+
+
+CLIENTE_COLUMNS = (
+    "id, nome, telefone, email, instagram, status, observacao, tags, legacy_local_id, "
+    "cidade, desde, categoria, cadastro_original_em, observacao_atualizada_em, "
+    "avatar_url, foto, ultima, total, pendente, versao, criado_em, atualizado_em"
+)
+EDITABLE_COLUMNS = set(ClienteFields.model_fields)
 
 
 def normalize_row(row: dict[str, Any]) -> dict[str, Any]:
@@ -81,79 +134,81 @@ def normalize_row(row: dict[str, Any]) -> dict[str, Any]:
     return row
 
 
+def lock_cliente(cur, workspace_id: int, cliente_id: int, expected_version: int | None):
+    cur.execute(
+        f"SELECT {CLIENTE_COLUMNS} FROM socialmei.crm_clientes "
+        "WHERE workspace_id = %s AND id = %s FOR UPDATE",
+        (workspace_id, cliente_id),
+    )
+    row = cur.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado.")
+    if expected_version is not None and row["versao"] != expected_version:
+        raise HTTPException(
+            status_code=409,
+            detail="Cliente alterado por outra sessão. Recarregue antes de salvar.",
+        )
+    return row
+
+
 @router.get("/clientes", response_model=list[ClienteOut])
 def list_clientes():
     require_shared_data()
-
     with connect() as conn:
         workspace_id = ensure_workspace(conn)
         with conn.cursor(row_factory=dict_row) as cur:
             cur.execute(
-                """
-                SELECT id, nome, telefone, email, instagram, status, observacao,
-                       tags, legacy_local_id, criado_em, atualizado_em
-                FROM socialmei.crm_clientes
-                WHERE workspace_id = %s
-                ORDER BY nome, id
-                """,
+                f"SELECT {CLIENTE_COLUMNS} FROM socialmei.crm_clientes "
+                "WHERE workspace_id = %s ORDER BY nome, id",
                 (workspace_id,),
             )
             return [normalize_row(row) for row in cur.fetchall()]
 
 
-@router.post("/clientes", response_model=ClienteOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/clientes", response_model=ClienteOut, status_code=status.HTTP_201_CREATED
+)
 def create_cliente(payload: ClienteCreate):
     require_shared_data()
-
-    with connect() as conn:
-        workspace_id = ensure_workspace(conn)
-        with conn.cursor(row_factory=dict_row) as cur:
-            cur.execute(
-                """
-                INSERT INTO socialmei.crm_clientes (
-                    workspace_id, nome, telefone, email, instagram, status,
-                    observacao, tags, legacy_local_id
+    values = payload.model_dump()
+    columns = list(values)
+    params = [
+        json.dumps(value) if key == "tags" else value for key, value in values.items()
+    ]
+    placeholders = ["%s::jsonb" if key == "tags" else "%s" for key in columns]
+    try:
+        with connect() as conn:
+            workspace_id = ensure_workspace(conn)
+            with conn.cursor(row_factory=dict_row) as cur:
+                cur.execute(
+                    f"INSERT INTO socialmei.crm_clientes (workspace_id, {', '.join(columns)}) "
+                    f"VALUES (%s, {', '.join(placeholders)}) RETURNING {CLIENTE_COLUMNS}",
+                    [workspace_id, *params],
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s)
-                RETURNING id, nome, telefone, email, instagram, status, observacao,
-                          tags, legacy_local_id, criado_em, atualizado_em
-                """,
-                (
-                    workspace_id,
-                    payload.nome,
-                    payload.telefone,
-                    payload.email,
-                    payload.instagram,
-                    payload.status,
-                    payload.observacao,
-                    json.dumps(payload.tags),
-                    payload.legacy_local_id,
-                ),
-            )
-            return normalize_row(cur.fetchone())
+                return normalize_row(cur.fetchone())
+    except UniqueViolation as error:
+        if error.diag.constraint_name != "ux_crm_clientes_workspace_legacy_local":
+            raise
+        raise HTTPException(
+            status_code=409,
+            detail="ID local já utilizado neste workspace. Não repita a importação por POST.",
+        ) from error
 
 
 @router.get("/clientes/{cliente_id}", response_model=ClienteOut)
 def get_cliente(cliente_id: int):
     require_shared_data()
-
     with connect() as conn:
         workspace_id = ensure_workspace(conn)
         with conn.cursor(row_factory=dict_row) as cur:
             cur.execute(
-                """
-                SELECT id, nome, telefone, email, instagram, status, observacao,
-                       tags, legacy_local_id, criado_em, atualizado_em
-                FROM socialmei.crm_clientes
-                WHERE workspace_id = %s AND id = %s
-                """,
+                f"SELECT {CLIENTE_COLUMNS} FROM socialmei.crm_clientes "
+                "WHERE workspace_id = %s AND id = %s",
                 (workspace_id, cliente_id),
             )
             row = cur.fetchone()
-
     if not row:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cliente não encontrado.")
-
+        raise HTTPException(status_code=404, detail="Cliente não encontrado.")
     return normalize_row(row)
 
 
@@ -161,75 +216,46 @@ def get_cliente(cliente_id: int):
 def update_cliente(cliente_id: int, payload: ClienteUpdate):
     require_shared_data()
     values = payload.model_dump(exclude_unset=True)
-
-    if not values:
-        return get_cliente(cliente_id)
-
-    allowed = {
-        "nome": "nome",
-        "telefone": "telefone",
-        "email": "email",
-        "instagram": "instagram",
-        "status": "status",
-        "observacao": "observacao",
-        "tags": "tags",
-    }
-
-    assignments = []
-    params: list[Any] = []
-    for key, value in values.items():
-        column = allowed[key]
-        if key == "tags":
-            assignments.append(f"{column} = %s::jsonb")
-            params.append(json.dumps(value))
-        else:
-            assignments.append(f"{column} = %s")
-            params.append(value)
-
-    assignments.append("atualizado_em = NOW()")
-
+    expected_version = values.pop("expected_version", None)
+    # A allowlist é interna; nomes de colunas nunca vêm de texto recebido.
+    assert set(values).issubset(EDITABLE_COLUMNS)
     with connect() as conn:
         workspace_id = ensure_workspace(conn)
-        params.extend([workspace_id, cliente_id])
-
         with conn.cursor(row_factory=dict_row) as cur:
+            current = lock_cliente(cur, workspace_id, cliente_id, expected_version)
+            if not values:
+                return normalize_row(current)
+            assignments = [
+                f"{key} = %s::jsonb" if key == "tags" else f"{key} = %s"
+                for key in values
+            ]
+            params = [
+                json.dumps(value) if key == "tags" else value
+                for key, value in values.items()
+            ]
+            assignments.extend(["atualizado_em = NOW()", "versao = versao + 1"])
             cur.execute(
-                f"""
-                UPDATE socialmei.crm_clientes
-                SET {", ".join(assignments)}
-                WHERE workspace_id = %s AND id = %s
-                RETURNING id, nome, telefone, email, instagram, status, observacao,
-                          tags, legacy_local_id, criado_em, atualizado_em
-                """,
-                params,
+                f"UPDATE socialmei.crm_clientes SET {', '.join(assignments)} "
+                f"WHERE workspace_id = %s AND id = %s RETURNING {CLIENTE_COLUMNS}",
+                [*params, workspace_id, cliente_id],
             )
-            row = cur.fetchone()
-
-    if not row:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cliente não encontrado.")
-
-    return normalize_row(row)
+            return normalize_row(cur.fetchone())
 
 
 @router.delete("/clientes/{cliente_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_cliente(cliente_id: int):
+def delete_cliente(
+    cliente_id: int,
+    expected_version: Annotated[int | None, Query(ge=1)] = None,
+):
     require_shared_data()
-
     with connect() as conn:
         workspace_id = ensure_workspace(conn)
-        with conn.cursor() as cur:
+        with conn.cursor(row_factory=dict_row) as cur:
+            lock_cliente(cur, workspace_id, cliente_id, expected_version)
             cur.execute(
-                """
-                DELETE FROM socialmei.crm_clientes
-                WHERE workspace_id = %s AND id = %s
-                """,
+                "DELETE FROM socialmei.crm_clientes WHERE workspace_id = %s AND id = %s",
                 (workspace_id, cliente_id),
             )
-            deleted = cur.rowcount
-
-    if not deleted:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cliente não encontrado.")
-
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

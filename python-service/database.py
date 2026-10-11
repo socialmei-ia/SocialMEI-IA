@@ -38,7 +38,10 @@ def connect():
 
 
 def check_database() -> None:
-    with connect() as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT 1")
-            cur.fetchone()
+    with connect() as conn, conn.cursor() as cur:
+        # Falha também quando o banco responde, mas a migration do CRM falta.
+        cur.execute(
+            "SELECT id, versao, cidade, desde, categoria, cadastro_original_em, "
+            "observacao_atualizada_em, avatar_url, foto, ultima, total, pendente "
+            "FROM socialmei.crm_clientes LIMIT 0"
+        )

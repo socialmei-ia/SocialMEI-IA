@@ -95,12 +95,97 @@ Antes disso faltam:
 - política de exclusão/retensão;
 - migração controlada dos dados locais.
 
+## Contrato de Clientes e migration 003
+
+`003_client_contract.sql` amplia `crm_clientes` sem alterar as migrations
+anteriores nem as tabelas de atendimento. Registros existentes recebem
+`versao: 1`; os novos campos são opcionais.
+
+Além dos campos originais, o CRUD aceita e retorna:
+
+| Campo público                  | Persistência / significado                                                                   |
+| ------------------------------ | -------------------------------------------------------------------------------------------- |
+| `cidade`, `desde`, `categoria` | Texto do perfil da Caixa; `desde` preserva o texto, sem assumir uma data                     |
+| `criadoEm`                     | `cadastro_original_em`: timestamp original do navegador, separado de `criado_em` do servidor |
+| `observacaoAtualizada`         | `observacao_atualizada_em`: timestamp da observação                                          |
+| `avatarUrl`, `foto`            | Referências de imagem; não armazena o arquivo                                                |
+| `ultima`, `total`, `pendente`  | Snapshots legados, não métricas calculadas pelo backend                                      |
+| `versao`                       | Contador retornado pelo servidor para detectar edições concorrentes                          |
+
+Datas com horário devem incluir fuso, por exemplo `2026-10-11T15:00:00Z`.
+Tags têm até 50 itens, cada um com 1–80 caracteres após trim. Nome e status
+não podem estar vazios ou nulos. Contatos e campos opcionais podem ser
+limpos com `null` no PATCH. Campos desconhecidos retornam **422**, em vez de
+serem descartados silenciosamente. A futura importação deverá mapear campos
+legados e preservar extensões não reconhecidas no snapshot de origem;
+não envie o objeto inteiro de `localStorage` diretamente ao POST.
+
+GET da coleção continua retornando uma lista e as rotas antigas permanecem.
+POST e PATCH existentes, com os campos válidos originais, continuam funcionando.
+
+### Edições concorrentes
+
+Leia `versao` no GET/POST e envie `expected_version` no PATCH:
+
+```json
+{
+  "nome": "Maria Silva Atualizada",
+  "expected_version": 1
+}
+```
+
+Uma atualização aceita incrementa `versao`. Se outra sessão já alterou o
+registro, a API retorna **409** e preserva o dado atual. Um PATCH sem campos
+alterados não incrementa a versão, mas verifica a precondição quando enviada.
+DELETE aceita `?expected_version=2` e aplica a mesma proteção.
+
+A precondição é opcional para compatibilidade com os consumidores antigos.
+O futuro adapter remoto deve sempre enviá-la em alterações e exclusões;
+requisições que a omitem ainda podem sobrescrever alterações anteriores.
+O bloqueio de linha e a comparação ocorrem na mesma transação.
+
+### Colisão de IDs locais
+
+O índice único da migration 002 continua existindo. Repetir POST com o mesmo
+`legacy_local_id` no mesmo workspace agora retorna **409**, sem sobrescrever
+o cliente nem apresentar um erro SQL interno.
+
+Isso **não implementa importação idempotente**. Dois computadores podem ter
+registros diferentes com o mesmo ID local. A próxima PR deve criar uma
+identidade de origem/dataset, prévia de importação e mapeamento
+`(workspace, origem, id local) -> id remoto`. Não usar POST repetido como
+mecanismo de migração nem deduplicar clientes automaticamente por nome.
+
+### Health e aplicação local
+
+`/health/db` verifica a consulta dos campos necessários ao contrato atual,
+incluindo `versao`. Banco acessível com schema antigo retorna **503**, sem
+expor o erro SQL. Isso não verifica autenticação nem todas as permissões de escrita.
+
+Depois de atualizar o código, aplique as migrations somente no ambiente local:
+
+```bash
+npm run db:status
+npm run db:migrate
+```
+
+Não executar essa migration em produção automaticamente. Antes de habilitar
+o contrato em outro ambiente, validar backup, plano de aplicação e os testes.
+
+Rollback de código: voltar a versão anterior da API e manter as colunas
+aditivas no banco. Não apagar as novas colunas, pois podem conter dados.
+O frontend continua usando localStorage nesta etapa.
+
 ## Próximo passo
+
+Preparar importação idempotente e depois o adapter de Clientes por uma
+configuração explícita. O modo remoto não deve trocar para escrita local
+silenciosamente quando a API falhar.
 
 Depois de validar a API em dois computadores usando o mesmo staging:
 
 1. adicionar feature flag no frontend;
 2. importar clientes do `socialmei-app-data-v2`;
-3. manter fallback local;
+3. manter snapshot local e, se necessário, cache de leitura identificado como desatualizado;
 4. comparar local x remoto;
 5. só então tornar o remoto a fonte principal.
