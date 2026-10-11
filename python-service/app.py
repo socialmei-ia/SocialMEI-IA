@@ -1,7 +1,10 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel, Field
 
+from shared_data import database_health_payload, router as shared_data_router
+
 app = FastAPI(title="SocialME Python Service")
+app.include_router(shared_data_router)
 
 
 class TextInput(BaseModel):
@@ -17,6 +20,17 @@ def root():
 @app.get("/health")
 def health():
     return {"status": "healthy"}
+
+
+@app.get("/health/db")
+def health_db():
+    try:
+        return database_health_payload()
+    except Exception as error:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="PostgreSQL indisponível para a persistência compartilhada.",
+        ) from error
 
 
 @app.post("/processar")
