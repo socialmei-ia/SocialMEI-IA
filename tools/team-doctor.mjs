@@ -54,7 +54,5 @@ if (git && node && docker && compose && daemon && filesOk) {
 }
 
 console.log("❌ Ainda falta preparar algum item acima.");
-console.log(
-  "Se Docker Engine estiver vermelho, abra o Docker Desktop e espere ele ficar pronto.",
-);
+console.log("Se Docker Engine estiver vermelho, abra o Docker Desktop e espere ele ficar pronto.");
 process.exit(1);

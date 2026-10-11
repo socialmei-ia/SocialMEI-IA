@@ -62,12 +62,12 @@ npm run status
 
 Depois abra:
 
-| Serviço | Endereço |
-| --- | --- |
-| Frontend | http://localhost:5500 |
-| n8n | http://localhost:5678 |
-| FastAPI | http://localhost:8000/health |
-| PostgreSQL | localhost:5433 |
+| Serviço    | Endereço                     |
+| ---------- | ---------------------------- |
+| Frontend   | http://localhost:5500        |
+| n8n        | http://localhost:5678        |
+| FastAPI    | http://localhost:8000/health |
+| PostgreSQL | localhost:5433               |
 
 O ambiente padrão cria containers locais equivalentes para cada integrante. Eles não são os containers da AWS e não são compartilhados entre computadores.
 
