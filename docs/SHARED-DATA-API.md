@@ -378,3 +378,87 @@ Exporte o backup local antes da troca se precisar importar dados antigos. O banc
 remoto permanece o mesmo. Vínculos locais da Caixa não são migrados automaticamente
 entre essas origens. Ao concluir, restaure `DEV_BIND_HOST=127.0.0.1`, a URL da API
 para localhost e as origens CORS anteriores, e execute `npm run dev` novamente.
+
+## Catálogo compartilhado — migration 005
+
+`005_shared_catalog.sql` cria `crm_produtos` e `crm_produto_importacoes` sem
+alterar o cadastro local, Clientes ou as tabelas de atendimento. O health check
+passa a exigir também essas tabelas. Aplique com `npm run db:migrate` somente
+no desenvolvimento local; aplicação em outro ambiente exige preparação própria.
+
+```text
+GET    /api/v1/produtos
+POST   /api/v1/produtos
+GET    /api/v1/produtos/{id}
+PATCH  /api/v1/produtos/{id}
+DELETE /api/v1/produtos/{id}?expected_version=1
+POST   /api/v1/produtos/{id}/estoque
+POST   /api/v1/produtos/importacoes/preview
+POST   /api/v1/produtos/importacoes/confirmar
+```
+
+Contrato: `nome`, `tipo` (`Produto` ou `Serviço`), `preco`, `custo`, `estoque`,
+`minimo` e `status`. GET inclui `id`, `versao`, `criado_em` e `atualizado_em`.
+Nome/status não podem estar vazios; valores monetários são finitos e não negativos.
+Estoque e mínimo são inteiros seguros não negativos. Produtos exigem ambos;
+quando omitidos na criação, começam em zero. Serviços possuem ambos nulos e
+rejeitam valores de estoque. A conversão entre tipos exige enviar explicitamente
+estoque/mínimo válidos para o novo tipo.
+
+PATCH exige `expected_version`, mantém campos omitidos e valida o registro
+completo antes de salvar. DELETE também exige versão. Conflitos retornam 409.
+Ajustes de estoque recebem `{ "delta": -1, "expected_version": 2 }`: bloqueio,
+comparação e gravação ocorrem na mesma transação. Uma operação aceita incrementa
+a versão; estoque negativo ou acima do limite é rejeitado, sem arredondar para
+zero. Repetir a mesma requisição com a versão anterior não aplica o delta duas
+vezes. Serviços rejeitam ajustes. Ainda não há reserva de estoque ou movimentação
+automática por vendas: essa transação será implementada na etapa de Vendas.
+
+Importação usa `{ "origem": "UUID", "itens": [{ "local_id": 1, "produto":
+{ "nome": "Camiseta", "tipo": "Produto", "preco": 30, "custo": 10,
+"estoque": 5, "minimo": 2 }, "extras": {} }] }`. Mantém os mesmos limites e
+semântica de Clientes: prévia sem escrita, lote atômico, mapeamento por origem,
+snapshot normalizado, tombstones e conflito para conteúdo local modificado.
+Datasets distintos podem usar o mesmo ID local. Não associa automaticamente
+itens por nome. A criação pela interface usa essa confirmação idempotente com
+uma identidade persistida por cadastro.
+
+O catálogo permanece local por padrão, inclusive quando `produtos` não existe
+na configuração. Para ativar explicitamente, acrescente à configuração pública:
+
+```js
+produtos: {
+  mode: "remote",
+  apiBaseUrl: "http://192.168.0.3:8000/api/v1",
+  workspaceKey: "development"
+}
+```
+
+Use a URL do seu ambiente e a chave que corresponde ao workspace fixo da API.
+Clientes e Catálogo podem ser ativados independentemente. Não há credenciais
+privadas no frontend; a API continua limitada a testes em rede privada.
+
+O painel de Produtos e Serviços informa conexão, falhas e oferece Recarregar
+ou Importar catálogo local. As duas ações de ajuste de estoque da interface
+usam o endpoint transacional. Edição/exclusão usam a versão capturada ao abrir
+os formulários. Falhas não trocam a fonte para escrita local e não alteram o
+estoque mostrado como se a operação tivesse sido aceita.
+
+O snapshot de produtos locais permanece na chave principal, mesmo ao salvar
+Clientes, preferências ou outros módulos. Backup inclui `remoteProductsSnapshot`
+separado, com origem e data. Identidade de dataset, mapeamento e cadastro pendente
+usam `socialmei-product-origin-v1`, `socialmei-product-links-v1` e
+`socialmei-product-create-pending-v1`. Não apague essas chaves para repetir operações.
+Restaurar backup exige Clientes e Catálogo locais; cópias remotas exportadas não
+são importadas automaticamente.
+
+Vendas locais continuam registrando nome/preço como snapshots. Editar ou excluir
+um item remoto não reescreve vendas passadas. IDs entre módulos serão vinculados
+na etapa de Vendas; o financeiro continua local. Para rollback, desative somente
+`produtos` e preserve as tabelas/mapeamentos, evitando perda de dados remotos.
+
+Validação cobre produtos/serviços, conversão de tipo, conflitos de versão,
+ajuste concorrente e negativo, importação repetida e isolamento por workspace.
+Os testes de UI usam API simulada em duas sessões; os testes Python validam
+persistência e transações no PostgreSQL. Validar notebook/celular com a API real
+antes de habilitar para a equipe.

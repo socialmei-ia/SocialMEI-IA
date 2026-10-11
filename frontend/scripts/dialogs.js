@@ -445,6 +445,23 @@ async function handleCreate(data) {
     }
     return;
   }
+  if ($("createType").value === "produto" && SocialMEIProducts.remote) {
+    const service = data.tipo === "Serviço";
+    const saved = await SocialMEIProducts.create({
+      nome: data.nome.trim(),
+      tipo: data.tipo || "Produto",
+      preco: Number(data.preco),
+      custo: Number(data.custo) || 0,
+      estoque: service ? null : Number(data.estoque) || 0,
+      minimo: service ? null : Number(data.minimo) || 0,
+      status: "Ativo",
+    });
+    if (saved) {
+      closeModal("createModal");
+      toast("Item criado", "Salvo na API compartilhada.");
+    }
+    return;
+  }
   const previous = cloneData(appData);
   const activity = cloneData(sessionData.atividade);
   const type = $("createType").value;

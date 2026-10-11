@@ -201,7 +201,7 @@ function saveAppData() {
   if (
     !socialmeiStorageSet(
       "socialmei-app-data-v2",
-      JSON.stringify(SocialMEIClients.localData(appData)),
+      JSON.stringify(SocialMEIProducts.localData(SocialMEIClients.localData(appData))),
       "os dados do negócio",
     )
   ) {
@@ -224,7 +224,7 @@ function collectSocialMEIStorage() {
   }
   // Garante que o dado principal exportado já carregue metadado de esquema.
   storage["socialmei-app-data-v2"] = JSON.stringify({
-    ...SocialMEIClients.localData(appData),
+    ...SocialMEIProducts.localData(SocialMEIClients.localData(appData)),
     schemaVersion: SOCIALMEI_APP_SCHEMA_VERSION,
   });
   return storage;
@@ -236,6 +236,7 @@ function exportSocialMEIBackup() {
     exportedAt: new Date().toISOString(),
     storage: collectSocialMEIStorage(),
     remoteClientsSnapshot: SocialMEIClients.backup(),
+    remoteProductsSnapshot: SocialMEIProducts.backup(),
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], {
     type: "application/json",
@@ -361,10 +362,10 @@ function backupSummaryHTML(candidate) {
         </dl>`;
 }
 async function chooseBackupFile(file) {
-  if (SocialMEIClients.remote) {
+  if (SocialMEIClients.remote || SocialMEIProducts.remote) {
     toast(
       "Backup local",
-      "Restaure com Clientes em modo local. Depois confira a prévia de importação para a API.",
+      "Restaure com Clientes e Catálogo em modo local. Depois confira a prévia de importação para a API.",
     );
     return;
   }

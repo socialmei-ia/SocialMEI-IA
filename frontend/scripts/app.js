@@ -405,6 +405,7 @@ const DEFAULT_APP_DATA = {
 };
 let appData = loadAppData();
 SocialMEIClients.attach(appData);
+SocialMEIProducts.attach(appData);
 appData.prefs = appData.prefs || {
   notificacoes: true,
 };
@@ -917,6 +918,16 @@ document.addEventListener("click", async (event) => {
   if (stock) {
     const p = appData.produtos.find((product) => product.id === Number(stock.dataset.stock));
     if (p && p.tipo === "Produto") {
+      if (SocialMEIProducts.remote) {
+        SocialMEIProducts.adjustStock(p, Number(stock.dataset.delta)).then((saved) => {
+          if (saved) {
+            renderProducts();
+            renderDashboardMetrics();
+            toast("Estoque atualizado", `${saved.nome}: ${saved.estoque} un.`);
+          }
+        });
+        return;
+      }
       p.estoque = Math.max(0, p.estoque + Number(stock.dataset.delta));
       saveAppData();
       renderProducts();
@@ -2579,6 +2590,16 @@ document.addEventListener(
         (product) => product.id === Number(adjust.dataset.adjustStock),
       );
       if (p && p.tipo === "Produto") {
+        if (SocialMEIProducts.remote) {
+          SocialMEIProducts.adjustStock(p, Number(adjust.dataset.delta)).then((saved) => {
+            if (saved) {
+              renderProducts();
+              openRecord("products", saved.id);
+              toast("Estoque atualizado", `${saved.estoque} un. · ${saved.nome}`);
+            }
+          });
+          return;
+        }
         const delta = Number(adjust.dataset.delta);
         const previous = p.estoque;
         p.estoque = Math.max(0, p.estoque + delta);
@@ -3667,7 +3688,7 @@ function renderSettings() {
             </div>`;
   } else {
     host.innerHTML = /* HTML */ `<h3>Dados</h3>
-            <p>${SocialMEIClients.remote ? "Clientes são compartilhados pela API. Vendas, financeiro e preferências ficam neste navegador." : "Seus dados ficam salvos neste navegador."}</p>
+            <p>${SocialMEIClients.remote ? "Clientes são compartilhados pela API. Confira no catálogo se Produtos também está conectado. Vendas, financeiro e preferências ficam neste navegador." : "Seus dados ficam salvos neste navegador."}</p>
             <p class="management-note">
               Faça um backup antes de trocar de dispositivo ou limpar o navegador. Importar
               substitui os registros locais somente após sua confirmação.
@@ -3790,7 +3811,7 @@ document.addEventListener("submit", (event) => {
     !socialmeiStorageSet(
       "socialmei-app-data-v2",
       JSON.stringify({
-        ...SocialMEIClients.localData(appData),
+        ...SocialMEIProducts.localData(SocialMEIClients.localData(appData)),
         schemaVersion: SOCIALMEI_APP_SCHEMA_VERSION,
       }),
       "as configurações",

@@ -49,3 +49,11 @@ def check_database() -> None:
             "SELECT workspace_id, origem, local_id, cliente_id, fingerprint, snapshot "
             "FROM socialmei.crm_cliente_importacoes LIMIT 0"
         )
+        cur.execute(
+            "SELECT id, nome, tipo, preco, custo, estoque, minimo, status, versao, criado_em, atualizado_em "
+            "FROM socialmei.crm_produtos LIMIT 0"
+        )
+        cur.execute(
+            "SELECT workspace_id, origem, local_id, produto_id, fingerprint, snapshot "
+            "FROM socialmei.crm_produto_importacoes LIMIT 0"
+        )
