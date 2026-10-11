@@ -3188,6 +3188,7 @@ PRODUTOS — HTML
 ================================================== -->
           <section class="page-view" data-view="Produtos e Serviços" id="productsView">
             <div class="management-stack">
+              <div id="productsSourceStatus" class="management-card" role="status" hidden></div>
               <div id="catalogIntro" class="management-chips"></div>
               <section class="management-card management-flush">
                 <div class="management-tools">
@@ -3964,6 +3965,27 @@ MODAIS E DRAWERS — HTML
         </div>
       </section>
     </div>
+    <div class="modal-backdrop" id="productImportModal" aria-hidden="true">
+      <section class="modal" role="dialog" aria-modal="true" aria-labelledby="productImportTitle">
+        <div class="modal-head">
+          <h3 id="productImportTitle">Importar catálogo local</h3>
+          <button class="btn" type="button" data-close-modal="productImportModal">Fechar</button>
+        </div>
+        <div class="modal-body">
+          <p id="productImportSummary" role="status"></p>
+          <p>
+            Confira a prévia e exporte um backup antes de continuar. A importação não mescla itens
+            com o mesmo nome.
+          </p>
+        </div>
+        <div class="modal-foot">
+          <button class="btn" type="button" data-close-modal="productImportModal">Cancelar</button
+          ><button class="btn pr" type="button" id="confirmProductImport">
+            Confirmar importação
+          </button>
+        </div>
+      </section>
+    </div>
     <script src="scripts/home.js"></script>
     <script src="scripts/finance.js"></script>
     <script src="scripts/sales.js"></script>
@@ -3979,6 +4001,7 @@ MODAIS E DRAWERS — HTML
     <script src="scripts/business-views.js"></script>
     <script src="config.js"></script>
     <script src="scripts/client-store.js"></script>
+    <script src="scripts/product-store.js"></script>
     <script src="scripts/app.js"></script>
     <script src="scripts/experience.js"></script>
     <script id="landingEnhancementsV2" src="scripts/landing-accessibility.js"></script>

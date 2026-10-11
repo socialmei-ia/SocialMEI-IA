@@ -278,6 +278,26 @@ async function saveRecordEdit(form) {
     }
     return;
   }
+  if (context.type === "products" && SocialMEIProducts.remote) {
+    const service = d.tipo === "Serviço";
+    const saved = await SocialMEIProducts.update(
+      { ...record, versao: context.versao },
+      {
+        nome: d.nome.trim(),
+        tipo: d.tipo,
+        preco: Number(d.preco),
+        custo: Number(d.custo) || 0,
+        estoque: service ? null : Number(d.estoque) || 0,
+        minimo: service ? null : Number(d.minimo) || 0,
+      },
+    );
+    if (saved) {
+      activeRecordEdit = null;
+      closeModal("createModal");
+      toast("Alterações salvas", "Catálogo atualizado na API compartilhada.");
+    }
+    return;
+  }
   const oldName = record.nome;
   if (context.type === "sales") {
     Object.assign(record, {
@@ -431,6 +451,9 @@ function openRecordConfirmation(type, id, cancel = false) {
     : type === "clients"
       ? `O perfil de ${label} será excluído. As conversas, vendas e lançamentos permanecem no navegador.`
       : `${label} será excluído deste navegador. Os demais registros serão preservados. Esta exclusão não pode ser desfeita; mantenha um backup para recuperar o registro.`;
+  if (type === "products" && SocialMEIProducts.remote)
+    $("reviewConfirmText").textContent =
+      `${label} será excluído do catálogo compartilhado. As vendas locais permanecem registradas.`;
   $("reviewConfirmAction").textContent = cancel ? "Cancelar venda" : "Excluir registro";
   openModal("reviewConfirm");
 }
@@ -449,6 +472,15 @@ async function confirmRecordChange() {
       await closeModal("reviewConfirm");
       await closeModal("clientModal");
       toast("Cliente excluído", "Cadastro removido da API compartilhada.");
+    }
+    return;
+  }
+  if (pending.type === "products" && SocialMEIProducts.remote) {
+    if (await SocialMEIProducts.remove({ ...record, versao: pending.versao })) {
+      reviewPending = null;
+      await closeModal("reviewConfirm");
+      await closeModal("recordModal");
+      toast("Item excluído", "Removido da API compartilhada.");
     }
     return;
   }
