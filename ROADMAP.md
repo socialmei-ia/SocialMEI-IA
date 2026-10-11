@@ -49,7 +49,7 @@ Prioridades: **P0** bloqueia uso real do fluxo principal; **P1** prepara a próx
 
 Próxima entrega recomendada: **um ambiente de teste reproduzível de atendimento, com identidade/autorização definidas e critérios de aceite de dados**, antes de ampliar a integração de IA ou redesenhar a interface.
 
-
 ## Plano de persistência compartilhada
 
-A sequência detalhada para tirar gestão do `localStorage` sem perder compatibilidade está em [docs/PERSISTENCE-MIGRATION.md](docs/PERSISTENCE-MIGRATION.md).
+A sequência detalhada para tirar gestão do `localStorage` sem perder compatibilidade está em
+[docs/PERSISTENCE-MIGRATION.md](docs/PERSISTENCE-MIGRATION.md).
