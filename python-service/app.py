@@ -11,6 +11,9 @@ from product_import import router as product_import_router
 from sales_data import router as sales_router
 from sale_import import router as sale_import_router
 
+from finance_data import router as finance_router
+from finance_import import router as finance_import_router
+
 app = FastAPI(title="SocialME Python Service")
 cors_origins = [
     origin.strip()
@@ -33,6 +36,8 @@ app.include_router(catalog_router)
 app.include_router(product_import_router)
 app.include_router(sales_router)
 app.include_router(sale_import_router)
+app.include_router(finance_router)
+app.include_router(finance_import_router)
 
 
 class TextInput(BaseModel):

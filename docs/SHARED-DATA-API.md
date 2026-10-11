@@ -588,3 +588,67 @@ rascunhos, pagamentos, importação sem estoque e isolamento por workspace. UI �
 exercitada com API simulada em duas sessões; persistência real usa PostgreSQL.
 O ensaio manual principal é registrar e cancelar uma venda entre notebook/celular,
 conferindo que o estoque muda uma única vez.
+
+## Financeiro compartilhado (opt-in)
+
+A migration `007_shared_finance.sql` cria lançamentos, operações e importações. A
+configuração `SOCIALMEI_CONFIG.financeiro` aceita `mode: "remote"`, `apiBaseUrl` e
+`workspaceKey`, exigindo Clientes remotos na mesma API/workspace. Sem essa chave,
+o Financeiro permanece local. A configuração padrão do repositório não ativa o
+modo remoto nem altera produção.
+
+| Operação  | Endpoint                                        | Contrato                                                                   |
+| --------- | ----------------------------------------------- | -------------------------------------------------------------------------- |
+| Listar    | `GET /api/v1/financeiro`                        | Apenas lançamentos não excluídos do workspace configurado no servidor      |
+| Consultar | `GET /api/v1/financeiro/{id}`                   | 404 para ID inexistente, excluído ou de outro workspace                    |
+| Criar     | `POST /api/v1/financeiro`                       | Campos, `operation_id` UUID e `status` aberto/pago                         |
+| Editar    | `PATCH /api/v1/financeiro/{id}`                 | Campos completos, `expected_version` e `operation_id`; apenas não quitados |
+| Quitar    | `POST /api/v1/financeiro/{id}/pagar`            | `expected_version` e `operation_id`; receita recebida ou despesa paga      |
+| Excluir   | `POST /api/v1/financeiro/{id}/excluir`          | Mesmo contrato de ação; exclusão lógica, fora da lista e dos totais        |
+| Prévia    | `POST /api/v1/financeiro/importacoes/preview`   | `origem` UUID e `itens` com `local_id`, `lancamento` e `extras`            |
+| Importar  | `POST /api/v1/financeiro/importacoes/confirmar` | Reavalia e aplica o lote inteiro em uma transação                          |
+
+Campos: `descricao` (1–240 caracteres), `pessoa` (até 160), `tipo`
+(`receita`/`despesa`), `valor` (Decimal não negativo, até 13 inteiros e 2 casas),
+`vencimento` (data válida) e `cliente_id` opcional. Novos vínculos são validados
+no workspace; o servidor copia o nome do cliente em `pessoa`. Exclusão do cliente
+remove só o vínculo, mantendo o nome histórico. Não se infere vínculo por nome
+nem por texto `Venda #...` quando Financeiro ou Vendas são remotos.
+
+Todas as escritas exigem uma identidade UUID. O workspace é bloqueado para
+serializar alterações: a mesma identidade e os mesmos dados retornam a resposta
+original; UUID reutilizado com outros dados dá 409. Versão desatualizada também dá 409. A alteração e o registro da resposta são atômicos. Quitar um lançamento já
+quitado com a versão atual é uma operação sem alteração de versão. Quitados não
+permitem edição ou reabertura. Exclusão preserva os dados e a resposta original
+no servidor, mas retira o valor dos totais exibidos.
+
+`data_pagamento` é a data de quitação registrada pelo servidor; importação aceita
+uma data histórica explícita e mantém `null` quando ela não existia, sem inventar
+uma data. Importação preserva `aberto`, `atrasado` e `pago`, além dos campos extras
+no snapshot. A UI deriva atraso de vencimento/status, como no modo local. Gráficos
+existentes continuam agrupando por vencimento; não representam fluxo de caixa
+por data de pagamento. Não há geração automática de recebimentos, alteração de
+vendas ou movimentação de estoque por ações do Financeiro.
+
+Importações têm até 500 itens/2 MB por lote, IDs locais únicos e mapa por
+workspace/origem/ID local. Repetir a importação não duplica; dados alterados ou
+registro previamente excluído bloqueiam todo o lote. O frontend mapeia clientes
+somente pelo mapa de importação local conhecido e por nome local inequívoco;
+sem esse mapa, mantém `pessoa` sem vínculo. Recomenda-se importar Clientes antes.
+Snapshots e identidades de cada navegador precisam ser mantidos: usar uma nova
+origem para o mesmo histórico pode duplicá-lo.
+
+O frontend preserva os lançamentos locais ao salvar preferências e outras áreas;
+backup exporta `remoteFinanceSnapshot` separado. Resposta perdida mantém a
+operação original em `socialmei-finance-operation-pending-v1`, inclusive após
+reabrir a página: **Recuperar operação pendente** reenvia o UUID original. Uma
+outra escrita fica bloqueada até resolver a operação. Falha de leitura posterior
+à confirmação não desfaz a gravação; exibe aviso e bloqueia novas escritas até
+recarregar. Falha da API não ativa fallback local.
+
+Restaurar backup completo exige todos os módulos em modo local. Voltar o
+Financeiro para local apenas mostra o snapshot local preservado; não copia,
+reabre ou apaga lançamentos remotos. Teste no notebook/celular após ativação:
+criar uma entrada, recarregar no segundo aparelho e marcar recebida; o primeiro
+aparelho deve ver a mesma quitação após recarregar. Não execute implantação em
+produção como parte dessa ativação local.

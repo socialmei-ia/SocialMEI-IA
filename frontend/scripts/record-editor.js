@@ -79,7 +79,7 @@ function renderRecordActions(type, id) {
           <button
             class="management-button"
             type="button"
-            ${type === "sales" && SocialMEISales.remote && (record.importada || !["Pendente", "Rascunho"].includes(record.status)) ? "disabled" : ""}
+            ${(type === "sales" && SocialMEISales.remote && (record.importada || !["Pendente", "Rascunho"].includes(record.status))) || (type === "finance" && SocialMEIFinance.remote && record.status === "pago") ? "disabled" : ""}
             data-review-edit="${type}"
             data-review-id="${id}"
           >
@@ -160,6 +160,13 @@ async function openRecordEditor(type, id) {
     toast("Histórico preservado", "Duplique como rascunho para criar outra venda.");
     return;
   }
+  if (type === "finance" && SocialMEIFinance.remote && record.status === "pago") {
+    toast(
+      "Histórico preservado",
+      "Lançamento quitado não pode ser editado. Crie outro para corrigir.",
+    );
+    return;
+  }
   const returnFocus = document.activeElement;
   await closeModal(type === "clients" ? "clientModal" : "recordModal");
   const createType =
@@ -190,6 +197,10 @@ async function openRecordEditor(type, id) {
           ? "Editar lançamento"
           : "Editar produto ou serviço";
   const values = { ...record };
+  if (type === "finance" && SocialMEIFinance.remote) {
+    values.cliente_id = record.cliente_id ?? "";
+    $("f_status").disabled = true;
+  }
   if (type === "sales" && SocialMEISales.remote) {
     values.cliente = record.cliente_id;
     values.item = record.produto_id;
@@ -330,6 +341,25 @@ async function saveRecordEdit(form) {
     }
     return;
   }
+  if (context.type === "finance" && SocialMEIFinance.remote) {
+    const saved = await SocialMEIFinance.update(
+      { ...record, versao: context.versao },
+      {
+        descricao: d.descricao.trim(),
+        pessoa: d.pessoa || "",
+        tipo: record.tipo,
+        valor: Number(d.valor),
+        vencimento: d.vencimento,
+        cliente_id: d.cliente_id ? Number(d.cliente_id) : null,
+      },
+    );
+    if (saved) {
+      activeRecordEdit = null;
+      closeModal("createModal");
+      toast("Lançamento atualizado", "Salvo no Financeiro compartilhado.");
+    }
+    return;
+  }
   const oldName = record.nome;
   if (context.type === "sales") {
     Object.assign(record, {
@@ -372,7 +402,7 @@ async function saveRecordEdit(form) {
       appData.vendas
         .filter((sale) => normalizedText(sale.cliente) === normalizedText(oldName))
         .forEach((sale) => (sale.cliente = record.nome));
-      appData.financeiro
+      (SocialMEIFinance.remote ? [] : appData.financeiro)
         .filter((entry) => normalizedText(entry.pessoa || "") === normalizedText(oldName))
         .forEach((entry) => (entry.pessoa = record.nome));
     }
@@ -489,6 +519,9 @@ function openRecordConfirmation(type, id, cancel = false) {
   if (type === "sales" && SocialMEISales.remote)
     $("reviewConfirmText").textContent =
       `${label}: ${cancel ? "cancelar" : "excluir"} estorna apenas o estoque aplicado por esta venda. O financeiro permanece separado. Vendas importadas não estornam estoque.`;
+  if (type === "finance" && SocialMEIFinance.remote)
+    $("reviewConfirmText").textContent =
+      `${label} será excluído do Financeiro compartilhado e deixará de entrar nos totais. O histórico é preservado no servidor. Vendas e estoque não serão alterados.`;
   $("reviewConfirmAction").textContent = cancel ? "Cancelar venda" : "Excluir registro";
   openModal("reviewConfirm");
 }
@@ -533,6 +566,15 @@ async function confirmRecordChange() {
         pending.cancel ? "Venda cancelada" : "Venda excluída",
         "Estoque tratado na mesma operação.",
       );
+    }
+    return;
+  }
+  if (pending.type === "finance" && SocialMEIFinance.remote) {
+    if (await SocialMEIFinance.remove({ ...record, versao: pending.versao })) {
+      reviewPending = null;
+      await closeModal("reviewConfirm");
+      await closeModal("recordModal");
+      toast("Lançamento excluído", "Removido dos totais compartilhados.");
     }
     return;
   }
