@@ -45,3 +45,7 @@ def check_database() -> None:
             "observacao_atualizada_em, avatar_url, foto, ultima, total, pendente "
             "FROM socialmei.crm_clientes LIMIT 0"
         )
+        cur.execute(
+            "SELECT workspace_id, origem, local_id, cliente_id, fingerprint, snapshot "
+            "FROM socialmei.crm_cliente_importacoes LIMIT 0"
+        )

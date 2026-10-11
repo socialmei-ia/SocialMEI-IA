@@ -2,9 +2,11 @@ from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel, Field
 
 from shared_data import database_health_payload, router as shared_data_router
+from client_import import router as client_import_router
 
 app = FastAPI(title="SocialME Python Service")
 app.include_router(shared_data_router)
+app.include_router(client_import_router)
 
 
 class TextInput(BaseModel):
