@@ -404,6 +404,7 @@ const DEFAULT_APP_DATA = {
   },
 };
 let appData = loadAppData();
+SocialMEIClients.attach(appData);
 appData.prefs = appData.prefs || {
   notificacoes: true,
 };
@@ -1168,11 +1169,16 @@ $("createForm").addEventListener("submit", (event) => {
   }
 });
 $("globalSearchInput").addEventListener("input", (event) => renderGlobalSearch(event.target.value));
-document.addEventListener("change", (event) => {
+document.addEventListener("change", async (event) => {
   const note = event.target.closest("[data-client-note]");
   if (note && note.dataset.clientNote) {
     const c = appData.clientes.find((client) => client.id === Number(note.dataset.clientNote));
     if (c) {
+      if (SocialMEIClients.remote) {
+        const saved = await SocialMEIClients.update(c, { observacao: note.value });
+        if (saved) toast("Observação salva", saved.nome);
+        return;
+      }
       c.observacao = note.value;
       saveAppData();
       toast("Observação salva", c.nome);
@@ -1348,12 +1354,76 @@ document.body.insertAdjacentHTML(
             </section>
           </div>`,
 );
-$("inboxModalForm").addEventListener("submit", (event) => {
+$("inboxModalForm").addEventListener("submit", async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
   const d = Object.fromEntries(new FormData(form));
   const mode = $("inboxModal").dataset.mode;
   const conversation = getConversation(modalConversationId);
+  if (SocialMEIClients.remote && ["conversation", "profile", "observation"].includes(mode)) {
+    if (mode === "conversation") {
+      if (!d.nome.trim()) return;
+      const next = {
+        id: Math.max(0, ...sessionData.conversas.map((x) => x.id)) + 1,
+        nome: d.nome.trim(),
+        iniciais: initialsFromName(d.nome),
+        canal: d.canal === "Instagram" ? "instagram" : "whatsapp",
+        telefone: d.canal === "Instagram" ? "—" : d.contato.trim(),
+        usuario: d.canal === "Instagram" ? d.contato.trim() : usernameFromName(d.nome),
+        status: "aberto",
+        naoLidas: 0,
+        atualizado: "agora",
+        mensagens: [],
+        localConversation: true,
+      };
+      const client = await ensureContextClient(next);
+      if (!client) return;
+      if (d.mensagem.trim())
+        next.mensagens.push({
+          de: "empresa",
+          texto: d.mensagem.trim(),
+          hora: nowTime(),
+          data: todayISO(),
+          localOnly: true,
+        });
+      sessionData.conversas.unshift(next);
+      inboxLocalState.localConversations = sessionData.conversas.filter((x) => x.localConversation);
+      saveInboxLocal();
+      selectConversation(next.id);
+      renderConversationList();
+      toast(
+        "Conversa criada localmente",
+        "Cliente salvo na API. Nenhuma mensagem foi enviada ao canal.",
+      );
+    } else if (conversation) {
+      const current = clientContext(conversation).client;
+      const changes =
+        mode === "profile"
+          ? Object.fromEntries(
+              ["nome", "telefone", "instagram", "email", "cidade", "desde", "categoria"].map(
+                (k) => [k, d[k]?.trim() || ""],
+              ),
+            )
+          : { observacao: d.observacao.trim() };
+      if (mode === "profile" && !changes.nome) return;
+      const client = current
+        ? await SocialMEIClients.update(
+            { ...current, versao: $("inboxModal")._clientVersion },
+            changes,
+          )
+        : await ensureContextClient(conversation, changes);
+      if (!client) return;
+      SocialMEIClients.link(conversation, client);
+      renderThread({ preserveScroll: true });
+      toast(
+        mode === "profile" ? "Perfil atualizado" : "Observação salva",
+        "Salvo na API compartilhada.",
+      );
+    }
+    closeModal("inboxModal");
+    queueInboxLayout();
+    return;
+  }
   if (mode === "conversation") {
     const name = d.nome.trim();
     if (!name) {
@@ -1385,7 +1455,7 @@ $("inboxModalForm").addEventListener("submit", (event) => {
     }
     sessionData.conversas.unshift(next);
     touchConversationActivity(next);
-    const client = ensureContextClient(next);
+    const client = await ensureContextClient(next);
     if (canal === "instagram") {
       client.instagram = d.contato.trim();
     }
@@ -1404,7 +1474,7 @@ $("inboxModalForm").addEventListener("submit", (event) => {
     renderConversationList();
     toast("Conversa criada localmente", "Nenhuma mensagem foi enviada ao canal.");
   } else if (conversation && mode === "profile") {
-    const client = ensureContextClient(conversation);
+    const client = await ensureContextClient(conversation);
     const old = client.nome;
     if (!d.nome.trim()) {
       return;
@@ -1434,7 +1504,7 @@ $("inboxModalForm").addEventListener("submit", (event) => {
     });
     toast("Perfil atualizado", "Salvo neste navegador.");
   } else if (conversation && mode === "observation") {
-    const client = ensureContextClient(conversation);
+    const client = await ensureContextClient(conversation);
     client.observacao = d.observacao.trim();
     client.observacaoAtualizada = new Date().toISOString();
     saveAppData();
@@ -1708,12 +1778,13 @@ for (const c of sessionData.conversas) {
     if (Number.isFinite(saved.naoLidas)) {
       c.naoLidas = saved.naoLidas;
     }
+    c.remoteClients = saved.remoteClients || c.remoteClients;
     if (saved.clientId) {
       c.clientId = saved.clientId;
     }
   }
   const client = clientContext(c).client;
-  if (client) {
+  if (client && !SocialMEIClients.remote) {
     c.clientId = client.id;
   }
   if (c.atualizado === "ontem") {
@@ -3596,7 +3667,7 @@ function renderSettings() {
             </div>`;
   } else {
     host.innerHTML = /* HTML */ `<h3>Dados</h3>
-            <p>Seus dados ficam salvos neste navegador.</p>
+            <p>${SocialMEIClients.remote ? "Clientes são compartilhados pela API. Vendas, financeiro e preferências ficam neste navegador." : "Seus dados ficam salvos neste navegador."}</p>
             <p class="management-note">
               Faça um backup antes de trocar de dispositivo ou limpar o navegador. Importar
               substitui os registros locais somente após sua confirmação.
@@ -3719,7 +3790,7 @@ document.addEventListener("submit", (event) => {
     !socialmeiStorageSet(
       "socialmei-app-data-v2",
       JSON.stringify({
-        ...appData,
+        ...SocialMEIClients.localData(appData),
         schemaVersion: SOCIALMEI_APP_SCHEMA_VERSION,
       }),
       "as configurações",

@@ -174,6 +174,7 @@ function mergeRemoteMessage(item) {
       c.clientId = storedState.clientId;
     }
     if (
+      !SocialMEIClients.remote &&
       !appData.clientes.some(
         (client) => client.id === c.clientId || client.nome.toLowerCase() === nome.toLowerCase(),
       )
