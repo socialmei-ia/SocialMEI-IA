@@ -40,7 +40,7 @@ class SharedDataIntegrationTests(unittest.TestCase):
 
             conn.execute(
                 """
-                TRUNCATE socialmei.crm_clientes,
+                TRUNCATE socialmei.crm_cliente_importacoes, socialmei.crm_clientes,
                          socialmei.workspace_members,
                          socialmei.users,
                          socialmei.workspaces
@@ -55,7 +55,9 @@ class SharedDataIntegrationTests(unittest.TestCase):
     def setUp(self):
         os.environ["SOCIALMEI_WORKSPACE_SLUG"] = "ci-shared-data"
         with psycopg.connect(TEST_DATABASE_URL) as conn:
-            conn.execute("TRUNCATE socialmei.crm_clientes RESTART IDENTITY")
+            conn.execute(
+                "TRUNCATE socialmei.crm_cliente_importacoes, socialmei.crm_clientes, socialmei.workspaces RESTART IDENTITY CASCADE"
+            )
 
     def create(self, **fields):
         response = self.client.post(
@@ -155,6 +157,108 @@ class SharedDataIntegrationTests(unittest.TestCase):
         finally:
             os.environ["SOCIALMEI_WORKSPACE_SLUG"] = "ci-shared-data"
         self.assertEqual(self.client.get(url).json()["nome"], "Cliente de teste")
+
+    def import_payload(
+        self, origem="11111111-1111-4111-8111-111111111111", nome="Maria"
+    ):
+        return {
+            "origem": origem,
+            "itens": [
+                {
+                    "local_id": 42,
+                    "cliente": {"nome": nome, "cidade": "Belo Jardim"},
+                    "extras": {"campoLegado": "preservado"},
+                }
+            ],
+        }
+
+    def import_clients(self, payload, action="confirmar"):
+        return self.client.post(f"/api/v1/clientes/importacoes/{action}", json=payload)
+
+    def test_import_preview_is_read_only_and_retry_preserves_remote_edits(self):
+        payload = self.import_payload()
+        preview = self.import_clients(payload, "preview")
+        self.assertEqual(preview.status_code, 200, preview.text)
+        self.assertTrue(preview.json()["pode_importar"])
+        self.assertEqual(preview.json()["itens"][0]["acao"], "criar")
+        with psycopg.connect(TEST_DATABASE_URL) as conn:
+            self.assertEqual(
+                conn.execute("SELECT count(*) FROM socialmei.workspaces").fetchone()[0],
+                0,
+            )
+        first = self.import_clients(payload)
+        self.assertEqual(first.status_code, 200, first.text)
+        client_id = first.json()["itens"][0]["cliente_id"]
+        self.client.patch(
+            f"/api/v1/clientes/{client_id}", json={"nome": "Editado remotamente"}
+        )
+        retry = self.import_clients(payload)
+        self.assertEqual(retry.status_code, 200, retry.text)
+        self.assertEqual(
+            retry.json()["itens"][0],
+            {"local_id": 42, "cliente_id": client_id, "acao": "existente"},
+        )
+        self.assertEqual(len(self.client.get("/api/v1/clientes").json()), 1)
+        self.assertEqual(
+            self.client.get(f"/api/v1/clientes/{client_id}").json()["nome"],
+            "Editado remotamente",
+        )
+        with psycopg.connect(TEST_DATABASE_URL) as conn:
+            snapshot = conn.execute(
+                "SELECT snapshot FROM socialmei.crm_cliente_importacoes"
+            ).fetchone()[0]
+        self.assertEqual(snapshot["extras"], {"campoLegado": "preservado"})
+
+    def test_import_conflicts_are_atomic_and_deleted_clients_are_not_recreated(self):
+        payload = self.import_payload()
+        first = self.import_clients(payload)
+        client_id = first.json()["itens"][0]["cliente_id"]
+        changed = self.import_payload(nome="Outra Maria")
+        changed["itens"].insert(0, {"local_id": 99, "cliente": {"nome": "Novo"}})
+        preview = self.import_clients(changed, "preview")
+        self.assertFalse(preview.json()["pode_importar"])
+        self.assertEqual(self.import_clients(changed).status_code, 409)
+        self.assertEqual(len(self.client.get("/api/v1/clientes").json()), 1)
+        self.client.delete(f"/api/v1/clientes/{client_id}")
+        deleted = self.import_clients(payload)
+        self.assertEqual(deleted.status_code, 409, deleted.text)
+        self.assertEqual(deleted.json()["detail"]["itens"][0]["acao"], "excluido")
+        self.assertEqual(self.client.get("/api/v1/clientes").json(), [])
+
+    def test_import_origin_and_workspace_separate_equal_local_ids(self):
+        old = self.create(legacy_local_id=42)
+        first = self.import_clients(self.import_payload()).json()["itens"][0][
+            "cliente_id"
+        ]
+        second_response = self.import_clients(
+            self.import_payload(
+                origem="22222222-2222-4222-8222-222222222222", nome="Outro PC"
+            )
+        )
+        self.assertEqual(second_response.status_code, 200, second_response.text)
+        second = second_response.json()["itens"][0]["cliente_id"]
+        self.assertEqual(len({old["id"], first, second}), 3)
+        os.environ["SOCIALMEI_WORKSPACE_SLUG"] = "ci-import-other"
+        try:
+            other = self.import_clients(self.import_payload())
+            self.assertEqual(other.status_code, 200, other.text)
+            self.assertNotEqual(other.json()["itens"][0]["cliente_id"], first)
+            self.assertEqual(len(self.client.get("/api/v1/clientes").json()), 1)
+        finally:
+            os.environ["SOCIALMEI_WORKSPACE_SLUG"] = "ci-shared-data"
+
+    def test_concurrent_imports_produce_one_mapping(self):
+        from concurrent.futures import ThreadPoolExecutor
+
+        payload = self.import_payload()
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            responses = list(pool.map(lambda _: self.import_clients(payload), range(2)))
+        self.assertEqual([r.status_code for r in responses], [200, 200])
+        self.assertEqual(
+            responses[0].json()["itens"][0]["cliente_id"],
+            responses[1].json()["itens"][0]["cliente_id"],
+        )
+        self.assertEqual(len(self.client.get("/api/v1/clientes").json()), 1)
 
     def test_database_health(self):
         response = self.client.get("/health/db")

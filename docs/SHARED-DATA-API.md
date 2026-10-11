@@ -189,3 +189,82 @@ Depois de validar a API em dois computadores usando o mesmo staging:
 3. manter snapshot local e, se necessário, cache de leitura identificado como desatualizado;
 4. comparar local x remoto;
 5. só então tornar o remoto a fonte principal.
+
+## Importação de Clientes — migration 004
+
+Rotas exclusivas para migração controlada:
+
+```text
+POST /api/v1/clientes/importacoes/preview
+POST /api/v1/clientes/importacoes/confirmar
+```
+
+As duas recebem o mesmo lote:
+
+```json
+{
+  "origem": "11111111-1111-4111-8111-111111111111",
+  "itens": [
+    {
+      "local_id": 42,
+      "cliente": {
+        "nome": "Maria",
+        "cidade": "Belo Jardim"
+      },
+      "extras": {
+        "campoLegadoNaoMapeado": "valor preservado"
+      }
+    }
+  ]
+}
+```
+
+O futuro adapter deve gerar e persistir um UUID **por dataset**, antes da
+primeira importação. Reutilize a mesma origem em novas tentativas, lotes e
+cópias desse dataset em outro computador. Datasets independentes recebem
+origens diferentes. Gerar uma origem a cada tentativa causa duplicatas;
+a API não infere identidade de pessoas por nome, telefone ou computador.
+Registros com mesmo nome em origens distintas permanecem separados.
+
+`cliente` segue o contrato validado de Clientes. Não envie `legacy_local_id`:
+use `local_id` no item. Campos adicionais devem ir em `extras`. A tabela
+`crm_cliente_importacoes` guarda o snapshot normalizado completo do item e
+o mapeamento `(workspace, origem, local_id) -> cliente_id`; os clientes
+importados mantêm `legacy_local_id` nulo para evitar o índice legado global.
+Clientes já criados pelo POST antigo não são associados automaticamente.
+Preserve também o backup original do navegador antes de transformar os dados.
+
+Limites: 1–500 itens e até 2 MB de JSON serializado por lote. IDs devem ser
+inteiros seguros de JavaScript, sem repetição no lote. A validação ocorre
+antes de escrever no banco. `extras` fica apenas no snapshot de importação,
+sem participar do perfil exibido pelo CRUD.
+
+A prévia não escreve no banco nem cria workspace. Cada resultado contém
+`local_id`, `cliente_id` e `acao`:
+
+| Ação        | Significado                                            |
+| ----------- | ------------------------------------------------------ |
+| `criar`     | Não existe mapeamento para essa origem e ID            |
+| `existente` | O mesmo snapshot já foi importado; devolve o ID remoto |
+| `conflito`  | A origem e o ID já existem com outro snapshot          |
+| `excluido`  | O cliente remoto foi excluído após a importação        |
+
+`pode_importar` indica se não há conflitos ou exclusões na prévia. A prévia
+não reserva dados: a confirmação sempre verifica novamente na transação.
+
+A confirmação importa o lote inteiro ou retorna **409** sem importar
+nenhum item. Repetir um lote idêntico devolve os mesmos IDs sem alterar
+clientes, versões ou snapshots. Alterações feitas pelo CRUD remoto continuam
+preservadas. Um snapshot local modificado retorna conflito e exige resolução
+explícita; esta etapa não sincroniza nem mescla edições locais.
+
+Excluir um cliente mantém o mapeamento como tombstone (`cliente_id: null`),
+impedindo recriação silenciosa em novas tentativas. Não troque a origem para
+contornar esse conflito. Clientes e mapeamentos são gravados na mesma
+transação; chamadas concorrentes do workspace são serializadas pelo bloqueio
+de `ensure_workspace`. A resposta é enviada depois do commit.
+
+A migration 004 é aditiva. O health check agora exige também a tabela de
+importação. Aplicação e rollback seguem as instruções locais acima; manter
+a tabela no rollback evita perder snapshots e identidade de importação.
+O frontend e a produção continuam sem ativação remota nesta etapa.

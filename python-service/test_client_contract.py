@@ -51,6 +51,35 @@ class ClientValidationTests(unittest.TestCase):
                     self.client.post("/api/v1/clientes", json=payload).status_code, 422
                 )
 
+    def test_import_rejects_invalid_batches_before_database_access(self):
+        valid = {"local_id": 1, "cliente": {"nome": "Maria"}}
+        for payload in [
+            {"origem": "invalid", "itens": [valid]},
+            {"origem": "11111111-1111-4111-8111-111111111111", "itens": []},
+            {"origem": "11111111-1111-4111-8111-111111111111", "itens": [valid, valid]},
+            {
+                "origem": "11111111-1111-4111-8111-111111111111",
+                "itens": [{"local_id": True, "cliente": {"nome": "Maria"}}],
+            },
+            {
+                "origem": "11111111-1111-4111-8111-111111111111",
+                "itens": [
+                    {"local_id": 1, "cliente": {"nome": "Maria", "legacy_local_id": 1}}
+                ],
+            },
+            {
+                "origem": "11111111-1111-4111-8111-111111111111",
+                "itens": [{**valid, "extras": {"large": "x" * 2_000_001}}],
+            },
+        ]:
+            with self.subTest(payload=str(payload)[:100]):
+                self.assertEqual(
+                    self.client.post(
+                        "/api/v1/clientes/importacoes/confirmar", json=payload
+                    ).status_code,
+                    422,
+                )
+
 
 if __name__ == "__main__":
     unittest.main()
