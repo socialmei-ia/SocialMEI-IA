@@ -356,6 +356,7 @@ function renderManagementSparkline(a, c) {
         </svg>`;
 }
 function renderManagementChart(series) {
+  const sales = series.source === "sales";
   const mx = Math.max(...series.r, ...series.d);
   const st = Math.pow(10, Math.floor(Math.log10(mx)));
   const top = (Math.ceil((mx / st) * 2) / 2) * st || st;
@@ -376,19 +377,22 @@ function renderManagementChart(series) {
                 (l, i) => /* HTML */ `<button
                     class="management-chart-column"
                     type="button"
-                    aria-label="${escapeHtml(l)}: entrou ${money(series.r[i])}, saiu ${money(series.d[i])}"
+                    aria-label="${escapeHtml(l)}: ${sales ? "faturamento" : "entrou"} ${money(series.r[i])}${sales ? "" : `, saiu ${money(series.d[i])}`}"
                   >
                     <span class="management-bars"
                       ><i
                         style="height:${series.r[i] ? Math.max((series.r[i] / top) * 100, 2) : 0}%"
                       ></i
-                      ><i
+                      >${
+                        sales
+                          ? ""
+                          : /* HTML */ `<i
                         class="out"
                         style="height:${series.d[i] ? Math.max((series.d[i] / top) * 100, 2) : 0}%"
-                      ></i></span
+                      ></i>`
+                      }</span
                     ><span class="management-chart-tooltip" aria-hidden="true"
-                      >${escapeHtml(l)}<br />Entrou ${money(series.r[i])}<br />Saiu
-                      ${money(series.d[i])}</span
+                      >${escapeHtml(l)}<br />${sales ? "Faturamento" : "Entrou"} ${money(series.r[i])}${sales ? "" : `<br />Saiu ${money(series.d[i])}`}</span
                     ><em>${escapeHtml(l)}</em>
                   </button>`,
               )

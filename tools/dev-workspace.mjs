@@ -9,7 +9,6 @@ const composeArgs = ["compose", "--env-file", envFile, "-f", "compose.dev.yaml"]
 function runDocker(args) {
   const result = spawnSync("docker", [...composeArgs, ...args], {
     stdio: "inherit",
-    shell: process.platform === "win32",
   });
 
   if (result.error) {

@@ -614,8 +614,14 @@ function tableMeta(module, count) {
   }
   const host = $(module + "Meta");
   if (host) {
+    const remote = {
+      clients: SocialMEIClients.remote,
+      products: SocialMEIProducts.remote,
+      sales: SocialMEISales.remote,
+      finance: SocialMEIFinance.remote,
+    }[module];
     host.innerHTML = /* HTML */ `<span
-              >${plural(count, "registro")} · armazenamento local</span
+              >${plural(count, "registro")} · ${remote ? "dados compartilhados" : "armazenamento local"}</span
             ><span
               >Atualizado
               ${localUpdatedAt.toLocaleTimeString("pt-BR", {

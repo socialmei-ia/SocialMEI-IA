@@ -2,11 +2,20 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { execFileSync } = require("node:child_process");
 const { test } = require("node:test");
 
 const root = path.resolve(__dirname, "..");
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 const app = read("frontend/socialmei-app.html");
+
+test("tracked paths do not collide on case-insensitive Windows filesystems", () => {
+  const paths = execFileSync("git", ["ls-files", "-z"], { cwd: root, encoding: "utf8" })
+    .split("\0")
+    .filter(Boolean);
+  const names = paths.map((file) => file.toLowerCase());
+  assert.equal(new Set(names).size, names.length);
+});
 
 function filesUnder(directory) {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {

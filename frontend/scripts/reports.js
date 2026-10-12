@@ -1,4 +1,11 @@
 /* REPORTS */
+function reportSaleMatchesConversation(sale, conversation) {
+  const client = clientContext(conversation).client;
+  if (SocialMEISales.remote) {
+    return SocialMEIClients.remote && !!client && SocialMEISales.matchesClient(sale, client);
+  }
+  return normalizedText(sale.cliente) === normalizedText(client?.nome || conversation.nome);
+}
 function reportTrend(series, label) {
   if (!series.r.some(Boolean) && !series.d.some(Boolean)) {
     return emptyMarkup(
@@ -16,7 +23,7 @@ function reportTrend(series, label) {
   const T = 24;
   const B = 40;
   const step = (w - L - R) / n;
-  let svg = /* HTML */ `<svg
+  let svg = `<svg
           class="report-trend"
           viewBox="0 0 ${w} ${h}"
           role="img"
@@ -31,8 +38,7 @@ function reportTrend(series, label) {
                   : `${escapeHtml(l)}: entrou ${escapeHtml(money(series.r[i]))}, saiu ${escapeHtml(money(series.d[i]))}.`,
               )
               .join(" ")}
-          </desc>
-        </svg>`;
+          </desc>`;
   for (let i = 0; i < 3; i++) {
     const y = T + ((h - T - B) * i) / 2;
     svg += /* HTML */ `<line

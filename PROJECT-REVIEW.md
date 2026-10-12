@@ -1,5 +1,7 @@
 # Revisão do projeto
 
+Este documento registra a revisão histórica de 10/10/2026. O estado atual e as correções posteriores estão na [revisão de 12/10/2026](docs/REVISAO-PROJETO-2026-10-12.md); não use as limitações históricas abaixo para concluir que a API de gestão ou as migrations ainda não existem.
+
 Revisão em **10/10/2026**, sobre `socialmei-ia/SocialMEI-IA`, base `aeaad28207d65537071e63f73dbf83143fcff22e`. O GitHub confirmou que o endereço antigo `socialmei-ia/socialmei` resolve para este mesmo repositório. Foram inventariados os 41 arquivos rastreados antes das alterações, incluindo código, configurações, exports, docs e assets.
 
 ## Estado atual

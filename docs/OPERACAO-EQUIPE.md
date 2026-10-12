@@ -20,7 +20,8 @@ marca sucesso somente com `concluido.json`. Não interrompe serviços. Arquivos
 ficam privados em `/home/ubuntu/socialmei-backups/team-auto-*`, fora da raiz web.
 Falhas não são marcadas como concluídas; logs não contêm valores de credenciais.
 Há lock para impedir manutenção/backup simultâneos. O índice verifica o formato;
-a recuperação completa ainda deve ser ensaiada em banco isolado.
+o CI também restaura um dump em banco isolado e confere um registro. Isso não
+substitui ensaiar a recuperação dos backups reais e das configurações do servidor.
 
 O cron faz backup às 02:30 no horário do servidor, preserva outros agendamentos e
 não duplica a própria entrada. `disable-backup` remove somente essa entrada.
@@ -41,8 +42,8 @@ python3 tools/team-maintenance.py import-n8n
 ```
 
 O token técnico é aleatório, permanece em `.env.team`/arquivos privados e não muda
-contas humanas. O gateway encaminha somente `/api/v1/integracoes/*` para a API
-com Bearer; as demais rotas continuam exigindo Basic auth. A API valida o token,
+contas humanas. O gateway permite Bearer somente nos cinco caminhos GET listados
+abaixo; outros caminhos ou métodos continuam exigindo Basic auth. A API valida o token,
 exige workspace `team` e oferece apenas GET. Se não configurada, falha fechada.
 POST/PATCH/DELETE não existem nessa interface; a chave não permite escrever no
 CRM nem abrir o site. Rotas humanas não aceitam o token técnico.
@@ -90,10 +91,14 @@ privados e volte ao commit anterior; não restaure o banco de produção automat
 ## Ainda dependem de ação humana
 
 - Decisão de contas/acesso público com o dono do projeto.
-- Chave **pública** correta para corrigir SSH; nunca enviar a chave privada.
-- Cópia privada dos backups fora da instância.
-- QR/sessão WhatsApp e regras de resposta/envio de mensagens.
-- Execução do fluxo no n8n e conferência dos resultados reais.
+- Automatizar a cópia privada dos novos backups fora da instância; a cópia inicial no notebook já foi conferida.
+- Chip dedicado, QR/sessão WhatsApp e regras de resposta/envio de mensagens.
+- Ensaiar recuperação dos backups reais em um destino separado.
+
+Em 12/10/2026, o acesso SSH pelo notebook, dois backups externos com SHA-256 e a
+execução manual do fluxo de leitura no n8n foram confirmados. Isso não comprova
+recebimento/envio de WhatsApp nem escrita por automações. A sessão WAHA ainda não
+foi conectada a um número dedicado.
 
 Assistente, Relatórios e Caixa Unificada não são declarados completos por esta
 mudança. O site GitHub Pages continua demonstrativo/local; os dados compartilhados

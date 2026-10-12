@@ -59,7 +59,6 @@ function psql(sql, { tuplesOnly = false } = {}) {
   const result = spawnSync("docker", args, {
     input: sql,
     encoding: "utf8",
-    shell: process.platform === "win32",
   });
 
   if (result.error) {

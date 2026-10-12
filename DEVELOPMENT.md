@@ -73,7 +73,7 @@ npm run format:check
 python -m unittest discover -s tests -p 'test_*.py'
 ```
 
-Os testes Node validam sintaxe e contratos globais, recursos relativos, IDs, backups, temas, exports e normalização n8n. Os testes de backup usam um Docker falso e diretórios temporários; não param containers reais.
+Os testes Node validam sintaxe e contratos globais, recursos relativos, IDs, stores remotos, backups, temas, exports e normalização n8n. Alguns testes de operação usam Docker falso; o CI também verifica gateway, pilha da equipe e restauração de backup em banco isolado, usando containers reais.
 
 Para navegador:
 
@@ -102,7 +102,7 @@ Abra http://127.0.0.1:8000/health ou `/docs`. `/processar` recebe `{ "texto": "O
 
 Leia [n8n-workflows/README.md](n8n-workflows/README.md). Importe em um projeto de teste, selecione credenciais locais e deixe o fluxo inativo até validar. Exporte sem credenciais, cabeçalhos secretos, dados fixados ou metadados de pessoas. Execute `npm test` depois de alterar JSON ou o código de normalização.
 
-SQL deve ser revisado e aplicado por responsável pelo banco. O Compose não aplica `database/` automaticamente. Os arquivos atuais são preparação inicial; novas alterações precisam de migrations com plano de compatibilidade.
+SQL deve ser revisado e aplicado por responsável pelo banco. `database/migrations/` contém as migrations incrementais de gestão: use `npm run db:migrate` no desenvolvimento. A pilha da equipe executa `team-migrate` antes da API; o Compose legado não aplica o bootstrap de atendimento automaticamente. Novas alterações precisam de migrations com plano de compatibilidade.
 
 ## Docker e revisão
 

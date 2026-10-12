@@ -232,9 +232,9 @@ A arquitetura desejada é:
 
 ## 11. Atenção aos dados do frontend
 
-Clientes, vendas, financeiro, catálogo e outras partes do app ainda usam `localStorage` em vários fluxos. Isso significa que esses registros podem existir somente naquele navegador.
+O GitHub Pages e a configuração padrão de desenvolvimento usam `localStorage` para os quatro módulos de gestão. Esses registros podem existir somente naquele navegador. Subir Docker e aplicar migrations não muda automaticamente `frontend/config.js` para modo remoto.
 
-Para não depender de um computador específico, a próxima evolução funcional é persistir esses módulos por API/PostgreSQL e manter backup/exportação enquanto a migração não estiver pronta.
+O modo remoto já está disponível por API/PostgreSQL; consulte [SHARED-DATA-API.md](SHARED-DATA-API.md). No site protegido da equipe, os dados de gestão são compartilhados, enquanto preferências, rascunhos e regras locais continuam no navegador. O backup JSON do navegador não substitui o backup PostgreSQL do servidor. A transferência inicial do notebook tem seu [procedimento próprio](TRANSFERENCIA-NOTEBOOK.md).
 
 ## 12. Acessos administrativos
 

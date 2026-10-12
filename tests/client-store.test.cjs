@@ -88,10 +88,12 @@ test("stale remote edit sends expected version and preserves state on conflict",
 });
 test("uncertain creation reuses its durable identity after refreshing", async () => {
   const origins = [];
+  const payloads = [];
   let lost = true;
   const ctx = setup(async (url, options) => {
     if (url.endsWith("/confirmar")) {
       origins.push(JSON.parse(options.body).origem);
+      payloads.push(JSON.parse(options.body));
       if (lost) {
         lost = false;
         throw new Error("Resposta perdida após commit");
@@ -106,6 +108,8 @@ test("uncertain creation reuses its durable identity after refreshing", async ()
   await ctx.store.refresh();
   assert.equal((await ctx.store.create({ nome: "Novo", tags: [] })).id, 101);
   assert.equal(origins[0], origins[1]);
+  assert.equal(Number.isNaN(Date.parse(payloads[0].itens[0].cliente.criadoEm)), false);
+  assert.deepEqual(payloads[0], payloads[1]);
   assert.equal(ctx.appData.clientes.length, 1);
   assert.equal(ctx.storage.get("socialmei-client-create-pending-v1"), "null");
 });
