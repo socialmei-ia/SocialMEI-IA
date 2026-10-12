@@ -87,6 +87,67 @@ npm run dev:waha
 
 Use WAHA local apenas quando realmente precisar testar WhatsApp.
 
+### WAHA junto do projeto
+
+Execute `npm run dev:waha` dentro da pasta `SocialMEI-IA`. O comando usa o serviço `waha` de `compose.dev.yaml` e cria o container `socialmei-dev-waha` no mesmo projeto Compose dos demais serviços de desenvolvimento. Não é necessário baixar o código-fonte do WAHA ou criar uma pasta `WAHA`: o Compose baixa a imagem Docker.
+
+As sessões e mídias ficam nos volumes `waha_dev_sessions` e `waha_dev_media`. O Docker guarda esses dados fora da pasta do repositório; isso é normal. Volumes, sessões e credenciais não devem ser enviados ao GitHub.
+
+### Atualizar uma instalação existente no Windows
+
+No PowerShell, abra a pasta do repositório e execute o bloco completo abaixo. Se houver alterações locais, ele para antes de trocar de branch ou atualizar. Preserve essas alterações antes de tentar novamente; não use `git reset --hard` para resolver isso.
+
+```powershell
+& {
+  git rev-parse --show-toplevel
+  if ($LASTEXITCODE -ne 0) { throw "Abra a pasta SocialMEI-IA no terminal." }
+
+  $alteracoes = git status --porcelain
+  if ($LASTEXITCODE -ne 0) { throw "Não foi possível conferir o repositório." }
+  if ($alteracoes) {
+    $alteracoes
+    throw "Há alterações locais. Preserve-as antes de atualizar."
+  }
+
+  git switch main
+  if ($LASTEXITCODE -ne 0) { throw "Não foi possível abrir a branch main." }
+  git pull --ff-only origin main
+  if ($LASTEXITCODE -ne 0) { throw "A atualização falhou. Pare e confira a saída." }
+  npm.cmd ci
+  if ($LASTEXITCODE -ne 0) { throw "A instalação das dependências falhou." }
+  npm.cmd run setup
+  if ($LASTEXITCODE -ne 0) { throw "A preparação do ambiente falhou." }
+  npm.cmd run dev:config
+  if ($LASTEXITCODE -ne 0) { throw "A configuração local precisa ser corrigida." }
+}
+```
+
+Esse processo preserva o `.env.development` existente e não apaga containers ou volumes. Atualizar o Git não move nem incorpora um WAHA criado anteriormente por `docker run` ou por outro Compose.
+
+Antes de subir o WAHA, confira os containers existentes:
+
+```powershell
+docker ps -a --format 'table {{.Names}}\t{{.Image}}\t{{.Ports}}\t{{.Label "com.docker.compose.project"}}\t{{.Label "com.docker.compose.service"}}'
+```
+
+Se houver outro WAHA, confira qual projeto o criou e se ele já usa a porta configurada em `WAHA_PORT` (3000 por padrão). Não apague suas sessões para resolver um conflito. Preserve a instalação antiga e revise seus volumes antes de substituí-la; para testar separadamente, escolha uma porta livre em `.env.development`.
+
+Quando não houver conflito, execute:
+
+```powershell
+& {
+  npm.cmd run dev:waha
+  if ($LASTEXITCODE -ne 0) { throw "O ambiente não subiu. Confira o erro antes de continuar." }
+  npm.cmd run db:migrate
+  if ($LASTEXITCODE -ne 0) { throw "As migrations falharam." }
+  npm.cmd run status
+}
+```
+
+Abra `http://localhost:3000/dashboard` ou a porta escolhida em `WAHA_PORT`. Conectar uma conta WhatsApp é uma etapa separada; subir o container não conecta um número automaticamente.
+
+Este procedimento é para o computador de cada integrante. Não o execute na AWS sobre a instalação existente; o servidor segue seu próprio procedimento de atualização.
+
 ## 6. Banco local e migrations
 
 ```bash

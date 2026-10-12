@@ -24,6 +24,8 @@ npm run dev:tools   # inclui pgAdmin em http://localhost:5050
 npm run dev:waha    # inclui WAHA em http://localhost:3000
 ```
 
+Execute esses comandos dentro do repositório. O WAHA é uma imagem Docker definida no Compose; não precisa de uma pasta própria de código. Seus volumes ficam fora do repositório por decisão do Docker. Para atualizar uma instalação existente no Windows e conferir um WAHA instalado separadamente, siga [WAHA junto do projeto](ONBOARDING.md#waha-junto-do-projeto).
+
 Diagnóstico:
 
 ```bash
