@@ -7,6 +7,9 @@ chaves privadas ou senhas pelo chat. Este guia não muda a pilha local do notebo
 
 ## O que será instalado
 
+- O site abre diretamente em `https://app.SEUDOMINIO/`, mantendo esse endereço na
+  barra do navegador. O caminho antigo `/frontend/socialmei-app.html` continua
+  funcionando, e os recursos na raiz ficam sob a mesma proteção por senha.
 - Projeto Compose separado `socialmei-team`, com PostgreSQL, API, gateway Caddy e
   migrations 001–007. Banco/volumes próprios, sem usar o banco do n8n.
 - Um novo hostname HTTPS no Caddy **existente**. O app e `/api/v1` ficam na mesma
