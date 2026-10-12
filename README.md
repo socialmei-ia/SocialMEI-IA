@@ -39,20 +39,22 @@
 
 ## Estado atual
 
-| Área                                    | O que realmente existe                                                                                                                       |
-| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| Landing, cadastro, login e onboarding   | Experiência local. Login não autentica contra um servidor.                                                                                   |
-| Home e Visão Geral                      | Contexto e indicadores locais; parte da atividade e dos gráficos é demonstrativa.                                                            |
-| Clientes, vendas, financeiro e catálogo | CRUD, busca e filtros com `localStorage`.                                                                                                    |
-| Caixa Unificada                         | Conversas demonstrativas, notas e rascunhos locais; leitura HTTP do n8n com recuo de 4 a 30 segundos. Respostas não são enviadas aos canais. |
-| Assistente                              | Geração local de sugestões e inserção de rascunhos; nenhum modelo de IA conectado ao app.                                                    |
-| Automações do app                       | Regras locais e execução simulada; não publicam workflows no n8n.                                                                            |
-| Relatórios e configurações              | Resumos locais, CSV, temas claro/escuro/automático/custom e backup JSON.                                                                     |
-| PostgreSQL e n8n                        | Schema e workflow de entrada/leitura versionados; precisam de configuração e validação no ambiente de destino.                               |
-| API Python                              | FastAPI com `/`, `/health` e `/processar`: converte texto em maiúsculas e conta caracteres.                                                  |
-| WAHA                                    | Serviço Compose para WhatsApp; sua conexão completa com a Caixa Unificada ainda precisa ser validada.                                        |
+O GitHub Pages usa a configuração local de demonstração. A instalação protegida da equipe pode configurar os quatro módulos de gestão em modo remoto, usando FastAPI/PostgreSQL. Veja [a revisão atual](docs/REVISAO-PROJETO-2026-10-12.md) e [a operação da equipe](docs/OPERACAO-EQUIPE.md).
 
-O Compose descreve infraestrutura; sua presença no Git não comprova disponibilidade online. O backend atual não oferece autenticação, API de gestão, isolamento entre negócios ou envio do composer.
+| Área                                    | O que realmente existe                                                                                                                                     |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Landing, cadastro, login e onboarding   | Experiência local. Login não autentica contra um servidor.                                                                                                 |
+| Home e Visão Geral                      | Contexto e indicadores locais; parte da atividade e dos gráficos é demonstrativa.                                                                          |
+| Clientes, vendas, financeiro e catálogo | CRUD local no Pages ou compartilhado por API/PostgreSQL, conforme `config.js`; versões, importação e recuperação de operações no modo remoto.              |
+| Caixa Unificada                         | Conversas demonstrativas, notas e rascunhos locais; leitura HTTP do n8n com recuo de 4 a 30 segundos. Respostas não são enviadas aos canais.               |
+| Assistente                              | Geração local de sugestões e inserção de rascunhos; nenhum modelo de IA conectado ao app.                                                                  |
+| Automações do app                       | Regras locais e execução simulada; não publicam workflows no n8n.                                                                                          |
+| Relatórios e configurações              | Relatórios/CSV dos dados de gestão carregados; temas, preferências e rascunhos continuam locais. Backup do servidor separado do JSON do navegador.         |
+| PostgreSQL e n8n                        | Schema e workflow de entrada/leitura versionados; precisam de configuração e validação no ambiente de destino.                                             |
+| API Python                              | FastAPI com CRUD dos quatro módulos, importações, transferência, saúde do banco e leitura técnica autenticada para n8n; `/processar` permanece compatível. |
+| WAHA                                    | Serviço Compose para WhatsApp; sua conexão completa com a Caixa Unificada ainda precisa ser validada.                                                      |
+
+O Compose descreve infraestrutura; sua presença no Git não comprova disponibilidade online. O ambiente da equipe protege site/API com Basic auth no gateway e separa seu banco da infraestrutura antiga. Não há cadastro/autenticação individual por aplicação, autorização por negócio ou envio externo pelo composer.
 
 ## Começar a desenvolver
 
@@ -113,7 +115,7 @@ backup.sh                         backup privado; interrompe n8n temporariamente
 
 HTML, CSS e JavaScript puro no navegador; Python/FastAPI/Uvicorn na API auxiliar; n8n, PostgreSQL 16, pgAdmin, WAHA e Caddy em Docker Compose. Node 22+ e Playwright são ferramentas de manutenção, não dependências de produção do site.
 
-A gestão local não passa pelo PostgreSQL. Apenas o workflow de histórico versionado usa o schema `socialmei`. Veja [ARCHITECTURE.md](ARCHITECTURE.md).
+A gestão em modo local não passa pelo PostgreSQL. Em modo remoto, os quatro stores consultam a API de gestão e preservam os snapshots locais; falhas da API não viram gravações locais. Veja [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Testar
 
@@ -155,4 +157,4 @@ O frontend usa a raiz do repositório para GitHub Pages. Confira **Settings → 
 - [CONTRIBUTING.md](CONTRIBUTING.md) e [SECURITY.md](SECURITY.md): colaboração e acesso.
 - [Mike DevHub](tools/mike-devhub.html): comandos de consulta; não executa serviços.
 
-A próxima etapa é validar o fluxo n8n/PostgreSQL em ambiente isolado e definir autenticação e persistência da gestão. A interface atual deve continuar funcionando durante essa transição.
+As próximas etapas são decidir os acessos com o dono do projeto, preparar rotinas reais de atendimento e conectar um número dedicado ao WAHA. A leitura técnica do CRM não autoriza escrita ou envio de mensagens.

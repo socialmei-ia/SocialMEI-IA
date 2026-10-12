@@ -1,5 +1,22 @@
 # Roadmap
 
+## Atualização de 12/10/2026
+
+API de gestão dos quatro módulos, migrations incrementais, transferência inicial, gateway protegido, leitura técnica do n8n e backups da equipe já foram implementados. O CI inclui PostgreSQL real, navegador, autenticação HTTPS e restauração de backup isolada. O planejamento original abaixo é histórico; itens que dizem que essas bases não existem foram superados.
+
+Próximos passos atuais:
+
+1. Decidir acesso compartilhado ou contas individuais com o dono; manter a proteção atual até a decisão.
+2. Obter chip dedicado e conectar WAHA; recebimento/envio ainda depende dessa etapa.
+3. Definir IDs estáveis, deduplicação e autenticação do atendimento antes de conectar canais reais.
+4. Preparar regras de orçamento/atendimento; leitura técnica do CRM não autoriza escrita por automações.
+5. Automatizar cópias externas de novos backups e ensaiar recuperação dos backups reais em destino separado.
+6. Fixar versões de imagens/dependências após validá-las, separar dados de demonstração e reduzir gradualmente o acoplamento dos scripts.
+
+Veja [a revisão atual](docs/REVISAO-PROJETO-2026-10-12.md) e [a operação da equipe](docs/OPERACAO-EQUIPE.md).
+
+## Planejamento original de 10/10/2026
+
 Prioridades: **P0** bloqueia uso real do fluxo principal; **P1** prepara a próxima fase; **P2** manutenção/polimento; **P3** exploração futura. Cada item abaixo deriva do código auditado, não de disponibilidade presumida de serviços.
 
 ## Próxima etapa

@@ -13,6 +13,7 @@ function syncElapsed() {
 function updateSyncLabels() {
   const text = {
     idle: "Sincronização disponível",
+    disabled: "Integração de mensagens não configurada",
     loading: "Sincronizando conversas…",
     success: syncElapsed(),
     empty: syncElapsed(),
@@ -242,7 +243,18 @@ function mergeRemoteMessage(item) {
 /**
  * Consulta o endpoint configurado, normaliza dados remotos e preserva o trabalho local quando a rede falha. Não abre conversas automaticamente.
  */
+function isN8nSyncConfigured() {
+  return typeof N8N_MESSAGES_URL === "string" && N8N_MESSAGES_URL.trim().length > 0;
+}
 async function syncN8nMessages(showFeedback = false) {
+  if (!isN8nSyncConfigured()) {
+    isN8nConnected = false;
+    setIntegrationStatus("Integração de mensagens não configurada", "disabled");
+    if (showFeedback) {
+      toast("Integração não configurada", "O recebimento de mensagens ainda não foi conectado.");
+    }
+    return { checked: false, added: 0 };
+  }
   if (isN8nSyncing || !document.body.classList.contains("experience-app")) {
     return {
       checked: false,
@@ -414,7 +426,12 @@ function resetN8nBackoff() {
 function scheduleN8nSync(result = null) {
   clearTimeout(n8nSyncTimer);
   n8nSyncTimer = null;
-  if (document.hidden || !navigator.onLine || !document.body.classList.contains("experience-app")) {
+  if (
+    !isN8nSyncConfigured() ||
+    document.hidden ||
+    !navigator.onLine ||
+    !document.body.classList.contains("experience-app")
+  ) {
     return;
   }
   if (result?.added > 0) {
@@ -432,7 +449,12 @@ function scheduleN8nSync(result = null) {
 }
 function wakeN8nSync() {
   resetN8nBackoff();
-  if (document.hidden || !navigator.onLine || !document.body.classList.contains("experience-app")) {
+  if (
+    !isN8nSyncConfigured() ||
+    document.hidden ||
+    !navigator.onLine ||
+    !document.body.classList.contains("experience-app")
+  ) {
     return;
   }
   clearTimeout(n8nSyncTimer);
@@ -466,7 +488,12 @@ function startN8nSync() {
   clearTimeout(n8nSyncTimer);
   n8nSyncTimer = null;
   resetN8nBackoff();
-  if (document.hidden || !navigator.onLine || !document.body.classList.contains("experience-app")) {
+  if (
+    !isN8nSyncConfigured() ||
+    document.hidden ||
+    !navigator.onLine ||
+    !document.body.classList.contains("experience-app")
+  ) {
     return;
   }
   if (!isN8nSyncing) {

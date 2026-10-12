@@ -187,6 +187,7 @@ const SocialMEIClients = (() => {
       const data = payload(client);
       const key = "socialmei-client-create-pending-v1";
       let pending = stored(key);
+      if (!data.criadoEm && pending?.data?.criadoEm) data.criadoEm = pending.data.criadoEm;
       if (
         pending &&
         (pending.scope !== scope || JSON.stringify(pending.data) !== JSON.stringify(data))
@@ -195,6 +196,7 @@ const SocialMEIClients = (() => {
           "Há um cadastro anterior sem confirmação. Reenvie os mesmos dados para recuperar o resultado antes de criar outro.",
         );
       if (!pending) {
+        data.criadoEm ||= new Date().toISOString();
         pending = { scope, data, origem: newOrigin() };
         persist(key, pending);
       }

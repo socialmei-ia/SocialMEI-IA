@@ -3,7 +3,6 @@ import { spawnSync } from "node:child_process";
 function check(label, command, args) {
   const result = spawnSync(command, args, {
     encoding: "utf8",
-    shell: process.platform === "win32",
   });
 
   const ok = !result.error && result.status === 0;

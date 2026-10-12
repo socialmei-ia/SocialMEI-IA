@@ -1,5 +1,7 @@
 # Validação da revisão técnica
 
+Os resultados abaixo pertencem à revisão histórica de 10/10/2026. Para a cobertura e os limites atuais, consulte [a revisão de 12/10/2026](REVISAO-PROJETO-2026-10-12.md) e o workflow `Repository checks`.
+
 ## Executado em 10/10/2026
 
 | Verificação                                              | Resultado                                                                                                                      |

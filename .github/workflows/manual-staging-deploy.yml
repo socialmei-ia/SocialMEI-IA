@@ -69,8 +69,8 @@ jobs:
           {
             echo "## Staging atualizado"
             echo ""
-            echo "- Branch: `main`"
-            echo "- Commit: `${GITHUB_SHA}`"
-            echo "- Ambiente: `staging`"
+            echo '- Branch: `main`'
+            printf -- '- Commit: `%s`\n' "$GITHUB_SHA"
+            echo '- Ambiente: `staging`'
             echo "- Atualização executada via GitHub Actions."
           } >> "$GITHUB_STEP_SUMMARY"

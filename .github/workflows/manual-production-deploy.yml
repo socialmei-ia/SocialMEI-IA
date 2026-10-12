@@ -69,8 +69,8 @@ jobs:
           {
             echo "## Deploy concluído"
             echo ""
-            echo "- Branch: `main`"
-            echo "- Commit: `${GITHUB_SHA}`"
-            echo "- Ambiente: `production`"
+            echo '- Branch: `main`'
+            printf -- '- Commit: `%s`\n' "$GITHUB_SHA"
+            echo '- Ambiente: `production`'
             echo "- Atualização executada por GitHub Actions via SSH dedicado."
           } >> "$GITHUB_STEP_SUMMARY"

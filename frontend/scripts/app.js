@@ -518,7 +518,7 @@ const normalizedText = (v) =>
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
 let localUpdatedAt = new Date();
-let syncState = "idle";
+let syncState = isN8nSyncConfigured() ? "idle" : "disabled";
 let syncError = null;
 let rowMenuAnchor = null;
 $("mb").addEventListener("click", () => {
@@ -2787,6 +2787,7 @@ function getConnectionStatusText() {
       error: "Não foi possível ler as mensagens. Tente novamente.",
       offline: "Sem conexão. Registros locais preservados.",
       idle: "Leitura ainda não verificada.",
+      disabled: "O recebimento de mensagens ainda não foi conectado.",
     }[syncState] || "Não verificado"
   );
 }
@@ -2928,9 +2929,19 @@ const getPreviousReportRange = (r) => {
     to: dateShift(r.from, -1),
   };
 };
-const getCustomerLastPurchaseDate = (c) => {
+const getCustomerRegistrationDate = (c) => {
   const v = c.criadoEm || c.createdAt || c.dataCadastro;
-  return typeof v === "string" && /^\d{4}-\d{2}-\d{2}/.test(v) ? v.slice(0, 10) : null;
+  if (typeof v !== "string" || !/^\d{4}-\d{2}-\d{2}/.test(v)) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+  const date = new Date(v);
+  return Number.isNaN(date.getTime())
+    ? null
+    : date.toLocaleDateString("en-CA", {
+        timeZone: APP_TIMEZONE,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      });
 };
 function renderReportVariation(a, b, available = true) {
   if (!isReportComparisonEnabled) {
@@ -2981,7 +2992,13 @@ function renderReportChart(source) {
 }
 function getReportSummaryText() {
   const metrics = operationalMetrics();
-  return `SocialMEI.IA · ${getBusinessLabel()}\nPeríodo: ${rangeCaption()}\nVendas pagas: ${metrics.paidSales.length}\nFaturamento: ${money(metrics.revenue)}\nTicket médio: ${money(metrics.ticket)}\nEntrou: ${money(metrics.received)}\nSaiu: ${money(metrics.spent)}\nSaldo dos lançamentos pagos: ${money(metrics.balance)}\nPedidos pendentes: ${metrics.pendingSales.length}\nDemonstração: registros deste navegador; saldo não representa saldo bancário.`;
+  const source =
+    SocialMEISales.remote && SocialMEIFinance.remote
+      ? "Vendas e financeiro: dados compartilhados."
+      : SocialMEISales.remote || SocialMEIFinance.remote
+        ? "Vendas e financeiro: fontes locais e compartilhadas."
+        : "Vendas e financeiro: registros deste navegador.";
+  return `SocialMEI.IA · ${getBusinessLabel()}\nPeríodo: ${rangeCaption()}\nVendas pagas: ${metrics.paidSales.length}\nFaturamento: ${money(metrics.revenue)}\nTicket médio: ${money(metrics.ticket)}\nEntrou: ${money(metrics.received)}\nSaiu: ${money(metrics.spent)}\nSaldo dos lançamentos pagos: ${money(metrics.balance)}\nPedidos pendentes: ${metrics.pendingSales.length}\n${source}\nSaldo não representa saldo bancário.`;
 }
 /* ==================================================
 RELATÓRIOS — JAVASCRIPT
@@ -2991,11 +3008,11 @@ function renderReports() {
   const metrics = operationalMetrics(dateRange);
   const prevRange = getPreviousReportRange(dateRange);
   const prev = operationalMetrics(prevRange);
-  const newKnown = appData.clientes.filter((client) => getCustomerLastPurchaseDate(client));
+  const newKnown = appData.clientes.filter((client) => getCustomerRegistrationDate(client));
   const newCount = newKnown.filter((c) =>
-    inRange(getCustomerLastPurchaseDate(c), dateRange),
+    inRange(getCustomerRegistrationDate(c), dateRange),
   ).length;
-  const newPrev = newKnown.filter((c) => inRange(getCustomerLastPurchaseDate(c), prevRange)).length;
+  const newPrev = newKnown.filter((c) => inRange(getCustomerRegistrationDate(c), prevRange)).length;
   const datesComplete = newKnown.length === appData.clientes.length && appData.clientes.length > 0;
   $("reportsPeriodLabel").textContent = rangeCaption(dateRange);
   $("nvReportPeriods").innerHTML = [
@@ -3065,27 +3082,32 @@ function renderReports() {
               </button>`,
     )
     .join("");
-  const grouped = (rows, key) => {
+  const grouped = (rows, label, key = label) => {
     const o = new Map();
     rows.forEach((x) => {
       const k = key(x) || "Não informado";
       o.set(k, {
+        label: label(x) || "Não informado",
         count: (o.get(k)?.count || 0) + 1,
         value: (o.get(k)?.value || 0) + (Number(x.valor) || 0),
+        quantity: (o.get(k)?.quantity || 0) + (Number(x.quantidade) || 1),
       });
     });
-    return [...o].sort((a, b) => b[1].value - a[1].value);
+    return [...o.values()].sort((a, b) => b.value - a.value).map((item) => [item.label, item]);
   };
-  const contributors = grouped(metrics.paidSales, (x) => x.cliente);
+  const contributors = grouped(
+    metrics.paidSales,
+    (x) => x.cliente,
+    (x) =>
+      SocialMEISales.remote && x.cliente_id != null ? `id:${x.cliente_id}` : `nome:${x.cliente}`,
+  );
   const payments = grouped(metrics.paidSales, (x) => x.pagamento);
   const salesByChannel = grouped(metrics.paidSales, (v) => {
     if (v.canal) {
       return getChannelName(v.canal);
     }
-    const cs = sessionData.conversas.filter(
-      (conversation) =>
-        normalizedText(clientContext(conversation).client?.nome || conversation.nome) ===
-        normalizedText(v.cliente),
+    const cs = sessionData.conversas.filter((conversation) =>
+      reportSaleMatchesConversation(v, conversation),
     );
     const channels = [...new Set(cs.map((c) => c.canal))];
     return channels.length === 1 ? getChannelName(channels[0]) : "Não informado";
@@ -3093,14 +3115,10 @@ function renderReports() {
   const topProducts = grouped(
     metrics.paidSales.filter((v) => v.item),
     (v) => v.item,
+    (v) =>
+      SocialMEISales.remote && v.produto_id != null ? `id:${v.produto_id}` : `nome:${v.item}`,
   ).map(([name, d]) => {
-    const sales = metrics.paidSales.filter((v) => v.item === name);
-    return [
-      escapeHtml(name),
-      String(sales.reduce((sale, v) => sale + (Number(v.quantidade) || 1), 0)),
-      String(d.count),
-      money(d.value),
-    ];
+    return [escapeHtml(name), String(d.quantity), String(d.count), money(d.value)];
   });
   const views = {};
   const pending = metrics.pendingSales;
@@ -3213,18 +3231,10 @@ function renderReports() {
     conversation.mensagens.some((msg) => inRange(msg.data, dateRange)),
   );
   const linked = conversations.filter((conversation) =>
-    metrics.sales.some(
-      (sale) =>
-        normalizedText(sale.cliente) ===
-        normalizedText(clientContext(conversation).client?.nome || conversation.nome),
-    ),
+    metrics.sales.some((sale) => reportSaleMatchesConversation(sale, conversation)),
   );
   const linkedSales = metrics.sales.filter((sale) =>
-    conversations.some(
-      (conversation) =>
-        normalizedText(sale.cliente) ===
-        normalizedText(clientContext(conversation).client?.nome || conversation.nome),
-    ),
+    conversations.some((conversation) => reportSaleMatchesConversation(sale, conversation)),
   );
   const linkedPaid = linkedSales.filter((v) => v.status === "Pago");
   views.Atendimento = /* HTML */ `<section class="management-card">
@@ -3235,7 +3245,7 @@ function renderReports() {
             <div><b>${linkedPaid.length}</b><span>Desses pedidos, pagos</span></div>
           </div>
           <p class="management-note">
-            ${linked.length ? "Vínculo pelo perfil ou nome exato do cliente." : "Sem pedidos vinculados às conversas do período."}
+            ${linked.length ? (SocialMEISales.remote ? "Vínculo pelo ID do cliente associado à conversa." : "Vínculo pelo perfil ou nome exato do cliente.") : "Sem pedidos vinculados às conversas do período."}
             Não há evento de conversão rastreado: estes números não formam uma taxa de conversão.
             Conversas sem mensagem datada não entram.
           </p>
@@ -3309,10 +3319,7 @@ function renderReports() {
   }
   const stale = appData.clientes.filter((client) => {
     const paid = appData.vendas
-      .filter(
-        (sale) =>
-          sale.status === "Pago" && normalizedText(sale.cliente) === normalizedText(client.nome),
-      )
+      .filter((sale) => sale.status === "Pago" && SocialMEISales.matchesClient(sale, client))
       .sort((sale, otherSale) => otherSale.data.localeCompare(sale.data));
     return paid[0] && paid[0].data < dateShift(todayISO(), -30);
   });
@@ -3594,6 +3601,7 @@ function renderSettings() {
     const state =
       {
         idle: "Não verificado",
+        disabled: "Integração de mensagens não configurada",
         loading: "Verificando…",
         success: "Leitura disponível",
         empty: "Leitura disponível · sem mensagens",
@@ -3634,7 +3642,7 @@ function renderSettings() {
             <details class="management-advanced">
               <summary>Avançado (para quem configurou a integração)</summary>
               <p>n8n · leitura de mensagens: ${escapeHtml(state)}. ${escapeHtml(syncElapsed())}</p>
-              <p>Endpoint configurado: <code>${escapeHtml(N8N_MESSAGES_URL)}</code></p>
+              <p>Endpoint configurado: <code>${escapeHtml(N8N_MESSAGES_URL || "Não configurado")}</code></p>
               <p>
                 WhatsApp e Instagram podem receber dados pelo webhook configurado. O PostgreSQL é
                 acessado pela infraestrutura; sua saúde não é verificada diretamente pelo navegador.

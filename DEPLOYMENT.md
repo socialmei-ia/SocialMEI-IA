@@ -36,7 +36,7 @@ Todos os serviços estão em `compose.yaml`; o override versionado é vazio e ex
 4. Teste POST/GET com dados fictícios em banco isolado, inclusive reenvio e UTF-8.
 5. Só depois configure o endpoint público em `frontend/config.js` e ative o workflow de teste.
 
-Antes de produção, resolva autenticação, origem CORS permitida, IDs estáveis, idempotência e isolamento por negócio. A consulta atual retorna até 50 mensagens de entrada. Os scripts SQL citam o banco `n8n`; nomes diferentes exigem revisão explícita dos grants. Não há migrations de CRM nem envio externo do composer.
+Antes de conectar canais reais, resolva autenticação do atendimento, origem CORS permitida, IDs estáveis e deduplicação de mensagens. A consulta legada retorna até 50 mensagens de entrada. Os scripts de bootstrap citam o banco `n8n`; nomes diferentes exigem revisão explícita dos grants. As migrations de gestão e o servidor da equipe têm procedimentos próprios; não há envio externo do composer.
 
 ### Atualizar um ambiente existente
 
