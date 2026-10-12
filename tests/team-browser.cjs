@@ -124,7 +124,9 @@ HTTPServer(('0.0.0.0',8000),Handler).serve_forever()
       await new Promise((resolve) => setTimeout(resolve, 200));
     }
     assert(response?.ok(), "HTTPS authenticated gateway must start");
-    await page.goto(origin + "/frontend/socialmei-app.html");
+    const document = await page.goto(origin + "/");
+    assert.equal(document.status(), 200);
+    assert.equal(page.url(), origin + "/", "Short URL must remain in the address bar");
     await page.evaluate(() => SocialMEIExperience.enterApp("Clientes"));
     await page.waitForFunction(() =>
       [

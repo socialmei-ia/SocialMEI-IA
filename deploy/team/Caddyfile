@@ -4,6 +4,7 @@
         header Origin *
         not header Origin https://{$SOCIALMEI_TEAM_HOST}
     }
+    @app_assets path /scripts/* /styles/* /assets/* /config.js
     # Literal order: authorization and Origin checks precede every handler.
     route {
         basic_auth {
@@ -33,10 +34,17 @@
             file_server
         }
         handle / {
-            redir /frontend/socialmei-app.html 302
+            root * /srv/frontend
+            rewrite * /socialmei-app.html
+            file_server
         }
         handle /index.html {
-            redir /frontend/socialmei-app.html 302
+            redir * / 302
+        }
+        # Relative assets also work when the application is opened at /.
+        handle @app_assets {
+            root * /srv/frontend
+            file_server
         }
         handle {
             respond "Não encontrado." 404

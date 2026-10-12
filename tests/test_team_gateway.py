@@ -62,6 +62,8 @@ HTTPServer(('0.0.0.0', 8000), Handler).serve_forever()
         (directory / "frontend/config.js").write_text(
             'const SOCIALMEI_CONFIG={apiBaseUrl:"/api/v1"};'
         )
+        (directory / "frontend/scripts").mkdir()
+        (directory / "frontend/scripts/app.js").write_text("window.testApp = true;")
         (directory / ".env").write_text("must-never-be-served")
         name = "socialmei-team-test-" + uuid4().hex[:10]
         cls.network = name
@@ -144,6 +146,8 @@ HTTPServer(('0.0.0.0', 8000), Handler).serve_forever()
             "/",
             "/frontend/socialmei-app.html",
             "/frontend/config.js",
+            "/config.js",
+            "/scripts/app.js",
             "/api/v1/clientes",
             "/health/db",
         ]:
@@ -153,9 +157,16 @@ HTTPServer(('0.0.0.0', 8000), Handler).serve_forever()
         )
 
     def test_authenticated_frontend_and_original_api_prefix(self):
-        code, body = self.request("/frontend/socialmei-app.html", True)
+        for path in ["/", "/frontend/socialmei-app.html", "/index.html"]:
+            code, body = self.request(path, True)
+            self.assertEqual(code, 200, path)
+            self.assertIn("Private application", body, path)
+        code, body = self.request("/config.js", True)
         self.assertEqual(code, 200)
-        self.assertIn("Private application", body)
+        self.assertIn("SOCIALMEI_CONFIG", body)
+        code, body = self.request("/scripts/app.js", True)
+        self.assertEqual(code, 200)
+        self.assertIn("window.testApp", body)
         code, body = self.request("/api/v1/clientes", True)
         self.assertEqual(code, 200)
         self.assertEqual(json.loads(body), [{"id": 1}])
