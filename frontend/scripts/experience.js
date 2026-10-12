@@ -69,6 +69,16 @@
     if (typeof business?.cnpj === "string") {
       profile.cnpj = business.cnpj;
     }
+    if (SocialMEIAuth.remote && SocialMEIAuth.current) {
+      const identity = SocialMEIAuth.current;
+      Object.assign(profile, {
+        name: identity.usuario.nome,
+        email: identity.usuario.email,
+        phone: identity.usuario.telefone || "",
+        business: identity.negocio.nome,
+        cnpj: identity.negocio.configuracao?.cnpj || "",
+      });
+    }
   }
   refreshExperienceProfile();
   document.addEventListener("socialmei-data-change", (event) => {
@@ -103,6 +113,29 @@
   const q = (s, base = document) => base.querySelector(s);
 
   const qa = (s, base = document) => [...base.querySelectorAll(s)];
+  if (SocialMEIAuth.remote) {
+    const field = document.createElement("div");
+    field.className = "experience-field";
+    field.innerHTML =
+      '<label for="registerInvite">Código do convite</label><input id="registerInvite" required minlength="64" maxlength="64" pattern="[A-Za-z0-9_-]{64}" autocomplete="off" aria-describedby="registerInviteStatus"><small class="experience-field-status" id="registerInviteStatus">Use o convite recebido do administrador.</small>';
+    q("#xpRegisterForm [type=submit]").before(field);
+    q("#registerPassword").minLength = 12;
+    q("#registerPassword").maxLength = 128;
+    q("#registerPassword").placeholder = "12 caracteres ou mais";
+    q("#registerPasswordStatus").textContent = "Use 12 ou mais caracteres.";
+    qa(".experience-form-hint").forEach((element) => {
+      element.textContent = "Conta do piloto por convite. Seus dados serão salvos no servidor.";
+    });
+    const remember = q("#xpLoginForm .landing-login-help input");
+    remember.id = "loginRemember";
+    remember.disabled = false;
+    remember.removeAttribute("aria-disabled");
+    remember.parentElement.removeAttribute("aria-disabled");
+    remember.parentElement.querySelector("small")?.remove();
+    q(".landing-login-disabled-link").disabled = false;
+    q(".landing-login-disabled-link").removeAttribute("aria-disabled");
+    q(".landing-login-disabled-link small")?.remove();
+  }
   let screenRequest = 0;
   async function showScreen(name) {
     const request = ++screenRequest;
@@ -207,6 +240,11 @@
     }
   }
   function enterApp(restoredView = "Início") {
+    if (SocialMEIAuth.remote && !SocialMEIAuth.current) {
+      authMode = "login";
+      showScreen("auth");
+      return;
+    }
     if (q('[data-xp-screen="onboarding"].is-active') && onboardingStep === 4) {
       appData.prefs.conta = {
         ...(appData.prefs.conta || {}),
@@ -297,7 +335,15 @@
       behavior: "instant",
     });
   }
-  function logout() {
+  async function logout() {
+    if (SocialMEIAuth.remote) {
+      try {
+        await SocialMEIAuth.logout();
+      } catch (error) {
+        toast("Saída não concluída", error.message);
+      }
+      return;
+    }
     try {
       sessionStorage.removeItem("socialmei-experience-screen");
       sessionStorage.removeItem("socialmei-current-view");
@@ -558,6 +604,24 @@ ONBOARDING — JAVASCRIPT
     button.setAttribute("aria-busy", "true");
     button.textContent = "Preparando seu espaço…";
     try {
+      if (SocialMEIAuth.remote) {
+        if (event.target.id === "xpLoginForm") {
+          await SocialMEIAuth.login({
+            email: q("#loginEmail").value.trim(),
+            senha: q("#loginPassword").value,
+            lembrar: q("#loginRemember").checked,
+          });
+        } else {
+          await SocialMEIAuth.register({
+            nome: q("#registerName").value.trim(),
+            email: q("#registerEmail").value.trim(),
+            telefone: q("#registerPhone").value.trim(),
+            senha: q("#registerPassword").value,
+            convite: q("#registerInvite").value.trim(),
+          });
+        }
+        return;
+      }
       await wait(motion.reduced ? 0 : motion.ms("motion-medium"));
       button.textContent = "✓ Pronto";
       await wait(motion.reduced ? 0 : motion.ms("motion-fast"));
@@ -614,6 +678,9 @@ ONBOARDING — JAVASCRIPT
         toggle.setAttribute("aria-pressed", "false");
         toggle.setAttribute("aria-label", "Mostrar senha");
       });
+    } catch (error) {
+      q("#authConfirmation").textContent =
+        error.message || "Não foi possível entrar. Tente novamente.";
     } finally {
       button.disabled = false;
       button.removeAttribute("aria-busy");
@@ -1300,7 +1367,7 @@ ONBOARDING — JAVASCRIPT
         !!name && q("#registerEmail").validity.valid && !!q("#registerEmail").value,
       ],
       ["previewChannel", digits.length >= 10],
-      ["previewSecurity", q("#registerPassword").value.length >= 8],
+      ["previewSecurity", q("#registerPassword").value.length >= (SocialMEIAuth.remote ? 12 : 8)],
     ]) {
       const element = q("#" + id);
       const changed = element.classList.contains("is-built") !== built;
@@ -1326,7 +1393,7 @@ ONBOARDING — JAVASCRIPT
       !!name,
       q("#registerEmail").validity.valid && !!q("#registerEmail").value,
       [10, 11].includes(digits.length),
-      q("#registerPassword").value.length >= 8,
+      q("#registerPassword").value.length >= (SocialMEIAuth.remote ? 12 : 8),
     ];
     q("#authBuildProgress").textContent =
       `Prévia local · ${values.filter(Boolean).length} de 4 dados`;
@@ -1334,7 +1401,9 @@ ONBOARDING — JAVASCRIPT
       element.classList.toggle("is-complete", values[i]),
     );
     q("#previewSecurityText").textContent = values[3]
-      ? "Senha pronta · não será salva"
+      ? SocialMEIAuth.remote
+        ? "Senha protegida no servidor"
+        : "Senha pronta · não será salva"
       : "Defina sua senha para continuar";
     qa(".authentication-flow").forEach(
       (element) =>
@@ -1371,14 +1440,14 @@ ONBOARDING — JAVASCRIPT
     if (status) {
       status.textContent = valid
         ? input.id === "registerPassword"
-          ? "✓ 8+ caracteres"
+          ? `✓ ${SocialMEIAuth.remote ? 12 : 8}+ caracteres`
           : "✓ Tudo certo"
         : input.validity.valueMissing
           ? "Preencha este campo."
           : input.validity.typeMismatch
             ? "Use um e-mail como voce@empresa.com."
             : input.id === "registerPassword"
-              ? "Use pelo menos 8 caracteres."
+              ? `Use pelo menos ${SocialMEIAuth.remote ? 12 : 8} caracteres.`
               : input.validationMessage;
     }
     return valid;
@@ -1430,13 +1499,18 @@ ONBOARDING — JAVASCRIPT
       toggle.setAttribute("aria-label", show ? "Ocultar senha" : "Mostrar senha");
     }
     if (event.target.closest(".landing-social-login")) {
-      q("#authConfirmation").textContent =
-        "Demonstração: o login com Google não está conectado. Use o formulário para explorar seu espaço.";
+      q("#authConfirmation").textContent = SocialMEIAuth.remote
+        ? "Login com Google não está disponível. Use sua conta do piloto."
+        : "Demonstração: o login com Google não está conectado. Use o formulário para explorar seu espaço.";
     }
     if (event.target.closest(".landing-login-help a")) {
       event.preventDefault();
       q("#authConfirmation").textContent =
         "Demonstração: recuperação de senha ainda não está conectada.";
+    }
+    if (SocialMEIAuth.remote && event.target.closest(".landing-login-disabled-link")) {
+      q("#authConfirmation").textContent =
+        "Procure o administrador do projeto para recuperar o acesso. Recuperação por e-mail ainda não está conectada.";
     }
   });
   qa(".experience-choice").forEach((choice) =>
@@ -3921,7 +3995,18 @@ ONBOARDING — JAVASCRIPT
     restore = sessionStorage.getItem("socialmei-experience-screen") === "app";
     restored = sessionStorage.getItem("socialmei-current-view") || "Início";
   } catch (_) {}
-  if (restore) {
+  if (SocialMEIAuth.remote) {
+    SocialMEIAuth.ready.then((identity) => {
+      if (identity) {
+        refreshExperienceProfile();
+        enterApp(restored);
+      } else {
+        authMode = "login";
+        showScreen("auth");
+        q("#authConfirmation").textContent = SocialMEIAuth.problem;
+      }
+    });
+  } else if (restore) {
     enterApp(restored);
   } else {
     showScreen("landing");

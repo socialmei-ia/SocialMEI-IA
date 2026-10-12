@@ -31,7 +31,7 @@ test("all scripts parse, including their shared global declarations", () => {
   for (const source of sources) new vm.Script(source);
   new vm.Script(sources.join("\n"));
   new vm.Script(read("tools/devhub.js"));
-  assert.equal(sources.length, 27);
+  assert.equal(sources.length, 28);
 });
 
 test("published entries preserve paths and query/hash navigation", () => {

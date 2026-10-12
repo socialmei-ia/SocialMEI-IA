@@ -39,11 +39,11 @@
 
 ## Estado atual
 
-O GitHub Pages usa a configuração local de demonstração. A instalação protegida da equipe pode configurar os quatro módulos de gestão em modo remoto, usando FastAPI/PostgreSQL. Veja [a revisão atual](docs/REVISAO-PROJETO-2026-10-12.md) e [a operação da equipe](docs/OPERACAO-EQUIPE.md).
+O GitHub Pages usa a configuração local de demonstração. A instalação protegida da equipe pode configurar os quatro módulos de gestão em modo remoto, usando FastAPI/PostgreSQL. Veja [as contas dos MEIs](docs/CONTAS-MEIS.md), [a revisão atual](docs/REVISAO-PROJETO-2026-10-12.md) e [a operação da equipe](docs/OPERACAO-EQUIPE.md).
 
 | Área                                    | O que realmente existe                                                                                                                                     |
 | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Landing, cadastro, login e onboarding   | Experiência local. Login não autentica contra um servidor.                                                                                                 |
+| Landing, cadastro, login e onboarding   | Pages: experiência local. Piloto da equipe: contas reais por convite, ativadas explicitamente.                                                             |
 | Home e Visão Geral                      | Contexto e indicadores locais; parte da atividade e dos gráficos é demonstrativa.                                                                          |
 | Clientes, vendas, financeiro e catálogo | CRUD local no Pages ou compartilhado por API/PostgreSQL, conforme `config.js`; versões, importação e recuperação de operações no modo remoto.              |
 | Caixa Unificada                         | Conversas demonstrativas, notas e rascunhos locais; leitura HTTP do n8n com recuo de 4 a 30 segundos. Respostas não são enviadas aos canais.               |
@@ -54,7 +54,7 @@ O GitHub Pages usa a configuração local de demonstração. A instalação prot
 | API Python                              | FastAPI com CRUD dos quatro módulos, importações, transferência, saúde do banco e leitura técnica autenticada para n8n; `/processar` permanece compatível. |
 | WAHA                                    | Serviço Compose para WhatsApp; sua conexão completa com a Caixa Unificada ainda precisa ser validada.                                                      |
 
-O Compose descreve infraestrutura; sua presença no Git não comprova disponibilidade online. O ambiente da equipe protege site/API com Basic auth no gateway e separa seu banco da infraestrutura antiga. Não há cadastro/autenticação individual por aplicação, autorização por negócio ou envio externo pelo composer.
+O Compose descreve infraestrutura; sua presença no Git não comprova disponibilidade online. O ambiente da equipe protege site/API com Basic auth no gateway e separa seu banco da infraestrutura antiga. O [piloto de contas MEI](docs/CONTAS-MEIS.md) acrescenta autenticação da aplicação e autorização por negócio quando ativado. O cadastro público e o envio externo pelo composer continuam desativados.
 
 ## Começar a desenvolver
 

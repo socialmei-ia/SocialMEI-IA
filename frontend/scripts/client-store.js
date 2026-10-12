@@ -94,6 +94,7 @@ const SocialMEIClients = (() => {
         method,
         headers: {
           Accept: "application/json",
+          ...(typeof SocialMEIAuth !== "undefined" ? SocialMEIAuth.headers() : {}),
           ...(data ? { "Content-Type": "application/json" } : {}),
         },
         body: data ? JSON.stringify(data) : undefined,
@@ -170,6 +171,11 @@ const SocialMEIClients = (() => {
     }
   }
   async function refresh() {
+    if (typeof SocialMEIAuth !== "undefined" && SocialMEIAuth.remote) {
+      await SocialMEIAuth.ready;
+      if (!SocialMEIAuth.current) return null;
+      scope = base + "|" + SocialMEIAuth.current.negocio.slug;
+    }
     return run(async () => {
       const list = await request("/clientes");
       if (!Array.isArray(list)) throw new Error("Lista de Clientes inválida.");

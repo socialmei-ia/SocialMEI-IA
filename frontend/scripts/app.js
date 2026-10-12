@@ -2829,9 +2829,23 @@ ${escapeHtml(text)}</textarea>`,
   return false;
 }
 function getBusinessPreferences() {
+  if (SocialMEIAuth.remote && SocialMEIAuth.current) {
+    return {
+      ...(appData.prefs.negocio || {}),
+      ...SocialMEIAuth.current.negocio.configuracao,
+      nome: SocialMEIAuth.current.negocio.nome,
+    };
+  }
   return appData.prefs.negocio || {};
 }
 function getAccountPreferences() {
+  if (SocialMEIAuth.remote && SocialMEIAuth.current) {
+    return {
+      nome: SocialMEIAuth.current.usuario.nome,
+      email: SocialMEIAuth.current.usuario.email,
+      telefone: SocialMEIAuth.current.usuario.telefone || "",
+    };
+  }
   const p = readStoredJson("socialmei-experience-profile-v1", {});
   return {
     nome: p.name || sessionData.usuario.nome,
@@ -3447,7 +3461,7 @@ function renderSettings() {
   if (selectedSettingsTab === "conta") {
     host.innerHTML = /* HTML */ `<h3>Conta</h3>
             <p class="management-note">
-              Seu perfil neste navegador. Não cria nem altera uma conta externa.
+              ${SocialMEIAuth.remote ? "Sua conta no servidor. O e-mail identifica seu acesso e não pode ser alterado por este formulário." : "Seu perfil neste navegador. Não cria nem altera uma conta externa."}
             </p>
             <div class="management-stack" style="margin-top:16px">
               ${renderSettingsForm(
@@ -3464,7 +3478,7 @@ function renderSettings() {
                     "email",
                     a.email,
                     "email",
-                    'required autocomplete="email"',
+                    'required autocomplete="email"' + (SocialMEIAuth.remote ? " readonly" : ""),
                   ) +
                   renderSettingsField(
                     "Telefone",
@@ -3474,7 +3488,7 @@ function renderSettings() {
                     'autocomplete="tel"',
                   ),
               )}
-            </div>`;
+            </div>${SocialMEIAuth.remote ? `<details class="management-card"><summary>Alterar senha</summary><form id="accountPasswordForm"><label>Senha atual<input class="management-input" type="password" name="atual" autocomplete="current-password" required></label><label>Nova senha<input class="management-input" type="password" name="nova" autocomplete="new-password" minlength="12" maxlength="128" required></label><button class="management-button" type="submit">Salvar senha e encerrar sessões</button></form></details>${SocialMEIAuth.current?.usuario.administrador_plataforma ? '<a class="management-button" href="/frontend/admin.html">Administração do projeto</a>' : ""}` : ""}`;
   } else if (selectedSettingsTab === "negocio") {
     host.innerHTML = /* HTML */ `<h3>Negócio</h3>
             <p class="management-note">Identidade e informações que ajudam seu atendimento.</p>
@@ -3797,7 +3811,24 @@ function isQuietPeriodActive() {
     ? time >= p.quietFrom && time < p.quietTo
     : time >= p.quietFrom || time < p.quietTo;
 }
-document.addEventListener("submit", (event) => {
+document.addEventListener("submit", async (event) => {
+  if (event.target.id === "accountPasswordForm") {
+    event.preventDefault();
+    const button = event.target.querySelector("button");
+    button.disabled = true;
+    try {
+      await SocialMEIAuth.request(
+        "/auth/password",
+        "POST",
+        Object.fromEntries(new FormData(event.target)),
+      );
+      await SocialMEIAuth.logout();
+    } catch (error) {
+      toast("Senha não alterada", error.message);
+      button.disabled = false;
+    }
+    return;
+  }
   if (event.target.id !== "nvSettingsForm") {
     return;
   }
@@ -3832,6 +3863,32 @@ document.addEventListener("submit", (event) => {
     return;
   }
   const old = JSON.stringify(appData.prefs);
+  let savedOnServer = false;
+  if (SocialMEIAuth.remote && ["conta", "negocio"].includes(tab)) {
+    const payload =
+      tab === "conta"
+        ? { nome: data.nome, telefone: data.telefone }
+        : {
+            nome_negocio: data.nome,
+            configuracao_negocio: Object.fromEntries(
+              Object.entries({
+                ...data,
+                ...(pendingBusinessLogo !== undefined ? { logo: pendingBusinessLogo } : {}),
+              }).filter(([key]) => ["cnpj", "telefone", "horario", "pix", "logo"].includes(key)),
+            ),
+          };
+    const button = f.querySelector('[type="submit"]');
+    if (button) button.disabled = true;
+    try {
+      await SocialMEIAuth.saveProfile(payload);
+      savedOnServer = true;
+    } catch (error) {
+      feedback.textContent = error.message;
+      return;
+    } finally {
+      if (button) button.disabled = false;
+    }
+  }
   if (tab === "negocio") {
     appData.prefs.negocio = {
       ...getBusinessPreferences(),
@@ -3869,8 +3926,9 @@ document.addEventListener("submit", (event) => {
     )
   ) {
     appData.prefs = JSON.parse(old);
-    feedback.textContent =
-      "Não foi possível salvar neste navegador. Exporte um backup e tente novamente.";
+    feedback.textContent = savedOnServer
+      ? "Salvo no servidor. O navegador não conseguiu guardar a cópia local; recarregue para conferir."
+      : "Não foi possível salvar neste navegador. Exporte um backup e tente novamente.";
     return;
   }
   if (tab === "conta" || tab === "negocio") {

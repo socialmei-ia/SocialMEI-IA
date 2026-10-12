@@ -6,7 +6,7 @@ API de gestão dos quatro módulos, migrations incrementais, transferência inic
 
 Próximos passos atuais:
 
-1. Decidir acesso compartilhado ou contas individuais com o dono; manter a proteção atual até a decisão.
+1. Ativar e conferir o [piloto privado de contas dos MEIs](docs/CONTAS-MEIS.md); manter Basic auth até o dono decidir a abertura pública.
 2. Obter chip dedicado e conectar WAHA; recebimento/envio ainda depende dessa etapa.
 3. Definir IDs estáveis, deduplicação e autenticação do atendimento antes de conectar canais reais.
 4. Preparar regras de orçamento/atendimento; leitura técnica do CRM não autoriza escrita por automações.

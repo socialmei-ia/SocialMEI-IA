@@ -219,12 +219,26 @@ function saveAppData() {
 }
 const SOCIALMEI_BACKUP_SCHEMA_VERSION = 1;
 let pendingBackupImport = null;
-const isSocialMEIStorageKey = (key) => /^socialmei[-_]/i.test(String(key || ""));
+const isSocialMEIStorageKey = (key) =>
+  /^socialmei[-_]/i.test(String(key || "")) &&
+  !(
+    typeof SocialMEIAuth !== "undefined" &&
+    SocialMEIAuth.remote &&
+    SocialMEIAuth.internalStorageKey(String(key))
+  );
 function collectSocialMEIStorage() {
   const storage = {};
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    if (key && isSocialMEIStorageKey(key)) {
+    if (
+      key &&
+      isSocialMEIStorageKey(key) &&
+      !(
+        typeof SocialMEIAuth !== "undefined" &&
+        SocialMEIAuth.remote &&
+        SocialMEIAuth.internalStorageKey(key)
+      )
+    ) {
       storage[key] = localStorage.getItem(key);
     }
   }
