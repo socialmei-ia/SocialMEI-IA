@@ -1,0 +1,92 @@
+# Separate project/volumes: never combine with compose.yaml or compose.dev.yaml.
+name: socialmei-team
+services:
+  team-postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: socialmei_team
+      POSTGRES_PASSWORD: ${TEAM_POSTGRES_PASSWORD:?Use tools/team-admin.py init}
+      POSTGRES_DB: socialmei_team
+    volumes:
+      - team_postgres_data:/var/lib/postgresql/data
+    networks: [database]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U socialmei_team -d socialmei_team"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  team-migrate:
+    build: ./python-service
+    command: python /maintenance/team_migrate.py
+    environment: &database_environment
+      PYTHONPATH: /app
+      POSTGRES_HOST: team-postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: socialmei_team
+      POSTGRES_PASSWORD: ${TEAM_POSTGRES_PASSWORD:?Use tools/team-admin.py init}
+      POSTGRES_DB: socialmei_team
+    volumes:
+      - ./tools/team_migrate.py:/maintenance/team_migrate.py:ro
+      - ./database/migrations:/migrations:ro
+    networks: [database]
+    depends_on:
+      team-postgres:
+        condition: service_healthy
+
+  team-api:
+    build: ./python-service
+    restart: unless-stopped
+    environment:
+      <<: *database_environment
+      SOCIALMEI_SHARED_DATA_ENABLED: "true"
+      SOCIALMEI_WORKSPACE_SLUG: team
+      SOCIALMEI_WORKSPACE_NAME: SocialMEI Equipe
+      # Same origin via gateway; no cross-origin browser access.
+      SOCIALMEI_CORS_ORIGINS: ""
+      TZ: America/Recife
+    networks: [database, api]
+    depends_on:
+      team-migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/db')",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  team-gateway:
+    build:
+      context: .
+      dockerfile: deploy/team/Dockerfile
+    restart: unless-stopped
+    environment:
+      SOCIALMEI_TEAM_HOST: ${SOCIALMEI_TEAM_HOST:?Use tools/team-admin.py init}
+    volumes:
+      - ./deploy/team/private:/etc/caddy/private:ro
+      - ./deploy/team/private/config.js:/srv/frontend/config.js:ro
+    networks:
+      api:
+      web:
+        aliases: [socialmei-team-gateway]
+    depends_on:
+      team-api:
+        condition: service_healthy
+
+networks:
+  database:
+    internal: true
+  api:
+    internal: true
+  web:
+    name: socialmei_team_web
+volumes:
+  team_postgres_data:

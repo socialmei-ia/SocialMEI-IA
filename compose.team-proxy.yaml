@@ -1,0 +1,13 @@
+# Optional override for the EXISTING stack, with its same directory/project/.env.
+# Start compose.team.yaml first to create socialmei_team_web.
+services:
+  caddy:
+    volumes:
+      - ./deploy/team/private/site.Caddyfile:/etc/caddy/sites/team.Caddyfile:ro
+    networks:
+      - default
+      - team_web
+networks:
+  team_web:
+    external: true
+    name: socialmei_team_web

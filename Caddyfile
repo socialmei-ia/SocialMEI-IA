@@ -13,3 +13,6 @@
 {$PYTHON_API_HOST:api.54-94-213-7.sslip.io} {
     reverse_proxy python-api:8000
 }
+
+# Optional team endpoint; empty glob leaves existing hosts unchanged.
+import /etc/caddy/sites/*.Caddyfile

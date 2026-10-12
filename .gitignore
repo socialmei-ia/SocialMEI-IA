@@ -43,3 +43,7 @@ credentials*.json
 *.p12
 *.pfx
 compose.local.yaml
+
+# Server-only team credentials and generated public endpoint
+.env.team
+deploy/team/private/
