@@ -216,3 +216,8 @@ A transferência inicial dos quatro módulos tem exportação consistente, prév
 remapeamento por IDs e gravação atômica. Siga
 [TRANSFERENCIA-NOTEBOOK.md](TRANSFERENCIA-NOTEBOOK.md); o backup do navegador não
 substitui a exportação do banco compartilhado. A proteção por senha permanece ativa.
+
+## Backups e conexão do n8n
+
+Veja [OPERACAO-EQUIPE.md](OPERACAO-EQUIPE.md) para diagnóstico, backup diário,
+credencial técnica de leitura e importação de um fluxo inativo de conferência.
