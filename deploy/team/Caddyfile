@@ -39,7 +39,7 @@
             file_server
         }
         handle /index.html {
-            redir / 302
+            redir * / 302
         }
         # Relative assets also work when the application is opened at /.
         handle @app_assets {

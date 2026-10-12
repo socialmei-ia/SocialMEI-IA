@@ -159,8 +159,8 @@ HTTPServer(('0.0.0.0', 8000), Handler).serve_forever()
     def test_authenticated_frontend_and_original_api_prefix(self):
         for path in ["/", "/frontend/socialmei-app.html", "/index.html"]:
             code, body = self.request(path, True)
-            self.assertEqual(code, 200)
-            self.assertIn("Private application", body)
+            self.assertEqual(code, 200, path)
+            self.assertIn("Private application", body, path)
         code, body = self.request("/config.js", True)
         self.assertEqual(code, 200)
         self.assertIn("SOCIALMEI_CONFIG", body)
