@@ -57,6 +57,7 @@
     />
     <link href="assets/brand-icon.png" rel="icon" type="image/png" />
     <link rel="stylesheet" href="styles/socialmei.css" />
+    <link rel="stylesheet" href="styles/account-ui.css" />
     <script src="scripts/storage-and-themes.js"></script>
     <script src="scripts/motion.js"></script>
 
@@ -2547,6 +2548,25 @@ SIDEBAR — HTML
             ></progress>
           </div>
         </button>
+        <button
+          class="account-sidebar-exit"
+          type="button"
+          data-account-logout
+          aria-label="Sair da conta"
+          title="Sair da conta"
+        >
+          <svg
+            class="account-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+            aria-hidden="true"
+          >
+            <path d="M10 17l5-5-5-5M15 12H3" />
+            <path d="M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5" /></svg
+          ><span class="account-exit-label">Sair da conta</span>
+        </button>
       </aside>
       <div aria-hidden="true" class="ov" id="ov"></div>
       <main class="mn" id="mainContent" tabindex="-1">
@@ -2611,21 +2631,37 @@ SIDEBAR — HTML
                   <ul class="not-list" id="notList"></ul>
                 </div>
               </div>
-              <div class="dd" id="profileDd">
-                <button aria-expanded="false" aria-haspopup="menu" class="btn pn" id="profileBtn">
-                  <span class="av" id="av"></span><span class="profile-name" id="un"></span
-                  ><span id="profileChevron"></span>
-                </button>
-                <div class="mnu" role="menu">
-                  <button data-profile-action="perfil"></button>
-                  <button data-profile-action="config"></button>
-                  <div class="mnu-sep"></div>
-                  <button data-profile-action="sair"></button>
-                </div>
-              </div>
             </div>
           </details>
           <button class="btn header-create" id="globalCreateBtn" type="button">+ Nova venda</button>
+          <div class="dd account-menu" id="profileDd">
+            <button
+              aria-expanded="false"
+              aria-haspopup="menu"
+              aria-controls="profileMenu"
+              aria-label="Minha conta"
+              class="btn pn profile-button"
+              id="profileBtn"
+              type="button"
+              title="Minha conta"
+            >
+              <span class="av" id="av"></span><span class="profile-name" id="un"></span
+              ><span id="profileChevron"></span>
+            </button>
+            <div class="mnu" id="profileMenu" role="menu" aria-label="Minha conta">
+              <div class="account-menu-identity">
+                <small>VOCÊ ESTÁ CONECTADO</small><b id="profileMenuEmail">Perfil deste navegador</b
+                ><span id="profileMenuRole">Demonstração local</span>
+              </div>
+              <button type="button" role="menuitem" data-profile-action="perfil"></button>
+              <button type="button" role="menuitem" data-profile-action="config"></button>
+              <a href="admin.html" role="menuitem" id="profileAdminLink" hidden
+                >Administração do projeto</a
+              >
+              <div class="mnu-sep"></div>
+              <button type="button" role="menuitem" data-profile-action="sair"></button>
+            </div>
+          </div>
         </header>
         <nav aria-label="Seções do meu negócio" class="sr-only" hidden="" id="businessTabs"></nav>
         <div class="ct">
@@ -2743,7 +2779,7 @@ AUTOMAÇÕES — HTML
                   <button class="management-button pr" data-rule-create>+ Nova rotina</button>
                 </div>
               </header>
-              <div class="management-demo">
+              <div class="management-demo" id="accountSettingsNotice">
                 <span
                   class="pill draft"
                   title="Rotinas automáticas, serviço de IA, envio oficial aos canais e autenticação externa ainda não estão conectados."
