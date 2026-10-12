@@ -85,14 +85,31 @@ jobs:
           spec.loader.exec_module(module)
           seed = "import json, urllib.request; urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:8000/api/v1/clientes', data=json.dumps({'nome':'CI backup restore'}).encode(), headers={'Content-Type':'application/json'}))"
           subprocess.run(module.compose("exec", "-T", "team-api", "python", "-c", seed), check=True)
+          attendance = """
+          WITH canal AS (
+            INSERT INTO socialmei.crm_canais (workspace_id, instancia, sessao)
+            SELECT id, 'ci-backup', 'default' FROM socialmei.workspaces WHERE slug = 'team'
+            RETURNING workspace_id, id
+          ), conversa AS (
+            INSERT INTO socialmei.crm_conversas_canal (workspace_id, canal_id, identificador_externo)
+            SELECT workspace_id, id, 'ci-chat@c.us' FROM canal
+            RETURNING workspace_id, canal_id, id
+          )
+          INSERT INTO socialmei.crm_mensagens_canal
+            (workspace_id, canal_id, conversa_id, identificador_externo, direcao, conteudo, status)
+          SELECT workspace_id, canal_id, id, 'ci-backup-message', 'entrada', 'CI attendance restore', 'recebida'
+          FROM conversa;
+          """
+          subprocess.run(module.compose("exec", "-T", "team-postgres", "psql", "-U", "socialmei_team", "-d", "socialmei_team", "-v", "ON_ERROR_STOP=1"), input=attendance, text=True, check=True)
           folder = module.backup()
           subprocess.run(module.compose("exec", "-T", "team-postgres", "createdb", "-U", "socialmei_team", "socialmei_backup_check"), check=True)
           try:
               with (folder / "equipe.dump").open("rb") as source:
                   subprocess.run(module.compose("exec", "-T", "team-postgres", "pg_restore", "-U", "socialmei_team", "-d", "socialmei_backup_check", "--exit-on-error"), stdin=source, check=True)
-              result = subprocess.check_output(module.compose("exec", "-T", "team-postgres", "psql", "-U", "socialmei_team", "-d", "socialmei_backup_check", "-Atc", "SELECT COUNT(*) FROM socialmei.crm_clientes WHERE nome = 'CI backup restore'"), text=True)
-              assert result.strip() == "1", result
-              print("Backup restaurado e registro conferido no banco isolado de CI.")
+              query = "SELECT COUNT(*) FROM socialmei.crm_clientes WHERE nome = 'CI backup restore'; SELECT COUNT(*) FROM socialmei.crm_mensagens_canal WHERE identificador_externo = 'ci-backup-message' AND conteudo = 'CI attendance restore'"
+              result = subprocess.check_output(module.compose("exec", "-T", "team-postgres", "psql", "-U", "socialmei_team", "-d", "socialmei_backup_check", "-Atc", query), text=True)
+              assert result.strip().splitlines() == ["1", "1"], result
+              print("Backup restaurado: cliente e mensagem de atendimento conferidos no banco isolado de CI.")
           finally:
               subprocess.run(module.compose("exec", "-T", "team-postgres", "dropdb", "-U", "socialmei_team", "socialmei_backup_check"), check=True)
           PYTHON
