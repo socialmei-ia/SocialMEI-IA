@@ -39,7 +39,24 @@ async function run() {
     );
     fs.writeFileSync(
       path.join(directory, "mock.py"),
-      `import json\nfrom http.server import BaseHTTPRequestHandler, HTTPServer\nclients=[{'id':11,'versao':1,'nome':'Cliente protegido','tags':[]}]\nclass Handler(BaseHTTPRequestHandler):\n def do_GET(self):\n  self.send_response(400 if self.headers.get('Authorization') else 200); self.end_headers(); self.wfile.write(json.dumps(clients if self.path=='/api/v1/clientes' else []).encode())\n def do_POST(self):\n  row=json.loads(self.rfile.read(int(self.headers['Content-Length']))); row.update(id=12,versao=1); clients.append(row); self.send_response(201); self.end_headers(); self.wfile.write(json.dumps(row).encode())\nHTTPServer(('0.0.0.0',8000),Handler).serve_forever()\n`,
+      `import json
+from http.server import BaseHTTPRequestHandler, HTTPServer
+clients=[{'id':11,'versao':1,'nome':'Cliente protegido','tags':[]}]
+class Handler(BaseHTTPRequestHandler):
+ def do_GET(self):
+  if self.headers.get('Authorization'):
+   self.send_response(400); self.end_headers(); return
+  payload=clients if self.path=='/api/v1/clientes' else next((c for c in clients if self.path=='/api/v1/clientes/'+str(c['id'])), [])
+  self.send_response(200); self.end_headers(); self.wfile.write(json.dumps(payload).encode())
+ def do_POST(self):
+  if self.headers.get('Authorization'):
+   self.send_response(400); self.end_headers(); return
+  data=json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+  row=data['itens'][0]['cliente']; row.update(id=12,versao=1); clients.append(row)
+  reply={'origem':data['origem'],'itens':[{'local_id':0,'cliente_id':12,'acao':'criar'}]}
+  self.send_response(200); self.end_headers(); self.wfile.write(json.dumps(reply).encode())
+HTTPServer(('0.0.0.0',8000),Handler).serve_forever()
+`,
     );
     docker("network", "create", name);
     networkCreated = true;
