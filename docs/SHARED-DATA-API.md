@@ -652,3 +652,10 @@ reabre ou apaga lançamentos remotos. Teste no notebook/celular após ativação
 criar uma entrada, recarregar no segundo aparelho e marcar recebida; o primeiro
 aparelho deve ver a mesma quitação após recarregar. Não execute implantação em
 produção como parte dessa ativação local.
+
+## Transferência inicial entre workspaces
+
+A migration 008 e `/api/v1/transferencias/preview` / `confirmar` permitem uma
+transferência inicial do banco development para team, com preservação de estados
+operacionais de estoque e remapeamento de IDs. O contrato, os limites e os passos
+de aplicação estão em [TRANSFERENCIA-NOTEBOOK.md](TRANSFERENCIA-NOTEBOOK.md).
