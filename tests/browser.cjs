@@ -37,6 +37,7 @@ async function run() {
     browser = await chromium.launch(
       process.env.CHROMIUM_EXECUTABLE ? { executablePath: process.env.CHROMIUM_EXECUTABLE } : {},
     );
+    checks.push(await require("./account-browser.cjs")(browser, origin));
     const page = await browser.newPage({
       viewport: { width: 1440, height: 1000 },
       reducedMotion: "reduce",

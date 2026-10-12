@@ -16,6 +16,7 @@ from pydantic import (
 )
 
 from database import check_database, connect, shared_data_enabled
+from auth_context import principal
 
 router = APIRouter(prefix="/api/v1", tags=["shared-data"])
 
@@ -29,10 +30,14 @@ def require_shared_data() -> None:
 
 
 def workspace_slug() -> str:
+    if principal.get():
+        return principal.get()["workspace_slug"]
     return os.getenv("SOCIALMEI_WORKSPACE_SLUG", "development").strip() or "development"
 
 
 def workspace_name() -> str:
+    if principal.get():
+        return principal.get()["nome_negocio"]
     return (
         os.getenv("SOCIALMEI_WORKSPACE_NAME", "SocialMEI Development").strip()
         or "SocialMEI Development"
@@ -40,6 +45,15 @@ def workspace_name() -> str:
 
 
 def ensure_workspace(conn) -> int:
+    if principal.get():
+        user = principal.get()
+        row = conn.execute(
+            "SELECT id FROM socialmei.workspaces WHERE id=%s AND slug=%s FOR UPDATE",
+            (user["workspace_id"], user["workspace_slug"]),
+        ).fetchone()
+        if not row:
+            raise HTTPException(403, "Negócio indisponível.")
+        return int(row[0])
     slug = workspace_slug()
     nome = workspace_name()
 

@@ -2,3 +2,4 @@ fastapi
 uvicorn[standard]
 psycopg[binary]
 httpx
+argon2-cffi==25.1.0

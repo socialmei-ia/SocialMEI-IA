@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Administração — SocialMEI IA</title>
+    <link rel="stylesheet" href="styles/socialmei.css" />
+  </head>
+  <body>
+    <main style="max-width:1100px;margin:40px auto;padding:24px">
+      <a href="/">Voltar ao SocialMEI</a>
+      <h1>Administração do projeto</h1>
+      <p id="adminStatus" role="status" aria-live="polite">Conferindo seu acesso…</p>
+      <div id="adminContent" hidden>
+        <section class="management-card">
+          <h2>Convidar um MEI</h2>
+          <p>O convite é individual, vale por três dias e cria um negócio separado.</p>
+          <form id="adminInviteForm">
+            <label for="inviteEmail">E-mail do MEI</label>
+            <input
+              class="management-input"
+              id="inviteEmail"
+              type="email"
+              maxlength="255"
+              required
+              autocomplete="email"
+            />
+            <button class="management-button" type="submit">Gerar convite</button>
+          </form>
+          <label for="inviteCode">Código gerado</label>
+          <textarea
+            class="management-input"
+            id="inviteCode"
+            readonly
+            rows="3"
+            autocomplete="off"
+          ></textarea>
+          <p>
+            Entregue o código apenas à pessoa convidada. Ele aparece nesta geração e não fica salvo
+            no navegador.
+          </p>
+        </section>
+        <section class="management-card">
+          <h2>Contas do piloto</h2>
+          <p>
+            Desativar uma conta encerra seus acessos e preserva os dados. Administradores são
+            gerenciados pelo terminal privado.
+          </p>
+          <div class="management-table-wrapper">
+            <table class="management-table">
+              <caption class="sr-only">
+                Usuários cadastrados
+              </caption>
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>E-mail</th>
+                  <th>Tipo</th>
+                  <th>Situação</th>
+                  <th>Ação</th>
+                </tr>
+              </thead>
+              <tbody id="adminUsers"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </main>
+    <script src="config.js"></script>
+    <script src="scripts/auth-store.js"></script>
+    <script src="scripts/admin-accounts.js"></script>
+  </body>
+</html>

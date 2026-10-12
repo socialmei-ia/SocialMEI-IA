@@ -2,6 +2,9 @@ import os
 
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from shared_data import database_health_payload, router as shared_data_router
@@ -16,8 +19,10 @@ from finance_import import router as finance_import_router
 
 from workspace_transfer import router as transfer_router
 from n8n_read import router as n8n_read_router
+from account_auth import AccountMiddleware, router as account_auth_router
 
 app = FastAPI(title="SocialME Python Service")
+app.add_middleware(AccountMiddleware)
 cors_origins = [
     origin.strip()
     for origin in os.getenv("SOCIALMEI_CORS_ORIGINS", "").split(",")
@@ -43,6 +48,19 @@ app.include_router(finance_router)
 app.include_router(finance_import_router)
 app.include_router(transfer_router)
 app.include_router(n8n_read_router)
+app.include_router(account_auth_router)
+
+
+@app.exception_handler(RequestValidationError)
+async def private_validation_error(request, error):
+    # FastAPI's default validation response includes submitted values, including passwords.
+    if request.url.path.startswith(("/api/v1/auth/", "/api/v1/admin/")):
+        return JSONResponse(
+            {"detail": "Confira os campos informados."},
+            status_code=422,
+            headers={"Cache-Control": "no-store"},
+        )
+    return await request_validation_exception_handler(request, error)
 
 
 class TextInput(BaseModel):

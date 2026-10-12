@@ -79,6 +79,7 @@ const SocialMEIFinance = (() => {
         method,
         headers: {
           Accept: "application/json",
+          ...(typeof SocialMEIAuth !== "undefined" ? SocialMEIAuth.headers() : {}),
           ...(data ? { "Content-Type": "application/json" } : {}),
         },
         body: data ? JSON.stringify(data) : undefined,
@@ -172,6 +173,11 @@ const SocialMEIFinance = (() => {
     changed();
   }
   async function refresh() {
+    if (typeof SocialMEIAuth !== "undefined" && SocialMEIAuth.remote) {
+      await SocialMEIAuth.ready;
+      if (!SocialMEIAuth.current) return null;
+      scope = base + "|" + SocialMEIAuth.current.negocio.slug;
+    }
     return run(async () => {
       await loadRemote();
       return true;
