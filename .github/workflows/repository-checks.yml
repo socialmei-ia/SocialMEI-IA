@@ -101,15 +101,17 @@ jobs:
           FROM conversa;
           """
           subprocess.run(module.compose("exec", "-T", "team-postgres", "psql", "-U", "socialmei_team", "-d", "socialmei_team", "-v", "ON_ERROR_STOP=1"), input=attendance, text=True, check=True)
+          account_seed = "from account_admin import create_admin; from account_auth import hash_password, issue_session; from database import connect; from fastapi import Response; uid=create_admin('ci-owner@example.com','CI Owner',hash_password('CI-test-only-password-123!')); conn=connect(); wid=conn.execute(\"SELECT id FROM socialmei.workspaces WHERE slug='team'\").fetchone()[0]; issue_session(conn,uid,wid,Response(),False); conn.commit(); conn.close()"
+          subprocess.run(module.compose("exec", "-T", "team-api", "python", "-c", account_seed), check=True)
           folder = module.backup()
           subprocess.run(module.compose("exec", "-T", "team-postgres", "createdb", "-U", "socialmei_team", "socialmei_backup_check"), check=True)
           try:
               with (folder / "equipe.dump").open("rb") as source:
                   subprocess.run(module.compose("exec", "-T", "team-postgres", "pg_restore", "-U", "socialmei_team", "-d", "socialmei_backup_check", "--exit-on-error"), stdin=source, check=True)
-              query = "SELECT COUNT(*) FROM socialmei.crm_clientes WHERE nome = 'CI backup restore'; SELECT COUNT(*) FROM socialmei.crm_mensagens_canal WHERE identificador_externo = 'ci-backup-message' AND conteudo = 'CI attendance restore'"
+              query = "SELECT COUNT(*) FROM socialmei.crm_clientes WHERE nome = 'CI backup restore'; SELECT COUNT(*) FROM socialmei.crm_mensagens_canal WHERE identificador_externo = 'ci-backup-message' AND conteudo = 'CI attendance restore'; SELECT COUNT(*) FROM socialmei.auth_credenciais c JOIN socialmei.users u ON u.id=c.user_id WHERE u.email='ci-owner@example.com' AND c.administrador_plataforma AND c.senha_hash LIKE '$argon2id$%'; SELECT COUNT(*) FROM socialmei.auth_sessoes s JOIN socialmei.users u ON u.id=s.user_id WHERE u.email='ci-owner@example.com' AND s.revogada_em IS NULL"
               result = subprocess.check_output(module.compose("exec", "-T", "team-postgres", "psql", "-U", "socialmei_team", "-d", "socialmei_backup_check", "-Atc", query), text=True)
-              assert result.strip().splitlines() == ["1", "1"], result
-              print("Backup restaurado: cliente e mensagem de atendimento conferidos no banco isolado de CI.")
+              assert result.strip().splitlines() == ["1", "1", "1", "1"], result
+              print("Backup restaurado: cliente, atendimento, administrador e sessão conferidos no banco isolado de CI.")
           finally:
               subprocess.run(module.compose("exec", "-T", "team-postgres", "dropdb", "-U", "socialmei_team", "socialmei_backup_check"), check=True)
           PYTHON

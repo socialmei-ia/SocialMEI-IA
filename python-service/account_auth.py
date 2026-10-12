@@ -35,11 +35,13 @@ router = APIRouter(prefix="/api/v1", tags=["accounts"])
 
 
 def enabled():
-    return os.getenv("SOCIALMEI_AUTH_ENABLED", "false").lower() in {
-        "true",
-        "1",
-        "yes",
-        "on",
+    # A typo must block access, rather than silently reopen the shared workspace.
+    return os.getenv("SOCIALMEI_AUTH_ENABLED", "false").strip().lower() not in {
+        "false",
+        "0",
+        "no",
+        "off",
+        "",
     }
 
 
@@ -66,6 +68,13 @@ def origin():
 def require_enabled():
     if not enabled() or not shared_data_enabled():
         raise HTTPException(503, "Autenticação não ativada neste ambiente.")
+    if os.getenv("SOCIALMEI_AUTH_ENABLED", "").strip().lower() not in {
+        "true",
+        "1",
+        "yes",
+        "on",
+    }:
+        raise HTTPException(503, "Autenticação não configurada.")
     origin()
 
 

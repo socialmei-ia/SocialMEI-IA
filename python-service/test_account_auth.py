@@ -108,6 +108,10 @@ class AccountGuards(unittest.TestCase):
                 self.assertEqual(self.client.get("/api/v1/auth/me").status_code, 503)
         self.assertEqual(origin(), ORIGIN)
 
+    def test_misspelled_activation_flag_does_not_reopen_shared_crm(self):
+        with patch.dict(os.environ, {"SOCIALMEI_AUTH_ENABLED": "treu"}):
+            self.assertEqual(self.client.get("/api/v1/clientes").status_code, 503)
+
     def test_technical_token_does_not_authenticate_crm_or_admin(self):
         with patch(
             "n8n_read.connect", side_effect=AssertionError("unexpected database")
@@ -470,7 +474,7 @@ class AccountDatabaseTests(unittest.TestCase):
                     "operation_id": str(uuid4()),
                 },
             ).status_code,
-            404,
+            422,
         )
         self.assertEqual(
             second.post(
