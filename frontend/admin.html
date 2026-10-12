@@ -3,71 +3,217 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
     <title>Administração — SocialMEI IA</title>
+    <link rel="icon" href="assets/brand-icon.png" />
     <link rel="stylesheet" href="styles/socialmei.css" />
+    <link rel="stylesheet" href="styles/account-ui.css" />
   </head>
-  <body>
-    <main style="max-width:1100px;margin:40px auto;padding:24px">
-      <a href="/">Voltar ao SocialMEI</a>
-      <h1>Administração do projeto</h1>
-      <p id="adminStatus" role="status" aria-live="polite">Conferindo seu acesso…</p>
+  <body class="account-admin-page">
+    <a class="skip-link" href="#adminMain">Ir para a administração</a>
+    <header class="account-admin-topbar">
+      <a class="account-brand" href="socialmei-app.html" aria-label="Voltar ao SocialMEI IA"
+        ><span class="logo-mark socialmei-logo-image" aria-hidden="true"></span
+        ><span>SocialMEI<span class="account-brand-ia">.IA</span></span></a
+      >
+      <span class="account-topbar-label">Administração</span>
+      <div class="account-topbar-actions">
+        <button
+          class="account-button account-button-quiet"
+          id="adminThemeToggle"
+          type="button"
+          aria-label="Alternar tema"
+        >
+          Tema</button
+        ><a class="account-button account-button-quiet" href="socialmei-app.html"
+          >Voltar ao meu negócio</a
+        ><button class="account-button account-button-quiet" id="adminLogout" type="button" hidden>
+          Sair da conta
+        </button>
+      </div>
+    </header>
+    <main class="account-admin-main" id="adminMain" tabindex="-1">
+      <header class="account-admin-hero">
+        <div>
+          <span class="account-eyebrow">ACESSOS E PESSOAS</span>
+          <h1>Um espaço para<br />cada negócio.</h1>
+          <p>Convide os MEIs e cuide de quem pode acessar o SocialMEI.</p>
+        </div>
+        <div class="account-admin-signature">
+          <span class="account-avatar" id="adminAvatar">SM</span>
+          <div>
+            <b id="adminName">Conferindo seu acesso</b
+            ><span id="adminEmail">Administração do projeto</span>
+          </div>
+          <span class="account-badge">Piloto protegido</span>
+        </div>
+      </header>
+      <p id="adminStatus" class="account-status" role="status" aria-live="polite">
+        Conferindo seu acesso…
+      </p>
       <div id="adminContent" hidden>
-        <section class="management-card">
-          <h2>Convidar um MEI</h2>
-          <p>O convite é individual, vale por três dias e cria um negócio separado.</p>
-          <form id="adminInviteForm">
-            <label for="inviteEmail">E-mail do MEI</label>
-            <input
-              class="management-input"
-              id="inviteEmail"
-              type="email"
-              maxlength="255"
-              required
-              autocomplete="email"
-            />
-            <button class="management-button" type="submit">Gerar convite</button>
-          </form>
-          <label for="inviteCode">Código gerado</label>
-          <textarea
-            class="management-input"
-            id="inviteCode"
-            readonly
-            rows="3"
-            autocomplete="off"
-          ></textarea>
-          <p>
-            Entregue o código apenas à pessoa convidada. Ele aparece nesta geração e não fica salvo
-            no navegador.
-          </p>
-        </section>
-        <section class="management-card">
-          <h2>Contas do piloto</h2>
-          <p>
-            Desativar uma conta encerra seus acessos e preserva os dados. Administradores são
-            gerenciados pelo terminal privado.
-          </p>
-          <div class="management-table-wrapper">
-            <table class="management-table">
-              <caption class="sr-only">
-                Usuários cadastrados
-              </caption>
-              <thead>
-                <tr>
-                  <th>Nome</th>
-                  <th>E-mail</th>
-                  <th>Tipo</th>
-                  <th>Situação</th>
-                  <th>Ação</th>
-                </tr>
-              </thead>
-              <tbody id="adminUsers"></tbody>
-            </table>
+        <section class="account-metrics" aria-label="Resumo dos acessos">
+          <div>
+            <span>CONTAS CADASTRADAS</span><b id="adminTotal">—</b
+            ><small>Pessoas no SocialMEI</small>
+          </div>
+          <div>
+            <span>ACESSOS ATIVOS</span><b id="adminActive">—</b
+            ><small>Contas habilitadas para entrar</small>
+          </div>
+          <div>
+            <span>ACESSOS DESATIVADOS</span><b id="adminDisabled">—</b
+            ><small>Dados dos negócios preservados</small>
           </div>
         </section>
+        <div class="account-admin-grid">
+          <section class="account-panel account-invite-panel" aria-labelledby="inviteTitle">
+            <div class="account-panel-kicker">
+              <span class="account-step">01</span><span>UM NOVO COMEÇO</span>
+            </div>
+            <h2 id="inviteTitle">Convide um MEI</h2>
+            <p>Um convite pessoal para começar um negócio separado no SocialMEI.</p>
+            <form id="adminInviteForm" class="account-form">
+              <label for="inviteEmail"
+                >E-mail da pessoa<input
+                  class="account-input"
+                  id="inviteEmail"
+                  type="email"
+                  maxlength="255"
+                  required
+                  autocomplete="email"
+                  placeholder="pessoa@gmail.com" /></label
+              ><button class="account-button account-button-primary" type="submit">
+                Gerar convite <span aria-hidden="true">↗</span>
+              </button>
+            </form>
+            <div class="account-invite-result" id="inviteResult" hidden>
+              <span class="account-badge">Convite pronto</span>
+              <p id="inviteResultSummary"></p>
+              <label for="inviteCode">Código de cadastro</label
+              ><textarea
+                class="account-input account-code"
+                id="inviteCode"
+                readonly
+                rows="3"
+                autocomplete="off"
+                spellcheck="false"
+              ></textarea
+              ><button class="account-button account-button-outline" id="copyInvite" type="button">
+                Copiar código</button
+              ><small
+                >Entregue o código apenas à pessoa convidada. Ele não fica salvo neste
+                navegador.</small
+              >
+            </div>
+            <div class="account-invite-steps">
+              <b>Como funciona</b>
+              <ol>
+                <li><span>1</span>Gere o código para o e-mail da pessoa.</li>
+                <li><span>2</span>Ela abre o site e escolhe criar uma conta.</li>
+                <li><span>3</span>Informa o mesmo e-mail e o código recebido.</li>
+              </ol>
+              <p>
+                Válido por três dias. Cada código pode ser usado uma vez. O convite não é enviado
+                por e-mail automaticamente.
+              </p>
+            </div>
+          </section>
+          <section class="account-panel account-people-panel" aria-labelledby="peopleTitle">
+            <header class="account-section-heading">
+              <div>
+                <span class="account-eyebrow">QUEM ESTÁ POR AQUI</span>
+                <h2 id="peopleTitle">Contas do projeto</h2>
+                <p>Gerencie os acessos sem apagar os dados dos negócios.</p>
+              </div>
+              <button class="account-button account-button-quiet" id="adminReload" type="button">
+                Atualizar lista
+              </button>
+            </header>
+            <div class="account-people-tools">
+              <label class="account-search" for="adminSearch"
+                ><span aria-hidden="true">⌕</span
+                ><input
+                  id="adminSearch"
+                  type="search"
+                  placeholder="Buscar por nome ou e-mail"
+                  autocomplete="off" /></label
+              ><label class="sr-only" for="adminFilter">Situação da conta</label
+              ><select class="account-input" id="adminFilter">
+                <option value="all">Todos os acessos</option>
+                <option value="active">Ativos</option>
+                <option value="disabled">Desativados</option>
+              </select>
+            </div>
+            <div class="account-table-wrap">
+              <table class="account-people-table">
+                <caption class="sr-only">
+                  Usuários cadastrados no projeto
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Pessoa</th>
+                    <th scope="col">Perfil</th>
+                    <th scope="col">Situação</th>
+                    <th scope="col">Acesso</th>
+                  </tr>
+                </thead>
+                <tbody id="adminUsers"></tbody>
+              </table>
+            </div>
+            <p
+              id="adminListSummary"
+              class="account-list-summary"
+              role="status"
+              aria-live="polite"
+            ></p>
+            <div class="account-people-note">
+              <span aria-hidden="true">↳</span>
+              <p>
+                Desativar encerra as sessões da pessoa e preserva o negócio. Para reativação ou
+                recuperação de senha, use o procedimento privado de administração.
+              </p>
+            </div>
+          </section>
+        </div>
+        <footer class="account-admin-footer">
+          <span>SocialMEI.IA · Cada negócio tem seu próprio acesso.</span
+          ><a href="socialmei-app.html">Voltar ao SocialMEI →</a>
+        </footer>
       </div>
+      <section class="account-panel" id="adminAccessHelp" hidden>
+        <h2>Entre com sua conta</h2>
+        <p id="adminAccessMessage">Use seu acesso de administrador para continuar.</p>
+        <a class="account-button account-button-primary" href="socialmei-app.html"
+          >Ir para o login</a
+        >
+      </section>
     </main>
+    <dialog
+      class="account-confirm-dialog"
+      id="disableAccountDialog"
+      aria-labelledby="disableAccountTitle"
+    >
+      <form method="dialog" id="disableAccountForm">
+        <span class="account-eyebrow">GERENCIAR ACESSO</span>
+        <h2 id="disableAccountTitle">Desativar esta conta?</h2>
+        <p id="disableAccountText"></p>
+        <p>As sessões serão encerradas. Os dados do negócio continuam guardados.</p>
+        <div class="account-dialog-actions">
+          <button class="account-button account-button-quiet" value="cancel">Manter acesso</button
+          ><button
+            class="account-button account-button-danger"
+            value="disable"
+            id="disableAccountConfirm"
+          >
+            Desativar conta
+          </button>
+        </div>
+      </form>
+    </dialog>
     <script src="config.js"></script>
     <script src="scripts/auth-store.js"></script>
+    <script src="scripts/storage-and-themes.js"></script>
     <script src="scripts/admin-accounts.js"></script>
   </body>
 </html>

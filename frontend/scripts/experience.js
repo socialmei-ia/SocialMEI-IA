@@ -123,8 +123,12 @@
     q("#registerPassword").maxLength = 128;
     q("#registerPassword").placeholder = "12 caracteres ou mais";
     q("#registerPasswordStatus").textContent = "Use 12 ou mais caracteres.";
-    qa(".experience-form-hint").forEach((element) => {
-      element.textContent = "Conta do piloto por convite. Seus dados serão salvos no servidor.";
+    q("#xpRegisterForm .experience-form-hint").textContent =
+      "Cadastro por convite. Use o e-mail que recebeu o código para criar seu negócio.";
+    q("#xpLoginForm .experience-form-hint").textContent =
+      "Use seu e-mail e sua senha cadastrados para acessar seu negócio.";
+    qa(".landing-social-login,.authentication-or").forEach((element) => {
+      element.hidden = true;
     });
     const remember = q("#xpLoginForm .landing-login-help input");
     remember.id = "loginRemember";
@@ -132,6 +136,16 @@
     remember.removeAttribute("aria-disabled");
     remember.parentElement.removeAttribute("aria-disabled");
     remember.parentElement.querySelector("small")?.remove();
+    const recovery = document.createElement("section");
+    recovery.className = "account-recovery-note";
+    recovery.id = "accountRecoveryHelp";
+    recovery.hidden = true;
+    recovery.setAttribute("aria-label", "Recuperar acesso");
+    recovery.innerHTML =
+      '<b>Vamos recuperar seu acesso</b><p>A recuperação por e-mail está em preparação. Por enquanto, peça ao administrador do projeto para redefinir sua senha pelo procedimento privado.</p><button class="account-button account-button-quiet" type="button" data-close-recovery>Voltar ao login</button>';
+    q("#xpLoginForm").append(recovery);
+    q(".landing-login-disabled-link").setAttribute("aria-controls", "accountRecoveryHelp");
+    q(".landing-login-disabled-link").setAttribute("aria-expanded", "false");
     q(".landing-login-disabled-link").disabled = false;
     q(".landing-login-disabled-link").removeAttribute("aria-disabled");
     q(".landing-login-disabled-link small")?.remove();
@@ -335,23 +349,49 @@
       behavior: "instant",
     });
   }
+  let logoutBusy = false;
   async function logout() {
-    if (SocialMEIAuth.remote) {
-      try {
+    if (logoutBusy) return;
+    logoutBusy = true;
+    const controls = qa('[data-account-logout],[data-profile-action="sair"]');
+    const labels = controls.map((button) => [
+      button,
+      button.querySelector(".account-exit-label"),
+      button.querySelector(".account-exit-label")?.textContent,
+    ]);
+    controls.forEach((button) => {
+      button.disabled = true;
+      button.setAttribute("aria-busy", "true");
+    });
+    labels.forEach(([, label]) => {
+      if (label) label.textContent = "Saindo…";
+    });
+    try {
+      if (typeof saveCurrentDraft === "function") saveCurrentDraft();
+      if (SocialMEIAuth.remote) {
         await SocialMEIAuth.logout();
-      } catch (error) {
-        toast("Saída não concluída", error.message);
+        return;
       }
-      return;
+      try {
+        sessionStorage.removeItem("socialmei-experience-screen");
+        sessionStorage.removeItem("socialmei-current-view");
+      } catch (_) {}
+      try {
+        document.querySelector("#profileDd")?.classList.remove("open");
+      } catch (error) {}
+      showScreen("landing");
+    } catch (error) {
+      toast("Saída não concluída", error.message);
+    } finally {
+      logoutBusy = false;
+      controls.forEach((button) => {
+        button.disabled = false;
+        button.removeAttribute("aria-busy");
+      });
+      labels.forEach(([, label, original]) => {
+        if (label) label.textContent = original;
+      });
     }
-    try {
-      sessionStorage.removeItem("socialmei-experience-screen");
-      sessionStorage.removeItem("socialmei-current-view");
-    } catch (_) {}
-    try {
-      document.querySelector("#profileDd")?.classList.remove("open");
-    } catch (error) {}
-    showScreen("landing");
   }
   window.SocialMEIExperience = {
     showScreen,
@@ -1509,9 +1549,16 @@ ONBOARDING — JAVASCRIPT
         "Demonstração: recuperação de senha ainda não está conectada.";
     }
     if (SocialMEIAuth.remote && event.target.closest(".landing-login-disabled-link")) {
-      q("#authConfirmation").textContent =
-        "Procure o administrador do projeto para recuperar o acesso. Recuperação por e-mail ainda não está conectada.";
+      q("#accountRecoveryHelp").hidden = false;
+      q(".landing-login-disabled-link").setAttribute("aria-expanded", "true");
+      q("#accountRecoveryHelp [data-close-recovery]").focus();
     }
+  });
+  experienceRoot.addEventListener("click", (event) => {
+    if (!event.target.closest("[data-close-recovery]")) return;
+    q("#accountRecoveryHelp").hidden = true;
+    q(".landing-login-disabled-link").setAttribute("aria-expanded", "false");
+    q(".landing-login-disabled-link").focus();
   });
   qa(".experience-choice").forEach((choice) =>
     choice.setAttribute("aria-pressed", String(choice.classList.contains("is-selected"))),
@@ -3980,7 +4027,7 @@ ONBOARDING — JAVASCRIPT
   document.addEventListener(
     "click",
     (event) => {
-      const p = event.target.closest('[data-profile-action="sair"]');
+      const p = event.target.closest('[data-profile-action="sair"],[data-account-logout]');
       if (p) {
         event.preventDefault();
         event.stopImmediatePropagation();

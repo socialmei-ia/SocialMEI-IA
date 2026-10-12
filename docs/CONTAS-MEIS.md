@@ -70,6 +70,10 @@ O preparador confere a conta administrativa, os quatro módulos remotos na API d
 
 Não convide MEIs reais antes dessa conferência. A senha de proteção Basic, a senha da conta do app e a conta do WAHA são acessos distintos.
 
+## Encontrar sua conta e sair
+
+O avatar da conta fica diretamente no cabeçalho. “Meu perfil” abre Configurações → Conta; “Sair da conta” aparece no menu lateral, no menu da conta e nas configurações. No painel administrativo há uma saída no cabeçalho que retorna ao login. Veja [a revisão visual de acessos](REVISAO-ACESSOS-2026-10-12.md).
+
 ## Recuperar ou reativar uma conta
 
 Ainda não há envio de e-mail para recuperação, Google login, MFA ou troca de e-mail. O botão de recuperação informa que o administrador precisa ser contatado. Para redefinir uma senha, use a mesma conexão SSH interativa acima, substituindo `create-admin` por `reset-password`. O terminal pede o e-mail e a nova senha, revogando todas as sessões. Não muda o papel nem reativa uma conta desativada.

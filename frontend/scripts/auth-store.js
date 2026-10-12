@@ -138,15 +138,24 @@ const SocialMEIAuth = (() => {
       current = identity(await request("/auth/profile", "PATCH", data));
       return current;
     },
-    async logout() {
+    async logout(destination) {
+      if (destination !== undefined && destination !== "/frontend/socialmei-app.html")
+        throw new Error("Destino de saída inválido.");
       try {
         await request("/auth/logout", "POST", {});
       } catch (error) {
         if (error.status !== 401) throw error;
       }
       current = null;
-      bindBrowser(null);
-      location.reload();
+      try {
+        bindBrowser(null);
+      } catch (_) {
+        // A revoked session must leave the app even if local storage cannot archive drafts.
+        // Existing local work remains in place for the next verified bootstrap to handle.
+        problem = "Você saiu. Confira o espaço do navegador antes de entrar novamente.";
+      }
+      if (destination) location.replace(destination);
+      else location.reload();
     },
   };
 })();

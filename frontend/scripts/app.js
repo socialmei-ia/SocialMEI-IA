@@ -447,6 +447,7 @@ const ICON_PATHS = {
   panel: '<path d="M3 4h18v16H3zM9 4v16"/><path d="m14 9-3 3 3 3"/>',
   panelOpen: '<path d="M3 4h18v16H3zM9 4v16"/><path d="m12 9 3 3-3 3"/>',
   user: '<path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/>',
+  lock: '<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V6a4 4 0 0 1 8 0v4"/>',
   logout: '<path d="M10 17l5-5-5-5M15 12H3"/><path d="M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5"/>',
   success: '<path d="m5 12 4 4L19 6"/>',
   empty: '<path d="M3 6h18M5 6l1 14h12l1-14M9 10v6M15 10v6M8 6l1-3h6l1 3"/>',
@@ -1082,8 +1083,9 @@ document.addEventListener("click", async (event) => {
   }
   const profile = event.target.closest("[data-profile-action]");
   if (profile) {
-    if (profile.dataset.profileAction === "config") {
+    if (["config", "perfil"].includes(profile.dataset.profileAction)) {
       closeDropdowns();
+      if (profile.dataset.profileAction === "perfil") selectedSettingsTab = "conta";
       setView("Configurações");
       return;
     }
@@ -3458,37 +3460,48 @@ function renderSettings() {
   primary.textContent = ["conta", "negocio", "notificacoes"].includes(selectedSettingsTab)
     ? "Salvar alterações"
     : "Exportar meus dados";
+  if (SocialMEIAuth.remote && SocialMEIAuth.current) {
+    $("accountSettingsNotice").innerHTML =
+      '<span class="account-badge account-badge-active">Conta conectada</span><span>Seu perfil está salvo no servidor. Canais e automações têm configuração própria.</span>';
+  }
   if (selectedSettingsTab === "conta") {
-    host.innerHTML = /* HTML */ `<h3>Conta</h3>
-            <p class="management-note">
-              ${SocialMEIAuth.remote ? "Sua conta no servidor. O e-mail identifica seu acesso e não pode ser alterado por este formulário." : "Seu perfil neste navegador. Não cria nem altera uma conta externa."}
-            </p>
-            <div class="management-stack" style="margin-top:16px">
-              ${renderSettingsForm(
-                "conta",
-                renderSettingsField(
-                  "Nome",
-                  "nome",
-                  a.nome,
-                  "text",
-                  'required maxlength="100" autocomplete="name"',
-                ) +
-                  renderSettingsField(
-                    "E-mail",
-                    "email",
-                    a.email,
-                    "email",
-                    'required autocomplete="email"' + (SocialMEIAuth.remote ? " readonly" : ""),
-                  ) +
-                  renderSettingsField(
-                    "Telefone",
-                    "telefone",
-                    a.telefone,
-                    "tel",
-                    'autocomplete="tel"',
-                  ),
-              )}
-            </div>${SocialMEIAuth.remote ? `<details class="management-card"><summary>Alterar senha</summary><form id="accountPasswordForm"><label>Senha atual<input class="management-input" type="password" name="atual" autocomplete="current-password" required></label><label>Nova senha<input class="management-input" type="password" name="nova" autocomplete="new-password" minlength="12" maxlength="128" required></label><button class="management-button" type="submit">Salvar senha e encerrar sessões</button></form></details>${SocialMEIAuth.current?.usuario.administrador_plataforma ? '<a class="management-button" href="/frontend/admin.html">Administração do projeto</a>' : ""}` : ""}`;
+    const remote = SocialMEIAuth.remote;
+    const administrator = !!SocialMEIAuth.current?.usuario.administrador_plataforma;
+    host.innerHTML = /* HTML */ `<div class="account-section-heading"><div><span class="account-eyebrow">SEU ACESSO</span><h3>Minha conta</h3><p class="management-note">${remote ? "Seu perfil e a segurança do seu acesso, em um só lugar." : "Seu perfil na demonstração local."}</p></div><button type="button" class="account-button account-button-quiet" data-account-logout>${renderIcon("logout")}<span class="account-exit-label">Sair da conta</span></button></div>
+      <div class="account-overview"><span class="account-avatar">${escapeHtml(getContactInitials(a.nome))}</span><div class="account-overview-info"><b>${escapeHtml(a.nome)}</b><span>${escapeHtml(a.email || "Perfil deste navegador")}</span><small>${escapeHtml(getBusinessLabel())}</small></div><span class="account-badge">${remote ? (administrator ? "Administrador" : "Conta MEI") : "Demonstração"}</span></div>
+      <section class="account-section"><div class="account-section-heading"><div><h4>Dados pessoais</h4><p class="management-note">${remote ? "O e-mail identifica sua conta. Nome e telefone podem ser atualizados." : "Esses dados ficam salvos neste navegador."}</p></div></div>
+        ${renderSettingsForm(
+          "conta",
+          renderSettingsField(
+            "Seu nome",
+            "nome",
+            a.nome,
+            "text",
+            'required maxlength="100" autocomplete="name"',
+          ) +
+            renderSettingsField(
+              "E-mail de acesso",
+              "email",
+              a.email,
+              "email",
+              'required autocomplete="email"' + (remote ? " readonly" : ""),
+            ) +
+            renderSettingsField(
+              "Telefone",
+              "telefone",
+              a.telefone,
+              "tel",
+              'autocomplete="tel" maxlength="40"',
+            ),
+        )}
+      </section>
+      ${
+        remote
+          ? `<div class="account-security-grid"><section class="account-section account-security-card"><div class="account-card-icon">${renderIcon("lock")}</div><h4>Senha e segurança</h4><p class="management-note">Ao atualizar sua senha, você precisará entrar novamente nos seus aparelhos.</p><details class="account-password-disclosure"><summary>Alterar minha senha</summary><form id="accountPasswordForm" class="account-form"><label class="management-field" for="accountCurrentPassword">Senha atual<input id="accountCurrentPassword" class="management-input" type="password" name="atual" autocomplete="current-password" maxlength="128" required></label><label class="management-field" for="accountNewPassword">Nova senha<input id="accountNewPassword" class="management-input" type="password" name="nova" autocomplete="new-password" minlength="12" maxlength="128" required aria-describedby="accountPasswordHint"></label><small id="accountPasswordHint" class="account-helper">Use de 12 a 128 caracteres.</small><label class="management-field" for="accountConfirmPassword">Repita a nova senha<input id="accountConfirmPassword" class="management-input" type="password" name="confirmacao" autocomplete="new-password" minlength="12" maxlength="128" required></label><p id="accountPasswordFeedback" class="account-feedback" role="status" aria-live="polite"></p><button class="account-button account-button-primary" type="submit">Atualizar senha</button></form></details></section>
+      <section class="account-section account-security-card"><div class="account-card-icon">${renderIcon(administrator ? "users" : "user")}</div><h4>${administrator ? "Administração do projeto" : "Seu negócio, seu acesso"}</h4><p class="management-note">${administrator ? "Convide novos MEIs e gerencie os acessos em um painel exclusivo." : "Sua conta acessa apenas os dados do negócio ao qual está vinculada."}</p>${administrator ? '<a class="account-button account-button-primary" href="/frontend/admin.html">Abrir administração →</a>' : '<span class="account-badge">Negócio separado</span>'}</section></div>
+      <div class="account-recovery-note"><b>Precisa recuperar seu acesso?</b><p>A recuperação por e-mail está em preparação. Por enquanto, solicite ajuda ao administrador do projeto.</p></div>`
+          : ""
+      }`;
   } else if (selectedSettingsTab === "negocio") {
     host.innerHTML = /* HTML */ `<h3>Negócio</h3>
             <p class="management-note">Identidade e informações que ajudam seu atendimento.</p>
@@ -3814,18 +3827,33 @@ function isQuietPeriodActive() {
 document.addEventListener("submit", async (event) => {
   if (event.target.id === "accountPasswordForm") {
     event.preventDefault();
-    const button = event.target.querySelector("button");
+    const form = event.target;
+    const button = form.querySelector("button");
+    const feedback = $("accountPasswordFeedback");
+    const values = Object.fromEntries(new FormData(form));
+    if (values.nova !== values.confirmacao) {
+      feedback.textContent = "As novas senhas precisam ser iguais.";
+      $("accountConfirmPassword").focus();
+      return;
+    }
     button.disabled = true;
+    feedback.textContent = "Atualizando sua senha…";
+    let passwordChanged = false;
     try {
-      await SocialMEIAuth.request(
-        "/auth/password",
-        "POST",
-        Object.fromEntries(new FormData(event.target)),
-      );
+      await SocialMEIAuth.request("/auth/password", "POST", {
+        atual: values.atual,
+        nova: values.nova,
+      });
+      passwordChanged = true;
+      form.reset();
+      feedback.textContent = "Senha atualizada. Entre novamente para continuar.";
       await SocialMEIAuth.logout();
     } catch (error) {
-      toast("Senha não alterada", error.message);
-      button.disabled = false;
+      feedback.textContent = passwordChanged
+        ? "Senha atualizada. Recarregue o site e entre com a nova senha para continuar."
+        : error.message;
+      toast(passwordChanged ? "Senha atualizada" : "Senha não alterada", feedback.textContent);
+      button.disabled = passwordChanged;
     }
     return;
   }

@@ -159,3 +159,22 @@ test("logout clears presentation state and expired bootstrap cannot restore an a
   assert(ctx.auth.internalStorageKey("socialmei-account-state-1:1"));
   assert(ctx.auth.internalStorageKey("socialmei-auth-browser-scope"));
 });
+test("confirmed logout leaves the app even when browser storage cannot archive local work", async () => {
+  const local = storage({
+    "socialmei-auth-browser-scope": "1:1",
+    "socialmei-private-work": "keep",
+  });
+  const ctx = setup(
+    (url) => (url.endsWith("/auth/me") ? reply(identity(1)) : reply(null, 204)),
+    { mode: "remote", apiBaseUrl: "/api/v1" },
+    local,
+  );
+  await ctx.auth.ready;
+  local.setItem = () => {
+    throw new Error("Quota exceeded");
+  };
+  await ctx.auth.logout();
+  assert.equal(ctx.auth.current, null);
+  assert.equal(ctx.reloads, 1);
+  assert.equal(local.getItem("socialmei-private-work"), "keep");
+});

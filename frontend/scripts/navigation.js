@@ -129,7 +129,16 @@ function renderHeader() {
   $("profileDd").querySelector('[data-profile-action="config"]').innerHTML =
     renderIcon("cfg") + "Configurações";
   $("profileDd").querySelector('[data-profile-action="sair"]').innerHTML =
-    renderIcon("logout") + "Sair";
+    renderIcon("logout") + '<span class="account-exit-label">Sair da conta</span>';
+  const accountIdentity = SocialMEIAuth.current;
+  $("profileMenuEmail").textContent = accountIdentity?.usuario.email || "Perfil deste navegador";
+  $("profileMenuRole").textContent = accountIdentity
+    ? accountIdentity.usuario.administrador_plataforma
+      ? "Administrador do projeto"
+      : "Conta do seu negócio"
+    : "Demonstração local";
+  $("profileAdminLink").hidden = !accountIdentity?.usuario.administrador_plataforma;
+  $("profileAdminLink").href = "/frontend/admin.html";
   renderPeriodMenu();
   renderNotifications();
 }
