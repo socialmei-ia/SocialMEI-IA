@@ -116,3 +116,9 @@ Antes de automatizá-lo, a equipe deve decidir:
 - política de limpeza de dados fictícios.
 
 Não use o banco de produção para testes de desenvolvimento ou homologação.
+
+## Servidor compartilhado da equipe
+
+A instalação opcional com site/API protegidos e banco separado está em
+[docs/SERVIDOR-EQUIPE.md](docs/SERVIDOR-EQUIPE.md). Merge não publica essa pilha.
+O workflow de deploy antigo não aplica o overlay da equipe.

@@ -56,12 +56,39 @@ jobs:
           python -m unittest discover -s python-service -p 'test_*.py'
       - name: Backup failure and recovery scenarios
         run: python -m unittest discover -s tests -p 'test_*.py'
+      - name: Protected team gateway
+        env:
+          SOCIALMEI_TEAM_GATEWAY_TEST: "true"
+        run: python -m unittest discover -s tests -p 'test_team_gateway.py'
+      - name: Isolated team stack startup
+        run: |
+          python - <<'PYTHON'
+          import importlib.util
+          from pathlib import Path
+          spec = importlib.util.spec_from_file_location("admin", "tools/team-admin.py")
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+          module.ask_user = lambda: ("ci", module.hash_password("individual-ci-test-password"))
+          module.init("app.example.com")
+          PYTHON
+          docker compose --env-file .env.team -f compose.team.yaml up -d --build --wait --wait-timeout 120
+          docker compose --env-file .env.team -f compose.team.yaml exec -T team-api python -c "from database import check_database; check_database()"
+          docker compose --env-file .env.team -f compose.team.yaml run --rm team-migrate
+          docker compose --env-file .env.team -f compose.team.yaml exec -T team-gateway caddy validate --config /etc/caddy/Caddyfile
+      - name: Stop isolated team CI stack
+        if: always()
+        run: |
+          if test -f .env.team; then
+            docker compose --env-file .env.team -f compose.team.yaml down --volumes
+          fi
       - name: Shell syntax
         run: bash -n backup.sh
       - name: Compose configuration without starting services
         run: |
           docker compose --env-file .env.example config --quiet
           docker compose --env-file .env.development.example -f compose.dev.yaml config --quiet
+          TEAM_POSTGRES_PASSWORD=ci-team-only SOCIALMEI_TEAM_HOST=app.example.com docker compose -f compose.team.yaml config --quiet
+          docker compose --env-file .env.example -f compose.yaml -f compose.team-proxy.yaml config --quiet
       - name: README assets and stale repository URLs
         run: |
           test -f docs/assets/socialmei-banner.png
@@ -90,6 +117,8 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Offline application regression
         run: npm run test:browser
+      - name: HTTPS authentication regression
+        run: node tests/team-browser.cjs
       - name: Save browser evidence
         if: always()
         uses: actions/upload-artifact@v4

@@ -52,3 +52,14 @@ Se encontrar um segredo exposto:
 5. atualize dependências;
 6. valide serviços;
 7. remova o segredo de locais indevidos.
+
+## Pilha opcional da equipe
+
+`compose.team.yaml` usa um gateway com autenticação individual e API/banco sem
+portas públicas. Somente o proxy HTTPS existente recebe a rede de entrada via
+`compose.team-proxy.yaml`. Todos os membros autorizados acessam o workspace
+`team`; o login visual local não controla essa autorização. Credenciais geradas
+por `tools/team-admin.py` ficam fora do Git. Consulte
+[docs/SERVIDOR-EQUIPE.md](docs/SERVIDOR-EQUIPE.md) para publicação, revogação,
+backup próprio e limites desse modelo. A pilha antiga não ganha autenticação
+automaticamente por este pacote; seus endpoints continuam exigindo revisão.

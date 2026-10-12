@@ -98,7 +98,7 @@ const SocialMEIClients = (() => {
         },
         body: data ? JSON.stringify(data) : undefined,
         cache: "no-store",
-        credentials: "omit",
+        credentials: "same-origin",
         signal: controller.signal,
       });
       if (!response.ok) {

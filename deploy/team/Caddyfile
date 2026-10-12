@@ -1,0 +1,42 @@
+# Internal gateway. Only the existing HTTPS proxy joins the web network.
+:80 {
+    basic_auth {
+        import /etc/caddy/private/users.Caddyfile
+    }
+    @foreign_origin {
+        header Origin *
+        not header Origin https://{$SOCIALMEI_TEAM_HOST}
+    }
+    respond @foreign_origin "Origem não permitida." 403
+    header {
+        X-Content-Type-Options nosniff
+        Referrer-Policy same-origin
+        Cache-Control no-store
+    }
+    request_body {
+        max_size 3MB
+    }
+    handle /api/v1/* {
+        reverse_proxy team-api:8000 {
+            header_up -Authorization
+        }
+    }
+    handle /health/db {
+        reverse_proxy team-api:8000 {
+            header_up -Authorization
+        }
+    }
+    handle_path /frontend/* {
+        root * /srv/frontend
+        file_server
+    }
+    handle / {
+        redir /frontend/socialmei-app.html 302
+    }
+    handle /index.html {
+        redir /frontend/socialmei-app.html 302
+    }
+    handle {
+        respond "Não encontrado." 404
+    }
+}
