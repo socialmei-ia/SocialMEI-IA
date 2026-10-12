@@ -142,6 +142,8 @@ module.exports = async function accountFlow(browser, origin) {
     await page.goto(origin + "/frontend/admin.html");
     await page.waitForFunction(() => !document.getElementById("adminContent").hidden);
     assert((await page.locator("#adminUsers").innerText()).includes("user1@example.com"));
+    await page.goto(origin + "/frontend/transferencia.html");
+    await page.waitForFunction(() => !document.getElementById("packetFile").disabled);
     await page.goto(origin + "/frontend/socialmei-app.html");
     await page.waitForFunction(() => SocialMEIAuth.current?.usuario.id === 1);
     await page.evaluate(() => SocialMEIAuth.logout());
@@ -175,6 +177,11 @@ module.exports = async function accountFlow(browser, origin) {
       document.getElementById("adminStatus").textContent.includes("administrador"),
     );
     assert(await page.locator("#adminContent").isHidden());
+    await page.goto(origin + "/frontend/transferencia.html");
+    await page.waitForFunction(() =>
+      document.getElementById("status").textContent.includes("administrador"),
+    );
+    assert(await page.locator("#packetFile").isDisabled());
     session = null;
     await page.goto(origin + "/frontend/socialmei-app.html");
     await page.waitForFunction(

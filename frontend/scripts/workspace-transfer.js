@@ -1,16 +1,17 @@
 /* Transferência protegida, sem upload para serviços externos. */
-(() => {
+(async () => {
   const el = (id) => document.getElementById(id);
   let packet = null,
     preview = null,
     receipt = null,
     busy = false,
     base = "";
+  let accountReady = !SocialMEIAuth.remote;
   function show(message) {
     el("status").textContent = message;
   }
   function controls() {
-    el("packetFile").disabled = busy;
+    el("packetFile").disabled = busy || !accountReady;
     el("previewButton").disabled = busy || !packet || !base;
     el("confirmButton").disabled =
       busy || !preview || !el("acknowledge").checked || preview.ja_transferido;
@@ -43,6 +44,15 @@
     base = "";
     show(error.message);
   }
+  controls();
+  if (SocialMEIAuth.remote) {
+    const identity = await SocialMEIAuth.ready;
+    if (!identity?.usuario.administrador_plataforma || identity.negocio.slug !== "team") {
+      base = "";
+      show("Entre na conta do administrador do projeto pelo site para transferir.");
+    } else accountReady = true;
+    controls();
+  }
   async function request(path, data) {
     const controller = new AbortController(),
       timer = setTimeout(() => controller.abort(), 30000);
@@ -50,7 +60,11 @@
       const response = await fetch(base + path, {
         method: "POST",
         credentials: "same-origin",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          ...SocialMEIAuth.headers(),
+        },
         body: JSON.stringify(data),
         cache: "no-store",
         signal: controller.signal,
