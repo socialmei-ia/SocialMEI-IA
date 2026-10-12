@@ -15,6 +15,7 @@ from finance_data import router as finance_router
 from finance_import import router as finance_import_router
 
 from workspace_transfer import router as transfer_router
+from n8n_read import router as n8n_read_router
 
 app = FastAPI(title="SocialME Python Service")
 cors_origins = [
@@ -41,6 +42,7 @@ app.include_router(sale_import_router)
 app.include_router(finance_router)
 app.include_router(finance_import_router)
 app.include_router(transfer_router)
+app.include_router(n8n_read_router)
 
 
 class TextInput(BaseModel):

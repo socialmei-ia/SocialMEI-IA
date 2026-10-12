@@ -75,6 +75,27 @@ jobs:
           docker compose --env-file .env.team -f compose.team.yaml exec -T team-api python -c "from database import check_database; check_database()"
           docker compose --env-file .env.team -f compose.team.yaml run --rm team-migrate
           docker compose --env-file .env.team -f compose.team.yaml exec -T team-gateway caddy validate --config /etc/caddy/Caddyfile
+          python tools/team-maintenance.py doctor
+          python - <<'PYTHON'
+          import importlib.util
+          from pathlib import Path
+          import subprocess
+          spec = importlib.util.spec_from_file_location("maintenance", "tools/team-maintenance.py")
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+          seed = "import json, urllib.request; urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:8000/api/v1/clientes', data=json.dumps({'nome':'CI backup restore'}).encode(), headers={'Content-Type':'application/json'}))"
+          subprocess.run(module.compose("exec", "-T", "team-api", "python", "-c", seed), check=True)
+          folder = module.backup()
+          subprocess.run(module.compose("exec", "-T", "team-postgres", "createdb", "-U", "socialmei_team", "socialmei_backup_check"), check=True)
+          try:
+              with (folder / "equipe.dump").open("rb") as source:
+                  subprocess.run(module.compose("exec", "-T", "team-postgres", "pg_restore", "-U", "socialmei_team", "-d", "socialmei_backup_check", "--exit-on-error"), stdin=source, check=True)
+              result = subprocess.check_output(module.compose("exec", "-T", "team-postgres", "psql", "-U", "socialmei_team", "-d", "socialmei_backup_check", "-Atc", "SELECT COUNT(*) FROM socialmei.crm_clientes WHERE nome = 'CI backup restore'"), text=True)
+              assert result.strip() == "1", result
+              print("Backup restaurado e registro conferido no banco isolado de CI.")
+          finally:
+              subprocess.run(module.compose("exec", "-T", "team-postgres", "dropdb", "-U", "socialmei_team", "socialmei_backup_check"), check=True)
+          PYTHON
       - name: Stop isolated team CI stack
         if: always()
         run: |

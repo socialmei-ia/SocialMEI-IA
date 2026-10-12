@@ -48,6 +48,11 @@ class TeamGatewayTests(unittest.TestCase):
         ).write_text("""from http.server import BaseHTTPRequestHandler, HTTPServer
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
+        if self.path.startswith('/api/v1/integracoes/'):
+            allowed = self.headers.get('Authorization') == 'Bearer gateway-read-test-key'
+            self.send_response(200 if allowed else 401); self.end_headers()
+            if allowed: self.wfile.write(b'{"workspace":"team","acesso":"leitura"}')
+            return
         if self.headers.get('Authorization'):
             self.send_response(400); self.end_headers(); return
         self.send_response(200 if self.path == '/api/v1/clientes' else 404)
@@ -195,3 +200,43 @@ HTTPServer(('0.0.0.0', 8000), Handler).serve_forever()
             self.request("/api/v1/clientes", True, origin="https://app.example.com")[0],
             200,
         )
+
+    def test_technical_bearer_does_not_bypass_human_login(self):
+        self.assertEqual(self.request("/api/v1/integracoes/resumo")[0], 401)
+        headers = {"Authorization": "Bearer gateway-read-test-key"}
+        with urlopen(
+            Request(self.origin + "/api/v1/integracoes/resumo", headers=headers),
+            timeout=3,
+        ) as response:
+            self.assertEqual(response.status, 200)
+            self.assertEqual(json.load(response)["acesso"], "leitura")
+        for path in [
+            "/",
+            "/api/v1/clientes",
+            "/frontend/config.js",
+            "/api/v1/integracoes/unknown",
+            "/api/v1/integracoes/%2e%2e/clientes",
+        ]:
+            with self.assertRaises(HTTPError) as error:
+                urlopen(Request(self.origin + path, headers=headers), timeout=3)
+            self.assertEqual(error.exception.code, 401)
+        with self.assertRaises(HTTPError) as error:
+            urlopen(
+                Request(
+                    self.origin + "/api/v1/integracoes/clientes",
+                    headers=headers,
+                    method="POST",
+                    data=b"{}",
+                ),
+                timeout=3,
+            )
+        self.assertEqual(error.exception.code, 401)
+        with self.assertRaises(HTTPError) as error:
+            urlopen(
+                Request(
+                    self.origin + "/api/v1/integracoes/resumo",
+                    headers={**headers, "Origin": "https://evil.example.com"},
+                ),
+                timeout=3,
+            )
+        self.assertEqual(error.exception.code, 403)

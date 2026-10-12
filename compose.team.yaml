@@ -43,6 +43,7 @@ services:
       SOCIALMEI_SHARED_DATA_ENABLED: "true"
       SOCIALMEI_WORKSPACE_SLUG: team
       SOCIALMEI_WORKSPACE_NAME: SocialMEI Equipe
+      SOCIALMEI_N8N_READ_TOKEN: ${TEAM_N8N_READ_TOKEN:-}
       # Same origin via gateway; no cross-origin browser access.
       SOCIALMEI_CORS_ORIGINS: ""
       TZ: America/Recife
