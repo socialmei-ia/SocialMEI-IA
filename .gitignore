@@ -47,3 +47,7 @@ compose.local.yaml
 # Server-only team credentials and generated public endpoint
 .env.team
 deploy/team/private/
+
+# Identidade e dados privados da transferência do notebook
+.socialmei-transfer-origin.json
+socialmei-transferencia-notebook.json

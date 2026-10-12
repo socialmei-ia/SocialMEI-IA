@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Transferir dados do notebook — SocialMEI</title>
+    <style>
+      :root { color-scheme: light; font-family: system-ui, sans-serif; color: #273730; background: #f5f4ef; }
+      body { margin: 0; padding: 24px 16px; }
+      main { max-width: 760px; margin: auto; background: white; border: 1px solid #deded4; border-radius: 18px; padding: 28px; }
+      h1 { font-size: clamp(24px, 5vw, 34px); line-height: 1.2; }
+      p { line-height: 1.6; }
+      a { color: #276341; }
+      label { display: block; margin: 20px 0 8px; }
+      input[type="file"] { max-width: 100%; }
+      table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+      th, td { text-align: left; padding: 12px 4px; border-bottom: 1px solid #ddd; }
+      button { padding: 12px 18px; border: 0; border-radius: 8px; background: #276341; color: white; font: inherit; cursor: pointer; margin: 8px 8px 8px 0; }
+      button:disabled { opacity: 0.5; cursor: default; }
+      .note { padding: 16px; border-radius: 10px; background: #f5f4ef; }
+      #status { white-space: pre-wrap; overflow-wrap: anywhere; }
+      @media (max-width: 480px) { main { padding: 18px; } th, td { font-size: 14px; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a href="socialmei-app.html">← Voltar ao SocialMEI</a>
+      <h1>Transferir dados do notebook</h1>
+      <p>
+        Selecione o arquivo gerado por <strong>npm.cmd run data:export</strong>. A prévia consulta o
+        servidor; a gravação acontece somente ao confirmar.
+      </p>
+      <p class="note">
+        Os registros atuais do servidor serão preservados. Clientes e itens recebem novos IDs e os
+        vínculos são remapeados. O estoque atual é copiado sem baixar unidades novamente; baixas
+        existentes de vendas operacionais continuam válidas para um cancelamento futuro.
+      </p>
+      <label for="packetFile">Arquivo socialmei-transferencia-notebook.json</label>
+      <input id="packetFile" type="file" accept="application/json,.json" />
+      <p id="fileInfo"></p>
+      <button id="previewButton" disabled>Conferir prévia</button>
+      <section id="preview" hidden>
+        <h2>Confira antes de transferir</h2>
+        <p id="destination"></p>
+        <table>
+          <thead>
+            <tr>
+              <th>Área</th>
+              <th>No arquivo</th>
+              <th>No servidor</th>
+            </tr>
+          </thead>
+          <tbody id="counts"></tbody>
+        </table>
+        <p id="stockNote"></p>
+        <label
+          ><input id="acknowledge" type="checkbox" /> Conferi a fonte e o destino, guardei os
+          backups e encerrei as edições no notebook. Depois desta transferência, usaremos o servidor
+          como fonte principal.</label
+        >
+        <button id="confirmButton" disabled>Confirmar transferência</button>
+      </section>
+      <p id="status" role="status" aria-live="polite"></p>
+      <button id="receiptButton" hidden>Baixar comprovante</button>
+      <p>
+        Repita somente o mesmo arquivo para recuperar uma resposta perdida. Uma transferência
+        diferente é bloqueada. Este fluxo copia o banco do workspace development; não transfere
+        conversas do n8n, preferências, contas ou dados salvos apenas no navegador.
+      </p>
+    </main>
+    <script src="config.js"></script>
+    <script src="scripts/workspace-transfer.js"></script>
+  </body>
+</html>

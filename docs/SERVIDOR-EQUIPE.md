@@ -206,3 +206,10 @@ Não use `down -v`, não renomeie volumes e não mude credenciais do n8n. O banc
 equipe fica preservado para diagnóstico ou retomada. Nunca use o workflow antigo
 `Manual production deploy` para esta instalação: ele não aplica o overlay da
 equipe nem suas migrations. A publicação desta etapa é manual e específica.
+
+## Transferir o banco do notebook
+
+A transferência inicial dos quatro módulos tem exportação consistente, prévia,
+remapeamento por IDs e gravação atômica. Siga
+[TRANSFERENCIA-NOTEBOOK.md](TRANSFERENCIA-NOTEBOOK.md); o backup do navegador não
+substitui a exportação do banco compartilhado. A proteção por senha permanece ativa.
