@@ -371,11 +371,12 @@ function renderManagementChart(series) {
           <div class="management-axis" aria-hidden="true">
             ${[1, 0.5, 0].map((t) => /* HTML */ `<span style="--y:${100 - t * 100}%">${f(top * t)}</span>`).join("")}
           </div>
-          <div class="management-plot">
+          <div class="management-plot" style="--chart-column-count:${Math.max(1, series.labels.length)}">
             ${series.labels
               .map(
                 (l, i) => /* HTML */ `<button
                     class="management-chart-column"
+                    style="--chart-column-index:${i}"
                     type="button"
                     aria-label="${escapeHtml(l)}: ${sales ? "faturamento" : "entrou"} ${money(series.r[i])}${sales ? "" : `, saiu ${money(series.d[i])}`}"
                   >

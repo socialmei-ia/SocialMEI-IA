@@ -14640,11 +14640,12 @@ body.management-active #per {
   display: flex;
   gap: 8px;
   min-width: 0;
+  position: relative;
 }
 .management-chart-column {
   flex: 1;
   min-width: 0;
-  position: relative;
+  position: static;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -14679,7 +14680,12 @@ body.management-active #per {
 .management-chart-tooltip {
   position: absolute;
   bottom: calc(100% - 24px);
-  left: 50%;
+  /* Mantém o centro próximo da coluna e reserva espaço para a largura máxima do tooltip. */
+  left: clamp(
+    min(120px, 50%),
+    calc((100% + 8px) / var(--chart-column-count) * (var(--chart-column-index) + 0.5) - 4px),
+    max(calc(100% - 120px), 50%)
+  );
   z-index: 5;
   transform: translate(-50%, 4px);
   opacity: 0;
@@ -14689,7 +14695,10 @@ body.management-active #per {
   border-radius: 8px;
   padding: 8px 10px;
   font-size: 12px;
-  white-space: nowrap;
+  width: max-content;
+  max-width: min(240px, calc(100% - 16px));
+  white-space: normal;
+  overflow-wrap: anywhere;
   transition:
     opacity var(--motion-fast),
     transform var(--motion-fast);
