@@ -17,6 +17,7 @@ from pydantic import (
 
 from database import check_database, connect, shared_data_enabled
 from auth_context import principal
+from account_auth import enabled as auth_enabled, require_enabled as require_auth_enabled
 
 router = APIRouter(prefix="/api/v1", tags=["shared-data"])
 
@@ -274,15 +275,31 @@ def delete_cliente(
 
 
 def database_health_payload() -> dict[str, Any]:
+    authentication = auth_enabled()
+    if authentication:
+        require_auth_enabled()
     if not shared_data_enabled():
         return {
             "status": "disabled",
             "shared_data": False,
+            "capabilities": {
+                "crm": "disabled",
+                "auth": {"enabled": False, "schema": "not_checked"},
+                "channels": {"schema": "not_checked", "connection": "not_checked"},
+            },
         }
 
-    check_database()
+    channels = check_database(include_auth=authentication)
     return {
         "status": "healthy",
         "shared_data": True,
         "workspace": workspace_slug(),
+        "capabilities": {
+            "crm": "ready",
+            "auth": {
+                "enabled": authentication,
+                "schema": "ready" if authentication else "not_checked",
+            },
+            "channels": {"schema": channels, "connection": "not_checked"},
+        },
     }
