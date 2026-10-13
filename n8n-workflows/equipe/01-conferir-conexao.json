@@ -1,5 +1,5 @@
 {
-  "name": "SocialMEI equipe — conferir conexão",
+  "name": "[OPS] CRM · conferir leitura",
   "active": false,
   "nodes": [
     {
@@ -8,7 +8,10 @@
       "name": "Conferir manualmente",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [0, 0]
+      "position": [
+        0,
+        0
+      ]
     },
     {
       "parameters": {
@@ -16,21 +19,36 @@
         "url": "https://SEU_HOST_DA_EQUIPE/api/v1/integracoes/resumo",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
-        "options": { "timeout": 20000 }
+        "options": {
+          "timeout": 20000
+        }
       },
       "id": "a82777e2-e5b1-48e4-a1ba-ed99b96721d8",
       "name": "Conferir banco da equipe",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [240, 0]
+      "position": [
+        240,
+        0
+      ]
     }
   ],
   "connections": {
     "Conferir manualmente": {
-      "main": [[{ "node": "Conferir banco da equipe", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Conferir banco da equipe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "settings": { "executionOrder": "v1" },
+  "settings": {
+    "executionOrder": "v1"
+  },
   "pinData": {},
   "tags": []
 }

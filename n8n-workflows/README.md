@@ -1,11 +1,12 @@
 # Workflows n8n
 
-| Grupo | Arquivos | Uso |
-| --- | --- | --- |
-| `producao/` | `01-caixa-unificada-api-postgresql.json` | Candidato oficial de entrada/leitura de histórico, export inativo e sem credenciais. O nome da pasta não comprova deploy. |
-| `examples/` | `hello-world.json`, `process-text.json` | Exercícios HTTP e chamada da API Python interna. |
-| `experimental/` | `instagram-agent.json`, `instagram-webhook-challenge.json` | Experimentos Meta/Gemini. Selecionar credenciais Gemini e HTTP Header Auth após importar. |
-| `experimental/` | `scheduled-request-draft.json` | Possível legado — revisar manualmente. Requisição agendada sem destino configurado; preservada sem ativação. |
+| Grupo           | Arquivos                                                   | Uso                                                                                                                   |
+| --------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `equipe/`       | `01-conferir-conexao.json`                                 | [OPS] Leitura técnica do CRM team; exige credencial Bearer configurada privadamente. Não escreve nem envia mensagens. |
+| `producao/`     | `01-caixa-unificada-api-postgresql.json`                   | LEGADO de entrada/leitura de histórico, export inativo e sem credenciais. O nome da pasta não comprova deploy.        |
+| `examples/`     | `hello-world.json`, `process-text.json`                    | Exercícios HTTP e chamada da API Python interna.                                                                      |
+| `experimental/` | `instagram-agent.json`, `instagram-webhook-challenge.json` | Experimentos Meta/Gemini. Selecionar credenciais Gemini e HTTP Header Auth após importar.                             |
+| `experimental/` | `scheduled-request-draft.json`                             | Possível legado — revisar manualmente. Requisição agendada sem destino configurado; preservada sem ativação.          |
 
 Os antigos arquivos `error.json`, `my-workflow.json`, `integracao-n8n-insta.json` e `teste-python.json` foram movidos para nomes descritivos. Seus grafos úteis foram preservados; metadados da instância, dados fixados e autenticação literal foram retirados.
 
@@ -39,3 +40,11 @@ Os cabeçalhos Authorization literais antigos foram removidos. Configure credenc
 ## Alterar e testar
 
 Importe em ambiente isolado, selecione credenciais, confira nós e queries, teste com dados fictícios e só depois publique. Exporte novamente com `active: false`, sem dados fixados e sem referências de credenciais da instância. Rode `npm test` para validar JSON e normalização; isso não executa SQL nem serviços remotos.
+
+## Estabilização — 13/10/2026
+
+Os sete nomes dos exports foram classificados como `[OPS]`, `[TEST]`, `[DEV]`, `[LEGACY]` ou `[ARCHIVE]`. Todos continuam inativos; grafos, nodes, caminhos de webhook e parâmetros foram preservados. O rascunho agendado sem URL e os ramos desconectados do Instagram permanecem conhecidos/incompletos: sua intenção não autoriza inventar lógica.
+
+O inventário histórico da VPS registra 24 workflows, oito ativos e três arquivados, com detalhes em [LIVE-ENVIRONMENT-INVENTORY.md](../docs/LIVE-ENVIRONMENT-INVENTORY.md). Essa coleta é anterior; nomes, versão publicada, última execução e autorização não foram reconfirmados nesta rodada. Nenhum workflow vivo foi renomeado, publicado ou chamado. A organização no Git não organiza automaticamente a instância.
+
+A12/A13 continuam P0 antes de atendimento real: autorização, tenant/canal, IDs externos e deduplicação. Não ligar o legado ao modelo multi-MEI pela troca de nomes. Backup da instância deve preservar seu banco, volume e chave de criptografia originais antes de qualquer alteração viva. Google Sheets permanece pausado.
