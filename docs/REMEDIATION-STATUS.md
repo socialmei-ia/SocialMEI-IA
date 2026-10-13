@@ -362,3 +362,27 @@ Prontidão: **para revisão do responsável; ainda sem merge autorizado**. Reval
 Separar a origem dos seeds demonstrativos de conversas/atividades/notificações: mantê-los no Pages/demo e usar dados autorizados ou estados vazios para contas reais novas. Preservar notas/rascunhos e dados existentes; testar demo, conta nova, conta existente e isolamento entre workspaces em ambiente isolado. Não apagar dados como atalho. **Não implementado nesta rodada.**
 
 Google Sheets permanece PAUSADO. n8n e WAHA/WhatsApp não foram alterados, ativados, pareados ou usados para envio. Branch protection, deploy genérico, migrations e A04+ não alterados. Encerramento desta execução após revisão documental; próxima implementação depende de autorização própria.
+
+## A04 — separação dos exemplos de atendimento, 13/10/2026
+
+**Implementação local para revisão; sem merge/deploy.** Rodada autorizada após encerramento da A03 e merge documental do PR #31. Branch `fix/account-demo-state`, baseline `main` em `303373b9f111a9662ed8d720d5a4892cc1f7e3ad`; checkout inicial limpo. As seções anteriores de A04 somente planejada são históricas. Proteção do GitHub e ajustes de deploy foram adiados pelo responsável; não incluídos nesta rodada.
+
+### Reprodução e mudança
+
+O teste browser de conta real falhou antes da correção, inclusive na tela de autenticação: `sessionData` continha quatro conversas, seis atividades e três notificações demonstrativas. Confirmada a mesma origem mapeada na auditoria: declaração estática em `frontend/scripts/app.js`. Não houve nova auditoria geral.
+
+A inicialização agora remove somente esses três arrays de exemplos da sessão em memória quando `SocialMEIAuth.remote` está habilitado. A decisão usa o modo de autenticação configurado, sem esperar uma identidade assíncrona: conta ainda não autenticada ou sessão expirada não cai no demo. O modo local/Pages mantém os quatro/seis/três exemplos.
+
+Não houve escrita de limpeza em localStorage ou banco. A restauração existente de conversas locais, notas e rascunhos permanece; arquivos arquivados por identidade não são apagados. Notas antigas associadas a exemplos removidos continuam armazenadas, mas não se transforma o exemplo fictício em conversa real para exibi-las. Recuperação/reassociação futura desses contextos requer decisão própria. Não foi criado histórico de atendimento, feed de eventos ou integração de notificações inexistentes.
+
+### Testes e limites
+
+- Teste dedicado reproduziu quatro/seis/três no baseline antes da correção; a execução `before` falhou como esperado.
+- Regressão de contas ampliada: usuário sem sessão, administrador existente, conta MEI nova por convite, reload, logout e retorno ao administrador. Verifica estado sem seeds e arquivamento/restauração das notas e rascunhos, sem apresentá-los na outra identidade.
+- Estados vazios de Início, Caixa Unificada, Assistente, Relatórios e notificações nos temas Claro/Escuro e larguras 360/390/430/1440, para administrador e MEI novo. Mantido o critério de ausência de overflow global. Página pública/demo deve manter exatamente os exemplos quatro/seis/três após cadastro local.
+- Browser usa API controlada e dados sintéticos, com endpoints externos bloqueados; não substitui autenticação/isolation no PostgreSQL real ou QA autenticado na AWS. Testes anteriores de auth/store e suites de regressão permanecem aplicáveis. A mudança não altera contrato de identidade/deduplicação dos fluxos n8n, que continua A12/A13.
+- Resultado local final: `npm test` 53 passes, zero falhas/skips; `npm run format:check` PASS; `CHROMIUM_EXECUTABLE=/tmp/chromium npm run test:browser` 88 estados/16 fluxos PASS, incluindo regressão A01/A02/A03 e os checks A04 acima. Dezesseis combinações adicionais de identidade/largura/tema verificadas no fluxo de contas; nenhum pageerror detectado por esse fluxo. `git diff --check` PASS. CI do PR A04 ainda deve ser conferido no head publicado. Sem execução local Docker/PostgreSQL nesta rodada; não atribuir cobertura de runtime AWS a mocks browser.
+
+Somente UI de inicialização, testes e este acompanhamento. Sem redesign, CSS, backend, schema, migrations, limpeza de dados existentes, n8n/WAHA/WhatsApp, Google Sheets ou branch protection. Aplicação no servidor e merge exigem revisão própria. A05/A06, recuperação por e-mail e onboarding ainda não implementados nesta rodada.
+
+Primeiro CI A04: job validate passou; browser falhou ao preencher a confirmação de senha após reload, pois o formulário foi recriado enquanto o teste interagia. A carga inicial já desabilita `#refresh` e depois redesenha as telas; módulos remotos também possuem botões de reload desabilitados durante carga. O teste agora aguarda esses controles habilitados antes de interagir com a conta autenticada. Nenhum timeout foi ampliado, teste ignorado ou comportamento de renderização da aplicação alterado para esconder a falha. Conferir a nova execução do head atualizado; a primeira execução não foi contada como PASS.

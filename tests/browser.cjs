@@ -63,6 +63,15 @@ async function run() {
     for (let step = 0; step < 3; step++) await page.locator("[data-onboard-next]").click();
     await page.waitForFunction(() => document.body.classList.contains("experience-app"));
     checks.push("Landing, cadastro local e onboarding");
+    assert.deepEqual(
+      await page.evaluate(() => ({
+        remote: SocialMEIAuth.remote,
+        conversations: sessionData.conversas.length,
+        activity: sessionData.atividade.length,
+        notifications: sessionData.notificacoes.length,
+      })),
+      { remote: false, conversations: 4, activity: 6, notifications: 3 },
+    );
 
     const data = () => page.evaluate(() => JSON.parse(JSON.stringify(appData)));
     const initial = await data();

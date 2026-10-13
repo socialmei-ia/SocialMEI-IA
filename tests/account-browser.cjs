@@ -165,11 +165,87 @@ module.exports = async function accountFlow(browser, origin) {
     await page.locator("#loginPassword").fill(password);
     await page.locator("#xpLoginForm [type=submit]").click();
   }
+  async function assertRealSession(expectedConversations = 0) {
+    if (await page.evaluate(() => !!window.SocialMEIAuth?.current)) {
+      await page.waitForFunction(() =>
+        [
+          "#refresh",
+          "[data-clients-reload]",
+          "[data-products-reload]",
+          "[data-sales-reload]",
+          "[data-finance-reload]",
+        ].every((selector) => {
+          const button = document.querySelector(selector);
+          return button && !button.disabled;
+        }),
+      );
+    }
+    const data = await page.evaluate(() => ({
+      conversations: sessionData.conversas.length,
+      activity: sessionData.atividade.length,
+      notifications: sessionData.notificacoes.length,
+    }));
+    assert.deepEqual(
+      data,
+      {
+        conversations: expectedConversations,
+        activity: 0,
+        notifications: 0,
+      },
+      "Real accounts must not start with demo attendance data",
+    );
+  }
+  async function assertEmptyAttendanceViews() {
+    for (const width of [360, 390, 430, 1440]) {
+      await page.setViewportSize({ width, height: width === 1440 ? 1000 : 844 });
+      for (const theme of ["light", "dark"]) {
+        await page.evaluate((theme) => {
+          setTheme(theme);
+          setView("Início");
+        }, theme);
+        assert(!(await page.locator("#homeNow").innerText()).includes("Maria Silva"));
+        await page.evaluate(() => setView("Caixa Unificada"));
+        assert.equal(await page.locator("#conversationList [data-conversation]").count(), 0);
+        assert.match(await page.locator("#conversationList").innerText(), /Nenhuma conversa/);
+        await page.evaluate(() => setView("Assistente"));
+        assert.equal(await page.locator("#asConversationCount").innerText(), "0");
+        await page.evaluate(() => {
+          setView("Relatórios");
+          selectedReportTab = "Atendimento";
+          renderReports();
+          renderNotifications();
+        });
+        assert.match(await page.locator("#notList").textContent(), /Sem notificações/);
+        assert.equal(await page.locator("#notifyDot").evaluate((el) => el.style.display), "none");
+        await fitsViewport();
+      }
+    }
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.evaluate(() => {
+      setTheme("light");
+      setView("Início");
+    });
+  }
   try {
     await page.goto(origin + "/frontend/socialmei-app.html");
     await page.waitForFunction(
       () => SocialMEIAuth.remote && !!document.querySelector("[data-xp-screen=auth].is-active"),
     );
+    await assertRealSession();
+    await page.evaluate(() => {
+      localStorage.setItem(
+        "socialmei-inbox-local-v3",
+        JSON.stringify({
+          "notes:whatsapp:maria silva": [{ localNoteId: "legacy-note", texto: "Legacy note" }],
+        }),
+      );
+      localStorage.setItem(
+        "socialmei-ai-drafts-v1",
+        JSON.stringify([
+          { name: "Legacy draft", text: "Preserve this draft", at: "2026-10-10T12:00:00Z" },
+        ]),
+      );
+    });
     assert(
       !requests.some((r) =>
         ["/api/v1/clientes", "/api/v1/produtos", "/api/v1/vendas", "/api/v1/financeiro"].includes(
@@ -196,6 +272,71 @@ module.exports = async function accountFlow(browser, origin) {
       () =>
         window.SocialMEIAuth?.current?.usuario.id === 1 &&
         document.body.classList.contains("experience-app"),
+    );
+    await assertRealSession();
+    const legacy = await page.evaluate(() =>
+      JSON.parse(localStorage.getItem("socialmei-account-state-legacy")),
+    );
+    assert(legacy["socialmei-inbox-local-v3"].includes("Legacy note"));
+    assert(legacy["socialmei-ai-drafts-v1"].includes("Preserve this draft"));
+    await assertEmptyAttendanceViews();
+    await page.evaluate(() => {
+      localStorage.setItem(
+        "socialmei-inbox-local-v3",
+        JSON.stringify({
+          localConversations: [
+            {
+              id: 77,
+              nome: "Local QA",
+              iniciais: "LQ",
+              canal: "whatsapp",
+              status: "aberto",
+              telefone: "11999990000",
+              usuario: "@localqa",
+              naoLidas: 0,
+              atualizado: "agora",
+              mensagens: [],
+              localConversation: true,
+            },
+          ],
+          "notes:whatsapp:local qa": [
+            {
+              localNoteId: "account-note",
+              de: "nota",
+              texto: "Account note",
+              hora: "12:00",
+            },
+          ],
+          "notes:whatsapp:maria silva": [{ localNoteId: "old-demo-note", texto: "Keep old note" }],
+        }),
+      );
+      localStorage.setItem(
+        "socialmei-ai-drafts-v1",
+        JSON.stringify([{ name: "Saved QA", text: "Account draft", at: "2026-10-10T12:00:00Z" }]),
+      );
+    });
+    await page.reload();
+    await page.waitForFunction(
+      () =>
+        window.SocialMEIAuth?.current?.usuario.id === 1 &&
+        document.body.classList.contains("experience-app"),
+    );
+    await assertRealSession(1);
+    assert.equal(await page.evaluate(() => sessionData.conversas[0].nome), "Local QA");
+    assert(
+      await page.evaluate(() =>
+        sessionData.conversas[0].mensagens.some((message) => message.texto === "Account note"),
+      ),
+    );
+    assert(
+      (await page.evaluate(() => localStorage.getItem("socialmei-inbox-local-v3"))).includes(
+        "Keep old note",
+      ),
+    );
+    assert(
+      (await page.evaluate(() => localStorage.getItem("socialmei-ai-drafts-v1"))).includes(
+        "Account draft",
+      ),
     );
     assert(await page.locator("#profileBtn").isVisible());
     assert.equal(await page.locator("#utilityTools").evaluate((element) => element.open), false);
@@ -353,6 +494,13 @@ module.exports = async function accountFlow(browser, origin) {
     );
     assert.equal(await page.evaluate(() => localStorage.getItem("socialmei-private-test")), null);
     assert.equal(await page.locator("#profileAdminLink").evaluate((link) => link.hidden), true);
+    await assertRealSession();
+    assert(
+      !(await page.evaluate(() => localStorage.getItem("socialmei-inbox-local-v3") || "")).includes(
+        "Account note",
+      ),
+    );
+    await assertEmptyAttendanceViews();
     const stored = await page.evaluate(() =>
       JSON.stringify({ ...localStorage, ...sessionStorage }),
     );
@@ -368,6 +516,31 @@ module.exports = async function accountFlow(browser, origin) {
       document.getElementById("status").textContent.includes("administrador"),
     );
     assert(await page.locator("#packetFile").isDisabled());
+    await page.goto(origin + "/frontend/socialmei-app.html");
+    await page.waitForFunction(
+      () =>
+        window.SocialMEIAuth?.current?.usuario.id === 2 &&
+        document.body.classList.contains("experience-app"),
+    );
+    await page.locator("#sb [data-account-logout]").click();
+    await page.waitForFunction(() => !!document.querySelector("[data-xp-screen=auth].is-active"));
+    await login("user1@example.com");
+    await page.waitForFunction(
+      () =>
+        window.SocialMEIAuth?.current?.usuario.id === 1 &&
+        document.body.classList.contains("experience-app"),
+    );
+    await assertRealSession(1);
+    assert(
+      await page.evaluate(() =>
+        sessionData.conversas[0].mensagens.some((message) => message.texto === "Account note"),
+      ),
+    );
+    assert(
+      (await page.evaluate(() => localStorage.getItem("socialmei-ai-drafts-v1"))).includes(
+        "Account draft",
+      ),
+    );
     session = null;
     await page.goto(origin + "/frontend/socialmei-app.html");
     await page.waitForFunction(
@@ -378,7 +551,8 @@ module.exports = async function accountFlow(browser, origin) {
         !!document.querySelector("[data-xp-screen=auth].is-active"),
     );
     assert.deepEqual(errors, []);
-    return "Contas: senha inválida, login/cadastro por convite, sessão, logout, troca de MEI e acesso ao administrador";
+    await assertRealSession();
+    return "Contas: login/cadastro, sessão/logout, administrador, atendimento sem seeds demo e preservação/isolamento de notas e rascunhos";
   } finally {
     await page.close();
   }
