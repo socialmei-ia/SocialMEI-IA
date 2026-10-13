@@ -166,6 +166,20 @@ module.exports = async function accountFlow(browser, origin) {
     await page.locator("#xpLoginForm [type=submit]").click();
   }
   async function assertRealSession(expectedConversations = 0) {
+    if (await page.evaluate(() => !!window.SocialMEIAuth?.current)) {
+      await page.waitForFunction(() =>
+        [
+          "#refresh",
+          "[data-clients-reload]",
+          "[data-products-reload]",
+          "[data-sales-reload]",
+          "[data-finance-reload]",
+        ].every((selector) => {
+          const button = document.querySelector(selector);
+          return button && !button.disabled;
+        }),
+      );
+    }
     const data = await page.evaluate(() => ({
       conversations: sessionData.conversas.length,
       activity: sessionData.atividade.length,
