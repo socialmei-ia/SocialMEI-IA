@@ -6,18 +6,18 @@ Os endereços deste guia são referências registradas pela equipe; disponibilid
 
 ## Modelo de acesso
 
-| Recurso        | Quem deve acessar                    | Como                           | Regra                                          |
-| -------------- | ------------------------------------ | ------------------------------ | ---------------------------------------------- |
-| GitHub         | equipe de desenvolvimento            | conta individual               | branch + Pull Request                          |
-| Dashboard      | equipe / demonstração                | navegador                      | público pelo GitHub Pages                      |
-| n8n            | integrantes autorizados              | conta individual               | separar Produção, Testes e Revisar             |
-| pgAdmin        | quem precisa consultar/manter dados  | login individual               | nunca compartilhar senha                       |
-| PostgreSQL     | aplicações e responsáveis pelo banco | roles separadas                | porta 5432 não pública                         |
-| VPS / SSH      | responsáveis por infraestrutura      | usuário Linux + chave própria  | acesso sob demanda                             |
-| Docker         | responsáveis por infraestrutura      | acesso pela VPS                | alto privilégio                                |
-| AWS            | quem administra infraestrutura       | IAM/Identity Center individual | nunca compartilhar root                        |
-| WAHA Dashboard | integrantes autorizados do projeto   | HTTPS + login do WAHA          | não compartilhar a API key                     |
-| FastAPI        | desenvolvimento e integração         | HTTPS                          | proteger endpoints sensíveis antes de produção |
+| Recurso        | Quem deve acessar                    | Como                                    | Regra                                                     |
+| -------------- | ------------------------------------ | --------------------------------------- | --------------------------------------------------------- |
+| GitHub         | equipe de desenvolvimento            | conta individual                        | branch + Pull Request                                     |
+| Dashboard      | MEIs/equipe ou demonstração          | conta individual no team; demo no Pages | Basic + sessão no team; Pages não prova acesso ao runtime |
+| n8n            | integrantes autorizados              | conta individual                        | separar Produção, Testes e Revisar                        |
+| pgAdmin        | quem precisa consultar/manter dados  | login individual                        | nunca compartilhar senha                                  |
+| PostgreSQL     | aplicações e responsáveis pelo banco | roles separadas                         | porta 5432 não pública                                    |
+| VPS / SSH      | responsáveis por infraestrutura      | usuário Linux + chave própria           | acesso sob demanda                                        |
+| Docker         | responsáveis por infraestrutura      | acesso pela VPS                         | alto privilégio                                           |
+| AWS            | quem administra infraestrutura       | IAM/Identity Center individual          | nunca compartilhar root                                   |
+| WAHA Dashboard | integrantes autorizados do projeto   | HTTPS + login do WAHA                   | não compartilhar a API key                                |
+| FastAPI        | desenvolvimento e integração         | HTTPS                                   | proteger endpoints sensíveis antes de produção            |
 
 ## Princípio principal
 
@@ -90,7 +90,8 @@ O caminho preferido para pessoas é o pgAdmin via HTTPS:
 
 - PostgreSQL continua sem publicar 5432 na internet.
 - Crie logins individuais conforme a necessidade.
-- Automações usam a role técnica `socialmei_app`.
+- `socialmei_app` é referência técnica do banco legado/n8n; não aplicar seus grants ao banco team por suposição.
+- O perfil de consulta team preparado nesta estabilização está em [TEAM-DATABASE-ACCESS.md](TEAM-DATABASE-ACCESS.md); logins reais e caminho de rede exigem conferência e autorização individual.
 - Administração estrutural usa uma role separada.
 - Senhas nunca entram no GitHub.
 
@@ -156,7 +157,7 @@ Acesso web atual:
 
 `https://waha.54-94-213-7.sslip.io/dashboard`
 
-Compartilhe com a equipe somente o endereço e as credenciais do Dashboard quando necessário. A `WAHA_API_KEY` é credencial técnica e deve permanecer no servidor/n8n, nunca no frontend ou em chats da equipe.
+Compartilhe somente o endereço; conceda acesso individual quando suportado pela instalação ou mantenha a operação restrita aos responsáveis. Não distribuir uma credencial administrativa comum como procedimento padrão. A `WAHA_API_KEY` é credencial técnica e deve permanecer no servidor/n8n, nunca no frontend ou em chats da equipe.
 
 ## API Python
 
@@ -165,4 +166,4 @@ Acesso web atual:
 - `https://api.54-94-213-7.sslip.io/health`
 - `https://api.54-94-213-7.sslip.io/docs`
 
-A documentação Swagger está acessível pelo navegador no ambiente atual. Antes de uso em produção com dados sensíveis, revise autenticação e exposição dos endpoints.
+Essas URLs são históricas; disponibilidade e autorização atuais NÃO CONFIRMADAS nesta rodada. A API team é consumida na mesma origem protegida do aplicativo; o gateway não publica Swagger indiscriminadamente.

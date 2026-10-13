@@ -98,3 +98,9 @@ O script `backup.sh` descobre o volume real do n8n, gera dump/configuração e a
 Os três ambientes são diferentes: Pages/local preserva o demo; `compose.dev.yaml` usa banco e portas de desenvolvimento; `compose.team.yaml` usa banco/volumes/API/gateway próprios. O Compose legado e seus overlays continuam separados. Código no Git não prova a imagem instalada: consulte os registros datados em [docs/REMEDIATION-STATUS.md](docs/REMEDIATION-STATUS.md). A05/A06 não altera workflows de deploy nem aplica mudanças automaticamente à VPS.
 
 `tools/team-maintenance.py` faz backup do banco/configuração da equipe sem interrupção, confere o índice e hashes e pode agendar uma execução diária. A restauração é exercitada em banco isolado no CI. Cópias na própria instância exigem armazenamento externo para proteger contra perda do host. Veja [docs/OPERACAO-EQUIPE.md](docs/OPERACAO-EQUIPE.md).
+
+## Fronteiras verificadas na estabilização
+
+A [revisão da base](PROJECT-BASELINE-REVIEW.md) registra baseline, testes e bloqueios de runtime. O [inventário de endpoints](docs/API-ENDPOINTS.md) descreve as 53 operações declaradas. A migration 011 preparada adiciona defesa de integridade referencial aos vínculos de CRM/importação por workspace; não substitui sessões, autorização ou uma decisão futura sobre RLS. Roles internas de consulta são distintas das contas de MEIs e do token técnico n8n.
+
+A calculadora de probabilidade futura deve receber seus critérios explícitos no backend, usando cliente/workspace resolvidos pela sessão. Não há cálculo, modelo, pesos, tabela ou endpoint dessa função nesta revisão.
