@@ -144,3 +144,41 @@ Não foram alterados banco, migrations, autenticação, workflow n8n, WAHA, Comp
 ## Encerramento
 
 Etapa 0 documentada como PARTIAL/BLOCKED e Etapa 1 preparada para revisão com regressão e capturas. Aguardar revisão e autorização para a próxima etapa. Inventário vivo não preenchido com valores presumidos e nenhuma integração real ativada.
+
+## Acompanhamento autorizado — 13/10/2026
+
+- PR #30 aprovado especificamente, integrado em `main` (`9e943a92624f1cdefc50bfc2322b0f7bfc2a0af3`) e aplicado pelo responsável somente ao gateway. Backup prévio reportado concluído/conferido; nenhuma migration ou reconstrução de API/banco. Usuário confirmou visualmente Ferramentas/Relatórios: **A01/A02 concluídos no site online**. As notas anteriores de “sem merge/deploy” descrevem exclusivamente o encerramento da rodada inicial.
+- Etapa 0 agora **PARTIAL com evidência viva fornecida por SSH**: versões Docker/Compose/n8n/WAHA, containers/mounts/redes efetivos, migrations 001–010 e 27 tabelas, 24 workflows/execuções agregadas, estado WAHA aguardando QR e cron ativo com agenda 02:30. Inventário detalhado no acompanhamento de LIVE-ENVIRONMENT-INVENTORY.md.
+- Acesso direto do auditor permanece indisponível. Consultas do responsável somente leitura; nenhum segredo ou payload registrado. Não contar verificações pendentes como passes.
+
+### Prontidão revista, sem implementar A03–A21
+
+| Item | Prontidão atual                            | Evidência ou dependência restante                                                                                                  |
+| ---- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| A03  | NEEDS PRODUCT DECISION                     | Contrato monetário pendente; valores reais incompatíveis ainda não consultados. Sem arredondamento/migration.                      |
+| A04  | READY                                      | Origem dos seeds mapeada; correção e regressão precisam rodada própria.                                                            |
+| A05  | READY                                      | Preparar atualização documental em PR separado das correções UI.                                                                   |
+| A06  | READY                                      | Migrations 009/010 efetivas confirmadas; healthcheck específico continua necessário, sem implementação agora.                      |
+| A07  | NEEDS INFRA DECISION                       | Proteção de main depende de aprovação administrativa do dono.                                                                      |
+| A08  | NEEDS INFRA DECISION                       | Versões/IDs vivos parciais conhecidos; faltam RepoDigests e política de pin/atualização.                                           |
+| A09  | NEEDS PRODUCT DECISION                     | Definir remetente e recuperação de senha; não há envio Gmail implementado.                                                         |
+| A10  | NEEDS PRODUCT DECISION                     | Contrato de onboarding real versus demo.                                                                                           |
+| A11  | NEEDS PRODUCT DECISION                     | Definir dados locais que devem sincronizar.                                                                                        |
+| A12  | BLOCKED                                    | Legados ativos confirmados; autenticação/versão publicada não verificadas. P0 antes de atendimento real, sem incidente confirmado. |
+| A13  | READY para proposta; implementação BLOCKED | Identidade/idempotência exigem contrato e versão publicada dos fluxos legados.                                                     |
+| A14  | BLOCKED                                    | WAHA aguarda pareamento; chip autorizado/adaptador/API e A12/A13 pendentes.                                                        |
+| A15  | NEEDS INFRA DECISION                       | Agenda/cron/arquivos confirmados; retenção, cópia externa e sucesso automático/restore permanecem pendentes.                       |
+| A16  | BLOCKED                                    | Team runtime confirmado diferente do Compose genérico; automação de deploy ainda sem contrato aprovado.                            |
+| A17  | READY                                      | Proposta de E2E integrado isolado; nenhuma execução com cliente real.                                                              |
+| A18  | NEEDS PRODUCT DECISION                     | Volume alvo/paginação e limites.                                                                                                   |
+| A19  | READY                                      | Refatoração futura por componente; não misturar nesta rodada.                                                                      |
+| A20  | NEEDS PRODUCT DECISION                     | Política de compartilhamento de dispositivo e arquivos locais.                                                                     |
+| A21  | READY para triagem; correções BLOCKED      | Inventário de 24 fluxos disponível; correspondências são candidatas, versão publicada e responsável de cada fluxo pendentes.       |
+
+### Pendências alinhadas com o usuário
+
+- Orçamento/Google Sheets: quatro documentos de orçamento, dois com o mesmo nome. “Resposta Orçamento copy 2” (ID 8hSF0mABWNYJqWQB) não inclui Google Sheets/toolWorkflow no documento salvo e teve 15 erros/8 sucessos retidos nos últimos sete dias. Escolher o ID com o responsável; não sobrescrever outro fluxo por nome. Existem subfluxos Google Sheets ativos, mas seu sucesso não comprova o orçamento original corrigido.
+- WAHA no computador do colega: guia/comando dev:waha preparados; atualização efetiva do notebook e preservação das sessões ainda precisam confirmação dele. Estado do WAHA na AWS não é evidência do notebook.
+- Estes itens não foram marcados como resolvidos e não autorizam ativar/publicar/enviar mensagens. Nenhuma alteração A03–A21 foi aplicada.
+
+Esta atualização altera somente os dois documentos de acompanhamento. Não exige deploy, migrations ou mudança do runtime. Próxima correção deve ter alvo/ID e critério de aceite definidos antes da implementação.
