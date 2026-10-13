@@ -288,3 +288,9 @@ Produto antigo pode ser lido com valor incompatível; não se promete que esse p
 - Browser: 88 estados/16 fluxos passaram, incluindo bloqueio de valores inválidos e preservação dos formulários em modos local/remoto. Format check e git diff --check passaram. CI com PostgreSQL real deve ser conferido no PR desta branch; sucesso de outra branch não vale para esta.
 
 Próximo passo desta etapa: revisar diff e testes, preparar [PR #32](https://github.com/socialmei-ia/SocialMEI-IA/pull/32) exclusivo A03 e aguardar aprovação específica para merge/deploy. Não avançar automaticamente para A04 ou atendimento real.
+
+### Resultado do CI A03
+
+[Repository checks #93](https://github.com/socialmei-ia/SocialMEI-IA/actions/runs/38346881087) concluído com sucesso, head `fa6ad1e21e41a1f604734fe44e455c8ca22be215`, correspondente aos dois commits de código/testes do PR #32. Jobs validate/browser verdes: 106 testes da API com PostgreSQL real, zero skips; Node/formatação; 88 estados/16 fluxos; gateway HTTPS/Basic; inicialização e restauração isoladas. O sucesso em CI não é evidência de deploy na AWS.
+
+PR #32 permanece em rascunho, sem merge/deploy. PR #31 contém somente documentação. A03 está preparada para revisão, com os limites de compatibilidade descritos acima; A04 e Google Sheets não foram implementados. Nenhuma migration ou alteração de dados foi aplicada ao banco de produção.
