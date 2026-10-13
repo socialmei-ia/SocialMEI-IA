@@ -290,6 +290,7 @@ ${escapeHtml(options.value || "")}</textarea>
             type="${type}"
             ${options.step ? `step="${options.step}"` : ""}
             ${options.min != null ? `min="${options.min}"` : ""}
+            ${options.max != null ? `max="${options.max}"` : ""}
             value="${escapeHtml(options.value ?? "")}"
             placeholder="${escapeHtml(options.placeholder || "")}"
             ${options.required ? "required" : ""}
@@ -419,13 +420,15 @@ function renderCreateFields(type, preset = {}) {
         options: ["Produto", "Serviço"],
       }),
       createField("Preço de venda (R$)", "preco", "number", {
-        step: "0.01",
+        step: "any",
         min: 0,
+        max: 9999999999999.99,
         required: true,
       }),
       createField("Custo informado (R$)", "custo", "number", {
-        step: "0.01",
+        step: "any",
         min: 0,
+        max: 9999999999999.99,
         value: 0,
       }),
       createField("Estoque atual", "estoque", "number", {

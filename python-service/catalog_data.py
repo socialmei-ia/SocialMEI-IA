@@ -1,14 +1,33 @@
 from datetime import datetime
-from typing import Literal
+from decimal import Decimal
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, HTTPException, Query, Response
 from psycopg.rows import dict_row
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
+from pydantic import (
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    TypeAdapter,
+    ValidationError,
+    model_validator,
+)
+from sales_data import Money
 from shared_data import MAX_SAFE_ID, ensure_workspace, require_shared_data
 
 from database import connect
 
 router = APIRouter(prefix="/api/v1/produtos", tags=["catalogo"])
+money_adapter = TypeAdapter(Money)
+
+
+def validate_catalog_amount(value):
+    money_adapter.validate_python(value)
+    return value
+
+
+CatalogAmount = Annotated[float, BeforeValidator(validate_catalog_amount)]
 
 
 class ProdutoFields(BaseModel):
@@ -22,7 +41,7 @@ class ProdutoFields(BaseModel):
     status: str | None = Field(default=None, min_length=1, max_length=30)
 
 
-class ProdutoCreate(ProdutoFields):
+class ProductSnapshot(ProdutoFields):
     nome: str = Field(min_length=1, max_length=160)
     tipo: Literal["Produto", "Serviço"] = "Produto"
     preco: float = Field(ge=0, allow_inf_nan=False)
@@ -42,7 +61,14 @@ class ProdutoCreate(ProdutoFields):
         return self
 
 
+class ProdutoCreate(ProductSnapshot):
+    preco: CatalogAmount
+    custo: CatalogAmount = 0
+
+
 class ProdutoUpdate(ProdutoFields):
+    preco: CatalogAmount | None = None
+    custo: CatalogAmount | None = None
     expected_version: int = Field(ge=1, strict=True)
 
     @model_validator(mode="after")
@@ -53,7 +79,7 @@ class ProdutoUpdate(ProdutoFields):
         return self
 
 
-class ProdutoOut(ProdutoCreate):
+class ProdutoOut(ProductSnapshot):
     id: int
     versao: int
     criado_em: datetime
@@ -77,6 +103,8 @@ PRODUCT_COLUMNS = "id, nome, tipo, preco, custo, estoque, minimo, status, versao
 
 def insert_product(cur, workspace_id, product):
     values = product.model_dump()
+    for key in ("preco", "custo"):
+        values[key] = Decimal(str(values[key]))
     cur.execute(
         f"INSERT INTO socialmei.crm_produtos (workspace_id, {', '.join(values)}) "
         f"VALUES (%s, {', '.join(['%s'] * len(values))}) RETURNING {PRODUCT_COLUMNS}",
@@ -159,7 +187,7 @@ def update_product(produto_id: int, payload: ProdutoUpdate):
             ensure_no_active_stock_sales(cur, workspace_id, produto_id)
         merged = {key: current[key] for key in ProdutoFields.model_fields}
         try:
-            ProdutoCreate.model_validate({**merged, **values})
+            ProductSnapshot.model_validate({**merged, **values})
         except ValidationError:
             raise HTTPException(
                 422, "Confira o tipo e os campos de estoque do item."
@@ -169,7 +197,14 @@ def update_product(produto_id: int, payload: ProdutoUpdate):
         cur.execute(
             f"UPDATE socialmei.crm_produtos SET {', '.join(key + ' = %s' for key in values)}, "
             f"versao = versao + 1, atualizado_em = NOW() WHERE workspace_id = %s AND id = %s RETURNING {PRODUCT_COLUMNS}",
-            [*values.values(), workspace_id, produto_id],
+            [
+                *[
+                    Decimal(str(value)) if key in {"preco", "custo"} else value
+                    for key, value in values.items()
+                ],
+                workspace_id,
+                produto_id,
+            ],
         )
         return cur.fetchone()
 

@@ -89,6 +89,15 @@ const SocialMEIProducts = (() => {
         if ([409, 422].includes(response.status)) {
           const body = await response.json().catch(() => null);
           if (typeof body?.detail === "string") error.message = body.detail.slice(0, 800);
+          else if (
+            response.status === 422 &&
+            Array.isArray(body?.detail) &&
+            body.detail.some((issue) =>
+              issue.loc?.some((field) => ["preco", "custo"].includes(field)),
+            )
+          )
+            error.message =
+              "Preço e custo exigem até duas casas decimais e o limite de R$ 9.999.999.999.999,99. Nenhum valor foi arredondado; confira o cadastro ou o item importado.";
         }
         error.status = response.status;
         throw error;
