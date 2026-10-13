@@ -152,7 +152,7 @@ body {
   min-width: 320px;
   background: var(--bg);
   color: var(--tx);
-  /* Pilha de sistema intencional: sem download de fonte e sem layout shift de webfont. */
+  /* Inter local; a pilha de sistema mantém a leitura enquanto a fonte carrega. */
   font: var(--text-base)/var(--leading-body) var(--font-ui);
   -webkit-font-smoothing: antialiased;
 }
@@ -17246,8 +17246,8 @@ body.management-active #per {
     gap: 14px;
   }
   #financeView #financeSummary {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 22px 0;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
     padding-bottom: 24px;
   }
   #financeView #financeSummary .management-kpi:first-child {
@@ -17265,8 +17265,8 @@ body.management-active #per {
   }
   #financeView #financeSummary .management-kpi:nth-child(3),
   #financeView #financeSummary .management-kpi:nth-child(5) {
-    padding-left: 20px;
-    border-left: 1px solid var(--internal-line);
+    padding-left: 16px;
+    border-left: 1px solid var(--border);
   }
   #financeView .management-card:not(.management-flush) {
     padding: 22px 16px;
