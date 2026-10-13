@@ -259,3 +259,32 @@ O responsável executou a consulta proposta em transação READ ONLY no banco te
 Esse resultado fecha o inventário monetário da tabela atual na hora da coleta. Não cobre snapshots/importações arquivadas, arquivos locais ou cadastros futuros. Não há valor atual nessa tabela que precise normalização segundo a regra candidata; nenhuma escrita/constraint/migration foi feita.
 
 A03 continua **NEEDS PRODUCT DECISION**: confirmar duas casas para preço e decidir se custo também deve ter duas casas ou se exige precisão unitária adicional. Preservar o limite atual de Vendas e rejeitar casas extras sem arredondamento são recomendações, ainda sem implementação. Após essa decisão, preparar PR de código separado do PR documental #31.
+
+## Implementação proposta A03 — 13/10/2026
+
+Branch `fix/catalog-money-contract`, baseada no merge aprovado A01/A02 `9e943a92624f1cdefc50bfc2322b0f7bfc2a0af3`. Evidências de runtime e contagens monetárias estão no PR documental #31: um preço e um custo no catálogo atual, zero incompatíveis na consulta READ ONLY de todos os workspaces. Não é nova auditoria nem inventário de snapshots/arquivos locais. Google Sheets continua pausado.
+
+### Contrato e preservação
+
+- Preço e custo de entradas novas create/PATCH/import usam a validação Decimal `Money` já usada em Vendas/Financeiro: finitos, não negativos, até duas casas efetivas e limite de 9.999.999.999.999,99. Casas extras são recusadas antes da conversão float. Não há quantize/arredondamento automático.
+- JSON de catálogo continua numérico. Snapshots/fingerprints de importações válidas mantêm a representação anterior; teste fixa um hash produzido pela versão baseline. Parâmetros monetários enviados ao SQL usam Decimal, sem alterar valores de registros existentes.
+- DTO de saída e validação do registro combinado ficam separados da nova validação de entrada. Itens antigos com preço/custo fora do contrato continuam legíveis, e PATCH de nome sem campos monetários não os normaliza. PATCH que enviar preço/custo inválido é recusado.
+- Transferência nova valida os valores depois de conferir recibo, mas antes de gravar registros. Recibo já existente de transferência é recuperado sem revalidar/normalizar o snapshot antigo, preservando fingerprint e idempotência.
+- Formulário de Produtos nos modos local/remoto valida a representação decimal antes de converter para Number, mostra limite/mensagem de duas casas e preserva o texto inválido para correção. Importações recusadas recebem mensagem monetária específica, sem expor valores privados.
+
+Não foram alterados contrato de quantidade/desconto/total de vendas, Financeiro, schema, migrations, snapshots/hashes históricos, auth, n8n, WAHA, Compose ou deploy. Nada foi aplicado à produção.
+
+### Compatibilidade e limites
+
+O catálogo atual não contém valores incompatíveis na hora da coleta, mas importações locais/snapshots históricos podem conter. Novo pedido de importação de catálogo com valor inválido é recusado, inclusive reenvio de um payload antigo fora do novo contrato; seu recibo armazenado e o item já existente permanecem intactos. Reenvios válidos mantêm os hashes. Transferências completas já registradas têm tratamento explícito para recuperar recibos antigos. Não corrigir valores ou reescrever fingerprints como atalho.
+
+Produto antigo pode ser lido com valor incompatível; não se promete que esse preço antigo seja aceito em venda nova. A regra garante a compatibilidade dos preços novos aceitos, respeitando também o limite do total da venda. Se custo unitário com mais casas for necessário, reabrir a decisão de produto antes de publicar a mudança.
+
+### Validação desta branch
+
+- `npm test`: 53 passaram, zero falhas/skips.
+- Python local: 106 registrados, 31 executados passaram e 75 skips por falta de PostgreSQL local; skips não contados como passes. Inclui sete testes locais novos de Money/limites/JSON/PATCH/fingerprint/validação antes do banco.
+- Cinco testes de integração adicionais exigem PostgreSQL isolado: roundtrip e venda nos limites, leitura/PATCH de antigo, replay de importação válida, bloqueio de transferência nova inválida, replay de recibo antigo de transferência sem arredondamento.
+- Browser: 88 estados/16 fluxos passaram, incluindo bloqueio de valores inválidos e preservação dos formulários em modos local/remoto. Format check e git diff --check passaram. CI com PostgreSQL real deve ser conferido no PR desta branch; sucesso de outra branch não vale para esta.
+
+Próximo passo desta etapa: revisar diff e testes, preparar [PR #32](https://github.com/socialmei-ia/SocialMEI-IA/pull/32) exclusivo A03 e aguardar aprovação específica para merge/deploy. Não avançar automaticamente para A04 ou atendimento real.
