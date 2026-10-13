@@ -85,7 +85,7 @@ def health_db():
     except Exception as error:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="PostgreSQL indisponível para a persistência compartilhada.",
+            detail="Persistência compartilhada ou autenticação indisponível neste ambiente.",
         ) from error
 
 

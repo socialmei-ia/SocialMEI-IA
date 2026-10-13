@@ -1,10 +1,10 @@
 # API de dados compartilhados
 
-Esta fase cria a primeira base real para o SocialMEI deixar de depender de `localStorage`.
+Este guia descreve a API atual e preserva o histórico das fases incrementais. Os exemplos HTTP/LAN das primeiras fases são de desenvolvimento sem autenticação; contas reais usam o gateway HTTPS, sessão e proteção de escrita.
 
 ## Estado
 
-O frontend **ainda não usa esta API**. A integração começa por backend/local/staging para não arriscar os módulos atuais.
+Clientes, Catálogo, Vendas e Financeiro já possuem adapters remotos. Pages/demo permanece local; a pilha team habilita os módulos e contas reais por configuração privada. O backend não faz fallback para escrita no navegador quando a API falha. Notas, rascunhos e preferências locais continuam tendo limites próprios de sincronização.
 
 A API compartilhada fica desativada por padrão e só funciona quando:
 
@@ -12,7 +12,7 @@ A API compartilhada fica desativada por padrão e só funciona quando:
 SOCIALMEI_SHARED_DATA_ENABLED=true
 ```
 
-No `compose.dev.yaml`, ela é ativada apenas para desenvolvimento local.
+No `compose.dev.yaml`, ela é ativada para desenvolvimento local. `compose.team.yaml` é uma pilha separada, com banco/gateway/API próprios. Não usar o Compose genérico ou o workflow histórico de deploy para atualizar a pilha team.
 
 ## Endpoints iniciais
 
@@ -25,9 +25,11 @@ PATCH  /api/v1/clientes/{id}
 DELETE /api/v1/clientes/{id}
 ```
 
-## Workspace temporário
+## Workspace: contas reais versus modo sem autenticação
 
-Enquanto autenticação real não existe, cada ambiente usa um workspace fixo por configuração:
+Com `SOCIALMEI_AUTH_ENABLED=true`, origem HTTPS válida e migration 010 instalada, o servidor resolve o workspace pela sessão e associação em `workspace_members`. O navegador não escolhe o negócio autorizado. Login/cadastro por convite, sessão, revogação e administração de contas são APIs reais; a credencial Basic do gateway é uma proteção adicional da equipe.
+
+Com autenticação desativada, permanece o modo de desenvolvimento/legado com workspace fixo:
 
 ```text
 SOCIALMEI_WORKSPACE_SLUG
@@ -36,7 +38,7 @@ SOCIALMEI_WORKSPACE_NAME
 
 O frontend não escolhe `workspace_id`.
 
-Isso é suficiente para provar compartilhamento entre computadores em staging, mas **não é autenticação de produção**.
+O modo fixo prova compartilhamento em ambiente controlado, mas **não representa contas isoladas de MEIs**. Flag inválido deve bloquear o acesso. `workspaceKey` do frontend identifica armazenamento/vínculos locais e não concede autorização no servidor. O token técnico de leitura n8n também não autentica uma conta humana.
 
 ## Tabelas
 
@@ -81,19 +83,34 @@ Exemplo de criação:
 }
 ```
 
-## Segurança
+## Segurança e acesso
 
-Esta API ainda não deve ser exposta como CRM de produção.
+Contas reais são opt-in: senha Argon2id, cookie de sessão Secure/HttpOnly/SameSite=Lax e apenas hash do token no banco; Origin e CSRF são validados nas escritas humanas. Papéis de negócio são distintos do administrador da plataforma. Convites têm validade e consumo único; desativar usuário revoga sessões. Limites de tentativas e auditoria de contas não equivalem a rate limiting geral do CRM ou auditoria de todas as operações.
 
-Antes disso faltam:
+No modo autenticado, frontend/API devem usar a mesma origem HTTPS. Os exemplos de desenvolvimento sem cookies não autorizam expor o modo fixo na internet. Nunca incluir Bearer técnico, senhas ou credenciais de provedor no `config.js` público. Recuperação de senha por e-mail, Google OAuth, política completa de retenção e atendimento por canal permanecem etapas próprias.
 
-- autenticação real;
-- autorização por usuário/workspace;
-- CORS restrito;
-- rate limiting;
-- trilha de auditoria;
-- política de exclusão/retensão;
-- migração controlada dos dados locais.
+O gateway mantém Basic nas rotas humanas. Somente cinco GETs `/api/v1/integracoes/{resumo,clientes,produtos,vendas,financeiro}` aceitam o token técnico de leitura; ele não abre o site, muda a identidade da sessão ou permite escrita.
+
+### Readiness de banco, contas e canais
+
+`/health` informa liveness do processo. `/health/db` mantém `status`, `shared_data` e `workspace`, com `capabilities` aditivo. Em READ ONLY, exige registro de migrations 001–008 e campos do CRM. Com auth ativada, exige configuração válida, migration 010 e tabelas/colunas de contas. Falha retorna 503 com mensagem sanitizada, sem SQL, credenciais ou linhas de clientes.
+
+```json
+{
+  "status": "healthy",
+  "shared_data": true,
+  "workspace": "team",
+  "capabilities": {
+    "crm": "ready",
+    "auth": { "enabled": true, "schema": "ready" },
+    "channels": { "schema": "prepared", "connection": "not_checked" }
+  }
+}
+```
+
+Este é um exemplo de contrato, não uma nova coleta da VPS. `auth.schema` fica `not_checked` quando desativada. Canais opcionais exigem migration 009 e consultas de estrutura para `prepared`; caso contrário ficam `unavailable` sem derrubar o CRM. `connection: not_checked` não afirma WhatsApp conectado. Sem persistência e sem auth, o endpoint retorna `status: disabled`, `shared_data: false` e capacidades não verificadas. Auth ativada sem persistência é configuração indisponível (503).
+
+`doctor` usa o mesmo endpoint HTTP e exige CRM healthy/shared_data true. A verificação não cria workspace, lê hashes de credenciais, testa login, verifica todos os grants de escrita/índices/constraints ou envia mensagens.
 
 ## Contrato de Clientes e migration 003
 
@@ -160,7 +177,7 @@ mecanismo de migração nem deduplicar clientes automaticamente por nome.
 
 `/health/db` verifica a consulta dos campos necessários ao contrato atual,
 incluindo `versao`. Banco acessível com schema antigo retorna **503**, sem
-expor o erro SQL. Isso não verifica autenticação nem todas as permissões de escrita.
+expor o erro SQL. A descrição desta fase 003 é histórica: o contrato atual de saúde também verifica versões de migrations e auth quando ativada, conforme a seção de readiness. Não verifica todas as permissões de escrita.
 
 Depois de atualizar o código, aplique as migrations somente no ambiente local:
 
@@ -174,9 +191,9 @@ o contrato em outro ambiente, validar backup, plano de aplicação e os testes.
 
 Rollback de código: voltar a versão anterior da API e manter as colunas
 aditivas no banco. Não apagar as novas colunas, pois podem conter dados.
-O frontend continua usando localStorage nesta etapa.
+Na fase 003, o frontend ainda era local; os adapters atuais e a separação por configuração estão descritos nas seções posteriores.
 
-## Próximo passo
+## Histórico — plano após a migration 003
 
 Preparar importação idempotente e depois o adapter de Clientes por uma
 configuração explícita. O modo remoto não deve trocar para escrita local
@@ -283,9 +300,9 @@ clientes: {
 }
 ```
 
-`workspaceKey` identifica os vínculos do navegador e deve corresponder ao
-workspace fixo configurado na API. Não escolhe nem autoriza um workspace no
-servidor. Ao trocar o workspace no backend, troque também essa chave. Dois
+`workspaceKey` identifica os vínculos do navegador. No modo sem auth, deve corresponder ao
+workspace fixo configurado na API; com auth, a sessão define o negócio e o estado local é arquivado por identidade. A chave não escolhe nem autoriza um workspace no
+servidor. Em desenvolvimento sem auth, ao trocar o workspace no backend, troque também essa chave. Dois
 computadores precisam apontar para a **mesma API acessível pela rede**, com
 a mesma chave; `localhost` em computadores distintos significa APIs distintas.
 Esta configuração não torna a API apropriada para exposição pública.
@@ -399,7 +416,7 @@ POST   /api/v1/produtos/importacoes/confirmar
 
 Contrato: `nome`, `tipo` (`Produto` ou `Serviço`), `preco`, `custo`, `estoque`,
 `minimo` e `status`. GET inclui `id`, `versao`, `criado_em` e `atualizado_em`.
-Nome/status não podem estar vazios; valores monetários são finitos e não negativos.
+Nome/status não podem estar vazios. Entradas novas de preço/custo usam o mesmo contrato monetário de Vendas: finitos, não negativos, até duas casas significativas e limite 9.999.999.999.999,99; casas extras são recusadas sem arredondamento. JSON continua numérico; itens/snapshots antigos permanecem legíveis e PATCH de campos não monetários não os normaliza. Um preço válido ainda está sujeito ao limite do total da venda. Reenvio válido de importação preserva fingerprint; novo payload fora do contrato é recusado, inclusive reenvio antigo inválido, sem apagar recibos armazenados. Transferência já registrada recupera seu recibo sem normalizar o snapshot.
 Estoque e mínimo são inteiros seguros não negativos. Produtos exigem ambos;
 quando omitidos na criação, começam em zero. Serviços possuem ambos nulos e
 rejeitam valores de estoque. A conversão entre tipos exige enviar explicitamente
@@ -434,9 +451,7 @@ produtos: {
 }
 ```
 
-Use a URL do seu ambiente e a chave que corresponde ao workspace fixo da API.
-Clientes e Catálogo podem ser ativados independentemente. Não há credenciais
-privadas no frontend; a API continua limitada a testes em rede privada.
+Use a URL/configuração do seu ambiente; os exemplos LAN acima são de desenvolvimento sem auth. Clientes e Catálogo podem ser ativados independentemente, mas Vendas vinculadas exige as fontes compatíveis. Para contas reais, use a mesma origem HTTPS e a identidade verificada pelo servidor. Não há credenciais privadas no frontend.
 
 O painel de Produtos e Serviços informa conexão, falhas e oferece Recarregar
 ou Importar catálogo local. As duas ações de ajuste de estoque da interface
@@ -454,7 +469,7 @@ são importadas automaticamente.
 
 Vendas locais continuam registrando nome/preço como snapshots. Editar ou excluir
 um item remoto não reescreve vendas passadas. IDs entre módulos serão vinculados
-na etapa de Vendas; o financeiro continua local. Para rollback, desative somente
+na etapa de Vendas. Financeiro também tem adapter remoto na migration 007; sua fonte depende da configuração. Para rollback em desenvolvimento sem contas reais, desative somente
 `produtos` e preserve as tabelas/mapeamentos, evitando perda de dados remotos.
 
 Validação cobre produtos/serviços, conversão de tipo, conflitos de versão,
@@ -491,7 +506,7 @@ Criação recebe `operation_id` (UUID), `cliente_id`, `produto_id`, `data`,
 monetários usam Decimal e NUMERIC(15,2), são não negativos e têm até duas casas.
 O servidor calcula `valor = preco * quantidade - desconto`, rejeitando desconto
 acima do subtotal ou total acima do limite. Cliente e produto precisam pertencer
-ao workspace fixo do ambiente. Não são associados por nome.
+ao negócio da sessão autenticada, ou ao workspace fixo quando auth estiver desativada. Não são associados por nome.
 
 | Operação                  | Efeito de estoque                                                        |
 | ------------------------- | ------------------------------------------------------------------------ |
@@ -573,10 +588,10 @@ O snapshot local permanece na chave principal. Exportação inclui
 local. Restauração exige todos os módulos em modo local. Origem/mapeamento usam
 `socialmei-sale-origin-v1` e `socialmei-sale-links-v1`; preserve essas identidades.
 
-**Financeiro continua local e separado**: marcar como paga registra o status da
+**Financeiro é um módulo separado, local ou remoto conforme configuração**: marcar como paga registra o status da
 venda; não cria recebimento. Cancelar/excluir não apaga lançamentos financeiros.
 Não associe uma venda remota a lançamentos locais apenas porque têm o mesmo número.
-A migração e transação de recebimentos ficam para a próxima etapa.
+A migration 007 já implementa lançamentos e operações financeiras; ainda não cria recebimento automático ao pagar uma venda.
 
 Rollback: volte `vendas` para local, mantendo tabelas e registros remotos. Estoque
 já movimentado não é revertido pelo rollback de configuração; preserve backups e

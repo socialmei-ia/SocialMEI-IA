@@ -52,7 +52,13 @@ A extração separou responsabilidades em arquivos; não eliminou todos os acopl
 
 `socialmei-app-data-v2` guarda dados locais e preferências; os módulos configurados como remotos preservam seus snapshots originais nessa chave. `socialmei-inbox-local-v3` guarda estado local do atendimento. Perfil, temas, regras e vínculos locais de conversas têm chaves próprias. O backup JSON reúne chaves `socialmei-`/`socialmei_`, com validação antes da importação; não substitui o dump do PostgreSQL compartilhado.
 
-Campos como `clientes`, `nome` e `mensagem`, IDs existentes e classes antigas são contratos preservados. Novos nomes internos usam inglês; renomear dados persistidos exige migração. `sessionData` contém conversas/atividade de demonstração e não é uma fonte compartilhada entre usuários.
+Campos como `clientes`, `nome` e `mensagem`, IDs existentes e classes antigas são contratos preservados. Novos nomes internos usam inglês; renomear dados persistidos exige migração. `sessionData` não é fonte compartilhada de atendimento: os exemplos de conversas/atividade/notificações ficam somente no modo local/Pages. Com autenticação remota, esses arrays começam vazios; conversas locais, notas e rascunhos já salvos continuam preservados por identidade.
+
+## Contas reais e fronteira de negócio
+
+A autenticação é opt-in: `SOCIALMEI_AUTH_ENABLED=true`, persistência compartilhada e origem HTTPS válida. A migration 010 prepara credenciais Argon2id, sessões, convites, limites e auditoria de contas. Sessões usam cookie Secure/HttpOnly/SameSite=Lax; escritas humanas validam Origin e CSRF. O servidor resolve o workspace pela sessão e associação em `workspace_members`, não por um ID enviado pelo navegador. Administrador da plataforma é distinto dos papéis de negócio. O gateway Basic permanece como proteção adicional da equipe, sem substituir contas individuais.
+
+Com autenticação desativada, o modo legado/local continua usando o workspace fixo do ambiente; não é isolamento entre MEIs individuais. Flag inválido bloqueia o acesso. Login/cadastro por convite, sessão, revogação e administração existem; recuperação por e-mail, OAuth Google, onboarding compartilhado e atendimento por canal ainda têm etapas próprias. Chaves privadas não ficam em `config.js`.
 
 ## Caixa Unificada e n8n
 
@@ -71,7 +77,13 @@ Export inativo não significa workflow inativo na VPS: Git e ambiente remoto sã
 
 PostgreSQL 16 atende o banco interno do n8n e o schema funcional `socialmei` com `clientes`, `conversas`, `mensagens`. `bootstrap.sql` exige a role `socialmei_admin` previamente criada. `permissions.sql` prepara `socialmei_app`, sem senha versionada, e cita explicitamente o banco `n8n`.
 
-Esses scripts de atendimento são distintos das migrations incrementais de gestão em `database/migrations/`. O ambiente local usa `npm run db:migrate`; a equipe usa `team-migrate` antes da API. O workspace é escolhido pelo servidor, não pelo usuário do navegador; não há autorização por negócio ou isolamento por usuário da aplicação. Os grants do bootstrap legado pressupõem tabelas criadas por `socialmei_admin`. Veja [docs/BANCO-DE-DADOS.md](docs/BANCO-DE-DADOS.md).
+Esses scripts legados de atendimento são distintos das migrations incrementais de gestão em `database/migrations/`. O ambiente local usa `npm run db:migrate`; a equipe usa o migrador de `compose.team.yaml` em aplicação controlada. Migrations 002–008 cobrem CRM/importações/operações/transferência, 009 prepara canais por workspace e 010 cobre contas. Contas autenticadas possuem fronteira de negócio no servidor; o workspace fixo descreve somente o modo sem autenticação. Os grants do bootstrap legado pressupõem tabelas criadas por `socialmei_admin` e não são prova dos grants atuais da pilha team. Veja [docs/BANCO-DE-DADOS.md](docs/BANCO-DE-DADOS.md).
+
+### Saúde operacional
+
+`/health` é liveness do processo. `/health/db` é readiness do schema/CRM: consulta somente leitura, versões registradas 001–008 e campos usados pelo CRM. Se auth estiver ativada, exige configuração válida, migration 010 e colunas/tabelas de contas; falha retorna 503 sanitizado. Auth desativada informa `schema: not_checked`, sem exigir a migration 010.
+
+`capabilities.channels.schema` informa `prepared` apenas com migration 009 e consultas de estrutura disponíveis, ou `unavailable`; essa capacidade opcional não derruba o CRM. `connection: not_checked` não certifica sessão WAHA, webhook, adaptador ou envio. `ready` não é teste de login, grants de escrita completos, índices/constraints ou garantia de desempenho. `doctor` usa o mesmo endpoint HTTP da API e exige CRM healthy/shared_data true. Nenhuma consulta cria workspace, lê linhas de credenciais ou altera registros.
 
 ## Infraestrutura
 
@@ -81,6 +93,8 @@ Os hosts WAHA/FastAPI podem ser configurados por ambiente, com fallback para os 
 
 O script `backup.sh` descobre o volume real do n8n, gera dump/configuração e arquiva dados do n8n com parada temporária. Não faz backup dos volumes WAHA/pgAdmin/Caddy, nem fornece snapshot atômico entre banco e arquivos.
 
-`compose.team.yaml` cria banco, API, migrador e gateway separados, sem portas publicadas. A API da equipe só é exposta pelo proxy/gateway; seu CRUD não possui login próprio. O gateway exige Basic auth nas rotas humanas. Somente cinco rotas GET técnicas de leitura aceitam Bearer na API; o token não abre o site nem autoriza escrita.
+`compose.team.yaml` cria banco, API, migrador e gateway separados, sem portas publicadas. A API da equipe só é exposta pelo proxy/gateway; contas individuais são ativadas por configuração privada, conforme a seção de autenticação. O gateway exige Basic auth nas rotas humanas. Somente cinco rotas GET técnicas de leitura aceitam Bearer na API; o token não autentica um MEI, abre o site ou autoriza escrita.
+
+Os três ambientes são diferentes: Pages/local preserva o demo; `compose.dev.yaml` usa banco e portas de desenvolvimento; `compose.team.yaml` usa banco/volumes/API/gateway próprios. O Compose legado e seus overlays continuam separados. Código no Git não prova a imagem instalada: consulte os registros datados em [docs/REMEDIATION-STATUS.md](docs/REMEDIATION-STATUS.md). A05/A06 não altera workflows de deploy nem aplica mudanças automaticamente à VPS.
 
 `tools/team-maintenance.py` faz backup do banco/configuração da equipe sem interrupção, confere o índice e hashes e pode agendar uma execução diária. A restauração é exercitada em banco isolado no CI. Cópias na própria instância exigem armazenamento externo para proteger contra perda do host. Veja [docs/OPERACAO-EQUIPE.md](docs/OPERACAO-EQUIPE.md).

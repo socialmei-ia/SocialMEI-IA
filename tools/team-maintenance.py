@@ -427,7 +427,13 @@ def doctor():
     environment()
     run(compose("config", "--quiet"))
     print(run(compose("ps", "--all")).decode())
-    script = "import json; from shared_data import database_health_payload; print(json.dumps(database_health_payload()))"
+    script = (
+        "import json, urllib.request\n"
+        "payload=json.load(urllib.request.urlopen('http://127.0.0.1:8000/health/db', timeout=10))\n"
+        "if payload.get('status') != 'healthy' or payload.get('shared_data') is not True: "
+        "raise SystemExit('CRM compartilhado indisponivel.')\n"
+        "print(json.dumps(payload))"
+    )
     print(
         run(compose("exec", "-T", "team-api", "python", "-c", script)).decode().strip()
     )
