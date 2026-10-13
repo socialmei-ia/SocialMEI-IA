@@ -431,18 +431,30 @@ details[open] > :not(summary) {
   z-index: 55;
   border-radius: 16px;
 }
-.utility-menu > .btn,
-.utility-menu > .dd > .btn {
+.utility-menu > .btn.ib,
+.utility-menu > .dd > .btn.ib {
   justify-content: flex-start;
   width: 100%;
+}
+.utility-menu > .btn.ib > svg,
+.utility-menu > .dd > .btn.ib > svg {
+  flex: none;
 }
 .utility-menu .mnu {
   top: 0;
   right: calc(100% + 8px);
 }
-.utility-menu .dd .btn::after {
+.utility-menu > .btn.ib::after,
+.utility-menu > .dd > .btn.ib::after {
+  flex: 1;
   font-size: 14px;
   margin-left: 4px;
+  text-align: left;
+  white-space: nowrap;
+}
+.utility-menu .notify-dot {
+  flex: none;
+  order: 1;
 }
 #globalSearchBtn::after {
   content: "Buscar no negócio";
