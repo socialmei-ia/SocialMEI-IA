@@ -58,6 +58,7 @@
     <link href="assets/brand-icon.png" rel="icon" type="image/png" />
     <link rel="stylesheet" href="styles/socialmei.css" />
     <link rel="stylesheet" href="styles/account-ui.css" />
+    <link rel="stylesheet" href="styles/interaction-components.css" />
     <script src="scripts/storage-and-themes.js"></script>
     <script src="scripts/motion.js"></script>
 
@@ -291,7 +292,7 @@ LANDING — HTML
           <section class="landing-hero" id="xpHero">
             <div class="landing-hero-copy">
               <span class="landing-kicker" data-hero-reveal style="--hero-delay: 150ms"
-                >Cada conversa pode virar negócio</span
+                >Seu CRM, no ritmo do pequeno negócio</span
               >
               <h1>
                 <span class="hero-line"
@@ -318,8 +319,8 @@ LANDING — HTML
                 >
               </h1>
               <p data-hero-reveal style="--hero-delay: 450ms">
-                Do primeiro “oi” ao pagamento, clientes, vendas, atendimento e automações seguem
-                juntos.
+                Clientes, vendas, financeiro e o contexto dos atendimentos em um só espaço para quem
+                empreende.
               </p>
               <div class="landing-hero-actions">
                 <button
@@ -402,7 +403,12 @@ LANDING — HTML
                     <div class="landing-progress"><span style="width: 100%"></span></div>
                   </div>
                 </article>
-                <article class="landing-showcase-card" data-hero-reveal style="--hero-delay: 800ms">
+                <article
+                  class="landing-showcase-card"
+                  data-hero-reveal
+                  data-spotlight
+                  style="--hero-delay: 800ms"
+                >
                   <div class="landing-card-chrome">
                     <span class="landing-card-dots"><i></i><i></i><i></i></span
                     ><span class="landing-card-title">Caixa Unificada</span>
@@ -1312,7 +1318,7 @@ LANDING — HTML
                 </p>
               </div>
               <div class="landing-automation">
-                <div class="landing-surface" data-reveal="scale">
+                <div class="landing-surface" data-reveal="scale" data-spotlight>
                   <div class="landing-ui-head">
                     <div class="landing-flow-heading">
                       <span class="landing-flow-icon"
@@ -1446,7 +1452,7 @@ LANDING — HTML
                 está acontecendo.
               </p>
             </div>
-            <div class="landing-ai landing-surface" data-reveal="scale">
+            <div class="landing-ai landing-surface" data-reveal="scale" data-spotlight>
               <div class="landing-ai-context">
                 <div class="landing-stage-eyebrow">
                   <span class="landing-mini-dot"></span> O CONTEXTO VEM PRIMEIRO
@@ -2693,7 +2699,7 @@ HOME — HTML
               <div class="desk-opening">
                 <p id="clientHomeGreeting" class="client-home-greeting"></p>
                 <h2 id="clientHomeTitle">
-                  O que vamos<br />cuidar hoje?<span
+                  O que vamos cuidar hoje?<span
                     id="homeLiveIcon"
                     class="home-live-icon"
                     aria-hidden="true"
@@ -2732,7 +2738,8 @@ HOME — HTML
                 <div class="command-starters" aria-label="Comece por aqui">
                   <button data-home-go="Caixa Unificada">
                     Responder clientes <span id="homeActionInbox"></span></button
-                  ><button data-home-go="Vendas">Registrar venda <span>+</span></button
+                  ><button data-home-go="Vendas" data-home-create="venda">
+                    Registrar venda <span>+</span></button
                   ><button data-home-go="Automações">
                     Preparar rotina <span id="homeActionRules"></span>
                   </button>
@@ -2761,6 +2768,30 @@ HOME — HTML
                 id="homeNow"
                 aria-label="Conversa para continuar"
               ></section>
+              <section class="home-operations" aria-label="Prioridades e vendas do negócio">
+                <article class="home-operation-panel">
+                  <header class="home-operation-header">
+                    <div>
+                      <span class="chapter-label">PRÓXIMOS PASSOS</span>
+                      <h3>Precisa de atenção</h3>
+                    </div>
+                    <button class="lk" type="button" data-home-go="Visão Geral">
+                      Ver negócio →
+                    </button>
+                  </header>
+                  <ul class="home-operation-list" id="homeAttentionList"></ul>
+                </article>
+                <article class="home-operation-panel">
+                  <header class="home-operation-header">
+                    <div>
+                      <span class="chapter-label">NO SEU NEGÓCIO</span>
+                      <h3>Vendas recentes</h3>
+                    </div>
+                    <button class="lk" type="button" data-home-go="Vendas">Ver todas →</button>
+                  </header>
+                  <ul class="home-operation-list" id="homeRecentSales"></ul>
+                </article>
+              </section>
               <p class="desk-footer">Uma conversa. Uma venda. Um próximo passo.</p>
             </div>
           </section>
@@ -4092,5 +4123,7 @@ MODAIS E DRAWERS — HTML
     <script id="sm-v19-live-demos-script" src="scripts/landing-gallery.js"></script>
 
     <script id="sm-v24-context-motion" src="scripts/landing-interactions.js"></script>
+    <script src="scripts/password-strength.js"></script>
+    <script src="scripts/spotlight.js"></script>
   </body>
 </html>
