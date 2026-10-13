@@ -132,6 +132,13 @@
   --text-primary: #1c2b3a;
   --text-secondary: #526171;
   --text-muted: #657282;
+
+  --landing-bg: #f7f7f2;
+  --landing-surface: #ffffff;
+  --landing-surface-soft: #f0f1ed;
+  --landing-border: #dfe3e7;
+  --landing-text: #1c2b3a;
+  --landing-muted: #526171;
 }
 * {
   box-sizing: border-box;
@@ -1736,14 +1743,7 @@ details[open] > :not(summary) {
   align-self: start;
   gap: 5px;
 }
-.settings-nav button {
-  font-size: 14px;
-  border-radius: 12px;
-}
-.settings-nav button.active {
-  border-left: 3px solid var(--br);
-  background: var(--selected);
-}
+
 .section-title {
   font-size: var(--heading-sm);
   letter-spacing: var(--tracking-heading);
@@ -4298,13 +4298,9 @@ body.experience-app #experienceRoot {
   --ease-reveal: cubic-bezier(0.22, 1, 0.36, 1);
   --blur-small: 4px;
   --blur-text: 8px;
-  --landing-bg: #fbfbf9;
+
   --landing-bg-alt: #f1f4f7;
-  --landing-surface: #fff;
-  --landing-surface-soft: #f5f7fa;
-  --landing-text: #142136;
-  --landing-muted: #59667a;
-  --landing-border: #dde3eb;
+
   --landing-shadow: 0 22px 64px rgba(19, 39, 70, 0.09);
   --landing-shadow-soft: 0 8px 30px rgba(19, 39, 70, 0.05);
   --landing-kicker: #1b65bf;
@@ -4315,18 +4311,20 @@ body.experience-app #experienceRoot {
   --landing-success-soft: #eaf7ef;
 }
 :root[data-public-theme="dark"] {
-  --landing-bg: #081321;
   --landing-bg-alt: #0d1a2d;
-  --landing-surface: #102039;
-  --landing-surface-soft: #152941;
-  --landing-text: #f0f5fc;
-  --landing-muted: #acbdd3;
-  --landing-border: #283d58;
+
   --landing-shadow: 0 22px 64px rgba(0, 7, 20, 0.25);
   --landing-shadow-soft: 0 8px 30px rgba(0, 7, 20, 0.15);
   --landing-kicker: #92c2ff;
   --landing-success: #8fe0b0;
   --landing-success-soft: #153c31;
+
+  --landing-bg: #0c1624;
+  --landing-surface: #142134;
+  --landing-surface-soft: #1b2b42;
+  --landing-border: #304057;
+  --landing-text: #eef3fa;
+  --landing-muted: #b6c4d5;
 }
 .landing-page {
   background: var(--landing-bg);
@@ -4344,7 +4342,6 @@ body.experience-app #experienceRoot {
   border-color: var(--landing-border);
   background: var(--landing-surface);
   color: var(--landing-text);
-  border-radius: 999px;
 }
 .landing-page .landing-button--primary {
   background: var(--landing-cta);
@@ -4601,9 +4598,7 @@ body.experience-app #experienceRoot {
 .landing-showcase-card {
   position: absolute;
   background: var(--landing-surface);
-  border: 1px solid var(--landing-border);
-  border-radius: 18px;
-  box-shadow: var(--landing-shadow);
+
   overflow: hidden;
   color: var(--landing-text);
   transform: rotate(var(--card-rotate, 0deg));
@@ -4614,6 +4609,10 @@ body.experience-app #experienceRoot {
     clip-path var(--motion-mask) var(--ease-reveal),
     box-shadow var(--motion-medium);
   clip-path: inset(0 round 18px);
+
+  border: 1px solid var(--landing-border);
+  border-radius: 22px;
+  box-shadow: 0 20px 56px rgb(15 30 55 / 10%);
 }
 .landing-showcase-card:nth-child(1) {
   top: 72px;
@@ -4697,11 +4696,7 @@ body.experience-app #experienceRoot {
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: color-mix(
-    in srgb,
-    var(--landing-kicker) 14%,
-    var(--landing-surface)
-  );
+  background: color-mix(in srgb, var(--landing-kicker) 14%, var(--landing-surface));
   color: var(--landing-kicker);
   font-size: var(--text-xs);
   font-weight: 700;
@@ -4764,19 +4759,11 @@ body.experience-app #experienceRoot {
   white-space: nowrap;
 }
 .landing-status.blue {
-  background: color-mix(
-    in srgb,
-    var(--landing-kicker) 12%,
-    var(--landing-surface)
-  );
+  background: color-mix(in srgb, var(--landing-kicker) 12%, var(--landing-surface));
   color: var(--landing-kicker);
 }
 .landing-status.amber {
-  background: color-mix(
-    in srgb,
-    var(--landing-accent) 16%,
-    var(--landing-surface)
-  );
+  background: color-mix(in srgb, var(--landing-accent) 16%, var(--landing-surface));
   color: var(--landing-text);
 }
 .landing-money {
@@ -5006,8 +4993,7 @@ body.experience-app #experienceRoot {
   transform: translateY(14px) scale(0.985);
 }
 .js-motion-ready .landing-showcase-card[data-hero-reveal]:not(.is-visible) {
-  transform: translateY(var(--arrive-y, 30px)) rotate(var(--card-rotate, 0deg))
-    scale(0.97);
+  transform: translateY(var(--arrive-y, 30px)) rotate(var(--card-rotate, 0deg)) scale(0.97);
   clip-path: inset(8% 2% 0 round 18px);
 }
 .js-motion-ready .landing-integration-rail[data-hero-reveal]:not(.is-visible) {
@@ -5067,11 +5053,7 @@ body.experience-app #experienceRoot {
   height: 0.86em;
   margin: 0 0.03em;
   border-radius: 0.24em;
-  background: color-mix(
-    in srgb,
-    var(--landing-kicker) 12%,
-    var(--landing-surface)
-  );
+  background: color-mix(in srgb, var(--landing-kicker) 12%, var(--landing-surface));
   color: var(--landing-kicker);
   transform: rotate(-7deg);
 }
@@ -5091,11 +5073,13 @@ body.experience-app #experienceRoot {
 }
 .landing-surface {
   background: var(--landing-surface);
-  border: 1px solid var(--landing-border);
-  border-radius: 18px;
-  box-shadow: var(--landing-shadow);
+
   overflow: hidden;
   min-width: 0;
+
+  border: 1px solid var(--landing-border);
+  border-radius: 22px;
+  box-shadow: 0 8px 28px rgb(15 30 55 / 4%);
 }
 .landing-ui-head {
   display: flex;
@@ -5132,11 +5116,7 @@ body.experience-app #experienceRoot {
   font-size: 12px;
   font-weight: 650;
   color: var(--landing-kicker);
-  background: color-mix(
-    in srgb,
-    var(--landing-kicker) 12%,
-    var(--landing-surface)
-  );
+  background: color-mix(in srgb, var(--landing-kicker) 12%, var(--landing-surface));
 }
 .landing-person {
   display: flex;
@@ -5321,11 +5301,7 @@ body.experience-app #experienceRoot {
   color: var(--landing-muted);
 }
 .landing-channel-tabs button[aria-pressed="true"] {
-  background: color-mix(
-    in srgb,
-    var(--landing-kicker) 10%,
-    var(--landing-surface)
-  );
+  background: color-mix(in srgb, var(--landing-kicker) 10%, var(--landing-surface));
   color: var(--landing-kicker);
   border-color: var(--landing-kicker);
 }
@@ -5389,11 +5365,7 @@ body.experience-app #experienceRoot {
 }
 .landing-bubble.out {
   align-self: flex-end;
-  background: color-mix(
-    in srgb,
-    var(--landing-kicker) 10%,
-    var(--landing-surface)
-  );
+  background: color-mix(in srgb, var(--landing-kicker) 10%, var(--landing-surface));
   border-radius: 14px 3px 14px 14px;
 }
 .landing-bubble small {
@@ -5558,11 +5530,7 @@ body.experience-app #experienceRoot {
 .landing-report-bars i {
   flex: 1;
   height: var(--bar-height);
-  background: color-mix(
-    in srgb,
-    var(--landing-kicker) 30%,
-    var(--landing-surface)
-  );
+  background: color-mix(in srgb, var(--landing-kicker) 30%, var(--landing-surface));
   border-radius: 4px 4px 0 0;
   transform-origin: bottom;
 }
@@ -5587,9 +5555,9 @@ body.experience-app #experienceRoot {
 }
 .landing-rule-grid > div {
   border: 1px solid var(--landing-border);
-  border-radius: 12px;
+
   padding: 20px;
-  background: var(--landing-surface-soft);
+
   position: relative;
   z-index: 1;
 }
@@ -5654,8 +5622,10 @@ body.experience-app #experienceRoot {
   max-width: 1000px;
   margin: auto;
   display: grid;
-  grid-template-columns: 1fr 1.05fr;
+
   background: var(--landing-surface);
+
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
 }
 .landing-ai-context {
   padding: 36px;
@@ -5693,19 +5663,17 @@ body.experience-app #experienceRoot {
 .landing-ai-actions button[aria-pressed="true"] {
   color: var(--landing-kicker);
   border-color: var(--landing-kicker);
-  background: color-mix(
-    in srgb,
-    var(--landing-kicker) 8%,
-    var(--landing-surface)
-  );
+  background: color-mix(in srgb, var(--landing-kicker) 8%, var(--landing-surface));
 }
 .landing-ai-result {
-  padding: 22px;
-  background: var(--landing-surface-soft);
-  border-radius: 12px;
   min-height: 162px;
   font-size: 14px;
   line-height: 1.7;
+
+  border-radius: 16px;
+  background: var(--landing-surface-soft);
+  border: 1px solid var(--landing-border);
+  padding: 24px;
 }
 .landing-ai-result small {
   color: var(--landing-kicker);
@@ -5965,8 +5933,7 @@ body.experience-app #experienceRoot {
   .landing-showcase-card.is-visible:hover {
     transform: rotate(var(--card-rotate, 0deg)) translateY(-5px);
     z-index: 12;
-    box-shadow: 0 28px 64px
-      color-mix(in srgb, var(--landing-text) 13%, transparent);
+    box-shadow: 0 28px 64px color-mix(in srgb, var(--landing-text) 13%, transparent);
     transition-delay: 0ms;
   }
   .landing-collection > article:hover {
@@ -6048,8 +6015,7 @@ body.experience-app #experienceRoot {
     margin: 10px auto 0;
     border-radius: 14px;
   }
-  .js-motion-ready
-    .landing-integration-rail[data-hero-reveal]:not(.is-visible) {
+  .js-motion-ready .landing-integration-rail[data-hero-reveal]:not(.is-visible) {
     transform: translateY(12px);
   }
   .landing-inbox {
@@ -6619,13 +6585,16 @@ body.experience-app #experienceRoot {
   stroke-width: 1.7;
 }
 .authentication-shell {
-  max-width: 1060px;
   margin: 36px auto 0;
   display: grid;
   grid-template-columns: minmax(0, 440px) minmax(0, 1fr);
-  gap: clamp(40px, 7vw, 100px);
-  align-items: center;
+
   min-height: 670px;
+
+  gap: clamp(40px, 6vw, 88px);
+  max-width: 1120px;
+  align-items: start;
+  margin-top: 40px;
 }
 .authentication-form-wrap {
   min-width: 0;
@@ -6636,13 +6605,16 @@ body.experience-app #experienceRoot {
 .authentication-tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  background: var(--surface-secondary);
-  padding: 4px;
+
   border: 1px solid var(--ln);
-  border-radius: var(--r-md);
-  margin-bottom: 28px;
+
   position: relative;
   isolation: isolate;
+
+  border-radius: 12px;
+  padding: 4px;
+  background: var(--surface-secondary);
+  margin-bottom: 28px;
 }
 .authentication-tabs::before {
   content: "";
@@ -6695,11 +6667,12 @@ body.experience-app #experienceRoot {
   pointer-events: auto;
 }
 .authentication-panel h1 {
-  font-size: clamp(30px, 2.8vw, 38px);
-  letter-spacing: -0.045em;
   line-height: 1.15;
   margin-bottom: 12px;
-  font-weight: 600;
+
+  font-size: clamp(30px, 2.7vw, 38px);
+  font-weight: 620;
+  letter-spacing: -0.04em;
 }
 .authentication-panel > p {
   color: var(--mt);
@@ -6729,16 +6702,20 @@ body.experience-app #experienceRoot {
 .experience-field input,
 .experience-field select {
   width: 100%;
-  min-height: 50px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--r-sm);
+
   padding: 11px 13px;
-  background: var(--sf);
+
   color: var(--tx);
   transition:
     border-color var(--motion-fast) var(--ease-standard),
     box-shadow var(--motion-base) var(--ease-out),
     background-color var(--motion-fast) var(--ease-standard);
+
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  min-height: 48px;
+  box-shadow: none;
 }
 .experience-field input:hover,
 .experience-field select:hover {
@@ -6746,9 +6723,10 @@ body.experience-app #experienceRoot {
 }
 .experience-field input:focus,
 .experience-field select:focus {
-  border-color: var(--focus-ring);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 12%, transparent);
   outline: 0;
+
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px var(--brand-primary-soft);
 }
 .experience-field input[aria-invalid="true"] {
   border-color: var(--danger);
@@ -6885,10 +6863,11 @@ body.experience-app #experienceRoot {
   font-size: var(--text-base);
 }
 .authentication-art-copy h2 {
-  font-size: clamp(24px, 2.4vw, 32px);
-  letter-spacing: -0.035em;
-  line-height: 1.2;
   margin: 12px 0 14px;
+
+  font-size: clamp(30px, 3vw, 42px);
+  line-height: 1.15;
+  letter-spacing: -0.04em;
 }
 .authentication-art .landing-kicker {
   font-size: 12px;
@@ -7027,6 +7006,10 @@ body.experience-app #experienceRoot {
   grid-template-columns: minmax(0, 1fr) 330px;
   gap: 60px;
   align-items: start;
+
+  border-radius: 22px;
+  border: 1px solid var(--border);
+  box-shadow: none;
 }
 .onboarding-main {
   min-width: 0;
@@ -7631,8 +7614,7 @@ body.experience-app #experienceRoot {
   --internal-group: color-mix(in srgb, var(--background) 65%, var(--surface));
   --internal-elevated: var(--surface-elevated);
   --internal-line: color-mix(in srgb, var(--border) 72%, transparent);
-  --internal-shadow: 0 5px 22px
-    color-mix(in srgb, var(--text-primary) 4%, transparent);
+  --internal-shadow: 0 5px 22px color-mix(in srgb, var(--text-primary) 4%, transparent);
 
   --display-workspace: clamp(32px, 3.6vw, 52px);
   --internal-title: clamp(28px, 2.8vw, 38px);
@@ -8436,10 +8418,11 @@ body.experience-app #experienceRoot {
   --internal-card-radius: var(--internal-radius);
 }
 .experience-app :is(#nvShell, .management-view) .management-header h2 {
-  font-size: var(--internal-title);
-  font-weight: 550;
-  letter-spacing: -0.055em;
   line-height: 1.12;
+
+  font-size: var(--internal-title);
+  font-weight: 600;
+  letter-spacing: -0.045em;
 }
 .experience-app :is(#nvShell, .management-view) .management-header p {
   margin-top: 10px;
@@ -8465,23 +8448,28 @@ body.experience-app #experienceRoot {
   margin-bottom: 14px;
 }
 .experience-app .page-view .management-tools {
-  gap: 10px;
-  padding: 18px 22px;
   border-color: var(--internal-line);
-  background: transparent;
+
+  padding: 18px 20px;
+  gap: 10px;
+  background: var(--surface);
 }
 .experience-app .page-view .management-table th {
-  background: transparent;
-  padding: 14px 22px;
-  font-size: 11px;
-  letter-spacing: 0.045em;
-  font-weight: 550;
   white-space: nowrap;
   border-color: var(--internal-line);
+
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.055em;
+  padding: 14px 20px;
+  background: var(--surface-secondary);
+  color: var(--text-secondary);
 }
 .experience-app .page-view .management-table td {
-  padding: 13px 22px;
   border-color: var(--internal-line);
+
+  font-size: 14px;
+  padding: 16px 20px;
   line-height: 1.5;
 }
 .experience-app .page-view .management-table tbody tr {
@@ -8489,11 +8477,7 @@ body.experience-app #experienceRoot {
   transition: background-color var(--internal-motion-micro);
 }
 .experience-app .page-view .management-table tbody tr:hover,
-.experience-app
-  .page-view
-  .management-table
-  tbody
-  tr:has(.row-action:focus-visible) {
+.experience-app .page-view .management-table tbody tr:has(.row-action:focus-visible) {
   background: var(--hover);
 }
 /* Linha inteira clicável: o alvo do nome se estende pela linha, ações ficam acima. */
@@ -8544,13 +8528,7 @@ body.experience-app #experienceRoot {
     border-color var(--internal-motion-micro),
     background-color var(--internal-motion-micro);
 }
-.experience-app
-  .page-view
-  .management-table
-  tbody
-  tr:hover
-  .act
-  .management-button.sm,
+.experience-app .page-view .management-table tbody tr:hover .act .management-button.sm,
 .experience-app .page-view .management-ledger-row:hover > .management-button.sm,
 .experience-app
   .page-view
@@ -8584,13 +8562,7 @@ body.experience-app #experienceRoot {
     color var(--internal-motion-micro),
     background-color var(--internal-motion-micro);
 }
-.experience-app
-  .page-view
-  .management-table
-  tbody
-  tr:hover
-  .management-contact
-  .av {
+.experience-app .page-view .management-table tbody tr:hover .management-contact .av {
   color: var(--brand-primary-text);
   background: var(--brand-primary-soft);
 }
@@ -8700,8 +8672,7 @@ body.experience-app #experienceRoot {
 }
 @media (prefers-reduced-motion: no-preference) {
   #kp.is-period-reveal .management-kpi > b {
-    animation: internalValueReveal var(--internal-motion-state)
-      var(--ease-enter) backwards;
+    animation: internalValueReveal var(--internal-motion-state) var(--ease-enter) backwards;
   }
   #kp.is-period-reveal .management-sparkline {
     animation: internalFadeReveal 320ms var(--ease-enter) 60ms backwards;
@@ -8726,11 +8697,14 @@ body.experience-app #experienceRoot {
 }
 .internal-metric > b {
   font-size: 28px;
-  font-weight: 550;
+
   letter-spacing: -0.045em;
   line-height: 1.15;
-  font-variant-numeric: tabular-nums;
+
   overflow-wrap: anywhere;
+
+  font-weight: 580;
+  font-variant-numeric: tabular-nums;
 }
 .internal-metric--primary > b {
   font-size: clamp(38px, 4vw, 60px);
@@ -8740,9 +8714,7 @@ body.experience-app #experienceRoot {
   font-size: 12px;
 }
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
-  .experience-app
-    :is(.page-view, #nvShell)
-    .management-button:hover:not(:disabled) {
+  .experience-app :is(.page-view, #nvShell) .management-button:hover:not(:disabled) {
     transform: translateY(-1px);
     box-shadow: var(--internal-shadow);
   }
@@ -9786,10 +9758,12 @@ body.experience-app #experienceRoot {
 }
 #automationsView #automationFeature {
   container: rule-feature / inline-size;
-  padding: 34px 36px 38px;
-  background: var(--internal-group);
-  border: 1px solid var(--internal-line);
-  border-radius: var(--internal-radius);
+
+  padding: 28px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: none;
 }
 #automationsView .rule-feature-head {
   display: flex;
@@ -9805,11 +9779,14 @@ body.experience-app #experienceRoot {
 }
 #automationsView .rule-feature-title h3 {
   margin: 0;
-  font-size: clamp(22px, 2.3vw, 30px);
-  font-weight: 600;
+
   line-height: 1.2;
-  letter-spacing: -0.035em;
+
   overflow-wrap: anywhere;
+
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.035em;
 }
 #automationsView .rule-feature-title .pill {
   justify-self: start;
@@ -9841,15 +9818,18 @@ body.experience-app #experienceRoot {
   align-content: start;
   gap: 6px;
   min-height: 172px;
-  padding: 24px 26px 28px;
-  border: 1px solid var(--internal-line);
-  border-radius: 14px;
-  background: var(--surface);
+
   counter-increment: workflow;
   transition:
     transform var(--internal-motion-micro) var(--ease-out),
     border-color var(--internal-motion-micro),
     background-color var(--internal-motion-micro);
+
+  padding: 22px;
+  background: var(--surface-secondary);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: none;
 }
 #automationsView .management-rule-step::before {
   content: counter(workflow, decimal-leading-zero);
@@ -9877,19 +9857,17 @@ body.experience-app #experienceRoot {
   color: var(--text-muted);
 }
 #automationsView .management-rule-step > b {
-  font-size: 17px;
-  line-height: 1.45;
-  font-weight: 600;
   letter-spacing: -0.02em;
   text-wrap: pretty;
   overflow-wrap: anywhere;
+
+  font-size: 16px;
+  line-height: 1.45;
+  font-weight: 580;
 }
 #automationsView .management-rule-step:last-child {
-  border-color: color-mix(
-    in srgb,
-    var(--brand-primary) 30%,
-    var(--internal-line)
-  );
+  background: var(--brand-primary-subtle);
+  border-color: color-mix(in srgb, var(--brand-primary) 35%, var(--border));
 }
 #automationsView .management-rule-link {
   position: relative;
@@ -9903,11 +9881,7 @@ body.experience-app #experienceRoot {
   right: 8px;
   top: 50%;
   height: 1px;
-  background: color-mix(
-    in srgb,
-    var(--brand-primary) 42%,
-    var(--internal-line)
-  );
+  background: color-mix(in srgb, var(--brand-primary) 42%, var(--internal-line));
   transform-origin: left;
 }
 #automationsView .management-rule-link::after {
@@ -9918,20 +9892,14 @@ body.experience-app #experienceRoot {
   width: 7px;
   height: 7px;
   margin-top: -3.5px;
-  border-top: 1px solid
-    color-mix(in srgb, var(--brand-primary) 55%, var(--internal-line));
-  border-right: 1px solid
-    color-mix(in srgb, var(--brand-primary) 55%, var(--internal-line));
+  border-top: 1px solid color-mix(in srgb, var(--brand-primary) 55%, var(--internal-line));
+  border-right: 1px solid color-mix(in srgb, var(--brand-primary) 55%, var(--internal-line));
   transform: rotate(45deg);
 }
 @media (hover: hover) and (pointer: fine) {
   #automationsView .management-rule-step:hover {
     transform: translateY(-2px);
-    border-color: color-mix(
-      in srgb,
-      var(--brand-primary) 38%,
-      var(--internal-line)
-    );
+    border-color: color-mix(in srgb, var(--brand-primary) 38%, var(--internal-line));
     background: color-mix(in srgb, var(--brand-primary) 3%, var(--surface));
   }
   #automationsView .management-rule-step:hover > .i {
@@ -9971,9 +9939,7 @@ body.experience-app #experienceRoot {
   }
 }
 @media (prefers-reduced-motion: no-preference) {
-  #automationsView
-    .management-rule-flow[data-reveal="enter"]
-    > .management-rule-step {
+  #automationsView .management-rule-flow[data-reveal="enter"] > .management-rule-step {
     animation: internalWorkflowNode 320ms var(--ease-enter) backwards;
   }
   #automationsView .management-rule-flow[data-reveal="enter"] > :nth-child(3) {
@@ -9984,24 +9950,16 @@ body.experience-app #experienceRoot {
     animation-delay: 560ms;
     animation-name: internalWorkflowFade;
   }
-  #automationsView
-    .management-rule-flow[data-reveal="enter"]
-    > .management-rule-link::before {
+  #automationsView .management-rule-flow[data-reveal="enter"] > .management-rule-link::before {
     animation: internalWorkflowLine 220ms var(--ease-enter) 200ms backwards;
   }
-  #automationsView
-    .management-rule-flow[data-reveal="enter"]
-    > .management-rule-link::after {
+  #automationsView .management-rule-flow[data-reveal="enter"] > .management-rule-link::after {
     animation: internalWorkflowFade 160ms var(--ease-enter) 340ms backwards;
   }
-  #automationsView
-    .management-rule-flow[data-reveal="enter"]
-    > :nth-child(4)::before {
+  #automationsView .management-rule-flow[data-reveal="enter"] > :nth-child(4)::before {
     animation-delay: 440ms;
   }
-  #automationsView
-    .management-rule-flow[data-reveal="enter"]
-    > :nth-child(4)::after {
+  #automationsView .management-rule-flow[data-reveal="enter"] > :nth-child(4)::after {
     animation-delay: 580ms;
   }
   #automationsView .management-rule-flow[data-reveal="switch"] {
@@ -10010,9 +9968,7 @@ body.experience-app #experienceRoot {
 }
 @container rule-feature (max-width: 640px) {
   @media (prefers-reduced-motion: no-preference) {
-    #automationsView
-      .management-rule-flow[data-reveal="enter"]
-      > .management-rule-link::before {
+    #automationsView .management-rule-flow[data-reveal="enter"] > .management-rule-link::before {
       animation-name: internalWorkflowLineVertical;
     }
   }
@@ -10084,19 +10040,24 @@ body.experience-app #experienceRoot {
   align-items: center;
   column-gap: 20px;
   row-gap: 3px;
-  padding: 20px 0;
+
   border: 0;
   border-bottom: 1px solid var(--internal-line);
+
+  transition: border-color var(--internal-motion-micro);
+
+  padding: 22px 0;
   border-radius: 0;
   background: transparent;
-  transition: border-color var(--internal-motion-micro);
 }
 #automationsView .management-model h4 {
   grid-area: name;
   margin: 0;
-  font-size: 15px;
-  font-weight: 600;
+
   letter-spacing: -0.015em;
+
+  font-size: 14px;
+  font-weight: 580;
 }
 #automationsView .management-model .management-note {
   grid-area: desc;
@@ -10116,11 +10077,7 @@ body.experience-app #experienceRoot {
   grid-area: action;
   align-self: center;
   background: transparent;
-  border-color: color-mix(
-    in srgb,
-    var(--brand-primary) 32%,
-    var(--internal-line)
-  );
+  border-color: color-mix(in srgb, var(--brand-primary) 32%, var(--internal-line));
   color: var(--brand-primary-text);
   transition:
     background-color var(--internal-motion-micro),
@@ -10128,19 +10085,11 @@ body.experience-app #experienceRoot {
 }
 @media (hover: hover) and (pointer: fine) {
   #automationsView .management-model:hover {
-    border-bottom-color: color-mix(
-      in srgb,
-      var(--brand-primary) 30%,
-      var(--internal-line)
-    );
+    border-bottom-color: color-mix(in srgb, var(--brand-primary) 30%, var(--internal-line));
   }
   #automationsView .management-model:hover .management-button {
     background: var(--brand-primary-subtle);
-    border-color: color-mix(
-      in srgb,
-      var(--brand-primary) 55%,
-      var(--internal-line)
-    );
+    border-color: color-mix(in srgb, var(--brand-primary) 55%, var(--internal-line));
   }
 }
 #automationsView .management-table td {
@@ -10168,10 +10117,7 @@ body.experience-app #experienceRoot {
 #automationsView .management-table .pill {
   font-size: 12px;
 }
-#automationsView
-  .management-table
-  tbody
-  tr:has(.row-action[aria-pressed="true"]) {
+#automationsView .management-table tbody tr:has(.row-action[aria-pressed="true"]) {
   background: color-mix(in srgb, var(--brand-primary) 4%, transparent);
   box-shadow: inset 2px 0 0 var(--brand-primary);
 }
@@ -11037,26 +10983,32 @@ body.experience-app #experienceRoot {
   padding: 0;
 }
 .settings-nav button {
-  min-height: 48px;
   text-align: left;
-  padding: 12px 16px;
-  border-radius: 10px;
-  font-size: 15px;
+
   font-weight: 500;
   color: var(--mt);
+
+  font-size: 13px;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 10px;
 }
 .settings-nav button.active {
-  background: var(--bs);
-  color: var(--bi);
-  border-left: 3px solid var(--brand-accent);
+  border-left: 0;
+  background: var(--brand-primary-soft);
+  font-weight: 600;
+  color: var(--brand-primary-text);
 }
 .preferences-panel {
-  padding: 36px;
   background: var(--sf);
-  border: 1px solid var(--ln);
-  border-radius: var(--panel-radius);
+
   min-height: 440px;
   align-self: start;
+
+  padding: 28px;
+  border-radius: 20px;
+  box-shadow: none;
+  border: 1px solid var(--border);
 }
 .preferences-panel .section-title {
   font-size: 28px;
@@ -11113,9 +11065,7 @@ body.experience-app #experienceRoot {
   letter-spacing: -0.035em;
 }
 #inboxView .context-card h4 {
-  font-size: 12px;
   color: var(--text-secondary);
-  letter-spacing: 0.02em;
 }
 #inboxView .context-next {
   border-top: 1px solid var(--internal-line);
@@ -11133,12 +11083,7 @@ body.experience-app #experienceRoot {
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
 }
-#inboxView .thread-head {
-  min-height: 80px;
-}
-#inboxView .composer:focus-within {
-  box-shadow: 0 0 0 3px var(--brand-primary-soft);
-}
+
 @media (min-width: 1360px) {
   #inboxView .thread-head {
     padding-inline: 22px;
@@ -12924,11 +12869,11 @@ body.inbox-active #integrationAlert button {
   width: 100%;
   max-height: var(--inbox-height);
   margin: 0;
-  border-radius: 20px;
+
   background: var(--sf);
   overflow: hidden;
   grid-template-columns: minmax(230px, 24%) minmax(0, 1fr) minmax(230px, 23%);
-  box-shadow: none;
+
   transition: none;
 }
 #inboxView .inbox-shell.details-collapsed {
@@ -12955,8 +12900,10 @@ body.inbox-active #integrationAlert button {
   min-height: 0;
   flex-direction: column;
   overflow: hidden;
-  background: color-mix(in srgb, var(--bg) 65%, var(--sf));
+
   visibility: visible;
+
+  background: var(--surface-secondary);
 }
 #inboxView.inbox-list-mode .conv-pane {
   border: 0;
@@ -13174,26 +13121,18 @@ body.inbox-active #integrationAlert button {
 }
 #inboxView .conv-item {
   width: 100%;
-  margin: 4px 0;
-  border: 1px solid transparent;
-  border-radius: 11px;
-  padding: 14px 12px;
+
   background: transparent;
-  transition:
-    background-color 150ms,
-    border-color 150ms,
-    transform 150ms;
 }
 #inboxView .conv-item:hover {
-  background: var(--sf);
   border-color: var(--ln);
-  transform: translateX(2px);
 }
 #inboxView .conv-item.active {
-  background: var(--brand-primary-soft);
-  border-color: transparent;
-  box-shadow: inset 2px 0 var(--brand-primary);
   transform: none;
+
+  background: var(--brand-primary-soft);
+  box-shadow: none;
+  border-color: color-mix(in srgb, var(--brand-primary) 18%, var(--border));
 }
 #inboxView .conv-item.unread-item .conv-name-text {
   font-weight: 700;
@@ -13202,12 +13141,14 @@ body.inbox-active #integrationAlert button {
   color: var(--tx);
 }
 #inboxView .conv-tags {
-  gap: 4px;
-  margin-top: 8px;
   flex-wrap: wrap;
+
+  gap: 6px;
+  margin-top: 8px;
 }
 #inboxView .conv-tag {
-  font-size: var(--text-xs);
+  font-size: 10px;
+  border-radius: 6px;
 }
 #inboxView.inbox-list-mode .conv-list {
   padding: 4px 14px 14px;
@@ -13231,11 +13172,7 @@ body.inbox-active #integrationAlert button {
   transition: background-color var(--internal-motion-micro);
 }
 #inboxView.inbox-list-mode .conv-item:hover .conv-avatar {
-  background: color-mix(
-    in srgb,
-    var(--brand-primary-soft) 82%,
-    var(--brand-primary) 12%
-  );
+  background: color-mix(in srgb, var(--brand-primary-soft) 82%, var(--brand-primary) 12%);
 }
 #inboxView.inbox-list-mode .conv-name-text {
   font-size: 15px;
@@ -13256,12 +13193,15 @@ body.inbox-active #integrationAlert button {
 }
 #inboxView .thread-head {
   flex: none;
-  min-height: 74px;
-  padding: 12px 16px;
+
   border-bottom: 1px solid var(--ln);
-  background: var(--sf);
+
   gap: 8px;
   flex-wrap: nowrap;
+
+  min-height: 72px;
+  padding: 14px 20px;
+  background: var(--surface);
 }
 #inboxView .mobile-back {
   display: inline-flex;
@@ -13339,12 +13279,9 @@ body.inbox-active #integrationAlert button {
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
   padding: 24px 28px 20px;
-  gap: 22px;
-  background: linear-gradient(
-    to bottom,
-    var(--surface) 0%,
-    color-mix(in srgb, var(--internal-group) 55%, var(--surface)) 100%
-  );
+
+  background: var(--background);
+  gap: 18px;
 }
 #inboxView .day-sep {
   font-size: var(--text-xs);
@@ -13355,19 +13292,20 @@ body.inbox-active #integrationAlert button {
   background: color-mix(in srgb, var(--internal-group) 80%, transparent);
 }
 #inboxView .msg {
-  font-size: 15px;
-  line-height: 1.75;
   padding: 15px 18px;
-  border-radius: 16px;
+
   max-width: min(88%, 64ch);
   overflow-wrap: anywhere;
-  box-shadow: none;
 }
 #inboxView .msg.in {
-  background: var(--internal-group);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-bottom-left-radius: 5px;
 }
 #inboxView .msg.out {
+  background: var(--message-out);
+  color: var(--message-out-text);
+  border: 1px solid transparent;
   border-bottom-right-radius: 5px;
 }
 #inboxView .msg small {
@@ -13376,9 +13314,10 @@ body.inbox-active #integrationAlert button {
 }
 #inboxView .composer-zone {
   flex: none;
-  border-top: 1px solid var(--internal-line);
-  padding: 12px 18px 18px;
-  background: var(--sf);
+
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 12px 18px 16px;
 }
 #inboxView .composer-tools {
   min-height: 38px;
@@ -13405,23 +13344,26 @@ body.inbox-active #integrationAlert button {
 }
 #inboxView .composer {
   min-height: 60px;
-  border: 1px solid var(--ln);
-  border-radius: 18px;
-  background: var(--internal-elevated);
+
   padding: 8px 8px 8px 16px;
   align-items: flex-end;
   border-color: var(--internal-line);
-  box-shadow: var(--internal-shadow);
+
   transition:
     border-color var(--internal-motion-state),
     box-shadow var(--internal-motion-state);
+
+  background: var(--surface);
+  border-radius: 14px;
+  box-shadow: none;
+  border: 1px solid var(--border);
 }
 #inboxView .composer:hover {
   border-color: color-mix(in srgb, var(--br) 22%, var(--internal-line));
 }
 #inboxView .composer:focus-within {
-  border-color: color-mix(in srgb, var(--br) 70%, var(--internal-line));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--bs) 70%, transparent);
+  box-shadow: 0 0 0 3px var(--brand-primary-soft);
+  border-color: var(--brand-primary);
 }
 #inboxView #messageInput {
   border: 0;
@@ -13459,9 +13401,11 @@ body.inbox-active #integrationAlert button {
   min-height: 0;
   height: 100%;
   overflow: hidden;
-  background: var(--internal-group);
+
   border-left: 1px solid var(--ln);
   visibility: visible;
+
+  background: var(--surface);
 }
 #inboxView .details-top {
   flex: none;
@@ -13487,13 +13431,14 @@ body.inbox-active #integrationAlert button {
 #inboxView .context-card {
   border: 0;
   border-bottom: 1px solid var(--ln);
+
+  padding: 20px 0;
   border-radius: 0;
-  padding: 18px 0;
+  box-shadow: none;
   background: transparent;
 }
 #inboxView .context-next {
-  border-top: 1px solid
-    color-mix(in srgb, var(--brand-accent) 55%, var(--internal-line));
+  border-top: 1px solid color-mix(in srgb, var(--brand-accent) 55%, var(--internal-line));
   margin-top: 18px;
 }
 #inboxView .context-relationship-story {
@@ -13501,8 +13446,9 @@ body.inbox-active #integrationAlert button {
   font-size: 12px;
 }
 #inboxView .context-card h4 {
-  font-size: 14px;
-  letter-spacing: -0.01em;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
 #inboxView .details-collapsed .details-pane:not(.mobile-open) {
   visibility: hidden;
@@ -13863,11 +13809,7 @@ body.inbox-active #integrationAlert button {
   bottom: 9px;
   width: 3px;
   border-radius: 999px;
-  background: linear-gradient(
-    180deg,
-    var(--brand-accent),
-    var(--brand-primary)
-  );
+  background: linear-gradient(180deg, var(--brand-accent), var(--brand-primary));
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18);
 }
 .nav-chapter {
@@ -14210,19 +14152,20 @@ body:not(.reduce-motion) .logo {
 
 #inboxView .inbox-shell {
   transition: none;
-  transform: translateZ(0);
+
   backface-visibility: hidden;
+
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  box-shadow: none;
+  transform: none;
 }
 #inboxView .conv-item {
-  transition:
-    background-color 220ms var(--ease-standard),
-    border-color 220ms var(--ease-standard),
-    transform 250ms var(--ease-enter),
-    box-shadow 250ms var(--ease-standard) !important;
   backface-visibility: hidden;
 }
 #inboxView .conv-item:hover {
   transform: none !important;
+  background: var(--hover);
 }
 #inboxView.inbox-list-mode .conv-item:hover {
   transform: none !important;
@@ -14342,24 +14285,31 @@ body:not(.reduce-motion) .logo {
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--text-secondary) 32%, transparent)
-    transparent;
+  scrollbar-color: color-mix(in srgb, var(--text-secondary) 32%, transparent) transparent;
   transition: scrollbar-color var(--internal-motion-state);
 }
 #inboxView .conv-list:hover,
 #inboxView .messages:hover,
 #inboxView .context-body:hover {
-  scrollbar-color: color-mix(in srgb, var(--text-secondary) 52%, transparent)
-    transparent;
+  scrollbar-color: color-mix(in srgb, var(--text-secondary) 52%, transparent) transparent;
 }
 #inboxView .conv-item {
+  padding: 16px 12px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  margin: 4px 8px;
   transition:
-    background-color var(--internal-motion-micro),
-    border-color var(--internal-motion-micro);
+    background-color var(--motion-fast),
+    border-color var(--motion-fast) !important;
 }
 #inboxView .msg {
   transform: translate3d(0, 0, 0);
   white-space: normal;
+
+  border-radius: 16px;
+  box-shadow: none;
+  line-height: 1.6;
+  font-size: 15px;
 }
 #inboxView .inbox-filter-panel {
   contain: layout paint;
@@ -14805,6 +14755,9 @@ body.management-active #per {
   overflow: hidden;
 
   padding: 0;
+
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
 }
 .management-card h3 {
   font-size: 16px;
@@ -14939,12 +14892,8 @@ body.management-active #per {
   gap: 3px;
   width: 100%;
   height: 180px;
-  background: repeating-linear-gradient(
-      to bottom,
-      var(--border) 0 1px,
-      transparent 1px 90px
-    )
-    0 0/100% 90px;
+  background: repeating-linear-gradient(to bottom, var(--border) 0 1px, transparent 1px 90px) 0
+    0/100% 90px;
   border-bottom: 1px solid var(--border-strong);
 }
 .management-bars i {
@@ -14967,10 +14916,7 @@ body.management-active #per {
   /* Mantém o centro próximo da coluna e reserva espaço para a largura máxima do tooltip. */
   left: clamp(
     min(120px, 50%),
-    calc(
-      (100% + 8px) / var(--chart-column-count) *
-        (var(--chart-column-index) + 0.5) - 4px
-    ),
+    calc((100% + 8px) / var(--chart-column-count) * (var(--chart-column-index) + 0.5) - 4px),
     max(calc(100% - 120px), 50%)
   );
   z-index: 5;
@@ -15517,8 +15463,7 @@ body.management-active #per {
     border: 0;
     padding: 2px 0;
   }
-  .management-table
-    td[data-l]:not([data-l="Cliente"]):not([data-l="Valor"])::before {
+  .management-table td[data-l]:not([data-l="Cliente"]):not([data-l="Valor"])::before {
     content: attr(data-l) ": ";
     color: var(--text-muted);
     font-size: 12px;
@@ -15587,15 +15532,11 @@ body.management-active #per {
       ================================================== */
 .landing-page {
   --font-ui:
-    "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif;
+    "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
   --landing-accent: var(--landing-cta);
   --landing-success: var(--landing-kicker);
-  --landing-success-soft: color-mix(
-    in srgb,
-    var(--landing-kicker) 9%,
-    var(--landing-surface)
-  );
+  --landing-success-soft: color-mix(in srgb, var(--landing-kicker) 9%, var(--landing-surface));
   font-family: var(--font-ui);
   color-scheme: light;
   line-height: 1.6;
@@ -15616,9 +15557,8 @@ body.management-active #per {
 }
 .landing-page .landing-button {
   font-size: 14px;
-  font-weight: 600;
+
   min-height: 44px;
-  border-radius: 10px;
 }
 .landing-page .landing-button--primary:hover {
   background: var(--brand-primary-hover);
@@ -15631,29 +15571,15 @@ body.management-active #per {
 }
 .landing-page .landing-hero {
   min-height: min(760px, 100svh);
-  padding: 112px 24px 36px;
-  background: var(--landing-bg);
 }
 .landing-page .landing-hero h1 {
-  font-size: clamp(56px, 6.1vw, 84px);
-  font-weight: 700;
-  letter-spacing: -0.045em;
   margin: 18px auto;
-  max-width: 1000px;
 }
 .landing-page .landing-hero h1 .accent::after {
-  background: var(--landing-cta);
-  height: 0.055em;
   min-height: 4px;
   transform: none;
-  opacity: 0.75;
 }
-.landing-page .landing-hero-copy > p {
-  font-size: 18px;
-  line-height: 1.65;
-  max-width: 600px;
-  margin-bottom: 22px;
-}
+
 .landing-page .landing-hero-visual {
   margin-top: 28px;
   height: 300px;
@@ -15661,23 +15587,15 @@ body.management-active #per {
 .landing-page .landing-hero-note {
   margin-top: 16px;
 }
-.landing-page .landing-section {
-  padding: 88px max(28px, calc((100vw - 1160px) / 2));
-}
+
 .landing-page .landing-section-head {
   max-width: 840px;
 }
 .landing-page .landing-section-head h2,
 .landing-page .landing-final h2 {
-  font-size: clamp(32px, 4vw, 56px);
-  line-height: 1.12;
-  letter-spacing: -0.035em;
   margin: 16px 0 20px;
 }
-.landing-page .landing-section-head p {
-  line-height: 1.7;
-  max-width: 580px;
-}
+
 .landing-page .landing-section h3 {
   font-size: 20px;
   font-weight: 600;
@@ -16220,10 +16138,10 @@ body.management-active #per {
 }
 .landing-footer-grid {
   display: grid;
-  grid-template-columns: minmax(220px, 1.35fr) minmax(150px, 0.8fr) minmax(
-      150px,
-      0.8fr
-    ) minmax(240px, 1.15fr);
+  grid-template-columns: minmax(220px, 1.35fr) minmax(150px, 0.8fr) minmax(150px, 0.8fr) minmax(
+      240px,
+      1.15fr
+    );
   gap: 24px;
 }
 .landing-footer-grid > nav,
@@ -16293,8 +16211,7 @@ body.management-active #per {
   height: 7px;
   border-radius: 50%;
   background: var(--landing-kicker);
-  box-shadow: 0 0 0 4px
-    color-mix(in srgb, var(--landing-kicker) 12%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--landing-kicker) 12%, transparent);
 }
 .landing-footer-bottom {
   display: flex;
@@ -16891,9 +16808,7 @@ body.management-active #per {
   padding-left: 0;
   padding-right: 32px;
 }
-:is(#salesView, #clientsView)
-  .internal-summary
-  .internal-metric:not(:first-child) {
+:is(#salesView, #clientsView) .internal-summary .internal-metric:not(:first-child) {
   border-left: 1px solid var(--internal-line);
 }
 :is(#salesView, #clientsView)
@@ -16908,9 +16823,7 @@ body.management-active #per {
 }
 /* Busca com protagonismo moderado; filtros como ferramentas secundárias. */
 @media (min-width: 721px) {
-  :is(#salesView, #clientsView, #productsView, #financeView)
-    .management-tools
-    > .management-input {
+  :is(#salesView, #clientsView, #productsView, #financeView) .management-tools > .management-input {
     flex: 1 1 280px;
     max-width: 420px;
   }
@@ -17010,16 +16923,20 @@ body.management-active #per {
 }
 #productsView .management-product-card {
   position: relative;
-  border: 1px solid var(--internal-line);
-  border-radius: 16px;
-  padding: 22px;
+
   gap: 12px;
-  background: var(--surface);
+
   align-content: start;
   transition:
     transform var(--internal-motion-micro) var(--ease-enter),
     border-color var(--internal-motion-micro),
     box-shadow var(--internal-motion-state);
+
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: none;
+  padding: 22px;
 }
 #productsView .management-product-card[data-product-kind="Serviço"] {
   background: var(--internal-group);
@@ -17040,10 +16957,14 @@ body.management-active #per {
   height: 36px;
   margin: 0;
   flex: none;
-  border-radius: 11px;
+
   color: var(--brand-primary-text);
-  background: var(--brand-primary-soft);
+
   transition: transform var(--internal-motion-micro) var(--ease-enter);
+
+  border-radius: 12px;
+  background: var(--brand-primary-soft);
+  box-shadow: none;
 }
 #productsView [data-product-kind="Serviço"] .catalog-product-icon {
   color: var(--info);
@@ -17067,10 +16988,11 @@ body.management-active #per {
   letter-spacing: -0.025em;
 }
 .catalog-price {
-  font-size: 20px;
-  font-weight: 550;
-  letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
+
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
 }
 .catalog-card-foot {
   display: flex;
@@ -17089,11 +17011,7 @@ body.management-active #per {
 @media (hover: hover) {
   #productsView .management-product-card:hover,
   #productsView .management-product-card:focus-within {
-    border-color: color-mix(
-      in srgb,
-      var(--brand-primary) 38%,
-      var(--internal-line)
-    );
+    border-color: color-mix(in srgb, var(--brand-primary) 38%, var(--internal-line));
     box-shadow: var(--internal-shadow);
   }
 }
@@ -17107,36 +17025,54 @@ body.management-active #per {
 }
 /* Financeiro — o valor mais importante domina; o restante vive numa linha contínua */
 #financeView #financeSummary {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0;
-  align-items: start;
-  padding: 6px 0 32px;
-  border-bottom: 1px solid var(--internal-line);
+  grid-template-columns: minmax(0, 1.5fr) repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: stretch;
+  padding: 8px 0 28px;
+  border-bottom: 0;
 }
 #financeView #financeSummary .management-kpi {
-  gap: 8px;
-  padding: 0 24px;
   border-left: 1px solid var(--internal-line);
+
+  padding: 20px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--r-md);
+  gap: 8px;
+  box-shadow: none;
 }
 #financeView #financeSummary .management-kpi:first-child {
-  grid-column: 1 / -1;
-  gap: 10px;
-  padding: 0 0 30px;
   border-left: 0;
+
+  grid-column: 1;
+  grid-row: 1 / 3;
+  padding: 28px;
+  background: var(--brand-primary-soft);
+  border: 1px solid color-mix(in srgb, var(--brand-primary) 15%, var(--border));
+  align-content: center;
+  gap: 14px;
 }
 #financeView #financeSummary .management-kpi:nth-child(2) {
   padding-left: 0;
-  border-left: 0;
+
+  padding: 20px;
+  border-left: 1px solid var(--border);
 }
 #financeView #financeSummary .management-kpi:first-child > b {
-  font-size: clamp(40px, 4.4vw, 64px);
   line-height: 1.08;
-  letter-spacing: -0.06em;
+
+  font-size: clamp(32px, 3vw, 46px);
+  color: var(--brand-primary-text);
+  font-weight: 600;
+  letter-spacing: -0.045em;
 }
 #financeView #financeSummary .management-kpi:not(:first-child) > b {
-  font-size: clamp(20px, 1.8vw, 26px);
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
+
+  font-size: 24px;
+  font-weight: 550;
+  letter-spacing: -0.025em;
 }
 #financeView .management-card:not(.management-flush) {
   padding: 28px;
@@ -17177,7 +17113,8 @@ body.management-active #per {
   padding-bottom: 4px;
 }
 #financeView .management-chart-legend {
-  gap: 16px;
+  font-size: 12px;
+  gap: 18px;
 }
 #financeView .management-chart-legend span {
   display: inline-flex;
@@ -17189,12 +17126,10 @@ body.management-active #per {
   #financeView.active #financeMiniChart,
   :is(#salesView, #clientsView).active .internal-summary,
   #productsView.active #catalogIntro {
-    animation: internalValueReveal var(--internal-motion-state)
-      var(--ease-enter) backwards;
+    animation: internalValueReveal var(--internal-motion-state) var(--ease-enter) backwards;
   }
   #financeSummary.is-period-reveal .management-kpi > b {
-    animation: internalValueReveal var(--internal-motion-state)
-      var(--ease-enter) backwards;
+    animation: internalValueReveal var(--internal-motion-state) var(--ease-enter) backwards;
   }
   #financeMiniChart.is-period-reveal .management-bars i {
     transform-origin: center bottom;
@@ -17210,12 +17145,15 @@ body.management-active #per {
 }
 #financeView .management-group-label {
   margin-top: 0;
-  padding: 22px 22px 10px;
-  font-size: 11px;
+
   font-weight: 600;
-  letter-spacing: 0.045em;
+
   text-transform: uppercase;
   color: var(--text-secondary);
+
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  padding: 18px 22px 10px;
 }
 #financeView .management-group-label.late {
   color: var(--danger);
@@ -17226,11 +17164,15 @@ body.management-active #per {
 #financeView .management-ledger-row {
   position: relative;
   grid-template-columns: 36px minmax(0, 1fr) 128px 140px 148px;
-  gap: 16px;
+
   min-height: 68px;
-  padding: 12px 22px;
+
   border-top: 1px solid var(--internal-line);
   transition: background-color var(--internal-motion-micro);
+
+  padding: 16px 22px;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
 }
 #financeView .management-ledger-row:hover,
 #financeView .management-ledger-row:has(.row-action:focus-visible) {
@@ -17281,15 +17223,11 @@ body.management-active #per {
     grid-column: 1 / -1;
     padding-right: 0;
   }
-  :is(#salesView, #clientsView)
-    .internal-summary
-    .internal-metric:not(:first-child) {
+  :is(#salesView, #clientsView) .internal-summary .internal-metric:not(:first-child) {
     border-left: 0;
     padding-inline: 0 12px;
   }
-  :is(#salesView, #clientsView)
-    .internal-summary
-    .internal-metric:nth-child(3) {
+  :is(#salesView, #clientsView) .internal-summary .internal-metric:nth-child(3) {
     border-left: 1px solid var(--internal-line);
     padding-left: 20px;
   }
@@ -17314,10 +17252,16 @@ body.management-active #per {
   }
   #financeView #financeSummary .management-kpi:first-child {
     padding-bottom: 6px;
+
+    grid-column: 1 / -1;
+    grid-row: auto;
+    padding: 22px;
   }
   #financeView #financeSummary .management-kpi:not(:first-child) {
-    padding: 0 12px 0 0;
     border-left: 0;
+
+    padding: 16px;
+    border: 1px solid var(--border);
   }
   #financeView #financeSummary .management-kpi:nth-child(3),
   #financeView #financeSummary .management-kpi:nth-child(5) {
@@ -17556,10 +17500,7 @@ body.management-active #per {
 }
 .management-ai-layout {
   display: grid;
-  grid-template-columns: minmax(190px, 0.8fr) minmax(320px, 1.8fr) minmax(
-      220px,
-      1fr
-    );
+  grid-template-columns: minmax(190px, 0.8fr) minmax(320px, 1.8fr) minmax(220px, 1fr);
   gap: 16px;
   align-items: start;
 }
@@ -17691,12 +17632,18 @@ body.management-active #per {
 .management-report-chapters .management-card {
   display: grid;
   gap: 12px;
+
+  padding: 24px;
+  border-radius: var(--r-md);
 }
 .management-report-chapters .management-card h3 {
-  font-size: 16px;
+  font-size: 18px;
+  font-weight: 580;
+  letter-spacing: -0.025em;
 }
 .management-report-chapters p {
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 1.65;
 }
 .management-report-chapters .management-button {
   justify-self: start;
@@ -18303,16 +18250,18 @@ body.management-view-active .toast-zone .toast {
   scroll-margin-top: 96px;
 }
 .landing-page .landing-hero {
-  padding: clamp(112px, 15svh, 176px) 24px 40px;
   min-height: 0;
   overflow: clip;
+
+  padding: clamp(120px, 14svh, 164px) 24px 48px;
+  background: var(--landing-bg);
 }
 .landing-page .landing-hero h1 {
-  font-size: clamp(58px, 6.1vw, 88px);
-  font-weight: 650;
-  line-height: 1.04;
-  letter-spacing: -0.05em;
-  max-width: 1060px;
+  font-size: clamp(54px, 5.85vw, 84px);
+  font-weight: 620;
+  letter-spacing: -0.055em;
+  line-height: 1.07;
+  max-width: 1040px;
 }
 .hero-line > span {
   white-space: nowrap;
@@ -18360,16 +18309,18 @@ body.management-view-active .toast-zone .toast {
   stroke-linejoin: round;
 }
 .landing-page .landing-hero h1 .accent::after {
-  background: var(--landing-accent);
-  height: 0.07em;
-  opacity: 0.9;
   transform: rotate(-0.65deg);
+
+  height: 0.055em;
+  opacity: 0.8;
+  background: var(--landing-accent);
 }
 .landing-page .landing-hero-copy > p {
-  max-width: 580px;
-  font-size: 17px;
+  font-size: 18px;
+  line-height: 1.65;
+  max-width: 570px;
   margin-top: 24px;
-  margin-bottom: 26px;
+  margin-bottom: 28px;
 }
 .landing-page .landing-hero-actions {
   gap: 12px;
@@ -18383,10 +18334,13 @@ body.management-view-active .toast-zone .toast {
     transform var(--motion-fast) var(--ease-out),
     background-color var(--motion-base),
     box-shadow var(--motion-base);
-  border-radius: 12px;
+
+  border-radius: 10px;
+  box-shadow: none;
+  font-weight: 550;
 }
 .landing-page .landing-button:active {
-  transform: scale(0.98);
+  transform: none;
 }
 .landing-page .landing-button .cta-arrow {
   transition: transform 180ms var(--ease-out);
@@ -18455,7 +18409,7 @@ body.management-view-active .toast-zone .toast {
   background: transparent;
 }
 .landing-page .landing-section {
-  padding: 88px max(28px, calc((100vw - 1160px) / 2)) 64px;
+  padding: 104px max(28px, calc((100vw - 1160px) / 2)) 88px;
 }
 .landing-page #xpProduct {
   padding-top: 48px;
@@ -18466,14 +18420,15 @@ body.management-view-active .toast-zone .toast {
 }
 .landing-page .landing-section-head h2,
 .landing-page .landing-final h2 {
-  font-size: clamp(36px, 4.3vw, 62px);
+  font-size: clamp(36px, 4.1vw, 58px);
   font-weight: 600;
-  line-height: 1.09;
+  line-height: 1.12;
   letter-spacing: -0.045em;
 }
 .landing-page .landing-section-head p {
-  font-size: 16px;
-  max-width: 550px;
+  font-size: 17px;
+  line-height: 1.7;
+  max-width: 58ch;
 }
 .landing-journey {
   min-height: 475px;
@@ -18633,11 +18588,7 @@ body.management-view-active .toast-zone .toast {
   margin-top: 8px;
   max-width: 90%;
   border-radius: 10px 2px 10px 10px;
-  background: color-mix(
-    in srgb,
-    var(--landing-kicker) 10%,
-    var(--landing-surface)
-  );
+  background: color-mix(in srgb, var(--landing-kicker) 10%, var(--landing-surface));
   opacity: 0;
   transform: translateY(6px);
   transition:
@@ -18744,13 +18695,8 @@ body.management-view-active .toast-zone .toast {
   transform: none;
 }
 .landing-module.is-demo-active .landing-module-avatar {
-  background: color-mix(
-    in srgb,
-    var(--landing-kicker) 22%,
-    var(--landing-surface)
-  );
-  box-shadow: 0 0 0 4px
-    color-mix(in srgb, var(--landing-kicker) 9%, transparent);
+  background: color-mix(in srgb, var(--landing-kicker) 22%, var(--landing-surface));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--landing-kicker) 9%, transparent);
 }
 .landing-module.is-demo-active .landing-module-flow > i::after {
   transform: scaleY(1);
@@ -18789,6 +18735,10 @@ body.management-view-active .toast-zone .toast {
   padding: 18px 12px;
   align-self: start;
   min-height: 205px;
+
+  border-radius: 16px;
+  background: var(--landing-surface-soft);
+  box-shadow: none;
 }
 .landing-rule-grid b {
   font-size: 13px;
@@ -18973,8 +18923,7 @@ body.management-view-active .toast-zone .toast {
     transform: none;
   }
   .landing-module:hover .landing-module-avatar {
-    box-shadow: 0 0 0 4px
-      color-mix(in srgb, var(--landing-kicker) 10%, transparent);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--landing-kicker) 10%, transparent);
   }
   .landing-module:hover .landing-module-flow > i::after {
     transform: scaleY(1);
@@ -19336,16 +19285,8 @@ body.management-view-active .toast-zone .toast {
 }
 :is(#xpChannels, #smAI, #smAutomation, #xpSetup) {
   --story-accent: var(--landing-kicker);
-  --story-edge: color-mix(
-    in srgb,
-    var(--story-accent) 20%,
-    var(--landing-border)
-  );
-  --story-soft: color-mix(
-    in srgb,
-    var(--story-accent) 8%,
-    var(--landing-surface)
-  );
+  --story-edge: color-mix(in srgb, var(--story-accent) 20%, var(--landing-border));
+  --story-soft: color-mix(in srgb, var(--story-accent) 8%, var(--landing-surface));
 }
 :is(
   #xpChannels .landing-inbox,
@@ -19408,11 +19349,7 @@ body.management-view-active .toast-zone .toast {
   grid-template-columns: 250px minmax(0, 1fr) 260px;
 }
 #xpChannels .landing-inbox-list {
-  background: color-mix(
-    in srgb,
-    var(--landing-surface-soft) 75%,
-    var(--landing-surface)
-  );
+  background: color-mix(in srgb, var(--landing-surface-soft) 75%, var(--landing-surface));
   padding-top: 24px;
 }
 #xpChannels .landing-inbox-list > .landing-stage-eyebrow {
@@ -19521,11 +19458,7 @@ body.management-view-active .toast-zone .toast {
 }
 #smAI .landing-ai-context {
   padding: 40px;
-  background: linear-gradient(
-    160deg,
-    var(--landing-surface-soft),
-    var(--landing-surface)
-  );
+  background: linear-gradient(160deg, var(--landing-surface-soft), var(--landing-surface));
   border-radius: 23px 0 0 23px;
   border-right: 1px solid var(--landing-border);
 }
@@ -19784,11 +19717,7 @@ body.management-view-active .toast-zone .toast {
 }
 #xpSetup .landing-setup-steps {
   padding: 32px 26px;
-  background: linear-gradient(
-    160deg,
-    var(--landing-surface-soft),
-    var(--landing-surface)
-  );
+  background: linear-gradient(160deg, var(--landing-surface-soft), var(--landing-surface));
   gap: 10px;
 }
 .landing-workspace-mark {
@@ -20201,10 +20130,11 @@ body.management-view-active .toast-zone .toast {
   align-items: center;
 }
 #aiToolsView .assistant-header h2 {
-  font-size: var(--internal-title);
-  font-weight: 550;
-  letter-spacing: -0.055em;
   line-height: 1.2;
+
+  font-size: var(--internal-title);
+  font-weight: 600;
+  letter-spacing: -0.045em;
 }
 #aiToolsView .assistant-header p {
   font-size: 14px;
@@ -20239,23 +20169,28 @@ body.management-view-active .toast-zone .toast {
   display: grid;
   grid-template-columns: minmax(225px, 22%) minmax(0, 1fr) minmax(225px, 22%);
   align-items: stretch;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--internal-radius);
+
   overflow: hidden;
   min-height: min(660px, calc(100dvh - 205px));
   border-color: var(--internal-line);
+
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  box-shadow: none;
+  background: var(--surface);
 }
 #aiToolsView.context-hidden .assistant-workspace {
   grid-template-columns: minmax(225px, 22%) minmax(0, 1fr);
 }
 #aiToolsView .assistant-conversation-panel {
   padding: 22px 16px;
-  border-right: 1px solid var(--border);
+
   min-width: 0;
   display: flex;
   flex-direction: column;
-  background: var(--internal-group);
+
+  background: var(--surface-secondary);
+  border-right: 1px solid var(--border);
 }
 #aiToolsView .assistant-panel-head {
   display: flex;
@@ -20312,8 +20247,7 @@ body.management-view-active .toast-zone .toast {
   overscroll-behavior: contain;
   padding: 2px;
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--text-secondary) 28%, transparent)
-    transparent;
+  scrollbar-color: color-mix(in srgb, var(--text-secondary) 28%, transparent) transparent;
 }
 #aiToolsView .assistant-conversation {
   display: flex;
@@ -20558,8 +20492,7 @@ body.management-view-active .toast-zone .toast {
   letter-spacing: -0.015em;
   color: var(--as-ink);
   padding: 2px 0 2px 18px;
-  border-left: 2px solid
-    color-mix(in srgb, var(--as-blue) 28%, var(--internal-line));
+  border-left: 2px solid color-mix(in srgb, var(--as-blue) 28%, var(--internal-line));
   margin-top: 10px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -20618,9 +20551,11 @@ body.management-view-active .toast-zone .toast {
   height: 16px;
 }
 #aiToolsView .assistant-intent[aria-pressed="true"] {
-  background: var(--brand-primary-subtle);
-  border-color: color-mix(in srgb, var(--as-blue) 40%, var(--border));
   color: var(--brand-primary-text);
+
+  background: var(--brand-primary-soft);
+  border-color: var(--brand-primary);
+  box-shadow: none;
 }
 #aiToolsView .assistant-intent[aria-pressed="true"] > span:first-child {
   display: none;
@@ -20789,6 +20724,12 @@ body.management-view-active .toast-zone .toast {
   margin-top: 28px;
   padding-top: 0;
   border-top: 0;
+
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: none;
+  padding: 24px;
 }
 #aiToolsView .assistant-review-head {
   display: flex;
@@ -20894,11 +20835,14 @@ body.management-view-active .toast-zone .toast {
 }
 #aiToolsView .assistant-draft-tabs button {
   min-width: 44px;
-  font-size: 12px;
+
   color: var(--as-muted);
   position: relative;
-  min-height: 44px;
+
   padding: 0 0 10px;
+
+  min-height: 44px;
+  font-size: 13px;
 }
 #aiToolsView .assistant-draft-tabs button[aria-selected="true"] {
   color: var(--brand-primary-text);
@@ -20923,13 +20867,16 @@ body.management-view-active .toast-zone .toast {
 }
 #aiToolsView .assistant-draft-text {
   max-width: 68ch;
-  font-size: 18px;
-  line-height: 1.75;
+
   color: var(--as-ink);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  letter-spacing: -0.01em;
+
   margin: 0 !important;
+
+  font-size: 16px;
+  line-height: 1.8;
+  letter-spacing: -0.01em;
 }
 #aiToolsView .assistant-draft-instruction {
   font-size: 12px;
@@ -21079,12 +21026,15 @@ body.management-view-active .toast-zone .toast {
   min-width: 0;
   padding: 22px 24px 28px;
   border-left: 1px solid var(--border);
-  background: var(--internal-group);
+
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--text-secondary) 28%, transparent)
-    transparent;
+  scrollbar-color: color-mix(in srgb, var(--text-secondary) 28%, transparent) transparent;
+
+  box-shadow: none;
+  border-radius: var(--r-md);
+  background: var(--surface-secondary);
 }
 #aiToolsView .assistant-icon-button {
   display: grid;
@@ -21181,8 +21131,7 @@ body.management-view-active .toast-zone .toast {
   overflow: auto;
   box-shadow: var(--shadow);
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--text-secondary) 28%, transparent)
-    transparent;
+  scrollbar-color: color-mix(in srgb, var(--text-secondary) 28%, transparent) transparent;
 }
 #aiToolsView .assistant-context-dialog::backdrop {
   background: var(--overlay);
@@ -21485,11 +21434,7 @@ body.management-view-active .toast-zone .toast {
 :root {
   --sm-live-ease: cubic-bezier(0.22, 0.8, 0.24, 1);
   --sm-live-soft: color-mix(in srgb, var(--landing-kicker) 12%, transparent);
-  --sm-live-line: color-mix(
-    in srgb,
-    var(--landing-kicker) 36%,
-    var(--landing-border)
-  );
+  --sm-live-line: color-mix(in srgb, var(--landing-kicker) 36%, var(--landing-border));
 }
 #xpHero.landing-live-active,
 #xpProduct.landing-live-active,
@@ -21509,21 +21454,14 @@ body.management-view-active .toast-zone .toast {
     box-shadow 620ms var(--sm-live-ease),
     border-color 620ms var(--sm-live-ease);
 }
-#xpHero.landing-live-active
-  .landing-showcase-card.is-visible:not(.landing-live-focus) {
+#xpHero.landing-live-active .landing-showcase-card.is-visible:not(.landing-live-focus) {
   opacity: 0.87;
 }
-#xpHero.landing-live-active
-  .landing-showcase-card.is-visible.landing-live-focus {
-  transform: translate3d(0, -8px, 0) rotate(var(--card-rotate, 0deg))
-    scale(1.018);
+#xpHero.landing-live-active .landing-showcase-card.is-visible.landing-live-focus {
+  transform: translate3d(0, -8px, 0) rotate(var(--card-rotate, 0deg)) scale(1.018);
   opacity: 1;
   z-index: 14;
-  border-color: color-mix(
-    in srgb,
-    var(--landing-kicker) 30%,
-    var(--landing-border)
-  );
+  border-color: color-mix(in srgb, var(--landing-kicker) 30%, var(--landing-border));
   box-shadow:
     0 30px 78px color-mix(in srgb, #000 22%, transparent),
     0 0 0 1px var(--sm-live-soft);
@@ -21565,11 +21503,7 @@ body.management-view-active .toast-zone .toast {
 }
 #xpHero .landing-integration-chip.landing-live-focus {
   transform: translateY(-2px);
-  background: color-mix(
-    in srgb,
-    var(--landing-kicker) 10%,
-    var(--landing-surface)
-  );
+  background: color-mix(in srgb, var(--landing-kicker) 10%, var(--landing-surface));
   color: var(--landing-kicker);
 }
 /* O fluxo de continuidade alterna o destaque entre os estados do produto. */
@@ -21581,22 +21515,14 @@ body.management-view-active .toast-zone .toast {
     border-color 680ms var(--sm-live-ease);
   transform-origin: center;
 }
-#xpProduct.landing-live-active
-  .landing-journey
-  > .landing-surface:not(.landing-live-focus) {
+#xpProduct.landing-live-active .landing-journey > .landing-surface:not(.landing-live-focus) {
   opacity: 0.88;
 }
-#xpProduct.landing-live-active
-  .landing-journey
-  > .landing-surface.landing-live-focus {
+#xpProduct.landing-live-active .landing-journey > .landing-surface.landing-live-focus {
   transform: translate3d(0, -6px, 0) scale(1.012);
   opacity: 1;
   z-index: 5;
-  border-color: color-mix(
-    in srgb,
-    var(--landing-kicker) 30%,
-    var(--landing-border)
-  );
+  border-color: color-mix(in srgb, var(--landing-kicker) 30%, var(--landing-border));
   box-shadow:
     0 24px 58px color-mix(in srgb, #000 17%, transparent),
     0 0 0 1px var(--sm-live-soft);
@@ -21611,9 +21537,7 @@ body.management-view-active .toast-zone .toast {
   .landing-success-mark {
   animation: smLiveBadge 900ms var(--sm-live-ease) 1;
 }
-#xpProduct.landing-live-active
-  .landing-journey-sale.landing-live-focus
-  .landing-sale-item {
+#xpProduct.landing-live-active .landing-journey-sale.landing-live-focus .landing-sale-item {
   animation: smLiveRow 620ms var(--sm-live-ease) both;
 }
 #xpProduct.landing-live-active
@@ -21649,11 +21573,7 @@ body.management-view-active .toast-zone .toast {
 }
 #xpProduct.landing-live-active .landing-gallery-piece.landing-live-focus img {
   transform: scale(1.018) translate3d(0, -3px, 0);
-  border-color: color-mix(
-    in srgb,
-    var(--landing-kicker) 38%,
-    var(--landing-border)
-  );
+  border-color: color-mix(in srgb, var(--landing-kicker) 38%, var(--landing-border));
   box-shadow:
     0 28px 62px color-mix(in srgb, #000 18%, transparent),
     0 0 0 1px var(--sm-live-soft);
@@ -21675,12 +21595,7 @@ body.management-view-active .toast-zone .toast {
   height: 2px;
   z-index: 8;
   pointer-events: none;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    var(--landing-kicker),
-    transparent
-  );
+  background: linear-gradient(90deg, transparent, var(--landing-kicker), transparent);
   opacity: 0;
 }
 #xpChannels.landing-live-active .landing-inbox::after {
@@ -21707,16 +21622,10 @@ body.management-view-active .toast-zone .toast {
 #xpChannels .landing-inbox.landing-live-replay .landing-inbox-context > * {
   animation: smLiveSoftIn 520ms var(--sm-live-ease) both;
 }
-#xpChannels
-  .landing-inbox.landing-live-replay
-  .landing-inbox-context
-  > *:nth-child(2) {
+#xpChannels .landing-inbox.landing-live-replay .landing-inbox-context > *:nth-child(2) {
   animation-delay: 60ms;
 }
-#xpChannels
-  .landing-inbox.landing-live-replay
-  .landing-inbox-context
-  > *:nth-child(3) {
+#xpChannels .landing-inbox.landing-live-replay .landing-inbox-context > *:nth-child(3) {
   animation-delay: 120ms;
 }
 #xpChannels .landing-composer {
@@ -21742,22 +21651,13 @@ body.management-view-active .toast-zone .toast {
 #smTogether.landing-live-active .landing-module.landing-live-focus {
   transform: translateY(-7px);
   opacity: 1;
-  border-color: color-mix(
-    in srgb,
-    var(--landing-kicker) 32%,
-    var(--landing-border)
-  );
+  border-color: color-mix(in srgb, var(--landing-kicker) 32%, var(--landing-border));
   box-shadow: 0 22px 48px color-mix(in srgb, #000 14%, transparent);
 }
-#smTogether.landing-live-active
-  .landing-module.landing-live-focus
-  .landing-module-avatar {
+#smTogether.landing-live-active .landing-module.landing-live-focus .landing-module-avatar {
   animation: smLiveAvatar 900ms var(--sm-live-ease) 1;
 }
-#smTogether.landing-live-active
-  .landing-module.landing-live-focus
-  .landing-report-bars
-  i {
+#smTogether.landing-live-active .landing-module.landing-live-focus .landing-report-bars i {
   animation: smLiveBars 1250ms var(--sm-live-ease) 1;
 }
 /* O fluxo da automação destaca as etapas durante a sequência finita. */
@@ -21777,27 +21677,15 @@ body.management-view-active .toast-zone .toast {
 #smAutomation .landing-rule-grid > div.landing-live-step {
   transform: translateY(-7px);
   opacity: 1;
-  background: color-mix(
-    in srgb,
-    var(--landing-kicker) 8%,
-    var(--landing-surface-soft)
-  );
-  border-color: color-mix(
-    in srgb,
-    var(--landing-kicker) 40%,
-    var(--landing-border)
-  );
+  background: color-mix(in srgb, var(--landing-kicker) 8%, var(--landing-surface-soft));
+  border-color: color-mix(in srgb, var(--landing-kicker) 40%, var(--landing-border));
   box-shadow:
     0 16px 34px color-mix(in srgb, #000 12%, transparent),
     0 0 0 1px var(--sm-live-soft);
 }
 #smAutomation .landing-rule-grid > div.landing-live-past {
   opacity: 0.95;
-  border-color: color-mix(
-    in srgb,
-    var(--landing-kicker) 18%,
-    var(--landing-border)
-  );
+  border-color: color-mix(in srgb, var(--landing-kicker) 18%, var(--landing-border));
 }
 #smAutomation .landing-rule-grid > div.landing-live-step .landing-rule-number {
   animation: smLiveBadge 820ms var(--sm-live-ease) 1;
@@ -21825,21 +21713,11 @@ body.management-view-active .toast-zone .toast {
 }
 #smAutomation .landing-automation-result.landing-live-step {
   transform: translateY(-5px);
-  border-color: color-mix(
-    in srgb,
-    var(--landing-kicker) 36%,
-    var(--landing-border)
-  );
+  border-color: color-mix(in srgb, var(--landing-kicker) 36%, var(--landing-border));
   box-shadow: 0 18px 40px color-mix(in srgb, #000 12%, transparent);
-  background: color-mix(
-    in srgb,
-    var(--landing-kicker) 7%,
-    var(--landing-surface)
-  );
+  background: color-mix(in srgb, var(--landing-kicker) 7%, var(--landing-surface));
 }
-#smAutomation
-  .landing-automation-result.landing-live-step
-  .landing-success-mark {
+#smAutomation .landing-automation-result.landing-live-step .landing-success-mark {
   animation: smLiveBadge 820ms var(--sm-live-ease) 1;
 }
 /* A prévia de IA alterna sugestões e apresenta o resultado. */
@@ -21939,28 +21817,18 @@ body.management-view-active .toast-zone .toast {
   right: 18px;
   bottom: 0;
   height: 2px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    var(--landing-kicker),
-    transparent
-  );
+  background: linear-gradient(90deg, transparent, var(--landing-kicker), transparent);
   transform: scaleX(0);
   opacity: 0.55;
   transition: transform 720ms var(--sm-live-ease);
 }
-#xpSocialProof.landing-live-active
-  .landing-proof-card:not(.landing-live-focus) {
+#xpSocialProof.landing-live-active .landing-proof-card:not(.landing-live-focus) {
   opacity: 0.74;
 }
 #xpSocialProof .landing-proof-card.landing-live-focus {
   transform: translateY(-7px);
   opacity: 1;
-  border-color: color-mix(
-    in srgb,
-    var(--landing-kicker) 30%,
-    var(--landing-border)
-  );
+  border-color: color-mix(in srgb, var(--landing-kicker) 30%, var(--landing-border));
   box-shadow: 0 22px 50px color-mix(in srgb, #000 14%, transparent);
 }
 #xpSocialProof .landing-proof-card.landing-live-focus::after {
@@ -22007,22 +21875,13 @@ body.management-view-active .toast-zone .toast {
 #xpSetup #smSetupPanel.landing-live-replay .landing-setup-fields > div {
   animation: smLiveBubble 560ms var(--sm-live-ease) both;
 }
-#xpSetup
-  #smSetupPanel.landing-live-replay
-  .landing-setup-fields
-  > div:nth-child(2) {
+#xpSetup #smSetupPanel.landing-live-replay .landing-setup-fields > div:nth-child(2) {
   animation-delay: 60ms;
 }
-#xpSetup
-  #smSetupPanel.landing-live-replay
-  .landing-setup-fields
-  > div:nth-child(3) {
+#xpSetup #smSetupPanel.landing-live-replay .landing-setup-fields > div:nth-child(3) {
   animation-delay: 120ms;
 }
-#xpSetup
-  #smSetupPanel.landing-live-replay
-  .landing-setup-fields
-  > div:nth-child(4) {
+#xpSetup #smSetupPanel.landing-live-replay .landing-setup-fields > div:nth-child(4) {
   animation-delay: 180ms;
 }
 #xpSetup.landing-live-active .landing-setup-progress::after {
@@ -22213,13 +22072,8 @@ body.management-view-active .toast-zone .toast {
     transform: none;
   }
   86% {
-    border-color: color-mix(
-      in srgb,
-      var(--landing-kicker) 34%,
-      var(--landing-border)
-    );
-    box-shadow: 0 10px 30px
-      color-mix(in srgb, var(--landing-kicker) 7%, transparent);
+    border-color: color-mix(in srgb, var(--landing-kicker) 34%, var(--landing-border));
+    box-shadow: 0 10px 30px color-mix(in srgb, var(--landing-kicker) 7%, transparent);
     transform: translateY(-1px);
   }
 }
@@ -22249,11 +22103,7 @@ body.management-view-active .toast-zone .toast {
     z-index: 7;
   }
   #xpProduct .landing-gallery-piece:hover img {
-    border-color: color-mix(
-      in srgb,
-      var(--landing-kicker) 42%,
-      var(--landing-border)
-    );
+    border-color: color-mix(in srgb, var(--landing-kicker) 42%, var(--landing-border));
     box-shadow: 0 30px 68px color-mix(in srgb, #000 19%, transparent);
   }
   #xpSocialProof .landing-proof-card:hover,
@@ -22264,29 +22114,23 @@ body.management-view-active .toast-zone .toast {
   }
 }
 @media (max-width: 1000px) {
-  #xpHero.landing-live-active
-    .landing-showcase-card.is-visible.landing-live-focus {
+  #xpHero.landing-live-active .landing-showcase-card.is-visible.landing-live-focus {
     transform: translateY(-5px) scale(1.008);
   }
-  #xpProduct.landing-live-active
-    .landing-gallery-piece:not(.landing-live-focus) {
+  #xpProduct.landing-live-active .landing-gallery-piece:not(.landing-live-focus) {
     opacity: 0.88;
     filter: none;
   }
   #smTogether.landing-live-active .landing-module:not(.landing-live-focus),
-  #xpSocialProof.landing-live-active
-    .landing-proof-card:not(.landing-live-focus) {
+  #xpSocialProof.landing-live-active .landing-proof-card:not(.landing-live-focus) {
     opacity: 0.9;
   }
 }
 @media (max-width: 720px) {
-  #xpHero.landing-live-active
-    .landing-showcase-card.is-visible.landing-live-focus {
+  #xpHero.landing-live-active .landing-showcase-card.is-visible.landing-live-focus {
     transform: translateY(-3px) scale(1.004);
   }
-  #xpProduct.landing-live-active
-    .landing-journey
-    > .landing-surface.landing-live-focus {
+  #xpProduct.landing-live-active .landing-journey > .landing-surface.landing-live-focus {
     transform: translateY(-3px) scale(1.004);
   }
   #xpProduct.landing-live-active .landing-gallery-piece.landing-live-focus {
@@ -22645,11 +22489,7 @@ body.management-view-active .toast-zone .toast {
   height: 100%;
   width: 72%;
   border-radius: inherit;
-  background: linear-gradient(
-    90deg,
-    var(--br),
-    color-mix(in srgb, var(--br) 58%, white)
-  );
+  background: linear-gradient(90deg, var(--br), color-mix(in srgb, var(--br) 58%, white));
   animation: smNextSweep 3.6s ease-in-out infinite;
 }
 .landing-next-tags {
@@ -22661,14 +22501,9 @@ body.management-view-active .toast-zone .toast {
   font-size: 11px;
   color: var(--landing-kicker);
   padding: 6px 10px;
-  border: 1px solid
-    color-mix(in srgb, var(--landing-kicker) 18%, var(--landing-border));
+  border: 1px solid color-mix(in srgb, var(--landing-kicker) 18%, var(--landing-border));
   border-radius: 999px;
-  background: color-mix(
-    in srgb,
-    var(--landing-kicker) 7%,
-    var(--landing-surface)
-  );
+  background: color-mix(in srgb, var(--landing-kicker) 7%, var(--landing-surface));
 }
 @keyframes smNextPulse {
   0% {
@@ -22807,11 +22642,7 @@ body.management-view-active .toast-zone .toast {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: color-mix(
-    in srgb,
-    var(--landing-kicker) 14%,
-    var(--landing-surface)
-  );
+  background: color-mix(in srgb, var(--landing-kicker) 14%, var(--landing-surface));
   color: var(--landing-kicker);
   font-size: 10px;
   font-weight: 700;
@@ -22828,11 +22659,7 @@ body.management-view-active .toast-zone .toast {
 .landing-demo-live-pill {
   padding: 7px 10px;
   border-radius: 999px;
-  background: color-mix(
-    in srgb,
-    var(--landing-kicker) 12%,
-    var(--landing-surface)
-  );
+  background: color-mix(in srgb, var(--landing-kicker) 12%, var(--landing-surface));
   color: var(--landing-kicker);
   font-weight: 600;
 }
@@ -22915,8 +22742,7 @@ body.management-view-active .toast-zone .toast {
     color-mix(in srgb, var(--landing-kicker) 72%, white),
     var(--landing-kicker)
   );
-  box-shadow: 0 12px 22px
-    color-mix(in srgb, var(--landing-kicker) 22%, transparent);
+  box-shadow: 0 12px 22px color-mix(in srgb, var(--landing-kicker) 22%, transparent);
   height: var(--bar-h, 24%);
   transform-origin: bottom;
   transition:
@@ -22952,38 +22778,19 @@ body.management-view-active .toast-zone .toast {
     box-shadow var(--motion-medium) var(--ease-reveal),
     border-color var(--motion-medium) var(--ease-reveal);
 }
-#xpProduct.landing-live-active
-  .landing-gallery-piece.landing-live-focus
-  .landing-gallery-demo {
-  border-color: color-mix(
-    in srgb,
-    var(--landing-kicker) 28%,
-    var(--landing-border)
-  );
+#xpProduct.landing-live-active .landing-gallery-piece.landing-live-focus .landing-gallery-demo {
+  border-color: color-mix(in srgb, var(--landing-kicker) 28%, var(--landing-border));
   box-shadow: 0 28px 60px color-mix(in srgb, #000 16%, transparent);
 }
 .landing-gallery-piece[data-demo-scene="0"] .landing-demo-chip[data-chip="all"],
-.landing-gallery-piece[data-demo-scene="1"]
-  .landing-demo-chip[data-chip="paid"],
-.landing-gallery-piece[data-demo-scene="2"]
-  .landing-demo-chip[data-chip="pending"],
-.landing-gallery-piece[data-demo-scene="0"]
-  .landing-demo-chip[data-client-chip="all"],
-.landing-gallery-piece[data-demo-scene="1"]
-  .landing-demo-chip[data-client-chip="follow"],
-.landing-gallery-piece[data-demo-scene="2"]
-  .landing-demo-chip[data-client-chip="repeat"] {
-  background: color-mix(
-    in srgb,
-    var(--landing-kicker) 12%,
-    var(--landing-surface)
-  );
+.landing-gallery-piece[data-demo-scene="1"] .landing-demo-chip[data-chip="paid"],
+.landing-gallery-piece[data-demo-scene="2"] .landing-demo-chip[data-chip="pending"],
+.landing-gallery-piece[data-demo-scene="0"] .landing-demo-chip[data-client-chip="all"],
+.landing-gallery-piece[data-demo-scene="1"] .landing-demo-chip[data-client-chip="follow"],
+.landing-gallery-piece[data-demo-scene="2"] .landing-demo-chip[data-client-chip="repeat"] {
+  background: color-mix(in srgb, var(--landing-kicker) 12%, var(--landing-surface));
   color: var(--landing-kicker);
-  border-color: color-mix(
-    in srgb,
-    var(--landing-kicker) 22%,
-    var(--landing-border)
-  );
+  border-color: color-mix(in srgb, var(--landing-kicker) 22%, var(--landing-border));
 }
 .landing-gallery-piece[data-demo-scene="0"] [data-row="0"],
 .landing-gallery-piece[data-demo-scene="1"] [data-row="1"],
@@ -22994,16 +22801,8 @@ body.management-view-active .toast-zone .toast {
 .landing-gallery-piece[data-demo-scene="0"] [data-fin-row="0"],
 .landing-gallery-piece[data-demo-scene="1"] [data-fin-row="1"],
 .landing-gallery-piece[data-demo-scene="2"] [data-fin-row="2"] {
-  background: color-mix(
-    in srgb,
-    var(--landing-kicker) 8%,
-    var(--landing-surface)
-  );
-  border-color: color-mix(
-    in srgb,
-    var(--landing-kicker) 16%,
-    var(--landing-border)
-  );
+  background: color-mix(in srgb, var(--landing-kicker) 8%, var(--landing-surface));
+  border-color: color-mix(in srgb, var(--landing-kicker) 16%, var(--landing-border));
   transform: translateY(-2px);
   box-shadow: 0 12px 26px color-mix(in srgb, #000 10%, transparent);
 }
@@ -23389,28 +23188,18 @@ body.management-view-active .toast-zone .toast {
   #xpProduct .landing-gallery-piece:hover .landing-gallery-demo,
   #xpProduct .landing-gallery-piece.landing-live-focus .landing-gallery-demo {
     transform: translateY(-3px);
-    border-color: color-mix(
-      in srgb,
-      var(--landing-kicker) 26%,
-      var(--landing-border)
-    );
+    border-color: color-mix(in srgb, var(--landing-kicker) 26%, var(--landing-border));
     box-shadow: 0 24px 54px color-mix(in srgb, #000 14%, transparent);
   }
   #xpProduct .landing-gallery-piece:hover .landing-gallery-demo::after,
-  #xpProduct
-    .landing-gallery-piece.landing-live-focus
-    .landing-gallery-demo::after {
+  #xpProduct .landing-gallery-piece.landing-live-focus .landing-gallery-demo::after {
     opacity: 0.7;
     transform: scaleX(1);
   }
   #xpProduct .landing-demo-chip:hover {
     transform: translateY(-2px);
     color: var(--landing-kicker);
-    border-color: color-mix(
-      in srgb,
-      var(--landing-kicker) 28%,
-      var(--landing-border)
-    );
+    border-color: color-mix(in srgb, var(--landing-kicker) 28%, var(--landing-border));
     box-shadow: 0 10px 22px color-mix(in srgb, #000 8%, transparent);
   }
   #xpProduct .landing-demo-kpi:hover,
@@ -23419,16 +23208,8 @@ body.management-view-active .toast-zone .toast {
   #xpProduct .landing-demo-fin-row:hover,
   #xpProduct .landing-demo-live-pill:hover {
     transform: translateY(-4px);
-    border-color: color-mix(
-      in srgb,
-      var(--landing-kicker) 24%,
-      var(--landing-border)
-    );
-    background: color-mix(
-      in srgb,
-      var(--landing-kicker) 8%,
-      var(--landing-surface-soft)
-    );
+    border-color: color-mix(in srgb, var(--landing-kicker) 24%, var(--landing-border));
+    background: color-mix(in srgb, var(--landing-kicker) 8%, var(--landing-surface-soft));
     box-shadow: 0 16px 34px color-mix(in srgb, #000 10%, transparent);
   }
   #xpProduct .landing-demo-kpi:hover::after,
@@ -23447,18 +23228,13 @@ body.management-view-active .toast-zone .toast {
   }
   #xpProduct .landing-demo-chart:hover {
     transform: translateY(-3px);
-    border-color: color-mix(
-      in srgb,
-      var(--landing-kicker) 24%,
-      var(--landing-border)
-    );
+    border-color: color-mix(in srgb, var(--landing-kicker) 24%, var(--landing-border));
     box-shadow: 0 18px 36px color-mix(in srgb, #000 10%, transparent);
   }
   #xpProduct .landing-demo-chart:hover .landing-chart-bars em {
     filter: saturate(1.08) brightness(1.03);
     transform: translateY(-1px);
-    box-shadow: 0 16px 28px
-      color-mix(in srgb, var(--landing-kicker) 24%, transparent);
+    box-shadow: 0 16px 28px color-mix(in srgb, var(--landing-kicker) 24%, transparent);
   }
 }
 @media (max-width: 1180px) {
@@ -23569,16 +23345,8 @@ body.management-view-active .toast-zone .toast {
 @media (hover: hover) and (pointer: fine) {
   .landing-sale-item:hover {
     transform: translateY(-4px);
-    border-color: color-mix(
-      in srgb,
-      var(--landing-kicker) 22%,
-      var(--landing-border)
-    );
-    background: color-mix(
-      in srgb,
-      var(--landing-kicker) 8%,
-      var(--landing-surface-soft)
-    );
+    border-color: color-mix(in srgb, var(--landing-kicker) 22%, var(--landing-border));
+    background: color-mix(in srgb, var(--landing-kicker) 8%, var(--landing-surface-soft));
     box-shadow: 0 18px 36px color-mix(in srgb, #000 12%, transparent);
   }
   .landing-sale-item:hover::after {
@@ -23588,8 +23356,7 @@ body.management-view-active .toast-zone .toast {
   .landing-sale-item:hover .landing-swatch {
     transform: scale(1.04);
     filter: saturate(1.08) brightness(1.04);
-    box-shadow: 0 10px 20px
-      color-mix(in srgb, var(--landing-kicker) 20%, transparent);
+    box-shadow: 0 10px 20px color-mix(in srgb, var(--landing-kicker) 20%, transparent);
   }
   .landing-sale-item:hover > span:last-of-type {
     transform: translateX(2px);
