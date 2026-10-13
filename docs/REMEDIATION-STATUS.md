@@ -77,7 +77,7 @@ AUDIT_UI_PHASE=before CHROMIUM_EXECUTABLE=/tmp/chromium node tests/audit-ui-brow
 | Docker/PostgreSQL vivo             | BLOCKED; não foi feita validação de runtime nem teste de integração na AWS                                                        |
 | Diferenças revisadas               | Somente dois arquivos de UI, dois arquivos de teste e os dois documentos autorizados                                              |
 
-Capturas em `test-results/audit-ui/`, ignoradas pelo Git e incluídas no artifact `frontend-regression` do CI quando a suíte é executada:
+Capturas em `test-results/audit-ui/`, ignoradas pelo Git. O CI normal gera as capturas `after` e as inclui no artifact `frontend-regression`. As capturas `before` foram geradas localmente contra o SHA auditado e acompanham o pacote de evidências desta rodada; não são geradas pelo modo normal do CI:
 
 - `before-tools-light.png` / `after-tools-light.png`.
 - `before-tools-dark.png` / `after-tools-dark.png`.
@@ -137,6 +137,7 @@ Commits separados previstos/concluídos na branch:
 2. `fix: prevent report tooltip mobile overflow`.
 3. `test: cover audited responsive regressions`.
 4. `docs: record audit remediation status`.
+5. `docs: clarify local baseline evidence`.
 
 Não foram alterados banco, migrations, autenticação, workflow n8n, WAHA, Compose, deploy, branch protection, landing/sidebar/Home/Assistente/cards/cores. As fixtures dos testes não são dados de produção. Esta rodada não autoriza merge/deploy ou correções A03–A21.
 
