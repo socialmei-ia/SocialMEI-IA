@@ -95,7 +95,7 @@ O executor registra versões em `socialmei.schema_migrations` no PostgreSQL loca
 Os arquivos históricos `bootstrap.sql`, `schema.sql` e `permissions.sql` continuam como referência de bootstrap/roles. Novas alterações incrementais devem ser criadas como migrations numeradas:
 
 ```text
-database/migrations/011_proxima_mudanca.sql
+database/migrations/012_proxima_mudanca.sql
 ```
 
 Uma migration aplicada nunca deve ser reescrita. Para corrigir algo, crie uma nova migration.
@@ -139,12 +139,12 @@ Não é necessário criar acesso ao banco para todos antecipadamente. Quando alg
 - revisar SQL antes de produção;
 - revogar acesso quando deixar de ser necessário.
 
-## Hardening preparado na estabilização
+## Integridade referencial aplicada na estabilização
 
 A migration `011_crm_workspace_links.sql` adiciona sete vínculos compostos por workspace às vendas, financeiro e importações, com três índices únicos de apoio. Preserva referências opcionais e snapshots após exclusão de cliente/produto. Sem RLS: a autorização continua na API; acesso SQL interno exige privilégio específico.
 
 Foi reproduzido em banco descartável que o schema 001–010 aceitava vínculos cruzados por SQL direto, embora a API os recusasse. A 011 rejeita esses vínculos e valida linhas existentes: qualquer inconsistência aborta a transação, sem reparar/apagar dados. Testados upgrade 10→11, replay, histórico, recusa de vínculo cruzado e rollback de upgrade incompatível. Nenhuma migration anterior foi editada.
 
-A aplicação na AWS continua **BLOQUEADA/não executada**: exige coleta sanitizada, backup verificado, janela de manutenção e migrador transacional. Não rodar a pilha inteira para aplicar a 011. O `/health/db` existente não é uma certificação dos novos vínculos; conferir migration registrada e constraints validadas.
+A aplicação na AWS foi **CONFIRMADA pelo responsável em 13/10/2026**: PostgreSQL 16.15, sete relações sem vínculos incompatíveis no preflight, backup privado de dados/configuração/roles e execução transacional somente do migrador. Registradas versões 001–011 e sete FKs validadas, sem reiniciar API/PostgreSQL. Detalhes em [REMEDIATION-STATUS.md](REMEDIATION-STATUS.md). O `/health/db` existente não é uma certificação dos novos vínculos; conferir migration registrada e constraints validadas em cada ambiente.
 
 O acesso interno de consulta tem procedimento separado em [TEAM-DATABASE-ACCESS.md](TEAM-DATABASE-ACCESS.md). Não usar o script legado do banco n8n nem expor 5432.
