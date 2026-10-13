@@ -277,6 +277,11 @@ class SharedDataIntegrationTests(unittest.TestCase):
                 "status": "healthy",
                 "shared_data": True,
                 "workspace": "ci-shared-data",
+                "capabilities": {
+                    "crm": "ready",
+                    "auth": {"enabled": False, "schema": "not_checked"},
+                    "channels": {"schema": "prepared", "connection": "not_checked"},
+                },
             },
         )
 
