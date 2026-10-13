@@ -73,9 +73,9 @@ A sequência detalhada para tirar gestão do `localStorage` sem perder compatibi
 
 ## Gate da base estabilizada — 13/10/2026
 
-- P0 operacional: conferir checkout/imagens/backup/runtime e homologar separadamente a migration 011 e o frontend corrigido, com backup e sem reconstrução indiscriminada. Código no Git não comprova deploy.
+- Gate de publicação team concluído: PR #35/CI aprovados, checkout `ae73f6e…`, backup, migration 011/sete constraints e frontend publicados; responsável confirmou login/saída/reentrada e abertura dos cinco módulos. Código no Git não comprova por si só deploy; CRUD completo/console/temas-resoluções pós-deploy não repetidos na produção.
 - P0 condicional: A12/A13 antes de atendimento real; não ativar o legado WhatsApp para múltiplos MEIs.
-- P1: implantar acesso interno individual após inventário de grants/rede; perfil readonly preparado, ainda não provisionado.
+- P1: separar usuário da API de migrations/backup e consulta após inventário de grants/rede e testes isolados; role `socialmei_team` observada com superuser. Perfil readonly preparado, ainda não provisionado; não reduzir privilégios ou alterar credenciais de produção às cegas.
 - P1: conferir versão publicada/equivalência dos workflows vivos e backup conjunto n8n/chave/volume.
 - P2: evolução visual só após fechar o gate operacional; consolidar controladores/CSS gradualmente, sem refatoração massiva.
 - P3: calculadora futura no contexto do cliente, com critérios fornecidos pelo responsável, lógica no backend e versionamento do modelo se houver histórico. Nenhuma fórmula presumida.

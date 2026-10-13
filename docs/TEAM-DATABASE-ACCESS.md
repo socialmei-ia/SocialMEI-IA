@@ -24,4 +24,10 @@ Não existe nesta rodada um perfil universal de developer na produção: desenvo
 
 ## Limites
 
-As permissões do perfil foram exercitadas nos testes, inclusive recusa de role privilegiada. Grants/roles/logins/firewall reais da AWS permanecem NÃO CONFIRMADOS. A implantação depende de uma coleta sanitizada e de configuração privada pelo responsável; não há procedimento de compartilhamento de segredo neste guia.
+As permissões do perfil foram exercitadas nos testes, inclusive recusa de role privilegiada. Grants completos, logins individuais e caminho de rede/firewall permanecem NÃO CONFIRMADOS. A implantação depende de revisão desses itens e configuração privada pelo responsável; não há procedimento de compartilhamento de segredo neste guia.
+
+## Coleta team — 13/10/2026
+
+O responsável executou consulta somente leitura no banco `socialmei_team`, PostgreSQL 16.15. Entre os nomes de roles consultados (`socialmei_team`, `socialmei_team_readonly`, `socialmei_admin`, `socialmei_app`), retornou somente `socialmei_team`: LOGIN, SUPERUSER, CREATEDB, CREATEROLE, REPLICATION e BYPASSRLS habilitados. Isso não é inventário de todas as roles/grants do cluster. O perfil de consulta não foi aplicado e nenhuma conta individual foi criada.
+
+Backup privado de roles globais foi criado junto ao backup pré-atualização; seu conteúdo não foi exibido. Próxima decisão: separar o usuário de execução da API dos responsáveis por migrations/backup e dos logins de consulta. Inventariar dependências e testar os grants em ambiente isolado antes de alterar `.env.team`, ownership ou privilégios. Não retirar superuser do usuário atual como atalho: ele também participa dos procedimentos administrativos existentes. A migration 011 não modifica essas permissões nem implementa RLS.

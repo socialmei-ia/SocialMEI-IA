@@ -1,5 +1,13 @@
 # Changelog
 
+## Aplicação da base team — 2026-10-13
+
+- PR #35 integrado em `ae73f6e093fc2d271a69a2ba9de1ebffc66c0705`; CI do merge aprovado, separado das evidências AWS.
+- Responsável confirmou backup privado de dados/configuração/roles e imagens anteriores API/gateway preservadas para rollback.
+- Migration 011 aplicada no PostgreSQL team 16.15; versões 001–011 e sete constraints validadas.
+- Somente gateway recriado; 37 arquivos do frontend comparados por SHA256, configuração privada preservada e Basic continuou respondendo 401. Demais containers preservados sem reinício.
+- Responsável confirmou login, abertura de Clientes/Produtos/Vendas/Financeiro/Relatórios, saída e reentrada após Ctrl+F5. Perfil de consulta não aplicado; role da API observada como superuser, a revisar em etapa própria. n8n/WAHA não alterados; nenhum restore, redesign ou calculadora executado.
+
 ## Estabilização da base — 2026-10-13
 
 - Corrigido fechamento tardio de formulários remotos: a resposta de uma operação anterior preserva uma nova edição/criação já aberta, mantendo feedback do salvamento.

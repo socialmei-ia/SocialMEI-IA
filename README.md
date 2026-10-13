@@ -88,7 +88,7 @@ O CI usa PostgreSQL 16, verifica a stack team isolada, exercita backup/restore n
 - **Legado:** n8n, WAHA, Caddy e seu banco têm Compose/configuração próprios. Não misture as pilhas.
 - **Workflows manuais do GitHub:** staging/produção genéricos existem, mas não devem ser usados para atualizar a implantação team sem conferir seus contratos.
 
-Backup verificado precede migrations/configuração/deploy. A migration **011** e o perfil de consulta desta estabilização foram preparados para homologação; sua presença no Git não comprova instalação na VPS. O acesso colaborativo está descrito em [TEAM-DATABASE-ACCESS.md](docs/TEAM-DATABASE-ACCESS.md). PostgreSQL continua sem porta pública.
+Backup verificado precede migrations/configuração/deploy. Em 13/10/2026, o responsável confirmou checkout team `ae73f6e…` (PR #35), migration **011** instalada com sete constraints validadas e frontend publicado; somente o gateway foi recriado. Login, abertura dos cinco módulos de gestão, saída e reentrada confirmados após publicação. O perfil de consulta permanece preparado, sem aplicação/provisionamento na AWS; a role atual da API foi observada como superuser e exige revisão própria. Evidências em [REMEDIATION-STATUS.md](docs/REMEDIATION-STATUS.md); acesso colaborativo em [TEAM-DATABASE-ACCESS.md](docs/TEAM-DATABASE-ACCESS.md). PostgreSQL continua sem porta pública.
 
 ## Próxima etapa
 

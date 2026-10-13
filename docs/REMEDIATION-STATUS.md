@@ -1,6 +1,6 @@
 # Remediation Status
 
-**Estado atual — 13/10/2026, 09:57 (-03:00): A03 APLICADA.** Registro operacional e revisão do PR #31 na seção final. As seções anteriores preservam a evolução da auditoria/proposta; afirmações antigas de A03 pendente, PR #32 em rascunho ou ausência de deploy não descrevem o estado atual. Limpeza dos registros sintéticos de QA confirmada pelo responsável às 09:57 (-03:00), pelo fluxo normal do site. A04 não implementada.
+**Estado atual — 13/10/2026: A01–A06 aplicadas; base do PR #35 integrada e publicada no ambiente team, incluindo migration 011.** Registro operacional na seção final. Afirmações anteriores de itens pendentes, ausência de merge/deploy ou migration preparada descrevem etapas históricas. Responsável confirmou login, abertura dos cinco módulos, saída/reentrada após o PR #35; n8n/WAHA e acessos SQL individuais continuam etapas próprias.
 
 Rodada de estabilização, 12/10/2026 (America/Fortaleza). Escopo autorizado: Etapa 0 somente leitura e correção local de A01/A02. Próximos itens são preparação, não autorização de execução.
 
@@ -415,4 +415,45 @@ Primeira execução CI A05/A06: 119 testes API executados no PostgreSQL isolado;
 
 Esta seção é posterior às anotações históricas de A03/A04/A05/A06 acima. Main conferida em `b27e75d01bdadef33707123347cab5272ee05040`; merge #34 e CI aprovados. O responsável relatou aplicação somente da API, saúde CRM/auth/canais e login/saída/reentrada. Acesso AWS não disponível nesta rodada: não se apresentou esse relato como reconfirmação independente.
 
-A estabilização usa branch própria, preserva as decisões adiadas e registra correções/testes em [PROJECT-BASELINE-REVIEW.md](../PROJECT-BASELINE-REVIEW.md). Migration 011 e perfil interno de consulta preparados/testados somente em destino descartável; nada aplicado na AWS. Instância n8n/WAHA inalterada. Base operacional completa continua pendente de inventário/homologação do responsável, separada do resultado local/CI.
+A estabilização usou branch própria, preservou as decisões adiadas e registrou correções/testes em [PROJECT-BASELINE-REVIEW.md](../PROJECT-BASELINE-REVIEW.md). Na preparação, migration 011 e perfil interno foram testados somente em destino descartável; a aplicação posterior da migration/frontend está documentada abaixo. Perfil de consulta continua não aplicado. Instância n8n/WAHA inalterada; base operacional completa depende dos itens ainda pendentes, separados do resultado local/CI.
+
+## Aplicação da base do PR #35 — 13/10/2026
+
+### Fonte e limites
+
+PR #35 integrado em `ae73f6e093fc2d271a69a2ba9de1ebffc66c0705`. [CI do merge](https://github.com/socialmei-ia/SocialMEI-IA/actions/runs/38442283064) aprovado na tentativa 2: primeira execução browser falhou com `ERR_NETWORK_CHANGED` antes de carregar a aplicação; reexecução passou sem alteração de código/assertivas/timeouts. CI usa PostgreSQL 16 e gateway/HTTPS reais isolados; não é teste de produção.
+
+Evidências AWS recebidas no chat após execução pelo responsável, via PowerShell/SSH e remoção de CRLF. O auditor não possui SSH próprio, credenciais ou painel n8n/WAHA. Nenhum segredo, corpo de registro ou arquivo privado completo foi solicitado/publicado.
+
+### Preflight e backup
+
+- Checkout inicial limpo no SHA `b27e75d01bdadef33707123347cab5272ee05040`; API/PG healthy, gateway em execução e migrador anterior encerrado com código 0.
+- Banco/usuário `socialmei_team`, PostgreSQL **16.15**, versões **001–010** registradas. Transação READ ONLY retornou **zero vínculos incompatíveis** em cada uma das sete relações CRM/importação; encerrada com ROLLBACK.
+- Consulta às roles previstas retornou `socialmei_team` com LOGIN, SUPERUSER, CREATEDB, CREATEROLE, REPLICATION e BYPASSRLS. Não alteradas permissões/credenciais; perfil readonly não aplicado. Inventário de grants completos ainda pendente.
+- Backup privado: `/home/ubuntu/socialmei-backups/team-auto-20261013-151107-2cf840`. Integridade dos quatro arquivos conferida e revalidada antes das mudanças:
+
+| Arquivo               |  Bytes | SHA256 do arquivo                                                  |
+| --------------------- | -----: | ------------------------------------------------------------------ |
+| `equipe.dump`         | 101308 | `3b82cde42ce93f6191bcb149d0184e71906dae380638177d903f5b53821c474d` |
+| `configuracao.tar.gz` |   2128 | `845eb0ffd44bf8a560d785def31c0c6d46c3eafe12c404b10cc74617e57adcf3` |
+| `conteudo.txt`        |  18040 | `3ae35a5ab905caf70e905ff3003b4db154f0f1f02145ba841afc3d2c9e343210` |
+| `roles-globais.sql`   |    683 | `84516844c0e72f0610e10d112976c3428dbc244cb21456ae9bff55d6ee619eb4` |
+
+São hashes dos arquivos, não valores de autenticação. Arquivos privados com permissões restritas; definições de roles não exibidas. SHA256/índice não comprovam restauração completa. Nenhum restore desse backup AWS foi executado e cobertura n8n/WAHA/Caddy não foi comprovada.
+
+### Checkout, migration e publicação
+
+- Fetch e checkout detached no SHA aprovado `ae73f6e…`, sem mudanças locais. Configurações de runtime comparadas entre os SHAs; nenhuma alteração. Imagens anteriores preservadas com tags `socialmei-rollback/team-api:pre-ae73-2cf840` e `socialmei-rollback/team-gateway:pre-ae73-2cf840`; Compose e metadados privados guardados junto ao backup.
+- Arquivo 011 conferido por SHA256; lista de migrations sem arquivos extras e banco exatamente em 001–010 antes da execução. Migrador temporário executado com `run --rm --no-deps --pull never`, reutilizando imagem existente; nenhuma pilha inteira atualizada.
+- **001–011 registradas e sete FKs validadas**, confirmadas por consulta separada de `/health/db`. Resultado privado salvo em `011-validation.json`. API, PG e gateway não reiniciados na etapa da migration; nenhuma role/registro alterado por reparo.
+- Build do gateway usou somente frontend/Dockerfile/Caddyfile versionados em contexto temporário; `.env`, configuração privada e `.git` não enviados ao builder. Caddy validado antes de recriar somente `team-gateway`, com `--no-deps --no-build --pull never`.
+- **37 arquivos do frontend conferidos por SHA256 no container**. `config.js` privado excluído da comparação e preservado pelo mount existente. Demais containers mantiveram ID, imagem, StartedAt e RestartCount durante essa etapa.
+- Raiz pública sem Basic retornou **401**. Gateway em execução, sem healthcheck próprio; não chamar `Up` de prova de login/CRUD. API e PostgreSQL healthy; API preservada na imagem A05/A06, cujo código de execução não foi alterado pelo PR #35.
+
+### Saúde e pendências
+
+Doctor após migration/publicação: healthy, shared_data true, workspace team, CRM ready, auth enabled/schema ready, channels schema prepared/connection not_checked. Contagens técnicas clientes/produtos/vendas visíveis/financeiro zero; a limpeza dos registros de teste havia sido confirmada pelo responsável. Isso não comprova contas/banco inteiramente vazios.
+
+**SMOKE AUTENTICADO CONFIRMADO pelo responsável:** após Ctrl+F5, login, abertura de Clientes/Produtos/Vendas/Financeiro/Relatórios, saída e reentrada funcionaram. Relato manual, sem captura automatizada de navegador; não comprova CRUD completo, console ou todos os temas/resoluções nesta sessão de produção. Regressões completas permanecem evidência do ambiente isolado/CI.
+
+**NÃO CONFIRMADO:** grants completos/perfil individual, rede/firewall, restore isolado do backup AWS, retenção/cópia externa, versão publicada dos workflows e homologação de canais. n8n/WAHA não alterados/pareados/ativados; nenhum webhook chamado ou mensagem enviada. Decisões adiadas preservadas. Documentação posterior não exige reconstruir serviços nem mudar o SHA instalado só para acompanhar `main`.

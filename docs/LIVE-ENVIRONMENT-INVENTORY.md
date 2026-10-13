@@ -1,6 +1,6 @@
 # Live Environment Inventory
 
-Atualização de evidências em 13/10/2026: ver seção de acompanhamento ao final. O inventário permanece **PARTIAL**; os bloqueios descritos na coleta inicial são históricos e foram parcialmente fechados.
+Atualização de evidências em 13/10/2026: ver acompanhamentos ao final, incluindo publicação da base do PR #35. O inventário permanece **PARTIAL**; os bloqueios descritos na coleta inicial são históricos e foram parcialmente fechados.
 
 Rodada de estabilização A01/A02, 12/10/2026 (America/Fortaleza). Coleta inicial: **PARTIAL**; inventário interno da VPS: **BLOCKED**. Nenhuma ação de infraestrutura, banco, n8n, WAHA ou deploy foi executada.
 
@@ -173,3 +173,22 @@ A presença de workflows legados ativos torna a revisão A12/A13 operacionalment
 5. Último backup automático bem-sucedido, cobertura de volumes, retenção e cópia externa recorrente; nenhum restore em produção para fechar inventário.
 
 Acompanhamento fecha parte dos bloqueios iniciais e mantém o restante como **BLOCKED/PARTIAL**. Nenhum workflow n8n, WAHA, conta, preço, dado de CRM ou configuração de infraestrutura foi modificado durante estas consultas.
+
+## Acompanhamento da base do PR #35 — 13/10/2026
+
+Coleta posterior recebida do responsável após comandos PowerShell/SSH autorizados; sem acesso SSH próprio do auditor. Registro completo em [REMEDIATION-STATUS.md](REMEDIATION-STATUS.md). A seção inicial e o acompanhamento PR #30 permanecem históricos.
+
+| Item                       | Evidência posterior                                                                                                                                       |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Checkout team              | Detached `ae73f6e093fc2d271a69a2ba9de1ebffc66c0705`, PR #35, limpo após publicação                                                                        |
+| Banco team                 | PostgreSQL 16.15, banco/usuário `socialmei_team`; migrations 001–011 instaladas; sete novas FKs validadas                                                 |
+| Links anteriores           | Zero incompatibilidades nas sete relações consultadas em READ ONLY antes da 011                                                                           |
+| Role consultada            | `socialmei_team` com LOGIN/SUPERUSER/CREATEDB/CREATEROLE/REPLICATION/BYPASSRLS; demais nomes previstos não retornaram; grants completos não inventariados |
+| Gateway                    | Único serviço recriado; Caddy validado; 37 arquivos conferem com frontend aprovado; configuração privada mantida                                          |
+| API/PG e demais containers | Preservados durante publicação, comparando ID/imagem/início/reinícios; API/PG healthy                                                                     |
+| Saúde API                  | CRM ready; auth enabled/schema ready; channels schema prepared/connection not_checked; workspace team                                                     |
+| Acesso público             | Raiz sem Basic retorna 401; responsável confirmou login, cinco módulos, saída/reentrada após Ctrl+F5; CRUD completo pós-deploy não repetido               |
+| Backup pré-atualização     | `team-auto-20261013-151107-2cf840`; dump/configuração/índice/roles conferidos por SHA256; imagens anteriores API/gateway e Compose preservados            |
+| Dados agregados            | Clientes/produtos/vendas visíveis/financeiro zero; não equivale a banco/contas vazios                                                                     |
+
+Essa rodada não conferiu novamente versões/publicações n8n/WAHA, grants completos, cron/retensão/cópia externa ou restauração isolada do backup AWS. O perfil SQL de consulta permanece não aplicado. Não houve restore, pareamento, envio, webhook, alteração de credenciais ou publicação de workflows. PostgreSQL continua sem porta pública no Compose team; regras AWS completas não verificadas.
