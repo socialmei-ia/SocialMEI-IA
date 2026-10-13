@@ -297,8 +297,10 @@ async function saveRecordEdit(form) {
       },
     );
     if (saved) {
-      activeRecordEdit = null;
-      closeModal("createModal");
+      if (activeRecordEdit === context) {
+        activeRecordEdit = null;
+        closeModal("createModal");
+      }
       toast("Alterações salvas", "Cliente atualizado na API compartilhada.");
     }
     return;
@@ -317,8 +319,10 @@ async function saveRecordEdit(form) {
       },
     );
     if (saved) {
-      activeRecordEdit = null;
-      closeModal("createModal");
+      if (activeRecordEdit === context) {
+        activeRecordEdit = null;
+        closeModal("createModal");
+      }
       toast("Alterações salvas", "Catálogo atualizado na API compartilhada.");
     }
     return;
@@ -338,8 +342,10 @@ async function saveRecordEdit(form) {
       },
     );
     if (saved) {
-      activeRecordEdit = null;
-      closeModal("createModal");
+      if (activeRecordEdit === context) {
+        activeRecordEdit = null;
+        closeModal("createModal");
+      }
       toast("Venda atualizada", "Estoque ajustado junto com a venda.");
     }
     return;
@@ -357,8 +363,10 @@ async function saveRecordEdit(form) {
       },
     );
     if (saved) {
-      activeRecordEdit = null;
-      closeModal("createModal");
+      if (activeRecordEdit === context) {
+        activeRecordEdit = null;
+        closeModal("createModal");
+      }
       toast("Lançamento atualizado", "Salvo no Financeiro compartilhado.");
     }
     return;

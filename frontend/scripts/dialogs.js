@@ -465,6 +465,7 @@ async function handleCreate(data) {
   if (!validateRequiredFormText($("createForm"))) {
     return;
   }
+  const modalEpoch = $("createModal")._closeEpoch;
   if ($("createType").value === "cliente" && SocialMEIClients.remote) {
     const saved = await SocialMEIClients.create({
       nome: data.nome.trim(),
@@ -478,7 +479,9 @@ async function handleCreate(data) {
       tags: ["Novo cliente"],
     });
     if (saved) {
-      closeModal("createModal");
+      if ($("createModal")._closeEpoch === modalEpoch) {
+        closeModal("createModal");
+      }
       toast("Cliente criado", "Salvo na API compartilhada.");
     }
     return;
@@ -495,7 +498,9 @@ async function handleCreate(data) {
       status: "Ativo",
     });
     if (saved) {
-      closeModal("createModal");
+      if ($("createModal")._closeEpoch === modalEpoch) {
+        closeModal("createModal");
+      }
       toast("Item criado", "Salvo na API compartilhada.");
     }
     return;
@@ -513,7 +518,9 @@ async function handleCreate(data) {
       status: "Pendente",
     });
     if (saved) {
-      closeModal("createModal");
+      if ($("createModal")._closeEpoch === modalEpoch) {
+        closeModal("createModal");
+      }
       toast("Venda registrada", "Venda e estoque salvos na API.");
     }
     return;
@@ -529,7 +536,9 @@ async function handleCreate(data) {
       cliente_id: data.cliente_id ? Number(data.cliente_id) : null,
     });
     if (saved) {
-      closeModal("createModal");
+      if ($("createModal")._closeEpoch === modalEpoch) {
+        closeModal("createModal");
+      }
       toast("Lançamento registrado", "Salvo no Financeiro compartilhado.");
     }
     return;

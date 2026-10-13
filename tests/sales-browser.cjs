@@ -30,6 +30,15 @@ module.exports = async function salesFlows(browser, origin, errors) {
     imports = new Map();
   let nextId = 300,
     loseResponse = false;
+  let pauseProductRead = false;
+  let signalProductRead;
+  const productReadStarted = new Promise((resolve) => {
+    signalProductRead = resolve;
+  });
+  let releaseProductRead;
+  const productReadReleased = new Promise((resolve) => {
+    releaseProductRead = resolve;
+  });
   const seed = {
     schemaVersion: 1,
     clientes: [{ id: 1, nome: "Cliente local", tags: [] }],
@@ -70,7 +79,13 @@ module.exports = async function salesFlows(browser, origin, errors) {
       if (!url.pathname.startsWith("/api/v1/")) return route.continue();
       const data = req.postDataJSON();
       if (url.pathname === "/api/v1/clientes") return route.fulfill({ json: clients });
-      if (url.pathname === "/api/v1/produtos") return route.fulfill({ json: products });
+      if (url.pathname === "/api/v1/produtos") {
+        if (pauseProductRead) {
+          signalProductRead();
+          await productReadReleased;
+        }
+        return route.fulfill({ json: products });
+      }
       if (url.pathname === "/api/v1/vendas" && req.method() === "GET")
         return route.fulfill({ json: rows.filter((v) => !v.excluida) });
       if (url.pathname.includes("/vendas/importacoes/")) {
@@ -246,11 +261,22 @@ module.exports = async function salesFlows(browser, origin, errors) {
   assert.equal(await second.evaluate(() => appData.produtos[0].estoque), 5);
   await page.evaluate((id) => openRecordEditor("sales", id), saleId);
   await page.locator("#f_quantidade").fill("3");
+  pauseProductRead = true;
   await page.locator("#createSubmit").click();
   await page.waitForFunction(() => appData.vendas[0].quantidade === 3);
   assert.equal(products[0].estoque, 4);
+  await productReadStarted;
   await page.evaluate((id) => openRecordEditor("sales", id), saleId);
   await page.locator("#f_quantidade").fill("4");
+  pauseProductRead = false;
+  releaseProductRead();
+  await page.waitForFunction(() => !document.querySelector("[data-sales-reload]").disabled);
+  assert.equal(
+    await page.locator("#createModal").evaluate((e) => e.classList.contains("open")),
+    true,
+    "Uma operação antiga fechou o novo editor",
+  );
+  assert.equal(await page.evaluate(() => activeRecordEdit?.id), saleId);
   rows[0].versao++;
   await page.locator("#createSubmit").click();
   await page.waitForFunction(() =>
