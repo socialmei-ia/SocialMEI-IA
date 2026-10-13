@@ -21,6 +21,14 @@ class SharedDataIntegrationTests(unittest.TestCase):
         with psycopg.connect(TEST_DATABASE_URL, autocommit=True) as conn:
             for migration in sorted(migrations.glob("*.sql")):
                 conn.execute(migration.read_text(encoding="utf-8"), prepare=False)
+                conn.execute(
+                    "CREATE TABLE IF NOT EXISTS socialmei.schema_migrations "
+                    "(version TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW())"
+                )
+                conn.execute(
+                    "INSERT INTO socialmei.schema_migrations (version) VALUES (%s) "
+                    "ON CONFLICT DO NOTHING", (migration.name,)
+                )
                 if migration.name.startswith("002_"):
                     workspace_id = conn.execute(
                         "INSERT INTO socialmei.workspaces (slug, nome) "
