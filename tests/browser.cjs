@@ -80,6 +80,17 @@ async function run() {
       f_minimo: "2",
     }))
       await page.locator("#" + field).fill(value);
+    const productsBeforeValidation = (await data()).produtos.length;
+    for (const field of ["preco", "custo"]) {
+      await page.locator("#f_" + field).fill("12.345");
+      await page.locator("#createSubmit").click();
+      assert.equal((await data()).produtos.length, productsBeforeValidation);
+      assert.match(
+        await page.locator("#f_" + field).evaluate((e) => e.validationMessage),
+        /duas casas/,
+      );
+      await page.locator("#f_" + field).fill(field === "preco" ? "50.000" : "10.000");
+    }
     await page.locator("#createSubmit").click();
     await page.evaluate(() => openCreate("venda"));
     for (const [field, value] of Object.entries({

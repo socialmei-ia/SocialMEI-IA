@@ -10,12 +10,15 @@ function validateRequiredFormText(form) {
       input.setCustomValidity(input.value.trim() ? "" : "Preencha este campo com um texto.");
     }
   });
+  updateCatalogMoneyValidity(form);
   return form.reportValidity();
 }
 document.addEventListener(
   "input",
   (event) => {
     const input = event.target;
+    if (input.closest?.("#createForm") && ["preco", "custo"].includes(input.name))
+      updateCatalogMoneyValidity(input.closest("form"));
     if (
       input.matches?.("input[required],textarea[required]") &&
       ["text", "search", "tel", "url", "textarea"].includes(input.type)

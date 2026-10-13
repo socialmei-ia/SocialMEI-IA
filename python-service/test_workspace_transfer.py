@@ -5,6 +5,7 @@ from copy import deepcopy
 from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
+from unittest.mock import patch
 
 import psycopg
 from app import app
@@ -157,6 +158,52 @@ class TransferIntegrationTests(unittest.TestCase):
                 "preview_token": (preview or self.preview(packet))["preview_token"],
             },
         )
+
+    def test_new_transfer_invalid_catalog_is_rejected_without_writes(self):
+        preview = self.preview()
+        for field, value in [("preco", "12.345"), ("custo", "10000000000000")]:
+            packet = deepcopy(self.packet)
+            packet["produtos"][0][field] = value
+            response = self.client.post("/api/v1/transferencias/preview", json=packet)
+            self.assertEqual(response.status_code, 422, response.text)
+            response = self.confirm(packet=packet, preview=preview)
+            self.assertEqual(response.status_code, 422, response.text)
+        with psycopg.connect(DB) as conn:
+            self.assertEqual(
+                conn.execute("SELECT COUNT(*) FROM socialmei.crm_produtos").fetchone()[
+                    0
+                ],
+                0,
+            )
+            self.assertEqual(
+                conn.execute(
+                    "SELECT COUNT(*) FROM socialmei.crm_transferencias"
+                ).fetchone()[0],
+                0,
+            )
+
+    def test_preexisting_transfer_receipt_remains_replayable_without_rounding(self):
+        self.packet["produtos"][0]["preco"] = "12.345"
+        self.packet["produtos"][0]["custo"] = "100000000000000000000"
+        # Simula um recibo criado antes do contrato novo, somente no banco isolado de teste.
+        with patch("workspace_transfer.validate_new_transfer_catalog"):
+            first = self.confirm()
+        self.assertEqual(first.status_code, 200, first.text)
+        second = self.confirm()
+        self.assertEqual(second.status_code, 200, second.text)
+        self.assertTrue(second.json()["ja_transferido"])
+        with psycopg.connect(DB) as conn:
+            row = conn.execute(
+                "SELECT preco, custo FROM socialmei.crm_produtos"
+            ).fetchone()
+            self.assertEqual(str(row[0]), "12.345")
+            self.assertEqual(row[1], 10**20)
+            self.assertEqual(
+                conn.execute(
+                    "SELECT COUNT(*) FROM socialmei.crm_transferencias"
+                ).fetchone()[0],
+                1,
+            )
 
     def test_atomic_handover_maps_ids_keeps_snapshots_and_stock_behavior(self):
         preview = self.preview()

@@ -6,7 +6,7 @@ from decimal import Decimal
 from typing import Annotated, Literal
 from uuid import UUID
 
-from catalog_data import ProdutoOut
+from catalog_data import ProdutoOut, validate_catalog_amount
 from fastapi import APIRouter, HTTPException
 from finance_import import LegacyEntry
 from psycopg.rows import dict_row
@@ -15,6 +15,7 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    ValidationError,
     field_validator,
     model_validator,
 )
@@ -218,6 +219,18 @@ def insert_record(cur, workspace_id, table, record, client_map, product_map):
     return cur.fetchone()["id"]
 
 
+def validate_new_transfer_catalog(packet):
+    try:
+        for product in packet.produtos:
+            validate_catalog_amount(product.preco)
+            validate_catalog_amount(product.custo)
+    except ValidationError:
+        raise HTTPException(
+            422,
+            "Preço e custo exigem até duas casas decimais e devem respeitar o limite de R$ 9.999.999.999.999,99. Nenhum valor foi arredondado.",
+        ) from None
+
+
 @router.post("/preview")
 def preview_transfer(packet: TransferPacket):
     require_team()
@@ -229,6 +242,8 @@ def preview_transfer(packet: TransferPacket):
         workspace = cur.fetchone()
         workspace_id = workspace["id"] if workspace else None
         previous = receipt(cur, workspace_id, packet)
+        if previous is None:
+            validate_new_transfer_catalog(packet)
         token, current = destination_state(cur, workspace_id)
         return {
             "origem": str(packet.origem),
@@ -254,6 +269,7 @@ def confirm_transfer(payload: TransferConfirm):
         previous = receipt(cur, workspace_id, packet)
         if previous:
             return {**previous, "ja_transferido": True}
+        validate_new_transfer_catalog(packet)
         token, _ = destination_state(cur, workspace_id)
         if token != payload.preview_token:
             raise HTTPException(
