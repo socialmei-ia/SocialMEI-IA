@@ -185,6 +185,12 @@ const sessionData = {
     },
   ],
 };
+// Contas reais não herdam exemplos, mesmo antes da confirmação da sessão.
+if (SocialMEIAuth.remote) {
+  sessionData.atividade = [];
+  sessionData.notificacoes = [];
+  sessionData.conversas = [];
+}
 const DEFAULT_APP_DATA = {
   schemaVersion: SOCIALMEI_APP_SCHEMA_VERSION,
   financeiro: [
