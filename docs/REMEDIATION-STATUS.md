@@ -251,3 +251,11 @@ As categorias podem se sobrepor: não somar esses contadores como registros úni
 6. PR separado de documentação/infra; aprovação específica antes de merge/deploy. Backup pertinente e atualização apenas dos serviços realmente modificados. Migration somente se necessária e aprovada separadamente.
 
 **Não implementado:** tipos/validações novos, arredondamento, constraint, migration, normalização de preço/custo, alteração de workflow/WAHA ou novo deploy. Esta proposta não conclui A03.
+
+### Contagens monetárias recebidas — 13/10/2026, 01:10 (-03:00)
+
+O responsável executou a consulta proposta em transação READ ONLY no banco team. Ela agregou `crm_produtos` de todos os workspaces: um preço e um custo; zero valores não finitos/negativos, zero acima do limite de Vendas e zero com fração efetiva além de centavos em ambos os campos. Não foram retornados valores individuais ou dados pessoais.
+
+Esse resultado fecha o inventário monetário da tabela atual na hora da coleta. Não cobre snapshots/importações arquivadas, arquivos locais ou cadastros futuros. Não há valor atual nessa tabela que precise normalização segundo a regra candidata; nenhuma escrita/constraint/migration foi feita.
+
+A03 continua **NEEDS PRODUCT DECISION**: confirmar duas casas para preço e decidir se custo também deve ter duas casas ou se exige precisão unitária adicional. Preservar o limite atual de Vendas e rejeitar casas extras sem arredondamento são recomendações, ainda sem implementação. Após essa decisão, preparar PR de código separado do PR documental #31.
