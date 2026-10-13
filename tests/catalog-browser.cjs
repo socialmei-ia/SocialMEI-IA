@@ -140,6 +140,18 @@ module.exports = async function catalogFlows(browser, origin, errors) {
     f_minimo: "2",
   }))
     await page.locator("#" + id).fill(value);
+  const writesBeforeValidation = requests.filter((r) => r.method === "POST").length;
+  for (const field of ["preco", "custo"]) {
+    await page.locator("#f_" + field).fill("12.345");
+    assert.match(
+      await page.locator("#f_" + field).evaluate((e) => e.validationMessage),
+      /duas casas/,
+    );
+    await page.locator("#createSubmit").click();
+    assert.equal(requests.filter((r) => r.method === "POST").length, writesBeforeValidation);
+    assert.equal(await page.locator("#f_" + field).inputValue(), "12.345");
+    await page.locator("#f_" + field).fill(field === "preco" ? "30.000" : "8.000");
+  }
   await page.locator("#createSubmit").click();
   await page.waitForFunction(() => appData.produtos.length === 2);
   const pid = rows.find((r) => r.nome === "Produto remoto").id;
