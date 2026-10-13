@@ -253,6 +253,7 @@ async function run() {
     checks.push(await require("./finance-browser.cjs")(browser, origin, errors));
     checks.push(await require("./transfer-browser.cjs")(browser, origin, errors));
     checks.push(await require("./reports-browser.cjs")(browser, origin, errors));
+    checks.push(await require("./audit-ui-browser.cjs")(browser, origin));
     assert.deepEqual(errors, []);
     checks.push("11 módulos, quatro larguras, claro/escuro, toasts e reduced motion");
     fs.writeFileSync(
