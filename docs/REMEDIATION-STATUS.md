@@ -1,5 +1,7 @@
 # Remediation Status
 
+**Estado atual — 13/10/2026, 09:50 (-03:00): A03 APLICADA.** Registro operacional e revisão do PR #31 na seção final. As seções anteriores preservam a evolução da auditoria/proposta; afirmações antigas de A03 pendente, PR #32 em rascunho ou ausência de deploy não descrevem o estado atual. Limpeza dos registros sintéticos de QA ainda aguarda confirmação. A04 não implementada.
+
 Rodada de estabilização, 12/10/2026 (America/Fortaleza). Escopo autorizado: Etapa 0 somente leitura e correção local de A01/A02. Próximos itens são preparação, não autorização de execução.
 
 ## Baseline
@@ -294,3 +296,69 @@ Próximo passo desta etapa: revisar diff e testes, preparar [PR #32](https://git
 [Repository checks #93](https://github.com/socialmei-ia/SocialMEI-IA/actions/runs/38346881087) concluído com sucesso, head `fa6ad1e21e41a1f604734fe44e455c8ca22be215`, correspondente aos dois commits de código/testes do PR #32. Jobs validate/browser verdes: 106 testes da API com PostgreSQL real, zero skips; Node/formatação; 88 estados/16 fluxos; gateway HTTPS/Basic; inicialização e restauração isoladas. O sucesso em CI não é evidência de deploy na AWS.
 
 PR #32 permanece em rascunho, sem merge/deploy. PR #31 contém somente documentação. A03 está preparada para revisão, com os limites de compatibilidade descritos acima; A04 e Google Sheets não foram implementados. Nenhuma migration ou alteração de dados foi aplicada ao banco de produção.
+
+## Registro operacional A03 — 13/10/2026
+
+**Status: APLICADA.** Atualização explicitamente autorizada, executada pelo responsável via PowerShell/SSH, seguida de conferências sanitizadas e teste autenticado reportado pelo responsável. O auditor não possui sessão SSH própria. A aprovação de A03 não autoriza merge do PR #31 ou implementação de A04.
+
+### Git, backup e rollback
+
+- PR de código [#32](https://github.com/socialmei-ia/SocialMEI-IA/pull/32) integrado em `main`; branch de origem `fix/catalog-money-contract`.
+- SHA anterior: `9e943a92624f1cdefc50bfc2322b0f7bfc2a0af3`.
+- SHA aplicado e checkout limpo conferido: `28ae7ef3af563d5405da4e52236468d55de1afdb`, HEAD destacado no servidor team.
+- CI [Repository checks #93](https://github.com/socialmei-ia/SocialMEI-IA/actions/runs/38346881087) verde no head aprovado `fa6ad1e21e41a1f604734fe44e455c8ca22be215`. Resultados isolados descritos acima; não substituir evidência da AWS por CI.
+- Backup existente aprovado, concluído antes do deploy: `/home/ubuntu/socialmei-backups/team-auto-20261013-092524-6fa657`. `equipe.dump` 100905 bytes, `configuracao.tar.gz` 2128 bytes e `conteudo.txt` 18040 bytes; integridade SHA256 e índice do dump conferidos. Nenhum restore em produção.
+- Imagens anteriores preservadas nas tags `socialmei-team-api-rollback:team-auto-20261013-092524-6fa657` e `socialmei-team-gateway-rollback:team-auto-20261013-092524-6fa657`. Registro `a03-operacao.json` e overlay `a03-rollback.compose.json` no diretório do backup.
+- Rollback conhecido: checkout não forçado do SHA anterior e `compose.team.yaml` com overlay de rollback, recriando somente `team-api`/`team-gateway` com `--no-build --no-deps --force-recreate --wait`; executar doctor depois. Não restaurar banco automaticamente. Rollback não utilizado nesta aplicação.
+
+### Runtime e serviços preservados
+
+Rebuild e recriação somente de `team-api` e `team-gateway`, com `--no-deps`; nenhum serviço de migration iniciado. SHA aprovado confirmado e conteúdo dos três módulos Python e quatro scripts frontend envolvidos comparado por SHA256 entre checkout e containers: PASS.
+
+| Serviço      | Campo Image efetivo após deploy                                           | Estado observado                                                                             |
+| ------------ | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| team-api     | `sha256:52cabc25188a466f9d616881ab3004226a2bd7335f7157d909babc931cb910df` | running, healthy, restart count 0; início 2026-10-13T12:33:21.575905504Z                     |
+| team-gateway | `sha256:cb27d163ffdab16967c24ae2f6f1d27354bd84b68ee2819d7506b446edd7be1b` | running, sem healthcheck configurado, restart count 0; início 2026-10-13T12:33:28.157690255Z |
+
+PostgreSQL team/legado, n8n, WAHA e Caddy público mantiveram os mesmos campos Image e StartedAt do preflight recebido às 09:21, todos com restart count 0. Não extrapolar esta comparação para containers não incluídos na coleta. Diretório legado `/home/ubuntu/socialmei` não atualizado. Gateway sem healthcheck Docker não foi descrito como funcionalmente saudável apenas pelo `compose --wait`.
+
+Logs desde o início dos containers alterados: zero indicadores de Traceback, HTTP 500 Internal Server Error, connection refused, import error e nível ERROR. Somente contadores sanitizados foram retornados; isso não equivale a captura do console do navegador ou monitoramento contínuo.
+
+### Banco e comparação estrutural
+
+- **Migration: NENHUMA.** As mesmas dez versões 001–010 permaneceram instaladas. Não houve alteração SQL de schema ou normalização monetária.
+- Antes dos testes pela interface, as contagens físicas do workspace team permaneceram clientes 1, produtos 1, vendas 1 e financeiro 1. Doctor permaneceu healthy/shared_data true: clientes 1, produtos 1, vendas visíveis 0 e financeiro 1. A venda antiga logicamente excluída explica a diferença; não foi removida para ajustar o diagnóstico.
+- Os hashes de colunas/índices das duas consultas iniciais não são comparáveis diretamente: as fórmulas de agregação diferiam. Não foram usados como prova de alteração ou igualdade.
+- Para fechar essa lacuna, o responsável comparou o DDL do schema `socialmei` extraído do backup pré-deploy com o DDL atual, em memória. `pg_dump` atual executado com transação somente leitura; `pg_restore --schema-only --file=-` apenas produziu texto, sem conexão de restauração. Normalização removeu comentários, linhas vazias e marcadores aleatórios restrict/unrestrict, preservando demais instruções: **PASS**.
+- SHA256 estrutural normalizado de ambos: `e97f6e9a3a949d0bc0737e85916a5da2e555727d62e9e8e2fc2e8f25dd9f4587`. Evidência limitada ao schema `socialmei`; não é inventário completo de roles globais ou prova byte a byte dos dados.
+- Dados preexistentes não foram modificados em massa. Os testes manuais criaram somente dados sintéticos pelo fluxo normal da aplicação; as contagens anteriores não representam o total depois desse QA.
+
+### Testes A03 e regressão
+
+| Verificação                     | Evidência / resultado                                                                                                                                                                                                                                                                                                              |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Contratos no container aplicado | Produto e Serviço, preço/custo em create/PATCH: zero, 12.34 e limite aceitos; 12.345 e 1e20 recusados. Contrato de venda compatível. Dez grupos reportados PASS; modelos não gravaram registros.                                                                                                                                   |
+| Auth                            | `/api/v1/auth/me` anônimo retorna 401; raiz do gateway sem Basic retorna 401. PASS. Nenhuma credencial publicada.                                                                                                                                                                                                                  |
+| Health                          | API healthy e doctor healthy/shared_data true/workspace team após aplicação. PASS.                                                                                                                                                                                                                                                 |
+| Interface autenticada           | Responsável confirmou o roteiro: Clientes, Catálogo, Vendas e Financeiro abrem; Claro/Escuro; serviço sintético QA A03 criado por 12,34, persistiu após reload, editado para 15,90 e persistiu; cliente fictício e venda do serviço criados, preço/persistência conferidos. PASS reportado, sem captura automatizada dessa sessão. |
+| Produto / integração isolada    | Cobertos pelos modelos do container e testes CI com PostgreSQL real. Não afirmar criação manual de produto na AWS: o roteiro autenticado usou Serviço.                                                                                                                                                                             |
+| Console do navegador            | Não foi recebida captura do console nessa sessão. Ausência de erro visual reportada e logs sanitizados sem indicadores; ausência de novo pageerror/erro de console permanece evidência das suites browser isoladas, não observação do console vivo.                                                                                |
+| Limpeza de QA                   | PENDENTE: remover apenas venda, serviço e cliente sintéticos desta validação pelo fluxo normal da aplicação. Não usar SQL, IDs presumidos ou exclusão em massa.                                                                                                                                                                    |
+
+Não houve falha crítica reportada na atualização ou validação. A suite completa não foi executada contra o banco de produção; testes de integração/restore permaneceram isolados no CI. Skips locais continuam separados dos passes, conforme resultados registrados acima.
+
+### Revisão do PR #31
+
+Revisão documental após confirmação da aplicação, testes reportados e comparação estrutural. PR permanece somente com `docs/LIVE-ENVIRONMENT-INVENTORY.md` e `docs/REMEDIATION-STATUS.md`, sem código A04/infra. Nesta atualização, somente o registro operacional deste documento foi modificado.
+
+Divergências encontradas: acompanhamento ainda dizia A03 pendente/PR #32 em rascunho, Git/AWS em 9e943a9 e nenhum deploy; o inventário vivo descreve coleta histórica anterior e não os dois novos campos Image. Este registro supersede esses estados para a operação A03; preserva os snapshots datados. O inventário histórico não deve ser apresentado como inventário atual completo. Descrição do PR #31 também precisa refletir o deploy confirmado antes de aprovação final.
+
+Etapa 0 continua PARTIAL: versões publicadas/equivalência integral de workflows, autenticação estrutural dos legados, roles/grants globais, RepoDigests e retenção/sucesso automático/cópias externas de backup permanecem sem fechamento completo. Não foram inferidos incidentes ou integração WhatsApp pronta.
+
+Prontidão: **para revisão do responsável; ainda sem merge autorizado**. Revalidar CI e metadados de mergeabilidade no GitHub após esta atualização documental. A simulação local `git merge-tree --write-tree` contra main 28ae7ef não apresentou conflitos; isso não substitui o status administrativo do GitHub. Limpeza de QA e atualização da descrição do PR permanecem pendentes explícitas. Não executar novo deploy para documentação.
+
+### Próxima rodada — somente plano A04
+
+Separar a origem dos seeds demonstrativos de conversas/atividades/notificações: mantê-los no Pages/demo e usar dados autorizados ou estados vazios para contas reais novas. Preservar notas/rascunhos e dados existentes; testar demo, conta nova, conta existente e isolamento entre workspaces em ambiente isolado. Não apagar dados como atalho. **Não implementado nesta rodada.**
+
+Google Sheets permanece PAUSADO. n8n e WAHA/WhatsApp não foram alterados, ativados, pareados ou usados para envio. Branch protection, deploy genérico, migrations e A04+ não alterados. Encerramento desta execução após revisão documental; próxima implementação depende de autorização própria.
