@@ -182,3 +182,72 @@ Etapa 0 documentada como PARTIAL/BLOCKED e Etapa 1 preparada para revisão com r
 - Estes itens não foram marcados como resolvidos e não autorizam ativar/publicar/enviar mensagens. Nenhuma alteração A03–A21 foi aplicada.
 
 Esta atualização altera somente os dois documentos de acompanhamento. Não exige deploy, migrations ou mudança do runtime. Próxima correção deve ter alvo/ID e critério de aceite definidos antes da implementação.
+
+## Proposta A03 — contrato monetário, 13/10/2026
+
+**Somente preparação autorizada; NEEDS PRODUCT DECISION e inventário monetário vivo pendente.** Google Sheets/orçamento pausado a pedido do usuário. Não alterar validação, preços, custos, schema ou imports nesta etapa.
+
+### Evidência revalidada em leitura
+
+`catalog_data.py` usa `float` finito não negativo em ProdutoFields/ProdutoCreate; `product_import.py` reutiliza ProdutoCreate. A migration 005 armazena preço/custo em `NUMERIC` sem precisão/escala declaradas. `sales_data.py` usa Decimal com 15 dígitos totais e até duas casas decimais; FinanceFields reutiliza Money. As migrations 006/007 usam NUMERIC(15,2). VendaFields valida também desconto e total (preço × quantidade − desconto).
+
+O baseline da auditoria já reproduziu 12.345/1e20 aceitos em catálogo e rejeitados por vendas. A diff do PR #30 não alterou esses contratos. Nesta proposta revalidaram-se os arquivos; não se contou nova execução de modelos/API/PG como pass. O ambiente Python da sessão atual não dispõe das dependências completas para importar esses módulos.
+
+Há dois caminhos adicionais: TransferProduct aceita Decimal com 50 dígitos/20 casas (`workspace_transfer.py`), enquanto as respostas de catálogo e normalizador no frontend usam números JSON/Number finitos (`product-store.js`). Mudar somente o tipo de entrada pode mudar serialização para string e tornar o catálogo ilegível no frontend. Importações/fingerprints e transferência precisam entrar no plano de compatibilidade.
+
+### Regra recomendada, ainda não aprovada
+
+| Aspecto                 | Proposta                                                                                                                                                                                                     |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Preço de venda unitário | Não negativo, finito, até duas casas significativas após a vírgula; mesmo contrato atual de Money.                                                                                                           |
+| Custo                   | Mesmo contrato, se o responsável confirmar que não precisa custo unitário fracionário com três/quatro casas. Esta decisão é separada; a A03 comprovada trata a compatibilidade do preço com venda.           |
+| Limite                  | Preservar o limite já existente em Vendas/Financeiro: 9.999.999.999.999,99. Não ampliá-lo nesta correção.                                                                                                    |
+| Valor zero              | Permitido, como no contrato atual.                                                                                                                                                                           |
+| Casas extras            | Rejeitar com mensagem clara; não arredondar silenciosamente. 12.340 equivale a 12.34 e não contém uma terceira casa monetária significativa.                                                                 |
+| Quantidade/total        | Preservar quantidade inteira e validação do total/limite/desconto. Um preço válido não garante que qualquer quantidade gere total válido.                                                                    |
+| Formato de API          | Manter compatibilidade com números JSON exigidos pelo frontend; conferir limites e ida/volta em centavos. Não mudar para strings sem contrato separado.                                                      |
+| Dados existentes        | Contar primeiro. Preservar leituras e históricos; correção por registro somente após prévia e decisão explícita do responsável.                                                                              |
+| Banco                   | Não reescrever migrations 005/006/007; nenhuma migration nesta proposta. Constraint futura somente após verificar dados e aprovar plano. Evitar ALTER NUMERIC(15,2) que possa arredondar valores existentes. |
+
+Mensagem candidata: “Informe um valor entre R$ 0,00 e o limite permitido, com até duas casas decimais.” O limite deve ficar visível no formulário/validação, sem expor detalhes de implementação ao usuário final.
+
+### Consulta proposta, somente contagens
+
+Executar no banco team em `BEGIN READ ONLY`, com statement_timeout. Consultar preço/custo de todos os workspaces em agregado, sem retornar nomes, IDs de clientes, e-mails ou valores individuais. Separar valores não finitos/negativos, acima do limite e com fração efetiva além de centavos. O resultado ainda não foi recebido; não afirmar que os dados atuais são válidos ou inválidos.
+
+```sql
+BEGIN READ ONLY;
+SET LOCAL statement_timeout = '20s';
+WITH amounts AS (
+  SELECT 'preco' AS campo, preco AS valor FROM socialmei.crm_produtos
+  UNION ALL
+  SELECT 'custo' AS campo, custo AS valor FROM socialmei.crm_produtos
+), assessed AS (
+  SELECT campo, valor,
+    valor::text NOT IN ('NaN', 'Infinity', '-Infinity') AS finite
+  FROM amounts
+)
+SELECT campo,
+  COUNT(*) AS total,
+  COUNT(*) FILTER (WHERE NOT finite OR valor < 0) AS nao_finito_ou_negativo,
+  COUNT(*) FILTER (WHERE finite AND valor > 9999999999999.99) AS acima_do_limite,
+  COUNT(*) FILTER (WHERE CASE WHEN finite THEN valor <> trunc(valor, 2) ELSE false END)
+    AS fracao_alem_de_centavos
+FROM assessed
+GROUP BY campo
+ORDER BY campo;
+COMMIT;
+```
+
+As categorias podem se sobrepor: não somar esses contadores como registros únicos. Esta consulta não cobre snapshots legados de importação/transferência nem preço hipotético de vendas futuras; esses casos entram nos testes e na revisão de compatibilidade.
+
+### Aplicação futura e aceite
+
+1. Receber contagens vivas e confirmar precisão/limite, sobretudo custo fracionário. Se houver incompatíveis, preparar prévia privada; não normalizar em lote.
+2. Alterar apenas validação de entradas create/update/import de preço (e custo se aprovado), preservando DTO de saída/leitura de antigos. Não alterar contrato contábil ou histórico de vendas.
+3. Revisar transferência, fingerprints de importação e reenvio de operações: mudança Decimal/string/escala não pode transformar repetição legítima em conflito nem modificar hashes/snapshots antigos automaticamente.
+4. Conferir formulário/feedback nos modos local e remoto; preço inválido deve ser identificado ao cadastrar/importar/selecionar item, sem fallback silencioso para zero ou arredondamento.
+5. Testar zero/centavos/12.340/12.345/limite/acima do limite/NaN/Infinity/negativos; Produto/Serviço; PATCH parcial; import/transferência; leitura de item antigo; quantidade/desconto/total no limite; serialização/frontend e idempotência. Rodar suites relevantes com PostgreSQL real em ambiente isolado; skips separados.
+6. PR separado de documentação/infra; aprovação específica antes de merge/deploy. Backup pertinente e atualização apenas dos serviços realmente modificados. Migration somente se necessária e aprovada separadamente.
+
+**Não implementado:** tipos/validações novos, arredondamento, constraint, migration, normalização de preço/custo, alteração de workflow/WAHA ou novo deploy. Esta proposta não conclui A03.
