@@ -1,6 +1,6 @@
 # Remediation Status
 
-**Estado atual — 13/10/2026, 09:50 (-03:00): A03 APLICADA.** Registro operacional e revisão do PR #31 na seção final. As seções anteriores preservam a evolução da auditoria/proposta; afirmações antigas de A03 pendente, PR #32 em rascunho ou ausência de deploy não descrevem o estado atual. Limpeza dos registros sintéticos de QA ainda aguarda confirmação. A04 não implementada.
+**Estado atual — 13/10/2026, 09:57 (-03:00): A03 APLICADA.** Registro operacional e revisão do PR #31 na seção final. As seções anteriores preservam a evolução da auditoria/proposta; afirmações antigas de A03 pendente, PR #32 em rascunho ou ausência de deploy não descrevem o estado atual. Limpeza dos registros sintéticos de QA confirmada pelo responsável às 09:57 (-03:00), pelo fluxo normal do site. A04 não implementada.
 
 Rodada de estabilização, 12/10/2026 (America/Fortaleza). Escopo autorizado: Etapa 0 somente leitura e correção local de A01/A02. Próximos itens são preparação, não autorização de execução.
 
@@ -343,7 +343,7 @@ Logs desde o início dos containers alterados: zero indicadores de Traceback, HT
 | Interface autenticada           | Responsável confirmou o roteiro: Clientes, Catálogo, Vendas e Financeiro abrem; Claro/Escuro; serviço sintético QA A03 criado por 12,34, persistiu após reload, editado para 15,90 e persistiu; cliente fictício e venda do serviço criados, preço/persistência conferidos. PASS reportado, sem captura automatizada dessa sessão. |
 | Produto / integração isolada    | Cobertos pelos modelos do container e testes CI com PostgreSQL real. Não afirmar criação manual de produto na AWS: o roteiro autenticado usou Serviço.                                                                                                                                                                             |
 | Console do navegador            | Não foi recebida captura do console nessa sessão. Ausência de erro visual reportada e logs sanitizados sem indicadores; ausência de novo pageerror/erro de console permanece evidência das suites browser isoladas, não observação do console vivo.                                                                                |
-| Limpeza de QA                   | PENDENTE: remover apenas venda, serviço e cliente sintéticos desta validação pelo fluxo normal da aplicação. Não usar SQL, IDs presumidos ou exclusão em massa.                                                                                                                                                                    |
+| Limpeza de QA                   | PASS reportado às 09:57 (-03:00): responsável confirmou a remoção pelo site somente da venda, serviço e cliente sintéticos desta validação, na ordem orientada. Sem SQL ou exclusão em massa.                                                                                                                                                                    |
 
 Não houve falha crítica reportada na atualização ou validação. A suite completa não foi executada contra o banco de produção; testes de integração/restore permaneceram isolados no CI. Skips locais continuam separados dos passes, conforme resultados registrados acima.
 
@@ -355,7 +355,7 @@ Divergências encontradas: acompanhamento ainda dizia A03 pendente/PR #32 em ras
 
 Etapa 0 continua PARTIAL: versões publicadas/equivalência integral de workflows, autenticação estrutural dos legados, roles/grants globais, RepoDigests e retenção/sucesso automático/cópias externas de backup permanecem sem fechamento completo. Não foram inferidos incidentes ou integração WhatsApp pronta.
 
-Prontidão: **para revisão do responsável; ainda sem merge autorizado**. Revalidar CI e metadados de mergeabilidade no GitHub após esta atualização documental. A simulação local `git merge-tree --write-tree` contra main 28ae7ef não apresentou conflitos; isso não substitui o status administrativo do GitHub. Limpeza de QA e atualização da descrição do PR permanecem pendentes explícitas. Não executar novo deploy para documentação.
+Prontidão: **para revisão do responsável; ainda sem merge autorizado**. Revalidar CI e metadados de mergeabilidade no GitHub após esta atualização documental. A simulação local `git merge-tree --write-tree` contra main 28ae7ef não apresentou conflitos; isso não substitui o status administrativo do GitHub. Limpeza de QA confirmada pelo responsável. Descrição do PR ainda precisa atualização antes de aprovação final. CI documental do commit `4d83bec6e15dbafa170949f57f1b20e875305e27` concluído com sucesso: [Repository checks](https://github.com/socialmei-ia/SocialMEI-IA/actions/runs/38400593538). Esse resultado antecede esta anotação final de limpeza; não atribuí-lo automaticamente ao novo commit. Não executar novo deploy para documentação.
 
 ### Próxima rodada — somente plano A04
 
