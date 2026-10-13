@@ -19,7 +19,7 @@ Foram consultadas páginas públicas de [Mobbin](https://mobbin.com/), [21st](ht
 ### Componentes fornecidos
 
 1. **Password strength:** quatro barras, sugestões e aviso de padrões previsíveis adaptados para JavaScript puro. Respeita o `minlength` real do campo (8 no fluxo local; 12 quando configurado pelo fluxo de conta). É orientação: não altera validade, submissão, política da API ou login. Texto em português, anúncio adiado 700ms, regras por teclado, cleanup de campos dinâmicos e tratamento de reduced motion. Nenhuma senha é registrada, armazenada ou enviada pelo componente.
-2. **GlowCard / spotlight:** efeito convertido em gradiente local azul/dourado em três superfícies da landing. Um único card ativo, atualização por `requestAnimationFrame`, eventos passivos, sem ponteiro global contínuo ou bloqueio touch. Desligado com movimento reduzido, touch, página oculta ou saída da landing. Sem biblioteca nova, cores neon ou efeito em todos os cards.
+2. **GlowCard / spotlight:** efeito convertido em gradiente local azul em três superfícies da landing. Um único card ativo, atualização por `requestAnimationFrame`, eventos passivos, sem ponteiro global contínuo ou bloqueio touch. Desligado com movimento reduzido, touch, página oculta ou saída da landing. Sem biblioteca nova, cores neon ou efeito em todos os cards.
 
 O [design system](docs/DESIGN-SYSTEM.md) registra valores reais, componentes, exceções legadas e manutenção.
 
