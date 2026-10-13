@@ -1,5 +1,15 @@
 # Changelog
 
+## Estabilização da base — 2026-10-13
+
+- Corrigido fechamento tardio de formulários remotos: a resposta de uma operação anterior preserva uma nova edição/criação já aberta, mantendo feedback do salvamento.
+- Regressão de Vendas com atraso controlado e quatro testes de ownership dos formulários.
+- Preparada migration aditiva 011 para vínculos de CRM/importações do mesmo workspace; testes de upgrade, rollback, histórico e SQL cruzado. Migrations 001–010 preservadas.
+- Preparado perfil de consulta interno sem login, acesso a auth ou concessão automática a novas tabelas; nenhum acesso da AWS provisionado.
+- Acrescentada matriz de nove resoluções e cinco modos de tema ao CI.
+- Classificados os nomes dos sete exports n8n inativos, preservando grafos/parâmetros; nenhuma alteração na instância viva.
+- README, contratos, acesso ao banco e relatório da base atualizados com distinção entre código, CI e runtime. Sem redesign, calculadora ou deploy nesta rodada.
+
 ## Polimento visual do GitHub e superfícies públicas — 2026-10-10
 
 - README ganhou apresentação visual, navegação curta e visão rápida do produto.

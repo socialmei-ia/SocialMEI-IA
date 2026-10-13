@@ -138,3 +138,13 @@ Não é necessário criar acesso ao banco para todos antecipadamente. Quando alg
 - fazer backup antes de migrations destrutivas;
 - revisar SQL antes de produção;
 - revogar acesso quando deixar de ser necessário.
+
+## Hardening preparado na estabilização
+
+A migration `011_crm_workspace_links.sql` adiciona sete vínculos compostos por workspace às vendas, financeiro e importações, com três índices únicos de apoio. Preserva referências opcionais e snapshots após exclusão de cliente/produto. Sem RLS: a autorização continua na API; acesso SQL interno exige privilégio específico.
+
+Foi reproduzido em banco descartável que o schema 001–010 aceitava vínculos cruzados por SQL direto, embora a API os recusasse. A 011 rejeita esses vínculos e valida linhas existentes: qualquer inconsistência aborta a transação, sem reparar/apagar dados. Testados upgrade 10→11, replay, histórico, recusa de vínculo cruzado e rollback de upgrade incompatível. Nenhuma migration anterior foi editada.
+
+A aplicação na AWS continua **BLOQUEADA/não executada**: exige coleta sanitizada, backup verificado, janela de manutenção e migrador transacional. Não rodar a pilha inteira para aplicar a 011. O `/health/db` existente não é uma certificação dos novos vínculos; conferir migration registrada e constraints validadas.
+
+O acesso interno de consulta tem procedimento separado em [TEAM-DATABASE-ACCESS.md](TEAM-DATABASE-ACCESS.md). Não usar o script legado do banco n8n nem expor 5432.

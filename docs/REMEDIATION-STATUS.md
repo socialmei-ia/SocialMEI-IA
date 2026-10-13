@@ -410,3 +410,9 @@ Implementação preparada para testes/PR próprio, **sem merge/deploy desta roda
 Validação local: Node 53 passes/zero falhas/skips, formatação PASS, browser 88 estados/16 fluxos PASS incluindo A01–A04 e conta real/demo. Python API: 119 registrados, 36 executados passaram, 83 skips por ausência de PostgreSQL local; oito skips novos são cenários reais de schema/readiness e não contam como passes. Operação/backup: 24 registrados, 19 passaram, cinco skips de gateway dependentes de Docker. Compilação dos arquivos Python alterados e `git diff --check` PASS. CI com PostgreSQL/gateway reais precisa ser confirmado no head publicado antes de aprovação.
 
 Primeira execução CI A05/A06: 119 testes API executados no PostgreSQL isolado; a assertiva antiga de `test_database_health` falhou porque comparava o payload inteiro sem o novo campo aditivo `capabilities`. Atualizada para exigir o payload completo, incluindo capacidades de CRM/auth/canais, sem remover a checagem dos campos antigos. Não contar essa execução como PASS; conferir o novo head antes de revisão final.
+
+## Continuidade — base de estabilização, 13/10/2026
+
+Esta seção é posterior às anotações históricas de A03/A04/A05/A06 acima. Main conferida em `b27e75d01bdadef33707123347cab5272ee05040`; merge #34 e CI aprovados. O responsável relatou aplicação somente da API, saúde CRM/auth/canais e login/saída/reentrada. Acesso AWS não disponível nesta rodada: não se apresentou esse relato como reconfirmação independente.
+
+A estabilização usa branch própria, preserva as decisões adiadas e registra correções/testes em [PROJECT-BASELINE-REVIEW.md](../PROJECT-BASELINE-REVIEW.md). Migration 011 e perfil interno de consulta preparados/testados somente em destino descartável; nada aplicado na AWS. Instância n8n/WAHA inalterada. Base operacional completa continua pendente de inventário/homologação do responsável, separada do resultado local/CI.

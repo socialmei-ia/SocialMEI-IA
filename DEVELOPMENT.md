@@ -114,3 +114,9 @@ bash -n backup.sh
 ```
 
 `.env.example` tem placeholders; não o use para publicar serviços. Em operação use o `.env` privado e [DEPLOYMENT.md](DEPLOYMENT.md). Faça commits por responsabilidade e abra PR; não publique dumps, credenciais, artefatos de teste ou dependências.
+
+## Regressão da base estabilizada
+
+`node tests/stability-browser.cjs` cobre nove resoluções, Light/Dark/Auto-Light/Auto-Dark/Custom, telas públicas e módulos, labels de botões e recursos locais. A suite normal mantém CRUD/conflitos/replay/contas/teclado. O alias “Meu negócio” leva intencionalmente à Visão Geral.
+
+Use `TEST_DATABASE_URL` apenas em PostgreSQL descartável. `test_workspace_integrity.py` verifica FKs, upgrade interrompido sem reparação, histórico e o perfil interno de leitura; alterações de estrutura/grants são exercitadas em transações de teste. A migration 011 não foi aplicada ao servidor nesta revisão. Resultados em [PROJECT-BASELINE-REVIEW.md](PROJECT-BASELINE-REVIEW.md).

@@ -157,6 +157,8 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Offline application regression
         run: npm run test:browser
+      - name: Nine resolutions and all theme modes
+        run: node tests/stability-browser.cjs
       - name: HTTPS authentication regression
         run: node tests/team-browser.cjs
       - name: Save browser evidence
