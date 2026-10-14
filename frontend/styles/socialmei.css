@@ -17812,8 +17812,6 @@ body.management-active #per {
 #productsView .management-product-card {
   position: relative;
 
-  gap: 12px;
-
   align-content: start;
   transition:
     transform var(--internal-motion-micro) var(--ease-enter),
@@ -17825,6 +17823,8 @@ body.management-active #per {
   border-radius: var(--r-md);
   box-shadow: none;
   padding: 22px;
+
+  gap: 14px;
 }
 #productsView .management-product-card[data-product-kind="Serviço"] {
   background: var(--internal-group);
@@ -17878,19 +17878,22 @@ body.management-active #per {
 .catalog-price {
   font-variant-numeric: tabular-nums;
 
-  font-size: 24px;
   font-weight: 600;
-  letter-spacing: -0.025em;
+
+  font-size: 30px;
+  letter-spacing: -0.035em;
 }
 .catalog-card-foot {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 6px 12px;
+
   margin-top: 4px;
   padding-top: 12px;
   border-top: 1px solid var(--internal-line);
+
+  flex-wrap: wrap;
+  gap: 8px;
 }
 #productsView .management-table .management-contact .catalog-product-icon {
   width: 36px;
@@ -17910,6 +17913,13 @@ body.management-active #per {
   #productsView .management-product-card:hover .catalog-product-icon {
     transform: translateY(-1px);
   }
+}
+#productsView .catalog-open-button {
+  position: relative;
+  z-index: 1;
+  margin-left: auto;
+  font-size: 12px;
+  min-height: 44px;
 }
 /* Financeiro — o valor mais importante domina; o restante vive numa linha contínua */
 #financeView #financeSummary {
@@ -18265,22 +18275,24 @@ body.management-active #per {
     gap: 14px;
   }
   #financeView #financeSummary {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 12px;
-    padding-bottom: 24px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    padding-bottom: 16px;
   }
   #financeView #financeSummary .management-kpi:first-child {
     padding-bottom: 6px;
 
-    grid-column: 1 / -1;
     grid-row: auto;
+
     padding: 22px;
+    grid-column: 1 / -1;
   }
   #financeView #financeSummary .management-kpi:not(:first-child) {
     border-left: 0;
 
-    padding: 16px;
     border: 1px solid var(--border);
+
+    padding: 14px;
   }
   #financeView #financeSummary .management-kpi:nth-child(3),
   #financeView #financeSummary .management-kpi:nth-child(5) {

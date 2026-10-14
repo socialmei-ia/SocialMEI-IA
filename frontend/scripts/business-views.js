@@ -1343,7 +1343,7 @@ function renderProducts() {
                           ><div class="catalog-card-foot"
                             ><span class="management-note"
                               >${plural(getProductUnitsSold(p), "venda", "vendas")}</span
-                            >${stock(p)}</div
+                            >${stock(p)}<button class="management-button catalog-open-button" type="button" data-record-open="products" data-record-id="${p.id}" aria-label="Abrir ${escapeHtml(p.nome)}">Abrir →</button></div
                           >
                         </article>`,
                     )

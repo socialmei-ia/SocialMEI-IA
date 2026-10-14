@@ -197,6 +197,34 @@ module.exports = async function visualRefinementFlows(browser, origin, errors = 
     await page.locator("#automationFeature [data-rule-test]").click();
     assert.match(await page.locator("#nvManagementDrawerTitle").innerText(), /simulado/);
     await page.keyboard.press("Escape");
+    await page.evaluate(() => setView("Produtos e Serviços"));
+    await page.locator(".catalog-open-button").first().click();
+    assert.equal(
+      await page.locator("#recordModal").evaluate((element) => element.classList.contains("open")),
+      true,
+    );
+    await page.keyboard.press("Escape");
+    await page.locator("#nvPv").click();
+    assert((await page.locator("#productsGrid table tbody tr").count()) > 0);
+    await page.locator("#nvPv").click();
+    await page.evaluate(() => setView("Financeiro"));
+    assert.equal(
+      await page.locator("#financeSummary .management-kpi").count(),
+      5,
+      "Preservar todos os indicadores financeiros",
+    );
+    const balance = await page.evaluate(() => operationalMetrics().balance);
+    await page.locator("#financeSearch").fill("sem-lancamento-qa");
+    await page.waitForFunction(() =>
+      document
+        .getElementById("financeTable")
+        .textContent.includes("Nenhuma movimentação encontrada"),
+    );
+    assert.equal(
+      await page.evaluate(() => operationalMetrics().balance),
+      balance,
+      "A busca não muda os cálculos",
+    );
     return "Refinamento: prioridades do Resumo, ação de venda, temas e Caixa com contexto, rascunho e filtros compactos de Clientes/Vendas";
   } finally {
     await page.close();
