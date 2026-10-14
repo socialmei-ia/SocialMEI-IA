@@ -146,6 +146,20 @@ function selectManagementOption(sel, v) {
   syncManagementSelect(id);
   document.querySelector(`[data-nv-host="${id}"] button`)?.focus();
 }
+// Os filtros preservam os mesmos selects e eventos nos dois tamanhos de tela.
+function syncBusinessFilterLayout() {
+  const compact = matchMedia("(max-width: 720px)").matches;
+  document.querySelectorAll(".business-filter-panel").forEach((panel) => {
+    if (panel.matches(":popover-open")) panel.hidePopover();
+    if (compact) panel.setAttribute("popover", "auto");
+    else panel.removeAttribute("popover");
+  });
+}
+function closeBusinessFilterPanels() {
+  document
+    .querySelectorAll(".business-filter-panel:popover-open")
+    .forEach((panel) => panel.hidePopover());
+}
 function syncManagementHeader() {
   const p = $("nvPer");
   if (!p.querySelector("[aria-expanded=true]")) {
@@ -234,6 +248,7 @@ function showManagementView(name) {
 }
 const baseSetView = setView;
 setView = function (name, o = {}) {
+  closeBusinessFilterPanels();
   let track = false;
   if (name === "Meu negócio") {
     name = "Visão Geral";
@@ -1584,6 +1599,7 @@ document.addEventListener(
         selectManagementOption(sel, event.target.dataset.v);
       } else if (event.key === "Escape" || event.key === "Tab") {
         if (event.key === "Escape") {
+          event.preventDefault();
           event.stopPropagation();
         }
         closeManagementSelect(button, event.key === "Escape");
@@ -1616,3 +1632,17 @@ window.addEventListener("resize", () => {
     })[id](),
   ),
 );
+
+matchMedia("(max-width: 720px)").addEventListener("change", syncBusinessFilterLayout);
+document.querySelectorAll(".business-filter-panel").forEach((panel) => {
+  panel.addEventListener("toggle", (event) => {
+    document
+      .querySelector(`[popovertarget="${panel.id}"]`)
+      ?.setAttribute("aria-expanded", String(event.newState === "open"));
+    if (event.newState === "closed")
+      panel
+        .querySelectorAll(".management-select >button[aria-expanded=true]")
+        .forEach((button) => closeManagementSelect(button));
+  });
+});
+syncBusinessFilterLayout();

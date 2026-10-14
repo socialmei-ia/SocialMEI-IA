@@ -3703,23 +3703,18 @@ details[open] > :not(summary) {
     border-bottom: 1px solid var(--ln);
   }
   #financeTable td,
-  #salesTable td,
-  #clientsTable td,
   #productsGrid td {
     padding: 0;
     border: 0;
     min-width: 0;
   }
   #financeTable td:first-child,
-  #salesTable td:nth-child(2),
-  #clientsTable td:first-child,
   #productsGrid td:first-child {
     grid-column: 1;
     grid-row: 1;
     align-self: start;
   }
   #financeTable td:nth-child(5),
-  #salesTable td:nth-child(6),
   #productsGrid td:nth-child(2) {
     grid-column: 2;
     grid-row: 1;
@@ -3749,56 +3744,7 @@ details[open] > :not(summary) {
     grid-row: 3;
     text-align: right;
   }
-  #salesTable td:first-child {
-    grid-column: 1;
-    grid-row: 2;
-  }
-  #salesTable td:nth-child(3) {
-    grid-column: 1;
-    grid-row: 3;
-    color: var(--mt);
-    font-size: var(--text-sm);
-  }
-  #salesTable td:nth-child(4) {
-    grid-column: 1;
-    grid-row: 4;
-    color: var(--mt);
-    font-size: var(--text-sm);
-  }
-  #salesTable td:nth-child(5) {
-    grid-column: 2;
-    grid-row: 2;
-    text-align: right;
-  }
-  #salesTable td:nth-child(7) {
-    grid-column: 2;
-    grid-row: 3/5;
-    text-align: right;
-  }
-  #clientsTable td:first-child {
-    grid-column: 1/-1;
-  }
-  #clientsTable td:nth-child(2) {
-    grid-column: 1;
-    grid-row: 2;
-    font-size: var(--text-base);
-  }
-  #clientsTable td:nth-child(3) {
-    grid-column: 1;
-    grid-row: 3;
-    font-size: var(--text-sm);
-    color: var(--mt);
-  }
-  #clientsTable td:nth-child(4) {
-    grid-column: 2;
-    grid-row: 2;
-    text-align: right;
-  }
-  #clientsTable td:nth-child(5) {
-    grid-column: 2;
-    grid-row: 3;
-    text-align: right;
-  }
+
   #productsGrid td:nth-child(3) {
     grid-column: 1;
     grid-row: 2;
@@ -17712,40 +17658,36 @@ body.management-active #per {
     font-size: 22px;
   }
 }
-/* SALES / CUSTOMERS / CATÁLOGO / FINANCE — V3.25
-         Abertura editorial (métrica principal + secundárias com divisor) e depois a
-         ferramenta operacional. Tabela, linha, busca e chips são compartilhados no
-         bloco do design system interno; aqui ficam só as composições de cada tela. */
-#salesView .internal-summary,
-#clientsView .internal-summary {
-  grid-template-columns: minmax(0, 1.9fr) repeat(3, minmax(0, 1fr));
-  gap: 0;
-  align-items: start;
-  padding: 6px 0 32px;
+/* CUSTOMERS / SALES — métricas compactas e lista em primeiro plano. */
+#salesView .internal-summary {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px;
+  padding: 4px 0 20px;
 }
 #clientsView .internal-summary {
-  grid-template-columns: minmax(0, 1.9fr) repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  padding: 4px 0 20px;
 }
 :is(#salesView, #clientsView) .internal-summary .internal-metric {
-  gap: 8px;
-  padding-inline: 24px;
+  gap: 6px;
+  padding: 0;
 }
-:is(#salesView, #clientsView) .internal-summary .internal-metric:first-child {
-  padding-left: 0;
-  padding-right: 32px;
+:is(#salesView, #clientsView) .internal-summary .internal-metric > b {
+  font-size: clamp(24px, 2.5vw, 34px);
+  line-height: 1.15;
+  letter-spacing: -0.04em;
 }
-:is(#salesView, #clientsView) .internal-summary .internal-metric:not(:first-child) {
-  border-left: 1px solid var(--internal-line);
+:is(#salesView, #clientsView) .internal-summary .internal-metric > small {
+  font-size: 11px;
 }
-:is(#salesView, #clientsView)
-  .internal-summary
-  .internal-metric:not(.internal-metric--primary)
-  > b {
-  font-size: clamp(22px, 2vw, 28px);
+.business-filter-trigger,
+.business-filter-heading,
+.business-filter-done {
+  display: none;
 }
-:is(#salesView, #clientsView) .internal-summary .internal-metric--primary > b {
-  letter-spacing: -0.06em;
-  line-height: 1.08;
+.business-filter-panel:not([popover]) {
+  display: contents;
 }
 /* Busca com protagonismo moderado; filtros como ferramentas secundárias. */
 @media (min-width: 721px) {
@@ -18139,29 +18081,160 @@ body.management-active #per {
   }
 }
 @media (max-width: 720px) {
-  #salesView .internal-summary,
-  #clientsView .internal-summary {
+  #salesView .internal-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 22px 0;
-    padding-bottom: 24px;
+    gap: 16px 20px;
+    padding-bottom: 16px;
   }
-  :is(#salesView, #clientsView) .internal-summary .internal-metric:first-child {
-    grid-column: 1 / -1;
-    padding-right: 0;
+  #clientsView .internal-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    padding-bottom: 16px;
   }
-  :is(#salesView, #clientsView) .internal-summary .internal-metric:not(:first-child) {
-    border-left: 0;
-    padding-inline: 0 12px;
+  :is(#salesView, #clientsView) .internal-summary .internal-metric--primary {
+    grid-column: auto;
   }
-  :is(#salesView, #clientsView) .internal-summary .internal-metric:nth-child(3) {
-    border-left: 1px solid var(--internal-line);
-    padding-left: 20px;
+  #clientsView .internal-summary .internal-metric > small {
+    display: none;
   }
-  #salesView .internal-summary .internal-metric:nth-child(3) {
-    order: 4;
-    grid-column: 1 / -1;
-    border-left: 0;
-    padding-left: 0;
+  .experience-app :is(#salesView, #clientsView) .management-stack {
+    gap: 16px;
+  }
+  .experience-app :is(#salesView, #clientsView) .management-tools {
+    flex-wrap: nowrap;
+    padding: 14px;
+  }
+  :is(#salesView, #clientsView) .management-input {
+    min-width: 0;
+  }
+  .business-filter-trigger {
+    display: inline-flex;
+    flex: none;
+  }
+  .business-filter-panel[popover] {
+    inset: auto 16px 16px;
+    margin: 0 auto;
+    width: min(440px, calc(100% - 32px));
+    max-height: 80dvh;
+    overflow: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 20px;
+    background: var(--surface);
+    color: var(--tx);
+    box-shadow: var(--shadow);
+  }
+  .business-filter-panel:popover-open {
+    display: grid;
+    gap: 14px;
+  }
+  .business-filter-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .business-filter-done {
+    display: flex;
+    justify-content: center;
+  }
+  .business-filter-panel .management-select,
+  .business-filter-panel .management-select > button {
+    width: 100%;
+  }
+  .business-filter-panel .management-select ul {
+    position: static;
+    margin-top: 8px;
+    max-height: 200px;
+  }
+  .experience-app :is(#clientsView, #salesView) .management-table tbody {
+    display: grid;
+    gap: 12px;
+    padding: 12px;
+  }
+  .experience-app :is(#clientsView, #salesView) .management-table tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    padding: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+  }
+  .experience-app :is(#clientsView, #salesView) .management-table td {
+    display: block;
+    grid-row: auto;
+    grid-column: auto;
+    padding: 0;
+    border: 0;
+  }
+  .experience-app :is(#clientsView, #salesView) .management-table td:first-child,
+  .experience-app :is(#clientsView, #salesView) .management-table td.act {
+    grid-column: 1/-1;
+  }
+  .experience-app :is(#clientsView, #salesView) .management-table td:first-child {
+    grid-row: 1;
+  }
+  .experience-app :is(#clientsView, #salesView) .management-table td:first-child::before {
+    display: none;
+  }
+  .experience-app
+    :is(#clientsView, #salesView)
+    .management-table
+    td[data-l]:not(:first-child)::before {
+    content: attr(data-l) ":";
+    display: block;
+    width: auto;
+    margin-bottom: 4px;
+    font-size: 10px;
+    color: var(--mt);
+  }
+  .experience-app :is(#clientsView, #salesView) .management-table td.act {
+    display: flex;
+    justify-content: flex-end;
+    grid-row: 6;
+    padding-top: 10px;
+    border-top: 1px solid var(--internal-line);
+  }
+  .experience-app #salesView .management-table td[data-l="Valor"] {
+    grid-row: 2;
+    grid-column: 1;
+    text-align: left;
+    font-size: 20px;
+    font-weight: 600;
+  }
+  .experience-app #salesView .management-table td[data-l="Situação"] {
+    grid-row: 2;
+    grid-column: 2;
+  }
+  .experience-app #salesView .management-table td[data-l="Data"] {
+    grid-row: 3;
+    grid-column: 1;
+  }
+  .experience-app #salesView .management-table td[data-l="Pagamento"] {
+    grid-row: 3;
+    grid-column: 2;
+  }
+  .experience-app #clientsView .management-table td[data-l="Canal"] {
+    grid-row: 2;
+    grid-column: 1;
+  }
+  .experience-app #clientsView .management-table td[data-l="Status"] {
+    grid-row: 2;
+    grid-column: 2;
+  }
+  .experience-app #clientsView .management-table td[data-l="Valor"] {
+    grid-row: 3;
+    grid-column: 1;
+    text-align: left;
+  }
+  .experience-app #clientsView .management-table td[data-l="Última"] {
+    grid-row: 3;
+    grid-column: 2;
+  }
+  .experience-app #clientsView .management-table td[data-l="Etiquetas"] {
+    grid-row: 4;
+    grid-column: 1/-1;
   }
   #productsView #catalogIntro .management-chip {
     margin-left: 0;

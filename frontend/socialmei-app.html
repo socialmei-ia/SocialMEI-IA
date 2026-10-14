@@ -3205,15 +3205,51 @@ VENDAS — HTML
                     placeholder="Buscar por cliente, item ou nº"
                     type="search"
                   />
-                  <div data-nv-host="salesPaymentFilter" data-pre="Pagamento"></div>
-                  <select id="salesPaymentFilter" hidden></select
-                  ><select id="salesStatusFilter" hidden>
-                    <option value="all">Todos</option>
-                    <option>Rascunho</option>
-                    <option>Pendente</option>
-                    <option>Pago</option>
-                    <option>Cancelado</option>
-                  </select>
+                  <button
+                    class="management-button business-filter-trigger"
+                    type="button"
+                    popovertarget="salesFilters"
+                    aria-expanded="false"
+                    aria-controls="salesFilters"
+                  >
+                    Filtros
+                  </button>
+                  <div
+                    class="business-filter-panel"
+                    id="salesFilters"
+                    aria-label="Filtros de vendas"
+                  >
+                    <div class="business-filter-heading">
+                      <h3>Refinar a lista</h3>
+                      <button
+                        class="management-button"
+                        type="button"
+                        popovertarget="salesFilters"
+                        popovertargetaction="hide"
+                        aria-label="Fechar filtros"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <div data-nv-host="salesPaymentFilter" data-pre="Pagamento"></div>
+                    <select id="salesPaymentFilter" hidden></select
+                    ><select id="salesStatusFilter" hidden>
+                      <option value="all">Todos</option>
+                      <option>Rascunho</option>
+                      <option>Pendente</option>
+                      <option>Pago</option>
+                      <option>Cancelado</option>
+                    </select>
+
+                    <button
+                      class="management-button business-filter-done"
+                      type="button"
+                      popovertarget="salesFilters"
+                      popovertargetaction="hide"
+                    >
+                      Ver resultados
+                    </button>
+                  </div>
                 </div>
                 <div id="salesTable" aria-live="polite"></div>
                 <div id="salesMeta" class="management-meta"></div>
@@ -3242,17 +3278,53 @@ CLIENTES — HTML
                     placeholder="Buscar nome, telefone ou Instagram"
                     type="search"
                   />
-                  <div data-nv-host="clientsTypeFilter" data-pre="Canal"></div>
-                  <div data-nv-host="clientsTagFilter" data-pre="Etiqueta"></div>
-                  <div data-nv-host="clientsStatusFilter" data-pre="Status"></div>
-                  <select id="clientsTypeFilter" hidden></select
-                  ><select id="clientsTagFilter" hidden></select
-                  ><select id="clientsStatusFilter" hidden>
-                    <option value="all">Todos</option>
-                    <option value="Ativo">Ativos</option>
-                    <option value="Novo">Novos</option>
-                    <option value="Inativo">Inativos</option>
-                  </select>
+                  <button
+                    class="management-button business-filter-trigger"
+                    type="button"
+                    popovertarget="clientsFilters"
+                    aria-expanded="false"
+                    aria-controls="clientsFilters"
+                  >
+                    Filtros
+                  </button>
+                  <div
+                    class="business-filter-panel"
+                    id="clientsFilters"
+                    aria-label="Filtros de clientes"
+                  >
+                    <div class="business-filter-heading">
+                      <h3>Refinar a lista</h3>
+                      <button
+                        class="management-button"
+                        type="button"
+                        popovertarget="clientsFilters"
+                        popovertargetaction="hide"
+                        aria-label="Fechar filtros"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <div data-nv-host="clientsTypeFilter" data-pre="Canal"></div>
+                    <div data-nv-host="clientsTagFilter" data-pre="Etiqueta"></div>
+                    <div data-nv-host="clientsStatusFilter" data-pre="Status"></div>
+                    <select id="clientsTypeFilter" hidden></select
+                    ><select id="clientsTagFilter" hidden></select
+                    ><select id="clientsStatusFilter" hidden>
+                      <option value="all">Todos</option>
+                      <option value="Ativo">Ativos</option>
+                      <option value="Novo">Novos</option>
+                      <option value="Inativo">Inativos</option>
+                    </select>
+
+                    <button
+                      class="management-button business-filter-done"
+                      type="button"
+                      popovertarget="clientsFilters"
+                      popovertargetaction="hide"
+                    >
+                      Ver resultados
+                    </button>
+                  </div>
                 </div>
                 <div id="clientsTable" aria-live="polite"></div>
                 <div id="clientsMeta" class="management-meta"></div>

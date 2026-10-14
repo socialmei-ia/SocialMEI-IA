@@ -785,6 +785,13 @@ function updateFilterIndicators(module) {
       (n, suffix) => n + Number(!!$(module + suffix) && $(module + suffix).value !== "all"),
       0,
     ) + (module === "products" && isCatalogLowStockOnly ? 1 : 0);
+  const filterTrigger = view.querySelector(".business-filter-trigger");
+  if (filterTrigger) {
+    const selectedCount = [...view.querySelectorAll(".management-tools select")].filter(
+      (select) => select.value && select.value !== "all",
+    ).length;
+    filterTrigger.textContent = selectedCount ? `Filtros · ${selectedCount}` : "Filtros";
+  }
   const host = view.querySelector(".applied-filter-count");
   if (host) {
     host.textContent = count ? `${count} ${count === 1 ? "ativo" : "ativos"}` : "";
