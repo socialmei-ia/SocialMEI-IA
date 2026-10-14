@@ -3709,15 +3709,11 @@ RELATÓRIOS — HTML
 ================================================== -->
           <section class="page-view management-view" data-view="Relatórios" id="reportsView">
             <div class="management-stack">
-              <header class="management-header">
+              <header class="management-header report-intro">
                 <div>
-                  <h2>Relatórios</h2>
+                  <span class="report-eyebrow">RELATÓRIOS</span>
+                  <h2>Dados que apontam <span>o próximo passo.</span></h2>
                   <p>Entenda o período e escolha seu próximo cuidado.</p>
-                </div>
-                <div class="management-header-controls">
-                  <button class="management-button pr" id="nvCopyReport">Copiar resumo</button
-                  ><button class="management-button" id="exportCsv">Exportar CSV</button
-                  ><button class="management-button" id="printReport">Imprimir / PDF</button>
                 </div>
               </header>
               <div class="management-demo">
@@ -3728,12 +3724,15 @@ RELATÓRIOS — HTML
                 ><span>Você revisa. Nada é enviado automaticamente.</span>
               </div>
               <div class="management-report-period management-card">
-                <div
-                  id="nvReportPeriods"
-                  class="management-chips"
-                  role="group"
-                  aria-label="Período do relatório"
-                ></div>
+                <details class="report-period-options">
+                  <summary>Alterar período</summary>
+                  <div
+                    id="nvReportPeriods"
+                    class="management-chips"
+                    role="group"
+                    aria-label="Período do relatório"
+                  ></div>
+                </details>
                 <div class="management-card-header">
                   <span id="reportsPeriodLabel" class="management-note" data-current-period></span
                   ><label class="management-check"
@@ -3742,14 +3741,21 @@ RELATÓRIOS — HTML
                   ><button class="management-button" data-nv-hide>Ocultar valores</button>
                 </div>
               </div>
-              <div id="nvReportKpis" class="management-kpis management-kpis-five"></div>
+              <div id="nvReportKpis" class="management-kpis"></div>
               <div
                 id="nvReportTabs"
                 class="management-chips"
-                role="group"
+                role="tablist"
                 aria-label="Visão do relatório"
               ></div>
-              <div id="reportsGrid" class="management-stack"></div>
+              <div id="reportsGrid" class="management-stack" role="tabpanel" tabindex="0"></div>
+              <footer class="report-actions" aria-label="Exportar relatório">
+                <div class="management-header-controls">
+                  <button class="management-button pr" id="nvCopyReport">Copiar resumo</button
+                  ><button class="management-button" id="exportCsv">Exportar CSV</button
+                  ><button class="management-button" id="printReport">Imprimir / PDF</button>
+                </div>
+              </footer>
             </div>
           </section>
 

@@ -10639,63 +10639,230 @@ body.experience-app #experienceRoot {
   font-size: 12px;
   color: var(--mt);
 }
-/* REPORTS — CSS
-      Leitura dos dados e ação de exportação. */
-/* REPORTS — a narrativa precede a comparação detalhada */
+/* REPORTS — contexto, resultado e detalhes progressivos. */
+.report-eyebrow {
+  display: block;
+  color: var(--mt);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  margin-bottom: 12px;
+}
+.experience-app #reportsView .report-intro h2 {
+  font-size: clamp(30px, 3.4vw, 46px);
+  letter-spacing: -0.045em;
+  max-width: 19ch;
+  line-height: 1.12;
+}
+.report-intro h2 span {
+  color: var(--mt);
+}
+#reportsView .management-report-period {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 0;
+  background: transparent;
+  border-radius: 0;
+  border-block: 1px solid var(--internal-line);
+}
+#reportsView .management-report-period .management-card-header {
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 0;
+}
+.report-period-options {
+  order: 2;
+}
+.report-period-options summary {
+  cursor: pointer;
+  font-size: 13px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.report-period-options summary::after {
+  content: "⌄";
+}
+.report-period-options[open] {
+  flex-basis: 100%;
+}
+.report-period-options[open] .management-chips {
+  padding-top: 12px;
+}
 #reportsView #nvReportKpis {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 24px;
-  padding: 8px 0 28px;
+  padding: 12px 0 28px;
   border-bottom: 1px solid var(--internal-line);
 }
 #reportsView #nvReportKpis .management-kpi {
   padding: 0;
-  gap: 10px;
+  gap: 8px;
 }
-#reportsView #nvReportKpis .management-kpi:first-child {
-  grid-column: 1 / -1;
-  padding-bottom: 10px;
+#reportsView #nvReportKpis .management-kpi > b {
+  font-size: clamp(24px, 2.4vw, 34px);
+  letter-spacing: -0.04em;
 }
-#reportsView #nvReportKpis .management-kpi:first-child > b {
-  font-size: clamp(42px, 4vw, 62px);
+#reportsView #nvReportTabs {
+  gap: 6px;
+  border-bottom: 1px solid var(--internal-line);
+  padding-bottom: 12px;
 }
-#reportsView .management-report-period {
-  background: transparent;
-  padding: 0;
-  border-radius: 0;
+#reportsView #nvReportTabs .management-chip {
+  border: 0;
+  border-radius: 8px;
 }
-#reportsView .management-report-chapters {
-  gap: 30px;
+#reportsView #nvReportTabs [aria-selected="true"] {
+  background: var(--bs);
+  color: var(--bi);
 }
-#reportsView .management-report-chapters {
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+.report-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(230px, 1fr);
+  gap: 28px;
+  align-items: start;
 }
-#reportsView .management-report-chapters > .management-card:first-child {
-  grid-column: 1 / -1;
-}
-#reportsView .management-report-chapters .management-card {
+#reportsView .report-primary {
   padding: 28px;
 }
-#reportsView .management-report-chapters .management-card h3 {
-  font-size: 28px;
+.report-section-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: space-between;
+}
+.report-section-heading .report-eyebrow {
+  margin-bottom: 8px;
+}
+#reportsView .report-section-heading h3 {
+  font-size: 24px;
+  letter-spacing: -0.035em;
+}
+.report-care {
+  padding: 24px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.report-care h3 {
+  font-size: 21px;
   line-height: 1.25;
 }
-#reportsView .management-report-chapters .management-card p {
-  margin-block: 12px 20px;
-  max-width: 65ch;
+.report-care p {
+  color: var(--mt);
+  line-height: 1.6;
+  margin-top: 12px;
+}
+.report-care .management-button {
+  align-self: flex-start;
+}
+.report-detail {
+  border-bottom: 1px solid var(--internal-line);
+  min-width: 0;
+}
+.report-detail summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  min-height: 68px;
+  font-weight: 600;
+}
+.report-detail summary small {
+  margin-left: auto;
+  color: var(--mt);
+  font-size: 12px;
+  font-weight: 400;
+}
+.report-detail summary::after {
+  content: "+";
+  color: var(--mt);
+  font-size: 20px;
+}
+.report-detail[open] summary::after {
+  content: "−";
+}
+.report-detail-body {
+  padding: 8px 0 24px;
+}
+#reportsView .report-detail-body .management-card {
+  background: transparent;
+  padding: 0;
+}
+#reportsView .report-detail-body p {
+  color: var(--mt);
+  line-height: 1.6;
+}
+.report-insights {
+  border-top: 1px solid var(--internal-line);
+  padding-top: 24px;
+}
+.report-insights > h3 {
+  font-size: 16px;
+  margin-bottom: 16px;
+}
+.report-clear {
+  margin: 0;
+  padding-block: 8px;
+}
+.report-actions {
+  border-top: 1px solid var(--internal-line);
+  padding-top: 20px;
+}
+.report-actions .management-header-controls {
+  justify-content: flex-start;
+}
+@media (max-width: 900px) {
+  .report-overview {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  .report-care {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .report-care > div {
+    flex: 1;
+    min-width: 200px;
+  }
 }
 @media (max-width: 720px) {
   #reportsView #nvReportKpis {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px 16px;
   }
-  #reportsView .management-report-chapters .management-card {
-    padding: 22px 16px;
+  #reportsView .report-primary {
+    padding: 20px 16px;
   }
-  #reportsView .management-report-chapters .management-card h3 {
-    font-size: 23px;
+  .report-detail summary {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-block: 16px;
   }
-  #reportsView .management-report-chapters {
-    grid-template-columns: minmax(0, 1fr);
+  .report-detail summary small {
+    flex-basis: 100%;
+    margin: 0;
+    order: 2;
+  }
+  .report-detail summary::after {
+    margin-left: auto;
+  }
+  #reportsView .management-report-period .management-card-header {
+    gap: 10px;
+  }
+  #reportsView .management-report-period .management-check {
+    font-size: 12px;
+  }
+  .report-actions .management-button {
+    flex: 1;
   }
 }
 .result-story {
