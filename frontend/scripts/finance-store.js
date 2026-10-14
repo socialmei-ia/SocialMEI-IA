@@ -323,6 +323,9 @@ const SocialMEIFinance = (() => {
   });
   return {
     remote,
+    get connectionState() {
+      return !remote ? "local" : busy ? "loading" : ready ? "ready" : "unavailable";
+    },
     refresh,
     create,
     update,

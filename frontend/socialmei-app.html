@@ -2813,9 +2813,9 @@ AUTOMAÇÕES — HTML
               <div class="management-demo">
                 <span
                   class="pill draft"
-                  title="Rotinas automáticas, serviço de IA, envio oficial aos canais e autenticação externa ainda não estão conectados."
-                  >Modo demonstração</span
-                ><span>Você revisa. Nada é enviado automaticamente.</span>
+                  title="Rotinas e testes são locais. Não executam workflows nem enviam mensagens aos canais."
+                  >Simulação local</span
+                ><span>Configurações locais · sem execução de workflows ou envio aos canais.</span>
               </div>
               <div id="nvRuleKpis" class="management-kpis management-kpis-three"></div>
               <section class="management-card management-flush" id="automationLibrary">
@@ -2881,7 +2881,7 @@ ASSISTENTE — HTML
               <span
                 class="assistant-demo-badge"
                 title="Rascunhos preparados localmente. Serviço de IA e envio automático não estão conectados."
-                ><i aria-hidden="true"></i>Modo demonstração</span
+                ><i aria-hidden="true"></i>Preparação local</span
               >
             </header>
             <div class="assistant-workspace" id="asWorkbench">
@@ -3796,13 +3796,7 @@ RELATÓRIOS — HTML
                   <p>Entenda o período e escolha seu próximo cuidado.</p>
                 </div>
               </header>
-              <div class="management-demo">
-                <span
-                  class="pill draft"
-                  title="Rotinas automáticas, serviço de IA, envio oficial aos canais e autenticação externa ainda não estão conectados."
-                  >Modo demonstração</span
-                ><span>Você revisa. Nada é enviado automaticamente.</span>
-              </div>
+              <div class="management-demo" id="reportsDataSourceStatus" role="status"></div>
               <div class="management-report-period management-card">
                 <details class="report-period-options">
                   <summary>Alterar período</summary>
@@ -3891,8 +3885,8 @@ CONFIGURAÇÕES — HTML
             </div>
           </section>
           <footer class="data-origin">
-            <span>Demonstração · gestão salva neste navegador.</span
-            ><span id="topSync">Sincronização disponível</span
+            <span id="appDataOrigin">Conferindo a origem dos dados.</span
+            ><span id="topSync">Leitura de mensagens não verificada</span
             ><button class="lk" data-go="Configurações">Sobre os dados</button>
           </footer>
         </div>
@@ -3934,7 +3928,7 @@ MODAIS E DRAWERS — HTML
             <div class="management-demo">
               <span
                 class="pill draft"
-                title="Rotinas automáticas, serviço de IA, envio oficial aos canais e autenticação externa ainda não estão conectados."
+                title="Rotinas e testes são locais. Não executam workflows nem enviam mensagens aos canais."
                 >Modo demonstração</span
               ><span>Você revisa. Nada é enviado automaticamente.</span>
             </div>

@@ -2770,7 +2770,7 @@ const readStoredJson = (key, fallback) => {
   }
 };
 const renderLocalDemoNotice = () =>
-  '<div class="management-demo"><span class="pill draft" title="Execução automática, serviço de IA, envio oficial aos canais e autenticação externa ainda não estão conectados.">Modo demonstração</span><span>Rascunhos e preferências locais.</span></div>';
+  '<div class="management-demo"><span class="pill draft" title="Rascunhos, simulações e preferências são locais. Este recurso não envia mensagens aos canais.">Recursos locais</span><span>Rascunhos e preferências neste navegador.</span></div>';
 const renderManagementMetric = (label, value, note) => /* HTML */ `<article class="management-kpi">
           <span>${escapeHtml(label)}</span><b>${value}</b><small>${escapeHtml(note)}</small>
         </article>`;
@@ -3016,6 +3016,13 @@ function renderReportChart(source) {
   if (areMoneyValuesHidden) {
     return emptyMarkup("Valores ocultos", "Exiba os valores para consultar o gráfico e a tabela.");
   }
+  const store = sales ? SocialMEISales : SocialMEIFinance;
+  if (!["local", "ready"].includes(store.connectionState)) {
+    return emptyMarkup(
+      "Leitura do gráfico não disponível",
+      "Confira a conexão no módulo antes de interpretar os valores.",
+    );
+  }
   return (
     (Math.max(0, ...series.r, ...series.d) > 0
       ? renderManagementChart(series)
@@ -3038,25 +3045,70 @@ function getReportSummaryText() {
       : SocialMEISales.remote || SocialMEIFinance.remote
         ? "Vendas e financeiro: fontes locais e compartilhadas."
         : "Vendas e financeiro: registros deste navegador.";
-  return `SocialMEI.IA · ${getBusinessLabel()}\nPeríodo: ${rangeCaption()}\nVendas pagas: ${metrics.paidSales.length}\nFaturamento: ${money(metrics.revenue)}\nTicket médio: ${money(metrics.ticket)}\nEntrou: ${money(metrics.received)}\nSaiu: ${money(metrics.spent)}\nSaldo dos lançamentos pagos: ${money(metrics.balance)}\nPedidos pendentes: ${metrics.pendingSales.length}\n${source}\nSaldo não representa saldo bancário.`;
+  return `SocialMEI.IA · ${getBusinessLabel()}\nPeríodo: ${rangeCaption()}\nVendas pagas: ${metrics.paidSales.length}\nFaturamento: ${money(metrics.revenue)}\nTicket médio: ${money(metrics.ticket)}\nEntrou: ${money(metrics.received)}\nSaiu: ${money(metrics.spent)}\nSaldo dos lançamentos pagos: ${money(metrics.balance)}\nPedidos pendentes: ${metrics.pendingSales.length}\n${source}\n${getManagementDataOrigin().description}\nSaldo não representa saldo bancário.`;
 }
 /* ==================================================
 RELATÓRIOS — JAVASCRIPT
 ================================================== */
+function getManagementDataSources() {
+  return [
+    ["Clientes", SocialMEIClients.remote],
+    ["Produtos", SocialMEIProducts.remote],
+    ["Vendas", SocialMEISales.remote],
+    ["Financeiro", SocialMEIFinance.remote],
+  ];
+}
+function getManagementDataOrigin() {
+  const sources = getManagementDataSources();
+  const remote = sources.filter(([, shared]) => shared).map(([name]) => name);
+  const local = sources.filter(([, shared]) => !shared).map(([name]) => name);
+  const states = [SocialMEIClients, SocialMEIProducts, SocialMEISales, SocialMEIFinance].map(
+    (store) => store.connectionState,
+  );
+  const warning = states.includes("unavailable")
+    ? " Uma fonte da API está indisponível. Os totais podem estar incompletos; recarregue no módulo."
+    : states.includes("loading")
+      ? " Conferindo as fontes da API; aguarde a leitura."
+      : "";
+  if (!remote.length)
+    return {
+      label: "Dados locais",
+      description: "Gestão salva neste navegador. Não é uma base compartilhada.",
+    };
+  if (!local.length)
+    return {
+      label: "Dados compartilhados",
+      description: "Gestão configurada para a API da conta." + warning,
+    };
+  return {
+    label: "Fontes mistas",
+    description: `API: ${remote.join(", ")}. Neste navegador: ${local.join(", ")}.` + warning,
+  };
+}
+function updateDataOriginNotice() {
+  const origin = getManagementDataOrigin();
+  $("appDataOrigin").textContent =
+    `${origin.label} · ${origin.description} Rascunhos e preferências são locais.`;
+}
 function renderReports() {
   const expandedDetails = [...document.querySelectorAll("#reportsView .report-detail[open]")].map(
     (detail) => detail.id,
   );
   const dateRange = periodRange();
   const metrics = operationalMetrics(dateRange);
+  const salesReady = ["local", "ready"].includes(SocialMEISales.connectionState);
+  const financeReady = ["local", "ready"].includes(SocialMEIFinance.connectionState);
+  const clientsReady = ["local", "ready"].includes(SocialMEIClients.connectionState);
   const prevRange = getPreviousReportRange(dateRange);
   const prev = operationalMetrics(prevRange);
   const newKnown = appData.clientes.filter((client) => getCustomerRegistrationDate(client));
   const newCount = newKnown.filter((c) =>
     inRange(getCustomerRegistrationDate(c), dateRange),
   ).length;
-  const newPrev = newKnown.filter((c) => inRange(getCustomerRegistrationDate(c), prevRange)).length;
   const datesComplete = newKnown.length === appData.clientes.length && appData.clientes.length > 0;
+  const origin = getManagementDataOrigin();
+  $("reportsDataSourceStatus").innerHTML =
+    `<span class="pill info">${escapeHtml(origin.label)}</span><span>${escapeHtml(origin.description)}</span>`;
   $("reportsPeriodLabel").textContent = rangeCaption(dateRange);
   $("nvReportPeriods").innerHTML = [
     "Hoje",
@@ -3088,22 +3140,22 @@ function renderReports() {
   $("nvReportKpis").innerHTML =
     renderManagementMetric(
       "Faturamento",
-      money(metrics.revenue),
+      salesReady ? money(metrics.revenue) : "—",
       renderReportVariation(metrics.revenue, prev.revenue),
     ) +
     renderManagementMetric(
       "Ticket médio",
-      money(metrics.ticket),
+      salesReady ? money(metrics.ticket) : "—",
       renderReportVariation(metrics.ticket, prev.ticket),
     ) +
     renderManagementMetric(
       "Vendas pagas",
-      String(metrics.paidSales.length),
+      salesReady ? String(metrics.paidSales.length) : "—",
       renderReportVariation(metrics.paidSales.length, prev.paidSales.length),
     ) +
     renderManagementMetric(
       "Saldo do período",
-      money(metrics.balance),
+      financeReady ? money(metrics.balance) : "—",
       renderReportVariation(metrics.balance, prev.balance),
     );
   const tabs = ["Resumo", "Vendas", "Clientes", "Atendimento", "Financeiro"];
@@ -3239,9 +3291,15 @@ function renderReports() {
           ${contributorsTable}
           <p class="management-note">
             ${
-              datesComplete
-                ? `${newCount} novos cadastros no período.`
-                : "Os registros atuais não têm data de cadastro suficiente para calcular todos os clientes novos por período."
+              !clientsReady
+                ? "A leitura de clientes da API não está disponível. Recarregue Clientes antes de consultar estes números."
+                : !appData.clientes.length
+                  ? "Nenhum cliente cadastrado na fonte atual."
+                  : datesComplete
+                    ? `${newCount} novos cadastros no período.`
+                    : newKnown.length
+                      ? `${newCount} novos cadastros com data confirmada. Parte da base não informa a data de cadastro.`
+                      : "A base atual não informa a data de cadastro dos clientes; o total de novos cadastros não pode ser calculado."
             }
           </p>
         </section>`;

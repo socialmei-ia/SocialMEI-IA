@@ -279,6 +279,7 @@ setView = function (name, o = {}) {
 const baseRenderCurrentView = renderCurrentView;
 renderCurrentView = function () {
   baseRenderCurrentView();
+  updateDataOriginNotice();
   if (isManagementViewActive()) {
     syncManagementHeader();
   }

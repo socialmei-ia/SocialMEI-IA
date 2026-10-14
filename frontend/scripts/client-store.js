@@ -353,6 +353,9 @@ const SocialMEIClients = (() => {
   return {
     newId: newOrigin,
     remote,
+    get connectionState() {
+      return !remote ? "local" : busy ? "loading" : ready ? "ready" : "unavailable";
+    },
     refresh,
     create,
     update,
