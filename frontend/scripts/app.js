@@ -3067,7 +3067,7 @@ function getManagementDataOrigin() {
   );
   const warning = states.includes("unavailable")
     ? " Uma fonte da API está indisponível. Os totais podem estar incompletos; recarregue no módulo."
-    : states.includes("loading")
+    : states.some((state) => ["idle", "loading"].includes(state))
       ? " Conferindo as fontes da API; aguarde a leitura."
       : "";
   if (!remote.length)
@@ -4250,6 +4250,7 @@ document.addEventListener("click", (event) => {
       customRange = null;
       updatePeriodLabel();
       renderReports();
+      playPeriodReveal();
       document.querySelector(`[data-nv-report-period="${name}"]`)?.focus();
     }
     return;
@@ -4258,6 +4259,7 @@ document.addEventListener("click", (event) => {
   if (rt) {
     selectedReportTab = rt.dataset.nvReportTab;
     renderReports();
+    playPeriodReveal();
     document.querySelector(`[data-nv-report-tab="${selectedReportTab}"]`)?.focus();
     return;
   }

@@ -101,15 +101,21 @@ function closeManagementSelect(b, f) {
   }
 }
 function playPeriodReveal() {
-  [$("kp"), $("financeSummary"), $("financeMiniChart")].forEach((target) => {
-    if (!target) {
-      return;
-    }
-    target.classList.remove("is-period-reveal");
-    void target.offsetWidth;
-    target.classList.add("is-period-reveal");
-    setTimeout(() => target.classList.remove("is-period-reveal"), 420);
-  });
+  const view = document.querySelector(".page-view.active");
+  view
+    ?.querySelectorAll(
+      "#kp, #financeSummary, #financeMiniChart, #salesPremiumSummary, #nvReportKpis, #reportsGrid",
+    )
+    .forEach((target) => {
+      window.SocialMEIMotion?.animate(
+        target,
+        [
+          { opacity: 0.65, transform: "translateY(4px)" },
+          { opacity: 1, transform: "none" },
+        ],
+        210,
+      );
+    });
 }
 function selectManagementOption(sel, v) {
   const id = sel.dataset.id;
@@ -1448,6 +1454,14 @@ function renderFinance() {
             >
           </article>`;
   $("financeMiniChart").innerHTML = renderManagementChartMarkup();
+  $("financeSummary")
+    .querySelectorAll(".management-kpi")
+    .forEach((metric) =>
+      metric.classList.toggle(
+        "finance-wide-value",
+        metric.querySelector("b").textContent.length > 14,
+      ),
+    );
   const searchQuery = normalizedText($("financeSearch").value.trim());
   const ty = $("financeTypeFilter").value;
   const st = $("financeStatusFilter").value;

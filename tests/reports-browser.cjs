@@ -133,6 +133,23 @@ module.exports = async function reportsFlows(browser, origin, errors) {
       "true",
     );
 
+    const exportDownload = page.waitForEvent("download");
+    await page.locator("#exportCsv").click();
+    assert((await exportDownload).suggestedFilename().endsWith(".csv"));
+    await page.evaluate(() => {
+      navigator.clipboard.writeText = async (text) => {
+        window.reportCopiedSummary = text;
+      };
+      window.print = () => {
+        window.reportPrintRequested = true;
+      };
+    });
+    await page.locator("#nvCopyReport").click();
+    await page.waitForFunction(() => typeof window.reportCopiedSummary === "string");
+    assert.match(await page.evaluate(() => window.reportCopiedSummary), /Vendas pagas: 2/);
+    await page.locator("#printReport").click();
+    assert.equal(await page.evaluate(() => window.reportPrintRequested), true);
+
     await page.evaluate(() => {
       sessionData.conversas = ["whatsapp", "instagram", "other"].map((canal, index) => ({
         id: 101 + index,

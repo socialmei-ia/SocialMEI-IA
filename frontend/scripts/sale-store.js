@@ -364,7 +364,15 @@ const SocialMEISales = (() => {
   return {
     remote,
     get connectionState() {
-      return !remote ? "local" : ready ? "ready" : busy ? "loading" : "unavailable";
+      return !remote
+        ? "local"
+        : ready
+          ? "ready"
+          : busy
+            ? "loading"
+            : problem
+              ? "unavailable"
+              : "idle";
     },
     refresh,
     create,

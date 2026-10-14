@@ -135,6 +135,18 @@ module.exports = async function visualRefinementFlows(browser, origin, errors = 
         .evaluate((element) => element === document.activeElement),
       true,
     );
+    await page.locator("[popovertarget=salesFilters]").first().click();
+    await page.locator("#nvTitle").click();
+    assert.equal(
+      await page.locator("#salesFilters").evaluate((element) => element.matches(":popover-open")),
+      false,
+    );
+    await page.locator("[popovertarget=salesFilters]").first().click();
+    await page.setViewportSize({ width: 1440, height: 900 });
+    assert.equal(await page.locator("#salesFilters").getAttribute("popover"), null);
+    assert.equal(await page.locator("[data-nv-host=salesPaymentFilter] button").isVisible(), true);
+    await page.setViewportSize({ width: 390, height: 900 });
+    assert.equal(await page.locator("#salesFilters").getAttribute("popover"), "auto");
     await page.locator("#salesSearch").fill("nenhum-resultado-qa");
     await page.waitForFunction(() =>
       document.getElementById("salesTable").textContent.includes("Nenhuma venda encontrada"),
@@ -225,6 +237,26 @@ module.exports = async function visualRefinementFlows(browser, origin, errors = 
       balance,
       "A busca não muda os cálculos",
     );
+    await page.evaluate(() => {
+      appData.financeiro[0].valor = 123456789012.34;
+      renderFinance();
+    });
+    for (const amount of await page.locator("#financeSummary .management-kpi >b").all()) {
+      const geometry = await amount.evaluate((element) => {
+        const range = document.createRange();
+        range.selectNodeContents(element);
+        return {
+          lines: range.getClientRects().length,
+          textWidth: range.getBoundingClientRect().width,
+          width: element.clientWidth,
+        };
+      });
+      assert.equal(geometry.lines, 1, "Manter o valor monetário em uma linha");
+      assert(
+        geometry.textWidth <= geometry.width + 1,
+        "Valores grandes devem usar a largura disponível",
+      );
+    }
     return "Refinamento: prioridades do Resumo, ação de venda, temas e Caixa com contexto, rascunho e filtros compactos de Clientes/Vendas";
   } finally {
     await page.close();
