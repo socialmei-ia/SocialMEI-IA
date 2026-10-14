@@ -27,7 +27,7 @@
         return { valid: false, message: "Confira o DDD brasileiro (por exemplo, 11 ou 81)." };
       }
       const subscriber = digits.slice(2);
-      if (!/^(?:9\d{8}|[2-5]\d{7})$/.test(subscriber) || /^(\d)\1+$/.test(subscriber)) {
+      if (!/^(?:9\d{8}|[2-5]\d{7})$/.test(subscriber)) {
         return {
           valid: false,
           message: "Use DDD + celular com 9 dígitos, ou telefone fixo com 8 dígitos.",

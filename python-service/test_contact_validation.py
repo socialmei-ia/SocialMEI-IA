@@ -8,9 +8,9 @@ from fastapi import HTTPException
 
 class ContactValidationTests(unittest.TestCase):
     def test_phone_formats(self):
-        for value in ["11987654321", "(81) 3456-7890", "+55 (81) 98765-4321", "+1 415 555 2671"]:
+        for value in ["11987654321", "11999999999", "(11) 3333-3333", "(81) 3456-7890", "+55 (81) 98765-4321", "+1 415 555 2671"]:
             self.assertEqual(validate_phone(value), value)
-        for value in ["32132132131", "abc11987654321", "@maria", "00123456789", "11999999999", "119876543210", "+551198765432100", "１１９８７６５４３２１"]:
+        for value in ["32132132131", "abc11987654321", "@maria", "00123456789", "119876543210", "+551198765432100", "１１９８７６５４３２１"]:
             with self.subTest(value=value), self.assertRaises(ValueError):
                 validate_phone(value)
 

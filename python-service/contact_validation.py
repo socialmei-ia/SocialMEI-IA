@@ -27,7 +27,7 @@ def validate_phone(value: str | None) -> str | None:
             raise ValueError("Confira o DDD brasileiro.")
         subscriber = digits[2:]
         valid_format = re.fullmatch(r"(?:9\d{8}|[2-5]\d{7})", subscriber, flags=re.ASCII)
-        if not valid_format or len(set(subscriber)) == 1:
+        if not valid_format:
             raise ValueError("Use DDD + celular com 9 dígitos, ou telefone fixo com 8 dígitos.")
     elif (
         not re.fullmatch(r"[1-9]\d{7,14}", digits, flags=re.ASCII)

@@ -3,7 +3,7 @@
 ## Comportamento
 
 - Nova conversa apresenta **Telefone · Brasil (+55)** para WhatsApp e **Usuário do Instagram** para Instagram. Cada canal mantém seu próprio rascunho enquanto o modal está aberto.
-- Telefone brasileiro aceita DDD existente, celular com nove dígitos iniciado em 9 ou fixo com oito dígitos iniciado em 2–5. Números com assinante totalmente repetido são rejeitados.
+- Telefone brasileiro aceita DDD existente, celular com nove dígitos iniciado em 9 ou fixo com oito dígitos iniciado em 2–5. Telefones fixos comerciais com dígitos repetidos, como `(11) 3333-3333`, são aceitos.
 - Outro país exige `+` e código internacional; a conferência é de sintaxe (8–15 dígitos), sem validar o plano de numeração daquele país.
 - Letras, `@usuário`, dígitos excedentes e entradas incompatíveis não são convertidos silenciosamente em um telefone válido.
 - Instagram aceita usuário ou `@usuário`, até 30 caracteres, letras ASCII, números, ponto e sublinhado. Links, espaços e telefone sem `@` são rejeitados. Um identificador explicitamente numérico com `@` é permitido.

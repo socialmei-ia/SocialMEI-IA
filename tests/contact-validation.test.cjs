@@ -7,7 +7,14 @@ vm.runInNewContext(fs.readFileSync("frontend/scripts/contact-validation.js", "ut
 const contacts = context.window.SocialMEIContacts;
 
 test("Contact validation keeps countries and identifiers separate", () => {
-  for (const input of ["11987654321", "(81) 3456-7890", "+55 (81) 98765-4321", "+1 415 555 2671"]) {
+  for (const input of [
+    "11987654321",
+    "11999999999",
+    "(11) 3333-3333",
+    "(81) 3456-7890",
+    "+55 (81) 98765-4321",
+    "+1 415 555 2671",
+  ]) {
     assert.equal(contacts.phone(input, true).valid, true, input);
   }
   for (const input of [
@@ -15,7 +22,6 @@ test("Contact validation keeps countries and identifiers separate", () => {
     "abc11987654321",
     "@maria",
     "00123456789",
-    "11999999999",
     "119876543210",
     "+551198765432100",
     "１１９８７６５４３２１",
@@ -30,6 +36,8 @@ test("Contact validation keeps countries and identifiers separate", () => {
     assert.equal(contacts.instagram(input).valid, true);
   for (const input of [
     "11987654321",
+    "11999999999",
+    "(11) 3333-3333",
     "(81) 98765-4321",
     "https://instagram.com/maria",
     "@maria loja",
