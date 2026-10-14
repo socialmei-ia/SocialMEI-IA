@@ -1,5 +1,15 @@
 # Roadmap
 
+## Manutenção — 14/10/2026
+
+Esta seção prevalece sobre o planejamento histórico abaixo. A API de gestão, o isolamento por negócio e as migrations incrementais já existem. A refatoração desta rodada preserva interface, dados e integrações; detalhes em [CODE-MAINTAINABILITY-REVIEW.md](CODE-MAINTAINABILITY-REVIEW.md).
+
+- **P0 condicional:** resolver autorização/identidade/idempotência do atendimento antes de canais reais (A12/A13). Não ativar o export legado por conveniência.
+- **P1:** revisar grants e separar a role da API da administração em uma etapa própria; confirmar cobertura/cópia externa dos backups e ensaiar restauração isolada.
+- **P2:** reduzir o listener de `app.js` por responsabilidade, começando pelas áreas alteradas; revisar a cascata por componente com evidência visual, sem unificar stores que têm contratos distintos.
+- **P2:** avaliar fixação das dependências Python e imagens `latest` com teste de atualização separado.
+- **P3:** funcionalidades novas continuam fora desta manutenção; critérios e prioridade pertencem ao responsável.
+
 ## Atualização de 12/10/2026
 
 API de gestão dos quatro módulos, migrations incrementais, transferência inicial, gateway protegido, leitura técnica do n8n e backups da equipe já foram implementados. O CI inclui PostgreSQL real, navegador, autenticação HTTPS e restauração de backup isolada. O planejamento original abaixo é histórico; itens que dizem que essas bases não existem foram superados.

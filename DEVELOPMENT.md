@@ -117,6 +117,16 @@ bash -n backup.sh
 
 ## Regressão da base estabilizada
 
-`node tests/stability-browser.cjs` cobre nove resoluções, Light/Dark/Auto-Light/Auto-Dark/Custom, telas públicas e módulos, labels de botões e recursos locais. A suite normal mantém CRUD/conflitos/replay/contas/teclado. O alias “Meu negócio” leva intencionalmente à Visão Geral.
+`node tests/stability-browser.cjs` cobre 11 resoluções, Light/Dark/Auto-Light/Auto-Dark/Custom, telas públicas e módulos, labels de botões e recursos locais. A suite normal mantém CRUD/conflitos/replay/contas/teclado. O alias “Meu negócio” leva intencionalmente à Visão Geral.
 
 Use `TEST_DATABASE_URL` apenas em PostgreSQL descartável. `test_workspace_integrity.py` verifica FKs, upgrade interrompido sem reparação, histórico e o perfil interno de leitura; alterações de estrutura/grants são exercitadas em transações de teste. A migration 011 não foi aplicada ao servidor nesta revisão. Resultados em [PROJECT-BASELINE-REVIEW.md](PROJECT-BASELINE-REVIEW.md).
+
+## Manutenção sem mudança de comportamento
+
+Antes de refatorar, registre SHA/status e execute as suites da área. Use uma branch `refactor/`, mudanças pequenas e commits por responsabilidade. Preserve nomes de payloads, chaves do armazenamento, classes/IDs usados pelos scripts e ordem de carregamento.
+
+A seleção de período fica em `navigation.js`; a hora comercial, em `home.js`. O listener de `app.js` encaminha essas ações. `inbox.js` monta mensagens iniciais locais. Dentro de `experience.js`, a composição do texto do Assistente fica separada da gravação do histórico. Os stores continuam próprios de cada módulo: versões, importações e estoque têm regras diferentes.
+
+Compare desktop/mobile, temas e movimento reduzido antes/depois de mexer na cascata. Não retire seletores ou `!important` apenas por repetição: estados dinâmicos e media queries podem depender deles. Consultas de saúde estão agrupadas em `python-service/database.py`; permanecem somente leitura e não comprovam conexão real dos canais.
+
+Veja [CODE-MAINTAINABILITY-REVIEW.md](CODE-MAINTAINABILITY-REVIEW.md). Testes usam dados fictícios e banco isolado; nunca a configuração privada da AWS.
