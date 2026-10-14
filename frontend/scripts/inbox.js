@@ -393,6 +393,17 @@ function renderDetails(c) {
   const since = client?.desde || client?.clienteDesde;
   const category =
     client?.categoria || (client?.status === "Novo" ? "Lead" : client ? "Cliente" : "Prospect");
+  const profileFields = [
+    ["Nome", displayName(c)],
+    ["Telefone", client?.telefone || c.telefone],
+    ["E-mail", client?.email],
+    ["Cidade", client?.cidade],
+    ["Cliente desde", since ? messageDateLabel(since) : null],
+    ["Canal principal", channelLabel(c.canal)],
+  ];
+  const renderProfileField = ([label, value]) =>
+    `<div><dt>${label}</dt><dd>${escapeHtml(value || "Não informado")}</dd></div>`;
+  const missingFields = profileFields.filter(([, value]) => !value || value === "—");
   const tab = selectedContextTab;
   host.innerHTML = /* HTML */ `<div class="details-top">
             <div class="details-top-head">
@@ -485,23 +496,11 @@ function renderDetails(c) {
                           ${renderIcon("edit")}
                         </button>
                       </div>
-                      <dl class="profile-fields">
-                        ${[
-                          ["Nome", displayName(c)],
-                          ["Telefone", client?.telefone || c.telefone],
-                          ["E-mail", client?.email],
-                          ["Cidade", client?.cidade],
-                          ["Cliente desde", since ? messageDateLabel(since) : null],
-                          ["Canal principal", channelLabel(c.canal)],
-                        ]
-                          .map(
-                            ([label, value]) => /* HTML */ `<div>
-                                <dt>${label}</dt>
-                                <dd>${escapeHtml(value || "Não informado")}</dd>
-                              </div>`,
-                          )
-                          .join("")}
-                      </dl>
+                      <dl class="profile-fields">${profileFields
+                        .filter(([, value]) => value && value !== "—")
+                        .map(renderProfileField)
+                        .join("")}</dl>
+                      ${missingFields.length ? `<details class="context-missing-fields"><summary>${missingFields.length} informações não preenchidas</summary><dl class="profile-fields">${missingFields.map(renderProfileField).join("")}</dl></details>` : ""}
                     </section>
                     <section class="context-card">
                       <div class="context-card-head">

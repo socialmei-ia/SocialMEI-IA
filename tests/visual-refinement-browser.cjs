@@ -44,7 +44,30 @@ module.exports = async function visualRefinementFlows(browser, origin, errors = 
       await page.locator("#recordModal").evaluate((element) => element.classList.contains("open")),
       false,
     );
-    return "Refinamento: prioridades do Resumo, ação de venda e temas desktop/mobile";
+    await page.evaluate(() => setView("Caixa Unificada"));
+    const conversation = page.locator("#conversationList [data-conversation]").first();
+    await conversation.click();
+    await page.locator("#messageInput").fill("Rascunho preservado na navegação");
+    await page.locator("#toggleDetailsBtn").click();
+    assert.equal(await page.locator("#detailsPane").getAttribute("aria-modal"), "true");
+    const missing = page.locator(".context-missing-fields summary");
+    await missing.focus();
+    await page.keyboard.press("Enter");
+    assert.equal(await page.locator(".context-missing-fields").getAttribute("open"), "");
+    await page.keyboard.press("Escape");
+    assert.equal(
+      await page
+        .locator("#toggleDetailsBtn")
+        .evaluate((element) => element === document.activeElement),
+      true,
+    );
+    await page.locator("#mobileBack").click();
+    await page.locator("#conversationList [data-conversation]").first().click();
+    assert.equal(
+      await page.locator("#messageInput").inputValue(),
+      "Rascunho preservado na navegação",
+    );
+    return "Refinamento: prioridades do Resumo, ação de venda, temas e Caixa com contexto e rascunho preservado";
   } finally {
     await page.close();
   }

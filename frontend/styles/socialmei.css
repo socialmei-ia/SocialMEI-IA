@@ -14089,9 +14089,9 @@ body.inbox-active #integrationAlert button {
   gap: 8px;
   flex-wrap: nowrap;
 
-  min-height: 72px;
-  padding: 14px 20px;
   background: var(--surface);
+  padding: 16px 20px;
+  min-height: 80px;
 }
 #inboxView .mobile-back {
   display: inline-flex;
@@ -14157,9 +14157,14 @@ body.inbox-active #integrationAlert button {
 }
 #inboxView .status-select {
   max-width: 132px;
-  min-height: 40px;
+
   font-size: 12px;
   padding: 5px 8px;
+
+  border-radius: 10px;
+  background: var(--surface-secondary);
+  border: 1px solid var(--border);
+  min-height: 44px;
 }
 #inboxView .messages {
   flex: 1;
@@ -14168,10 +14173,10 @@ body.inbox-active #integrationAlert button {
   overflow-x: hidden;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
-  padding: 24px 28px 20px;
 
-  background: var(--background);
-  gap: 18px;
+  background: color-mix(in srgb, var(--surface) 58%, var(--background));
+  gap: 14px;
+  padding: 24px;
 }
 #inboxView .day-sep {
   font-size: var(--text-xs);
@@ -14205,9 +14210,10 @@ body.inbox-active #integrationAlert button {
 #inboxView .composer-zone {
   flex: none;
 
-  background: var(--surface);
   border-top: 1px solid var(--border);
-  padding: 12px 18px 16px;
+
+  padding: 12px 20px 16px;
+  background: var(--surface);
 }
 #inboxView .composer-tools {
   min-height: 38px;
@@ -14299,7 +14305,8 @@ body.inbox-active #integrationAlert button {
 }
 #inboxView .details-top {
   flex: none;
-  padding: 24px 20px;
+
+  padding: 22px 20px 18px;
 }
 #inboxView .context-tabs {
   flex: none;
@@ -14322,23 +14329,78 @@ body.inbox-active #integrationAlert button {
   border: 0;
   border-bottom: 1px solid var(--ln);
 
-  padding: 20px 0;
   border-radius: 0;
   box-shadow: none;
   background: transparent;
-}
-#inboxView .context-next {
-  border-top: 1px solid color-mix(in srgb, var(--brand-accent) 55%, var(--internal-line));
-  margin-top: 18px;
+
+  padding: 18px 0;
 }
 #inboxView .context-relationship-story {
   margin-top: 12px;
+
   font-size: 12px;
+  color: var(--mt);
+  line-height: 1.7;
 }
 #inboxView .context-card h4 {
-  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.01em;
+
+  font-size: 14px;
+  letter-spacing: -0.015em;
+}
+#inboxView .details-top-head > b {
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.1em;
+  color: var(--mt);
+  text-transform: uppercase;
+}
+#inboxView .details-profile .conv-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+}
+#inboxView .profile-fields {
+  gap: 12px;
+}
+#inboxView .profile-fields dt {
+  font-size: 11px;
+}
+#inboxView .profile-fields dd {
+  font-size: 13px;
+  margin-top: 3px;
+}
+.context-missing-fields {
+  margin-top: 12px;
+}
+.context-missing-fields summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: var(--mt);
+  font-size: 12px;
+  gap: 8px;
+}
+.context-missing-fields summary::after {
+  content: "+";
+  margin-left: auto;
+}
+.context-missing-fields[open] summary::after {
+  content: "−";
+}
+#inboxView .context-next {
+  padding: 16px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--brand-primary-subtle);
+  margin-bottom: 8px;
+}
+#inboxView .context-next p {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--mt);
+  margin-top: 8px;
 }
 #inboxView .details-collapsed .details-pane:not(.mobile-open) {
   visibility: hidden;
