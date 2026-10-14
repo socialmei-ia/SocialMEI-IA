@@ -61,7 +61,6 @@ module.exports = async function dataOriginFlows(browser, origin, errors = []) {
           document.getElementById("clientsSourceStatus").textContent.includes("indisponível"),
         );
         assert(!/conectado/.test(await page.locator("#appDataOrigin").innerText()));
-        await page.evaluate(() => setView("Relatórios"));
         assert.match(await page.locator("#reportsDataSourceStatus").innerText(), /indisponível/);
         assert.equal(
           await page.locator("#nvReportKpis .management-kpi >b").first().innerText(),

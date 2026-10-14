@@ -108,6 +108,7 @@ const SocialMEIFinance = (() => {
     }
   }
   function status() {
+    document.dispatchEvent(new CustomEvent("socialmei-source-status"));
     const host = document.getElementById("financeSourceStatus");
     if (!host) return;
     host.hidden = !remote;
@@ -324,7 +325,7 @@ const SocialMEIFinance = (() => {
   return {
     remote,
     get connectionState() {
-      return !remote ? "local" : busy ? "loading" : ready ? "ready" : "unavailable";
+      return !remote ? "local" : ready ? "ready" : busy ? "loading" : "unavailable";
     },
     refresh,
     create,

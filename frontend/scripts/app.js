@@ -3090,6 +3090,16 @@ function updateDataOriginNotice() {
   $("appDataOrigin").textContent =
     `${origin.label} · ${origin.description} Rascunhos e preferências são locais.`;
 }
+document.addEventListener("socialmei-source-status", () => {
+  updateDataOriginNotice();
+  if (currentView === "Relatórios") {
+    const focused = $("reportsView").contains(document.activeElement)
+      ? document.activeElement.id
+      : null;
+    renderReports();
+    if (focused) $(focused)?.focus({ preventScroll: true });
+  }
+});
 function renderReports() {
   const expandedDetails = [...document.querySelectorAll("#reportsView .report-detail[open]")].map(
     (detail) => detail.id,
