@@ -73,7 +73,7 @@ A matriz verifica overflow da página e do módulo. A rotação decorativa já a
 
 As capturas antes/depois usam 1440×1000 e 390×1000, claro/escuro, data congelada em 13/10/2026 e as mesmas fixtures da auditoria. Local significa dados de demonstração; remoto significa APIs controladas vazias, com a identidade de teste da auditoria. Não são capturas autenticadas da produção. O aviso de sincronização em alguns screenshots locais decorre do bloqueio de rede externa do teste.
 
-Falhas de layout encontradas durante a execução foram corrigidas: sobreposição causada por regras antigas das tabelas, ticket do Resumo excedendo a coluna, quebra de valores financeiros e perda de expansão numa atualização. Os testes de geometria e valores monetários foram ampliados para cobrir esses casos. Não há timeout aumentado, teste desativado ou asserção removida para esconder falhas.
+Falhas de layout encontradas durante a execução foram corrigidas: sobreposição causada por regras antigas das tabelas, ticket do Resumo excedendo a coluna, quebra de valores financeiros e perda de expansão numa atualização. Os testes de geometria e valores monetários foram ampliados para cobrir esses casos. O primeiro CI também identificou uma corrida no teste de resize: a conferência agora aguarda o atributo de apresentação esperado depois do evento de media query, preservando as asserções. Não há timeout aumentado, teste desativado ou asserção removida para esconder falhas.
 
 ## Arquivos e organização
 

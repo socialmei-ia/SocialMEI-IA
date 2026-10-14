@@ -143,9 +143,15 @@ module.exports = async function visualRefinementFlows(browser, origin, errors = 
     );
     await page.locator("[popovertarget=salesFilters]").first().click();
     await page.setViewportSize({ width: 1440, height: 900 });
+    await page.waitForFunction(
+      () => !document.getElementById("salesFilters").hasAttribute("popover"),
+    );
     assert.equal(await page.locator("#salesFilters").getAttribute("popover"), null);
     assert.equal(await page.locator("[data-nv-host=salesPaymentFilter] button").isVisible(), true);
     await page.setViewportSize({ width: 390, height: 900 });
+    await page.waitForFunction(
+      () => document.getElementById("salesFilters").getAttribute("popover") === "auto",
+    );
     assert.equal(await page.locator("#salesFilters").getAttribute("popover"), "auto");
     await page.locator("#salesSearch").fill("nenhum-resultado-qa");
     await page.waitForFunction(() =>
