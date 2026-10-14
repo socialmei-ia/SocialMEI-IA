@@ -153,7 +153,7 @@ module.exports = async function contactFlows(browser, origin, errors = []) {
     await livePhone.focus();
     await livePhone.evaluate((input) => input.setSelectionRange(7, 8));
     await livePhone.press("6");
-    assert.equal(await livePhone.inputValue(), "(81) 97665-4321");
+    assert.equal(await livePhone.inputValue(), "(81) 98665-4321");
     assert.equal(await livePhone.evaluate((input) => input.selectionStart), 8);
     await livePhone.fill("+5581987654321");
     assert.equal(await livePhone.inputValue(), "+55 (81) 98765-4321");
