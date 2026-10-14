@@ -205,6 +205,8 @@ function applyAppTheme(id) {
   requestAnimationFrame(renderDashboardChart);
   if (currentView === "Configurações" && selectedSettingsTab === "aparencia") {
     renderAppearance();
+  } else if (currentView === "Configurações") {
+    updateSettingsWorkspacePreview();
   }
   if (!document.body.classList.contains("experience-app")) {
     return;
