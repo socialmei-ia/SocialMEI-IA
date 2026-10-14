@@ -231,7 +231,7 @@ async function run() {
       if (mode === "remote")
         assert.deepEqual(profileRequests[0], {
           nome: "Beatriz Atualizada",
-          telefone: "11999990000",
+          telefone: "(11) 99999-0000",
         });
       else
         assert.equal(
@@ -240,6 +240,17 @@ async function run() {
           ),
           "Beatriz Atualizada",
         );
+
+      const phoneField = page.locator("#nvPref-telefone");
+      const originalPhone = await phoneField.inputValue();
+      const requestCount = profileRequests.length;
+      await phoneField.fill("telefone_invalido");
+      await page.locator("#nvSettingsPrimary").click();
+      assert.equal(await phoneField.evaluate((input) => input.validity.valid), false);
+      assert.equal(profileRequests.length, requestCount, "Contato inválido não deve chegar à API");
+      await phoneField.fill(originalPhone);
+      await phoneField.blur();
+      assert.equal(await phoneField.evaluate((input) => input.validity.valid), true);
 
       const setup = page.locator(".settings-setup-disclosure");
       assert.equal(await setup.evaluate((element) => element.open), false);

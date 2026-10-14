@@ -644,6 +644,15 @@ ONBOARDING — JAVASCRIPT
     button.setAttribute("aria-busy", "true");
     button.textContent = "Preparando seu espaço…";
     try {
+      if (event.target.id === "xpRegisterForm") {
+        button.textContent = "Confira seu número…";
+        if (!(await SocialMEIContacts.confirmPhone(q("#registerPhone").value))) {
+          q("#registerPhone").focus();
+          return;
+        }
+        if (screenRequest !== submitScreenRequest) return;
+        button.textContent = "Preparando seu espaço…";
+      }
       if (SocialMEIAuth.remote) {
         if (event.target.id === "xpLoginForm") {
           await SocialMEIAuth.login({
@@ -1397,16 +1406,22 @@ ONBOARDING — JAVASCRIPT
     q("#previewName").textContent = name || "Seu perfil";
     q("#previewEmail").textContent = q("#registerEmail").value.trim() || "Seu e-mail aparece aqui";
     const digits = q("#registerPhone").value.replace(/\D/g, "");
-    q("#previewPhone").textContent =
-      digits.length >= 10
-        ? `(${digits.slice(0, 2)}) •••••-${digits.slice(-4)}`
-        : "Um canal para conversar";
+    const phoneResult = SocialMEIContacts.phone(q("#registerPhone").value, true);
+    const domesticDigits =
+      digits.startsWith("55") && q("#registerPhone").value.startsWith("+")
+        ? digits.slice(2)
+        : digits;
+    q("#previewPhone").textContent = phoneResult.valid
+      ? q("#registerPhone").value.startsWith("+") && !digits.startsWith("55")
+        ? `+… ••••-${digits.slice(-4)}`
+        : `(${domesticDigits.slice(0, 2)}) •••••-${digits.slice(-4)}`
+      : "Um canal para conversar";
     for (const [id, built] of [
       [
         "previewProfile",
         !!name && q("#registerEmail").validity.valid && !!q("#registerEmail").value,
       ],
-      ["previewChannel", digits.length >= 10],
+      ["previewChannel", phoneResult.valid],
       ["previewSecurity", q("#registerPassword").value.length >= (SocialMEIAuth.remote ? 12 : 8)],
     ]) {
       const element = q("#" + id);
@@ -1432,7 +1447,7 @@ ONBOARDING — JAVASCRIPT
     const values = [
       !!name,
       q("#registerEmail").validity.valid && !!q("#registerEmail").value,
-      [10, 11].includes(digits.length),
+      phoneResult.valid,
       q("#registerPassword").value.length >= (SocialMEIAuth.remote ? 12 : 8),
     ];
     q("#authBuildProgress").textContent =
@@ -1453,23 +1468,15 @@ ONBOARDING — JAVASCRIPT
     );
   }
   function maskPhone(element) {
-    const d = element.value.replace(/\D/g, "").slice(0, 11);
-    const n = d.length > 10 ? 5 : 4;
-    element.value =
-      d.length < 3
-        ? d
-        : `(${d.slice(0, 2)}) ${d.slice(2, 2 + n)}${d.length > 2 + n ? "-" + d.slice(2 + n) : ""}`;
+    const result = SocialMEIContacts.phone(element.value);
+    if (result.valid) element.value = result.value;
   }
   function validateAuth(input) {
     if (input.id === "registerName") {
       input.setCustomValidity(input.value.trim() ? "" : "Informe seu nome.");
     }
     if (input.id === "registerPhone") {
-      input.setCustomValidity(
-        [10, 11].includes(input.value.replace(/\D/g, "").length)
-          ? ""
-          : "Informe o WhatsApp com DDD e 10 ou 11 dígitos.",
-      );
+      SocialMEIContacts.validateField(input, true);
     }
     const valid = input.validity.valid;
     const field = input.closest(".experience-field");
@@ -1500,9 +1507,6 @@ ONBOARDING — JAVASCRIPT
         validateAuth(element);
       });
       element.addEventListener("input", () => {
-        if (element.id === "registerPhone") {
-          maskPhone(element);
-        }
         element.closest(".experience-field").classList.toggle("is-filled", !!element.value);
         if (element.dataset.visited) {
           validateAuth(element);
@@ -1511,7 +1515,7 @@ ONBOARDING — JAVASCRIPT
         previewTimer = setTimeout(updatePreview, motion.ms("motion-fast"));
       });
     });
-  q("#obPhone").addEventListener("input", (event) => maskPhone(event.target));
+  q("#obPhone").addEventListener("blur", (event) => maskPhone(event.target));
   experienceRoot.addEventListener("keydown", (event) => {
     const tab = event.target.closest("[data-auth-tab]");
     if (tab && ["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) {
@@ -1592,8 +1596,9 @@ ONBOARDING — JAVASCRIPT
       if (element.required && !value) {
         message = "Preencha este campo antes de continuar.";
       }
-      if (element.id === "obPhone" && value && !/^\d{10,11}$/.test(value.replace(/\D/g, ""))) {
-        message = "Use um telefone com DDD e 10 ou 11 dígitos.";
+      if (element.id === "obPhone" && value) {
+        const contact = SocialMEIContacts.phone(value);
+        if (!contact.valid) message = contact.message;
       }
       if (element.id === "obCnpj" && value && !isValidCnpj(value)) {
         message = "Confira os 14 dígitos do CNPJ ou deixe em branco.";

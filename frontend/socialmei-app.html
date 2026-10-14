@@ -2077,17 +2077,19 @@ AUTENTICAÇÃO — HTML
                     /><small class="experience-field-status" id="registerEmailStatus"> </small>
                   </div>
                   <div class="experience-field">
-                    <label for="registerPhone">WhatsApp</label
+                    <label for="registerPhone">WhatsApp · Brasil (+55)</label
                     ><input
                       id="registerPhone"
                       type="tel"
                       inputmode="tel"
-                      maxlength="15"
+                      maxlength="32"
                       autocomplete="tel"
                       placeholder="(81) 99999-0000"
                       required
                       aria-describedby="registerPhoneStatus"
-                    /><small class="experience-field-status" id="registerPhoneStatus"> </small>
+                    /><small class="experience-field-status" id="registerPhoneStatus"
+                      >DDD + número. Outro país? Use +código do país.</small
+                    >
                   </div>
                   <div class="experience-field">
                     <label for="registerPassword">Senha</label>
@@ -2338,7 +2340,7 @@ ONBOARDING — HTML
                       type="tel"
                       inputmode="tel"
                       autocomplete="tel"
-                      maxlength="15"
+                      maxlength="32"
                       placeholder="(81) 99999-0000"
                     />
                   </div>
@@ -3662,6 +3664,9 @@ CAIXA UNIFICADA — HTML
                       Concluir atendimento
                     </button>
                     <button data-thread-action="copy" type="button">Copiar contato</button>
+                    <button data-thread-action="delete" type="button">
+                      Excluir conversa local…
+                    </button>
                   </div>
                 </div>
                 <div class="thread-search-bar" hidden="" id="threadSearchBar">
@@ -4198,6 +4203,7 @@ MODAIS E DRAWERS — HTML
     <script src="scripts/product-store.js"></script>
     <script src="scripts/sale-store.js"></script>
     <script src="scripts/finance-store.js"></script>
+    <script src="scripts/contact-validation.js"></script>
     <script src="scripts/app.js"></script>
     <script src="scripts/experience.js"></script>
     <script id="landingEnhancementsV2" src="scripts/landing-accessibility.js"></script>

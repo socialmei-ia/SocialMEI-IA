@@ -13,7 +13,7 @@ function loadInboxLocal() {
   }
 }
 function saveInboxLocal() {
-  socialmeiStorageSet(
+  return socialmeiStorageSet(
     INBOX_LOCAL_KEY,
     JSON.stringify(inboxLocalState),
     "os dados locais da Caixa Unificada",
@@ -618,6 +618,9 @@ function renderThread({ animate = false, preserveScroll = false, refreshList = t
     $("detailsPane").innerHTML = "";
     return;
   }
+  const deleteButton = document.querySelector('[data-thread-action="delete"]');
+  if (deleteButton)
+    deleteButton.hidden = conversation.mensagens.some((message) => message.remoteId);
   $("threadPane").classList.remove("no-selection");
   if (isConversationVisible(conversation) && isNearMessageBottom()) {
     conversation.naoLidas = 0;
@@ -1742,16 +1745,92 @@ function openNewConversation() {
               ${createField("Cliente", "nome", "text", {
                 required: true,
               })}
-              ${createField("Telefone / @usuário", "contato", "text", {
-                required: true,
-                full: true,
-              })}
+              <div class="form-group full contact-input-group">
+                <label for="inbox_f_contato" id="inboxContactLabel">Telefone · Brasil (+55)</label>
+                <input class="form-control" id="inbox_f_contato" name="contato" type="tel" inputmode="tel" autocomplete="tel" maxlength="32" required data-contact-type="phone" data-contact-status="inboxContactError" aria-describedby="inboxContactHint inboxContactError" placeholder="(81) 99999-0000">
+                <small id="inboxContactHint">DDD + número. Outro país? Use +código do país.</small>
+                <small id="inboxContactError" class="contact-input-error" aria-live="polite"></small>
+              </div>
               ${createField("Mensagem inicial (opcional, somente local)", "mensagem", "textarea")}
             </div>`,
     "Criar conversa local",
     "conversation",
   );
+  const channel = $("inboxModalForm").elements.canal;
+  const values = { WhatsApp: "", Instagram: "" };
+  let previousChannel = channel.value;
+  channel.addEventListener("change", () => {
+    const input = $("inbox_f_contato");
+    values[previousChannel] = input.value;
+    previousChannel = channel.value;
+    const instagram = channel.value === "Instagram";
+    input.value = values[channel.value];
+    input.type = instagram ? "text" : "tel";
+    input.inputMode = instagram ? "text" : "tel";
+    input.autocomplete = instagram ? "off" : "tel";
+    input.maxLength = instagram ? 31 : 32;
+    input.dataset.contactType = instagram ? "instagram" : "phone";
+    input.placeholder = instagram ? "@seu.usuario" : "(81) 99999-0000";
+    input.setCustomValidity("");
+    input.removeAttribute("aria-invalid");
+    $("inboxContactError").textContent = "";
+    $("inboxContactLabel").textContent = instagram
+      ? "Usuário do Instagram"
+      : "Telefone · Brasil (+55)";
+    $("inboxContactHint").textContent = instagram
+      ? "Use o @usuário, não o telefone ou o link do perfil."
+      : "DDD + número. Outro país? Use +código do país.";
+    if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      input.closest(".contact-input-group").animate(
+        [
+          { opacity: 0.5, transform: "translateY(4px)" },
+          { opacity: 1, transform: "none" },
+        ],
+        { duration: window.SocialMEIMotion.ms("motion-base"), easing: "ease-out" },
+      );
+    }
+  });
 }
+
+function openDeleteConversation(conversation) {
+  if (conversation.mensagens.some((message) => message.remoteId)) {
+    toast(
+      "Conversa integrada",
+      "A exclusão no canal ainda não está disponível. Você pode concluir o atendimento.",
+    );
+    return;
+  }
+  openInboxModal(
+    "Excluir esta conversa?",
+    `<p>O histórico local de <strong>${escapeHtml(displayName(conversation))}</strong> será removido deste navegador.</p><p>O cadastro do cliente, as vendas e os lançamentos financeiros serão preservados. Nada será apagado no WhatsApp ou Instagram.</p>`,
+    "Excluir conversa local",
+    "delete-conversation",
+  );
+}
+
+function removeLocalConversation(conversation) {
+  if (!conversation || conversation.mensagens.some((message) => message.remoteId)) return false;
+  const previousState = structuredClone(inboxLocalState);
+  const key = conversationKey(conversation);
+  inboxLocalState.localConversations = (inboxLocalState.localConversations || []).filter(
+    (item) => conversationKey(item) !== key,
+  );
+  for (const prefix of ["state:", "events:", "favorite:"]) delete inboxLocalState[prefix + key];
+  if (!conversation.localConversation) {
+    inboxLocalState.removedDemoConversations = [
+      ...new Set([...(inboxLocalState.removedDemoConversations || []), key]),
+    ];
+  }
+  if (!saveInboxLocal()) {
+    inboxLocalState = previousState;
+    return false;
+  }
+  sessionData.conversas = sessionData.conversas.filter((item) => item.id !== conversation.id);
+  conversationDrafts.delete(conversation.id);
+  attachmentDrafts.delete(conversation.id);
+  return true;
+}
+
 async function copyContact(c) {
   const client = clientContext(c).client;
   const contact =

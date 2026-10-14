@@ -372,7 +372,7 @@ function renderCreateFields(type, preset = {}) {
         required: true,
         full: true,
       }),
-      createField("Telefone", "telefone", "text", {
+      createField("Telefone", "telefone", "tel", {
         placeholder: "DDD e número",
       }),
       createField("Instagram", "instagram", "text", {

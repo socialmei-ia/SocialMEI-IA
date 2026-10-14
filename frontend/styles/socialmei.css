@@ -24918,3 +24918,82 @@ body.management-view-active .toast-zone .toast {
     gap: 6px 8px;
   }
 }
+
+/* CONTACT CONFIRMATION */
+.contact-confirmation {
+  width: min(460px, calc(100vw - 32px));
+  border: 1px solid var(--bd);
+  border-radius: 24px;
+  padding: 32px;
+  background: var(--sf, #fff);
+  color: var(--tx, #192a3b);
+  box-shadow: 0 24px 80px rgb(0 0 0 / 24%);
+}
+.contact-confirmation::backdrop {
+  background: rgb(0 0 0 / 48%);
+}
+.contact-confirmation[open] {
+  animation: contact-enter var(--motion-dialog) var(--ease-enter);
+}
+.contact-confirmation-symbol {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  background: var(--brs, #e6f0ff);
+  color: var(--br, #2177df);
+  font-size: 28px;
+}
+.contact-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  margin-top: 24px;
+}
+.contact-confirmation h2 {
+  margin: 8px 0 16px;
+  font-size: 28px;
+  line-height: 1.15;
+}
+.contact-confirmation p {
+  color: var(--mt);
+  line-height: 1.6;
+}
+.contact-confirmation-number {
+  display: block;
+  padding: 20px 0;
+  font-size: clamp(20px, 5vw, 28px);
+  overflow-wrap: anywhere;
+}
+.contact-confirmation-note {
+  font-size: 12px;
+}
+.contact-confirmation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+.contact-input-group small {
+  color: var(--mt);
+  font-size: 12px;
+}
+.contact-input-group .contact-input-error {
+  color: var(--ng);
+  min-height: 1em;
+}
+@keyframes contact-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .contact-confirmation[open] {
+    animation: none;
+  }
+}

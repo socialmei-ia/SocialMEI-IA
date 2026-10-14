@@ -790,6 +790,9 @@ document.addEventListener("click", async (event) => {
     if (conversation && threadAction.dataset.threadAction === "status") {
       openStatusModal(conversation);
     }
+    if (conversation && threadAction.dataset.threadAction === "delete") {
+      openDeleteConversation(conversation);
+    }
     if (conversation && threadAction.dataset.threadAction === "copy") {
       copyContact(conversation);
     }
@@ -1415,9 +1418,19 @@ document.body.insertAdjacentHTML(
 $("inboxModalForm").addEventListener("submit", async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
+  if (!SocialMEIContacts.validateForm(form)) return;
   const d = Object.fromEntries(new FormData(form));
   const mode = $("inboxModal").dataset.mode;
   const conversation = getConversation(modalConversationId);
+  if (mode === "delete-conversation") {
+    if (!removeLocalConversation(conversation)) return;
+    closeModal("inboxModal");
+    enterInboxListMode({ focusList: true });
+    renderConversationList();
+    updateInboxNavBadge();
+    toast("Conversa removida", "O cadastro do cliente foi preservado.");
+    return;
+  }
   if (SocialMEIClients.remote && ["conversation", "profile", "observation"].includes(mode)) {
     if (mode === "conversation") {
       if (!d.nome.trim()) return;
@@ -1827,6 +1840,11 @@ for (const c of inboxLocalState.localConversations || []) {
     sessionData.conversas.push(c);
   }
 }
+sessionData.conversas = sessionData.conversas.filter(
+  (conversation) =>
+    !(inboxLocalState.removedDemoConversations || []).includes(conversationKey(conversation)) ||
+    conversation.localConversation,
+);
 for (const c of sessionData.conversas) {
   const saved = inboxLocalState[`state:${conversationKey(c)}`];
   if (saved) {

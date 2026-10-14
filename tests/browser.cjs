@@ -58,6 +58,7 @@ async function run() {
     await page.locator("#registerPhone").fill("11999998888");
     await page.locator("#registerPassword").fill("TesteLocal123!");
     await page.locator("#xpRegisterForm [type=submit]").click();
+    await page.locator(".contact-confirmation button[value=confirm]").click();
     await page.locator("[data-onboard-next]").click();
     await page.locator("#obBusiness").fill("Negócio QA");
     for (let step = 0; step < 3; step++) await page.locator("[data-onboard-next]").click();
@@ -278,6 +279,7 @@ async function run() {
     checks.push(await require("./visual-layout-browser.cjs")(browser, origin, errors));
     checks.push(await require("./visual-motion-browser.cjs")(browser, origin, errors));
     checks.push(await require("./audit-ui-browser.cjs")(browser, origin));
+    checks.push(await require("./contact-browser.cjs")(browser, origin, errors));
     assert.deepEqual(errors, []);
     checks.push("11 módulos, quatro larguras, claro/escuro, toasts e reduced motion");
     fs.writeFileSync(
