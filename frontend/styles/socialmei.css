@@ -7787,14 +7787,11 @@ body.experience-app #experienceRoot {
   place-items: center;
   right: 0;
   top: 38px;
-  min-height: 44px;
   min-width: 44px;
   color: var(--mt);
 }
 .nav-group-label {
   display: block;
-
-  color: var(--mt);
 }
 .nav-chapter {
   width: 100%;
@@ -13732,8 +13729,6 @@ body.inbox-active #integrationAlert button {
   background: var(--sf);
   overflow: hidden;
   grid-template-columns: minmax(230px, 24%) minmax(0, 1fr) minmax(230px, 23%);
-
-  transition: none;
 }
 #inboxView .inbox-shell.details-collapsed {
   grid-template-columns: minmax(230px, 24%) minmax(0, 1fr) 0;
@@ -20798,7 +20793,6 @@ body.management-view-active .toast-zone .toast {
 }
 #xpSetup .landing-setup-steps button[aria-selected="true"] {
   background: var(--landing-surface);
-  border-color: var(--story-edge);
   box-shadow: 0 5px 14px #00000006;
   transform: none;
 }
