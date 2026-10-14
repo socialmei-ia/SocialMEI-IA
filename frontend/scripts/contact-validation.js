@@ -199,7 +199,8 @@
     const result = (type === "phone" ? phone : instagram)(input.value, input.required);
     input.setCustomValidity(result.valid ? "" : result.message);
     input.setAttribute("aria-invalid", String(!result.valid));
-    if (normalize && result.valid && input.value.trim() !== "—") input.value = result.value;
+    if (normalize && result.valid && input.value.trim() !== "—" && input.value !== result.value)
+      input.value = result.value;
     const status = document.getElementById(input.dataset.contactStatus || "");
     if (status) status.textContent = result.valid ? "" : result.message;
     return result.valid;
