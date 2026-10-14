@@ -567,24 +567,7 @@ document.addEventListener("click", async (event) => {
   }
   const period = event.target.closest("[data-period]");
   if (period) {
-    if (period.dataset.period === "Personalizado") {
-      $("customBox").classList.add("open");
-      selectedPeriod = "Personalizado";
-      updatePeriodLabel();
-    } else {
-      selectedPeriod = period.dataset.period;
-      customRange = null;
-      updatePeriodLabel();
-      $("customBox")?.classList.remove("open");
-      closeDropdowns();
-      if (currentView === "Visão Geral") {
-        showLoading();
-        await wait(window.SocialMEIMotion.reduced ? 0 : window.SocialMEIMotion.ms("motion-medium"));
-        hideLoading();
-      } else {
-        renderCurrentView();
-      }
-    }
+    await selectPeriod(period.dataset.period);
     return;
   }
   if (event.target.closest("#cancelCustom")) {
@@ -595,35 +578,7 @@ document.addEventListener("click", async (event) => {
     return;
   }
   if (event.target.closest("#applyCustom")) {
-    const a = $("dateFrom").value;
-    const b = $("dateTo").value;
-    if (!a || !b) {
-      toast("Selecione as duas datas", "Informe a data inicial e a final.");
-      return;
-    }
-    const from = new Date(a + "T12:00:00");
-    const to = new Date(b + "T12:00:00");
-    if (to < from) {
-      toast("Período inválido", "A data final deve ser posterior à inicial.");
-      return;
-    }
-    const days = Math.max(1, Math.round((to - from) / 86400000) + 1);
-    customRange = {
-      days,
-      from: a,
-      to: b,
-      label: `${from.toLocaleDateString("pt-BR", {
-        day: "2-digit",
-        month: "2-digit",
-      })} – ${to.toLocaleDateString("pt-BR", {
-        day: "2-digit",
-        month: "2-digit",
-      })}`,
-    };
-    selectedPeriod = "Personalizado";
-    updatePeriodLabel();
-    closeDropdowns();
-    renderCurrentView();
+    applyCustomPeriod();
     return;
   }
   if (event.target.closest("#actToggle")) {
@@ -1449,14 +1404,7 @@ $("inboxModalForm").addEventListener("submit", async (event) => {
       };
       const client = await ensureContextClient(next);
       if (!client) return;
-      if (d.mensagem.trim())
-        next.mensagens.push({
-          de: "empresa",
-          texto: d.mensagem.trim(),
-          hora: nowTime(),
-          data: todayISO(),
-          localOnly: true,
-        });
+      appendInitialLocalMessage(next, d.mensagem);
       sessionData.conversas.unshift(next);
       inboxLocalState.localConversations = sessionData.conversas.filter((x) => x.localConversation);
       saveInboxLocal();
@@ -1515,15 +1463,7 @@ $("inboxModalForm").addEventListener("submit", async (event) => {
       mensagens: [],
       localConversation: true,
     };
-    if (d.mensagem.trim()) {
-      next.mensagens.push({
-        de: "empresa",
-        texto: d.mensagem.trim(),
-        hora: nowTime(),
-        data: todayISO(),
-        localOnly: true,
-      });
-    }
+    appendInitialLocalMessage(next, d.mensagem);
     sessionData.conversas.unshift(next);
     touchConversationActivity(next);
     const client = await ensureContextClient(next);

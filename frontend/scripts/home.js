@@ -31,14 +31,17 @@ function hideLoading() {
   $("refresh").innerHTML = renderIcon("refresh");
   renderAll();
 }
-function humanGreeting() {
-  const hour = Number(
+function getBusinessHour() {
+  return Number(
     new Intl.DateTimeFormat("en-US", {
       timeZone: APP_TIMEZONE,
       hour: "numeric",
       hourCycle: "h23",
     }).format(new Date()),
   );
+}
+function humanGreeting() {
+  const hour = getBusinessHour();
   return sessionData.usuario.primeiro
     ? `${hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite"}, ${sessionData.usuario.primeiro}.`
     : "Olá.";

@@ -1,4 +1,15 @@
 /* INBOX */
+function appendInitialLocalMessage(conversation, message) {
+  const text = message.trim();
+  if (!text) return;
+  conversation.mensagens.push({
+    de: "empresa",
+    texto: text,
+    hora: nowTime(),
+    data: todayISO(),
+    localOnly: true,
+  });
+}
 function touchConversationActivity(conversation) {
   if (!conversation) {
     return;
