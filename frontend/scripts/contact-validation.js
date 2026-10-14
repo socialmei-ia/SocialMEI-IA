@@ -79,13 +79,128 @@
     return null;
   }
 
+  const previousPhoneValues = new WeakMap();
+
+  function phoneLimit(value) {
+    const text = value.trim();
+    const digits = text.replace(/\D/g, "");
+    const international = text.startsWith("+");
+    if (international && !digits.startsWith("55")) return 15;
+    const domestic = international ? digits.slice(2) : digits;
+    const limit = /^[2-5]/.test(domestic.slice(2)) ? 10 : 11;
+    return international ? limit + 2 : limit;
+  }
+
+  function inputError(value) {
+    if (value && !/^\+?[\d\s().-]*$/.test(value.trim()))
+      return "Use apenas números; para outro país, comece com +.";
+    if (value.replace(/\D/g, "").length > phoneLimit(value))
+      return `Limite de ${phoneLimit(value)} dígitos neste formato, incluindo DDD e código do país quando informado.`;
+    return "";
+  }
+
+  function formatPhoneInput(value) {
+    const international = value.trim().startsWith("+");
+    let digits = value.replace(/\D/g, "");
+    if (international && !digits.startsWith("55")) return "+" + digits;
+    const prefix = international ? "+55 " : "";
+    if (international) digits = digits.slice(2);
+    if (!digits) return prefix.trim();
+    if (digits.length <= 2) return prefix + digits;
+    const subscriber = digits.slice(2);
+    const split = subscriber.startsWith("9") ? 5 : 4;
+    return (
+      prefix +
+      `(${digits.slice(0, 2)}) ${subscriber.slice(0, split)}` +
+      (subscriber.length > split ? "-" + subscriber.slice(split) : "")
+    );
+  }
+
+  function showInputMessage(input, message) {
+    let status = document.getElementById(input.dataset.contactStatus || input.id + "Status");
+    if (!status) {
+      status = document.createElement("small");
+      status.id = input.id
+        ? input.id + "ContactStatus"
+        : "contactStatus" + document.querySelectorAll("[data-contact-feedback]").length;
+      status.dataset.contactFeedback = "";
+      status.className = "contact-input-error";
+      status.setAttribute("aria-live", "polite");
+      input.insertAdjacentElement("afterend", status);
+      input.dataset.contactStatus = status.id;
+      input.setAttribute(
+        "aria-describedby",
+        [input.getAttribute("aria-describedby"), status.id].filter(Boolean).join(" "),
+      );
+    }
+    status.textContent = message;
+  }
+
+  document.addEventListener(
+    "focus",
+    (event) => {
+      if (event.target instanceof HTMLInputElement && fieldType(event.target) === "phone")
+        previousPhoneValues.set(event.target, event.target.value);
+    },
+    true,
+  );
+  document.addEventListener(
+    "beforeinput",
+    (event) => {
+      const input = event.target;
+      if (
+        !(input instanceof HTMLInputElement) ||
+        fieldType(input) !== "phone" ||
+        !event.data ||
+        event.isComposing
+      )
+        return;
+      const next =
+        input.value.slice(0, input.selectionStart) +
+        event.data +
+        input.value.slice(input.selectionEnd);
+      const message = inputError(next);
+      if (message) {
+        event.preventDefault();
+        showInputMessage(input, message);
+      }
+    },
+    true,
+  );
+  document.addEventListener(
+    "paste",
+    (event) => {
+      const input = event.target;
+      if (
+        !(input instanceof HTMLInputElement) ||
+        fieldType(input) !== "phone" ||
+        !event.clipboardData
+      )
+        return;
+      const text = event.clipboardData.getData("text");
+      const position = input.selectionStart;
+      const next = input.value.slice(0, position) + text + input.value.slice(input.selectionEnd);
+      event.preventDefault();
+      const message = inputError(next);
+      if (message) {
+        showInputMessage(input, message);
+        return;
+      }
+      input.value = next;
+      input.setSelectionRange(position + text.length, position + text.length);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    },
+    true,
+  );
+
   function validateField(input, normalize = false) {
     const type = fieldType(input);
     if (!type) return true;
     const result = (type === "phone" ? phone : instagram)(input.value, input.required);
     input.setCustomValidity(result.valid ? "" : result.message);
     input.setAttribute("aria-invalid", String(!result.valid));
-    if (normalize && result.valid && input.value.trim() !== "—") input.value = result.value;
+    if (normalize && result.valid && input.value.trim() !== "—" && input.value !== result.value)
+      input.value = result.value;
     const status = document.getElementById(input.dataset.contactStatus || "");
     if (status) status.textContent = result.valid ? "" : result.message;
     return result.valid;
@@ -102,15 +217,47 @@
     return !invalid;
   }
 
-  document.addEventListener("input", (event) => {
-    const input = event.target;
-    if (input instanceof HTMLInputElement && fieldType(input)) {
-      input.setCustomValidity("");
-      input.removeAttribute("aria-invalid");
-      const status = document.getElementById(input.dataset.contactStatus || "");
-      if (status) status.textContent = "";
-    }
-  });
+  document.addEventListener(
+    "input",
+    (event) => {
+      const input = event.target;
+      if (input instanceof HTMLInputElement && fieldType(input)) {
+        if (fieldType(input) === "phone") {
+          const message = inputError(input.value);
+          if (message) {
+            input.value = previousPhoneValues.get(input) || "";
+            validateField(input);
+            showInputMessage(input, message);
+            return;
+          }
+          const cursor = input.selectionStart;
+          const atEnd = cursor === input.value.length;
+          const beforeCursor = input.value.slice(0, cursor).replace(/\D/g, "").length;
+          input.value = formatPhoneInput(input.value);
+          previousPhoneValues.set(input, input.value);
+          let position = input.value.length;
+          if (!atEnd) {
+            let count = 0;
+            position = 0;
+            while (position < input.value.length && count < beforeCursor) {
+              if (/\d/.test(input.value[position])) count++;
+              position++;
+            }
+          }
+          input.setSelectionRange(position, position);
+          validateField(input);
+          const result = phone(input.value, input.required);
+          showInputMessage(input, result.valid ? "" : result.message);
+          return;
+        }
+        input.setCustomValidity("");
+        input.removeAttribute("aria-invalid");
+        const status = document.getElementById(input.dataset.contactStatus || "");
+        if (status) status.textContent = "";
+      }
+    },
+    true,
+  );
   document.addEventListener(
     "blur",
     (event) => {
