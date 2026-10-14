@@ -3554,7 +3554,7 @@ ONBOARDING — JAVASCRIPT
       return;
     }
   });
-  q("#nvRuleModelsDisclosure").open = innerWidth > 720;
+  q("#nvRuleModelsDisclosure").open = false;
   renderRules();
   refreshAssistantContext();
   selectAssistantIntent("summary");

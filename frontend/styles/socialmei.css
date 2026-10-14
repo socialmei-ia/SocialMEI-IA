@@ -10071,6 +10071,26 @@ body.experience-app #experienceRoot {
     border-color: color-mix(in srgb, var(--brand-primary) 55%, var(--internal-line));
   }
 }
+#automationsView #automationLibrary > .management-tools:first-child {
+  gap: 16px;
+  padding: 20px;
+}
+#automationsView #automationLibrary > .management-tools:first-child h3 {
+  font-size: 22px;
+  letter-spacing: -0.035em;
+}
+#automationsView .management-filter-stack {
+  padding-top: 10px;
+  padding-bottom: 10px;
+  gap: 10px;
+}
+#automationsView #nvRuleModelsDisclosure > summary {
+  min-height: 56px;
+  margin: 0;
+}
+#automationsView #nvRuleModelsDisclosure[open] > summary {
+  margin-bottom: 16px;
+}
 #automationsView .management-table td {
   padding-block: 16px;
 }

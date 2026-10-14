@@ -176,6 +176,27 @@ module.exports = async function visualRefinementFlows(browser, origin, errors = 
       await page.evaluate(() => sessionData.conversas[0].mensagens.length),
       messageCount,
     );
+    await page.evaluate(() => setView("Automações"));
+    const libraryTop = (await page.locator("#automationLibrary").boundingBox()).y;
+    assert(libraryTop < (await page.locator("#automationFeature").boundingBox()).y);
+    assert.equal(await page.locator("#nvRuleModelsDisclosure").getAttribute("open"), null);
+    await page.locator("#nvRuleSearch").fill("sem-rotina-qa");
+    await page.waitForFunction(() => !document.querySelector("#automationList tbody tr"));
+    await page.locator("#nvRuleSearch").fill("");
+    await page.waitForFunction(() => document.querySelector("#automationList tbody tr"));
+    await page.locator("#nvRuleModelsDisclosure >summary").focus();
+    await page.keyboard.press("Enter");
+    await page.locator("[data-rule-model]").first().click();
+    assert.equal(
+      await page
+        .locator("#automationModal")
+        .evaluate((element) => element.classList.contains("open")),
+      true,
+    );
+    await page.keyboard.press("Escape");
+    await page.locator("#automationFeature [data-rule-test]").click();
+    assert.match(await page.locator("#nvManagementDrawerTitle").innerText(), /simulado/);
+    await page.keyboard.press("Escape");
     return "Refinamento: prioridades do Resumo, ação de venda, temas e Caixa com contexto, rascunho e filtros compactos de Clientes/Vendas";
   } finally {
     await page.close();
