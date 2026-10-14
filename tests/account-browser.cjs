@@ -229,7 +229,8 @@ module.exports = async function accountFlow(browser, origin) {
   try {
     await page.goto(origin + "/frontend/socialmei-app.html");
     await page.waitForFunction(
-      () => SocialMEIAuth.remote && !!document.querySelector("[data-xp-screen=auth].is-active"),
+      () =>
+        window.SocialMEIAuth?.remote && !!document.querySelector("[data-xp-screen=auth].is-active"),
     );
     await assertRealSession();
     await page.evaluate(() => {
@@ -480,7 +481,6 @@ module.exports = async function accountFlow(browser, origin) {
     await page.locator("#settingsPanel [data-account-logout]").click();
     await page.waitForFunction(
       () =>
-        SocialMEIAuth.remote &&
         window.SocialMEIAuth?.remote &&
         !window.SocialMEIAuth.current &&
         !!document.querySelector("[data-xp-screen=auth].is-active"),
@@ -551,7 +551,6 @@ module.exports = async function accountFlow(browser, origin) {
     await page.goto(origin + "/frontend/socialmei-app.html");
     await page.waitForFunction(
       () =>
-        SocialMEIAuth.remote &&
         window.SocialMEIAuth?.remote &&
         !window.SocialMEIAuth.current &&
         !!document.querySelector("[data-xp-screen=auth].is-active"),
