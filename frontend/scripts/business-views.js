@@ -101,15 +101,21 @@ function closeManagementSelect(b, f) {
   }
 }
 function playPeriodReveal() {
-  [$("kp"), $("financeSummary"), $("financeMiniChart")].forEach((target) => {
-    if (!target) {
-      return;
-    }
-    target.classList.remove("is-period-reveal");
-    void target.offsetWidth;
-    target.classList.add("is-period-reveal");
-    setTimeout(() => target.classList.remove("is-period-reveal"), 420);
-  });
+  const view = document.querySelector(".page-view.active");
+  view
+    ?.querySelectorAll(
+      "#kp, #financeSummary, #financeMiniChart, #salesPremiumSummary, #nvReportKpis, #reportsGrid",
+    )
+    .forEach((target) => {
+      window.SocialMEIMotion?.animate(
+        target,
+        [
+          { opacity: 0.65, transform: "translateY(4px)" },
+          { opacity: 1, transform: "none" },
+        ],
+        210,
+      );
+    });
 }
 function selectManagementOption(sel, v) {
   const id = sel.dataset.id;
@@ -145,6 +151,20 @@ function selectManagementOption(sel, v) {
   );
   syncManagementSelect(id);
   document.querySelector(`[data-nv-host="${id}"] button`)?.focus();
+}
+// Os filtros preservam os mesmos selects e eventos nos dois tamanhos de tela.
+function syncBusinessFilterLayout() {
+  const compact = matchMedia("(max-width: 720px)").matches;
+  document.querySelectorAll(".business-filter-panel").forEach((panel) => {
+    if (panel.matches(":popover-open")) panel.hidePopover();
+    if (compact) panel.setAttribute("popover", "auto");
+    else panel.removeAttribute("popover");
+  });
+}
+function closeBusinessFilterPanels() {
+  document
+    .querySelectorAll(".business-filter-panel:popover-open")
+    .forEach((panel) => panel.hidePopover());
 }
 function syncManagementHeader() {
   const p = $("nvPer");
@@ -234,6 +254,7 @@ function showManagementView(name) {
 }
 const baseSetView = setView;
 setView = function (name, o = {}) {
+  closeBusinessFilterPanels();
   let track = false;
   if (name === "Meu negócio") {
     name = "Visão Geral";
@@ -264,6 +285,7 @@ setView = function (name, o = {}) {
 const baseRenderCurrentView = renderCurrentView;
 renderCurrentView = function () {
   baseRenderCurrentView();
+  updateDataOriginNotice();
   if (isManagementViewActive()) {
     syncManagementHeader();
   }
@@ -491,6 +513,7 @@ function renderActivityFeed() {}
 function renderChannelSummary() {}
 function renderUpcomingPayments() {}
 function renderAttention() {
+  const moreIsOpen = !!$("attentionList").querySelector(".overview-more details[open]");
   const today = todayISO();
   const L = [];
   const tg = (c, x) => /* HTML */ `<span class="pill ${c}">${x}</span>`;
@@ -577,19 +600,17 @@ function renderAttention() {
       '<button class="management-button sm" data-resolve-priority="stock">Ver estoque</button>',
     ]);
   }
+  $("overviewAttentionCount").textContent = L.length
+    ? plural(L.length, "cuidado", "cuidados")
+    : "Em dia";
+  const renderAttentionItem = ([status, title, description, action]) =>
+    /* HTML */ `<li>${status}<div><b>${escapeHtml(title)}</b><small>${escapeHtml(description)}</small></div>${action}</li>`;
   $("attentionList").innerHTML = L.length
-    ? L.slice(0, 8)
-        .map(
-          (x) => /* HTML */ `<li>
-                    ${x[0]}
-                    <div><b>${escapeHtml(x[1])}</b><small>${escapeHtml(x[2])}</small></div>
-                    ${x[3]}
-                  </li>`,
-        )
-        .join("")
-    : /* HTML */ `<li style="display:block">
-              ${emptyMarkup("Tudo em dia", "Nada pedindo sua atenção agora.")}
-            </li>`;
+    ? L.slice(0, 3).map(renderAttentionItem).join("") +
+      (L.length > 3
+        ? `<li class="overview-more"><details ${moreIsOpen ? "open" : ""}><summary>Ver outros ${Math.min(L.length, 8) - 3} cuidados</summary><ul class="management-attention-list">${L.slice(3, 8).map(renderAttentionItem).join("")}</ul></details></li>`
+        : "")
+    : /* HTML */ `<li style="display:block">${emptyMarkup("Tudo em dia", "Nada pedindo sua atenção agora.")}</li>`;
 }
 function renderSalesOverviewCard() {
   const metrics = operationalMetrics();
@@ -1329,7 +1350,7 @@ function renderProducts() {
                           ><div class="catalog-card-foot"
                             ><span class="management-note"
                               >${plural(getProductUnitsSold(p), "venda", "vendas")}</span
-                            >${stock(p)}</div
+                            >${stock(p)}<button class="management-button catalog-open-button" type="button" data-record-open="products" data-record-id="${p.id}" aria-label="Abrir ${escapeHtml(p.nome)}">Abrir →</button></div
                           >
                         </article>`,
                     )
@@ -1433,6 +1454,14 @@ function renderFinance() {
             >
           </article>`;
   $("financeMiniChart").innerHTML = renderManagementChartMarkup();
+  $("financeSummary")
+    .querySelectorAll(".management-kpi")
+    .forEach((metric) =>
+      metric.classList.toggle(
+        "finance-wide-value",
+        metric.querySelector("b").textContent.length > 14,
+      ),
+    );
   const searchQuery = normalizedText($("financeSearch").value.trim());
   const ty = $("financeTypeFilter").value;
   const st = $("financeStatusFilter").value;
@@ -1586,6 +1615,7 @@ document.addEventListener(
         selectManagementOption(sel, event.target.dataset.v);
       } else if (event.key === "Escape" || event.key === "Tab") {
         if (event.key === "Escape") {
+          event.preventDefault();
           event.stopPropagation();
         }
         closeManagementSelect(button, event.key === "Escape");
@@ -1618,3 +1648,17 @@ window.addEventListener("resize", () => {
     })[id](),
   ),
 );
+
+matchMedia("(max-width: 720px)").addEventListener("change", syncBusinessFilterLayout);
+document.querySelectorAll(".business-filter-panel").forEach((panel) => {
+  panel.addEventListener("toggle", (event) => {
+    document
+      .querySelector(`[popovertarget="${panel.id}"]`)
+      ?.setAttribute("aria-expanded", String(event.newState === "open"));
+    if (event.newState === "closed")
+      panel
+        .querySelectorAll(".management-select >button[aria-expanded=true]")
+        .forEach((button) => closeManagementSelect(button));
+  });
+});
+syncBusinessFilterLayout();

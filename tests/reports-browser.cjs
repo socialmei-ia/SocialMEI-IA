@@ -107,12 +107,48 @@ module.exports = async function reportsFlows(browser, origin, errors) {
     assert.equal(await chart.locator(".management-bars .out").count(), 0);
     assert(!(await chart.innerText()).includes("Saiu"));
     assert.equal(await page.locator("#driversChapter tbody tr").count(), 2);
+    await page.locator("#reportProductsDetails summary").click();
     const productTable = page.getByRole("table", { name: "Itens vendidos", exact: true });
     assert.equal(await productTable.locator("tbody tr").count(), 2);
     assert.deepEqual(await productTable.locator("tbody tr td:nth-child(2)").allTextContents(), [
       "3",
       "2",
     ]);
+
+    await page.getByRole("tab", { name: "Resumo", exact: true }).focus();
+    await page.keyboard.press("ArrowRight");
+    assert.equal(
+      await page.getByRole("tab", { name: "Vendas", exact: true }).getAttribute("aria-selected"),
+      "true",
+    );
+    assert.equal(
+      await page
+        .getByRole("tab", { name: "Vendas", exact: true })
+        .evaluate((element) => element === document.activeElement),
+      true,
+    );
+    await page.keyboard.press("Home");
+    assert.equal(
+      await page.getByRole("tab", { name: "Resumo", exact: true }).getAttribute("aria-selected"),
+      "true",
+    );
+
+    const exportDownload = page.waitForEvent("download");
+    await page.locator("#exportCsv").click();
+    assert((await exportDownload).suggestedFilename().endsWith(".csv"));
+    await page.evaluate(() => {
+      navigator.clipboard.writeText = async (text) => {
+        window.reportCopiedSummary = text;
+      };
+      window.print = () => {
+        window.reportPrintRequested = true;
+      };
+    });
+    await page.locator("#nvCopyReport").click();
+    await page.waitForFunction(() => typeof window.reportCopiedSummary === "string");
+    assert.match(await page.evaluate(() => window.reportCopiedSummary), /Vendas pagas: 2/);
+    await page.locator("#printReport").click();
+    assert.equal(await page.evaluate(() => window.reportPrintRequested), true);
 
     await page.evaluate(() => {
       sessionData.conversas = ["whatsapp", "instagram", "other"].map((canal, index) => ({

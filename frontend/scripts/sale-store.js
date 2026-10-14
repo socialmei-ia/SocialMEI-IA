@@ -119,6 +119,7 @@ const SocialMEISales = (() => {
     }
   }
   function status() {
+    document.dispatchEvent(new CustomEvent("socialmei-source-status"));
     const host = document.getElementById("salesSourceStatus");
     if (!host) return;
     host.hidden = !remote;
@@ -362,6 +363,17 @@ const SocialMEISales = (() => {
   });
   return {
     remote,
+    get connectionState() {
+      return !remote
+        ? "local"
+        : ready
+          ? "ready"
+          : busy
+            ? "loading"
+            : problem
+              ? "unavailable"
+              : "idle";
+    },
     refresh,
     create,
     update,

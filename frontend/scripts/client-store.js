@@ -119,6 +119,7 @@ const SocialMEIClients = (() => {
     }
   }
   function status() {
+    document.dispatchEvent(new CustomEvent("socialmei-source-status"));
     const host = document.getElementById("clientsSourceStatus");
     if (!host) return;
     host.hidden = !remote;
@@ -353,6 +354,17 @@ const SocialMEIClients = (() => {
   return {
     newId: newOrigin,
     remote,
+    get connectionState() {
+      return !remote
+        ? "local"
+        : ready
+          ? "ready"
+          : busy
+            ? "loading"
+            : problem
+              ? "unavailable"
+              : "idle";
+    },
     refresh,
     create,
     update,

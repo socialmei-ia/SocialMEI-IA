@@ -2813,26 +2813,12 @@ AUTOMAÇÕES — HTML
               <div class="management-demo">
                 <span
                   class="pill draft"
-                  title="Rotinas automáticas, serviço de IA, envio oficial aos canais e autenticação externa ainda não estão conectados."
-                  >Modo demonstração</span
-                ><span>Você revisa. Nada é enviado automaticamente.</span>
+                  title="Rotinas e testes são locais. Não executam workflows nem enviam mensagens aos canais."
+                  >Simulação local</span
+                ><span>Configurações locais · sem execução de workflows ou envio aos canais.</span>
               </div>
               <div id="nvRuleKpis" class="management-kpis management-kpis-three"></div>
-              <section
-                class="management-card"
-                id="automationFeature"
-                aria-label="Rotina selecionada"
-              ></section>
-              <section class="management-card">
-                <details id="nvRuleModelsDisclosure" open>
-                  <summary class="management-card-header">
-                    <h3>Modelos prontos</h3>
-                    <span class="management-note">6 modelos · começam pausados</span>
-                  </summary>
-                  <div id="nvRuleModels" class="management-model-grid"></div>
-                </details>
-              </section>
-              <section class="management-card management-flush">
+              <section class="management-card management-flush" id="automationLibrary">
                 <div class="management-tools">
                   <h3>Sua biblioteca</h3>
                   <input
@@ -2859,6 +2845,20 @@ AUTOMAÇÕES — HTML
                 </div>
                 <div id="automationList" aria-live="polite"></div>
               </section>
+              <section
+                class="management-card"
+                id="automationFeature"
+                aria-label="Rotina selecionada"
+              ></section>
+              <section class="management-card">
+                <details id="nvRuleModelsDisclosure">
+                  <summary class="management-card-header">
+                    <h3>Modelos prontos</h3>
+                    <span class="management-note">6 modelos · começam pausados</span>
+                  </summary>
+                  <div id="nvRuleModels" class="management-model-grid"></div>
+                </details>
+              </section>
             </div>
           </section>
           <!-- ==================================================
@@ -2881,7 +2881,7 @@ ASSISTENTE — HTML
               <span
                 class="assistant-demo-badge"
                 title="Rascunhos preparados localmente. Serviço de IA e envio automático não estão conectados."
-                ><i aria-hidden="true"></i>Modo demonstração</span
+                ><i aria-hidden="true"></i>Preparação local</span
               >
             </header>
             <div class="assistant-workspace" id="asWorkbench">
@@ -3141,6 +3141,22 @@ NEGÓCIO: RESUMO — HTML
 ================================================== -->
           <section class="page-view" data-view="Visão Geral" id="dashboardView">
             <div class="management-stack">
+              <div class="overview-priorities">
+                <section class="management-card overview-attention">
+                  <div class="management-card-header">
+                    <div>
+                      <span class="report-eyebrow">SUA ROTINA</span>
+                      <h3>O que merece atenção agora</h3>
+                    </div>
+                    <span class="pill info" id="overviewAttentionCount"></span>
+                  </div>
+                  <ul id="attentionList" class="management-attention-list"></ul>
+                </section>
+                <section class="management-card overview-tracking" id="nvTrackCard">
+                  <h3>Acompanhar uma venda</h3>
+                  <div id="businessHubBody"></div>
+                </section>
+              </div>
               <div id="kp" class="management-kpis"></div>
               <div class="management-overview-cols">
                 <section class="management-card overview-chart">
@@ -3153,14 +3169,6 @@ NEGÓCIO: RESUMO — HTML
                   </div>
                   <p id="cs" class="management-subtitle"></p>
                   <div id="cw"></div>
-                </section>
-                <section class="management-card overview-attention">
-                  <div class="management-card-header"><h3>Precisa de atenção</h3></div>
-                  <ul id="attentionList" class="management-attention-list"></ul>
-                </section>
-                <section class="management-card overview-tracking" id="nvTrackCard">
-                  <h3>Acompanhar uma venda</h3>
-                  <div id="businessHubBody"></div>
                 </section>
                 <section class="management-card overview-sales">
                   <h3>Vendas do período</h3>
@@ -3197,15 +3205,51 @@ VENDAS — HTML
                     placeholder="Buscar por cliente, item ou nº"
                     type="search"
                   />
-                  <div data-nv-host="salesPaymentFilter" data-pre="Pagamento"></div>
-                  <select id="salesPaymentFilter" hidden></select
-                  ><select id="salesStatusFilter" hidden>
-                    <option value="all">Todos</option>
-                    <option>Rascunho</option>
-                    <option>Pendente</option>
-                    <option>Pago</option>
-                    <option>Cancelado</option>
-                  </select>
+                  <button
+                    class="management-button business-filter-trigger"
+                    type="button"
+                    popovertarget="salesFilters"
+                    aria-expanded="false"
+                    aria-controls="salesFilters"
+                  >
+                    Filtros
+                  </button>
+                  <div
+                    class="business-filter-panel"
+                    id="salesFilters"
+                    aria-label="Filtros de vendas"
+                  >
+                    <div class="business-filter-heading">
+                      <h3>Refinar a lista</h3>
+                      <button
+                        class="management-button"
+                        type="button"
+                        popovertarget="salesFilters"
+                        popovertargetaction="hide"
+                        aria-label="Fechar filtros"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <div data-nv-host="salesPaymentFilter" data-pre="Pagamento"></div>
+                    <select id="salesPaymentFilter" hidden></select
+                    ><select id="salesStatusFilter" hidden>
+                      <option value="all">Todos</option>
+                      <option>Rascunho</option>
+                      <option>Pendente</option>
+                      <option>Pago</option>
+                      <option>Cancelado</option>
+                    </select>
+
+                    <button
+                      class="management-button business-filter-done"
+                      type="button"
+                      popovertarget="salesFilters"
+                      popovertargetaction="hide"
+                    >
+                      Ver resultados
+                    </button>
+                  </div>
                 </div>
                 <div id="salesTable" aria-live="polite"></div>
                 <div id="salesMeta" class="management-meta"></div>
@@ -3234,17 +3278,53 @@ CLIENTES — HTML
                     placeholder="Buscar nome, telefone ou Instagram"
                     type="search"
                   />
-                  <div data-nv-host="clientsTypeFilter" data-pre="Canal"></div>
-                  <div data-nv-host="clientsTagFilter" data-pre="Etiqueta"></div>
-                  <div data-nv-host="clientsStatusFilter" data-pre="Status"></div>
-                  <select id="clientsTypeFilter" hidden></select
-                  ><select id="clientsTagFilter" hidden></select
-                  ><select id="clientsStatusFilter" hidden>
-                    <option value="all">Todos</option>
-                    <option value="Ativo">Ativos</option>
-                    <option value="Novo">Novos</option>
-                    <option value="Inativo">Inativos</option>
-                  </select>
+                  <button
+                    class="management-button business-filter-trigger"
+                    type="button"
+                    popovertarget="clientsFilters"
+                    aria-expanded="false"
+                    aria-controls="clientsFilters"
+                  >
+                    Filtros
+                  </button>
+                  <div
+                    class="business-filter-panel"
+                    id="clientsFilters"
+                    aria-label="Filtros de clientes"
+                  >
+                    <div class="business-filter-heading">
+                      <h3>Refinar a lista</h3>
+                      <button
+                        class="management-button"
+                        type="button"
+                        popovertarget="clientsFilters"
+                        popovertargetaction="hide"
+                        aria-label="Fechar filtros"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <div data-nv-host="clientsTypeFilter" data-pre="Canal"></div>
+                    <div data-nv-host="clientsTagFilter" data-pre="Etiqueta"></div>
+                    <div data-nv-host="clientsStatusFilter" data-pre="Status"></div>
+                    <select id="clientsTypeFilter" hidden></select
+                    ><select id="clientsTagFilter" hidden></select
+                    ><select id="clientsStatusFilter" hidden>
+                      <option value="all">Todos</option>
+                      <option value="Ativo">Ativos</option>
+                      <option value="Novo">Novos</option>
+                      <option value="Inativo">Inativos</option>
+                    </select>
+
+                    <button
+                      class="management-button business-filter-done"
+                      type="button"
+                      popovertarget="clientsFilters"
+                      popovertargetaction="hide"
+                    >
+                      Ver resultados
+                    </button>
+                  </div>
                 </div>
                 <div id="clientsTable" aria-live="polite"></div>
                 <div id="clientsMeta" class="management-meta"></div>
@@ -3709,31 +3789,24 @@ RELATÓRIOS — HTML
 ================================================== -->
           <section class="page-view management-view" data-view="Relatórios" id="reportsView">
             <div class="management-stack">
-              <header class="management-header">
+              <header class="management-header report-intro">
                 <div>
-                  <h2>Relatórios</h2>
+                  <span class="report-eyebrow">RELATÓRIOS</span>
+                  <h2>Dados que apontam <span>o próximo passo.</span></h2>
                   <p>Entenda o período e escolha seu próximo cuidado.</p>
                 </div>
-                <div class="management-header-controls">
-                  <button class="management-button pr" id="nvCopyReport">Copiar resumo</button
-                  ><button class="management-button" id="exportCsv">Exportar CSV</button
-                  ><button class="management-button" id="printReport">Imprimir / PDF</button>
-                </div>
               </header>
-              <div class="management-demo">
-                <span
-                  class="pill draft"
-                  title="Rotinas automáticas, serviço de IA, envio oficial aos canais e autenticação externa ainda não estão conectados."
-                  >Modo demonstração</span
-                ><span>Você revisa. Nada é enviado automaticamente.</span>
-              </div>
+              <div class="management-demo" id="reportsDataSourceStatus" role="status"></div>
               <div class="management-report-period management-card">
-                <div
-                  id="nvReportPeriods"
-                  class="management-chips"
-                  role="group"
-                  aria-label="Período do relatório"
-                ></div>
+                <details class="report-period-options">
+                  <summary>Alterar período</summary>
+                  <div
+                    id="nvReportPeriods"
+                    class="management-chips"
+                    role="group"
+                    aria-label="Período do relatório"
+                  ></div>
+                </details>
                 <div class="management-card-header">
                   <span id="reportsPeriodLabel" class="management-note" data-current-period></span
                   ><label class="management-check"
@@ -3742,14 +3815,21 @@ RELATÓRIOS — HTML
                   ><button class="management-button" data-nv-hide>Ocultar valores</button>
                 </div>
               </div>
-              <div id="nvReportKpis" class="management-kpis management-kpis-five"></div>
+              <div id="nvReportKpis" class="management-kpis"></div>
               <div
                 id="nvReportTabs"
                 class="management-chips"
-                role="group"
+                role="tablist"
                 aria-label="Visão do relatório"
               ></div>
-              <div id="reportsGrid" class="management-stack"></div>
+              <div id="reportsGrid" class="management-stack" role="tabpanel" tabindex="0"></div>
+              <footer class="report-actions" aria-label="Exportar relatório">
+                <div class="management-header-controls">
+                  <button class="management-button pr" id="nvCopyReport">Copiar resumo</button
+                  ><button class="management-button" id="exportCsv">Exportar CSV</button
+                  ><button class="management-button" id="printReport">Imprimir / PDF</button>
+                </div>
+              </footer>
             </div>
           </section>
 
@@ -3805,8 +3885,8 @@ CONFIGURAÇÕES — HTML
             </div>
           </section>
           <footer class="data-origin">
-            <span>Demonstração · gestão salva neste navegador.</span
-            ><span id="topSync">Sincronização disponível</span
+            <span id="appDataOrigin">Conferindo a origem dos dados.</span
+            ><span id="topSync">Leitura de mensagens não verificada</span
             ><button class="lk" data-go="Configurações">Sobre os dados</button>
           </footer>
         </div>
@@ -3848,7 +3928,7 @@ MODAIS E DRAWERS — HTML
             <div class="management-demo">
               <span
                 class="pill draft"
-                title="Rotinas automáticas, serviço de IA, envio oficial aos canais e autenticação externa ainda não estão conectados."
+                title="Rotinas e testes são locais. Não executam workflows nem enviam mensagens aos canais."
                 >Modo demonstração</span
               ><span>Você revisa. Nada é enviado automaticamente.</span>
             </div>

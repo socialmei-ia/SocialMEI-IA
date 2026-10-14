@@ -218,9 +218,13 @@ select:focus {
   padding: 12px;
   background: var(--sf);
   z-index: 300;
+
+  clip-path: inset(100%);
 }
 .skip-link:focus {
   top: 12px;
+
+  clip-path: none;
 }
 .dialog-open {
   overflow: hidden;
@@ -3703,23 +3707,18 @@ details[open] > :not(summary) {
     border-bottom: 1px solid var(--ln);
   }
   #financeTable td,
-  #salesTable td,
-  #clientsTable td,
   #productsGrid td {
     padding: 0;
     border: 0;
     min-width: 0;
   }
   #financeTable td:first-child,
-  #salesTable td:nth-child(2),
-  #clientsTable td:first-child,
   #productsGrid td:first-child {
     grid-column: 1;
     grid-row: 1;
     align-self: start;
   }
   #financeTable td:nth-child(5),
-  #salesTable td:nth-child(6),
   #productsGrid td:nth-child(2) {
     grid-column: 2;
     grid-row: 1;
@@ -3749,56 +3748,7 @@ details[open] > :not(summary) {
     grid-row: 3;
     text-align: right;
   }
-  #salesTable td:first-child {
-    grid-column: 1;
-    grid-row: 2;
-  }
-  #salesTable td:nth-child(3) {
-    grid-column: 1;
-    grid-row: 3;
-    color: var(--mt);
-    font-size: var(--text-sm);
-  }
-  #salesTable td:nth-child(4) {
-    grid-column: 1;
-    grid-row: 4;
-    color: var(--mt);
-    font-size: var(--text-sm);
-  }
-  #salesTable td:nth-child(5) {
-    grid-column: 2;
-    grid-row: 2;
-    text-align: right;
-  }
-  #salesTable td:nth-child(7) {
-    grid-column: 2;
-    grid-row: 3/5;
-    text-align: right;
-  }
-  #clientsTable td:first-child {
-    grid-column: 1/-1;
-  }
-  #clientsTable td:nth-child(2) {
-    grid-column: 1;
-    grid-row: 2;
-    font-size: var(--text-base);
-  }
-  #clientsTable td:nth-child(3) {
-    grid-column: 1;
-    grid-row: 3;
-    font-size: var(--text-sm);
-    color: var(--mt);
-  }
-  #clientsTable td:nth-child(4) {
-    grid-column: 2;
-    grid-row: 2;
-    text-align: right;
-  }
-  #clientsTable td:nth-child(5) {
-    grid-column: 2;
-    grid-row: 3;
-    text-align: right;
-  }
+
   #productsGrid td:nth-child(3) {
     grid-column: 1;
     grid-row: 2;
@@ -8704,12 +8654,6 @@ body.experience-app #experienceRoot {
   }
 }
 @media (prefers-reduced-motion: no-preference) {
-  #kp.is-period-reveal .management-kpi > b {
-    animation: internalValueReveal var(--internal-motion-state) var(--ease-enter) backwards;
-  }
-  #kp.is-period-reveal .management-sparkline {
-    animation: internalFadeReveal 320ms var(--ease-enter) 60ms backwards;
-  }
 }
 .internal-summary {
   display: grid;
@@ -10125,6 +10069,26 @@ body.experience-app #experienceRoot {
     border-color: color-mix(in srgb, var(--brand-primary) 55%, var(--internal-line));
   }
 }
+#automationsView #automationLibrary > .management-tools:first-child {
+  gap: 16px;
+  padding: 20px;
+}
+#automationsView #automationLibrary > .management-tools:first-child h3 {
+  font-size: 22px;
+  letter-spacing: -0.035em;
+}
+#automationsView .management-filter-stack {
+  padding-top: 10px;
+  padding-bottom: 10px;
+  gap: 10px;
+}
+#automationsView #nvRuleModelsDisclosure > summary {
+  min-height: 56px;
+  margin: 0;
+}
+#automationsView #nvRuleModelsDisclosure[open] > summary {
+  margin-bottom: 16px;
+}
 #automationsView .management-table td {
   padding-block: 16px;
 }
@@ -10639,63 +10603,235 @@ body.experience-app #experienceRoot {
   font-size: 12px;
   color: var(--mt);
 }
-/* REPORTS — CSS
-      Leitura dos dados e ação de exportação. */
-/* REPORTS — a narrativa precede a comparação detalhada */
+/* REPORTS — contexto, resultado e detalhes progressivos. */
+.report-eyebrow {
+  display: block;
+  color: var(--mt);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  margin-bottom: 12px;
+}
+.experience-app #reportsView .report-intro h2 {
+  font-size: clamp(30px, 3.4vw, 46px);
+  letter-spacing: -0.045em;
+  max-width: 19ch;
+  line-height: 1.12;
+}
+.report-intro h2 span {
+  color: var(--mt);
+}
+#reportsView .management-report-period {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 0;
+  background: transparent;
+  border-radius: 0;
+  border-block: 1px solid var(--internal-line);
+
+  box-shadow: none;
+  border-inline: 0;
+}
+#reportsView .management-report-period .management-card-header {
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 0;
+}
+.report-period-options {
+  order: 2;
+}
+.report-period-options summary {
+  cursor: pointer;
+  font-size: 13px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.report-period-options summary::after {
+  content: "⌄";
+}
+.report-period-options[open] {
+  flex-basis: 100%;
+}
+.report-period-options[open] .management-chips {
+  padding-top: 12px;
+}
 #reportsView #nvReportKpis {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 24px;
-  padding: 8px 0 28px;
+  padding: 12px 0 28px;
   border-bottom: 1px solid var(--internal-line);
 }
 #reportsView #nvReportKpis .management-kpi {
   padding: 0;
-  gap: 10px;
+  gap: 8px;
 }
-#reportsView #nvReportKpis .management-kpi:first-child {
-  grid-column: 1 / -1;
-  padding-bottom: 10px;
+#reportsView #nvReportKpis .management-kpi > b {
+  font-size: clamp(24px, 2.4vw, 34px);
+  letter-spacing: -0.04em;
 }
-#reportsView #nvReportKpis .management-kpi:first-child > b {
-  font-size: clamp(42px, 4vw, 62px);
+#reportsView #nvReportTabs {
+  gap: 6px;
+  border-bottom: 1px solid var(--internal-line);
+  padding-bottom: 12px;
 }
-#reportsView .management-report-period {
-  background: transparent;
-  padding: 0;
-  border-radius: 0;
+#reportsView #nvReportTabs .management-chip {
+  border: 0;
+  border-radius: 8px;
+
+  min-height: 44px;
 }
-#reportsView .management-report-chapters {
-  gap: 30px;
+#reportsView #nvReportTabs [aria-selected="true"] {
+  background: var(--bs);
+  color: var(--bi);
 }
-#reportsView .management-report-chapters {
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+.report-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(230px, 1fr);
+  gap: 28px;
+  align-items: start;
 }
-#reportsView .management-report-chapters > .management-card:first-child {
-  grid-column: 1 / -1;
-}
-#reportsView .management-report-chapters .management-card {
+#reportsView .report-primary {
   padding: 28px;
 }
-#reportsView .management-report-chapters .management-card h3 {
-  font-size: 28px;
+.report-section-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: space-between;
+}
+.report-section-heading .report-eyebrow {
+  margin-bottom: 8px;
+}
+#reportsView .report-section-heading h3 {
+  font-size: 24px;
+  letter-spacing: -0.035em;
+}
+.report-care {
+  padding: 24px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.report-care h3 {
+  font-size: 21px;
   line-height: 1.25;
 }
-#reportsView .management-report-chapters .management-card p {
-  margin-block: 12px 20px;
-  max-width: 65ch;
+.report-care p {
+  color: var(--mt);
+  line-height: 1.6;
+  margin-top: 12px;
+}
+.report-care .management-button {
+  align-self: flex-start;
+}
+.report-detail {
+  border-bottom: 1px solid var(--internal-line);
+  min-width: 0;
+}
+.report-detail summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  min-height: 68px;
+  font-weight: 600;
+}
+.report-detail summary small {
+  margin-left: auto;
+  color: var(--mt);
+  font-size: 12px;
+  font-weight: 400;
+}
+.report-detail summary::after {
+  content: "+";
+  color: var(--mt);
+  font-size: 20px;
+}
+.report-detail[open] summary::after {
+  content: "−";
+}
+.report-detail-body {
+  padding: 8px 0 24px;
+}
+#reportsView .report-detail-body .management-card {
+  background: transparent;
+  padding: 0;
+}
+#reportsView .report-detail-body p {
+  color: var(--mt);
+  line-height: 1.6;
+}
+.report-insights {
+  border-top: 1px solid var(--internal-line);
+  padding-top: 24px;
+}
+.report-insights > h3 {
+  font-size: 16px;
+  margin-bottom: 16px;
+}
+.report-clear {
+  margin: 0;
+  padding-block: 8px;
+}
+.report-actions {
+  border-top: 1px solid var(--internal-line);
+  padding-top: 20px;
+}
+.report-actions .management-header-controls {
+  justify-content: flex-start;
+}
+@media (max-width: 900px) {
+  .report-overview {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  .report-care {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .report-care > div {
+    flex: 1;
+    min-width: 200px;
+  }
 }
 @media (max-width: 720px) {
   #reportsView #nvReportKpis {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px 16px;
   }
-  #reportsView .management-report-chapters .management-card {
-    padding: 22px 16px;
+  #reportsView .report-primary {
+    padding: 20px 16px;
   }
-  #reportsView .management-report-chapters .management-card h3 {
-    font-size: 23px;
+  .report-detail summary {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-block: 16px;
   }
-  #reportsView .management-report-chapters {
-    grid-template-columns: minmax(0, 1fr);
+  .report-detail summary small {
+    flex-basis: 100%;
+    margin: 0;
+    order: 2;
+  }
+  .report-detail summary::after {
+    margin-left: auto;
+  }
+  #reportsView .management-report-period .management-card-header {
+    gap: 10px;
+  }
+  #reportsView .management-report-period .management-check {
+    font-size: 12px;
+  }
+  .report-actions .management-button {
+    flex: 1;
   }
 }
 .result-story {
@@ -13922,9 +14058,9 @@ body.inbox-active #integrationAlert button {
   gap: 8px;
   flex-wrap: nowrap;
 
-  min-height: 72px;
-  padding: 14px 20px;
   background: var(--surface);
+  padding: 16px 20px;
+  min-height: 80px;
 }
 #inboxView .mobile-back {
   display: inline-flex;
@@ -13990,9 +14126,14 @@ body.inbox-active #integrationAlert button {
 }
 #inboxView .status-select {
   max-width: 132px;
-  min-height: 40px;
+
   font-size: 12px;
   padding: 5px 8px;
+
+  border-radius: 10px;
+  background: var(--surface-secondary);
+  border: 1px solid var(--border);
+  min-height: 44px;
 }
 #inboxView .messages {
   flex: 1;
@@ -14001,10 +14142,10 @@ body.inbox-active #integrationAlert button {
   overflow-x: hidden;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
-  padding: 24px 28px 20px;
 
-  background: var(--background);
-  gap: 18px;
+  background: color-mix(in srgb, var(--surface) 58%, var(--background));
+  gap: 14px;
+  padding: 24px;
 }
 #inboxView .day-sep {
   font-size: var(--text-xs);
@@ -14038,9 +14179,10 @@ body.inbox-active #integrationAlert button {
 #inboxView .composer-zone {
   flex: none;
 
-  background: var(--surface);
   border-top: 1px solid var(--border);
-  padding: 12px 18px 16px;
+
+  padding: 12px 20px 16px;
+  background: var(--surface);
 }
 #inboxView .composer-tools {
   min-height: 38px;
@@ -14132,7 +14274,8 @@ body.inbox-active #integrationAlert button {
 }
 #inboxView .details-top {
   flex: none;
-  padding: 24px 20px;
+
+  padding: 22px 20px 18px;
 }
 #inboxView .context-tabs {
   flex: none;
@@ -14155,23 +14298,78 @@ body.inbox-active #integrationAlert button {
   border: 0;
   border-bottom: 1px solid var(--ln);
 
-  padding: 20px 0;
   border-radius: 0;
   box-shadow: none;
   background: transparent;
-}
-#inboxView .context-next {
-  border-top: 1px solid color-mix(in srgb, var(--brand-accent) 55%, var(--internal-line));
-  margin-top: 18px;
+
+  padding: 18px 0;
 }
 #inboxView .context-relationship-story {
   margin-top: 12px;
+
   font-size: 12px;
+  color: var(--mt);
+  line-height: 1.7;
 }
 #inboxView .context-card h4 {
-  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.01em;
+
+  font-size: 14px;
+  letter-spacing: -0.015em;
+}
+#inboxView .details-top-head > b {
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.1em;
+  color: var(--mt);
+  text-transform: uppercase;
+}
+#inboxView .details-profile .conv-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+}
+#inboxView .profile-fields {
+  gap: 12px;
+}
+#inboxView .profile-fields dt {
+  font-size: 11px;
+}
+#inboxView .profile-fields dd {
+  font-size: 13px;
+  margin-top: 3px;
+}
+.context-missing-fields {
+  margin-top: 12px;
+}
+.context-missing-fields summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: var(--mt);
+  font-size: 12px;
+  gap: 8px;
+}
+.context-missing-fields summary::after {
+  content: "+";
+  margin-left: auto;
+}
+.context-missing-fields[open] summary::after {
+  content: "−";
+}
+#inboxView .context-next {
+  padding: 16px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--brand-primary-subtle);
+  margin-bottom: 8px;
+}
+#inboxView .context-next p {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--mt);
+  margin-top: 8px;
 }
 #inboxView .details-collapsed .details-pane:not(.mobile-open) {
   visibility: hidden;
@@ -15502,6 +15700,9 @@ body.management-active #per {
   padding: 12px 16px;
   display: flex;
   justify-content: space-between;
+
+  gap: 8px 12px;
+  flex-wrap: wrap;
 }
 .management-kpis {
   display: grid;
@@ -17340,102 +17541,99 @@ body.management-active #per {
 /* ==================================================
       BUSINESS MODULES — CSS
       ================================================== */
-/* RESUMO — COMPOSIÇÃO EDITORIAL
-         A primeira métrica e o gráfico conduzem a leitura; ações vêm em seguida. */
-#dashboardView #kp {
-  grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr));
-  align-items: center;
-  gap: 24px;
-  padding: 0 0 34px;
-}
-#dashboardView #kp .management-kpi {
-  padding: 6px 0;
-  gap: 10px;
-}
-#dashboardView #kp .management-kpi:first-child > b {
-  font-size: clamp(40px, 4.3vw, 64px);
-  line-height: 1.08;
-  letter-spacing: -0.06em;
-}
-#dashboardView #kp .management-kpi:not(:first-child) {
-  border-left: 1px solid var(--internal-line);
-  padding-left: 20px;
-}
-#dashboardView #kp .management-kpi:not(:first-child) > b {
-  font-size: clamp(18px, 1.4vw, 24px);
-  white-space: nowrap;
-}
-#dashboardView #kp .management-sparkline {
-  width: 100%;
-  max-width: 180px;
-  height: 28px;
-  opacity: 0.7;
-}
-#dashboardView .management-overview-cols {
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-  grid-template-areas: "chart chart" "attention tracking" "sales sales";
+/* BUSINESS SUMMARY — prioridades reais antes dos indicadores. */
+#dashboardView .overview-priorities {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 1fr);
   gap: 32px;
   align-items: start;
 }
-#dashboardView .overview-chart {
-  grid-area: chart;
-  padding: 30px;
-}
 #dashboardView .overview-attention {
-  grid-area: attention;
-  background: transparent;
   padding: 0;
+  background: transparent;
+}
+#dashboardView .overview-attention h3 {
+  font-size: 24px;
+  letter-spacing: -0.035em;
 }
 #dashboardView .overview-tracking {
-  grid-area: tracking;
-  padding: 26px;
+  padding: 24px;
   background: var(--internal-group);
 }
-#dashboardView .overview-sales {
-  grid-area: sales;
+#dashboardView .management-attention-list li {
+  padding-block: 16px;
+  column-gap: 16px;
+}
+#dashboardView .management-attention-list li > button {
+  min-height: 44px;
+  min-width: 100px;
+  justify-self: end;
+  font-size: 12px;
+}
+#dashboardView .overview-more {
+  display: block;
+  padding-block: 0;
+}
+#dashboardView .overview-more summary {
+  cursor: pointer;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  color: var(--bi);
+}
+#dashboardView .overview-more summary::after {
+  content: "+";
+  margin-left: auto;
+}
+#dashboardView .overview-more details[open] > summary::after {
+  content: "−";
+}
+#dashboardView #kp {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: start;
+  gap: 24px;
   padding: 28px 0;
+  border-block: 1px solid var(--internal-line);
+}
+#dashboardView #kp .management-kpi {
+  padding: 0;
+  gap: 8px;
+}
+#dashboardView #kp .management-kpi > b {
+  font-size: clamp(24px, 2.4vw, 34px);
+  letter-spacing: -0.04em;
+}
+#dashboardView .management-sparkline {
+  width: 100%;
+  max-width: 150px;
+  height: 22px;
+  opacity: 0.65;
+}
+#dashboardView .management-overview-cols {
+  grid-template-columns: minmax(0, 1.5fr) minmax(240px, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+#dashboardView .overview-chart {
+  padding: 24px;
+}
+#dashboardView .overview-sales {
+  padding: 12px 0;
   background: transparent;
-  border-top: 1px solid var(--internal-line);
 }
 #dashboardView .overview-chart .management-axis,
 #dashboardView .overview-chart .management-bars {
-  height: 225px;
-}
-#dashboardView .overview-chart .management-bars {
-  background: repeating-linear-gradient(
-    to bottom,
-    var(--internal-line) 0 1px,
-    transparent 1px 112.5px
-  );
-}
-#dashboardView .management-attention-list li {
-  padding-block: 20px;
-  column-gap: 24px;
-}
-#dashboardView .management-attention-list li > button {
-  justify-self: end;
-  align-self: center;
-  min-width: 130px;
-  max-width: 180px;
-  min-height: 40px;
-  padding-inline: 18px;
-  font-size: 13px;
-  color: var(--text-secondary);
-  background: transparent;
-}
-#dashboardView .management-attention-list li > button:hover:not(:disabled) {
-  color: var(--text-primary);
-  background: var(--internal-group);
-}
-@media (pointer: coarse) {
-  #dashboardView .management-attention-list li > button {
-    min-height: 44px;
-  }
+  height: 180px;
 }
 #dashboardView .management-stats {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 32px;
-  margin: 24px 0;
+  gap: 16px;
+  margin: 20px 0;
+
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+#dashboardView .management-stats div:last-child {
+  grid-column: 1/-1;
 }
 #dashboardView .management-stats div {
   background: transparent;
@@ -17443,51 +17641,35 @@ body.management-active #per {
 }
 #dashboardView .management-stats b {
   display: block;
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 550;
   margin-top: 8px;
 }
 #dashboardView .management-flow li {
-  padding-block: 14px;
+  padding-block: 12px;
 }
-@media (max-width: 1000px) {
-  #dashboardView #kp {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-  #dashboardView #kp .management-kpi:first-child {
-    grid-column: 1 / -1;
-  }
-  #dashboardView #kp .management-kpi:nth-child(2) {
-    border-left: 0;
-    padding-left: 0;
-  }
+@media (max-width: 1100px) {
+  #dashboardView .overview-priorities,
   #dashboardView .management-overview-cols {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "chart" "attention" "tracking" "sales";
-    gap: 28px;
   }
 }
 @media (max-width: 600px) {
   #dashboardView #kp {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 24px 20px;
-    padding-bottom: 0;
-  }
-  #dashboardView #kp .management-kpi:not(:first-child) {
-    border-left: 0;
-    padding-left: 0;
+    gap: 24px 16px;
   }
   #dashboardView .overview-chart,
   #dashboardView .overview-tracking {
-    padding: 22px 16px;
+    padding: 20px 16px;
   }
   #dashboardView .management-attention-list li {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 6px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 12px;
   }
   #dashboardView .management-attention-list li > .pill {
     grid-row: 1;
-    grid-column: 1;
+    grid-column: 1/-1;
     justify-self: start;
   }
   #dashboardView .management-attention-list li > div {
@@ -17496,53 +17678,46 @@ body.management-active #per {
     min-width: 0;
   }
   #dashboardView .management-attention-list li > button {
-    grid-row: 3;
-    grid-column: 1;
-    justify-self: start;
-    margin-top: 8px;
-    min-height: 44px;
-  }
-  #dashboardView .management-stats {
-    gap: 16px;
+    grid-row: 2;
+    grid-column: 2;
+    align-self: center;
+    min-width: 0;
+    padding-inline: 10px;
   }
   #dashboardView .management-stats b {
     font-size: 22px;
   }
 }
-/* SALES / CUSTOMERS / CATÁLOGO / FINANCE — V3.25
-         Abertura editorial (métrica principal + secundárias com divisor) e depois a
-         ferramenta operacional. Tabela, linha, busca e chips são compartilhados no
-         bloco do design system interno; aqui ficam só as composições de cada tela. */
-#salesView .internal-summary,
-#clientsView .internal-summary {
-  grid-template-columns: minmax(0, 1.9fr) repeat(3, minmax(0, 1fr));
-  gap: 0;
-  align-items: start;
-  padding: 6px 0 32px;
+/* CUSTOMERS / SALES — métricas compactas e lista em primeiro plano. */
+#salesView .internal-summary {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px;
+  padding: 4px 0 20px;
 }
 #clientsView .internal-summary {
-  grid-template-columns: minmax(0, 1.9fr) repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  padding: 4px 0 20px;
 }
 :is(#salesView, #clientsView) .internal-summary .internal-metric {
-  gap: 8px;
-  padding-inline: 24px;
+  gap: 6px;
+  padding: 0;
 }
-:is(#salesView, #clientsView) .internal-summary .internal-metric:first-child {
-  padding-left: 0;
-  padding-right: 32px;
+:is(#salesView, #clientsView) .internal-summary .internal-metric > b {
+  font-size: clamp(24px, 2.5vw, 34px);
+  line-height: 1.15;
+  letter-spacing: -0.04em;
 }
-:is(#salesView, #clientsView) .internal-summary .internal-metric:not(:first-child) {
-  border-left: 1px solid var(--internal-line);
+:is(#salesView, #clientsView) .internal-summary .internal-metric > small {
+  font-size: 11px;
 }
-:is(#salesView, #clientsView)
-  .internal-summary
-  .internal-metric:not(.internal-metric--primary)
-  > b {
-  font-size: clamp(22px, 2vw, 28px);
+.business-filter-trigger,
+.business-filter-heading,
+.business-filter-done {
+  display: none;
 }
-:is(#salesView, #clientsView) .internal-summary .internal-metric--primary > b {
-  letter-spacing: -0.06em;
-  line-height: 1.08;
+.business-filter-panel:not([popover]) {
+  display: contents;
 }
 /* Busca com protagonismo moderado; filtros como ferramentas secundárias. */
 @media (min-width: 721px) {
@@ -17647,8 +17822,6 @@ body.management-active #per {
 #productsView .management-product-card {
   position: relative;
 
-  gap: 12px;
-
   align-content: start;
   transition:
     transform var(--internal-motion-micro) var(--ease-enter),
@@ -17660,6 +17833,8 @@ body.management-active #per {
   border-radius: var(--r-md);
   box-shadow: none;
   padding: 22px;
+
+  gap: 14px;
 }
 #productsView .management-product-card[data-product-kind="Serviço"] {
   background: var(--internal-group);
@@ -17713,19 +17888,22 @@ body.management-active #per {
 .catalog-price {
   font-variant-numeric: tabular-nums;
 
-  font-size: 24px;
   font-weight: 600;
-  letter-spacing: -0.025em;
+
+  font-size: 30px;
+  letter-spacing: -0.035em;
 }
 .catalog-card-foot {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 6px 12px;
+
   margin-top: 4px;
   padding-top: 12px;
   border-top: 1px solid var(--internal-line);
+
+  flex-wrap: wrap;
+  gap: 8px;
 }
 #productsView .management-table .management-contact .catalog-product-icon {
   width: 36px;
@@ -17745,6 +17923,13 @@ body.management-active #per {
   #productsView .management-product-card:hover .catalog-product-icon {
     transform: translateY(-1px);
   }
+}
+#productsView .catalog-open-button {
+  position: relative;
+  z-index: 1;
+  margin-left: auto;
+  font-size: 12px;
+  min-height: 44px;
 }
 /* Financeiro — o valor mais importante domina; o restante vive numa linha contínua */
 #financeView #financeSummary {
@@ -17851,13 +18036,6 @@ body.management-active #per {
   #productsView.active #catalogIntro {
     animation: internalValueReveal var(--internal-motion-state) var(--ease-enter) backwards;
   }
-  #financeSummary.is-period-reveal .management-kpi > b {
-    animation: internalValueReveal var(--internal-motion-state) var(--ease-enter) backwards;
-  }
-  #financeMiniChart.is-period-reveal .management-bars i {
-    transform-origin: center bottom;
-    animation: internalGraphEnter 360ms var(--ease-enter) backwards;
-  }
 }
 .experience-app .page-view .management-section-label {
   margin-block: 12px -14px;
@@ -17936,29 +18114,160 @@ body.management-active #per {
   }
 }
 @media (max-width: 720px) {
-  #salesView .internal-summary,
-  #clientsView .internal-summary {
+  #salesView .internal-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 22px 0;
-    padding-bottom: 24px;
+    gap: 16px 20px;
+    padding-bottom: 16px;
   }
-  :is(#salesView, #clientsView) .internal-summary .internal-metric:first-child {
-    grid-column: 1 / -1;
-    padding-right: 0;
+  #clientsView .internal-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    padding-bottom: 16px;
   }
-  :is(#salesView, #clientsView) .internal-summary .internal-metric:not(:first-child) {
-    border-left: 0;
-    padding-inline: 0 12px;
+  :is(#salesView, #clientsView) .internal-summary .internal-metric--primary {
+    grid-column: auto;
   }
-  :is(#salesView, #clientsView) .internal-summary .internal-metric:nth-child(3) {
-    border-left: 1px solid var(--internal-line);
-    padding-left: 20px;
+  #clientsView .internal-summary .internal-metric > small {
+    display: none;
   }
-  #salesView .internal-summary .internal-metric:nth-child(3) {
-    order: 4;
-    grid-column: 1 / -1;
-    border-left: 0;
-    padding-left: 0;
+  .experience-app :is(#salesView, #clientsView) .management-stack {
+    gap: 16px;
+  }
+  .experience-app :is(#salesView, #clientsView) .management-tools {
+    flex-wrap: nowrap;
+    padding: 14px;
+  }
+  :is(#salesView, #clientsView) .management-input {
+    min-width: 0;
+  }
+  .business-filter-trigger {
+    display: inline-flex;
+    flex: none;
+  }
+  .business-filter-panel[popover] {
+    inset: auto 16px 16px;
+    margin: 0 auto;
+    width: min(440px, calc(100% - 32px));
+    max-height: 80dvh;
+    overflow: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 20px;
+    background: var(--surface);
+    color: var(--tx);
+    box-shadow: var(--shadow);
+  }
+  .business-filter-panel:popover-open {
+    display: grid;
+    gap: 14px;
+  }
+  .business-filter-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .business-filter-done {
+    display: flex;
+    justify-content: center;
+  }
+  .business-filter-panel .management-select,
+  .business-filter-panel .management-select > button {
+    width: 100%;
+  }
+  .business-filter-panel .management-select ul {
+    position: static;
+    margin-top: 8px;
+    max-height: 200px;
+  }
+  .experience-app :is(#clientsView, #salesView) .management-table tbody {
+    display: grid;
+    gap: 12px;
+    padding: 12px;
+  }
+  .experience-app :is(#clientsView, #salesView) .management-table tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    padding: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+  }
+  .experience-app :is(#clientsView, #salesView) .management-table td {
+    display: block;
+    grid-row: auto;
+    grid-column: auto;
+    padding: 0;
+    border: 0;
+  }
+  .experience-app :is(#clientsView, #salesView) .management-table td:first-child,
+  .experience-app :is(#clientsView, #salesView) .management-table td.act {
+    grid-column: 1/-1;
+  }
+  .experience-app :is(#clientsView, #salesView) .management-table td:first-child {
+    grid-row: 1;
+  }
+  .experience-app :is(#clientsView, #salesView) .management-table td:first-child::before {
+    display: none;
+  }
+  .experience-app
+    :is(#clientsView, #salesView)
+    .management-table
+    td[data-l]:not(:first-child)::before {
+    content: attr(data-l) ":";
+    display: block;
+    width: auto;
+    margin-bottom: 4px;
+    font-size: 10px;
+    color: var(--mt);
+  }
+  .experience-app :is(#clientsView, #salesView) .management-table td.act {
+    display: flex;
+    justify-content: flex-end;
+    grid-row: 6;
+    padding-top: 10px;
+    border-top: 1px solid var(--internal-line);
+  }
+  .experience-app #salesView .management-table td[data-l="Valor"] {
+    grid-row: 2;
+    grid-column: 1;
+    text-align: left;
+    font-size: 20px;
+    font-weight: 600;
+  }
+  .experience-app #salesView .management-table td[data-l="Situação"] {
+    grid-row: 2;
+    grid-column: 2;
+  }
+  .experience-app #salesView .management-table td[data-l="Data"] {
+    grid-row: 3;
+    grid-column: 1;
+  }
+  .experience-app #salesView .management-table td[data-l="Pagamento"] {
+    grid-row: 3;
+    grid-column: 2;
+  }
+  .experience-app #clientsView .management-table td[data-l="Canal"] {
+    grid-row: 2;
+    grid-column: 1;
+  }
+  .experience-app #clientsView .management-table td[data-l="Status"] {
+    grid-row: 2;
+    grid-column: 2;
+  }
+  .experience-app #clientsView .management-table td[data-l="Valor"] {
+    grid-row: 3;
+    grid-column: 1;
+    text-align: left;
+  }
+  .experience-app #clientsView .management-table td[data-l="Última"] {
+    grid-row: 3;
+    grid-column: 2;
+  }
+  .experience-app #clientsView .management-table td[data-l="Etiquetas"] {
+    grid-row: 4;
+    grid-column: 1/-1;
   }
   #productsView #catalogIntro .management-chip {
     margin-left: 0;
@@ -17969,22 +18278,35 @@ body.management-active #per {
     gap: 14px;
   }
   #financeView #financeSummary {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 12px;
-    padding-bottom: 24px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    padding-bottom: 16px;
   }
   #financeView #financeSummary .management-kpi:first-child {
     padding-bottom: 6px;
 
-    grid-column: 1 / -1;
     grid-row: auto;
+
     padding: 22px;
+    grid-column: 1 / -1;
   }
   #financeView #financeSummary .management-kpi:not(:first-child) {
     border-left: 0;
 
-    padding: 16px;
     border: 1px solid var(--border);
+
+    padding: 14px;
+  }
+  #financeView #financeSummary .management-kpi:not(:first-child) > b {
+    font-size: clamp(16px, 4.8vw, 20px);
+    white-space: nowrap;
+  }
+  #financeView #financeSummary .finance-wide-value {
+    grid-column: 1/-1;
+  }
+  #financeView #financeSummary .management-kpi.finance-wide-value > b {
+    font-size: 20px;
+    white-space: nowrap;
   }
   #financeView #financeSummary .management-kpi:nth-child(3),
   #financeView #financeSummary .management-kpi:nth-child(5) {
@@ -21309,10 +21631,12 @@ body.management-view-active .toast-zone .toast {
   grid-template-columns: repeat(3, 1fr);
   padding: 2px;
   border-radius: 10px;
-  background: transparent;
+
   width: 228px;
   max-width: 100%;
   --tone-index: 0;
+
+  background: var(--surface-secondary);
 }
 #aiToolsView .assistant-tone-control button {
   position: relative;
@@ -21446,13 +21770,14 @@ body.management-view-active .toast-zone .toast {
   order: 3;
   margin-top: 28px;
   padding-top: 0;
-  border-top: 0;
 
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
   box-shadow: none;
-  padding: 24px;
+
+  padding: 24px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  border-top: 1px solid var(--internal-line);
 }
 #aiToolsView .assistant-review-head {
   display: flex;
@@ -21462,9 +21787,11 @@ body.management-view-active .toast-zone .toast {
   margin-bottom: 14px;
 }
 #aiToolsView .assistant-review-head h3 {
-  font-size: 13px;
   font-weight: 600;
-  color: var(--as-muted);
+
+  font-size: 20px;
+  color: var(--as-ink);
+  letter-spacing: -0.03em;
 }
 #aiToolsView .assistant-review-head p {
   font-size: 12px;
@@ -21552,9 +21879,10 @@ body.management-view-active .toast-zone .toast {
 }
 #aiToolsView .assistant-draft-tabs {
   display: flex;
-  gap: 16px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 20px;
+
+  gap: 8px;
+  margin-bottom: 12px;
+  border-bottom: 0;
 }
 #aiToolsView .assistant-draft-tabs button {
   min-width: 44px;
@@ -21562,14 +21890,18 @@ body.management-view-active .toast-zone .toast {
   color: var(--as-muted);
   position: relative;
 
-  padding: 0 0 10px;
-
   min-height: 44px;
   font-size: 13px;
+
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--surface-secondary);
 }
 #aiToolsView .assistant-draft-tabs button[aria-selected="true"] {
   color: var(--brand-primary-text);
   font-weight: 600;
+
+  background: var(--brand-primary-subtle);
 }
 #aiToolsView .assistant-draft-tabs button[aria-selected="true"]::after {
   content: "";
@@ -21583,10 +21915,11 @@ body.management-view-active .toast-zone .toast {
 }
 #aiToolsView .management-draft.assistant-draft {
   margin: 0;
-  padding: 36px 40px 30px;
-  border: 1px solid var(--internal-line);
-  border-radius: 16px;
-  background: var(--internal-group);
+
+  padding: 24px 0 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 #aiToolsView .assistant-draft-text {
   max-width: 68ch;
@@ -21647,8 +21980,9 @@ body.management-view-active .toast-zone .toast {
   color: var(--success);
 }
 #aiToolsView .assistant-draft-sources {
-  margin-top: 22px;
-  padding-top: 0;
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--internal-line);
 }
 #aiToolsView .assistant-draft-sources p {
   font-size: 12px;
@@ -22016,7 +22350,8 @@ body.management-view-active .toast-zone .toast {
   }
   #aiToolsView .assistant-main {
     display: none;
-    padding: 22px 20px 28px;
+
+    padding: 22px 16px 24px;
   }
   #aiToolsView.mobile-canvas .assistant-main {
     display: flex;
@@ -22053,7 +22388,7 @@ body.management-view-active .toast-zone .toast {
     display: none;
   }
   #aiToolsView .management-draft.assistant-draft {
-    padding: 24px 20px 18px;
+    padding: 18px 0 0;
   }
   #aiToolsView .assistant-message-block {
     margin-bottom: 26px;

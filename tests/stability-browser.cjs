@@ -115,7 +115,11 @@ async function run() {
             .locator("button")
             .evaluateAll((elements) =>
               elements
-                .filter((element) => element.getClientRects().length && !element.closest("[inert]"))
+                .filter(
+                  (element) =>
+                    element.checkVisibility({ opacityProperty: true, visibilityProperty: true }) &&
+                    !element.closest("[inert]"),
+                )
                 .map((element) => ({
                   id: element.id,
                   label:

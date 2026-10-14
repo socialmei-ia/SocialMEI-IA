@@ -2466,6 +2466,22 @@ document.addEventListener(
       }
     }
     if (
+      event.target.closest("#nvReportTabs") &&
+      ["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)
+    ) {
+      event.preventDefault();
+      const tabs = [...document.querySelectorAll("[data-nv-report-tab]")];
+      const index = tabs.indexOf(document.activeElement);
+      const next =
+        event.key === "Home"
+          ? 0
+          : event.key === "End"
+            ? tabs.length - 1
+            : (index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+      tabs[next]?.click();
+      document.querySelectorAll("[data-nv-report-tab]")[next]?.focus();
+    }
+    if (
       event.target.closest(".management-settings-nav") &&
       ["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)
     ) {
@@ -2754,7 +2770,7 @@ const readStoredJson = (key, fallback) => {
   }
 };
 const renderLocalDemoNotice = () =>
-  '<div class="management-demo"><span class="pill draft" title="Execução automática, serviço de IA, envio oficial aos canais e autenticação externa ainda não estão conectados.">Modo demonstração</span><span>Rascunhos e preferências locais.</span></div>';
+  '<div class="management-demo"><span class="pill draft" title="Rascunhos, simulações e preferências são locais. Este recurso não envia mensagens aos canais.">Recursos locais</span><span>Rascunhos e preferências neste navegador.</span></div>';
 const renderManagementMetric = (label, value, note) => /* HTML */ `<article class="management-kpi">
           <span>${escapeHtml(label)}</span><b>${value}</b><small>${escapeHtml(note)}</small>
         </article>`;
@@ -3000,6 +3016,13 @@ function renderReportChart(source) {
   if (areMoneyValuesHidden) {
     return emptyMarkup("Valores ocultos", "Exiba os valores para consultar o gráfico e a tabela.");
   }
+  const store = sales ? SocialMEISales : SocialMEIFinance;
+  if (!["local", "ready"].includes(store.connectionState)) {
+    return emptyMarkup(
+      "Leitura do gráfico não disponível",
+      "Confira a conexão no módulo antes de interpretar os valores.",
+    );
+  }
   return (
     (Math.max(0, ...series.r, ...series.d) > 0
       ? renderManagementChart(series)
@@ -3022,22 +3045,80 @@ function getReportSummaryText() {
       : SocialMEISales.remote || SocialMEIFinance.remote
         ? "Vendas e financeiro: fontes locais e compartilhadas."
         : "Vendas e financeiro: registros deste navegador.";
-  return `SocialMEI.IA · ${getBusinessLabel()}\nPeríodo: ${rangeCaption()}\nVendas pagas: ${metrics.paidSales.length}\nFaturamento: ${money(metrics.revenue)}\nTicket médio: ${money(metrics.ticket)}\nEntrou: ${money(metrics.received)}\nSaiu: ${money(metrics.spent)}\nSaldo dos lançamentos pagos: ${money(metrics.balance)}\nPedidos pendentes: ${metrics.pendingSales.length}\n${source}\nSaldo não representa saldo bancário.`;
+  return `SocialMEI.IA · ${getBusinessLabel()}\nPeríodo: ${rangeCaption()}\nVendas pagas: ${metrics.paidSales.length}\nFaturamento: ${money(metrics.revenue)}\nTicket médio: ${money(metrics.ticket)}\nEntrou: ${money(metrics.received)}\nSaiu: ${money(metrics.spent)}\nSaldo dos lançamentos pagos: ${money(metrics.balance)}\nPedidos pendentes: ${metrics.pendingSales.length}\n${source}\n${getManagementDataOrigin().description}\nSaldo não representa saldo bancário.`;
 }
 /* ==================================================
 RELATÓRIOS — JAVASCRIPT
 ================================================== */
+function getManagementDataSources() {
+  return [
+    ["Clientes", SocialMEIClients.remote],
+    ["Produtos", SocialMEIProducts.remote],
+    ["Vendas", SocialMEISales.remote],
+    ["Financeiro", SocialMEIFinance.remote],
+  ];
+}
+function getManagementDataOrigin() {
+  const sources = getManagementDataSources();
+  const remote = sources.filter(([, shared]) => shared).map(([name]) => name);
+  const local = sources.filter(([, shared]) => !shared).map(([name]) => name);
+  const states = [SocialMEIClients, SocialMEIProducts, SocialMEISales, SocialMEIFinance].map(
+    (store) => store.connectionState,
+  );
+  const warning = states.includes("unavailable")
+    ? " Uma fonte da API está indisponível. Os totais podem estar incompletos; recarregue no módulo."
+    : states.some((state) => ["idle", "loading"].includes(state))
+      ? " Conferindo as fontes da API; aguarde a leitura."
+      : "";
+  if (!remote.length)
+    return {
+      label: "Dados locais",
+      description: "Gestão salva neste navegador. Não é uma base compartilhada.",
+    };
+  if (!local.length)
+    return {
+      label: "Dados compartilhados",
+      description: "Gestão configurada para a API da conta." + warning,
+    };
+  return {
+    label: "Fontes mistas",
+    description: `API: ${remote.join(", ")}. Neste navegador: ${local.join(", ")}.` + warning,
+  };
+}
+function updateDataOriginNotice() {
+  const origin = getManagementDataOrigin();
+  $("appDataOrigin").textContent =
+    `${origin.label} · ${origin.description} Rascunhos e preferências são locais.`;
+}
+document.addEventListener("socialmei-source-status", () => {
+  updateDataOriginNotice();
+  if (currentView === "Relatórios") {
+    const focused = $("reportsView").contains(document.activeElement)
+      ? document.activeElement.id
+      : null;
+    renderReports();
+    if (focused) $(focused)?.focus({ preventScroll: true });
+  }
+});
 function renderReports() {
+  const expandedDetails = [...document.querySelectorAll("#reportsView .report-detail[open]")].map(
+    (detail) => detail.id,
+  );
   const dateRange = periodRange();
   const metrics = operationalMetrics(dateRange);
+  const salesReady = ["local", "ready"].includes(SocialMEISales.connectionState);
+  const financeReady = ["local", "ready"].includes(SocialMEIFinance.connectionState);
+  const clientsReady = ["local", "ready"].includes(SocialMEIClients.connectionState);
   const prevRange = getPreviousReportRange(dateRange);
   const prev = operationalMetrics(prevRange);
   const newKnown = appData.clientes.filter((client) => getCustomerRegistrationDate(client));
   const newCount = newKnown.filter((c) =>
     inRange(getCustomerRegistrationDate(c), dateRange),
   ).length;
-  const newPrev = newKnown.filter((c) => inRange(getCustomerRegistrationDate(c), prevRange)).length;
   const datesComplete = newKnown.length === appData.clientes.length && appData.clientes.length > 0;
+  const origin = getManagementDataOrigin();
+  $("reportsDataSourceStatus").innerHTML =
+    `<span class="pill info">${escapeHtml(origin.label)}</span><span>${escapeHtml(origin.description)}</span>`;
   $("reportsPeriodLabel").textContent = rangeCaption(dateRange);
   $("nvReportPeriods").innerHTML = [
     "Hoje",
@@ -3069,36 +3150,35 @@ function renderReports() {
   $("nvReportKpis").innerHTML =
     renderManagementMetric(
       "Faturamento",
-      money(metrics.revenue),
+      salesReady ? money(metrics.revenue) : "—",
       renderReportVariation(metrics.revenue, prev.revenue),
     ) +
     renderManagementMetric(
       "Ticket médio",
-      money(metrics.ticket),
+      salesReady ? money(metrics.ticket) : "—",
       renderReportVariation(metrics.ticket, prev.ticket),
     ) +
     renderManagementMetric(
       "Vendas pagas",
-      String(metrics.paidSales.length),
+      salesReady ? String(metrics.paidSales.length) : "—",
       renderReportVariation(metrics.paidSales.length, prev.paidSales.length),
     ) +
     renderManagementMetric(
-      "Clientes novos",
-      datesComplete ? String(newCount) : newKnown.length ? `${newCount}*` : "—",
-      datesComplete
-        ? renderReportVariation(newCount, newPrev)
-        : "Cadastro sem data em parte da base",
-    ) +
-    renderManagementMetric(
       "Saldo do período",
-      money(metrics.balance),
+      financeReady ? money(metrics.balance) : "—",
       renderReportVariation(metrics.balance, prev.balance),
     );
   const tabs = ["Resumo", "Vendas", "Clientes", "Atendimento", "Financeiro"];
+  $("reportsGrid").setAttribute("aria-labelledby", `reportTab${tabs.indexOf(selectedReportTab)}`);
   $("nvReportTabs").innerHTML = tabs
     .map(
-      (t) => /* HTML */ `<button
+      (t, index) => /* HTML */ `<button
                 class="management-chip"
+                id="reportTab${index}"
+                role="tab"
+                aria-controls="reportsGrid"
+                aria-selected="${t === selectedReportTab}"
+                tabindex="${t === selectedReportTab ? 0 : -1}"
                 data-nv-report-tab="${t}"
                 aria-pressed="${t === selectedReportTab}"
               >
@@ -3151,47 +3231,21 @@ function renderReports() {
     ["Cliente", "Pedidos", "Total"],
     contributors.map(([n, d]) => [escapeHtml(n), String(d.count), money(d.value)]),
   );
-  const narrative = /* HTML */ `<div class="management-report-chapters">
-          <section class="management-card" id="resultChapter">
-            <h3>Resultado</h3>
-            <p>
-              ${plural(metrics.paidSales.length, "venda paga", "vendas pagas")} no período, com
-              ticket médio de ${money(metrics.ticket)}.
-            </p>
+  const narrative = /* HTML */ `<div class="report-overview">
+          <section class="management-card report-primary" id="resultChapter">
+            <div class="report-section-heading"><div><span class="report-eyebrow">RESULTADO DO PERÍODO</span><h3>Como as vendas evoluíram</h3></div><span class="pill info">${plural(metrics.paidSales.length, "venda paga", "vendas pagas")}</span></div>
+            <p class="management-note">Faturamento das vendas pagas. O movimento financeiro é acompanhado separadamente.</p>
             <div>${renderReportChart("sales")}</div>
           </section>
-          <section class="management-card" id="driversChapter">
-            <h3>O que puxou · Clientes</h3>
-            ${contributorsTable}<button class="management-button" data-go="Clientes">
-              Abrir clientes
-            </button>
+          <section class="report-care" id="careChapter">
+            <div><span class="report-eyebrow">PRÓXIMO CUIDADO</span><h3>${pending.length ? "Pedidos para acompanhar" : "Relacionamentos em dia"}</h3><p>${pending.length ? `${plural(pending.length, "pedido aguarda", "pedidos aguardam")} pagamento neste período.` : "Não há pedido pendente neste período. Confira os clientes antes do próximo contato."}</p></div>
+            <button class="management-button" data-go="${pending.length ? "Vendas" : "Clientes"}">${pending.length ? "Conferir pedidos" : "Abrir clientes"} →</button>
           </section>
-          <section class="management-card" id="flowChapter">
-            <h3>Movimento financeiro</h3>
-            <p>
-              Entrou ${money(metrics.received)}, saiu ${money(metrics.spent)}. Ficou
-              ${money(metrics.balance)}.
-            </p>
-            <p class="management-note">
-              Lançamentos pagos pelo vencimento. Não representa o saldo bancário.
-            </p>
-            <div>${renderReportChart("finance")}</div>
-          </section>
-          <section class="management-card" id="careChapter">
-            <h3>Próximo cuidado</h3>
-            <p>
-              ${
-                pending.length
-                  ? `${plural(pending.length, "pedido aguarda", "pedidos aguardam")} pagamento neste período.`
-                  : "Não há pedido pendente neste período. Confira os relacionamentos antes do próximo contato."
-              }
-            </p>
-            <button class="management-button" data-go="${pending.length ? "Vendas" : "Clientes"}">
-              ${pending.length ? "Conferir pedidos" : "Abrir clientes"}
-            </button>
-          </section>
-        </div>`;
-  const channelPayment = /* HTML */ `<div class="management-report-split">
+        </div>
+        ${metrics.paidSales.length ? `<details class="report-detail" id="driversChapter"><summary><span>Clientes que compõem o resultado</span><small>${contributors.length} clientes</small></summary><div class="report-detail-body">${contributorsTable}<button class="management-button" data-go="Clientes">Abrir clientes</button></div></details>` : ""}
+        ${metrics.ledger.length ? `<details class="report-detail" id="flowChapter"><summary><span>Movimento financeiro</span><small>${money(metrics.balance)} de saldo</small></summary><div class="report-detail-body"><p>Entrou ${money(metrics.received)}, saiu ${money(metrics.spent)}. Lançamentos pagos pelo vencimento; não representa saldo bancário.</p>${renderReportChart("finance")}</div></details>` : ""}`;
+  const channelPayment = metrics.paidSales.length
+    ? /* HTML */ `<details class="report-detail" id="reportChannelDetails"><summary><span>Canais e formas de pagamento</span><small>De onde vem o resultado</small></summary><div class="report-detail-body management-report-split">
           <section class="management-card">
             <h3>Por canal do relacionamento</h3>
             <p class="management-note">
@@ -3212,12 +3266,14 @@ function renderReports() {
               payments.map(([n, d]) => [escapeHtml(n), String(d.count), money(d.value)]),
             )}
           </section>
-        </div>`;
-  const productTable = /* HTML */ `<section class="management-card">
-          <h3>Produtos e serviços mais vendidos</h3>
+        </div></details>`
+    : "";
+  const productTable = metrics.paidSales.length
+    ? /* HTML */ `<details class="report-detail" id="reportProductsDetails"><summary><span>Produtos e serviços mais vendidos</span><small>${topProducts.length} itens</small></summary><div class="report-detail-body">
           <p class="management-note">Itens registrados em vendas pagas neste período.</p>
           ${renderManagementTable("Itens vendidos", ["Item", "Quantidade", "Pedidos", "Total"], topProducts)}${metrics.paidSales.some((v) => !v.item) ? '<p class="management-note">Há pedidos sem item informado; não entram no ranking.</p>' : ""}
-        </section>`;
+        </div></details>`
+    : "";
   views.Resumo = narrative + channelPayment + productTable;
   views.Vendas =
     /* HTML */ `<section class="management-card"><h3>Vendas pagas no período</h3>${renderManagementTable(
@@ -3245,9 +3301,15 @@ function renderReports() {
           ${contributorsTable}
           <p class="management-note">
             ${
-              datesComplete
-                ? `${newCount} novos cadastros no período.`
-                : "Os registros atuais não têm data de cadastro suficiente para calcular todos os clientes novos por período."
+              !clientsReady
+                ? "A leitura de clientes da API não está disponível. Recarregue Clientes antes de consultar estes números."
+                : !appData.clientes.length
+                  ? "Nenhum cliente cadastrado na fonte atual."
+                  : datesComplete
+                    ? `${newCount} novos cadastros no período.`
+                    : newKnown.length
+                      ? `${newCount} novos cadastros com data confirmada. Parte da base não informa a data de cadastro.`
+                      : "A base atual não informa a data de cadastro dos clientes; o total de novos cadastros não pode ser calculado."
             }
           </p>
         </section>`;
@@ -3357,8 +3419,8 @@ function renderReports() {
   }
   $("reportsGrid").innerHTML =
     views[selectedReportTab] +
-    /* HTML */ `<section class="management-stack">
-            <h3>Insights</h3>
+    /* HTML */ `<section class="report-insights">
+            <h3>Cuidados que merecem atenção</h3>
             <div class="management-insights">
               ${
                 insights
@@ -3376,13 +3438,14 @@ function renderReports() {
                       </article>`,
                   )
                   .join("") ||
-                emptyMarkup(
-                  "Nenhum cuidado identificado",
-                  "As regras locais não encontraram pendências nos registros atuais.",
-                )
+                '<p class="management-note report-clear">Nenhum cuidado identificado pelas regras locais nos registros atuais.</p>'
               }
             </div>
           </section>`;
+  expandedDetails.forEach((id) => {
+    const detail = $(id);
+    if (detail) detail.open = true;
+  });
   updatePeriodCaptions();
 }
 function renderAccountSecurityControls(administrator) {
@@ -4187,6 +4250,7 @@ document.addEventListener("click", (event) => {
       customRange = null;
       updatePeriodLabel();
       renderReports();
+      playPeriodReveal();
       document.querySelector(`[data-nv-report-period="${name}"]`)?.focus();
     }
     return;
@@ -4195,6 +4259,7 @@ document.addEventListener("click", (event) => {
   if (rt) {
     selectedReportTab = rt.dataset.nvReportTab;
     renderReports();
+    playPeriodReveal();
     document.querySelector(`[data-nv-report-tab="${selectedReportTab}"]`)?.focus();
     return;
   }

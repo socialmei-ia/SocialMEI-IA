@@ -12,7 +12,7 @@ function syncElapsed() {
 }
 function updateSyncLabels() {
   const text = {
-    idle: "Sincronização disponível",
+    idle: "Leitura de mensagens não verificada",
     disabled: "Integração de mensagens não configurada",
     loading: "Sincronizando conversas…",
     success: syncElapsed(),
