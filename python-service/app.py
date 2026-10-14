@@ -51,6 +51,12 @@ app.include_router(n8n_read_router)
 app.include_router(account_auth_router)
 
 
+if os.getenv("SOCIALMEI_SHEET_ORDERS_ENABLED", "false").strip().lower() in {"true", "1", "yes", "on"}:
+    from sheet_orders import create_router
+
+    app.include_router(create_router())
+
+
 @app.exception_handler(RequestValidationError)
 async def private_validation_error(request, error):
     # FastAPI's default validation response includes submitted values, including passwords.

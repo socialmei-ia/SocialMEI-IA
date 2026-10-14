@@ -97,3 +97,7 @@ Backup verificado precede migrations/configuração/deploy. Em 13/10/2026, o res
 Fechar os itens de runtime pendentes, homologar a atualização restrita e validar a operação com o responsável. Depois disso, evolução visual e calculadora de probabilidade de compra: a lógica e os critérios serão fornecidos pelo dono do produto. Nenhuma fórmula foi implementada nesta rodada.
 
 [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [Deploy](DEPLOYMENT.md) · [Contribuição](CONTRIBUTING.md) · [Segurança](SECURITY.md)
+
+### Protótipo opcional de estoque por planilha
+
+A API Python pode receber mensagens do n8n e preparar pedidos sobre um XLSX fictício, separado do CRM. A funcionalidade fica desativada por padrão e ainda exige publicação/configuração no ambiente. Consulte [contratos, limites e teste local](docs/SPREADSHEET-ORDERS-API.md).
