@@ -55,17 +55,20 @@ Não foram adicionados WebGL, parallax, bibliotecas de animação ou loops cont�
 
 ## Validação
 
-| Verificação                  | Evidência                                                                                                                                                         |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Contratos e estrutura Node   | `npm test`: 63 testes; zero falhas/skips                                                                                                                          |
-| Formatação                   | `npm run format:check`                                                                                                                                            |
-| Regressão de navegador       | `npm run test:browser`: 88 estados e 20 grupos de fluxos, incluindo os quatro grupos novos                                                                        |
-| Matriz desta rodada          | 484 estados: 11 módulos × 11 resoluções × claro/escuro × dados locais/API vazia controlada                                                                        |
-| Auditoria A01/A02 preservada | 36 estados de Ferramentas e 936 colunas de gráficos, teclado, hover e limites de tooltip                                                                          |
-| Fontes e falhas              | Dados locais, remotos, híbridos e resposta 503 controlada; vazio não tratado como ausência de data                                                                |
-| Interações                   | CRUD remoto existente, buscas, filtros, cartões/tabelas, exportar CSV, copiar resumo, solicitar impressão, modais, drawers, toasts, backup/importação e rascunhos |
-| Motion                       | Período em 210ms, cleanup, foco e reduced motion                                                                                                                  |
-| Capturas                     | 88 antes + 88 depois, mais as cinco abas de relatório e Assistente com conversa/rascunho                                                                          |
+| Verificação                   | Evidência                                                                                                                                                         |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Contratos e estrutura Node    | `npm test`: 63 testes; zero falhas/skips                                                                                                                          |
+| Formatação                    | `npm run format:check`                                                                                                                                            |
+| Regressão de navegador        | `npm run test:browser`: 88 estados e 20 grupos de fluxos, incluindo os quatro grupos novos                                                                        |
+| Matriz desta rodada           | 484 estados: 11 módulos × 11 resoluções × claro/escuro × dados locais/API vazia controlada                                                                        |
+| Estabilidade e todos os temas | 825 estados, 167 estados de botões visíveis; claro/escuro, automático e custom; zero pageerror/404                                                                |
+| Configurações preservadas     | 990 estados de seção/resolução/tema/modo local e conectado; salvar e teclado                                                                                      |
+| Interações da fundação        | 22 estados da Home + 22 do Financeiro, privacidade, senha, touch, teclado, spotlight e reduced motion                                                             |
+| Auditoria A01/A02 preservada  | 36 estados de Ferramentas e 936 colunas de gráficos, teclado, hover e limites de tooltip                                                                          |
+| Fontes e falhas               | Dados locais, remotos, híbridos e resposta 503 controlada; vazio não tratado como ausência de data                                                                |
+| Interações                    | CRUD remoto existente, buscas, filtros, cartões/tabelas, exportar CSV, copiar resumo, solicitar impressão, modais, drawers, toasts, backup/importação e rascunhos |
+| Motion                        | Período em 210ms, cleanup, foco e reduced motion                                                                                                                  |
+| Capturas                      | 88 antes + 88 depois, mais as cinco abas de relatório e Assistente com conversa/rascunho                                                                          |
 
 Resoluções: 1920×1080, 1600×900, 1440×900, 1366×768, 1280×720, 1024×768, 900×900, 768×1024, 430×932, 390×844 e 360×800. Automático/custom e autenticação seguem cobertos pela regressão existente.
 
@@ -73,7 +76,7 @@ A matriz verifica overflow da página e do módulo. A rotação decorativa já a
 
 As capturas antes/depois usam 1440×1000 e 390×1000, claro/escuro, data congelada em 13/10/2026 e as mesmas fixtures da auditoria. Local significa dados de demonstração; remoto significa APIs controladas vazias, com a identidade de teste da auditoria. Não são capturas autenticadas da produção. O aviso de sincronização em alguns screenshots locais decorre do bloqueio de rede externa do teste.
 
-Falhas de layout encontradas durante a execução foram corrigidas: sobreposição causada por regras antigas das tabelas, ticket do Resumo excedendo a coluna, quebra de valores financeiros e perda de expansão numa atualização. Os testes de geometria e valores monetários foram ampliados para cobrir esses casos. O primeiro CI também identificou uma corrida no teste de resize: a conferência agora aguarda o atributo de apresentação esperado depois do evento de media query, preservando as asserções. A abertura dos campos recolhidos também aguarda o estado nativo esperado; a expansão e o foco permanecem ao atualizar a conversa. Este fluxo usa mensagens desativadas, deixando falhas de sincronização para os testes próprios de integração. Não há timeout aumentado, teste desativado ou asserção removida para esconder falhas.
+Falhas de layout encontradas durante a execução foram corrigidas: sobreposição causada por regras antigas das tabelas, ticket do Resumo excedendo a coluna, quebra de valores financeiros e perda de expansão numa atualização. Os testes de geometria e valores monetários foram ampliados para cobrir esses casos. O primeiro CI também identificou uma corrida no teste de resize: a conferência agora aguarda o atributo de apresentação esperado depois do evento de media query, preservando as asserções. A abertura dos campos recolhidos também aguarda o estado nativo esperado; a expansão e o foco permanecem ao atualizar a conversa. Este fluxo usa mensagens desativadas, deixando falhas de sincronização para os testes próprios de integração. A conferência de botões visíveis usa `checkVisibility`, pois retângulos de layout isolados também podem existir sob expansões nativas recolhidas. A exigência de nome acessível para controles visíveis permanece. Não há timeout aumentado, teste desativado ou asserção removida para esconder falhas.
 
 ## Arquivos e organização
 
@@ -83,7 +86,7 @@ Falhas de layout encontradas durante a execução foram corrigidas: sobreposiç�
 - `frontend/scripts/business-views.js`: prioridades, filtros responsivos, catálogo, valores longos e motion de período.
 - `frontend/scripts/inbox.js`, `experience.js`, `inbox-sync.js`, `data-and-backup.js`: composição, feedback, avisos e contagem de filtros.
 - `client-store.js`, `product-store.js`, `sale-store.js`, `finance-store.js`: estado de apresentação, sem alteração do contrato da API.
-- `tests/reports-browser.cjs`, `browser.cjs` e novos `visual-refinement-browser.cjs`, `data-origin-browser.cjs`, `visual-layout-browser.cjs`, `visual-motion-browser.cjs`: cobertura mantida e ampliada.
+- `tests/reports-browser.cjs`, `browser.cjs`, `stability-browser.cjs` e novos `visual-refinement-browser.cjs`, `data-origin-browser.cjs`, `visual-layout-browser.cjs`, `visual-motion-browser.cjs`: cobertura mantida e ampliada.
 - Este relatório substitui as evidências antigas da primeira rodada; a fundação anterior permanece no histórico Git.
 
 ## Limites e próxima etapa
