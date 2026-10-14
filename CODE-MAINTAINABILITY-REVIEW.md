@@ -1,4 +1,4 @@
-# Revisão de manutenção do código
+# SocialMEI.IA — Code Maintainability Review
 
 Coleta de 14/10/2026. Escopo: refatoração da implementação, sem redesign, novas funcionalidades ou deploy.
 
@@ -62,6 +62,18 @@ Não foram encontrados blocos de regra integralmente idênticos no mesmo escopo.
 | Auth/admin/configurações | Contratos e proteções já separados em helpers/stores.              | Mantidos; somente markup da confirmação de contato foi formatado.                                                   |
 
 Não foram fundidos os stores: estoque, versões, exclusões e importações têm regras diferentes. Estados locais/remotos, rollback de remoção de conversa, máscaras/limites de telefone, ownership dos diálogos e proteção contra escrita offline permanecem.
+
+## Exemplos curtos
+
+Trechos reais, sem reproduzir os renderers inteiros:
+
+| Tipo       | Antes                                                               | Depois                                                                |
+| ---------- | ------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Nome/hora  | `const h = Number(new Intl.DateTimeFormat(...).format(new Date()))` | `const hour = getBusinessHour()` em `renderHeader`.                   |
+| Evento     | O bloco `[data-period]` calculava estado/carregamento no listener.  | `await selectPeriod(period.dataset.period)` encaminha para navegação. |
+| Função     | `const baseSaleReview = updateSaleReview` seguido da redefinição.   | A condição `if (SocialMEISales.remote)` fica na função original.      |
+| CSS        | `min-height: 44px` em dois blocos `.sb-collapse`.                   | Somente a declaração posterior permanece, com a mesma cascata.        |
+| Comentário | Separador de três linhas ao redor de `AUTENTICAÇÃO — HTML`.         | `<!-- AUTENTICAÇÃO -->`.                                              |
 
 ## Backend
 
