@@ -2810,7 +2810,7 @@ AUTOMAÇÕES — HTML
                   <button class="management-button pr" data-rule-create>+ Nova rotina</button>
                 </div>
               </header>
-              <div class="management-demo" id="accountSettingsNotice">
+              <div class="management-demo">
                 <span
                   class="pill draft"
                   title="Rotinas automáticas, serviço de IA, envio oficial aos canais e autenticação externa ainda não estão conectados."
@@ -3758,45 +3758,49 @@ CONFIGURAÇÕES — HTML
 ================================================== -->
           <section class="page-view management-view" data-view="Configurações" id="settingsView">
             <div class="management-stack">
-              <header class="management-header">
+              <header class="management-header settings-intro">
                 <div>
-                  <h2>Configurações</h2>
-                  <p>Seu perfil, seu negócio e os próximos passos de configuração.</p>
+                  <span class="settings-eyebrow">CONFIGURAÇÕES</span>
+                  <h2>Seu espaço, <span>do seu jeito.</span></h2>
+                  <p>
+                    Um lugar para cuidar da sua identidade, da sua rotina e dos detalhes do negócio.
+                  </p>
                 </div>
-                <div class="management-header-controls">
-                  <button class="management-button pr" id="nvSettingsPrimary">
-                    Salvar alterações
-                  </button>
-                </div>
+                <div class="settings-workspace-preview" id="settingsWorkspacePreview"></div>
               </header>
-              <div class="management-demo">
-                <span
-                  class="pill draft"
-                  title="Rotinas automáticas, serviço de IA, envio oficial aos canais e autenticação externa ainda não estão conectados."
-                  >Modo demonstração</span
-                ><span>Você revisa. Nada é enviado automaticamente.</span>
+              <div class="management-demo settings-status" id="accountSettingsNotice">
+                <span class="pill draft">Modo demonstração</span
+                ><span>Perfil e preferências locais. Você decide o que salvar.</span>
               </div>
-              <section
-                class="management-card"
-                id="nvSetupChecklist"
-                aria-label="Checklist de configuração"
-              ></section>
               <div class="management-settings-layout">
-                <aside class="management-card">
+                <aside class="management-card settings-index">
                   <div class="management-contact" id="settingsIdentity"></div>
                   <nav class="management-settings-nav" aria-label="Seções de configurações">
-                    <button data-settings-tab="conta">Conta</button
-                    ><button data-settings-tab="negocio">Negócio</button
-                    ><button data-settings-tab="aparencia">Aparência</button
-                    ><button data-settings-tab="notificacoes">Notificações</button
-                    ><button data-settings-tab="integracoes">Integrações</button
-                    ><button data-settings-tab="equipe">Equipe</button
-                    ><button data-settings-tab="plano">Plano e cobrança</button
-                    ><button data-settings-tab="seguranca">Segurança e privacidade</button
-                    ><button data-settings-tab="dados">Dados</button>
+                    <span class="settings-nav-group">PESSOAL</span>
+                    <button type="button" data-settings-tab="conta">Conta</button>
+                    <button type="button" data-settings-tab="aparencia">Aparência</button>
+                    <button type="button" data-settings-tab="notificacoes">Notificações</button>
+                    <button type="button" data-settings-tab="seguranca">
+                      Segurança e privacidade
+                    </button>
+                    <span class="settings-nav-group">NEGÓCIO</span>
+                    <button type="button" data-settings-tab="negocio">Negócio</button>
+                    <button type="button" data-settings-tab="integracoes">Integrações</button>
+                    <button type="button" data-settings-tab="equipe">Equipe</button>
+                    <button type="button" data-settings-tab="plano">Plano e cobrança</button>
+                    <span class="settings-nav-group">ORGANIZAÇÃO</span>
+                    <button type="button" data-settings-tab="dados">Dados</button>
                   </nav>
+                  <details class="settings-setup-disclosure">
+                    <summary>Preparar meu espaço <span id="settingsSetupCount"></span></summary>
+                    <section id="nvSetupChecklist" aria-label="Checklist de configuração"></section>
+                  </details>
                 </aside>
-                <section class="management-card" id="settingsPanel"></section>
+                <section
+                  class="management-card"
+                  id="settingsPanel"
+                  aria-label="Preferências da seção selecionada"
+                ></section>
               </div>
             </div>
           </section>

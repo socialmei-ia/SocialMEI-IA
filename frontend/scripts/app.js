@@ -2258,6 +2258,8 @@ window.addEventListener("socialmei-theme-change", () => {
   requestAnimationFrame(renderDashboardChart);
   if (currentView === "Configurações" && selectedSettingsTab === "aparencia") {
     renderAppearance();
+  } else if (currentView === "Configurações") {
+    updateSettingsWorkspacePreview();
   }
 });
 renderThemeMenu();
@@ -3383,6 +3385,44 @@ function renderReports() {
           </section>`;
   updatePeriodCaptions();
 }
+function renderAccountSecurityControls(administrator) {
+  return /* HTML */ `
+    <div class="account-security-grid">
+      <section class="account-section account-security-card">
+        <div class="account-card-icon">${renderIcon("lock")}</div>
+        <h4>Senha e segurança</h4>
+        <p class="management-note">Ao atualizar sua senha, você precisará entrar novamente nos seus aparelhos.</p>
+        <details class="account-password-disclosure">
+          <summary>Alterar minha senha</summary>
+          <form id="accountPasswordForm" class="account-form">
+            <label class="management-field" for="accountCurrentPassword">Senha atual
+              <input id="accountCurrentPassword" class="management-input" type="password" name="atual" autocomplete="current-password" maxlength="128" required>
+            </label>
+            <label class="management-field" for="accountNewPassword">Nova senha
+              <input id="accountNewPassword" class="management-input" type="password" name="nova" autocomplete="new-password" minlength="12" maxlength="128" required aria-describedby="accountPasswordHint">
+            </label>
+            <small id="accountPasswordHint" class="account-helper">Use de 12 a 128 caracteres.</small>
+            <label class="management-field" for="accountConfirmPassword">Repita a nova senha
+              <input id="accountConfirmPassword" class="management-input" type="password" name="confirmacao" autocomplete="new-password" minlength="12" maxlength="128" required>
+            </label>
+            <p id="accountPasswordFeedback" class="account-feedback" role="status" aria-live="polite"></p>
+            <button class="account-button account-button-primary" type="submit">Atualizar senha</button>
+          </form>
+        </details>
+      </section>
+      <section class="account-section account-security-card">
+        <div class="account-card-icon">${renderIcon(administrator ? "users" : "user")}</div>
+        <h4>${administrator ? "Administração do projeto" : "Seu negócio, seu acesso"}</h4>
+        <p class="management-note">${administrator ? "Convide novos MEIs e gerencie os acessos em um painel exclusivo." : "Sua conta acessa apenas os dados do negócio ao qual está vinculada."}</p>
+        ${administrator ? '<a class="account-button account-button-primary" href="/frontend/admin.html">Abrir administração →</a>' : '<span class="account-badge">Negócio separado</span>'}
+      </section>
+    </div>
+    <div class="account-recovery-note">
+      <b>Precisa recuperar seu acesso?</b>
+      <p>A recuperação por e-mail está em preparação. Por enquanto, solicite ajuda ao administrador do projeto.</p>
+    </div>`;
+}
+
 function renderSettingsField(label, name, value, type = "text", extra = "") {
   return /* HTML */ `<label class="management-field" for="nvPref-${name}"
           >${label}<input
@@ -3403,7 +3443,10 @@ function renderSettingsForm(tab, fields) {
             role="status"
             aria-live="polite"
           ></p>
-          <button class="management-button" type="submit">Salvar alterações</button>
+          <div class="settings-form-footer">
+            <span>Salve para aplicar estas alterações.</span>
+            <button class="management-button pr" id="nvSettingsPrimary" type="submit">Salvar alterações</button>
+          </div>
         </form>`;
 }
 /* ==================================================
@@ -3422,19 +3465,23 @@ function renderSettings() {
     const on = b.dataset.settingsTab === selectedSettingsTab;
     b.classList.toggle("active", on);
     b.setAttribute("aria-current", on ? "page" : "false");
+    if (!b.querySelector(".settings-nav-icon")) {
+      const icons = {
+        conta: "user",
+        negocio: "bag",
+        aparencia: "sun",
+        notificacoes: "bell",
+        integracoes: "inbox",
+        equipe: "users",
+        plano: "wallet",
+        seguranca: "lock",
+        dados: "box",
+      };
+      const label = b.textContent;
+      b.innerHTML = `<span class="settings-nav-icon">${renderIcon(icons[b.dataset.settingsTab])}</span><span>${escapeHtml(label)}</span>`;
+    }
   });
-  $("settingsIdentity").innerHTML = /* HTML */ `${
-    p.logo
-      ? /* HTML */ `<img
-                  class="management-logo-preview"
-                  src="${escapeHtml(p.logo)}"
-                  alt="Logo do negócio"
-                />`
-      : /* HTML */ `<span class="av">${escapeHtml(getContactInitials(a.nome))}</span>`
-  }
-            <div
-              ><b>${escapeHtml(getBusinessLabel())}</b><small>${escapeHtml(a.nome)}</small></div
-            >`;
+  $("settingsSetupCount").textContent = `${done}/6`;
   $("nvSetupChecklist").innerHTML = /* HTML */ `<div class="management-setup-heading">
             <div>
               <b>${done} de 6 passos</b>
@@ -3462,19 +3509,18 @@ function renderSettings() {
               )
               .join("")}
           </div>`;
-  const primary = $("nvSettingsPrimary");
-  primary.textContent = ["conta", "negocio", "notificacoes"].includes(selectedSettingsTab)
-    ? "Salvar alterações"
-    : "Exportar meus dados";
   if (SocialMEIAuth.remote && SocialMEIAuth.current) {
     $("accountSettingsNotice").innerHTML =
       '<span class="account-badge account-badge-active">Conta conectada</span><span>Seu perfil está salvo no servidor. Canais e automações têm configuração própria.</span>';
+  } else {
+    $("accountSettingsNotice").innerHTML =
+      '<span class="account-badge">Demonstração local</span><span>Perfil e preferências neste navegador. Você decide o que salvar.</span>';
   }
   if (selectedSettingsTab === "conta") {
     const remote = SocialMEIAuth.remote;
     const administrator = !!SocialMEIAuth.current?.usuario.administrador_plataforma;
     host.innerHTML = /* HTML */ `<div class="account-section-heading"><div><span class="account-eyebrow">SEU ACESSO</span><h3>Minha conta</h3><p class="management-note">${remote ? "Seu perfil e a segurança do seu acesso, em um só lugar." : "Seu perfil na demonstração local."}</p></div><button type="button" class="account-button account-button-quiet" data-account-logout>${renderIcon("logout")}<span class="account-exit-label">Sair da conta</span></button></div>
-      <div class="account-overview"><span class="account-avatar">${escapeHtml(getContactInitials(a.nome))}</span><div class="account-overview-info"><b>${escapeHtml(a.nome)}</b><span>${escapeHtml(a.email || "Perfil deste navegador")}</span><small>${escapeHtml(getBusinessLabel())}</small></div><span class="account-badge">${remote ? (administrator ? "Administrador" : "Conta MEI") : "Demonstração"}</span></div>
+      <div class="account-overview"><span class="account-monogram" aria-hidden="true">${escapeHtml(getContactInitials(a.nome || getBusinessLabel()))}</span><span class="account-avatar">${escapeHtml(getContactInitials(a.nome || getBusinessLabel()))}</span><div class="account-overview-info"><b>${escapeHtml(a.nome || "Seu perfil")}</b><span>${escapeHtml(a.email || "Perfil deste navegador")}</span><small>${escapeHtml(getBusinessLabel())}</small></div><span class="account-badge">${remote ? (administrator ? "Administrador" : "Conta MEI") : "Demonstração"}</span></div>
       <section class="account-section"><div class="account-section-heading"><div><h4>Dados pessoais</h4><p class="management-note">${remote ? "O e-mail identifica sua conta. Nome e telefone podem ser atualizados." : "Esses dados ficam salvos neste navegador."}</p></div></div>
         ${renderSettingsForm(
           "conta",
@@ -3501,13 +3547,7 @@ function renderSettings() {
             ),
         )}
       </section>
-      ${
-        remote
-          ? `<div class="account-security-grid"><section class="account-section account-security-card"><div class="account-card-icon">${renderIcon("lock")}</div><h4>Senha e segurança</h4><p class="management-note">Ao atualizar sua senha, você precisará entrar novamente nos seus aparelhos.</p><details class="account-password-disclosure"><summary>Alterar minha senha</summary><form id="accountPasswordForm" class="account-form"><label class="management-field" for="accountCurrentPassword">Senha atual<input id="accountCurrentPassword" class="management-input" type="password" name="atual" autocomplete="current-password" maxlength="128" required></label><label class="management-field" for="accountNewPassword">Nova senha<input id="accountNewPassword" class="management-input" type="password" name="nova" autocomplete="new-password" minlength="12" maxlength="128" required aria-describedby="accountPasswordHint"></label><small id="accountPasswordHint" class="account-helper">Use de 12 a 128 caracteres.</small><label class="management-field" for="accountConfirmPassword">Repita a nova senha<input id="accountConfirmPassword" class="management-input" type="password" name="confirmacao" autocomplete="new-password" minlength="12" maxlength="128" required></label><p id="accountPasswordFeedback" class="account-feedback" role="status" aria-live="polite"></p><button class="account-button account-button-primary" type="submit">Atualizar senha</button></form></details></section>
-      <section class="account-section account-security-card"><div class="account-card-icon">${renderIcon(administrator ? "users" : "user")}</div><h4>${administrator ? "Administração do projeto" : "Seu negócio, seu acesso"}</h4><p class="management-note">${administrator ? "Convide novos MEIs e gerencie os acessos em um painel exclusivo." : "Sua conta acessa apenas os dados do negócio ao qual está vinculada."}</p>${administrator ? '<a class="account-button account-button-primary" href="/frontend/admin.html">Abrir administração →</a>' : '<span class="account-badge">Negócio separado</span>'}</section></div>
-      <div class="account-recovery-note"><b>Precisa recuperar seu acesso?</b><p>A recuperação por e-mail está em preparação. Por enquanto, solicite ajuda ao administrador do projeto.</p></div>`
-          : ""
-      }`;
+      ${remote ? renderAccountSecurityControls(administrator) : ""}`;
   } else if (selectedSettingsTab === "negocio") {
     host.innerHTML = /* HTML */ `<h3>Negócio</h3>
             <p class="management-note">Identidade e informações que ajudam seu atendimento.</p>
@@ -3579,7 +3619,7 @@ function renderSettings() {
             <div class="management-settings-row">
               <div>
                 <b>Avisos do sistema</b>
-                <p>Interruptor mestre para os avisos locais de novas mensagens.</p>
+                <p>Liga ou desliga imediatamente os avisos locais de novas mensagens.</p>
               </div>
               <button
                 class="management-switch"
@@ -3666,7 +3706,7 @@ function renderSettings() {
                       }
                     </p>
                     <button class="management-button pr" data-nv-connect="${c}">
-                      ${verified ? "Verificar conexão" : "Conectar"}
+                      ${verified ? "Verificar leitura" : "Ver instruções"}
                     </button>
                   </article>`;
                 })
@@ -3690,7 +3730,7 @@ function renderSettings() {
             </details>`;
   } else if (selectedSettingsTab === "equipe") {
     host.innerHTML = /* HTML */ `<h3>Equipe</h3>
-            <p class="management-note">Somente o dono neste espaço local.</p>
+            <p class="management-note">${SocialMEIAuth.remote ? "Seu perfil em uso neste negócio. A gestão de convites depende do administrador do projeto." : "Somente o dono neste espaço local."}</p>
             ${renderManagementTable(
               "Pessoas do espaço",
               ["Pessoa", "E-mail", "Papel"],
@@ -3701,7 +3741,11 @@ function renderSettings() {
                       ><b>${escapeHtml(a.nome)}</b>
                     </div>`,
                   escapeHtml(a.email || "Não informado"),
-                  "Dono",
+                  SocialMEIAuth.remote
+                    ? { owner: "Dono", admin: "Administrador", member: "Membro" }[
+                        SocialMEIAuth.current?.papel
+                      ] || "Participante"
+                    : "Dono",
                 ],
               ],
             )}
@@ -3709,21 +3753,18 @@ function renderSettings() {
               <button
                 class="management-button"
                 disabled
-                title="Convites e contas compartilhadas ainda não conectados."
+                title="Convites para uma equipe neste espaço ainda não estão disponíveis."
               >
                 Convidar pessoa</button
-              >${renderLocalDemoNotice()}
+              >${SocialMEIAuth.remote ? '<p class="management-note">Convites de novas contas são administrados no painel do projeto.</p>' : renderLocalDemoNotice()}
             </div>`;
   } else if (selectedSettingsTab === "plano") {
-    host.innerHTML = /* HTML */ `<!-- TROCAR: plano atual, recursos, limites e condições comerciais aprovados; não há cobrança conectada. -->
-            <h3>Plano e cobrança</h3>
-            <div class="management-card" style="margin-top:16px">
-              <span class="pill draft">Plano gratuito</span>
-              <h4>Demonstração local</h4>
-              <p>
-                Conversas de exemplo, clientes, vendas, catálogo, financeiro e backup neste
-                navegador.
-              </p>
+    host.innerHTML = /* HTML */ `<h3>Plano e cobrança</h3>
+            <p class="management-note">Informações sobre o acesso atual e condições comerciais.</p>
+            <div class="settings-plan">
+              <span class="account-badge">Sem cobrança ativa</span>
+              <h4>${SocialMEIAuth.remote ? "Acesso ao projeto" : "Demonstração local"}</h4>
+              <p>${SocialMEIAuth.remote ? "Seu acesso é feito pela conta vinculada ao negócio. Não há assinatura ou pagamento automático conectado a este ambiente." : "Conheça clientes, vendas, catálogo e financeiro com registros locais neste navegador."}</p>
               <p class="management-note">
                 Recursos e limites comerciais a confirmar. Nenhuma assinatura ou cobrança ativa.
               </p>
@@ -3731,7 +3772,13 @@ function renderSettings() {
             </div>`;
   } else if (selectedSettingsTab === "seguranca") {
     host.innerHTML = /* HTML */ `<h3>Segurança e privacidade</h3>
-            <div class="management-settings-row">
+            <p class="management-note">Cuide do acesso à sua conta e dos dados deste navegador.</p>
+            ${
+              SocialMEIAuth.remote
+                ? renderAccountSecurityControls(
+                    !!SocialMEIAuth.current?.usuario.administrador_plataforma,
+                  )
+                : /* HTML */ `<div class="management-settings-row">
               <div>
                 <b>Alterar senha</b>
                 <p>Autenticação externa indisponível. Nenhuma senha é salva nesta demonstração.</p>
@@ -3745,17 +3792,18 @@ function renderSettings() {
               </div>
               <button class="management-button" disabled>Ver sessões</button>
             </div>
-            ${renderLocalDemoNotice()}
+            ${renderLocalDemoNotice()}`
+            }
             <div class="management-settings-row">
               <div>
                 <b>Exportar meus dados</b>
-                <p>Backup dos registros e preferências deste navegador.</p>
+                <p>Cópia das preferências locais e dos dados carregados pelo app.</p>
               </div>
               <button class="management-button" id="exportBackup">Exportar meus dados</button>
             </div>
-            <div class="management-settings-row">
+            <div class="management-settings-row settings-danger-zone">
               <div>
-                <b>Excluir minha conta e dados locais</b>
+                <b>Limpeza deste navegador</b>
                 <p>
                   A limpeza remove os dados SocialMEI deste navegador. Não apaga mensagens nos
                   canais, registros em serviços externos nem uma conta externa. A LGPD orienta o
@@ -3768,13 +3816,25 @@ function renderSettings() {
             </div>`;
   } else {
     host.innerHTML = /* HTML */ `<h3>Dados</h3>
-            <p>${SocialMEIClients.remote ? "Clientes são compartilhados pela API. Confira a conexão de Catálogo e Vendas nas respectivas telas. Financeiro e preferências ficam neste navegador." : "Seus dados ficam salvos neste navegador."}</p>
+            <p>Veja onde cada módulo guarda seus registros. As preferências visuais e de rotina continuam neste navegador.</p>
+            <div class="settings-data-sources">
+              ${[
+                ["Clientes", SocialMEIClients.remote],
+                ["Produtos", SocialMEIProducts.remote],
+                ["Vendas", SocialMEISales.remote],
+                ["Financeiro", SocialMEIFinance.remote],
+              ]
+                .map(
+                  ([label, remote]) =>
+                    /* HTML */ `<div class="settings-data-source"><b>${label}</b><span>${remote ? "API do negócio" : "Neste navegador"}</span></div>`,
+                )
+                .join("")}
+            </div>
             <p class="management-note">
-              Faça um backup antes de trocar de dispositivo ou limpar o navegador. Importar
-              substitui os registros locais somente após sua confirmação.
+              Exporte uma cópia antes de trocar de dispositivo ou limpar o navegador. A importação de backup exige módulos em modo local e sua confirmação; ela não restaura o banco do servidor.
             </p>
             <div class="management-inline-actions" style="margin-top:16px">
-              <button class="management-button" id="exportBackup">Exportar backup</button
+              <button class="management-button pr" id="exportBackup">Exportar backup</button
               ><button class="management-button" id="importBackup">Importar backup</button
               ><button class="management-button" data-go="Relatórios">Abrir relatórios</button>
             </div>`;
@@ -3783,7 +3843,66 @@ function renderSettings() {
   pendingNotificationPreferences = {
     ...(appData.prefs.notifications || {}),
   };
+  updateSettingsIdentity();
+  finishSettingsPanel();
   syncBusinessIdentity();
+}
+
+function updateSettingsIdentity() {
+  const p = getBusinessPreferences();
+  const a = getAccountPreferences();
+  $("settingsIdentity").innerHTML = /* HTML */ `${
+    p.logo
+      ? /* HTML */ `<img
+                  class="management-logo-preview"
+                  src="${escapeHtml(p.logo)}"
+                  alt="Logo do negócio"
+                />`
+      : /* HTML */ `<span class="av">${escapeHtml(getContactInitials(a.nome || getBusinessLabel()))}</span>`
+  }
+            <div
+              ><b>${escapeHtml(getBusinessLabel())}</b><small>${escapeHtml(a.nome || "Seu perfil")}</small></div
+            >`;
+  const profile = $("settingsPanel").querySelector(".account-overview");
+  if (!profile) return;
+  profile.querySelectorAll(".account-avatar, .account-monogram").forEach((element) => {
+    element.textContent = getContactInitials(a.nome || getBusinessLabel());
+  });
+  profile.querySelector(".account-overview-info b").textContent = a.nome || "Seu perfil";
+  profile.querySelector(".account-overview-info span").textContent =
+    a.email || "Perfil deste navegador";
+  profile.querySelector(".account-overview-info small").textContent = getBusinessLabel();
+}
+
+function updateSettingsWorkspacePreview() {
+  const preview = $("settingsWorkspacePreview");
+  if (!preview) return;
+  preview.innerHTML = /* HTML */ `
+    <div class="settings-preview-canvas" aria-hidden="true">${themeMini(THEMES.current())}</div>
+    <div class="settings-preview-caption">
+      <span><b>${escapeHtml(getBusinessLabel())}</b><small>${escapeHtml(THEMES.current().name)}</small></span>
+      <button type="button" class="settings-preview-action" data-settings-appearance aria-label="Personalizar aparência">${renderIcon("cfg")}</button>
+    </div>`;
+}
+
+function finishSettingsPanel() {
+  const host = $("settingsPanel");
+  if (!host) return;
+  updateSettingsWorkspacePreview();
+  if (host.querySelector(":scope > .settings-panel-body")) return;
+  const title = host.querySelector(":scope > h3");
+  if (title) {
+    const header = document.createElement("header");
+    header.className = "settings-panel-heading";
+    header.append(title);
+    while (host.firstElementChild?.matches("p")) header.append(host.firstElementChild);
+    host.prepend(header);
+  }
+  const body = document.createElement("div");
+  body.className = "settings-panel-body";
+  body.append(...host.children);
+  host.append(body);
+  host.dataset.settingsSection = selectedSettingsTab;
 }
 let pendingBusinessLogo;
 let isBusinessLogoLoading = false;
@@ -3984,6 +4103,8 @@ document.addEventListener("submit", async (event) => {
   }
   syncBusinessIdentity();
   feedback.textContent = "Salvo";
+  updateSettingsIdentity();
+  updateSettingsWorkspacePreview();
   pendingBusinessLogo = undefined;
   document.dispatchEvent(
     new CustomEvent("socialmei-data-change", {
@@ -3995,6 +4116,7 @@ document.addEventListener("submit", async (event) => {
   // Atualiza identidade e checklist sem substituir o formulário ou perder sua confirmação.
   const after = getBusinessSetupSteps();
   const count = after.filter((x) => x[2]).length;
+  $("settingsSetupCount").textContent = `${count}/6`;
   $("nvSetupChecklist").querySelector("b").textContent = `${count} de 6 passos`;
   $("nvSetupChecklist").querySelector("progress").value = count;
   after.forEach((s, i) => {
@@ -4096,11 +4218,18 @@ document.addEventListener("click", (event) => {
     return;
   }
   if (event.target.closest("#nvSettingsPrimary")) {
+    if (event.target.closest("#nvSettingsPrimary").type === "submit") return;
     if ($("nvSettingsForm")) {
       $("nvSettingsForm").requestSubmit();
     } else {
       exportSocialMEIBackup();
     }
+    return;
+  }
+  if (event.target.closest("[data-settings-appearance]")) {
+    selectedSettingsTab = "aparencia";
+    renderSettings();
+    document.querySelector('[data-settings-tab="aparencia"]')?.focus();
     return;
   }
   if (event.target.closest("#nvRemoveLogo")) {
@@ -4149,12 +4278,12 @@ document.addEventListener("click", (event) => {
     openManagementDrawer(
       "Planos",
       /* HTML */ `<!-- TROCAR: catálogo de planos, recursos, limites e link oficial de contratação, quando publicados. -->
-              <p>Plano gratuito · demonstração local.</p>
+              <p>${SocialMEIAuth.remote ? "Acesso ao projeto por conta vinculada ao negócio." : "Demonstração local neste navegador."}</p>
               <p class="management-note">
                 Planos comerciais, preços e contratação ainda não foram publicados. Não há cobrança
                 ativa.
               </p>
-              ${renderLocalDemoNotice()}`,
+              ${SocialMEIAuth.remote ? "" : renderLocalDemoNotice()}`,
     );
     return;
   }

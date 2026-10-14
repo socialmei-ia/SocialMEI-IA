@@ -3042,29 +3042,45 @@ details[open] > :not(summary) {
 .theme-studio-modal .modal {
   width: min(1160px, 100%);
   max-height: calc(100dvh - 36px);
+
+  border-radius: 24px;
+  border: 1px solid var(--border);
 }
 .theme-studio-layout {
   display: grid;
   grid-template-columns: minmax(250px, 0.8fr) minmax(350px, 1.2fr);
-  gap: 22px;
+
+  gap: 32px;
+  background: var(--background);
 }
 .theme-controls {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+
   min-width: 0;
+
+  gap: 22px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
 }
 .theme-control > label,
 .theme-control legend {
   display: block;
-  font-size: var(--text-sm);
-  font-weight: 600;
-  margin-bottom: 6px;
+
   color: var(--tx);
+
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 10px;
 }
 .theme-control .form-control {
   width: 100%;
   background: var(--sf);
+
+  min-height: 44px;
+  border-radius: 10px;
 }
 .theme-color-pair {
   display: grid;
@@ -3121,17 +3137,20 @@ details[open] > :not(summary) {
   gap: 4px;
 }
 .theme-tip {
-  font-size: var(--text-sm);
-  line-height: var(--leading-body);
   color: var(--mt);
-  padding: 10px;
-  border-radius: var(--r-sm);
+
   background: var(--bg);
+
+  padding: 16px;
+  font-size: 12px;
+  line-height: 1.6;
+  border-radius: 10px;
 }
 .theme-advanced {
   border: 1px solid var(--ln);
-  border-radius: var(--r-sm);
-  padding: 10px;
+
+  padding: 14px;
+  border-radius: 12px;
 }
 .theme-advanced summary {
   display: flex;
@@ -3166,16 +3185,24 @@ details[open] > :not(summary) {
 }
 .theme-preview-tabs {
   display: flex;
-  gap: 5px;
+
   flex-wrap: wrap;
   margin-bottom: 12px;
+
+  gap: 4px;
+  padding: 5px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
 }
 .theme-preview-tabs button {
-  min-height: 44px;
-  font-size: var(--text-sm);
   padding: 7px 9px;
-  border-radius: var(--r-sm);
+
   border: 1px solid var(--ln);
+
+  min-height: 44px;
+  font-size: 12px;
+  border-radius: 8px;
 }
 .theme-preview-tabs button[aria-selected="true"] {
   background: var(--selected);
@@ -3376,11 +3403,13 @@ details[open] > :not(summary) {
   gap: 8px;
 }
 .theme-quality {
-  padding: 14px;
   border: 1px solid var(--ln);
-  border-radius: var(--r-sm);
+
   margin-top: 14px;
-  background: var(--sf);
+
+  border-radius: 12px;
+  padding: 18px;
+  background: var(--surface);
 }
 .theme-quality h4 {
   font-size: var(--text-sm);
@@ -3446,6 +3475,10 @@ details[open] > :not(summary) {
   bottom: 0;
   background: var(--sf);
   z-index: 2;
+
+  padding: 20px 28px;
+  gap: 10px;
+  border-top: 1px solid var(--border);
 }
 .theme-studio-footer .btn {
   font-size: var(--text-sm);
@@ -10871,75 +10904,765 @@ body.experience-app #experienceRoot {
 .report-export p {
   font-size: 13px;
 }
-/* SETTINGS — CSS
-      Identidade, navegação e painel de preferências. */
-/* SETTINGS — navegação silenciosa, formulário e divisores */
-#settingsView .management-settings-layout {
-  gap: 36px;
-  grid-template-columns: 210px minmax(0, 1fr);
+/* SETTINGS — identity, navigation and section workspace */
+#settingsView > .management-stack {
+  gap: 24px;
 }
-#settingsView .management-settings-layout > .management-card,
-#settingsView .management-settings-layout > aside {
+#settingsView .settings-intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 48px;
+  align-items: center;
+  padding: 8px 0 12px;
+}
+.settings-eyebrow {
+  display: block;
+  margin-bottom: 16px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--brand-primary-text);
+}
+.experience-app #settingsView .settings-intro h2 {
+  font-size: clamp(38px, 3.5vw, 48px);
+  font-weight: 600;
+  line-height: 1.07;
+  letter-spacing: -0.045em;
+  margin: 0;
+}
+#settingsView .settings-intro h2 span {
+  display: inline;
+  color: var(--text-secondary);
+}
+.experience-app #settingsView .settings-intro p {
+  max-width: 48ch;
+  margin-top: 20px;
+  font-size: 15px;
+  line-height: 1.65;
+}
+.settings-workspace-preview {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 18px;
+  overflow: hidden;
+  transform: rotate(2deg);
+  box-shadow: var(--shadow-sm);
+}
+.settings-preview-canvas {
+  padding: 16px 16px 0;
+}
+.settings-preview-canvas .theme-mini {
+  height: 88px;
+  border-radius: 10px;
+}
+.settings-preview-caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+}
+.settings-preview-caption > span {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+.settings-preview-caption b {
+  font-size: 13px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.settings-preview-caption small {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.settings-preview-action {
+  flex: none;
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--brand-primary-text);
+}
+#settingsView .settings-status {
+  gap: 12px;
+  font-size: 12px;
+  padding: 0 0 20px;
+  border-bottom: 1px solid var(--border);
+}
+#settingsView .management-settings-layout {
+  gap: 28px;
+  grid-template-columns: 232px minmax(0, 1fr);
+}
+#settingsView .settings-index {
+  position: sticky;
+  top: 24px;
   padding: 0;
   background: transparent;
+  border: 0;
+  border-radius: 0;
 }
-#settingsView .management-settings-layout > aside {
-  padding-block: 10px;
+#settingsIdentity {
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  gap: 12px;
+}
+#settingsIdentity .av,
+#settingsIdentity .management-logo-preview {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--brand-primary-soft);
+  color: var(--brand-primary-text);
+  border: 0;
+}
+#settingsIdentity > div {
+  min-width: 0;
+}
+#settingsIdentity b {
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+#settingsIdentity small {
+  margin-top: 3px;
+  font-size: 12px;
 }
 #settingsView .management-settings-nav {
   margin-top: 24px;
-  gap: 6px;
+  gap: 4px;
+}
+.settings-nav-group {
+  padding: 18px 14px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+.settings-nav-group:first-child {
+  padding-top: 0;
 }
 #settingsView .management-settings-nav button {
-  border-radius: 9px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 46px;
+  padding: 11px 14px;
+  border-radius: 10px;
   font-size: 13px;
+  color: var(--text-secondary);
+  background: transparent;
+  white-space: normal;
 }
-#settingsView #settingsPanel {
-  padding: 28px;
-  background: var(--surface);
-  border-radius: var(--internal-radius);
+#settingsView .management-settings-nav button[aria-current="page"] {
+  background: var(--brand-primary-soft);
+  color: var(--brand-primary-text);
+  font-weight: 600;
+}
+#settingsView .management-settings-nav button::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  width: 2px;
+  height: 18px;
+  border-radius: 2px;
+  background: var(--brand-primary);
+  transform: scaleY(0.3);
+  opacity: 0;
+}
+#settingsView .management-settings-nav button[aria-current="page"]::before {
+  opacity: 1;
+  transform: scaleY(1);
+}
+.settings-nav-icon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  opacity: 0.8;
+}
+.settings-nav-icon .i {
+  width: 18px;
+  height: 18px;
+}
+.settings-setup-disclosure {
+  margin-top: 24px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+.settings-setup-disclosure > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  list-style: none;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.settings-setup-disclosure > summary::before {
+  content: "+";
+  font-size: 18px;
+  color: var(--brand-primary-text);
+}
+.settings-setup-disclosure > summary::after {
+  content: none;
+}
+.settings-setup-disclosure[open] > summary::before {
+  content: "−";
+}
+#settingsSetupCount {
+  margin-left: auto;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
 }
 #settingsView #nvSetupChecklist {
-  background: transparent;
-  padding: 0 0 28px;
-  border-bottom: 1px solid var(--internal-line);
+  border: 0;
   border-radius: 0;
+  padding: 14px 0 0;
+  background: transparent;
+}
+#settingsView .management-setup-heading {
+  display: grid;
+  gap: 10px;
+}
+#settingsView .management-setup-heading b {
+  font-size: 13px;
+}
+#settingsView .management-setup-heading p {
+  margin-top: 4px;
+  line-height: 1.5;
+}
+#settingsView .management-setup-grid {
+  grid-template-columns: 1fr;
 }
 #settingsView .management-setup-step {
   border: 0;
   background: transparent;
-  padding: 8px 4px;
+  padding: 10px;
+  font-size: 12px;
 }
 #settingsView .management-setup-step.done {
   background: var(--brand-primary-soft);
 }
-#settingsView .management-settings-row {
-  padding-block: 24px;
+#settingsView #settingsPanel {
+  padding: 0;
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  overflow: clip;
 }
-#settingsView .management-settings-row b {
-  font-weight: 550;
+.settings-panel-body {
+  padding: 32px;
 }
-#settingsView .management-field {
+.settings-panel-heading {
+  margin-bottom: 28px;
+}
+.settings-panel-heading h3,
+#settingsPanel .account-section-heading h3,
+#settingsPanel .theme-settings-head h3 {
+  font-size: 25px;
+  line-height: 1.25;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+.settings-panel-heading p {
+  font-size: 13px;
+  line-height: 1.65;
+  max-width: 62ch;
+  margin-top: 10px;
+  color: var(--text-secondary);
+}
+#settingsPanel .account-eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--brand-primary-text);
+  margin-bottom: 9px;
+}
+#settingsPanel .account-overview {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 0;
+  border-radius: 14px;
+  padding: 22px;
+  margin-top: 26px;
+  background: var(--tooltip-background);
+  color: var(--tooltip-text);
+}
+#settingsPanel .account-monogram {
+  position: absolute;
+  z-index: -1;
+  right: 12px;
+  top: -22px;
+  font-size: 150px;
+  font-weight: 650;
+  letter-spacing: -0.06em;
+  line-height: 1;
+  opacity: 0.07;
+  pointer-events: none;
+}
+#settingsPanel[data-settings-section="seguranca"] .account-security-grid {
+  border-top: 0;
+  padding-top: 0;
+  margin-top: 0;
+}
+#settingsPanel .account-overview .account-overview-info span,
+#settingsPanel .account-overview .account-overview-info small,
+#settingsPanel .account-overview > .account-badge {
+  color: inherit;
+}
+#settingsPanel .account-overview > .account-badge {
+  border-color: color-mix(in srgb, currentColor 35%, transparent);
+  background: transparent;
+}
+#settingsPanel .account-overview .account-avatar {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+  color: inherit;
+  border-radius: 50%;
+}
+#settingsPanel .account-avatar {
+  border-radius: 18px;
+  width: 64px;
+  height: 64px;
+  font-size: 22px;
+  background: var(--brand-primary-soft);
+}
+#settingsPanel .account-overview-info b {
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+#settingsPanel .account-section {
+  border-radius: 0;
+  padding: 28px 0 0;
+  border-bottom: 0;
+}
+#settingsPanel .account-section h4 {
+  font-size: 16px;
+  font-weight: 600;
+}
+#settingsPanel .management-form-grid {
+  gap: 22px 24px;
+}
+#settingsPanel .management-field {
+  font-size: 12px;
+  font-weight: 500;
+  gap: 8px;
+}
+#settingsPanel .management-input {
+  min-height: 48px;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 400;
+  border-radius: 10px;
+  background: var(--background);
+}
+#settingsPanel .management-input[readonly] {
+  background: var(--surface-secondary);
+}
+#settingsPanel .management-settings-feedback:empty {
+  min-height: 0;
+  margin-top: 0;
+}
+.settings-form-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-top: 1px solid var(--border);
+  padding-top: 22px;
+  margin-top: 28px;
+}
+.settings-form-footer > span {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.settings-form-footer button {
+  flex: none;
+}
+#settingsPanel .account-security-grid {
+  gap: 16px;
+  border-top: 1px solid var(--border);
+  padding-top: 28px;
+  margin: 28px 0 0;
+}
+#settingsPanel .account-security-card {
+  padding: 22px;
+  border-radius: 14px;
+  background: var(--surface-secondary);
+  border: 0;
+}
+#settingsPanel .account-card-icon {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+}
+#settingsPanel .account-password-disclosure > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+}
+#settingsPanel .account-recovery-note {
+  margin-top: 24px;
+  padding: 18px 0 0;
+  border-left: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+}
+#settingsPanel .management-settings-row {
+  padding: 22px 0;
+  align-items: flex-start;
+}
+#settingsPanel .management-settings-row p {
+  max-width: 48ch;
+  font-size: 13px;
+  line-height: 1.6;
+  margin-top: 6px;
+}
+#settingsPanel .management-switch {
+  flex: none;
+  margin-top: 3px;
+}
+#settingsPanel .management-integration-card {
+  border-radius: 14px;
+  padding: 22px;
+  background: var(--background);
+  gap: 16px;
+}
+#settingsPanel .management-integration-card h4 {
+  display: flex;
+  align-items: center;
   gap: 10px;
+  font-size: 16px;
+  font-weight: 600;
+}
+#settingsPanel .management-integration-card p {
+  font-size: 13px;
+  line-height: 1.6;
+}
+#settingsPanel .management-integration-card .pill {
+  align-self: start;
+  white-space: normal;
+}
+#settingsPanel .management-integration-card button {
+  background: var(--surface);
+  color: var(--brand-primary-text);
+  border-color: var(--border);
+}
+#settingsPanel .theme-settings-head {
+  margin-bottom: 24px;
+}
+#settingsPanel .theme-grid {
+  gap: 16px;
+}
+#settingsPanel .theme-card {
+  padding: 18px;
+  background: var(--background);
+  border-radius: 14px;
+}
+#settingsPanel .theme-card.is-active {
+  background: var(--brand-primary-subtle);
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 1px var(--brand-primary);
+}
+#settingsPanel .theme-mini {
+  height: 132px;
+}
+#settingsPanel .theme-card-heading {
+  margin-top: 16px;
+}
+#settingsPanel .theme-card-heading b {
+  font-size: 15px;
+  font-weight: 600;
+}
+#settingsPanel .theme-card .theme-help {
+  font-size: 12px;
+  margin-top: 6px;
+}
+#settingsPanel .theme-card-actions {
+  gap: 8px;
+  margin-top: 16px;
+}
+#settingsPanel .theme-card-actions .btn {
+  height: auto;
+  min-height: 44px;
+  padding: 10px 12px;
+  font-size: 12px;
+}
+#settingsPanel .theme-official {
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+#settingsPanel .theme-personal {
+  margin-top: 32px;
+  padding-top: 28px;
+}
+#settingsPanel .theme-empty {
+  padding: 24px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.6;
+  background: var(--background);
+}
+.settings-data-sources {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 24px 0;
+}
+.settings-data-source {
+  padding: 18px;
+  border: 1px solid var(--border);
+  background: var(--background);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+.settings-data-source span {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+#settingsPanel .settings-danger-zone {
+  margin-top: 28px;
+  padding: 22px;
+  border: 1px solid color-mix(in srgb, var(--danger) 25%, var(--border));
+  border-radius: 14px;
+  background: var(--danger-soft);
+}
+#settingsPanel .settings-danger-zone p {
+  max-width: 62ch;
+}
+#settingsPanel .settings-plan {
+  padding: 28px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--background);
+}
+.settings-plan h4 {
+  font-size: 28px;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  margin: 20px 0 12px;
+}
+.settings-plan p {
+  font-size: 14px;
+  line-height: 1.65;
+  margin-bottom: 16px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .settings-panel-body {
+    animation: settingsPanelArrival var(--motion-medium) var(--ease-out) both;
+  }
+  #settingsView .management-settings-nav button,
+  #settingsView .management-settings-nav button::before,
+  .settings-preview-action {
+    transition:
+      background-color var(--motion-fast),
+      color var(--motion-fast),
+      opacity var(--motion-fast),
+      transform var(--motion-fast);
+  }
+  .settings-preview-action:hover {
+    background: var(--brand-primary-soft);
+    transform: translateY(-1px);
+  }
+  @keyframes settingsPanelArrival {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+@media (max-width: 1100px) {
+  #settingsView .management-settings-layout {
+    grid-template-columns: 200px minmax(0, 1fr);
+    gap: 20px;
+  }
+  .settings-panel-body {
+    padding: 26px;
+  }
+  #settingsPanel .management-integration-grid {
+    grid-template-columns: 1fr;
+  }
 }
 @media (max-width: 720px) {
-  #settingsView .management-settings-layout {
+  #settingsView .settings-intro {
     grid-template-columns: minmax(0, 1fr);
     gap: 24px;
+    padding-top: 0;
+  }
+  .experience-app #settingsView .settings-intro h2 {
+    font-size: 38px;
+  }
+  .experience-app #settingsView .settings-intro p {
+    font-size: 14px;
+    margin-top: 14px;
+  }
+  .settings-eyebrow {
+    margin-bottom: 12px;
+  }
+  #settingsView .settings-intro h2 span {
+    display: block;
+  }
+  .settings-workspace-preview {
+    display: none;
+  }
+  #settingsView .settings-status {
+    display: grid;
+    gap: 8px;
+    padding-bottom: 20px;
+    line-height: 1.6;
+  }
+  #settingsView .management-settings-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+  #settingsView .settings-index {
+    position: static;
+    overflow: visible;
+  }
+  #settingsIdentity {
+    padding: 12px 14px;
   }
   #settingsView .management-settings-nav {
     display: flex;
     overflow-x: auto;
-    margin-top: 16px;
-    padding-bottom: 4px;
+    max-width: 100%;
+    margin-top: 14px;
+    padding: 2px 0 6px;
+    scrollbar-width: thin;
   }
   #settingsView .management-settings-nav button {
+    white-space: nowrap;
     flex: none;
+    gap: 8px;
+    padding: 10px 12px;
+    min-height: 44px;
   }
-  #settingsView #settingsPanel {
-    padding: 22px 16px;
+  .settings-nav-group {
+    display: none;
+  }
+  .settings-setup-disclosure {
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 0;
+  }
+  #settingsView .management-setup-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  #settingsView .management-setup-heading {
+    grid-template-columns: minmax(0, 1fr) 80px;
+    align-items: center;
+  }
+  .settings-panel-body {
+    padding: 22px 18px;
+  }
+  #settingsPanel .account-section-heading {
+    gap: 12px;
+  }
+  #settingsPanel .account-overview {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: 12px;
+    padding: 18px;
+  }
+  #settingsPanel .account-avatar {
+    width: 48px;
+    height: 48px;
+    font-size: 18px;
+    border-radius: 14px;
+  }
+  #settingsPanel .account-overview > .account-badge {
+    grid-column: 2;
+    font-size: 10px;
+  }
+  #settingsPanel .account-overview-info b {
+    font-size: 17px;
+  }
+  #settingsPanel .account-overview-info span {
+    font-size: 12px;
+  }
+  #settingsPanel .management-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+  .settings-form-footer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+    margin-top: 24px;
+  }
+  .settings-data-sources {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #settingsPanel .settings-danger-zone {
+    flex-direction: column;
+    gap: 16px;
+    padding: 18px;
+  }
+  #settingsPanel .settings-plan {
+    padding: 22px;
+  }
+  #settingsPanel .theme-settings-head {
+    gap: 14px;
+  }
+  #settingsPanel .theme-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #settingsPanel .theme-settings-head + .theme-grid > .theme-card {
+    display: grid;
+    grid-template-columns: 92px minmax(0, 1fr);
+    column-gap: 16px;
+    padding: 16px;
+  }
+  #settingsPanel .theme-settings-head + .theme-grid > .theme-card > .theme-mini,
+  #settingsPanel .theme-settings-head + .theme-grid > .theme-card > .theme-auto-preview {
+    grid-column: 1;
+    grid-row: 1 / 4;
+    height: 122px;
+  }
+  #settingsPanel .theme-auto-preview .theme-mini {
+    height: 122px;
+  }
+  #settingsPanel .theme-settings-head + .theme-grid .theme-card-heading,
+  #settingsPanel .theme-settings-head + .theme-grid .theme-help,
+  #settingsPanel .theme-settings-head + .theme-grid .theme-card-actions {
+    grid-column: 2;
+    margin-top: 0;
+  }
+  #settingsPanel .theme-settings-head + .theme-grid .theme-card-actions {
+    margin-top: 12px;
+  }
+  #settingsPanel .theme-card .theme-mini {
+    min-width: 0;
+  }
+  #settingsPanel .theme-official {
+    display: none;
   }
 }
+
 .preferences-workspace {
   display: grid;
   grid-template-columns: 230px minmax(0, 1fr);

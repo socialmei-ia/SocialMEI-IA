@@ -144,6 +144,7 @@ function renderAppearance() {
           <p class="theme-help">
             Temas oficiais são protegidos. Use “Usar como base” para criar uma cópia editável.
           </p>`;
+  finishSettingsPanel();
 }
 function renderThemeMenu() {
   const host = $("themeMenu");
@@ -204,6 +205,8 @@ function applyAppTheme(id) {
   requestAnimationFrame(renderDashboardChart);
   if (currentView === "Configurações" && selectedSettingsTab === "aparencia") {
     renderAppearance();
+  } else if (currentView === "Configurações") {
+    updateSettingsWorkspacePreview();
   }
   if (!document.body.classList.contains("experience-app")) {
     return;

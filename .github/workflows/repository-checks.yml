@@ -161,6 +161,8 @@ jobs:
         run: node tests/stability-browser.cjs
       - name: Visual interactions and motion accessibility
         run: node tests/visual-browser.cjs
+      - name: Settings sections, local and connected modes
+        run: node tests/settings-browser.cjs
       - name: HTTPS authentication regression
         run: node tests/team-browser.cjs
       - name: Save browser evidence
