@@ -1,5 +1,13 @@
+<a name="inicio"></a>
+
+<picture>
+  <source media="(max-width: 600px) and (prefers-color-scheme: dark)" srcset="docs/assets/readme/banner-dark-mobile.svg" />
+  <source media="(max-width: 600px)" srcset="docs/assets/readme/banner-light-mobile.svg" />
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/banner-dark.svg" />
+  <img src="docs/assets/readme/banner-light.svg" alt="SocialMEI.IA — Seu negócio, em contexto. Clientes, atendimento e gestão perto de cada próximo passo." width="1280" />
+</picture>
+
 <div align="center">
-  <img src="docs/assets/socialmei-logo.png" alt="Logo SocialMEI.IA" width="112" />
 
 # SocialMEI.IA
 
@@ -10,19 +18,24 @@ e contexto de atendimento em uma interface feita com HTML, CSS e JavaScript puro
 
 [![Verificações do repositório](https://github.com/socialmei-ia/SocialMEI-IA/actions/workflows/repository-checks.yml/badge.svg?branch=main)](https://github.com/socialmei-ia/SocialMEI-IA/actions/workflows/repository-checks.yml)
 
-[Conheça o produto](#o-que-você-encontra) · [Rodar localmente](#comece-por-aqui) · [Documentação](#guias-para-cada-tarefa) · [Contribuir](CONTRIBUTING.md)
+[Tour do produto](#tour-do-produto) · [Guia de início](#comece-por-aqui) · [Documentação](#guias-para-cada-tarefa) · [Estado atual](#estado-do-projeto)
 
 </div>
 
-<br />
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/home-dark.png" />
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/screenshots/home-light.png" />
-  <img src="docs/assets/screenshots/home-light.png" alt="Home do SocialMEI.IA com ações rápidas, atendimentos e resumo do negócio" width="1440" />
-</picture>
-
-<p align="center"><sub>Capturas da demonstração local, com dados fictícios. A imagem acompanha o tema do GitHub.</sub></p>
+<p align="center">
+  <a href="#tour-do-produto"><picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/explore-dark.svg" />
+    <img src="docs/assets/readme/explore-light.svg" alt="Explorar o produto" width="240" />
+  </picture></a>
+  <a href="#comece-por-aqui"><picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/start-dark.svg" />
+    <img src="docs/assets/readme/start-light.svg" alt="Rodar no computador" width="240" />
+  </picture></a>
+  <a href="CONTRIBUTING.md"><picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/contribute-dark.svg" />
+    <img src="docs/assets/readme/contribute-light.svg" alt="Contribuir" width="240" />
+  </picture></a>
+</p>
 
 ## O que você encontra
 
@@ -37,20 +50,83 @@ A proposta é manter o contexto perto da ação: quem é o cliente, o que foi co
 | **Assistente e automações** | Preparar sugestões locais e simular regras para revisão do usuário. Sem IA remota ou executor de automações homologados. |
 | **Contas e preferências**   | Acesso remoto por convite, sessão revogável e configuração do negócio; temas claro, escuro, automático e personalizado.  |
 
-<details>
-<summary><strong>Veja a Caixa Unificada e as Configurações</strong></summary>
+## Tour do produto
 
-### Atendimento com contexto
+**Clique nos títulos para abrir cada área.** Comece pela Home, visite os módulos e use os atalhos para chegar aos guias de cada tela. As imagens mostram a demonstração local com dados fictícios.
 
-![Caixa Unificada com conversa, histórico e informações do cliente em modo demonstrativo](docs/assets/screenshots/inbox-dark.png)
+<details open>
+<summary><strong>01 · Home — um ponto de partida para a rotina</strong></summary>
 
-### Um espaço para ajustar o negócio
+Ações rápidas, atendimentos e resumo do negócio. O screenshot abaixo acompanha o tema claro ou escuro do GitHub.
 
-![Configurações do SocialMEI.IA em tema escuro, com navegação por seções e resumo da conta](docs/assets/screenshots/settings-dark.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/home-dark.png" />
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/screenshots/home-light.png" />
+  <img src="docs/assets/screenshots/home-light.png" alt="Home do SocialMEI.IA com ações rápidas, atendimentos e resumo do negócio" width="1440" />
+</picture>
 
-Capturas de 14/10/2026, produzidas a partir do frontend `92d4c20`. Dados locais de demonstração; não são registros de clientes reais nem prova do runtime na AWS.
+[Ver a estrutura da Home](frontend/scripts/home.js) · [Design system](docs/DESIGN-SYSTEM.md)
 
 </details>
+
+<details>
+<summary><strong>02 · Caixa Unificada — converse com o contexto ao lado</strong></summary>
+
+Histórico, notas, rascunhos e informações do cliente. A criação de conversa é local; nenhuma mensagem externa é enviada pelo composer.
+
+![Caixa Unificada demonstrativa com conversa e contexto do cliente](docs/assets/screenshots/inbox-dark.png)
+
+[Entender o atendimento](ARCHITECTURE.md#atendimento-e-infraestrutura-legada) · [Consultar os contratos da API](docs/API-ENDPOINTS.md)
+
+</details>
+
+<details>
+<summary><strong>03 · Clientes — organize as pessoas do seu negócio</strong></summary>
+
+Cadastro, busca e contexto de relacionamento. Na versão remota, os dados pertencem ao workspace resolvido pela sessão.
+
+![Clientes da demonstração local em tema escuro](docs/assets/screenshots/customers-dark.png)
+
+[Consultar os contratos de gestão](docs/API-ENDPOINTS.md) · [Contas e permissões](docs/CONTAS-MEIS.md)
+
+</details>
+
+<details>
+<summary><strong>04 · Financeiro — acompanhe o que entra e o que sai</strong></summary>
+
+Recebimentos, pagamentos e vencimentos com filtros e estados definidos. Os valores da captura são exemplos, não dados financeiros reais.
+
+![Financeiro demonstrativo com resumo, movimentações e filtros](docs/assets/screenshots/finance-dark.png)
+
+[Consultar os contratos de gestão](docs/API-ENDPOINTS.md) · [Como testar o projeto](DEVELOPMENT.md)
+
+</details>
+
+<details>
+<summary><strong>05 · Automações — prepare o próximo passo</strong></summary>
+
+Explore regras e sua execução simulada. O app não publica workflows nem envia mensagens; a execução real é uma integração futura.
+
+![Automações locais com rotina e sequência de ações sugeridas](docs/assets/screenshots/automations-dark.png)
+
+[Entender os exports n8n](n8n-workflows/README.md) · [Planejamento](ROADMAP.md)
+
+</details>
+
+<details>
+<summary><strong>06 · Configurações — deixe o espaço do seu jeito</strong></summary>
+
+Conta, negócio, aparência, segurança e dados reunidos por seção. No tema personalizado, cores e preferências continuam fazendo parte da experiência.
+
+![Configurações demonstrativas com navegação por seções](docs/assets/screenshots/settings-dark.png)
+
+[Conhecer o design de Configurações](docs/SETTINGS-REDESIGN.md) · [Guia de contas](docs/CONTAS-MEIS.md)
+
+</details>
+
+<sub>Capturas de 14/10/2026, frontend `92d4c20`, com chamadas externas bloqueadas. Não representam uma conferência da AWS.</sub>
+
+[Voltar ao início ↑](#inicio)
 
 ## Estado do projeto
 
@@ -165,6 +241,36 @@ O CI usa PostgreSQL 16, testa gateway, stack team isolada e backup/restore em de
 
 </details>
 
+## Dúvidas rápidas
+
+<details>
+<summary><strong>Preciso de React ou de um build para abrir o frontend?</strong></summary>
+
+Não. A aplicação usa HTML, CSS e JavaScript puro. Sirva a pasta completa por HTTP seguindo o [guia de início](#comece-por-aqui). Node e Docker são ferramentas de desenvolvimento/testes e dos serviços; não são um build obrigatório da interface.
+
+</details>
+
+<details>
+<summary><strong>O WhatsApp e a IA já estão conectados?</strong></summary>
+
+Não estão homologados como uma integração completa. O Assistente gera sugestões locais e o composer não envia mensagens externas. Os exports n8n inativos e a estrutura de canais não comprovam atendimento real. Veja [Estado do projeto](#estado-do-projeto).
+
+</details>
+
+<details>
+<summary><strong>O README pode funcionar como um aplicativo interativo?</strong></summary>
+
+O GitHub permite links, imagens, diagramas e seções expansíveis, mas não executa o JavaScript da aplicação dentro do README. Este tour usa recursos nativos; para interagir com o software, rode a demonstração local.
+
+</details>
+
+<details>
+<summary><strong>Um merge já atualiza o site da AWS?</strong></summary>
+
+Não. Git, CI e runtime têm processos separados. A equipe usa atualização restrita a serviços e SHA aprovado, com backup verificado. Os detalhes estão em [Operação team](docs/OPERACAO-EQUIPE.md).
+
+</details>
+
 ## Código, CI e servidor são coisas diferentes
 
 - **GitHub:** fonte, documentação e histórico. Um merge não atualiza automaticamente a AWS.
@@ -195,6 +301,8 @@ A revisão de manutenção está proposta no [PR #42](https://github.com/socialm
 
 **SocialMEI.IA** — uma base de trabalho para cuidar do negócio com contexto.
 
-[Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [Contribuição](CONTRIBUTING.md) · [Segurança](SECURITY.md)
+[Voltar ao início ↑](#inicio) · [Roadmap](ROADMAP.md) · [Contribuição](CONTRIBUTING.md) · [Segurança](SECURITY.md)
+
+<sub>Direção visual e referências: [guia da apresentação](docs/GITHUB-PRESENTATION.md).</sub>
 
 </div>

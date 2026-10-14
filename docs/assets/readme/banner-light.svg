@@ -1,0 +1,36 @@
+<?xml version="1.0" ?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="440" viewBox="0 0 1280 440" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">SocialMEI.IA — seu negócio em contexto</title>
+  <desc id="desc">Banner editorial com a conexão entre cliente, conversa, gestão e próximo passo.</desc>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <rect x="1" y="1" width="1278" height="438" rx="28" fill="#f5f7fa" stroke="#d6e0ec"/>
+    <path d="M48 87H1232" stroke="#d6e0ec"/>
+    <text x="48" y="57" fill="#192a3f" font-size="26" font-weight="700">SocialMEI.IA</text>
+    <text x="1075" y="55" fill="#56677d" font-size="12" font-weight="700" letter-spacing="1.5">CRM PARA MEIs</text>
+    <text x="48" y="139" fill="#236ddd" font-size="12" font-weight="700" letter-spacing="1.2">MENOS DISPERSÃO. MAIS CONTEXTO.</text>
+    <text x="45" y="225" fill="#192a3f" font-size="72" font-weight="700" letter-spacing="-2.5">Seu negócio,</text>
+    <text x="45" y="302" fill="#192a3f" font-size="72" font-weight="700" letter-spacing="-2.5">em contexto.</text>
+    <text x="48" y="352" fill="#56677d" font-size="20" font-weight="400">Clientes, atendimento e gestão</text>
+    <text x="48" y="380" fill="#56677d" font-size="20" font-weight="400">perto de cada próximo passo.</text>
+    <path d="M683 118V391" stroke="#d6e0ec"/>
+    <text x="730" y="136" fill="#56677d" font-size="11" font-weight="700" letter-spacing="1.1">UM FLUXO. VÁRIOS PONTOS DE CONTATO.</text>
+    <rect x="730" y="158" width="216" height="96" rx="16" fill="#ffffff" stroke="#d6e0ec"/>
+    <text x="747" y="184" fill="#236ddd" font-size="12" font-weight="700">01</text>
+    <text x="747" y="210" fill="#192a3f" font-size="20" font-weight="700">Cliente</text>
+    <text x="747" y="234" fill="#56677d" font-size="13" font-weight="400">Conheça a pessoa.</text>
+    <rect x="980" y="158" width="216" height="96" rx="16" fill="#ffffff" stroke="#d6e0ec"/>
+    <text x="997" y="184" fill="#236ddd" font-size="12" font-weight="700">02</text>
+    <text x="997" y="210" fill="#192a3f" font-size="20" font-weight="700">Conversa</text>
+    <text x="997" y="234" fill="#56677d" font-size="13" font-weight="400">Guarde o contexto.</text>
+    <rect x="730" y="274" width="216" height="96" rx="16" fill="#ffffff" stroke="#d6e0ec"/>
+    <text x="747" y="300" fill="#236ddd" font-size="12" font-weight="700">03</text>
+    <text x="747" y="326" fill="#192a3f" font-size="20" font-weight="700">Gestão</text>
+    <text x="747" y="350" fill="#56677d" font-size="13" font-weight="400">Organize o negócio.</text>
+    <rect x="980" y="274" width="216" height="96" rx="16" fill="#ffffff" stroke="#d6e0ec"/>
+    <text x="997" y="300" fill="#b98212" font-size="12" font-weight="700">04</text>
+    <text x="997" y="326" fill="#192a3f" font-size="20" font-weight="700">Próximo passo</text>
+    <text x="997" y="350" fill="#56677d" font-size="13" font-weight="400">Revise e decida.</text>
+    <path d="M946 204H978M1090 256V272M978 320H948" stroke="#236ddd" stroke-width="2" stroke-linecap="round"/>
+    <text x="731" y="403" fill="#56677d" font-size="11" font-weight="400">Fluxo ilustrativo · sugestões locais · revisão humana</text>
+  </g>
+</svg>

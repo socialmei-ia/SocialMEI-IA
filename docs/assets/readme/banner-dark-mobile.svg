@@ -1,0 +1,30 @@
+<?xml version="1.0" ?>
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">SocialMEI.IA — seu negócio em contexto</title>
+  <desc id="desc">Banner editorial com a conexão entre cliente, conversa, gestão e próximo passo.</desc>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <rect x="1" y="1" width="638" height="638" rx="28" fill="#0c1726" stroke="#2c4059"/>
+    <path d="M48 87H592" stroke="#2c4059"/>
+    <text x="48" y="57" fill="#eef4fc" font-size="26" font-weight="700">SocialMEI.IA</text>
+    <text x="435" y="55" fill="#a1b0c5" font-size="12" font-weight="700" letter-spacing="1.5">CRM PARA MEIs</text>
+    <text x="48" y="139" fill="#81b5ff" font-size="12" font-weight="700" letter-spacing="1.2">MENOS DISPERSÃO. MAIS CONTEXTO.</text>
+    <text x="45" y="225" fill="#eef4fc" font-size="72" font-weight="700" letter-spacing="-2.5">Seu negócio,</text>
+    <text x="45" y="302" fill="#eef4fc" font-size="72" font-weight="700" letter-spacing="-2.5">em contexto.</text>
+    <text x="48" y="352" fill="#a1b0c5" font-size="20" font-weight="400">Clientes, atendimento e gestão</text>
+    <text x="48" y="380" fill="#a1b0c5" font-size="20" font-weight="400">perto de cada próximo passo.</text>
+    <path d="M48 417H592" stroke="#2c4059"/>
+    <rect x="48" y="449" width="174" height="105" rx="16" fill="#152438" stroke="#2c4059"/>
+    <text x="64" y="478" fill="#81b5ff" font-size="13" font-weight="700">01</text>
+    <text x="64" y="508" fill="#eef4fc" font-size="20" font-weight="700">Cliente</text>
+    <text x="64" y="532" fill="#a1b0c5" font-size="13" font-weight="400">Conhecer</text>
+    <rect x="233" y="449" width="174" height="105" rx="16" fill="#152438" stroke="#2c4059"/>
+    <text x="249" y="478" fill="#81b5ff" font-size="13" font-weight="700">02</text>
+    <text x="249" y="508" fill="#eef4fc" font-size="20" font-weight="700">Conversa</text>
+    <text x="249" y="532" fill="#a1b0c5" font-size="13" font-weight="400">Contextualizar</text>
+    <rect x="418" y="449" width="174" height="105" rx="16" fill="#152438" stroke="#2c4059"/>
+    <text x="434" y="478" fill="#f2c451" font-size="13" font-weight="700">03</text>
+    <text x="434" y="508" fill="#eef4fc" font-size="20" font-weight="700">Próximo passo</text>
+    <text x="434" y="532" fill="#a1b0c5" font-size="13" font-weight="400">Decidir</text>
+    <text x="48" y="598" fill="#a1b0c5" font-size="15" font-weight="400">Fluxo ilustrativo · sugestões locais · revisão humana</text>
+  </g>
+</svg>
