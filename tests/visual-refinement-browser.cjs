@@ -6,9 +6,16 @@ module.exports = async function visualRefinementFlows(browser, origin, errors = 
     reducedMotion: "reduce",
   });
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.route("**/*", (route) =>
-    new URL(route.request().url()).origin === origin ? route.continue() : route.abort(),
-  );
+  await page.route("**/*", (route) => {
+    const url = new URL(route.request().url());
+    if (url.origin !== origin) return route.abort();
+    if (url.pathname === "/frontend/config.js")
+      return route.fulfill({
+        contentType: "text/javascript",
+        body: "const SOCIALMEI_CONFIG = {n8nMessagesUrl:null};",
+      });
+    return route.continue();
+  });
   await page.clock.setFixedTime(new Date("2026-10-13T12:00:00Z"));
   try {
     await page.goto(origin + "/frontend/socialmei-app.html");
@@ -51,9 +58,17 @@ module.exports = async function visualRefinementFlows(browser, origin, errors = 
     await page.locator("#toggleDetailsBtn").click();
     assert.equal(await page.locator("#detailsPane").getAttribute("aria-modal"), "true");
     const missing = page.locator(".context-missing-fields summary");
-    await missing.focus();
-    await page.keyboard.press("Enter");
+    await missing.press("Enter");
+    await page.waitForFunction(() => document.querySelector(".context-missing-fields")?.open);
     assert.equal(await page.locator(".context-missing-fields").getAttribute("open"), "");
+    await page.evaluate(() => renderThread({ preserveScroll: true, refreshList: false }));
+    assert.equal(await page.locator(".context-missing-fields").getAttribute("open"), "");
+    assert.equal(
+      await page
+        .locator(".context-missing-fields summary")
+        .evaluate((element) => element === document.activeElement),
+      true,
+    );
     await page.keyboard.press("Escape");
     assert.equal(
       await page

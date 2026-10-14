@@ -387,6 +387,9 @@ function renderDetails(c) {
   if (!host || !c) {
     return;
   }
+  const missingFieldsExpanded = !!host.querySelector(".context-missing-fields[open]");
+  const restoreFieldsFocus =
+    host.querySelector(".context-missing-fields summary") === document.activeElement;
   const scroll = host.querySelector(".context-body")?.scrollTop || 0;
   const { client, purchases } = clientContext(c);
   const key = conversationKey(c);
@@ -500,7 +503,7 @@ function renderDetails(c) {
                         .filter(([, value]) => value && value !== "—")
                         .map(renderProfileField)
                         .join("")}</dl>
-                      ${missingFields.length ? `<details class="context-missing-fields"><summary>${missingFields.length} informações não preenchidas</summary><dl class="profile-fields">${missingFields.map(renderProfileField).join("")}</dl></details>` : ""}
+                      ${missingFields.length ? `<details class="context-missing-fields" ${missingFieldsExpanded ? "open" : ""}><summary>${missingFields.length} informações não preenchidas</summary><dl class="profile-fields">${missingFields.map(renderProfileField).join("")}</dl></details>` : ""}
                     </section>
                     <section class="context-card">
                       <div class="context-card-head">
@@ -601,6 +604,8 @@ function renderDetails(c) {
             }
           </div>`;
   host.querySelector(".context-body").scrollTop = scroll;
+  if (restoreFieldsFocus)
+    host.querySelector(".context-missing-fields summary")?.focus({ preventScroll: true });
 }
 function renderThread({ animate = false, preserveScroll = false, refreshList = true } = {}) {
   const conversation = getConversation();
