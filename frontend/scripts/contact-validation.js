@@ -83,15 +83,19 @@
 
   function phoneLimit(value) {
     const text = value.trim();
-    if (!text.startsWith("+")) return 11;
-    return text.replace(/\D/g, "").startsWith("55") ? 13 : 15;
+    const digits = text.replace(/\D/g, "");
+    const international = text.startsWith("+");
+    if (international && !digits.startsWith("55")) return 15;
+    const domestic = international ? digits.slice(2) : digits;
+    const limit = /^[2-5]/.test(domestic.slice(2)) ? 10 : 11;
+    return international ? limit + 2 : limit;
   }
 
   function inputError(value) {
     if (value && !/^\+?[\d\s().-]*$/.test(value.trim()))
       return "Use apenas números; para outro país, comece com +.";
     if (value.replace(/\D/g, "").length > phoneLimit(value))
-      return "Limite de 11 dígitos no Brasil (incluindo DDD), ou 15 com código internacional.";
+      return `Limite de ${phoneLimit(value)} dígitos neste formato, incluindo DDD e código do país quando informado.`;
     return "";
   }
 
@@ -163,15 +167,35 @@
     },
     true,
   );
+  document.addEventListener(
+    "paste",
+    (event) => {
+      const input = event.target;
+      if (
+        !(input instanceof HTMLInputElement) ||
+        fieldType(input) !== "phone" ||
+        !event.clipboardData
+      )
+        return;
+      const text = event.clipboardData.getData("text");
+      const position = input.selectionStart;
+      const next = input.value.slice(0, position) + text + input.value.slice(input.selectionEnd);
+      event.preventDefault();
+      const message = inputError(next);
+      if (message) {
+        showInputMessage(input, message);
+        return;
+      }
+      input.value = next;
+      input.setSelectionRange(position + text.length, position + text.length);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    },
+    true,
+  );
 
   function validateField(input, normalize = false) {
     const type = fieldType(input);
     if (!type) return true;
-    if (type === "phone" && input.dataset.contactRejected) {
-      input.setCustomValidity(input.dataset.contactRejected);
-      input.setAttribute("aria-invalid", "true");
-      return false;
-    }
     const result = (type === "phone" ? phone : instagram)(input.value, input.required);
     input.setCustomValidity(result.valid ? "" : result.message);
     input.setAttribute("aria-invalid", String(!result.valid));
@@ -201,13 +225,10 @@
           const message = inputError(input.value);
           if (message) {
             input.value = previousPhoneValues.get(input) || "";
-            input.dataset.contactRejected = message;
-            input.setCustomValidity(message);
-            input.setAttribute("aria-invalid", "true");
+            validateField(input);
             showInputMessage(input, message);
             return;
           }
-          delete input.dataset.contactRejected;
           const cursor = input.selectionStart;
           const atEnd = cursor === input.value.length;
           const beforeCursor = input.value.slice(0, cursor).replace(/\D/g, "").length;

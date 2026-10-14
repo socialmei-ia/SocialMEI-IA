@@ -157,6 +157,26 @@ module.exports = async function contactFlows(browser, origin, errors = []) {
     assert.equal(await livePhone.inputValue(), "+141555526711234");
     await livePhone.press("5");
     assert.equal(await livePhone.inputValue(), "+141555526711234");
+    await livePhone.fill("1231232133");
+    assert.equal(await livePhone.inputValue(), "(12) 3123-2133");
+    await livePhone.pressSequentially("999");
+    assert.equal(await livePhone.inputValue(), "(12) 3123-2133");
+    await livePhone.fill("");
+    const pastePhone = async (text) =>
+      livePhone.evaluate((input, text) => {
+        const clipboardData = new DataTransfer();
+        clipboardData.setData("text/plain", text);
+        input.setSelectionRange(0, input.value.length);
+        input.dispatchEvent(
+          new ClipboardEvent("paste", { clipboardData, bubbles: true, cancelable: true }),
+        );
+      }, text);
+    await pastePhone("819876543211234");
+    assert.equal(await livePhone.inputValue(), "");
+    await pastePhone("nome11987654321");
+    assert.equal(await livePhone.inputValue(), "");
+    await pastePhone("+55 (81) 98765-4321");
+    assert.equal(await livePhone.inputValue(), "+55 (81) 98765-4321");
     await livePhone.fill("11987654321");
     await page.locator("#xpRegisterForm [type=submit]").click();
     await page.locator(".contact-confirmation[open]").waitFor();

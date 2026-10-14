@@ -244,7 +244,7 @@ async function run() {
       const phoneField = page.locator("#nvPref-telefone");
       const originalPhone = await phoneField.inputValue();
       const requestCount = profileRequests.length;
-      await phoneField.fill("telefone_invalido");
+      await phoneField.fill("32132132131");
       await page.locator("#nvSettingsPrimary").click();
       assert.equal(await phoneField.evaluate((input) => input.validity.valid), false);
       assert.equal(profileRequests.length, requestCount, "Contato inválido não deve chegar à API");
