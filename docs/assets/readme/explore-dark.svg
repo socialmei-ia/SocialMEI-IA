@@ -1,0 +1,11 @@
+<?xml version="1.0" ?>
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="112" viewBox="0 0 360 112" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">Explorar o produto</title>
+  <desc id="desc">Atalho de navegação do README: Explorar o produto.</desc>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <rect x="1" y="1" width="358" height="110" rx="18" fill="#152438" stroke="#2c4059"/>
+    <text x="23" y="37" fill="#a1b0c5" font-size="11" font-weight="700" letter-spacing="1.0">TELAS E CONTEXTO</text>
+    <text x="23" y="77" fill="#eef4fc" font-size="24" font-weight="700">Explorar o produto</text>
+    <path d="M314 58H338M330 50L338 58L330 66" stroke="#81b5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>
