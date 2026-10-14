@@ -263,6 +263,27 @@ module.exports = async function visualRefinementFlows(browser, origin, errors = 
         "Valores grandes devem usar a largura disponível",
       );
     }
+    for (const [view, id] of [
+      ["Clientes", "clientsMeta"],
+      ["Vendas", "salesMeta"],
+      ["Produtos e Serviços", "productsMeta"],
+      ["Financeiro", "financeMeta"],
+    ]) {
+      await page.evaluate((name) => setView(name), view);
+      const labels = await page.locator(`#${id} >span`).evaluateAll((elements) =>
+        elements.map((element) => {
+          const range = document.createRange();
+          range.selectNodeContents(element);
+          const { x, y, width, height } = range.getBoundingClientRect();
+          return { x, y, width, height };
+        }),
+      );
+      const [first, last] = labels;
+      assert(
+        last.y >= first.y + first.height || last.x >= first.x + first.width + 8,
+        `${view}: origem e horário precisam ficar separados`,
+      );
+    }
     return "Refinamento: prioridades do Resumo, ação de venda, temas e Caixa com contexto, rascunho e filtros compactos de Clientes/Vendas";
   } finally {
     await page.close();

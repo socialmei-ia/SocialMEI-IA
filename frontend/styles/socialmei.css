@@ -15700,6 +15700,9 @@ body.management-active #per {
   padding: 12px 16px;
   display: flex;
   justify-content: space-between;
+
+  gap: 8px 12px;
+  flex-wrap: wrap;
 }
 .management-kpis {
   display: grid;
