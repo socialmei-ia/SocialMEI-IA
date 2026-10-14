@@ -145,7 +145,10 @@ module.exports = async function contactFlows(browser, origin, errors = []) {
     await page.locator("#registerPhone").fill("11987654321");
     await page.locator("#xpRegisterForm [type=submit]").click();
     await page.locator(".contact-confirmation[open]").waitFor();
-    assert.equal(await page.locator(".contact-confirmation-number").innerText(), "+5511987654321");
+    assert.equal(
+      await page.locator(".contact-confirmation-number").innerText(),
+      "+55 (11) 98765-4321",
+    );
     assert.equal(
       await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1),
       false,

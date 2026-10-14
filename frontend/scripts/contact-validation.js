@@ -136,8 +136,13 @@
       const dialog = document.createElement("dialog");
       dialog.className = "contact-confirmation";
       dialog.setAttribute("aria-labelledby", "contactConfirmationTitle");
-      dialog.innerHTML = `<form method="dialog"><span class="contact-confirmation-symbol" aria-hidden="true">↗</span><p class="contact-eyebrow">CONFIRA SEU CONTATO</p><h2 id="contactConfirmationTitle">Este número está correto?</h2><p>Ele será salvo no seu perfil. Confira o país, o DDD e o número antes de continuar.</p><strong class="contact-confirmation-number"></strong><p class="contact-confirmation-note">Esta etapa não envia SMS nem verifica a titularidade do número.</p><div class="contact-confirmation-actions"><button class="btn" value="edit" autofocus>Editar número</button><button class="btn pr" value="confirm">Sim, continuar</button></div></form>`;
-      dialog.querySelector(".contact-confirmation-number").textContent = phone(value).international;
+      dialog.innerHTML = `<form method="dialog"><span class="contact-confirmation-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="7" y="2" width="10" height="20" rx="3"/><path d="M10 5h4M11 19h2"/></svg></span><p class="contact-eyebrow">CONFIRA SEU CONTATO</p><h2 id="contactConfirmationTitle">Este número está correto?</h2><p>Ele será salvo no seu perfil. Confira o país, o DDD e o número antes de continuar.</p><strong class="contact-confirmation-number"></strong><p class="contact-confirmation-note">Esta etapa não envia SMS nem verifica a titularidade do número.</p><div class="contact-confirmation-actions"><button class="btn" value="edit" autofocus>Editar número</button><button class="btn pr" value="confirm">Sim, continuar</button></div></form>`;
+      const contact = phone(value);
+      dialog.querySelector(".contact-confirmation-number").textContent = contact.value.startsWith(
+        "+",
+      )
+        ? contact.value
+        : "+55 " + contact.value;
       dialog.addEventListener(
         "close",
         () => {
