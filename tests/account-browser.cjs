@@ -493,6 +493,7 @@ module.exports = async function accountFlow(browser, origin) {
     await page.locator("#registerPassword").fill("Valid-password-123!");
     await page.locator("#registerInvite").fill("b".repeat(64));
     await page.locator("#xpRegisterForm [type=submit]").click();
+    await page.locator(".contact-confirmation button[value=confirm]").click();
     await page.waitForFunction(
       () =>
         window.SocialMEIAuth?.current?.usuario.id === 2 &&

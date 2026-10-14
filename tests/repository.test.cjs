@@ -32,7 +32,7 @@ test("all scripts parse, including their shared global declarations", () => {
   for (const source of sources) new vm.Script(source);
   new vm.Script(sources.join("\n"));
   new vm.Script(read("tools/devhub.js"));
-  assert.equal(sources.length, 30);
+  assert.equal(sources.length, 31);
   assert.deepEqual(scriptPaths.slice(-2), ["scripts/password-strength.js", "scripts/spotlight.js"]);
   assert(
     scriptPaths.indexOf("scripts/password-strength.js") >
