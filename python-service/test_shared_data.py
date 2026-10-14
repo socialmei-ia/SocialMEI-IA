@@ -74,6 +74,30 @@ class SharedDataIntegrationTests(unittest.TestCase):
         self.assertEqual(response.status_code, 201, response.text)
         return response.json()
 
+    def test_invalid_contact_is_rejected_without_hiding_legacy_records(self):
+        for contact in ({"telefone": "32132132131"}, {"instagram": "11987654321"}):
+            response = self.client.post("/api/v1/clientes", json={"nome": "Invalid contact", **contact})
+            self.assertEqual(response.status_code, 422)
+        created = self.create(telefone="(81) 98765-4321")
+        response = self.client.patch(
+            f"/api/v1/clientes/{created['id']}",
+            json={"telefone": "@invalid", "expected_version": created["versao"]},
+        )
+        self.assertEqual(response.status_code, 422)
+        with psycopg.connect(TEST_DATABASE_URL) as conn:
+            conn.execute(
+                "UPDATE socialmei.crm_clientes SET telefone = %s WHERE id = %s",
+                ("legacy malformed phone", created["id"]),
+            )
+        response = self.client.get(f"/api/v1/clientes/{created['id']}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["telefone"], "legacy malformed phone")
+        response = self.client.patch(
+            f"/api/v1/clientes/{created['id']}",
+            json={"observacao": "Reviewed", "expected_version": created["versao"]},
+        )
+        self.assertEqual(response.status_code, 200)
+
     def test_migration_preserves_preexisting_client(self):
         self.assertEqual(
             self.upgraded_row,

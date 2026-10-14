@@ -21,6 +21,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
 from database import connect, shared_data_enabled
+from contact_validation import validate_phone
 
 COOKIE = "__Host-socialmei-session"
 HASHER = PasswordHasher(time_cost=2, memory_cost=19456, parallelism=1)
@@ -240,6 +241,8 @@ class Login(Strict):
 
 
 class Register(Login):
+    _phone = field_validator("telefone")(validate_phone)
+
     nome: str = Field(min_length=1, max_length=160)
     telefone: str = Field(default="", max_length=40)
     senha: str = Field(min_length=12, max_length=128)
@@ -254,6 +257,8 @@ class Register(Login):
 
 
 class Profile(Strict):
+    _phone = field_validator("telefone")(validate_phone)
+
     nome: str | None = Field(default=None, min_length=1, max_length=160)
     telefone: str | None = Field(default=None, max_length=40)
     nome_negocio: str | None = Field(default=None, min_length=1, max_length=160)

@@ -521,7 +521,7 @@ class AccountDatabaseTests(unittest.TestCase):
             "/api/v1/auth/profile",
             json={
                 "nome": "Updated",
-                "telefone": "11999999999",
+                "telefone": "11987654321",
                 "nome_negocio": "New shop",
                 "configuracao_negocio": {
                     "pix": "business@example.com",

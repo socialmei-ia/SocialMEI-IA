@@ -16,6 +16,7 @@ from pydantic import (
 )
 
 from database import check_database, connect, shared_data_enabled
+from contact_validation import validate_phone, validate_instagram
 from auth_context import principal
 from account_auth import enabled as auth_enabled, require_enabled as require_auth_enabled
 
@@ -180,12 +181,23 @@ def list_clientes():
             return [normalize_row(row) for row in cur.fetchall()]
 
 
+def validate_contact_changes(values: dict) -> None:
+    # Valida somente entradas novas; contatos legados continuam legíveis.
+    for field, validator in (("telefone", validate_phone), ("instagram", validate_instagram)):
+        if field in values:
+            try:
+                values[field] = validator(values[field])
+            except ValueError as error:
+                raise HTTPException(status_code=422, detail=str(error)) from error
+
+
 @router.post(
     "/clientes", response_model=ClienteOut, status_code=status.HTTP_201_CREATED
 )
 def create_cliente(payload: ClienteCreate):
     require_shared_data()
     values = payload.model_dump()
+    validate_contact_changes(values)
     columns = list(values)
     params = [
         json.dumps(value) if key == "tags" else value for key, value in values.items()
@@ -231,6 +243,7 @@ def get_cliente(cliente_id: int):
 def update_cliente(cliente_id: int, payload: ClienteUpdate):
     require_shared_data()
     values = payload.model_dump(exclude_unset=True)
+    validate_contact_changes(values)
     expected_version = values.pop("expected_version", None)
     # A allowlist é interna; nomes de colunas nunca vêm de texto recebido.
     assert set(values).issubset(EDITABLE_COLUMNS)
