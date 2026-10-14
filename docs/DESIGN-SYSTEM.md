@@ -71,6 +71,8 @@ Sidebar desktop de 232px, linha ativa azul suave, topbar calma e conteúdo com l
 
 ## Motion
 
+Configurações usa navegação agrupada, checklist recolhido, perfil de contraste e uma ação de salvar por formulário. A miniatura acompanha o tema aplicado; o editor usa o mesmo mecanismo de tokens. Na troca de assunto, o painel entra com opacity/translateY de 8px em 340ms, sem animação quando o movimento reduzido estiver ativo. [Detalhes, referências e limites desta revisão](SETTINGS-REDESIGN.md).
+
 | Token                               | Duração | Uso                          |
 | ----------------------------------- | ------- | ---------------------------- |
 | `--motion-instant`                  | 100ms   | Resposta mínima              |
