@@ -1,99 +1,200 @@
+<div align="center">
+  <img src="docs/assets/socialmei-logo.png" alt="Logo SocialMEI.IA" width="112" />
+
 # SocialMEI.IA
 
-CRM experimental para MEIs: atendimento, clientes, produtos e serviços, vendas e financeiro em uma interface de HTML, CSS e JavaScript puro.
+### Seu atendimento. Seu negócio. Um só espaço.
 
-![SocialMEI.IA](docs/assets/socialmei-banner.svg)
+CRM experimental para MEIs que reúne clientes, vendas, financeiro<br />
+e contexto de atendimento em uma interface feita com HTML, CSS e JavaScript puro.
 
-[Desenvolvimento](DEVELOPMENT.md) · [Arquitetura](ARCHITECTURE.md) · [Contas](docs/CONTAS-MEIS.md) · [Operação](docs/OPERACAO-EQUIPE.md) · [Revisão da base](PROJECT-BASELINE-REVIEW.md)
+[![Verificações do repositório](https://github.com/socialmei-ia/SocialMEI-IA/actions/workflows/repository-checks.yml/badge.svg?branch=main)](https://github.com/socialmei-ia/SocialMEI-IA/actions/workflows/repository-checks.yml)
 
-[Design system](docs/DESIGN-SYSTEM.md) · [Redesign e validação](VISUAL-REDESIGN-REPORT.md) · [Configurações](docs/SETTINGS-REDESIGN.md)
+[Conheça o produto](#o-que-você-encontra) · [Rodar localmente](#comece-por-aqui) · [Documentação](#guias-para-cada-tarefa) · [Contribuir](CONTRIBUTING.md)
+
+</div>
+
+<br />
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/home-dark.png" />
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/screenshots/home-light.png" />
+  <img src="docs/assets/screenshots/home-light.png" alt="Home do SocialMEI.IA com ações rápidas, atendimentos e resumo do negócio" width="1440" />
+</picture>
+
+<p align="center"><sub>Capturas da demonstração local, com dados fictícios. A imagem acompanha o tema do GitHub.</sub></p>
+
+## O que você encontra
+
+A proposta é manter o contexto perto da ação: quem é o cliente, o que foi combinado e o que precisa acontecer depois.
+
+| Área                        | Para que serve                                                                                                           |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| **Clientes e catálogo**     | Cadastrar pessoas, produtos e serviços; consultar histórico e organizar informações.                                     |
+| **Vendas**                  | Registrar pedidos, acompanhar status e atualizar estoque na operação remota.                                             |
+| **Financeiro e relatórios** | Acompanhar entradas, saídas, vencimentos e indicadores; exportar relatórios CSV.                                         |
+| **Caixa Unificada**         | Organizar conversas, notas e rascunhos com o contexto do cliente ao lado. O composer ainda não envia mensagens externas. |
+| **Assistente e automações** | Preparar sugestões locais e simular regras para revisão do usuário. Sem IA remota ou executor de automações homologados. |
+| **Contas e preferências**   | Acesso remoto por convite, sessão revogável e configuração do negócio; temas claro, escuro, automático e personalizado.  |
+
+<details>
+<summary><strong>Veja a Caixa Unificada e as Configurações</strong></summary>
+
+### Atendimento com contexto
+
+![Caixa Unificada com conversa, histórico e informações do cliente em modo demonstrativo](docs/assets/screenshots/inbox-dark.png)
+
+### Um espaço para ajustar o negócio
+
+![Configurações do SocialMEI.IA em tema escuro, com navegação por seções e resumo da conta](docs/assets/screenshots/settings-dark.png)
+
+Capturas de 14/10/2026, produzidas a partir do frontend `92d4c20`. Dados locais de demonstração; não são registros de clientes reais nem prova do runtime na AWS.
+
+</details>
 
 ## Estado do projeto
 
-A versão da equipe possui API FastAPI, persistência PostgreSQL e autenticação por convite com isolamento de negócio. O Pages continua sendo uma demonstração local. WhatsApp real, IA remota, recuperação por e-mail e execução automática das regras ainda não estão homologados.
+**Em desenvolvimento, com uso privado da versão da equipe.** A gestão possui API FastAPI, PostgreSQL e autenticação por convite com isolamento de negócio. O modo local continua disponível para demonstração e desenvolvimento.
 
-| Área                    | Implementação atual                                                                                                                       |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Contas                  | Login, sessão revogável, convite e administração quando a autenticação remota está habilitada; Basic do gateway é uma proteção adicional. |
-| Clientes e catálogo     | CRUD por API/PostgreSQL ou local, conforme a configuração; versões, importação e validação monetária.                                     |
-| Vendas e financeiro     | Operações com identidade, recuperação de resposta perdida, estoque transacional, histórico e exclusão lógica no modo remoto.              |
-| Relatórios              | Indicadores e CSV sobre os dados carregados; não são prova de uma integração de atendimento.                                              |
-| Caixa Unificada         | Demonstração local ou leitura legada configurada; notas/rascunhos locais. O composer não envia ao WhatsApp.                               |
-| Assistente e automações | Sugestões/regras locais e execução simulada; não ativam IA remota ou workflows n8n.                                                       |
-| Canais                  | Fundação de banco preparada; conexão, adaptador, autorização e idempotência do atendimento permanecem etapas próprias.                    |
+| Disponível no código                                                                                                          | Depende de configuração ou homologação                                      |
+| ----------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| CRUD de clientes, catálogo, vendas e financeiro; modos local/remoto; importação, versões e recuperação de respostas perdidas. | WhatsApp real, Instagram completo e conexão dos canais ao modelo multi-MEI. |
+| Contas por convite, cookie de sessão, autorização e proteção Basic adicional no gateway da equipe.                            | Recuperação de senha por e-mail e abertura pública do cadastro.             |
+| Rascunhos do Assistente, notas de atendimento e regras simuladas.                                                             | IA remota, envio externo de mensagens e execução real das automações.       |
 
-**Git, CI e runtime são evidências diferentes.** Um merge não atualiza automaticamente a API da AWS. O [inventário vivo](docs/LIVE-ENVIRONMENT-INVENTORY.md) registra coletas anteriores e lacunas; a [revisão da estabilização](PROJECT-BASELINE-REVIEW.md) identifica o que foi testado nesta rodada.
+O nome **SocialMEI.IA** não significa que uma IA remota esteja conectada. Os sete exports n8n versionados estão inativos e não comprovam quais workflows estão publicados no servidor.
 
-## Rodar a demonstração
+## Comece por aqui
 
-Com Git e Python 3:
+**Arquivo principal:** [`frontend/socialmei-app.html`](frontend/socialmei-app.html). Não há build para servir a interface; mantenha HTML, CSS, scripts e assets juntos.
 
-```bash
+### 1. Abrir a demonstração local
+
+Com Git e Python 3, no PowerShell ou terminal:
+
+```powershell
 git clone https://github.com/socialmei-ia/SocialMEI-IA.git
 cd SocialMEI-IA
-python -m http.server 5500
+python -m http.server 5500 --bind 127.0.0.1
 ```
 
-Abra http://localhost:5500. O `index.html` redireciona para **`frontend/socialmei-app.html`**, a fonte principal. Não há build para servir o frontend; mantenha CSS, scripts e assets juntos. A configuração pública fica em `frontend/config.js` e nunca deve conter segredos.
+A gestão e as contas usam o modo local da configuração versionada. **Antes de abrir uma demonstração isolada, defina `n8nMessagesUrl: null` na sua cópia local de `frontend/config.js`**, pois o arquivo contém um endpoint legado de leitura. As capturas e os testes desta página bloquearam chamadas externas. Configuração pública nunca deve conter segredos.
 
-## Desenvolver com banco local
+Abra **http://localhost:5500**. O `index.html` da raiz encaminha para o frontend principal.
 
-Com Node 22+, Python e Docker/Compose:
+### 2. Desenvolver com banco local
 
-```bash
+Com Node.js 22+, Python e Docker/Compose; no Windows, deixe o Docker Desktop aberto:
+
+```powershell
 npm ci
 npm run doctor
 npm run setup
 npm run dev
 ```
 
-A preparação cria arquivos locais; não execute esses comandos sobre a pasta de produção. O ambiente local usa `compose.dev.yaml`, separado da equipe e do legado. Veja [onboarding de desenvolvimento](docs/ONBOARDING.md) e [DEVELOPMENT.md](DEVELOPMENT.md).
+A preparação cria arquivos locais. Use uma pasta de desenvolvimento; **não execute essa sequência na pasta de produção**. A pilha `compose.dev.yaml` é separada da equipe e do legado. Siga o [guia de entrada da equipe](docs/ONBOARDING.md) para os próximos passos.
 
-## Onde alterar
+## Como o projeto se organiza
 
-| Diretório/arquivo                   | Responsabilidade                                                                         |
-| ----------------------------------- | ---------------------------------------------------------------------------------------- |
-| `frontend/socialmei-app.html`       | Estrutura da aplicação e experiência pública.                                            |
-| `frontend/scripts/`                 | Stores, autenticação, telas, diálogos e navegação; scripts clássicos na ordem do HTML.   |
-| `frontend/styles/`                  | Design atual, temas e estilos de contas; sem framework.                                  |
-| `frontend/admin.html`               | Administração autenticada.                                                               |
-| `python-service/`                   | API, autorização e testes de contrato/integração.                                        |
-| `database/migrations/`              | Evolução incremental do schema; nunca reescrever migrations instaladas.                  |
-| `database/team-readonly-access.sql` | Perfil administrativo de consulta preparado para concessão individual; aplicação manual. |
-| `n8n-workflows/`                    | Sete exports classificados e inativos; não representam integralmente o runtime n8n.      |
-| `tools/`                            | Preparação, operação, backup e migrador.                                                 |
-| `tests/`                            | Regressões de frontend, stores e operação.                                               |
-| `docs/`                             | Guias, contratos e evidências datadas.                                                   |
+**Interface estática · API FastAPI · PostgreSQL 16 · Docker/Compose · Caddy · n8n**
 
-## Testar
+```mermaid
+flowchart LR
+    U[Usuário] --> F[Frontend HTML, CSS e JS]
+    F -->|modo local| L[Dados do navegador]
+    F -->|modo remoto| G[Gateway protegido]
+    G --> A[API FastAPI]
+    A --> D[(PostgreSQL da equipe)]
+    N[n8n] -->|leitura técnica autenticada| G
+```
 
-```bash
+O diagrama mostra os caminhos previstos pelo código, conforme a configuração. Não comprova uma conexão ativa do n8n nem envio para canais. A pilha legada de atendimento é separada; detalhes em [ARCHITECTURE.md](ARCHITECTURE.md).
+
+| Onde procurar                                  | O que fica lá                                                                   |
+| ---------------------------------------------- | ------------------------------------------------------------------------------- |
+| [`frontend/`](frontend/)                       | Aplicação principal, administração, transferência, scripts e temas.             |
+| [`python-service/`](python-service/)           | API, autenticação, autorização e testes Python.                                 |
+| [`database/migrations/`](database/migrations/) | Evolução incremental do schema; migrations instaladas não devem ser reescritas. |
+| [`n8n-workflows/`](n8n-workflows/)             | Exports operacionais, exemplos e experimentos, classificados por pasta.         |
+| [`tools/`](tools/)                             | Preparação local, manutenção, backup, migrador e DevHub.                        |
+| [`tests/`](tests/)                             | Testes de frontend, stores, contratos e operação.                               |
+| [`docs/`](docs/)                               | Guias, contratos e evidências técnicas datadas.                                 |
+
+Scripts do frontend são clássicos e compartilham estado: preserve a ordem declarada no HTML ao editar. Gestão remota indisponível não deve virar gravação local silenciosa.
+
+## Guias para cada tarefa
+
+| Quero…                                       | Começar por…                                                                                                                        |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Preparar meu computador                      | [Entrada da equipe](docs/ONBOARDING.md)                                                                                             |
+| Entender como rodar, editar e testar         | [Desenvolvimento](DEVELOPMENT.md)                                                                                                   |
+| Entender os componentes e os contratos       | [Arquitetura](ARCHITECTURE.md) · [API](docs/API-ENDPOINTS.md)                                                                       |
+| Trabalhar na interface                       | [Design system](docs/DESIGN-SYSTEM.md) · [Validação visual](VISUAL-REDESIGN-REPORT.md) · [Configurações](docs/SETTINGS-REDESIGN.md) |
+| Entender contas e permissões                 | [Contas MEI](docs/CONTAS-MEIS.md) · [Acesso de consulta ao banco](docs/TEAM-DATABASE-ACCESS.md)                                     |
+| Alterar workflows com segurança              | [Guia do n8n](n8n-workflows/README.md)                                                                                              |
+| Fazer deploy ou cuidar da equipe             | [Operação team](docs/OPERACAO-EQUIPE.md) · [Publicação](DEPLOYMENT.md)                                                              |
+| Conferir decisões e pendências               | [Revisão da base](PROJECT-BASELINE-REVIEW.md) · [Remediação](docs/REMEDIATION-STATUS.md) · [Roadmap](ROADMAP.md)                    |
+| Contribuir ou reportar problema de segurança | [Contribuição](CONTRIBUTING.md) · [Segurança](SECURITY.md)                                                                          |
+
+## Qualidade e testes
+
+O selo no topo mostra o workflow da branch `main`. Consulte o resultado do SHA e os artifacts para saber o que passou; um selo não comprova saúde de produção.
+
+```powershell
 npm ci
 npm test
 npm run format:check
-python -m pip install -r python-service/requirements.txt
-python -m unittest discover -s python-service -p 'test_*.py'
-python -m unittest discover -s tests -p 'test_*.py'
+```
+
+<details>
+<summary><strong>Testes de navegador, API e operação</strong></summary>
+
+```powershell
 npx playwright install chromium
 npm run test:browser
 node tests/stability-browser.cjs
+python -m pip install -r python-service/requirements.txt
+python -m unittest discover -s python-service -p "test_*.py"
+python -m unittest discover -s tests -p "test_*.py"
 ```
 
-Integrações Python exigem `TEST_DATABASE_URL` apontando **somente para um PostgreSQL descartável**: algumas suites alteram/truncam suas fixtures. Sem essa variável, os casos de banco são ignorados. Gateway/HTTPS exigem Docker. Não use credenciais ou banco de produção nos testes.
+Testes Python de integração exigem `TEST_DATABASE_URL` apontando **somente para um PostgreSQL descartável**: algumas suites alteram/truncam fixtures. Sem a variável, os casos de banco são ignorados. Gateway e HTTPS exigem Docker e configuração própria, descrita em [DEVELOPMENT.md](DEVELOPMENT.md).
 
-O CI usa PostgreSQL 16, verifica a stack team isolada, exercita backup/restore no destino de teste e executa os browsers. A matriz adicional cobre nove resoluções e Light/Dark/Auto/Custom. Evidências ficam no artifact `frontend-regression`. Veja [contratos da API](docs/API-ENDPOINTS.md).
+O CI usa PostgreSQL 16, testa gateway, stack team isolada e backup/restore em destino de teste. A matriz de estabilidade cobre 11 resoluções e temas Light/Dark/Auto/Custom. Evidências de navegador ficam no artifact `frontend-regression`.
 
-## Publicação e acesso
+</details>
 
-- **Pages:** demonstração pública, com dados locais; o ramo configurado pode publicar após merge.
-- **Equipe AWS:** gateway serve `frontend/socialmei-app.html` na raiz, com Basic e autenticação do app. O `index.html` da raiz do Git não é essa entrada. Atualização usa SHA aprovado e somente o serviço necessário.
-- **Legado:** n8n, WAHA, Caddy e seu banco têm Compose/configuração próprios. Não misture as pilhas.
-- **Workflows manuais do GitHub:** staging/produção genéricos existem, mas não devem ser usados para atualizar a implantação team sem conferir seus contratos.
+## Código, CI e servidor são coisas diferentes
 
-Backup verificado precede migrations/configuração/deploy. Em 13/10/2026, o responsável confirmou checkout team `ae73f6e…` (PR #35), migration **011** instalada com sete constraints validadas e frontend publicado; somente o gateway foi recriado. Login, abertura dos cinco módulos de gestão, saída e reentrada confirmados após publicação. O perfil de consulta permanece preparado, sem aplicação/provisionamento na AWS; a role atual da API foi observada como superuser e exige revisão própria. Evidências em [REMEDIATION-STATUS.md](docs/REMEDIATION-STATUS.md); acesso colaborativo em [TEAM-DATABASE-ACCESS.md](docs/TEAM-DATABASE-ACCESS.md). PostgreSQL continua sem porta pública.
+- **GitHub:** fonte, documentação e histórico. Um merge não atualiza automaticamente a AWS.
+- **GitHub Pages:** pode servir a demonstração; disponibilidade e configuração devem ser conferidas no repositório.
+- **Equipe AWS:** o gateway serve `frontend/socialmei-app.html` em `/`, com configuração privada própria. O `index.html` da raiz do Git não é a entrada servida pelo gateway.
+- **Legado:** n8n, WAHA, Caddy e seu banco têm Compose, configuração e volumes próprios. Não misture as pilhas.
 
-## Próxima etapa
+Deploy team exige SHA aprovado, backup verificado e atualização restrita ao serviço afetado. Os workflows manuais genéricos de staging/produção não substituem esse procedimento. O [inventário do ambiente](docs/LIVE-ENVIRONMENT-INVENTORY.md) registra coletas anteriores; não é um monitor em tempo real.
 
-Fechar os itens de runtime pendentes, homologar a atualização restrita e validar a operação com o responsável. Depois disso, evolução visual e calculadora de probabilidade de compra: a lógica e os critérios serão fornecidos pelo dono do produto. Nenhuma fórmula foi implementada nesta rodada.
+<details>
+<summary><strong>Registro operacional histórico: 13/10/2026</strong></summary>
 
-[Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [Deploy](DEPLOYMENT.md) · [Contribuição](CONTRIBUTING.md) · [Segurança](SECURITY.md)
+O responsável confirmou checkout `ae73f6e…` (PR #35), migration 011 instalada com sete constraints validadas e frontend publicado, com recriação somente do gateway. Login, abertura dos cinco módulos de gestão, saída e reentrada foram confirmados naquele momento.
+
+O perfil de consulta estava preparado, sem provisionamento confirmado na AWS. A role da API foi observada como superuser e requer revisão própria. Consulte [REMEDIATION-STATUS.md](docs/REMEDIATION-STATUS.md) e [TEAM-DATABASE-ACCESS.md](docs/TEAM-DATABASE-ACCESS.md). Esse registro não representa uma nova conferência do servidor.
+
+</details>
+
+## Próximos passos
+
+Conferir permissões do banco e cobertura dos backups; resolver identidade, autorização e idempotência do atendimento antes de conectar canais reais. Evolução de funcionalidades depende das decisões do responsável e dos critérios de aceite.
+
+A revisão de manutenção está proposta no [PR #42](https://github.com/socialmei-ia/SocialMEI-IA/pull/42), separada desta apresentação do repositório. Consulte o estado do PR para verificar se foi integrada.
+
+---
+
+<div align="center">
+
+**SocialMEI.IA** — uma base de trabalho para cuidar do negócio com contexto.
+
+[Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [Contribuição](CONTRIBUTING.md) · [Segurança](SECURITY.md)
+
+</div>
