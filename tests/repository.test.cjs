@@ -25,13 +25,19 @@ function filesUnder(directory) {
 }
 
 test("all scripts parse, including their shared global declarations", () => {
-  const sources = [...app.matchAll(/<script\b[^>]*src="([^"]+)"[^>]*><\/script>/g)].map(
-    ([, source]) => read("frontend/" + source),
+  const scriptPaths = [...app.matchAll(/<script\b[^>]*src="([^"]+)"[^>]*><\/script>/g)].map(
+    ([, source]) => source,
   );
+  const sources = scriptPaths.map((source) => read("frontend/" + source));
   for (const source of sources) new vm.Script(source);
   new vm.Script(sources.join("\n"));
   new vm.Script(read("tools/devhub.js"));
-  assert.equal(sources.length, 28);
+  assert.equal(sources.length, 30);
+  assert.deepEqual(scriptPaths.slice(-2), ["scripts/password-strength.js", "scripts/spotlight.js"]);
+  assert(
+    scriptPaths.indexOf("scripts/password-strength.js") >
+      scriptPaths.indexOf("scripts/experience.js"),
+  );
 });
 
 test("published entries preserve paths and query/hash navigation", () => {

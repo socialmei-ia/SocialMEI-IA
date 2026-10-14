@@ -1,0 +1,179 @@
+/* PASSWORD STRENGTH */
+.password-strength {
+  --strength-color: var(--text-muted);
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 8px;
+  min-width: 0;
+  font-size: 12px;
+}
+.password-strength[data-strength="1"] {
+  --strength-color: var(--danger);
+}
+.password-strength:is([data-strength="2"], [data-strength="3"]) {
+  --strength-color: var(--warning);
+}
+.password-strength[data-strength="4"] {
+  --strength-color: var(--success);
+}
+.password-strength-meter {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+.password-strength-meter > span {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface-secondary);
+  overflow: hidden;
+}
+.password-strength-meter i {
+  display: block;
+  height: 100%;
+  background: var(--strength-color);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition:
+    transform var(--motion-base) var(--ease-out),
+    background-color var(--motion-base);
+}
+.password-strength-meter i.is-filled {
+  transform: scaleX(1);
+  transition-delay: var(--cell-delay, 0ms);
+}
+.password-strength-meter > span:nth-child(2) {
+  --cell-delay: 30ms;
+}
+.password-strength-meter > span:nth-child(3) {
+  --cell-delay: 60ms;
+}
+.password-strength-meter > span:nth-child(4) {
+  --cell-delay: 90ms;
+}
+.password-strength-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 20px;
+  color: var(--strength-color);
+}
+.password-strength-heading b {
+  font-weight: 600;
+}
+.password-strength-warning {
+  color: var(--warning);
+  font-size: 11px;
+}
+.password-strength-details summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-weight: 500;
+  list-style: none;
+}
+.password-strength-details summary::after {
+  content: "+";
+  margin-left: auto;
+  font-size: 16px;
+}
+.password-strength-details[open] summary::after {
+  content: "−";
+}
+.password-strength-rules {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  color: var(--text-secondary);
+}
+.password-strength-rules li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.password-rule-icon {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  flex: none;
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  color: var(--success);
+  font-size: 12px;
+}
+.password-strength-rules .is-met .password-rule-icon {
+  border-color: var(--success);
+  background: var(--success-soft);
+}
+.password-rule-icon svg {
+  width: 10px;
+  height: 10px;
+  opacity: 0;
+  transform: scale(0.8);
+  transition:
+    opacity var(--motion-fast),
+    transform var(--motion-fast);
+}
+.password-strength-rules .is-met .password-rule-icon svg {
+  opacity: 1;
+  transform: none;
+}
+.password-strength-help {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.55;
+  font-size: 12px;
+}
+
+/* SPOTLIGHT */
+.spotlight-surface {
+  position: relative;
+  isolation: isolate;
+}
+.spotlight-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0;
+  background: radial-gradient(
+    220px circle at var(--spotlight-x, 50%) var(--spotlight-y, 50%),
+    color-mix(in srgb, var(--brand-primary) 7%, transparent),
+    transparent 80%
+  );
+  transition: opacity var(--motion-base) var(--ease-out);
+}
+.spotlight-layer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: radial-gradient(
+    180px circle at var(--spotlight-x, 50%) var(--spotlight-y, 50%),
+    color-mix(in srgb, var(--brand-primary) 65%, transparent),
+    transparent 85%
+  );
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+}
+.spotlight-surface[data-spotlight-active] > .spotlight-layer {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce), (hover: none), (pointer: coarse) {
+  .spotlight-layer {
+    display: none;
+  }
+  .password-strength-meter i,
+  .password-rule-icon svg {
+    transition: none;
+  }
+}

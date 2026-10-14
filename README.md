@@ -6,6 +6,8 @@ CRM experimental para MEIs: atendimento, clientes, produtos e serviços, vendas 
 
 [Desenvolvimento](DEVELOPMENT.md) · [Arquitetura](ARCHITECTURE.md) · [Contas](docs/CONTAS-MEIS.md) · [Operação](docs/OPERACAO-EQUIPE.md) · [Revisão da base](PROJECT-BASELINE-REVIEW.md)
 
+[Design system](docs/DESIGN-SYSTEM.md) · [Redesign e validação](VISUAL-REDESIGN-REPORT.md)
+
 ## Estado do projeto
 
 A versão da equipe possui API FastAPI, persistência PostgreSQL e autenticação por convite com isolamento de negócio. O Pages continua sendo uma demonstração local. WhatsApp real, IA remota, recuperação por e-mail e execução automática das regras ainda não estão homologados.

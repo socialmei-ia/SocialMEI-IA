@@ -3617,10 +3617,7 @@ ONBOARDING — JAVASCRIPT
   /* HOME — JAVASCRIPT
   Prioridades, sugestões de comandos e visão contextual do dia. */
   window.renderClientHome = function () {
-    const h = new Date().getHours();
-    q("#clientHomeGreeting").textContent = sessionData.usuario.primeiro
-      ? `${h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite"}, ${sessionData.usuario.primeiro}.`
-      : "Olá.";
+    q("#clientHomeGreeting").textContent = humanGreeting();
     const unread = sessionData.conversas.reduce(
       (conversation, c) => conversation + (c.naoLidas || 0),
       0,
@@ -3631,19 +3628,37 @@ ONBOARDING — JAVASCRIPT
       to: todayISO(),
     }).balance;
     const context = q("#homeContext");
+    const ledger = appData.financeiro.filter((entry) => !entry.excluida);
+    const pendingLedger = ledger.filter((entry) => entry.status !== "pago");
+    const hasBusinessRecords =
+      appData.clientes.length || appData.produtos.length || appData.vendas.length || ledger.length;
     context.textContent = unread
       ? `${plural(unread, "mensagem espera", "mensagens esperam")} por você →`
       : overdue
         ? `${plural(overdue, "compromisso pede", "compromissos pedem")} atenção →`
-        : "O seu dia está em ordem →";
-    context.dataset.homeGo = unread ? "Caixa Unificada" : overdue ? "Financeiro" : "Visão Geral";
+        : hasBusinessRecords
+          ? "Veja o que acontece no seu negócio →"
+          : "Comece pelo seu primeiro cliente →";
+    context.dataset.homeGo = unread
+      ? "Caixa Unificada"
+      : overdue
+        ? "Financeiro"
+        : hasBusinessRecords
+          ? "Visão Geral"
+          : "Clientes";
     q("#homePulseConversations").textContent = unread
       ? `${plural(unread, "não lida", "não lidas")}`
-      : "Tudo respondido";
-    q("#homePulseFinance").textContent = money(balance);
+      : sessionData.conversas.length
+        ? "Sem mensagens não lidas"
+        : "Nenhum atendimento ainda";
+    q("#homePulseFinance").textContent = ledger.length ? money(balance) : "Ainda sem lançamentos";
     q("#homePulsePending").textContent = overdue
       ? `${plural(overdue, "atrasado", "atrasados")}`
-      : "Em dia";
+      : pendingLedger.length
+        ? plural(pendingLedger.length, "compromisso previsto", "compromissos previstos")
+        : ledger.length
+          ? "Sem compromissos pendentes"
+          : "Nenhum compromisso cadastrado";
     q("#homeActionInbox").textContent = unread || "→";
     q("#homeActionFinance").textContent = overdue
       ? `${overdue} contas atrasadas`
@@ -3663,16 +3678,71 @@ ONBOARDING — JAVASCRIPT
                 </div>
                 <blockquote>“${escapeHtml(lastMessage(c))}”</blockquote>
                 <button class="btn" data-home-conversation="${c.id}">Continuar conversa →</button>`
-      : '<span class="chapter-label">Seu primeiro atendimento</span><h3>Uma conversa pode abrir o próximo pedido.</h3><button class="btn" data-home-go="Caixa Unificada">Abrir atendimento →</button>';
+      : /* HTML */ `
+          <span class="chapter-label">UM NOVO COMEÇO</span>
+          <h3>O próximo capítulo começa com seus clientes.</h3>
+          <p class="home-empty-note">Cadastre seus contatos e reúna o contexto de cada relacionamento.</p>
+          <button class="btn" data-home-go="Clientes">Ver clientes →</button>
+        `;
+    renderHomeOperations();
     q("#homeLiveIcon").innerHTML = renderIcon(homeIcons?.[iconCycle] || "inbox");
     nextHomeIcon();
   };
+
+  function renderHomeOperations() {
+    const routes = {
+      overdue: "Financeiro",
+      reply: "Caixa Unificada",
+      stock: "Produtos e Serviços",
+      today: "Financeiro",
+    };
+    const priorities = priorityItems();
+    q("#homeAttentionList").innerHTML = priorities.length
+      ? priorities
+          .map(
+            (item) => /* HTML */ `<li>
+                <button class="home-priority-row" type="button" data-home-go="${routes[item.kind]}">
+                  <span class="home-priority-dot ${item.tone}" aria-hidden="true"></span>
+                  <span><b>${escapeHtml(item.title)}</b><small>${escapeHtml(item.desc)}</small></span>
+                  <span class="home-row-arrow" aria-hidden="true">→</span>
+                </button>
+              </li>`,
+          )
+          .join("")
+      : /* HTML */ `<li class="home-list-empty">
+          <b>Nenhuma prioridade pendente</b>
+          <p>Atrasos, respostas e estoque baixo aparecem aqui quando houver registros.</p>
+        </li>`;
+    const recent = appData.vendas
+      .filter((sale) => !sale.excluida)
+      .toSorted((first, second) => second.data.localeCompare(first.data))
+      .slice(0, 3);
+    q("#homeRecentSales").innerHTML = recent.length
+      ? recent
+          .map(
+            (sale) => /* HTML */ `<li>
+                <button class="home-sale-row" type="button" data-home-go="Vendas">
+                  <span>
+                    <b>${escapeHtml(sale.cliente)}</b>
+                    <small>#${escapeHtml(String(sale.id))} · ${formatDate(sale.data)} · ${escapeHtml(sale.status)}</small>
+                  </span>
+                  <strong>${money(sale.valor)}</strong>
+                </button>
+              </li>`,
+          )
+          .join("")
+      : /* HTML */ `<li class="home-list-empty">
+          <b>Sua primeira venda aparece aqui</b>
+          <p>Registre uma venda para acompanhar os pedidos mais recentes.</p>
+          <button class="lk" type="button" data-home-go="Vendas">Abrir vendas →</button>
+        </li>`;
+  }
   document.addEventListener("click", (event) => {
     const go = event.target.closest("[data-home-go]");
     if (go && typeof window.setView === "function") {
       window.setView(go.dataset.homeGo);
-      if (go.dataset.homeGo === "Vendas") {
-        openCreate("venda");
+      if (go.dataset.homeCreate) {
+        openCreate(go.dataset.homeCreate);
       }
       return;
     }

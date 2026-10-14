@@ -351,9 +351,15 @@ module.exports = async function accountFlow(browser, origin) {
     await page.evaluate(() => setTheme("dark"));
     await capture("account-desktop-dark");
     await page.evaluate(() => setTheme("light"));
-    await page.locator(".account-password-disclosure summary").click();
+    await page.locator(".account-password-disclosure > summary").click();
     await page.locator("#accountCurrentPassword").fill("Valid-password-123!");
     await page.locator("#accountNewPassword").fill("New-valid-password-123!");
+    assert.equal(
+      await page
+        .locator('#accountNewPasswordStrength [role="meter"]')
+        .getAttribute("aria-valuenow"),
+      "4",
+    );
     await page.locator("#accountConfirmPassword").fill("Other-valid-password-123!");
     const passwordRequests = requests.filter(
       (request) => request.path === "/api/v1/auth/password",
