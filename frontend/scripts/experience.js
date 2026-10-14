@@ -2709,68 +2709,17 @@ ONBOARDING — JAVASCRIPT
       if (options.type === "tone") {
         motion.animate(
           q(".assistant-draft-text", assistantRoot),
-          [
-            {
-              opacity: 0.65,
-              filter: "blur(2px)",
-            },
-            {
-              opacity: 1,
-              filter: "blur(0)",
-            },
-          ],
-          220,
+          [{ opacity: 0.6 }, { opacity: 1 }],
+          180,
         );
       } else {
         motion.animate(
           q("#aiReviewSection"),
           [
-            {
-              opacity: 0,
-              transform: "translateY(5px)",
-            },
-            {
-              opacity: 1,
-              transform: "none",
-            },
+            { opacity: 0, transform: "translateY(4px)" },
+            { opacity: 1, transform: "none" },
           ],
-          420,
-        );
-        motion.animate(
-          q(".assistant-draft-text", assistantRoot),
-          [
-            {
-              opacity: 0,
-              filter: "blur(2px)",
-              transform: "translateY(5px)",
-            },
-            {
-              opacity: 1,
-              filter: "blur(0)",
-              transform: "none",
-            },
-          ],
-          480,
-          "ease-out",
-          40,
-        );
-        qa(".assistant-draft-actions button", assistantRoot).forEach((b, i) =>
-          motion.animate(
-            b,
-            [
-              {
-                opacity: 0,
-                transform: "translateY(5px)",
-              },
-              {
-                opacity: 1,
-                transform: "none",
-              },
-            ],
-            190,
-            "ease-out",
-            140 + i * 25,
-          ),
+          240,
         );
         q("#asAnnounce").textContent =
           "Rascunho pronto para revisar, em tom " + d.tone + ". Nenhuma mensagem enviada.";

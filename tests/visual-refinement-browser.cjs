@@ -143,6 +143,39 @@ module.exports = async function visualRefinementFlows(browser, origin, errors = 
     await page.locator("#salesSearch").fill("");
     await page.waitForFunction(() => document.querySelector("#salesTable tbody tr"));
     assert((await page.locator("#salesTable tbody tr").count()) > 0);
+    await page.evaluate(() => setView("Assistente"));
+    if (!(await page.locator("[data-ai-conversation]").first().isVisible()))
+      await page.locator("[data-as-back]").click();
+    await page.locator("[data-ai-conversation]").first().click();
+    await page.locator("[data-ai-intent=reply]").click();
+    await page.locator("[data-ai-prepare]").first().click();
+    await page.waitForFunction(() => document.querySelector("#asDraftPanel"));
+    assert(
+      (await page.locator(".assistant-draft-text").boundingBox()).width >= 300,
+      "O rascunho deve aproveitar a largura do celular",
+    );
+    assert.equal(
+      await page
+        .locator("#asDraftHeading")
+        .evaluate((element) => element === document.activeElement),
+      true,
+    );
+    const draft = await page.locator(".assistant-draft-text").innerText();
+    assert(draft.length > 10);
+    const messageCount = await page.evaluate(() => sessionData.conversas[0].mensagens.length);
+    await page.locator("[data-ai-insert]").click();
+    assert.equal(
+      await page.locator(".page-view.active").getAttribute("data-view"),
+      "Caixa Unificada",
+    );
+    assert.equal(
+      await page.locator("#messageInput").inputValue(),
+      "Rascunho preservado na navegação\n\n" + draft,
+    );
+    assert.equal(
+      await page.evaluate(() => sessionData.conversas[0].mensagens.length),
+      messageCount,
+    );
     return "Refinamento: prioridades do Resumo, ação de venda, temas e Caixa com contexto, rascunho e filtros compactos de Clientes/Vendas";
   } finally {
     await page.close();

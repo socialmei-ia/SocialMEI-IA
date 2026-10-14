@@ -3044,6 +3044,9 @@ function getReportSummaryText() {
 RELATÓRIOS — JAVASCRIPT
 ================================================== */
 function renderReports() {
+  const expandedDetails = [...document.querySelectorAll("#reportsView .report-detail[open]")].map(
+    (detail) => detail.id,
+  );
   const dateRange = periodRange();
   const metrics = operationalMetrics(dateRange);
   const prevRange = getPreviousReportRange(dateRange);
@@ -3371,6 +3374,10 @@ function renderReports() {
               }
             </div>
           </section>`;
+  expandedDetails.forEach((id) => {
+    const detail = $(id);
+    if (detail) detail.open = true;
+  });
   updatePeriodCaptions();
 }
 function renderAccountSecurityControls(administrator) {

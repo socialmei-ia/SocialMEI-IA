@@ -506,6 +506,7 @@ function renderActivityFeed() {}
 function renderChannelSummary() {}
 function renderUpcomingPayments() {}
 function renderAttention() {
+  const moreIsOpen = !!$("attentionList").querySelector(".overview-more details[open]");
   const today = todayISO();
   const L = [];
   const tg = (c, x) => /* HTML */ `<span class="pill ${c}">${x}</span>`;
@@ -600,7 +601,7 @@ function renderAttention() {
   $("attentionList").innerHTML = L.length
     ? L.slice(0, 3).map(renderAttentionItem).join("") +
       (L.length > 3
-        ? `<li class="overview-more"><details><summary>Ver outros ${Math.min(L.length, 8) - 3} cuidados</summary><ul class="management-attention-list">${L.slice(3, 8).map(renderAttentionItem).join("")}</ul></details></li>`
+        ? `<li class="overview-more"><details ${moreIsOpen ? "open" : ""}><summary>Ver outros ${Math.min(L.length, 8) - 3} cuidados</summary><ul class="management-attention-list">${L.slice(3, 8).map(renderAttentionItem).join("")}</ul></details></li>`
         : "")
     : /* HTML */ `<li style="display:block">${emptyMarkup("Tudo em dia", "Nada pedindo sua atenção agora.")}</li>`;
 }
