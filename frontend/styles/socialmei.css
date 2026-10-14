@@ -17507,102 +17507,95 @@ body.management-active #per {
 /* ==================================================
       BUSINESS MODULES — CSS
       ================================================== */
-/* RESUMO — COMPOSIÇÃO EDITORIAL
-         A primeira métrica e o gráfico conduzem a leitura; ações vêm em seguida. */
-#dashboardView #kp {
-  grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr));
-  align-items: center;
-  gap: 24px;
-  padding: 0 0 34px;
-}
-#dashboardView #kp .management-kpi {
-  padding: 6px 0;
-  gap: 10px;
-}
-#dashboardView #kp .management-kpi:first-child > b {
-  font-size: clamp(40px, 4.3vw, 64px);
-  line-height: 1.08;
-  letter-spacing: -0.06em;
-}
-#dashboardView #kp .management-kpi:not(:first-child) {
-  border-left: 1px solid var(--internal-line);
-  padding-left: 20px;
-}
-#dashboardView #kp .management-kpi:not(:first-child) > b {
-  font-size: clamp(18px, 1.4vw, 24px);
-  white-space: nowrap;
-}
-#dashboardView #kp .management-sparkline {
-  width: 100%;
-  max-width: 180px;
-  height: 28px;
-  opacity: 0.7;
-}
-#dashboardView .management-overview-cols {
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-  grid-template-areas: "chart chart" "attention tracking" "sales sales";
+/* BUSINESS SUMMARY — prioridades reais antes dos indicadores. */
+#dashboardView .overview-priorities {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 1fr);
   gap: 32px;
   align-items: start;
 }
-#dashboardView .overview-chart {
-  grid-area: chart;
-  padding: 30px;
-}
 #dashboardView .overview-attention {
-  grid-area: attention;
-  background: transparent;
   padding: 0;
+  background: transparent;
+}
+#dashboardView .overview-attention h3 {
+  font-size: 24px;
+  letter-spacing: -0.035em;
 }
 #dashboardView .overview-tracking {
-  grid-area: tracking;
-  padding: 26px;
+  padding: 24px;
   background: var(--internal-group);
 }
-#dashboardView .overview-sales {
-  grid-area: sales;
+#dashboardView .management-attention-list li {
+  padding-block: 16px;
+  column-gap: 16px;
+}
+#dashboardView .management-attention-list li > button {
+  min-height: 44px;
+  min-width: 100px;
+  justify-self: end;
+  font-size: 12px;
+}
+#dashboardView .overview-more {
+  display: block;
+  padding-block: 0;
+}
+#dashboardView .overview-more summary {
+  cursor: pointer;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  color: var(--bi);
+}
+#dashboardView .overview-more summary::after {
+  content: "+";
+  margin-left: auto;
+}
+#dashboardView .overview-more details[open] > summary::after {
+  content: "−";
+}
+#dashboardView #kp {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: start;
+  gap: 24px;
   padding: 28px 0;
+  border-block: 1px solid var(--internal-line);
+}
+#dashboardView #kp .management-kpi {
+  padding: 0;
+  gap: 8px;
+}
+#dashboardView #kp .management-kpi > b {
+  font-size: clamp(24px, 2.4vw, 34px);
+  letter-spacing: -0.04em;
+}
+#dashboardView .management-sparkline {
+  width: 100%;
+  max-width: 150px;
+  height: 22px;
+  opacity: 0.65;
+}
+#dashboardView .management-overview-cols {
+  grid-template-columns: minmax(0, 1.5fr) minmax(240px, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+#dashboardView .overview-chart {
+  padding: 24px;
+}
+#dashboardView .overview-sales {
+  padding: 12px 0;
   background: transparent;
-  border-top: 1px solid var(--internal-line);
 }
 #dashboardView .overview-chart .management-axis,
 #dashboardView .overview-chart .management-bars {
-  height: 225px;
-}
-#dashboardView .overview-chart .management-bars {
-  background: repeating-linear-gradient(
-    to bottom,
-    var(--internal-line) 0 1px,
-    transparent 1px 112.5px
-  );
-}
-#dashboardView .management-attention-list li {
-  padding-block: 20px;
-  column-gap: 24px;
-}
-#dashboardView .management-attention-list li > button {
-  justify-self: end;
-  align-self: center;
-  min-width: 130px;
-  max-width: 180px;
-  min-height: 40px;
-  padding-inline: 18px;
-  font-size: 13px;
-  color: var(--text-secondary);
-  background: transparent;
-}
-#dashboardView .management-attention-list li > button:hover:not(:disabled) {
-  color: var(--text-primary);
-  background: var(--internal-group);
-}
-@media (pointer: coarse) {
-  #dashboardView .management-attention-list li > button {
-    min-height: 44px;
-  }
+  height: 180px;
 }
 #dashboardView .management-stats {
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 32px;
-  margin: 24px 0;
+  gap: 16px;
+  margin: 20px 0;
 }
 #dashboardView .management-stats div {
   background: transparent;
@@ -17610,51 +17603,35 @@ body.management-active #per {
 }
 #dashboardView .management-stats b {
   display: block;
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 550;
   margin-top: 8px;
 }
 #dashboardView .management-flow li {
-  padding-block: 14px;
+  padding-block: 12px;
 }
-@media (max-width: 1000px) {
-  #dashboardView #kp {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-  #dashboardView #kp .management-kpi:first-child {
-    grid-column: 1 / -1;
-  }
-  #dashboardView #kp .management-kpi:nth-child(2) {
-    border-left: 0;
-    padding-left: 0;
-  }
+@media (max-width: 1100px) {
+  #dashboardView .overview-priorities,
   #dashboardView .management-overview-cols {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "chart" "attention" "tracking" "sales";
-    gap: 28px;
   }
 }
 @media (max-width: 600px) {
   #dashboardView #kp {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 24px 20px;
-    padding-bottom: 0;
-  }
-  #dashboardView #kp .management-kpi:not(:first-child) {
-    border-left: 0;
-    padding-left: 0;
+    gap: 24px 16px;
   }
   #dashboardView .overview-chart,
   #dashboardView .overview-tracking {
-    padding: 22px 16px;
+    padding: 20px 16px;
   }
   #dashboardView .management-attention-list li {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 6px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 12px;
   }
   #dashboardView .management-attention-list li > .pill {
     grid-row: 1;
-    grid-column: 1;
+    grid-column: 1/-1;
     justify-self: start;
   }
   #dashboardView .management-attention-list li > div {
@@ -17663,14 +17640,11 @@ body.management-active #per {
     min-width: 0;
   }
   #dashboardView .management-attention-list li > button {
-    grid-row: 3;
-    grid-column: 1;
-    justify-self: start;
-    margin-top: 8px;
-    min-height: 44px;
-  }
-  #dashboardView .management-stats {
-    gap: 16px;
+    grid-row: 2;
+    grid-column: 2;
+    align-self: center;
+    min-width: 0;
+    padding-inline: 10px;
   }
   #dashboardView .management-stats b {
     font-size: 22px;

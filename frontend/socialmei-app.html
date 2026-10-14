@@ -3141,6 +3141,22 @@ NEGÓCIO: RESUMO — HTML
 ================================================== -->
           <section class="page-view" data-view="Visão Geral" id="dashboardView">
             <div class="management-stack">
+              <div class="overview-priorities">
+                <section class="management-card overview-attention">
+                  <div class="management-card-header">
+                    <div>
+                      <span class="report-eyebrow">SUA ROTINA</span>
+                      <h3>O que merece atenção agora</h3>
+                    </div>
+                    <span class="pill info" id="overviewAttentionCount"></span>
+                  </div>
+                  <ul id="attentionList" class="management-attention-list"></ul>
+                </section>
+                <section class="management-card overview-tracking" id="nvTrackCard">
+                  <h3>Acompanhar uma venda</h3>
+                  <div id="businessHubBody"></div>
+                </section>
+              </div>
               <div id="kp" class="management-kpis"></div>
               <div class="management-overview-cols">
                 <section class="management-card overview-chart">
@@ -3153,14 +3169,6 @@ NEGÓCIO: RESUMO — HTML
                   </div>
                   <p id="cs" class="management-subtitle"></p>
                   <div id="cw"></div>
-                </section>
-                <section class="management-card overview-attention">
-                  <div class="management-card-header"><h3>Precisa de atenção</h3></div>
-                  <ul id="attentionList" class="management-attention-list"></ul>
-                </section>
-                <section class="management-card overview-tracking" id="nvTrackCard">
-                  <h3>Acompanhar uma venda</h3>
-                  <div id="businessHubBody"></div>
                 </section>
                 <section class="management-card overview-sales">
                   <h3>Vendas do período</h3>

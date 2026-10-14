@@ -577,19 +577,17 @@ function renderAttention() {
       '<button class="management-button sm" data-resolve-priority="stock">Ver estoque</button>',
     ]);
   }
+  $("overviewAttentionCount").textContent = L.length
+    ? plural(L.length, "cuidado", "cuidados")
+    : "Em dia";
+  const renderAttentionItem = ([status, title, description, action]) =>
+    /* HTML */ `<li>${status}<div><b>${escapeHtml(title)}</b><small>${escapeHtml(description)}</small></div>${action}</li>`;
   $("attentionList").innerHTML = L.length
-    ? L.slice(0, 8)
-        .map(
-          (x) => /* HTML */ `<li>
-                    ${x[0]}
-                    <div><b>${escapeHtml(x[1])}</b><small>${escapeHtml(x[2])}</small></div>
-                    ${x[3]}
-                  </li>`,
-        )
-        .join("")
-    : /* HTML */ `<li style="display:block">
-              ${emptyMarkup("Tudo em dia", "Nada pedindo sua atenção agora.")}
-            </li>`;
+    ? L.slice(0, 3).map(renderAttentionItem).join("") +
+      (L.length > 3
+        ? `<li class="overview-more"><details><summary>Ver outros ${Math.min(L.length, 8) - 3} cuidados</summary><ul class="management-attention-list">${L.slice(3, 8).map(renderAttentionItem).join("")}</ul></details></li>`
+        : "")
+    : /* HTML */ `<li style="display:block">${emptyMarkup("Tudo em dia", "Nada pedindo sua atenção agora.")}</li>`;
 }
 function renderSalesOverviewCard() {
   const metrics = operationalMetrics();
