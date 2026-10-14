@@ -16,7 +16,7 @@
 
 `frontend/scripts/contact-validation.js` centraliza as regras de entrada e a confirmação acessível com diálogo nativo. Os campos novos e existentes de telefone/Instagram usam a mesma validação nos formulários. A transição respeita os tokens de motion e `prefers-reduced-motion`.
 
-`python-service/contact_validation.py` aplica as mesmas regras na API. Cadastro/perfil de conta validam o telefone; criação/alteração de clientes validam contatos enviados, antes de escrever no banco. Campos vazios continuam compatíveis com o contrato opcional da API. O frontend exige telefone no cadastro.
+`python-service/contact_validation.py` aplica as mesmas regras na API. Cadastro/perfil de conta e configurações do negócio validam o telefone; criação/alteração de clientes validam contatos enviados, antes de escrever no banco. Campos vazios continuam compatíveis com o contrato opcional da API. O frontend exige telefone no cadastro.
 
 Valores legados permanecem legíveis. Uma alteração que não envia o contato não é bloqueada por um valor antigo inválido. Ao reenviar um contato inválido, é necessário corrigi-lo. Nenhuma migration ou correção automática de registros foi adicionada.
 

@@ -31,6 +31,10 @@ class ContactValidationTests(unittest.TestCase):
                 validate_contact_changes(payload)
             self.assertEqual(error.exception.status_code, 422)
         validate_contact_changes({"nome": "Maria"})
+        for value in ["@maria", "32132132131", 123]:
+            with self.assertRaises(ValidationError):
+                Profile(configuracao_negocio={"telefone": value})
+        self.assertEqual(Profile(configuracao_negocio={"horario": "9–18"}).configuracao_negocio, {"horario": "9–18"})
         self.assertEqual(Profile(telefone=None).telefone, None)
 
 

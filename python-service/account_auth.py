@@ -264,6 +264,16 @@ class Profile(Strict):
     nome_negocio: str | None = Field(default=None, min_length=1, max_length=160)
     configuracao_negocio: dict | None = None
 
+    @field_validator("configuracao_negocio")
+    @classmethod
+    def business_contact(cls, value):
+        if value is not None and "telefone" in value:
+            phone = value["telefone"]
+            if phone is not None and not isinstance(phone, str):
+                raise ValueError("Informe o telefone como texto.")
+            validate_phone(phone)
+        return value
+
 
 class Password(Strict):
     atual: str = Field(min_length=1, max_length=128)
