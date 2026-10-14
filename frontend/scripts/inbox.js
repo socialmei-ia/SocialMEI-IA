@@ -1771,6 +1771,7 @@ function openNewConversation() {
     input.maxLength = instagram ? 31 : 32;
     input.dataset.contactType = instagram ? "instagram" : "phone";
     input.placeholder = instagram ? "@seu.usuario" : "(81) 99999-0000";
+    delete input.dataset.contactRejected;
     input.setCustomValidity("");
     input.removeAttribute("aria-invalid");
     $("inboxContactError").textContent = "";

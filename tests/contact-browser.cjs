@@ -140,9 +140,24 @@ module.exports = async function contactFlows(browser, origin, errors = []) {
     await page.locator("#registerPassword").fill("Valid-password-123!");
     await page.locator("#registerPhone").fill("texto11987654321");
     await page.locator("#xpRegisterForm [type=submit]").click();
-    assert.equal(await page.locator("#registerPhone").inputValue(), "texto11987654321");
+    assert.equal(await page.locator("#registerPhone").inputValue(), "");
     assert.equal(await page.locator(".contact-confirmation").count(), 0);
-    await page.locator("#registerPhone").fill("11987654321");
+    const livePhone = page.locator("#registerPhone");
+    await livePhone.fill("");
+    await livePhone.pressSequentially("819876543211111abc");
+    assert.equal(await livePhone.inputValue(), "(81) 98765-4321");
+    await livePhone.press("Backspace");
+    await livePhone.press("1");
+    assert.equal(await livePhone.inputValue(), "(81) 98765-4321");
+    await livePhone.fill("+5581987654321");
+    assert.equal(await livePhone.inputValue(), "+55 (81) 98765-4321");
+    await livePhone.pressSequentially("000");
+    assert.equal(await livePhone.inputValue(), "+55 (81) 98765-4321");
+    await livePhone.fill("+141555526711234");
+    assert.equal(await livePhone.inputValue(), "+141555526711234");
+    await livePhone.press("5");
+    assert.equal(await livePhone.inputValue(), "+141555526711234");
+    await livePhone.fill("11987654321");
     await page.locator("#xpRegisterForm [type=submit]").click();
     await page.locator(".contact-confirmation[open]").waitFor();
     assert.equal(
