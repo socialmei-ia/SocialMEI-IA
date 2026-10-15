@@ -109,10 +109,21 @@ test("workflow exports are valid, inactive and contain no literal authorization 
   const files = filesUnder(path.join(root, "n8n-workflows")).filter((file) =>
     file.endsWith(".json"),
   );
-  assert.equal(files.length, 8);
+  const structural = files.filter((file) =>
+    file.startsWith(path.join(root, "n8n-workflows", "structure") + path.sep),
+  );
+  assert.equal(files.length - structural.length, 8);
+  if (structural.length) assert.equal(structural.length, 8);
   for (const file of files) {
     const workflow = JSON.parse(fs.readFileSync(file, "utf8"));
     assert.equal(workflow.active, false, file);
+    if (structural.includes(file)) {
+      assert(workflow.name.startsWith("[STRUCTURE] "), file);
+      assert(
+        workflow.nodes.every((node) => node.disabled === true),
+        file,
+      );
+    }
     for (const node of workflow.nodes) {
       assert(!node.credentials, file);
       const headers = node.parameters.headerParameters?.parameters || [];

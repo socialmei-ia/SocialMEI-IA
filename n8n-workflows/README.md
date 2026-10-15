@@ -13,7 +13,7 @@ Os antigos arquivos `error.json`, `my-workflow.json`, `integracao-n8n-insta.json
 
 ## Workflows recentes — 15/10/2026
 
-O [catálogo atual](../docs/N8N-WORKFLOW-CATALOG.md) registra os 33 workflows observados na AWS, candidatos a export e a aplicação confirmada de tags aos oito recentes, preservando conteúdo e estados. Renomeação continua pendente. O histórico de sete exports nas seções abaixo descreve a rodada anterior; agora são oito arquivos JSON. A organização no Git e a operação no painel são etapas distintas.
+O [catálogo atual](../docs/N8N-WORKFLOW-CATALOG.md) registra a coleta inicial de 33 workflows e a organização posterior confirmada na AWS: 31 permaneceram após renomeação e exclusão de dois vazios arquivados. O histórico de sete exports nas seções abaixo descreve a rodada anterior; são oito exports de exemplo/configuração. A organização no Git e a operação no painel são etapas distintas.
 
 `examples/process-text.json` foi atualizado com o template recente `[TEST] Python API — conferência`, preservando o POST `/processar`, com timeout de 15 segundos e nomes de nós descritivos. Não foi criado outro exemplo HTTP duplicado. `examples/python-native-check.json` contém `[TEST] Python Native — conferir executor`: retorna `status: ok` e `resultado: 4`, usando `pythonNative`. Ambos têm trigger manual e export inativo; não enviam mensagens.
 
@@ -77,3 +77,17 @@ Antes de alterar um workflow vivo, preservar export da versão publicada, estado
 `npm test` valida exports/normalização estáticos; não comprova consultas no banco vivo, funcionamento de credenciais, autenticação do webhook ou entrega de mensagem. [Mapa dos ambientes e limites](../docs/ENVIRONMENTS.md).
 
 A12/A13 continuam P0 antes de atendimento real: autorização, tenant/canal, IDs externos e deduplicação. Não ligar o legado ao modelo multi-MEI pela troca de nomes. Backup da instância deve preservar seu banco, volume e chave de criptografia originais antes de qualquer alteração viva. Google Sheets permanece pausado.
+
+## Templates estruturais da instância
+
+`tools/export-n8n-structure.py` lê os oito documentos coletados privadamente e gera templates em um destino novo. A ferramenta copia somente tipos/versões de nós e a topologia das conexões. Nomes são reconstruídos; parâmetros, código, SQL, prompts, URLs, dados fixados, credenciais e configurações não são copiados. Todos os nós ficam desabilitados e cada workflow fica inativo. O código dos nós Code é substituído por um erro explícito.
+
+Esses arquivos são referências de estrutura para revisão, **não exports completos nem automações prontas para uso**. Os oito exports existentes continuam separados e não são sobrescritos. A execução do exportador e o envio dos templates estruturais à branch ainda dependem da etapa na AWS; o resumo de tipos sozinho não contém as conexões reais.
+
+```bash
+python3 tools/export-n8n-structure.py \
+  --source-dir /CAMINHO/PRIVADO/DA/COLETA \
+  --output-dir n8n-workflows/structure
+```
+
+O diretório de destino deve estar ausente. Tipos de nós desconhecidos, conexões inválidas ou documentos ausentes interrompem a geração. Os originais completos continuam no backup privado; não devem ser adicionados ao Git. Para recuperar parâmetros funcionais no Git, revisar o código e os contratos por nó em ambiente com acesso privado antes de promover cada template.

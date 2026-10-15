@@ -53,7 +53,7 @@ Dois workflows arquivados, sem nós, execuções ou referências foram excluído
 
 Os dois testes Python já têm nomes descritivos. Novos nomes candidatos: `[DEV] Relatórios — Google Sheets`, `[DEV] Orçamentos — sugestões`, `[DEV] Instagram — publicar post`, `[PLAN] Lembretes`. Antes de aplicar, preservar documento/versão publicada/estado e conferir dependências por ID; usar interface ou API administrativa suportada, com acesso privado. Fluxos ativos e versões de orçamento semelhantes aguardam comparação, sem excluir cópias.
 
-## Inventário atual
+## Inventário histórico anterior à renomeação e exclusão
 
 | ID                 | Nome salvo                                 | Ativo | Arquivado | Atualizado em UTC             |
 | ------------------ | ------------------------------------------ | ----- | --------- | ----------------------------- |
@@ -91,7 +91,26 @@ Os dois testes Python já têm nomes descritivos. Novos nomes candidatos: `[DEV]
 | `WWzhvmdPh9LrpuYy` | 01 · Caixa Unificada API                   | sim   | não       | 2026-10-06T21:14:14.641+00:00 |
 | `JVPPxXa0cQbE62C2` | error                                      | não   | sim       | 2026-09-28T00:08:57.053+00:00 |
 
-## Próxima coleta
+## Coleta privada posterior à organização
+
+O responsável confirmou oito documentos salvos na coleta `github-coleta-lml2t3jj`, dentro do backup privado de organização na AWS. Sete estavam ativos e a conferência operacional estava inativa. A coleta não executou workflows nem alterou serviços. A equivalência com as versões publicadas continua NÃO CONFIRMADA.
+
+| Grupo                | Nós | Evidência do resumo técnico                                            |
+| -------------------- | --- | ---------------------------------------------------------------------- |
+| Caixa local — legado | 6   | Dois Code, dois webhooks e duas respostas                              |
+| Caixa PostgreSQL     | 8   | Um Code, dois PostgreSQL, dois webhooks, duas respostas e uma nota     |
+| Atendimento          | 7   | Chat, agente, Groq, memória e três chamadas de subworkflow             |
+| Consultar produtos   | 2   | Trigger de subworkflow e Google Sheets                                 |
+| Registrar pedido     | 2   | Trigger de subworkflow e Google Sheets                                 |
+| Confirmar pedido     | 9   | Trigger, quatro Google Sheets, uma condição e três Set                 |
+| Instagram            | 8   | Webhook, agente, Gemini, memória, Sheets Tool, HTTP, Switch e resposta |
+| Conferir conexão     | 2   | Trigger manual e HTTP; inativo                                         |
+
+O Atendimento referencia consultar produtos, registrar pedido e confirmar pedido pelos IDs documentados anteriormente. Templates importados recebem novos IDs: essas três chamadas precisam ser configuradas privadamente no ambiente de destino. A presença de Google Sheets nos três subworkflows não comprova operação homologada nem retira a decisão de adiar essa integração.
+
+O PR inclui um exportador de **templates estruturais**, testado com documentos fictícios que contêm segredos em código, parâmetros, nomes, configurações e dados fixados. Esses campos não são copiados. Somente a geração na AWS poderá confirmar as conexões dos documentos reais; o export completo permanece privado. Nenhum template estrutural deve substituir automaticamente os exports existentes, ser ativado ou ser chamado como teste.
+
+## Revisão dos parâmetros ainda pendente
 
 Confirmar dependências entre workflows e referências a credenciais por tipo, sem expor IDs/nomes de credenciais, parâmetros ou valores. Depois preservar export privado dos selecionados e da versão publicada, revisar dados sensíveis e transformar uma cópia em export importável inativo para o Git. Não solicitar JSON bruto na conversa: parâmetros, URLs, código e pinData podem conter segredos mesmo sem um objeto credentials.
 
