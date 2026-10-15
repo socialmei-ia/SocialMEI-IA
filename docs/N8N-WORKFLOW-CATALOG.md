@@ -23,6 +23,12 @@ Os três subworkflows de pedidos e o Atendimento ativo devem ser revisados em co
 
 ## Organização proposta no painel
 
+### Dependências confirmadas na coleta seguinte
+
+Consulta READ ONLY fornecida pelo responsável confirmou que `DDrphANXE8QdxoWy` (Atendimento) referencia por `toolWorkflow` os IDs `AUpqr0ko77jQJ6DW` (consultar produtos), `LV2rsbXIb3eE0Pb3` (registrar pedido) e `QAcfeKiXA6ZQQ4Mz` (confirmar pedido). Preservar esse conjunto e seus IDs; a consulta descreve o documento salvo, não comprova a versão publicada. Nenhuma outra referência estática foi retornada para os tipos executeWorkflow/toolWorkflow consultados; chamadas dinâmicas ou por HTTP não estão excluídas.
+
+Foram encontrados 20 vínculos workflow/tipo de credencial. Atendimento usa Groq; os três subworkflows de pedidos usam Google; os dois grafos WhatsApp recentes usam WAHA (o chamado “API oficial” também referencia Gemini). Isso descreve configuração declarada: validade das credenciais e funcionamento ponta a ponta NÃO CONFIRMADOS. Nenhum valor, nome ou ID de credencial foi coletado.
+
 Usar tags por finalidade: `socialmei/operacao`, `socialmei/teste`, `socialmei/experimental`, `socialmei/legado` e `socialmei/planejado`. São propostas; não foram criadas. Preservar tags de terceiros. Não mover propriedade/projeto de workflows, não republicar versões e não editar banco diretamente para organizar.
 
 Os dois testes Python já têm nomes descritivos. Novos nomes candidatos: `[DEV] Relatórios — Google Sheets`, `[DEV] Orçamentos — sugestões`, `[DEV] Instagram — publicar post`, `[PLAN] Lembretes`. Antes de aplicar, preservar documento/versão publicada/estado e conferir dependências por ID; usar interface ou API administrativa suportada, com acesso privado. Fluxos ativos e versões de orçamento semelhantes aguardam comparação, sem excluir cópias.
