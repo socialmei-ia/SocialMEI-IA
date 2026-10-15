@@ -45,6 +45,12 @@ Em seguida, o responsável confirmou a organização dos 33 workflows dentro da 
 
 A conferência antes/depois preservou IDs, nomes, estados ativo/arquivado e datas de atualização. Produção ficou com sete ativos, Testes com um ativo e Revisar com cinco arquivados e nenhum ativo. Nenhum workflow foi executado, ativado, desativado ou excluído; nenhum serviço foi reiniciado. A movimentação de pasta organiza o painel, mas não promove nem homologa os fluxos. Em especial, o Hello World ainda está ativo em Testes e os dois fluxos Caixa Unificada continuam ativos em Produção; revisar essas ativações exige uma decisão separada.
 
+### Padronização de nomes e remoção de vazios
+
+Após a análise de uso, o responsável confirmou a execução da limpeza preparada. Vinte e nove workflows receberam nomes únicos com os prefixos `[PROD]`, `[OPS]`, `[TEST]`, `[DEV]`, `[REVIEW]`, `[PLAN]`, `[LEGACY]` ou `[ARCHIVE]`; os dois testes Python recentes já padronizados mantiveram os nomes. IDs, grafos, referências de credenciais, estados, pastas e datas de atualização foram preservados pelo roteiro de conferência.
+
+Dois workflows arquivados, sem nós, execuções ou referências foram excluídos: `KevuuJgU5iXC9SfV` (`Validar CPF e CNPJ com Python`) e `09EFgeadwFN5Y3kR` (`Whatzapp oficial`). Cópias privadas foram preservadas antes da exclusão. O rascunho vazio de lembretes foi mantido como `[PLAN] Lembretes — rascunho vazio`, pois representa intenção ainda não decidida. Permanecem 31 workflows: oito em Produção, cinco em Testes e dezoito em Revisar; oito ativos e três arquivados. Nenhum workflow foi executado, ativado ou desativado e nenhum serviço foi reiniciado.
+
 Os dois testes Python já têm nomes descritivos. Novos nomes candidatos: `[DEV] Relatórios — Google Sheets`, `[DEV] Orçamentos — sugestões`, `[DEV] Instagram — publicar post`, `[PLAN] Lembretes`. Antes de aplicar, preservar documento/versão publicada/estado e conferir dependências por ID; usar interface ou API administrativa suportada, com acesso privado. Fluxos ativos e versões de orçamento semelhantes aguardam comparação, sem excluir cópias.
 
 ## Inventário atual
