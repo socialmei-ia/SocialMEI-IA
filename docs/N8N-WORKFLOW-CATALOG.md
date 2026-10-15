@@ -39,6 +39,12 @@ A API administrativa foi acessada pelo responsável via terminal AWS. O plano pr
 
 A conferência comparou nomes, IDs, grafos, configurações, versões e estados antes/depois e preservou tags anteriores. Os oito continuaram inativos. Nenhum workflow foi executado, ativado ou desativado; nenhum serviço foi reiniciado. Os nomes sugeridos não foram aplicados: o contrato para regravar o workflow não foi confirmado na distribuição instalada. A organização usou somente o endpoint específico de tags. Isso não comprova homologação dos fluxos nem publica seus grafos no Git.
 
+### Organização nas pastas existentes
+
+Em seguida, o responsável confirmou a organização dos 33 workflows dentro da pasta raiz `SocialMEI.IA`: oito em `01 · Produção`, cinco em `02 · Testes` e vinte em `03 · Revisar`. Vinte e dois workflows antes soltos foram movidos; nenhum permaneceu fora das três pastas. O recibo privado informado está em `n8n-organizacao-34797ecc29a6/folder-organization-20261015-160646` no diretório de backups da AWS.
+
+A conferência antes/depois preservou IDs, nomes, estados ativo/arquivado e datas de atualização. Produção ficou com sete ativos, Testes com um ativo e Revisar com cinco arquivados e nenhum ativo. Nenhum workflow foi executado, ativado, desativado ou excluído; nenhum serviço foi reiniciado. A movimentação de pasta organiza o painel, mas não promove nem homologa os fluxos. Em especial, o Hello World ainda está ativo em Testes e os dois fluxos Caixa Unificada continuam ativos em Produção; revisar essas ativações exige uma decisão separada.
+
 Os dois testes Python já têm nomes descritivos. Novos nomes candidatos: `[DEV] Relatórios — Google Sheets`, `[DEV] Orçamentos — sugestões`, `[DEV] Instagram — publicar post`, `[PLAN] Lembretes`. Antes de aplicar, preservar documento/versão publicada/estado e conferir dependências por ID; usar interface ou API administrativa suportada, com acesso privado. Fluxos ativos e versões de orçamento semelhantes aguardam comparação, sem excluir cópias.
 
 ## Inventário atual
