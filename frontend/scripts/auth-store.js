@@ -101,13 +101,8 @@ const SocialMEIAuth = (() => {
       )
         throw new Error("A autenticação deve usar a API deste mesmo site.");
       base = url.href.replace(/\/$/, "");
-      let value;
-      try {
-        value = identity(await request("/auth/me"));
-      } catch (error) {
-        if (error.status !== 401) throw error;
-        value = null;
-      }
+      const session = await request("/auth/session");
+      const value = session === null ? null : identity(session);
       if (bindBrowser(value)) {
         location.reload();
         return null;

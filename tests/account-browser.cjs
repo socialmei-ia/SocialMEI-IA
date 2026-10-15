@@ -9,6 +9,7 @@ module.exports = async function accountFlow(browser, origin) {
   let session = null;
   let registrationMode = "invite";
   let registrationUnavailable = false;
+  let refuseRegistration = false;
   let refuseLogout = false;
   const passwords = [];
   const validPasswords = new Map([
@@ -99,14 +100,13 @@ module.exports = async function accountFlow(browser, origin) {
       data = registrationUnavailable
         ? { detail: "Cadastro indisponível." }
         : { mode: registrationMode };
-    } else if (url.pathname === "/api/v1/auth/me") {
-      status = session ? 200 : 401;
-      data = session ? identity(session) : { detail: "Entre na sua conta." };
+    } else if (url.pathname === "/api/v1/auth/session") {
+      data = session ? identity(session) : null;
     } else if (url.pathname === "/api/v1/auth/login") {
       assert.equal(request.headers()["x-socialmei-client"], "browser");
       passwords.push(body.senha);
       if (body.senha !== validPasswords.get(body.email === "user1@example.com" ? 1 : 2)) {
-        status = 401;
+        status = 400;
         data = { detail: "E-mail ou senha inválidos." };
       } else {
         session = body.email === "user1@example.com" ? 1 : 2;
@@ -116,9 +116,14 @@ module.exports = async function accountFlow(browser, origin) {
       if (registrationMode === "invite") assert.equal(body.convite, "b".repeat(64));
       else assert.equal(Object.hasOwn(body, "convite"), false);
       assert.equal(body.senha, "Valid-password-123!");
-      session = 2;
-      status = 201;
-      data = identity(2);
+      if (refuseRegistration) {
+        status = 503;
+        data = { detail: "Cadastro temporariamente indisponível." };
+      } else {
+        session = 2;
+        status = 201;
+        data = identity(2);
+      }
     } else if (!session) {
       status = 401;
       data = { detail: "Sessão expirada." };
@@ -514,6 +519,27 @@ module.exports = async function accountFlow(browser, origin) {
     await page.locator("#registerEmail").fill("user2@example.com");
     await page.locator("#registerPhone").fill("11999998888");
     await page.locator("#registerPassword").fill("Valid-password-123!");
+    await page.locator("#registerEmail").fill("test@incomplete");
+    const registrationsBefore = requests.filter(
+      (request) => request.path === "/api/v1/auth/register",
+    ).length;
+    await page.locator("#xpRegisterForm [type=submit]").click();
+    assert.equal(await page.locator(".contact-confirmation").count(), 0);
+    assert.equal(
+      requests.filter((request) => request.path === "/api/v1/auth/register").length,
+      registrationsBefore,
+    );
+    assert.match(await page.locator("#registerEmailStatus").textContent(), /e-mail completo/);
+    await page.locator("#registerEmail").fill("user2@example.com");
+    refuseRegistration = true;
+    await page.locator("#xpRegisterForm [type=submit]").click();
+    await page.locator(".contact-confirmation button[value=confirm]").click();
+    await page.waitForFunction(() => document.activeElement?.id === "authConfirmation");
+    assert.match(
+      await page.locator("#authConfirmation").textContent(),
+      /temporariamente indisponível/,
+    );
+    refuseRegistration = false;
     await page.locator("#xpRegisterForm [type=submit]").click();
     await page.locator(".contact-confirmation button[value=confirm]").click();
     await page.waitForFunction(
@@ -597,6 +623,14 @@ module.exports = async function accountFlow(browser, origin) {
           assert(await page.locator("#xpRegisterForm [type=submit]").isDisabled());
           await page.locator("[data-auth-tab=login]").click();
           assert(await page.locator("#xpLoginForm [type=submit]").isEnabled());
+          await page.locator("[data-auth-tab=register]").click();
+          registrationUnavailable = false;
+          registrationMode = "open";
+          await page.locator("#registrationRetry").click();
+          await page.waitForFunction(
+            () => !document.querySelector("#xpRegisterForm [type=submit]").disabled,
+          );
+          assert(await page.locator("#registrationRetry").isHidden());
         } else {
           await page.waitForFunction(
             () => !document.querySelector("#xpRegisterForm [type=submit]").disabled,

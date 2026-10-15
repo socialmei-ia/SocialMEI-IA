@@ -122,6 +122,14 @@
       '<label for="registerInvite">Código do convite</label><input id="registerInvite" disabled minlength="64" maxlength="64" pattern="[A-Za-z0-9_-]{64}" autocomplete="off" aria-describedby="registerInviteStatus"><small class="experience-field-status" id="registerInviteStatus">Use o convite recebido do administrador.</small>';
     q("#xpRegisterForm [type=submit]").before(field);
     q("#xpRegisterForm [type=submit]").disabled = true;
+    const retry = document.createElement("button");
+    retry.id = "registrationRetry";
+    retry.type = "button";
+    retry.className = "btn";
+    retry.textContent = "Tentar consultar novamente";
+    retry.hidden = true;
+    retry.addEventListener("click", loadRegistrationPolicy);
+    q("#xpRegisterForm").append(retry);
     q("#registerPassword").minLength = 12;
     q("#registerPassword").maxLength = 128;
     q("#registerPassword").placeholder = "12 caracteres ou mais";
@@ -736,8 +744,10 @@ ONBOARDING — JAVASCRIPT
         toggle.setAttribute("aria-label", "Mostrar senha");
       });
     } catch (error) {
-      q("#authConfirmation").textContent =
-        error.message || "Não foi possível entrar. Tente novamente.";
+      const feedback = q("#authConfirmation");
+      feedback.textContent = error.message || "Não foi possível entrar. Tente novamente.";
+      feedback.tabIndex = -1;
+      feedback.focus();
     } finally {
       button.disabled = false;
       button.removeAttribute("aria-busy");
@@ -1480,6 +1490,14 @@ ONBOARDING — JAVASCRIPT
     if (result.valid) element.value = result.value;
   }
   function validateAuth(input) {
+    if (input.id === "registerEmail" || input.id === "loginEmail") {
+      const email = input.value.trim();
+      input.setCustomValidity(
+        !email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+          ? ""
+          : "Informe um e-mail completo, como voce@empresa.com.",
+      );
+    }
     if (input.id === "registerName") {
       input.setCustomValidity(input.value.trim() ? "" : "Informe seu nome.");
     }
@@ -4086,6 +4104,38 @@ ONBOARDING — JAVASCRIPT
     restore = sessionStorage.getItem("socialmei-experience-screen") === "app";
     restored = sessionStorage.getItem("socialmei-current-view") || "Início";
   } catch (_) {}
+  async function loadRegistrationPolicy() {
+    const retry = q("#registrationRetry");
+    if (retry.disabled) return;
+    retry.disabled = true;
+    q("#xpRegisterForm .experience-form-hint").textContent =
+      "Consultando a disponibilidade do cadastro…";
+    try {
+      const policy = await SocialMEIAuth.request("/auth/registration");
+      if (!["open", "invite"].includes(policy?.mode)) {
+        throw new Error("Política de cadastro indisponível.");
+      }
+      const inviteRequired = policy.mode === "invite";
+      const invite = q("#registerInvite");
+      invite.parentElement.hidden = !inviteRequired;
+      invite.disabled = !inviteRequired;
+      invite.required = inviteRequired;
+      q("#xpRegisterForm .experience-form-hint").textContent = inviteRequired
+        ? "Cadastro por convite. Use o e-mail que recebeu o código para criar seu negócio."
+        : "Crie sua conta para começar. Não é necessário código de convite.";
+      registrationAvailable = true;
+      q("#xpRegisterForm [type=submit]").disabled = false;
+      retry.hidden = true;
+    } catch (error) {
+      q("#xpRegisterForm .experience-form-hint").textContent =
+        error.status === 401
+          ? "O acesso inicial foi recusado. Reabra o site e confira o acesso compartilhado."
+          : "Não foi possível consultar o cadastro. Tente novamente. Se já possui conta, use Entrar.";
+      retry.hidden = false;
+    } finally {
+      retry.disabled = false;
+    }
+  }
   if (SocialMEIAuth.remote) {
     SocialMEIAuth.ready.then(async (identity) => {
       if (identity) {
@@ -4095,25 +4145,7 @@ ONBOARDING — JAVASCRIPT
         authMode = "login";
         showScreen("auth");
         q("#authConfirmation").textContent = SocialMEIAuth.problem;
-        try {
-          const policy = await SocialMEIAuth.request("/auth/registration");
-          if (!["open", "invite"].includes(policy?.mode)) {
-            throw new Error("Política de cadastro indisponível.");
-          }
-          const inviteRequired = policy.mode === "invite";
-          const invite = q("#registerInvite");
-          invite.parentElement.hidden = !inviteRequired;
-          invite.disabled = !inviteRequired;
-          invite.required = inviteRequired;
-          q("#xpRegisterForm .experience-form-hint").textContent = inviteRequired
-            ? "Cadastro por convite. Use o e-mail que recebeu o código para criar seu negócio."
-            : "Crie sua conta para começar. Não é necessário código de convite.";
-          registrationAvailable = true;
-          q("#xpRegisterForm [type=submit]").disabled = false;
-        } catch (_) {
-          q("#xpRegisterForm .experience-form-hint").textContent =
-            "Não foi possível consultar o cadastro. Recarregue a página para tentar novamente. Se já possui conta, use Entrar.";
-        }
+        await loadRegistrationPolicy();
       }
     });
   } else if (restore) {

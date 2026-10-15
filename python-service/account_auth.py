@@ -161,7 +161,10 @@ class AccountMiddleware(BaseHTTPMiddleware):
         context_token = None
         try:
             require_enabled()
-            if path == "/api/v1/auth/registration" and request.method == "GET":
+            if (
+                path in {"/api/v1/auth/registration", "/api/v1/auth/session"}
+                and request.method == "GET"
+            ):
                 response = await call_next(request)
                 response.headers["Cache-Control"] = "no-store"
                 return response
@@ -340,14 +343,14 @@ def login(payload: Login, response: Response):
             payload.senha, user["senha_hash"] if user else DUMMY_HASH
         )
         if not user or not user["ativo"] or not valid:
-            raise HTTPException(401, "E-mail ou senha inválidos.")
+            raise HTTPException(400, "E-mail ou senha inválidos.")
         cur.execute(
             "SELECT workspace_id FROM socialmei.workspace_members WHERE user_id=%s ORDER BY criado_em,workspace_id LIMIT 1",
             (user["id"],),
         )
         membership = cur.fetchone()
         if not membership:
-            raise HTTPException(401, "E-mail ou senha inválidos.")
+            raise HTTPException(400, "E-mail ou senha inválidos.")
         token = issue_session(
             conn, user["id"], membership["workspace_id"], response, payload.lembrar
         )
@@ -426,6 +429,15 @@ def register(payload: Register, response: Response):
 def me(request: Request):
     require_enabled()
     return public_identity(current(), request.cookies[COOKIE])
+
+
+@router.get("/auth/session")
+def browser_session(request: Request):
+    # Um 401 esperado aqui invalida o Basic já informado no navegador.
+    require_enabled()
+    token = request.cookies.get(COOKIE, "")
+    user = session_identity(token)
+    return public_identity(user, token) if user else None
 
 
 @router.post("/auth/logout", status_code=204)

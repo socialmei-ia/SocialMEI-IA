@@ -87,12 +87,19 @@ test("invalid cross-origin authentication fails closed without a fallback", asyn
   assert.equal(ctx.requests.length, 0);
 });
 test("remote bootstrap ignores the local demo session", async () => {
-  const ctx = setup(() => reply({ detail: "Login required" }, 401));
+  const ctx = setup(() => reply(null));
   assert.equal(await ctx.auth.ready, null);
   assert.equal(ctx.auth.current, null);
   assert.equal(ctx.reloads, 0);
   assert.equal(ctx.requests[0].options.credentials, "same-origin");
   assert.equal(ctx.requests[0].options.cache, "no-store");
+  assert(ctx.requests[0].url.endsWith("/auth/session"));
+});
+test("Basic refusal is not mistaken for an anonymous application session", async () => {
+  const ctx = setup(() => reply(null, 401));
+  assert.equal(await ctx.auth.ready, null);
+  assert(ctx.auth.problem);
+  assert.equal(ctx.reloads, 0);
 });
 test("switching accounts archives previous work and reloads before exposing data", async () => {
   const local = storage({
@@ -129,9 +136,9 @@ test("authenticated writes use CSRF and passwords never enter storage", async ()
 });
 test("invalid password response does not change account state or reload", async () => {
   const ctx = setup((url) =>
-    url.endsWith("/auth/me")
-      ? reply({}, 401)
-      : reply({ detail: "E-mail ou senha inválidos." }, 401),
+    url.endsWith("/auth/session")
+      ? reply(null)
+      : reply({ detail: "E-mail ou senha inválidos." }, 400),
   );
   await ctx.auth.ready;
   await assert.rejects(
@@ -147,7 +154,7 @@ test("logout clears presentation state and expired bootstrap cannot restore an a
     "socialmei-theme-v1": "private-theme",
   });
   const ctx = setup(
-    (url) => (url.endsWith("/auth/me") ? reply(identity(1)) : reply(null, 204)),
+    (url) => (url.endsWith("/auth/session") ? reply(identity(1)) : reply(null, 204)),
     { mode: "remote", apiBaseUrl: "/api/v1" },
     local,
   );
@@ -165,7 +172,7 @@ test("confirmed logout leaves the app even when browser storage cannot archive l
     "socialmei-private-work": "keep",
   });
   const ctx = setup(
-    (url) => (url.endsWith("/auth/me") ? reply(identity(1)) : reply(null, 204)),
+    (url) => (url.endsWith("/auth/session") ? reply(identity(1)) : reply(null, 204)),
     { mode: "remote", apiBaseUrl: "/api/v1" },
     local,
   );
