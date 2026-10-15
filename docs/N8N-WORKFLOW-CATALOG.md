@@ -108,7 +108,9 @@ O responsável confirmou oito documentos salvos na coleta `github-coleta-lml2t3j
 
 O Atendimento referencia consultar produtos, registrar pedido e confirmar pedido pelos IDs documentados anteriormente. Templates importados recebem novos IDs: essas três chamadas precisam ser configuradas privadamente no ambiente de destino. A presença de Google Sheets nos três subworkflows não comprova operação homologada nem retira a decisão de adiar essa integração.
 
-O PR inclui um exportador de **templates estruturais**, testado com documentos fictícios que contêm segredos em código, parâmetros, nomes, configurações e dados fixados. Esses campos não são copiados. Somente a geração na AWS poderá confirmar as conexões dos documentos reais; o export completo permanece privado. Nenhum template estrutural deve substituir automaticamente os exports existentes, ser ativado ou ser chamado como teste.
+O PR inclui um exportador de **templates estruturais**, testado com documentos fictícios que contêm segredos em código, parâmetros, nomes, configurações e dados fixados. Esses campos não são copiados. O export completo permanece privado. Nenhum template estrutural deve substituir automaticamente os exports existentes, ser ativado ou ser chamado como teste.
+
+O responsável confirmou a geração na AWS e o envio dos oito templates em `n8n-workflows/structure/`, no commit `3105444bace9cb8d8c6ccc634d637216366b672d`. Foram preservadas as quantidades de nós e as conexões dos documentos salvos, com nomes reconstruídos. Todos os workflows ficaram inativos e seus nós desabilitados. Três testes Python passaram na AWS; a revisão local dos arquivos publicados confirmou a projeção permitida pelo exportador e os 72 testes JavaScript passaram. Isso não valida parâmetros, credenciais ou versões publicadas.
 
 ## Revisão dos parâmetros ainda pendente
 
