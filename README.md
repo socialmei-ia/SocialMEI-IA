@@ -8,6 +8,8 @@ CRM experimental para MEIs: atendimento, clientes, produtos e serviços, vendas 
 
 [Design system](docs/DESIGN-SYSTEM.md) · [Redesign e validação](VISUAL-REDESIGN-REPORT.md) · [Configurações](docs/SETTINGS-REDESIGN.md)
 
+Para começar uma alteração: [ambientes e dados](docs/ENVIRONMENTS.md) → [onde editar e como adicionar uma feature](docs/PROJECT-STRUCTURE.md). A [revisão de preparação](FUTURE-READINESS-REVIEW.md) registra a limpeza incorporada, configuração centralizada, testes e pendências; não representa deploy.
+
 ## Estado do projeto
 
 A versão da equipe possui API FastAPI, persistência PostgreSQL e autenticação por convite com isolamento de negócio. O Pages continua sendo uma demonstração local. WhatsApp real, IA remota, recuperação por e-mail e execução automática das regras ainda não estão homologados.

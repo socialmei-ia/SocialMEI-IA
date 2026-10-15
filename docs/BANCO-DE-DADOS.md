@@ -92,6 +92,8 @@ npm run db:migrate
 
 O executor registra versões em `socialmei.schema_migrations` no PostgreSQL local. Ele foi criado para o ambiente de desenvolvimento e **não aplica migrations automaticamente em produção**.
 
+`db:status` consulta sem criar o schema/tabela quando ausentes; nesse caso as migrations aparecem pendentes. Somente `db:migrate` inicializa o controle e aplica as mudanças explicitamente. A configuração da conexão da API fica em `python-service/settings.py`; o executor local lê `.env.development` porque executa `psql` pelo serviço Docker, não importa a aplicação FastAPI.
+
 Os arquivos históricos `bootstrap.sql`, `schema.sql` e `permissions.sql` continuam como referência de bootstrap/roles. Novas alterações incrementais devem ser criadas como migrations numeradas:
 
 ```text

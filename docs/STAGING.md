@@ -1,5 +1,7 @@
 # Staging — SocialMEI.IA
 
+**Proposta, não inventário de ambiente instalado.** O workflow existe no Git, mas host, banco, volumes, GitHub Environment, secrets e execução remota de staging são **NÃO CONFIRMADOS**. O piloto team já existe e é outro alvo; consulte [ENVIRONMENTS.md](ENVIRONMENTS.md). Os passos abaixo só se aplicam após definição/autorização da infraestrutura própria de staging.
+
 O objetivo do staging é permitir testes compartilhados antes de qualquer mudança chegar à produção.
 
 ## Regra principal

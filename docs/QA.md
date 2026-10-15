@@ -1,6 +1,36 @@
 # Validação da revisão técnica
 
-Os resultados abaixo pertencem à revisão histórica de 10/10/2026. Para a cobertura e os limites atuais, consulte [a revisão de 12/10/2026](REVISAO-PROJETO-2026-10-12.md) e o workflow `Repository checks`.
+Os resultados da seção histórica abaixo pertencem a 10/10/2026. A cobertura atual é descrita primeiro; revisões datadas não são evidência de uma nova coleta AWS.
+
+## Preparação da base — 14/10/2026
+
+[Baseline, decisões e limites](../FUTURE-READINESS-REVIEW.md). Comandos executados no checkout de revisão com fixtures locais, sem conta ou banco da AWS:
+
+| Comando / camada                                                  | Resultado e alcance                                                                                                       |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `npm test`                                                        | 71 passaram; sintaxe, recursos, contratos de stores/dados, navegação, exports e executor local de migrations              |
+| `npm run format:check`                                            | Formatação dos arquivos cobertos pelo Prettier; não formata Python                                                        |
+| `python -m unittest discover -s python-service -p 'test_*.py'`    | 140 passaram com `TEST_DATABASE_URL`/`DATABASE_URL` para PostgreSQL 16 descartável; sem skips                             |
+| `python -m unittest discover -s tests -p 'test_*.py'`             | 19 passaram; cinco de gateway ignorados por exigirem opt-in                                                               |
+| `SOCIALMEI_TEAM_GATEWAY_TEST=true` + suite `test_team_gateway.py` | Cinco passaram separadamente com Caddy e rede próprios                                                                    |
+| `npm run test:browser`                                            | 88 estados e 21 fluxos, incluindo contas, CRUD, filtros, replay, rascunhos, transferência e teclado                       |
+| `node tests/stability-browser.cjs`                                | 825 estados de layout/tema e 167 estados de botões passaram; 11 resoluções e Light/Dark/Auto-Light/Auto-Dark/Custom       |
+| `node tests/visual-browser.cjs`                                   | 22 estados Home e 22 Financeiro; foco, touch, spotlight, privacidade, vazio e reduced motion                              |
+| `node tests/settings-browser.cjs`                                 | 990 estados; modo local/remoto simulado, salvar, temas e teclado                                                          |
+| `node tests/team-browser.cjs`                                     | HTTPS e Basic reais em containers descartáveis, API mock: quatro módulos conectados, escrita autenticada e recusa anônima |
+| OpenAPI completo                                                  | JSON igual à main `92d4c20…`, 53 operações e modelos preservados                                                          |
+
+Python exige dependências de `python-service/requirements.txt`. Os casos de integração são ignorados sem `TEST_DATABASE_URL`; esse skip não equivale a banco validado. A configuração e os comandos do teste de banco usam exclusivamente uma instância descartável, porque as suites alteram suas fixtures. Para navegador, instalar Chromium com Playwright ou definir `CHROMIUM_EXECUTABLE`; o caminho dessa variável é local ao computador, não um arquivo para versionar.
+
+Teste adicional do executor contra PostgreSQL real descartável: status em banco vazio → schema continuou ausente; migrate → 11 versões instaladas; status → histórico lido. Só o comando migrate criou estrutura. O setup/config Compose foi validado separadamente; n8n/WAHA da stack completa e o notebook Windows não foram iniciados por esta revisão.
+
+Não executar `*-browser.cjs` que exportam função como CLIs independentes. `browser.cjs` já chama os helpers de contas, módulos remotos, catálogo, vendas, financeiro, relatórios, contato e transferência. As cinco suites principais acima são as mesmas usadas no CI.
+
+Comparação visual: 44 pares antes/depois de 11 telas em 1440/390px e claro/escuro. 39 idênticos; cinco com 6–40 pixels diferentes e no máximo quatro níveis por canal RGB, sem mudança de geometria/conteúdo. São diferenças residuais de rasterização, não igualdade pixel a pixel. Dados fictícios, relógio fixo, movimento reduzido e toasts temporários ocultos na comparação.
+
+Na primeira execução paralela, as suites funcional/estabilidade/visual falharam durante a inicialização da experiência; repetições isoladas foram verificadas sem alterar expectativas. A causa pontual dessas falhas de inicialização não foi isolada. O primeiro teste HTTPS também exigiu selecionar o Chromium local e ajustar somente o proxy interno dos containers descartáveis; o ajuste de proxy não foi versionado nem aplicado à AWS. Registrar essas ocorrências, não transformar tentativa falha em resultado de produção.
+
+O CI ainda valida startup da stack team, migrations e restore em banco próprio. Esse gate remoto deve ser conferido no SHA final do PR; resultado antigo não o substitui. Não houve teste de restore do banco real, mensagem WhatsApp, ativação de workflow, SMTP, Meta ou IA remota nesta revisão.
 
 ## Executado em 10/10/2026
 

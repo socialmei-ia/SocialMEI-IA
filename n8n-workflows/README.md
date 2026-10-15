@@ -47,4 +47,24 @@ Os sete nomes dos exports foram classificados como `[OPS]`, `[TEST]`, `[DEV]`, `
 
 O inventário histórico da VPS registra 24 workflows, oito ativos e três arquivados, com detalhes em [LIVE-ENVIRONMENT-INVENTORY.md](../docs/LIVE-ENVIRONMENT-INVENTORY.md). Essa coleta é anterior; nomes, versão publicada, última execução e autorização não foram reconfirmados nesta rodada. Nenhum workflow vivo foi renomeado, publicado ou chamado. A organização no Git não organiza automaticamente a instância.
 
+## Contratos e promoção de workflows
+
+| Export                 | Trigger / entrada                                        | Saída / dependência                                            | Estado                                      |
+| ---------------------- | -------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------- |
+| Conferir conexão team  | Manual; URL e Bearer de leitura cadastrados privadamente | Resumo de leitura da API team, sem escrita                     | OPS; export inativo                         |
+| Atendimento PostgreSQL | Webhook POST normalizado ou GET de histórico             | Confirmação de gravação ou `mensagens`; PostgreSQL legado      | LEGACY; bloqueado para uso real até A12/A13 |
+| Hello World            | Webhook de exemplo                                       | Resposta HTTP de exercício                                     | TEST; isolado                               |
+| Processar texto        | Manual; texto de exemplo                                 | `/processar` → original/maiúsculo/contagem                     | TEST; API auxiliar, não CRM                 |
+| Agente Instagram       | Webhook experimental / payload Meta                      | Agente/HTTP com ramos incompletos; Meta e Gemini               | DEV; não homologado                         |
+| Challenge Instagram    | Webhook de verificação                                   | Resposta do challenge; agente separado sem integração completa | DEV; não homologado                         |
+| Rotina agendada        | Agenda; destino ainda ausente                            | Requisição sem URL definida                                    | ARCHIVE; intenção pendente                  |
+
+Para uma nova automação, definir objetivo, trigger, input/output, timeout/retry, identidade/negócio, chave idempotente e credenciais por finalidade antes de montar o canvas. Usar nomes de nós que descrevam ações; manter paths e referências de conexões ao renomear nós. Uma nota curta pode explicar uma decisão, sem copiar o guia inteiro para o workflow.
+
+Fluxo de promoção: desenvolver em instância/projeto isolado → testar dados fictícios e falhas/reenvio → exportar sem credenciais/pinData e com `active: false` → revisar diff e contratos no PR → registrar versão do export e do n8n → importar/configurar privadamente no alvo aprovado → homologar antes de ativar. Se não houver staging instalado, não chamar o piloto de staging por conveniência.
+
+Antes de alterar um workflow vivo, preservar export da versão publicada, estado ativo/inativo, configuração relevante e backup conjunto de banco/volume/chave. Rollback restaura a versão do workflow e suas referências de credenciais aprovadas; não reverte mensagens enviadas ou escritas de negócio automaticamente. Nunca usar restore de banco de produção como teste de rollback.
+
+`npm test` valida exports/normalização estáticos; não comprova consultas no banco vivo, funcionamento de credenciais, autenticação do webhook ou entrega de mensagem. [Mapa dos ambientes e limites](../docs/ENVIRONMENTS.md).
+
 A12/A13 continuam P0 antes de atendimento real: autorização, tenant/canal, IDs externos e deduplicação. Não ligar o legado ao modelo multi-MEI pela troca de nomes. Backup da instância deve preservar seu banco, volume e chave de criptografia originais antes de qualquer alteração viva. Google Sheets permanece pausado.

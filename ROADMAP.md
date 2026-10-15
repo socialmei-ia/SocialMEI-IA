@@ -1,93 +1,51 @@
 # Roadmap
 
-## Manutenção — 14/10/2026
-
-Esta seção prevalece sobre o planejamento histórico abaixo. A API de gestão, o isolamento por negócio e as migrations incrementais já existem. A refatoração desta rodada preserva interface, dados e integrações; detalhes em [CODE-MAINTAINABILITY-REVIEW.md](CODE-MAINTAINABILITY-REVIEW.md).
-
-- **P0 condicional:** resolver autorização/identidade/idempotência do atendimento antes de canais reais (A12/A13). Não ativar o export legado por conveniência.
-- **P1:** revisar grants e separar a role da API da administração em uma etapa própria; confirmar cobertura/cópia externa dos backups e ensaiar restauração isolada.
-- **P2:** reduzir o listener de `app.js` por responsabilidade, começando pelas áreas alteradas; revisar a cascata por componente com evidência visual, sem unificar stores que têm contratos distintos.
-- **P2:** avaliar fixação das dependências Python e imagens `latest` com teste de atualização separado.
-- **P3:** funcionalidades novas continuam fora desta manutenção; critérios e prioridade pertencem ao responsável.
-
-## Atualização de 12/10/2026
-
-API de gestão dos quatro módulos, migrations incrementais, transferência inicial, gateway protegido, leitura técnica do n8n e backups da equipe já foram implementados. O CI inclui PostgreSQL real, navegador, autenticação HTTPS e restauração de backup isolada. O planejamento original abaixo é histórico; itens que dizem que essas bases não existem foram superados.
-
-Próximos passos atuais:
-
-1. Ativar e conferir o [piloto privado de contas dos MEIs](docs/CONTAS-MEIS.md); manter Basic auth até o dono decidir a abertura pública.
-2. Obter chip dedicado e conectar WAHA; recebimento/envio ainda depende dessa etapa.
-3. Definir IDs estáveis, deduplicação e autenticação do atendimento antes de conectar canais reais.
-4. Preparar regras de orçamento/atendimento; leitura técnica do CRM não autoriza escrita por automações.
-5. Automatizar cópias externas de novos backups e ensaiar recuperação dos backups reais em destino separado.
-6. Fixar versões de imagens/dependências após validá-las, separar dados de demonstração e reduzir gradualmente o acoplamento dos scripts.
-
-Veja [a revisão atual](docs/REVISAO-PROJETO-2026-10-12.md) e [a operação da equipe](docs/OPERACAO-EQUIPE.md).
-
-## Planejamento original de 10/10/2026
-
-Prioridades: **P0** bloqueia uso real do fluxo principal; **P1** prepara a próxima fase; **P2** manutenção/polimento; **P3** exploração futura. Cada item abaixo deriva do código auditado, não de disponibilidade presumida de serviços.
+Atualizado em 14/10/2026. Prioridades baseadas no código e nas evidências disponíveis; publicação na AWS é uma etapa separada. A [revisão de preparação](FUTURE-READINESS-REVIEW.md) e o [mapa de ambientes](docs/ENVIRONMENTS.md) substituem afirmações antigas sobre ausência de API, migrations e isolamento de negócio.
 
 ## Próxima etapa
 
-| Prioridade | Mudança                                                     | Evidência e conclusão esperada                                                                                                                       |
-| ---------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P0         | Validar n8n/PostgreSQL em ambiente isolado                  | Export inativo, credenciais externas e SQL não automático. Reproduzir POST → banco → GET → Inbox e registrar versão do n8n/configuração.             |
-| P0         | Proteger leitura/recebimento de mensagens                   | Export sem autenticação e CORS `*`; login local não protege dados remotos. Definir autenticação, autorização, origem e rate limit fora do frontend.  |
-| P0         | Definir fronteira de dados e identidade do CRM              | Gestão usa localStorage e não há multiempresa/backend CRUD. Especificar usuários/negócios e migração sem perder backups existentes.                  |
-| P1         | Confirmar regressão no CI e revisar a interface visualmente | AST/cascata preservados; regressão local passou em 88 estados e oito fluxos. Exigir sucesso do job remoto e revisar movimento normal antes do merge. |
-| P1         | Conferir WAHA/Compose na VPS sem redefinir volumes          | Compose anterior inválido e flags sem senha conflitavam com docs. Validar versão, credenciais, bind local e destino do hook com alvos de teste.      |
+| Prioridade     | Ação                                                                   | Evidência / conclusão esperada                                                                                                                        |
+| -------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P1             | Revisar e integrar a limpeza e preparação desta branch                 | Contratos e visual preservados; conferir CI do SHA final. A publicação terá alvo/imagens próprios, sem usar o deploy genérico para team.              |
+| P1             | Consolidar as sugestões da equipe                                      | O responsável aguarda respostas; transformar ideias em requisitos/aceite antes de criar funcionalidades.                                              |
+| P0 condicional | Fechar identidade, autorização e idempotência do atendimento (A12/A13) | O export legado agrupa por nome/canal e não deduplica eventos externos. Exigir IDs estáveis, tenant/canal e reenvio seguro antes de atendimento real. |
 
 ## Curto prazo
 
-| Prioridade | Mudança                                                  | Evidência                                                                                                                                                          |
-| ---------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| P0         | IDs estáveis e idempotência no atendimento               | Frontend agrupa por nome/canal; GET não retorna IDs de conversa/cliente; INSERT não deduplica evento externo. Evitar mistura de homônimos e duplicação em reenvio. |
-| P1         | Integrar envio externo com confirmação/falha/retry       | Composer apenas adiciona mensagem local. Usar API autenticada/adaptador, estado de envio e testes de canal em sandbox.                                             |
-| P1         | Persistir gestão em backend com migração de dados locais | Só histórico de atendimento tem tabelas. Criar contratos e migrations depois da decisão de identidade, preservando exportação/importação.                          |
-| P1         | Fixar versões de imagens e dependências Python testadas  | n8n/WAHA/pgAdmin usam `latest`; requirements não fixa versões. Registrar versões realmente validadas e processo de atualização.                                    |
-| P1         | Ensaiar restauração e ampliar cobertura dos backups      | Script cobre PostgreSQL/config/n8n, não sessões WAHA. Definir política por volume, cópia fora do host, concorrência e recuperação documentada.                     |
+| Prioridade | Ação                                              | Evidência / conclusão esperada                                                                                                                              |
+| ---------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P1         | Separar roles de API, migration/backup e consulta | Role team foi observada com superuser; inventariar grants e testar em destino isolado antes de reduzir privilégios.                                         |
+| P1         | Conferir backup e recuperação por serviço         | Team, n8n/chave/volume, WAHA e Caddy têm necessidades distintas. Verificar execução automática, retenção, cópia externa e restore isolado de backup real.   |
+| P1         | Reconciliar exports com workflows publicados      | Sete exports no Git; inventário remoto anterior de 24 workflows. Registrar versão, credenciais por finalidade e resultado de teste sem ativar canais reais. |
+| P1         | Homologar versões fixas de imagens/dependências   | Existem tags flutuantes e requirements sem pins. Conferir versões efetivas e testar a fixação sem atualizar por conveniência.                               |
+| P2         | Tornar o desenvolvimento local mais explícito     | Setup, migrations e modo público dos stores são etapas distintas. Testar o onboarding completo no Windows com o próximo integrante.                         |
 
 ## Médio prazo
 
-| Prioridade | Mudança                                                  | Evidência                                                                                                                                                         |
-| ---------- | -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P1         | Conectar o Assistente a serviço de IA com revisão humana | Sugestões são locais; os exports Gemini de Instagram não atendem o Assistente do app. Adicionar contexto autorizado, erro/custo e rascunho antes de envio.        |
-| P1         | Vincular automações do app ao executor                   | Regras e histórico são simulados. Definir persistência, agenda, cancelamento, retries e eventos auditáveis.                                                       |
-| P2         | Separar `experience.js` e `app.js` por ciclo de vida     | Ainda concentram várias responsabilidades; introduzir fronteiras graduais com testes de inicialização.                                                            |
-| P2         | Consolidar CSS por componente com comparação visual      | 4.437 regras originais, 834 seletores repetidos e 203 `!important`. Nem toda repetição é defeito; revisar por escopo, não apagar em lote.                         |
-| P2         | Separar dados de demonstração da sessão remota           | Atividade e conversas demo vivem em `sessionData`; definir modo demo explícito sem contaminar uma conta real.                                                     |
-| P2         | Testes HTTP/SQL e observabilidade                        | Testes atuais de Python são de modelo/função; falta execução real de consultas, autorização e recuperação. Acrescentar testes isolados e logs sem dados pessoais. |
+| Prioridade                  | Ação                                              | Evidência / conclusão esperada                                                                                                                  |
+| --------------------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| P2                          | Reduzir arquivos grandes por responsabilidade     | Ainda há globais e inicialização compartilhada em app/experience/business-views. Extrair ao tocar uma área, com regressão do seu ciclo de vida. |
+| P2                          | Consolidar CSS por componente                     | Overrides e valores próprios permanecem; usar tokens e capturas comparativas, sem apagar seletores apenas por repetição.                        |
+| P2                          | Avaliar transporte compartilhado nos stores       | Comparar auth, erros, replay e importação antes de extrair; não perder recuperação de operação de Vendas/Financeiro.                            |
+| P1 após definição funcional | Conectar Assistente e automações a serviços reais | Hoje são sugestões/regras locais. Definir contexto autorizado, custos, agenda, cancelamento, falhas e confirmação humana antes de integrar.     |
 
 ## Futuro
 
-- **P3 — Relatórios compartilhados:** depois de persistir gestão e definir métricas reais; gráficos atuais misturam dados locais/demonstração.
-- **P3 — Integração oficial adicional de canais:** comparar APIs/providers depois de validar recebimento/envio e requisitos do produto.
+- **P3 — Customer Score / chance de compra:** aguardar critérios do responsável. Contexto de Clientes, regra no backend e persistência por negócio apenas se necessária. Não existem fórmula, campos ou pesos aprovados.
+- **P3 — Relatórios compartilhados e canais adicionais:** definir métricas, fontes e requisitos; não usar mensagens demo como histórico confiável.
+- **P3 — Automação de deploy e staging:** escolher ambiente isolado e gates; os workflows manuais atuais não comprovam infraestrutura instalada.
 
 ## Dívida técnica
 
-- Globais compartilhados e ordem de carregamento entre scripts clássicos.
-- `experience.js`, `app.js`, `business-views.js` e CSS ainda grandes.
-- Classes/IDs antigos e campos persistidos em português requerem migração, não renomeação mecânica.
-- Ausência de migrations incrementais, multiempresa e API de gestão autenticada.
-- Exports experimentais com nós não conectados/incompletos; preservados para revisão manual.
-- Endereços históricos da VPS e versões `latest` dificultam reprodução de um deploy validado.
+- Scripts clássicos/globais e arquivos de UI/CSS extensos.
+- Transporte parcialmente repetido e contratos legados em português.
+- Modo local, demo, snapshots e dados remotos ainda exigem atenção ao mudar configuração.
+- Dependências/imagens flutuantes.
+- Grafos experimentais incompletos, atendimento externo sem homologação multiempresa.
+- Grants, backup externo e restore operacional ainda com pendências de evidência.
 
-Próxima entrega recomendada: **um ambiente de teste reproduzível de atendimento, com identidade/autorização definidas e critérios de aceite de dados**, antes de ampliar a integração de IA ou redesenhar a interface.
+API de gestão autenticada, migrations incrementais 001–011, separação de dados demo, replay/importações e testes HTTP/SQL já existem. Não são itens a recriar. Consulte [arquitetura](ARCHITECTURE.md), [contratos](docs/API-ENDPOINTS.md) e [persistência](docs/PERSISTENCE-MIGRATION.md).
 
-## Plano de persistência compartilhada
+Recuperação por e-mail, onboarding MEI com o professor, administração de GitHub/deploy, Google Sheets e WhatsApp real continuam adiados pelo responsável. Esta revisão não retoma essas integrações nem incorpora o protótipo de planilha de outro PR.
 
-A sequência detalhada para tirar gestão do `localStorage` sem perder compatibilidade está em
-[docs/PERSISTENCE-MIGRATION.md](docs/PERSISTENCE-MIGRATION.md).
-
-## Gate da base estabilizada — 13/10/2026
-
-- Gate de publicação team concluído: PR #35/CI aprovados, checkout `ae73f6e…`, backup, migration 011/sete constraints e frontend publicados; responsável confirmou login/saída/reentrada e abertura dos cinco módulos. Código no Git não comprova por si só deploy; CRUD completo/console/temas-resoluções pós-deploy não repetidos na produção.
-- P0 condicional: A12/A13 antes de atendimento real; não ativar o legado WhatsApp para múltiplos MEIs.
-- P1: separar usuário da API de migrations/backup e consulta após inventário de grants/rede e testes isolados; role `socialmei_team` observada com superuser. Perfil readonly preparado, ainda não provisionado; não reduzir privilégios ou alterar credenciais de produção às cegas.
-- P1: conferir versão publicada/equivalência dos workflows vivos e backup conjunto n8n/chave/volume.
-- P2: evolução visual só após fechar o gate operacional; consolidar controladores/CSS gradualmente, sem refatoração massiva.
-- P3: calculadora futura no contexto do cliente, com critérios fornecidos pelo responsável, lógica no backend e versionamento do modelo se houver histórico. Nenhuma fórmula presumida.
-
-Recuperação por e-mail, onboarding MEI com professor, administração do GitHub/deploy, Google Sheets e WhatsApp real permanecem adiados conforme as decisões do responsável.
+O planejamento histórico permanece no Git e nos relatórios datados; este arquivo contém somente o plano vigente.

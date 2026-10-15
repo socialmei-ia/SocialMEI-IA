@@ -2,6 +2,8 @@
 
 O objetivo é permitir que qualquer integrante contribua sem precisar editar produção diretamente.
 
+Escolha o [ambiente](docs/ENVIRONMENTS.md), localize a área no [mapa da estrutura](docs/PROJECT-STRUCTURE.md) e defina o contrato antes de alterar. O mesmo mapa explica como adicionar endpoint, tela, teste ou migration sem trocar o framework ou duplicar regras no n8n.
+
 ## Ambiente local
 
 Antes de criar sua branch:
