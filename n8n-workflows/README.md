@@ -13,7 +13,7 @@ Os antigos arquivos `error.json`, `my-workflow.json`, `integracao-n8n-insta.json
 
 ## Workflows recentes — 15/10/2026
 
-O [catálogo atual](../docs/N8N-WORKFLOW-CATALOG.md) registra os 33 workflows observados na AWS, candidatos a export e organização proposta no painel. O histórico de sete exports nas seções abaixo descreve a rodada anterior; agora são oito arquivos JSON. Nenhum workflow vivo foi alterado por esta organização.
+O [catálogo atual](../docs/N8N-WORKFLOW-CATALOG.md) registra os 33 workflows observados na AWS, candidatos a export e a aplicação confirmada de tags aos oito recentes, preservando conteúdo e estados. Renomeação continua pendente. O histórico de sete exports nas seções abaixo descreve a rodada anterior; agora são oito arquivos JSON. A organização no Git e a operação no painel são etapas distintas.
 
 `examples/process-text.json` foi atualizado com o template recente `[TEST] Python API — conferência`, preservando o POST `/processar`, com timeout de 15 segundos e nomes de nós descritivos. Não foi criado outro exemplo HTTP duplicado. `examples/python-native-check.json` contém `[TEST] Python Native — conferir executor`: retorna `status: ok` e `resultado: 4`, usando `pythonNative`. Ambos têm trigger manual e export inativo; não enviam mensagens.
 

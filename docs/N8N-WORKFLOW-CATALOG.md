@@ -4,7 +4,7 @@
 
 Inventário fornecido pelo responsável após consulta PostgreSQL em transação READ ONLY na AWS. n8n 2.40.5, 33 workflows, oito ativos e cinco arquivados. A coleta contém somente metadados e tipos de nós do documento salvo; não inclui parâmetros, credenciais, payloads ou execuções. Não comprova equivalência entre rascunho e versão publicada, homologação ou entrega de mensagens.
 
-Nenhuma alteração na instância foi realizada nesta organização do Git. O inventário anterior de 24 workflows permanece histórico em [LIVE-ENVIRONMENT-INVENTORY.md](LIVE-ENVIRONMENT-INVENTORY.md).
+O inventário anterior de 24 workflows permanece histórico em [LIVE-ENVIRONMENT-INVENTORY.md](LIVE-ENVIRONMENT-INVENTORY.md). A coleta inicial foi somente leitura; a aplicação posterior de tags está registrada abaixo, com evidência fornecida pelo responsável.
 
 ## Recentes e seleção para o Git
 
@@ -29,7 +29,15 @@ Consulta READ ONLY fornecida pelo responsável confirmou que `DDrphANXE8QdxoWy` 
 
 Foram encontrados 20 vínculos workflow/tipo de credencial. Atendimento usa Groq; os três subworkflows de pedidos usam Google; os dois grafos WhatsApp recentes usam WAHA (o chamado “API oficial” também referencia Gemini). Isso descreve configuração declarada: validade das credenciais e funcionamento ponta a ponta NÃO CONFIRMADOS. Nenhum valor, nome ou ID de credencial foi coletado.
 
-Usar tags por finalidade: `socialmei/operacao`, `socialmei/teste`, `socialmei/experimental`, `socialmei/legado` e `socialmei/planejado`. São propostas; não foram criadas. Preservar tags de terceiros. Não mover propriedade/projeto de workflows, não republicar versões e não editar banco diretamente para organizar.
+Tags aplicadas aos oito workflows recentes: `socialmei/teste`, `socialmei/experimental` e `socialmei/planejado`. `socialmei/operacao` e `socialmei/legado` continuam propostas para uma etapa posterior. Preservar tags de terceiros. Não mover propriedade/projeto de workflows, não republicar versões e não editar banco diretamente para organizar.
+
+### Aplicação confirmada pelo responsável
+
+Backup privado informado: `/home/ubuntu/socialmei-backups/n8n-organizacao-34797ecc29a6`, com dump de 3.047.473 bytes e volume de 1.303.272 bytes. Índice do dump conferido; volume copiado em execução e restauração completa não ensaiada. Configuração do runner também preservada; seu override efetivo está em `/home/ubuntu/.config/socialmei/n8n-python/compose.python-runners.json`, fora da pasta legada do projeto. Backup, chave administrativa e exports privados não são arquivos para o Git.
+
+A API administrativa foi acessada pelo responsável via terminal AWS. O plano privado preservou oito documentos salvos antes da operação. A saída da aplicação confirmou os dois testes Python com `socialmei/teste`, Relatórios/Orçamentos/publicação Instagram e os dois WhatsApp com `socialmei/experimental`, e Lembretes com `socialmei/planejado`.
+
+A conferência comparou nomes, IDs, grafos, configurações, versões e estados antes/depois e preservou tags anteriores. Os oito continuaram inativos. Nenhum workflow foi executado, ativado ou desativado; nenhum serviço foi reiniciado. Os nomes sugeridos não foram aplicados: o contrato para regravar o workflow não foi confirmado na distribuição instalada. A organização usou somente o endpoint específico de tags. Isso não comprova homologação dos fluxos nem publica seus grafos no Git.
 
 Os dois testes Python já têm nomes descritivos. Novos nomes candidatos: `[DEV] Relatórios — Google Sheets`, `[DEV] Orçamentos — sugestões`, `[DEV] Instagram — publicar post`, `[PLAN] Lembretes`. Antes de aplicar, preservar documento/versão publicada/estado e conferir dependências por ID; usar interface ou API administrativa suportada, com acesso privado. Fluxos ativos e versões de orçamento semelhantes aguardam comparação, sem excluir cópias.
 
