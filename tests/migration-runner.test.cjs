@@ -6,7 +6,7 @@ const { test } = require("node:test");
 
 const source = fs
   .readFileSync(path.join(__dirname, "../tools/db-migrate.mjs"), "utf8")
-  .replace(/^import .*;\n/gm, "");
+  .replace(/^import .*;\r?\n/gm, "");
 
 function runCommand(command, { initialized = false, applied = [] } = {}) {
   const queries = [];
