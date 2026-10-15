@@ -62,7 +62,17 @@ HTTPServer(('0.0.0.0',8000),Handler).serve_forever()
     networkCreated = true;
     function start(suffix, args) {
       const id = name + suffix;
-      docker("run", "-d", "--name", id, "--network", name, ...args);
+      docker(
+        "run",
+        "-d",
+        "--name",
+        id,
+        "--network",
+        name,
+        "-e",
+        "NO_PROXY=team-api,socialmei-team-gateway,localhost,127.0.0.1",
+        ...args,
+      );
       containers.push(id);
       return id;
     }

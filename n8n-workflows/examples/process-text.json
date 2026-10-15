@@ -13,7 +13,7 @@
         0
       ],
       "id": "47a3fd4e-bd7b-492e-a511-5ab6fc4c678d",
-      "name": "When clicking ‘Execute workflow’"
+      "name": "Run isolated Python test"
     },
     {
       "parameters": {
@@ -22,7 +22,7 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "{\n  \"texto\": \"Ola SocialME\"\n}",
-        "options": {}
+        "options": { "timeout": 15000 }
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
@@ -31,15 +31,15 @@
         0
       ],
       "id": "1b3f2ef4-c518-47e6-80f1-d2985b35b63f",
-      "name": "HTTP Request"
+      "name": "Process text in Python API"
     }
   ],
   "connections": {
-    "When clicking ‘Execute workflow’": {
+    "Run isolated Python test": {
       "main": [
         [
           {
-            "node": "HTTP Request",
+            "node": "Process text in Python API",
             "type": "main",
             "index": 0
           }
