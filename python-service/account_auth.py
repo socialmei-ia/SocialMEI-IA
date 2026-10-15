@@ -161,6 +161,10 @@ class AccountMiddleware(BaseHTTPMiddleware):
         context_token = None
         try:
             require_enabled()
+            if path == "/api/v1/auth/registration" and request.method == "GET":
+                response = await call_next(request)
+                response.headers["Cache-Control"] = "no-store"
+                return response
             if (
                 request.method not in {"GET", "HEAD", "OPTIONS"}
                 and request.headers.get("origin") != origin()
@@ -234,7 +238,7 @@ class Register(Login):
     nome: str = Field(min_length=1, max_length=160)
     telefone: str = Field(default="", max_length=40)
     senha: str = Field(min_length=12, max_length=128)
-    convite: str = Field(pattern=r"^[A-Za-z0-9_-]{64}$")
+    convite: str | None = Field(default=None, pattern=r"^[A-Za-z0-9_-]{64}$")
 
     @field_validator("nome")
     @classmethod
@@ -357,20 +361,30 @@ def login(payload: Login, response: Response):
     return result
 
 
+@router.get("/auth/registration")
+def registration_policy():
+    require_enabled()
+    return {"mode": settings.registration_mode()}
+
+
 @router.post("/auth/register", status_code=201)
 def register(payload: Register, response: Response):
     require_enabled()
     throttle(payload.email, "register")
+    use_invite = settings.registration_mode() != "open" or payload.convite is not None
+    if use_invite and not payload.convite:
+        raise HTTPException(400, "Informe o convite recebido do administrador.")
     try:
         with connect() as conn, conn.cursor(row_factory=dict_row) as cur:
-            cur.execute(
-                "SELECT token_hash FROM socialmei.auth_convites WHERE token_hash=%s AND email=%s AND usado_em IS NULL AND revogado_em IS NULL AND expira_em>NOW() FOR UPDATE",
-                (digest(payload.convite), payload.email),
-            )
-            if not cur.fetchone():
-                raise HTTPException(
-                    400, "Cadastro não concluído. Confira seu convite e os dados."
+            if use_invite:
+                cur.execute(
+                    "SELECT token_hash FROM socialmei.auth_convites WHERE token_hash=%s AND email=%s AND usado_em IS NULL AND revogado_em IS NULL AND expira_em>NOW() FOR UPDATE",
+                    (digest(payload.convite), payload.email),
                 )
+                if not cur.fetchone():
+                    raise HTTPException(
+                        400, "Cadastro não concluído. Confira seu convite e os dados."
+                    )
             hashed = hash_password(payload.senha)
             user_id = conn.execute(
                 "INSERT INTO socialmei.users (email,nome,telefone) VALUES (%s,%s,%s) RETURNING id",
@@ -388,10 +402,11 @@ def register(payload: Register, response: Response):
                 "INSERT INTO socialmei.workspace_members (workspace_id,user_id,role) VALUES (%s,%s,'owner')",
                 (workspace_id, user_id),
             )
-            conn.execute(
-                "UPDATE socialmei.auth_convites SET usado_em=NOW(),user_id=%s WHERE token_hash=%s",
-                (user_id, digest(payload.convite)),
-            )
+            if use_invite:
+                conn.execute(
+                    "UPDATE socialmei.auth_convites SET usado_em=NOW(),user_id=%s WHERE token_hash=%s",
+                    (user_id, digest(payload.convite)),
+                )
             conn.execute(
                 "INSERT INTO socialmei.auth_auditoria (user_id,acao) VALUES (%s,'cadastro')",
                 (user_id,),
@@ -402,7 +417,8 @@ def register(payload: Register, response: Response):
             return public_identity(identity_in(conn, user_id, workspace_id), token)
     except psycopg.errors.UniqueViolation:
         raise HTTPException(
-            400, "Cadastro não concluído. Confira seu convite e os dados."
+            400,
+            "Cadastro não concluído. Confira os dados ou entre na sua conta existente.",
         ) from None
 
 

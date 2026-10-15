@@ -26,6 +26,12 @@ def authentication_origin() -> str:
     return os.getenv("SOCIALMEI_AUTH_ORIGIN", "").strip()
 
 
+def registration_mode() -> str:
+    # Somente a opção explícita abre o cadastro; valores inválidos exigem convite.
+    value = os.getenv("SOCIALMEI_REGISTRATION_MODE", "invite").strip().lower()
+    return "open" if value == "open" else "invite"
+
+
 def cors_origins() -> list[str]:
     origins = [
         origin.strip()

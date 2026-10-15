@@ -7,6 +7,8 @@ module.exports = async function accountFlow(browser, origin) {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   let session = null;
+  let registrationMode = "invite";
+  let registrationUnavailable = false;
   let refuseLogout = false;
   const passwords = [];
   const validPasswords = new Map([
@@ -92,7 +94,12 @@ module.exports = async function accountFlow(browser, origin) {
     let status = 200,
       data = [];
     const body = request.postDataJSON();
-    if (url.pathname === "/api/v1/auth/me") {
+    if (url.pathname === "/api/v1/auth/registration") {
+      status = registrationUnavailable ? 503 : 200;
+      data = registrationUnavailable
+        ? { detail: "Cadastro indisponível." }
+        : { mode: registrationMode };
+    } else if (url.pathname === "/api/v1/auth/me") {
       status = session ? 200 : 401;
       data = session ? identity(session) : { detail: "Entre na sua conta." };
     } else if (url.pathname === "/api/v1/auth/login") {
@@ -106,7 +113,8 @@ module.exports = async function accountFlow(browser, origin) {
         data = identity(session);
       }
     } else if (url.pathname === "/api/v1/auth/register") {
-      assert.equal(body.convite, "b".repeat(64));
+      if (registrationMode === "invite") assert.equal(body.convite, "b".repeat(64));
+      else assert.equal(Object.hasOwn(body, "convite"), false);
       assert.equal(body.senha, "Valid-password-123!");
       session = 2;
       status = 201;
@@ -487,11 +495,25 @@ module.exports = async function accountFlow(browser, origin) {
     );
     assert.equal(await page.evaluate(() => localStorage.getItem("socialmei-private-test")), null);
     await page.locator("[data-auth-tab=register]").click();
+    await page.locator("#registerInvite").waitFor({ state: "visible" });
+    assert(await page.locator("#registerInvite").evaluate((input) => input.required));
+    registrationMode = "open";
+    await page.reload();
+    await page.waitForFunction(() => !!document.querySelector("[data-xp-screen=auth].is-active"));
+    await page.locator("[data-auth-tab=register]").click();
+    await page.waitForFunction(
+      () => !document.querySelector("#xpRegisterForm [type=submit]").disabled,
+    );
+    assert(await page.locator("#registerInvite").isHidden());
+    assert(await page.locator("#registerInvite").isDisabled());
+    assert.match(
+      await page.locator("#xpRegisterForm .experience-form-hint").textContent(),
+      /Não é necessário/,
+    );
     await page.locator("#registerName").fill("MEI");
     await page.locator("#registerEmail").fill("user2@example.com");
     await page.locator("#registerPhone").fill("11999998888");
     await page.locator("#registerPassword").fill("Valid-password-123!");
-    await page.locator("#registerInvite").fill("b".repeat(64));
     await page.locator("#xpRegisterForm [type=submit]").click();
     await page.locator(".contact-confirmation button[value=confirm]").click();
     await page.waitForFunction(
@@ -556,9 +578,41 @@ module.exports = async function accountFlow(browser, origin) {
         !window.SocialMEIAuth.current &&
         !!document.querySelector("[data-xp-screen=auth].is-active"),
     );
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const mode of ["open", "invite", "unavailable"]) {
+        registrationMode = mode;
+        registrationUnavailable = mode === "unavailable";
+        await page.reload();
+        await page.waitForFunction(
+          () => !!document.querySelector("[data-xp-screen=auth].is-active"),
+        );
+        await page.locator("[data-auth-tab=register]").click();
+        if (registrationUnavailable) {
+          await page.waitForFunction(() =>
+            document
+              .querySelector("#xpRegisterForm .experience-form-hint")
+              .textContent.includes("Não foi possível"),
+          );
+          assert(await page.locator("#xpRegisterForm [type=submit]").isDisabled());
+          await page.locator("[data-auth-tab=login]").click();
+          assert(await page.locator("#xpLoginForm [type=submit]").isEnabled());
+        } else {
+          await page.waitForFunction(
+            () => !document.querySelector("#xpRegisterForm [type=submit]").disabled,
+          );
+          assert.equal(await page.locator("#registerInvite").isVisible(), mode === "invite");
+          assert.equal(
+            await page.locator("#registerInvite").evaluate((input) => input.required),
+            mode === "invite",
+          );
+        }
+        await fitsViewport();
+      }
+    }
     assert.deepEqual(errors, []);
     await assertRealSession();
-    return "Contas: login/cadastro, sessão/logout, administrador, atendimento sem seeds demo e preservação/isolamento de notas e rascunhos";
+    return "Contas: cadastro aberto/convite/indisponível em desktop e mobile, login/logout, administrador e isolamento de dados";
   } finally {
     await page.close();
   }

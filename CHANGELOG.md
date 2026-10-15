@@ -1,5 +1,12 @@
 # Changelog
 
+## Cadastro do piloto sem convite — 2026-10-15
+
+- Cadastro temporariamente aberto por padrão no Compose team, com reversão por `TEAM_REGISTRATION_MODE=invite`.
+- Formulário consulta a política da API e oculta o convite no modo aberto; login continua disponível se a consulta falhar.
+- Preservados autenticação, Basic, validação de contato/senha, limites, convites existentes e criação de negócios separados sem privilégio administrativo.
+- Sem migration, alteração de dados existentes ou integração externa. Publicação no servidor é uma etapa separada.
+
 ## Preparação da base — 2026-10-14
 
 - Limpeza do PR #42 incorporada à branch de preparação, preservando os commits revisados.

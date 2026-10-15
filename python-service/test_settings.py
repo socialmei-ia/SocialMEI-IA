@@ -46,6 +46,21 @@ class SettingsTests(unittest.TestCase):
             ):
                 self.assertEqual("enabled", settings.authentication_mode())
 
+    def test_registration_opens_only_with_explicit_valid_setting(self):
+        self.assertEqual("invite", settings.registration_mode())
+        for value, expected in (
+            ("open", "open"),
+            (" OPEN ", "open"),
+            ("invite", "invite"),
+            ("", "invite"),
+            ("true", "invite"),
+            ("opne", "invite"),
+        ):
+            with self.subTest(value=value), patch.dict(
+                os.environ, {"SOCIALMEI_REGISTRATION_MODE": value}
+            ):
+                self.assertEqual(expected, settings.registration_mode())
+
     def test_explicit_database_url_has_precedence(self):
         with patch.dict(
             os.environ,

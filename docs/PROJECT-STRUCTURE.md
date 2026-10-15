@@ -95,7 +95,7 @@ Não renomear, apagar ou migrar essas chaves sem plano de compatibilidade. Backu
 
 Os modelos Pydantic e operações ficam perto do router de cada área. O middleware resolve a sessão; `auth_context.principal` leva a identidade ao trabalho executado na thread. `ensure_workspace` e consultas por workspace mantêm a fronteira de negócio. Não aceitar um workspace livre do corpo de uma requisição autenticada.
 
-Os [53 endpoints](API-ENDPOINTS.md) e seus modelos são os contratos oficiais desta base. Erros usam `detail`, podendo ser uma string ou lista de validação FastAPI. Stores já tratam essas diferenças; padronizar todo o formato exige mudança de contrato própria. Endpoints de contas/admin não devolvem valores submetidos em erros de validação. 409 representa conflito/replay incompatível; não repetir escrita cegamente.
+Os [54 endpoints](API-ENDPOINTS.md) e seus modelos são os contratos oficiais desta base. Erros usam `detail`, podendo ser uma string ou lista de validação FastAPI. Stores já tratam essas diferenças; padronizar todo o formato exige mudança de contrato própria. Endpoints de contas/admin não devolvem valores submetidos em erros de validação. 409 representa conflito/replay incompatível; não repetir escrita cegamente.
 
 ## Como adicionar uma feature
 

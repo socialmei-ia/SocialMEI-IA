@@ -60,7 +60,7 @@ Campos como `clientes`, `nome` e `mensagem`, IDs existentes e classes antigas s�
 
 A autenticação é opt-in: `SOCIALMEI_AUTH_ENABLED=true`, persistência compartilhada e origem HTTPS válida. A migration 010 prepara credenciais Argon2id, sessões, convites, limites e auditoria de contas. Sessões usam cookie Secure/HttpOnly/SameSite=Lax; escritas humanas validam Origin e CSRF. O servidor resolve o workspace pela sessão e associação em `workspace_members`, não por um ID enviado pelo navegador. Administrador da plataforma é distinto dos papéis de negócio. O gateway Basic permanece como proteção adicional da equipe, sem substituir contas individuais.
 
-Com autenticação desativada, o modo legado/local continua usando o workspace fixo do ambiente; não é isolamento entre MEIs individuais. Flag inválido bloqueia o acesso. Login/cadastro por convite, sessão, revogação e administração existem; recuperação por e-mail, OAuth Google, onboarding compartilhado e atendimento por canal ainda têm etapas próprias. Chaves privadas não ficam em `config.js`.
+Com autenticação desativada, o modo legado/local continua usando o workspace fixo do ambiente; não é isolamento entre MEIs individuais. Flag inválido bloqueia o acesso. Login, cadastro aberto ou por convite conforme política do servidor, sessão, revogação e administração existem; recuperação por e-mail, OAuth Google, onboarding compartilhado e atendimento por canal ainda têm etapas próprias. Chaves privadas não ficam em `config.js`.
 
 ## Caixa Unificada e n8n
 
@@ -105,6 +105,6 @@ Os três ambientes são diferentes: Pages/local preserva o demo; `compose.dev.ya
 
 ## Fronteiras verificadas na estabilização
 
-A [revisão da base](PROJECT-BASELINE-REVIEW.md) registra baseline, testes e limites das evidências de runtime. O [inventário de endpoints](docs/API-ENDPOINTS.md) descreve as 53 operações declaradas. A migration 011, instalada no ambiente team em 13/10/2026 conforme coleta do responsável, adiciona defesa de integridade referencial aos vínculos de CRM/importação por workspace; não substitui sessões, autorização ou uma decisão futura sobre RLS. Roles internas de consulta são distintas das contas de MEIs e do token técnico n8n; o perfil de consulta não foi provisionado na AWS.
+A [revisão da base](PROJECT-BASELINE-REVIEW.md) registra baseline, testes e limites das evidências de runtime. O [inventário de endpoints](docs/API-ENDPOINTS.md) descreve as 54 operações declaradas. A migration 011, instalada no ambiente team em 13/10/2026 conforme coleta do responsável, adiciona defesa de integridade referencial aos vínculos de CRM/importação por workspace; não substitui sessões, autorização ou uma decisão futura sobre RLS. Roles internas de consulta são distintas das contas de MEIs e do token técnico n8n; o perfil de consulta não foi provisionado na AWS.
 
 A calculadora de probabilidade futura deve receber seus critérios explícitos no backend, usando cliente/workspace resolvidos pela sessão. Não há cálculo, modelo, pesos, tabela ou endpoint dessa função nesta revisão.

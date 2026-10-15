@@ -113,18 +113,21 @@
   const q = (s, base = document) => base.querySelector(s);
 
   const qa = (s, base = document) => [...base.querySelectorAll(s)];
+  let registrationAvailable = !SocialMEIAuth.remote;
   if (SocialMEIAuth.remote) {
     const field = document.createElement("div");
     field.className = "experience-field";
+    field.hidden = true;
     field.innerHTML =
-      '<label for="registerInvite">Código do convite</label><input id="registerInvite" required minlength="64" maxlength="64" pattern="[A-Za-z0-9_-]{64}" autocomplete="off" aria-describedby="registerInviteStatus"><small class="experience-field-status" id="registerInviteStatus">Use o convite recebido do administrador.</small>';
+      '<label for="registerInvite">Código do convite</label><input id="registerInvite" disabled minlength="64" maxlength="64" pattern="[A-Za-z0-9_-]{64}" autocomplete="off" aria-describedby="registerInviteStatus"><small class="experience-field-status" id="registerInviteStatus">Use o convite recebido do administrador.</small>';
     q("#xpRegisterForm [type=submit]").before(field);
+    q("#xpRegisterForm [type=submit]").disabled = true;
     q("#registerPassword").minLength = 12;
     q("#registerPassword").maxLength = 128;
     q("#registerPassword").placeholder = "12 caracteres ou mais";
     q("#registerPasswordStatus").textContent = "Use 12 ou mais caracteres.";
     q("#xpRegisterForm .experience-form-hint").textContent =
-      "Cadastro por convite. Use o e-mail que recebeu o código para criar seu negócio.";
+      "Consultando a disponibilidade do cadastro…";
     q("#xpLoginForm .experience-form-hint").textContent =
       "Use seu e-mail e sua senha cadastrados para acessar seu negócio.";
     qa(".landing-social-login,.authentication-or").forEach((element) => {
@@ -661,12 +664,17 @@ ONBOARDING — JAVASCRIPT
             lembrar: q("#loginRemember").checked,
           });
         } else {
+          if (!registrationAvailable) {
+            throw new Error("Recarregue a página para conferir a disponibilidade do cadastro.");
+          }
           await SocialMEIAuth.register({
             nome: q("#registerName").value.trim(),
             email: q("#registerEmail").value.trim(),
             telefone: q("#registerPhone").value.trim(),
             senha: q("#registerPassword").value,
-            convite: q("#registerInvite").value.trim(),
+            ...(!q("#registerInvite").disabled
+              ? { convite: q("#registerInvite").value.trim() }
+              : {}),
           });
         }
         return;
@@ -4079,7 +4087,7 @@ ONBOARDING — JAVASCRIPT
     restored = sessionStorage.getItem("socialmei-current-view") || "Início";
   } catch (_) {}
   if (SocialMEIAuth.remote) {
-    SocialMEIAuth.ready.then((identity) => {
+    SocialMEIAuth.ready.then(async (identity) => {
       if (identity) {
         refreshExperienceProfile();
         enterApp(restored);
@@ -4087,6 +4095,25 @@ ONBOARDING — JAVASCRIPT
         authMode = "login";
         showScreen("auth");
         q("#authConfirmation").textContent = SocialMEIAuth.problem;
+        try {
+          const policy = await SocialMEIAuth.request("/auth/registration");
+          if (!["open", "invite"].includes(policy?.mode)) {
+            throw new Error("Política de cadastro indisponível.");
+          }
+          const inviteRequired = policy.mode === "invite";
+          const invite = q("#registerInvite");
+          invite.parentElement.hidden = !inviteRequired;
+          invite.disabled = !inviteRequired;
+          invite.required = inviteRequired;
+          q("#xpRegisterForm .experience-form-hint").textContent = inviteRequired
+            ? "Cadastro por convite. Use o e-mail que recebeu o código para criar seu negócio."
+            : "Crie sua conta para começar. Não é necessário código de convite.";
+          registrationAvailable = true;
+          q("#xpRegisterForm [type=submit]").disabled = false;
+        } catch (_) {
+          q("#xpRegisterForm .experience-form-hint").textContent =
+            "Não foi possível consultar o cadastro. Recarregue a página para tentar novamente. Se já possui conta, use Entrar.";
+        }
       }
     });
   } else if (restore) {
