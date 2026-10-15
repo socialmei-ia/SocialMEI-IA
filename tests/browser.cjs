@@ -172,6 +172,7 @@ async function run() {
     const backup = JSON.parse(fs.readFileSync(await (await backupPromise).path(), "utf8"));
     assert.equal(backup.product, "SocialMEI.IA");
     await page.reload();
+    await page.waitForFunction(() => !!window.SocialMEIExperience);
     await page.evaluate(() => SocialMEIExperience.enterApp("Clientes"));
     assert.equal((await data()).clientes[0].nome, "Cliente QA atualizado");
     await page.evaluate(() => openClient(appData.clientes[0]));

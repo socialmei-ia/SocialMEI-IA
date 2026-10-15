@@ -1,5 +1,12 @@
 # Changelog
 
+## Correção do cadastro atrás de Basic — 2026-10-15
+
+- Bootstrap consulta sessão opcional com200/null, evitando que401 anônimo invalide o acesso Basic do navegador.
+- Erros normais de credenciais de login usam400; rotas protegidas preservam401, sessão, autorização e limites.
+- Cadastro pode repetir a consulta de disponibilidade; e-mail incompleto é bloqueado e erros de envio recebem foco.
+- Regressão com desafio Basic humano no Chromium, sem credenciais automáticas que ocultem a falha.
+
 ## Cadastro do piloto sem convite — 2026-10-15
 
 - Cadastro temporariamente aberto por padrão no Compose team, com reversão por `TEAM_REGISTRATION_MODE=invite`.

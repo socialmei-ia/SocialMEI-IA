@@ -157,6 +157,7 @@ HTTPServer(('0.0.0.0', 8000), Handler).serve_forever()
             "/scripts/app.js",
             "/api/v1/clientes",
             "/api/v1/auth/registration",
+            "/api/v1/auth/session",
             "/health/db",
         ]:
             self.assertEqual(self.request(path)[0], 401, path)

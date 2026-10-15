@@ -105,6 +105,6 @@ Os três ambientes são diferentes: Pages/local preserva o demo; `compose.dev.ya
 
 ## Fronteiras verificadas na estabilização
 
-A [revisão da base](PROJECT-BASELINE-REVIEW.md) registra baseline, testes e limites das evidências de runtime. O [inventário de endpoints](docs/API-ENDPOINTS.md) descreve as 54 operações declaradas. A migration 011, instalada no ambiente team em 13/10/2026 conforme coleta do responsável, adiciona defesa de integridade referencial aos vínculos de CRM/importação por workspace; não substitui sessões, autorização ou uma decisão futura sobre RLS. Roles internas de consulta são distintas das contas de MEIs e do token técnico n8n; o perfil de consulta não foi provisionado na AWS.
+A [revisão da base](PROJECT-BASELINE-REVIEW.md) registra baseline, testes e limites das evidências de runtime. O [inventário de endpoints](docs/API-ENDPOINTS.md) descreve as 55 operações declaradas. A migration 011, instalada no ambiente team em 13/10/2026 conforme coleta do responsável, adiciona defesa de integridade referencial aos vínculos de CRM/importação por workspace; não substitui sessões, autorização ou uma decisão futura sobre RLS. Roles internas de consulta são distintas das contas de MEIs e do token técnico n8n; o perfil de consulta não foi provisionado na AWS.
 
 A calculadora de probabilidade futura deve receber seus critérios explícitos no backend, usando cliente/workspace resolvidos pela sessão. Não há cálculo, modelo, pesos, tabela ou endpoint dessa função nesta revisão.

@@ -157,6 +157,8 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Offline application regression
         run: npm run test:browser
+      - name: Human Basic login and account registration
+        run: node tests/signup-basic-browser.cjs
       - name: Eleven resolutions and all theme modes
         run: node tests/stability-browser.cjs
       - name: Visual interactions and motion accessibility

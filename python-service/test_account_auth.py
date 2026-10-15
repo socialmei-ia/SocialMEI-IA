@@ -58,6 +58,22 @@ class AccountGuards(unittest.TestCase):
                     self.client.get("/api/v1/auth/registration").status_code, 503
                 )
 
+    def test_browser_session_probe_uses_200_null_without_a_valid_cookie(self):
+        with patch(
+            "account_auth.connect", side_effect=AssertionError("unexpected database")
+        ):
+            for token in ("", "invalid-token"):
+                self.client.cookies.set(COOKIE, token)
+                response = self.client.get("/api/v1/auth/session")
+                self.assertEqual(response.status_code, 200)
+                self.assertIsNone(response.json())
+                self.assertEqual(response.headers["cache-control"], "no-store")
+            self.assertEqual(self.client.post("/api/v1/auth/session").status_code, 403)
+            with patch.dict(os.environ, {"SOCIALMEI_AUTH_ENABLED": "false"}):
+                self.assertEqual(
+                    self.client.get("/api/v1/auth/session").status_code, 503
+                )
+
     def test_missing_invite_cannot_bypass_restricted_mode(self):
         with patch("account_auth.throttle"), patch(
             "account_auth.connect", side_effect=AssertionError("unexpected database")
@@ -302,6 +318,7 @@ class AccountDatabaseTests(unittest.TestCase):
             self.assertEqual(client.get("/api/v1/clientes").json(), [])
             self.assertEqual(client.get("/api/v1/admin/users").status_code, 403)
             self.assertEqual(client.get("/api/v1/auth/me").status_code, 200)
+            self.assertEqual(client.get("/api/v1/auth/session").json(), identity)
             self.login("open@example.com")
             with psycopg.connect(DB) as conn:
                 self.assertEqual(
@@ -313,6 +330,7 @@ class AccountDatabaseTests(unittest.TestCase):
             client.headers["X-SocialMEI-CSRF"] = identity["csrf_token"]
             self.assertEqual(client.post("/api/v1/auth/logout").status_code, 204)
             self.assertEqual(client.get("/api/v1/auth/me").status_code, 401)
+            self.assertIsNone(client.get("/api/v1/auth/session").json())
             duplicate = client.post(
                 "/api/v1/auth/register",
                 json={
@@ -443,7 +461,7 @@ class AccountDatabaseTests(unittest.TestCase):
             response = client.post(
                 "/api/v1/auth/login", json={"email": address, "senha": "wrong-password"}
             )
-            self.assertEqual(response.status_code, 401)
+            self.assertEqual(response.status_code, 400)
             errors.append(response.json())
         self.assertEqual(errors[0], errors[1])
         for _ in range(9):

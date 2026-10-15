@@ -115,7 +115,7 @@ async function run() {
           return route.fulfill({ json: identity });
         }
         if (url.pathname.startsWith("/api/v1/"))
-          return route.fulfill({ json: url.pathname === "/api/v1/auth/me" ? identity : [] });
+          return route.fulfill({ json: url.pathname === "/api/v1/auth/session" ? identity : [] });
         return route.continue();
       });
       await page.clock.setFixedTime(new Date("2026-10-13T12:00:00Z"));
