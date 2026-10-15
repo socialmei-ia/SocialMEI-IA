@@ -1,5 +1,3 @@
-import os
-
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
@@ -20,17 +18,12 @@ from finance_import import router as finance_import_router
 from workspace_transfer import router as transfer_router
 from n8n_read import router as n8n_read_router
 from account_auth import AccountMiddleware, router as account_auth_router
+from settings import cors_origins as configured_cors_origins
 
 app = FastAPI(title="SocialME Python Service")
 app.add_middleware(AccountMiddleware)
-cors_origins = [
-    origin.strip()
-    for origin in os.getenv("SOCIALMEI_CORS_ORIGINS", "").split(",")
-    if origin.strip()
-]
+cors_origins = configured_cors_origins()
 if cors_origins:
-    if "*" in cors_origins:
-        raise RuntimeError("Configure origens CORS explícitas, sem wildcard.")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=cors_origins,

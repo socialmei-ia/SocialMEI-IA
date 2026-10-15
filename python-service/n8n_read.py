@@ -1,6 +1,5 @@
 """Acesso técnico de leitura, separado do login do navegador."""
 
-import os
 import secrets
 from typing import Generic, TypeVar
 
@@ -13,11 +12,12 @@ from sales_data import SALE_COLUMNS, VendaOut
 from shared_data import CLIENTE_COLUMNS, ClienteOut, require_shared_data, workspace_slug
 
 from database import connect
+from settings import n8n_read_token
 
 
 def authorize(authorization: str | None = Header(default=None)):
     require_shared_data()
-    expected = os.getenv("SOCIALMEI_N8N_READ_TOKEN", "")
+    expected = n8n_read_token()
     if workspace_slug() != "team" or len(expected) < 32:
         raise HTTPException(503, "Integração de leitura não configurada.")
     scheme, _, supplied = (authorization or "").partition(" ")
