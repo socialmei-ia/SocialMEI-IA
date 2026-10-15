@@ -1,11 +1,43 @@
 import unittest
+import json
+from pathlib import Path
+from unittest.mock import patch
 
+from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
 from app import TextInput, app, health, process_text, root
 
 
 class ApiContractTests(unittest.TestCase):
+    def test_versioned_n8n_http_example_runs_in_python(self):
+        workflow = json.loads(
+            (
+                Path(__file__).parents[1] / "n8n-workflows/examples/process-text.json"
+            ).read_text()
+        )
+        node = next(
+            node
+            for node in workflow["nodes"]
+            if node["type"] == "n8n-nodes-base.httpRequest"
+        )
+        payload = json.loads(node["parameters"]["jsonBody"])
+        with patch.dict("os.environ", {"SOCIALMEI_AUTH_ENABLED": "false"}):
+            response = TestClient(app).post("/processar", json=payload)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["maiusculo"], payload["texto"].upper())
+        self.assertEqual(
+            response.json()["quantidade_caracteres"], len(payload["texto"])
+        )
+
+    def test_wrong_chat_body_reproduces_required_text_error(self):
+        with patch.dict("os.environ", {"SOCIALMEI_AUTH_ENABLED": "false"}):
+            response = TestClient(app).post("/processar", json={"chatInput": "Olá"})
+        self.assertEqual(response.status_code, 422)
+        self.assertIn(
+            ["body", "texto"], [error["loc"] for error in response.json()["detail"]]
+        )
+
     def test_existing_route_contracts(self):
         routes = {route.path: route for route in app.routes if hasattr(route, "path")}
         self.assertIn("POST", routes["/processar"].methods)

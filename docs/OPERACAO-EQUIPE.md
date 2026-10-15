@@ -2,7 +2,7 @@
 
 O servidor confirmado é `54.94.213.7`, com site em
 `https://socialmei-ia.54-94-213-7.sslip.io/`. A senha do navegador continua ativa.
-A decisão de contas/acesso público segue pendente com o dono do projeto.
+Contas individuais estão habilitadas; o cadastro foi temporariamente liberado sem convite em `db775dc` conforme decisão do responsável. A proteção Basic compartilhada continua ativa. [Política e reversão para convite](CONTAS-MEIS.md).
 
 ## Manutenção
 
@@ -31,8 +31,9 @@ antes de considerá-las proteção contra perda da AWS. Não envie arquivos pelo
 
 ## Preparar e instalar a conexão do n8n
 
-Depois do merge, faça backup antes de atualizar o código da equipe. Após conferir
-o worktree, prepare o token e reconstrua API/gateway:
+Esta seção descreve o provisionamento inicial da conexão de leitura, já relatado em 12/10. Não repetir importação, geração de token ou atualização da pilha para uma manutenção normal. Para atualização existente, seguir [DEPLOYMENT.md](../DEPLOYMENT.md): preservar a configuração instalada e reconstruir/trocar somente o serviço autorizado. A consulta `check-n8n` não exige repetir `prepare-n8n`.
+
+Em uma instalação nova e explicitamente autorizada, após backup e conferência do worktree:
 
 ```bash
 python3 tools/team-maintenance.py prepare-n8n
@@ -90,7 +91,7 @@ privados e volte ao commit anterior; não restaure o banco de produção automat
 
 ## Ainda dependem de ação humana
 
-- Decisão de contas/acesso público com o dono do projeto.
+- Confirmar o cadastro novo sem convite no navegador; eventual retirada futura de Basic exige decisão própria.
 - Automatizar a cópia privada dos novos backups fora da instância; a cópia inicial no notebook já foi conferida.
 - Chip dedicado, QR/sessão WhatsApp e regras de resposta/envio de mensagens.
 - Ensaiar recuperação dos backups reais em um destino separado.

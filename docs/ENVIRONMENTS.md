@@ -1,6 +1,6 @@
 # Ambientes e fontes de verdade
 
-Revisão de 14/10/2026, America/Fortaleza. Código e configuração foram conferidos no checkout. Evidências da AWS abaixo foram fornecidas pelo responsável na conversa; não representam uma nova conexão SSH. Quando faltar evidência, o estado é **NÃO CONFIRMADO**.
+Revisão de 15/10/2026, America/Fortaleza. Código e configuração foram conferidos no checkout. Evidências da AWS abaixo foram fornecidas pelo responsável na conversa; não representam uma nova conexão SSH. Quando faltar evidência, o estado é **NÃO CONFIRMADO**.
 
 ## Onde estou trabalhando?
 
@@ -44,7 +44,8 @@ URLs internas Docker não abrem diretamente no notebook. `127.0.0.1` em um conta
 
 ## O que foi efetivamente relatado
 
-- Frontend team: imagem `socialmei-phone-mask/team-gateway:92d4c20a106d330a24452f6cca969c79762c15b3`; API team: imagem `socialmei-contacts/team-api:5006b2e38de3865fd070cc67c48a55e703ef3291`. São versões distintas; checkout do host não certifica o conteúdo de ambas.
+- Atualização mais recente relatada: checkout `db775dc5ae427eafed01a7dcd0d365dc92b23a16`, API/gateway publicados e conferidos, cadastro sem convite ativo, Basic e autenticação individual preservados. O recibo informa 41 arquivos frontend e 35 API. Confirmação humana final de criar uma nova conta permanece pendente.
+- Imagens preparadas nessa operação: `socialmei-signup/team-api:db775dc5ae427eafed01a7dcd0d365dc92b23a16` e `socialmei-signup/team-gateway:db775dc5ae427eafed01a7dcd0d365dc92b23a16`; publicação revalidou os IDs preparados. Checkout do host não certifica sozinho o conteúdo de cada imagem.
 - Migrations 001–011 e sete relações por workspace foram confirmadas pelo responsável. A role `socialmei_team` foi observada com superuser; redução de privilégios continua uma etapa própria.
 - A credencial Basic compartilhada de avaliação foi adicionada e testada pelo responsável com backup privado. Ela é independente das contas do aplicativo. Esta revisão não altera esse acesso.
 - n8n 2.40.5 e WAHA 2026.9.2/WEBJS foram observados anteriormente. A preparação de executor Python foi relatada; configuração final e execução ponta a ponta não foram reconfirmadas nesta revisão.

@@ -1,5 +1,13 @@
 # Changelog
 
+## V2 Foundation — 2026-10-15
+
+- Plano de evolução com baseline candidata V1, limites do runtime, padrão Python/n8n, entrega por SHA, multi-MEI e gates de WhatsApp.
+- Dependências diretas/transitivas Python fixadas às versões de teste, verificadas na instalação; sem atualização automática da AWS.
+- Export HTTP Python com nomes de ação e timeout; teste do corpo versionado e do erro de campo obrigatório.
+- Inventário de runtime somente leitura, com saída limitada e bloqueio em checkout sujo.
+- Política de protótipos antes da integração e exploração isolada de Oportunidades com dados/percentuais fictícios; sem API, banco ou alteração do aplicativo.
+
 ## Cadastro do piloto sem convite — 2026-10-15
 
 - Cadastro temporariamente aberto por padrão no Compose team, com reversão por `TEAM_REGISTRATION_MODE=invite`.

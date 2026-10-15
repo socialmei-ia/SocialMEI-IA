@@ -1,5 +1,7 @@
 # Workflows n8n
 
+O [padrão Python/n8n](../docs/PYTHON-N8N.md) define lógica reutilizável na API Python por HTTP e diferencia Code node com runner. `examples/process-text.json` tem trigger manual, corpo `{ "texto": "Ola SocialME" }`, timeout de 15 segundos e saída `original`/`maiusculo`/`quantidade_caracteres`. Não exige planilha ou pacotes no notebook. O teste local do contrato não comprova execução no n8n da AWS.
+
 | Grupo           | Arquivos                                                   | Uso                                                                                                                   |
 | --------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | `equipe/`       | `01-conferir-conexao.json`                                 | [OPS] Leitura técnica do CRM team; exige credencial Bearer configurada privadamente. Não escreve nem envia mensagens. |
@@ -60,6 +62,8 @@ O inventário histórico da VPS registra 24 workflows, oito ativos e três arqui
 | Rotina agendada        | Agenda; destino ainda ausente                            | Requisição sem URL definida                                    | ARCHIVE; intenção pendente                  |
 
 Para uma nova automação, definir objetivo, trigger, input/output, timeout/retry, identidade/negócio, chave idempotente e credenciais por finalidade antes de montar o canvas. Usar nomes de nós que descrevam ações; manter paths e referências de conexões ao renomear nós. Uma nota curta pode explicar uma decisão, sem copiar o guia inteiro para o workflow.
+
+Registrar também o serviço executante e classificar como PROD, DEV, TEST, EXPERIMENTAL ou LEGACY. OPS existente identifica conferência operacional; ARCHIVE preserva intenção incerta. PROD exige homologação, versão/digest do n8n, export correspondente à publicação e evidência de execução; não promover automaticamente o arquivo da pasta `producao/`. Esta rodada não renomeia workflows vivos.
 
 Fluxo de promoção: desenvolver em instância/projeto isolado → testar dados fictícios e falhas/reenvio → exportar sem credenciais/pinData e com `active: false` → revisar diff e contratos no PR → registrar versão do export e do n8n → importar/configurar privadamente no alvo aprovado → homologar antes de ativar. Se não houver staging instalado, não chamar o piloto de staging por conveniência.
 

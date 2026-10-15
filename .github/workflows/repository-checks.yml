@@ -53,6 +53,7 @@ jobs:
       - name: Python contracts
         run: |
           python -m pip install -r python-service/requirements.txt
+          python -m pip check
           python -m unittest discover -s python-service -p 'test_*.py'
       - name: Backup failure and recovery scenarios
         run: python -m unittest discover -s tests -p 'test_*.py'
@@ -157,6 +158,17 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Offline application regression
         run: npm run test:browser
+      - name: Isolated opportunities prototype
+        run: node tests/opportunities-browser.cjs
+      - name: Save isolated prototype for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: opportunities-prototype
+          path: |
+            prototypes/opportunities.html
+            prototypes/README.md
+            test-results/opportunities/*.png
+          if-no-files-found: error
       - name: Eleven resolutions and all theme modes
         run: node tests/stability-browser.cjs
       - name: Visual interactions and motion accessibility

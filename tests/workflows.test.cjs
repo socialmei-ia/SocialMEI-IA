@@ -53,3 +53,17 @@ test("normalization handles explicit IDs, fallback identifiers and invalid dates
   assert.equal(fallback.mensagem, "");
   assert(!Number.isNaN(Date.parse(fallback.horario)));
 });
+
+test("Python HTTP smoke export stays manual, internal and bounded", () => {
+  const example = JSON.parse(
+    fs.readFileSync(path.join(__dirname, "../n8n-workflows/examples/process-text.json"), "utf8"),
+  );
+  const [trigger, request] = example.nodes;
+  assert.equal(example.active, false);
+  assert.equal(trigger.type, "n8n-nodes-base.manualTrigger");
+  assert.equal(request.parameters.url, "http://python-api:8000/processar");
+  assert.equal(request.parameters.options.timeout, 15000);
+  assert.equal(typeof JSON.parse(request.parameters.jsonBody).texto, "string");
+  assert.equal(example.connections[trigger.name].main[0][0].node, request.name);
+  assert.equal(example.nodes.length, 2);
+});

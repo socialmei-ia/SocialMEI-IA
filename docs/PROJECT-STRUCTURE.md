@@ -101,17 +101,19 @@ Os [54 endpoints](API-ENDPOINTS.md) e seus modelos são os contratos oficiais de
 
 Exemplo conceitual: **Customer Score**, ainda sem requisitos de cálculo.
 
-1. Definir com o responsável entrada, saída, permissão, campos e critérios de aceite. Não inventar pesos ou fórmula.
+1. Definir com o responsável entrada, saída, permissão, campos e critérios de aceite. Não inventar pesos ou fórmula. Explorar a feature visual em HTML isolado e obter aprovação antes dos passos de integração abaixo.
 2. Se precisar de persistência, criar a próxima migration incremental após conferir a numeração no Git. Nunca editar 001–011 já aplicadas. Incluir workspace nas relações e plano de compatibilidade/rollback.
 3. Criar modelo/validação/router da regra em `python-service/`; registrar o router em `app.py`. Calcular no backend quando a fonte for compartilhada, sem duplicar a regra no n8n e na UI.
 4. Consumir pelo store da área ou por módulo específico se o limite for claro. Manter timeout, autenticação, falha explícita e recuperação de operação conforme o contrato.
-5. Renderizar no contexto de Clientes usando IDs/data attributes estáveis; criar uma view nova somente se houver necessidade. Nesse caso registrar navegação, renderização, metadados/títulos e testes de cada resolução.
+5. Renderizar na área aprovada usando IDs/data attributes estáveis. Para Oportunidades, a proposta atual é uma página geral e resumo contextual futuro na Caixa, ainda sujeita à aprovação. Registrar navegação, renderização, metadados/títulos e testes de cada resolução somente na etapa de integração.
 6. Testar regra, isolamento entre negócios, HTTP/validação e UI. Fixtures vão em testes; não criar registros no piloto.
 7. Atualizar contrato/documentação, abrir PR e aguardar CI/revisão. Publicação exige alvo, backup e imagem anterior definidos.
 
 Nenhum campo, endpoint, tabela, peso ou algoritmo de score foi criado. O histórico de vendas e clientes já tem contratos; interações de canal estão apenas estruturalmente preparadas e não podem ser tratadas como eventos confiáveis de compra sem homologação.
 
 ## Alterações visuais e integrações
+
+Nova feature visual grande segue a [política de protótipos](../prototypes/README.md): HTML em `prototypes/`, somente mocks e aprovação explícita antes de alterar app/navegação/API. A exploração de Oportunidades está fora do build team. [V2 Foundation](V2-FOUNDATION-PLAN.md) registra o modelo conceitual e as decisões ainda pendentes.
 
 Consultar [DESIGN-SYSTEM.md](DESIGN-SYSTEM.md): tokens semânticos de cor, `--space-*`, `--r-*`, tipografia e motion já existem. Paletas e ajustes custom ficam em `storage-and-themes.js`; não transformar tokens antigos em um segundo conjunto concorrente. A cascata ainda tem overrides por componente/breakpoint. Alterar um componente por vez e conferir claro/escuro/auto/custom, foco, teclado, touch e reduced motion.
 

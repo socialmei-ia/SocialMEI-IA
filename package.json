@@ -6,8 +6,8 @@
   "scripts": {
     "test": "node --test tests/*.test.cjs",
     "test:browser": "node tests/browser.cjs",
-    "format": "prettier --write frontend tools tests *.html *.json .github docs *.md compose*.yaml",
-    "format:check": "prettier --check frontend tools tests *.html *.json .github docs *.md compose*.yaml",
+    "format": "prettier --write frontend prototypes tools tests *.html *.json .github docs *.md compose*.yaml",
+    "format:check": "prettier --check frontend prototypes tools tests *.html *.json .github docs *.md compose*.yaml",
     "setup": "node tools/dev-workspace.mjs setup",
     "dev": "node tools/dev-workspace.mjs up",
     "dev:tools": "node tools/dev-workspace.mjs up-tools",
