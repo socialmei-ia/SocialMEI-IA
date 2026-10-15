@@ -3,6 +3,7 @@
 This repository includes project-specific Codex instructions and a curated agent team for SocialMEI.IA.
 
 The team was designed from the project's actual stack and workflows, with patterns adapted from:
+
 - OpenAI Codex custom-agent conventions;
 - VoltAgent/awesome-codex-subagents;
 - aws-samples/sample-codex-agent-team;
