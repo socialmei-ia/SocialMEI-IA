@@ -1,0 +1,143 @@
+{
+  "name": "[STRUCTURE] Caixa Unificada local — legado",
+  "nodes": [
+    {
+      "id": "6b065310-42d5-5c74-8c4f-22275b1ba736",
+      "name": "01 · Receber webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    },
+    {
+      "id": "54c222c1-3a3d-5d5b-b894-60dd04443160",
+      "name": "02 · Código",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        280,
+        0
+      ],
+      "parameters": {
+        "jsCode": "throw new Error(\"CONFIGURE_PRIVATELY: código não exportado\");"
+      },
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    },
+    {
+      "id": "dc4c64f0-99a3-54d4-8f0b-01384437722b",
+      "name": "03 · Responder webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        560,
+        0
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    },
+    {
+      "id": "d3afd7bf-66be-5298-a430-4fddc0938e8e",
+      "name": "04 · Receber webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        840,
+        0
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    },
+    {
+      "id": "41c6f0f7-5081-5465-b915-0186a5aae0d7",
+      "name": "05 · Código",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        220
+      ],
+      "parameters": {
+        "jsCode": "throw new Error(\"CONFIGURE_PRIVATELY: código não exportado\");"
+      },
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    },
+    {
+      "id": "488c46df-e3de-52e5-9539-556485ddd095",
+      "name": "06 · Responder webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        280,
+        220
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    }
+  ],
+  "connections": {
+    "01 · Receber webhook": {
+      "main": [
+        [
+          {
+            "node": "02 · Código",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02 · Código": {
+      "main": [
+        [
+          {
+            "node": "03 · Responder webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "04 · Receber webhook": {
+      "main": [
+        [
+          {
+            "node": "05 · Código",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "05 · Código": {
+      "main": [
+        [
+          {
+            "node": "06 · Responder webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

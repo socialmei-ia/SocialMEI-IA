@@ -1,0 +1,180 @@
+{
+  "name": "[STRUCTURE] Atendimento",
+  "nodes": [
+    {
+      "id": "8669f06e-531c-5f85-b46d-8bedaab1148a",
+      "name": "01 · Assistente",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    },
+    {
+      "id": "624edcd5-15bf-59aa-9186-1113f5ac5f77",
+      "name": "02 · Receber chat",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        280,
+        0
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    },
+    {
+      "id": "7840ba99-32bf-591d-9dac-df0aa73e6f00",
+      "name": "03 · Modelo Groq",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        560,
+        0
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    },
+    {
+      "id": "847e99a7-d96b-5f77-b1fc-a417c0b44935",
+      "name": "04 · Chamar subworkflow",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        840,
+        0
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    },
+    {
+      "id": "b89738cc-efef-56f6-8f67-c91635d316b4",
+      "name": "05 · Chamar subworkflow",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        220
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    },
+    {
+      "id": "86535eb9-789a-5778-8ec5-cf64d3a2e092",
+      "name": "06 · Memória",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        280,
+        220
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    },
+    {
+      "id": "424ce930-2ef8-576f-b0a9-9e1e47999b54",
+      "name": "07 · Chamar subworkflow",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        560,
+        220
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    }
+  ],
+  "connections": {
+    "01 · Assistente": {
+      "main": [
+        []
+      ]
+    },
+    "02 · Receber chat": {
+      "main": [
+        [
+          {
+            "node": "01 · Assistente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "03 · Modelo Groq": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "01 · Assistente",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "04 · Chamar subworkflow": {
+      "ai_tool": [
+        [
+          {
+            "node": "01 · Assistente",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "05 · Chamar subworkflow": {
+      "ai_tool": [
+        [
+          {
+            "node": "01 · Assistente",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "06 · Memória": {
+      "ai_memory": [
+        [
+          {
+            "node": "01 · Assistente",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "07 · Chamar subworkflow": {
+      "ai_tool": [
+        [
+          {
+            "node": "01 · Assistente",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
