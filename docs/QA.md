@@ -2,6 +2,36 @@
 
 Os resultados da seção histórica abaixo pertencem a 10/10/2026. A cobertura atual é descrita primeiro; revisões datadas não são evidência de uma nova coleta AWS.
 
+## V2 Foundation — 15/10/2026
+
+Baseline: `db775dc5ae427eafed01a7dcd0d365dc92b23a16`; branch `chore/v2-foundation`. Nenhum arquivo do app, migration ou Compose foi alterado. Testes locais usam recursos descartáveis deste ambiente, não AWS.
+
+| Camada                                | Resultado local                                                                                                                                                  |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Node                                  | 72 passaram; inclui contrato do export Python manual/interno/timeout                                                                                             |
+| API/Python + PostgreSQL16 descartável | 148 passaram, sem skips; inclui corpo real do export e erro422 sem `texto`                                                                                       |
+| Operação/inventário                   | 24 passaram; cinco gateway opt-in ignorados no comando padrão                                                                                                    |
+| Gateway real Caddy                    | Os cinco opt-in passaram em execução separada                                                                                                                    |
+| Instalação limpa Python3.12           | requirements/constraints instalaram; `pip check` sem conflito                                                                                                    |
+| Imagem API                            | Dockerfile com lock construiu; container `--network none` iniciou HTTP e respondeu `/health`/`/processar` com contrato correto                                   |
+| Navegador do app                      | 88 estados e 21 fluxos passaram, incluindo contas/admin, onboarding local e módulos                                                                              |
+| Temas/layout                          | 825 estados e 163 estados de botões, sem pageerror/404 local                                                                                                     |
+| Motion/visual                         | 22 estados Home e 22 Financeiro; foco, touch e reduced motion passaram                                                                                           |
+| Configurações                         | 990 estados passaram em local/remoto simulado                                                                                                                    |
+| HTTPS/Basic                           | Quatro módulos conectados, escrita autenticada e recusa anônima passaram em containers isolados                                                                  |
+| Protótipo Oportunidades               | 24 combinações: seis larguras × claro/escuro × normal/reduced motion; busca/filtros/quadro/detalhes/etapa/reset/teclado passaram, sem requisição a outro recurso |
+| Formatação                            | Prettier e Black nos arquivos Python alterados; `git diff --check`                                                                                               |
+
+Instalação: `python -m pip install -r python-service/requirements.txt` e `python -m pip check`. As versões diretas/transitivas foram fixadas às usadas nos testes. O build local usou CA do proxy como secret temporário; a imagem não incorpora essa CA. Tags de imagem base continuam flutuantes e o lock não tem hashes de distribuição.
+
+Comandos de navegador são os mesmos do CI, mais `node tests/opportunities-browser.cjs`. O protótipo é servido pelo teste em HTTP local porque o Chromium gerenciado bloqueou `file://`; isso não é defeito do HTML nem prova de abertura em todo computador. O teste aguarda o evento de fechamento/foco do diálogo, sem tempo fixo. Capturas desktop/mobile e HTML são entregues pelo artifact `opportunities-prototype` do CI.
+
+Ocorrências de preparação: primeira conexão SQL usou nome incorreto da role de fixture e foi repetida com a identidade do banco descartável; a primeira expectativa manual do smoke tinha contagem de texto incorreta e foi corrigida para `len(text)`. O teste HTTPS falhou com proxy ambiente aplicado aos nomes Docker internos; a fixture passou a definir `NO_PROXY` apenas nesses containers de teste e a repetição passou. Não foi alterada configuração de produção para contornar testes.
+
+**NÃO TESTADO/BLOQUEADO:** SSH/runtime AWS nesta rodada, execução no editor n8n, registro do runner, envio/recebimento WhatsApp, SMTP/Meta/IA, onboarding Windows completo e restore de backup real. `/processar` local funciona; isso não declara o workflow na AWS homologado. A confirmação final humana do cadastro novo continua pendente. Os PRs #44/#45 permanecem separados.
+
+O CI do SHA final do PR deve validar novamente as suites e o startup/restore isolado team. Resultados desse workflow, PR/commit e artifact ficam no GitHub; não substituir essa evidência pelo sucesso local ou pelo CI da baseline.
+
 ## Preparação da base — 14/10/2026
 
 [Baseline, decisões e limites](../FUTURE-READINESS-REVIEW.md). Comandos executados no checkout de revisão com fixtures locais, sem conta ou banco da AWS:

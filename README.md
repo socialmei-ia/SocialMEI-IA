@@ -10,6 +10,8 @@ CRM experimental para MEIs: atendimento, clientes, produtos e serviços, vendas 
 
 Para começar uma alteração: [ambientes e dados](docs/ENVIRONMENTS.md) → [onde editar e como adicionar uma feature](docs/PROJECT-STRUCTURE.md). A [revisão de preparação](FUTURE-READINESS-REVIEW.md) registra a limpeza incorporada, configuração centralizada, testes e pendências; não representa deploy.
 
+A próxima fase segue o [V2 Foundation Plan](docs/V2-FOUNDATION-PLAN.md): Python versionado por HTTP, entrega por SHA e protótipo antes de integrar uma feature visual grande. A [exploração de Oportunidades](prototypes/README.md) é isolada e usa apenas dados fictícios; não está no aplicativo.
+
 ## Estado do projeto
 
 A versão da equipe possui API FastAPI, persistência PostgreSQL e contas com isolamento de negócio. O cadastro do piloto team está temporariamente aberto, sem convite; login e proteção Basic continuam ativos. É possível voltar ao cadastro por convite pela configuração descrita em [Contas](docs/CONTAS-MEIS.md). O Pages continua sendo uma demonstração local. WhatsApp real, IA remota, recuperação por e-mail e execução automática das regras ainda não estão homologados.

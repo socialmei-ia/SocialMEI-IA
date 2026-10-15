@@ -98,15 +98,20 @@ Checklist manual complementar: filtros do Inbox, modais por Escape/Tab, formulá
 python -m venv .venv
 # Ative o ambiente virtual conforme seu sistema.
 python -m pip install -r python-service/requirements.txt
+python -m pip check
 python -m uvicorn app:app --app-dir python-service --reload
 python -m unittest discover -s python-service -p 'test_*.py'
 ```
 
-Abra http://127.0.0.1:8000/health ou `/docs`. `/processar` recebe `{ "texto": "Olá" }`; a resposta mantém `original`, `maiusculo`, `quantidade_caracteres`. Os testes verificam funções/modelo/rotas, não substituem um teste HTTP completo do servidor.
+Abra http://127.0.0.1:8000/health ou `/docs`. `/processar` recebe `{ "texto": "Olá" }`; a resposta mantém `original`, `maiusculo`, `quantidade_caracteres`. Os testes incluem funções/modelos e HTTP via TestClient com o payload do export n8n; não substituem uma execução no editor n8n da AWS.
+
+Use Python 3.12. `requirements.txt` declara pacotes diretos e lê `requirements.lock` como constraints transitivas. Não instalar pacotes manualmente no container vivo. Para alterar dependências: justificar finalidade/serviço, atualizar versões diretas e transitivas em ambiente limpo, instalar, executar `pip check` e as suites da área/CI, reconstruir a imagem do serviço e homologar antes de publicar. Imagens base ainda precisam de fixação por digest; não presumir que o lock Python as congele. O Dockerfile aceita opcionalmente `--secret id=proxy_ca,src=CAMINHO_DA_CA` para builds com proxy corporativo, sem gravar a CA na imagem.
 
 ## Workflows e SQL
 
 Leia [n8n-workflows/README.md](n8n-workflows/README.md). Importe em um projeto de teste, selecione credenciais locais e deixe o fluxo inativo até validar. Exporte sem credenciais, cabeçalhos secretos, dados fixados ou metadados de pessoas. Execute `npm test` depois de alterar JSON ou o código de normalização.
+
+O [padrão Python/n8n](docs/PYTHON-N8N.md) diferencia API HTTP e Code node com runner. Lógica reutilizável do produto pertence à API; `examples/process-text.json` é o primeiro smoke manual sem dados reais. Não usar o notebook como servidor implícito nem criar endpoint de execução arbitrária de Python.
 
 SQL deve ser revisado e aplicado por responsável pelo banco. `database/migrations/` contém as migrations incrementais de gestão: use `npm run db:migrate` no desenvolvimento. A pilha da equipe executa `team-migrate` antes da API; o Compose legado não aplica o bootstrap de atendimento automaticamente. Novas alterações precisam de migrations com plano de compatibilidade.
 
@@ -138,3 +143,13 @@ A seleção de período fica em `navigation.js`; a hora comercial, em `home.js`.
 Compare desktop/mobile, temas e movimento reduzido antes/depois de mexer na cascata. Não retire seletores ou `!important` apenas por repetição: estados dinâmicos e media queries podem depender deles. Consultas de saúde estão agrupadas em `python-service/database.py`; permanecem somente leitura e não comprovam conexão real dos canais.
 
 Veja [CODE-MAINTAINABILITY-REVIEW.md](CODE-MAINTAINABILITY-REVIEW.md). Testes usam dados fictícios e banco isolado; nunca a configuração privada da AWS.
+
+## Feature e protótipo
+
+Nova feature visual grande segue [a política de protótipos](prototypes/README.md): ideia/análise → HTML isolado → visualização/ajustes → aprovação explícita → integração. `prototypes/opportunities.html` é autocontido; não usa stores/API/banco, não entra na navegação e não é copiado pelo gateway. Teste com `node tests/opportunities-browser.cjs`. Nunca mandar localhost como endereço público.
+
+Após aprovação, seguir contrato → modelo/migration se necessária → router/regra → store → UI → testes → documentação → PR/CI. Novos nomes técnicos em inglês; UI em português. Score aguarda critérios, pesos e fontes autorizadas: o protótipo não decide essas regras.
+
+## Entrega ao ambiente oficial
+
+O fluxo real é PR/CI → merge → SHA aprovado → leitura/backup do alvo → build por serviço → publicação restrita → saúde e smoke → recibo. [DEPLOYMENT.md](DEPLOYMENT.md) e [V2 Foundation](docs/V2-FOUNDATION-PLAN.md#5-github--aws-e-rollback) ligam arquivos a imagens, diferenças team/legado e rollback. Não existe deploy automático após merge; workflows genéricos não substituem o procedimento team. A publicação requer etapa autorizada, imagens/Composes efetivos e configuração privada preservada.

@@ -1,0 +1,1391 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Oportunidades · Exploração SocialMEI.IA</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #f7f8fa;
+        --surface: #fff;
+        --soft: #f0f3f7;
+        --ink: #192536;
+        --muted: #647185;
+        --line: #e3e8ef;
+        --accent: #245ec5;
+        --accent-soft: #edf3ff;
+        --hot: #a94528;
+        --hot-soft: #fff1e9;
+        --warm: #896217;
+        --warm-soft: #fff8e2;
+        --cold: #346894;
+        --cold-soft: #edf5fc;
+        --shadow: 0 24px 80px #14263a12;
+        --radius: 18px;
+        --fast: 150ms;
+        --transition: 260ms;
+      }
+      [data-theme="dark"] {
+        color-scheme: dark;
+        --canvas: #0c1420;
+        --surface: #121e2e;
+        --soft: #19283c;
+        --ink: #eff4fc;
+        --muted: #a4b3c7;
+        --line: #2a3a50;
+        --accent: #94beff;
+        --accent-soft: #1b3151;
+        --hot: #ffb79c;
+        --hot-soft: #3a2929;
+        --warm: #e7c773;
+        --warm-soft: #343020;
+        --cold: #a0cdf2;
+        --cold-soft: #203346;
+        --shadow: 0 24px 80px #0003;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--canvas);
+        color: var(--ink);
+        font:
+          14px/1.5 system-ui,
+          -apple-system,
+          sans-serif;
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+      button,
+      select {
+        cursor: pointer;
+      }
+      button {
+        color: inherit;
+      }
+      button,
+      input,
+      select {
+        min-height: 44px;
+      }
+      button {
+        border: 1px solid var(--line);
+        background: var(--surface);
+        border-radius: 10px;
+        padding: 9px 14px;
+        transition:
+          background var(--fast),
+          border-color var(--fast);
+      }
+      button:hover {
+        background: var(--soft);
+      }
+      :focus-visible {
+        outline: 3px solid var(--accent);
+        outline-offset: 3px;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .eyebrow {
+        font-size: 11px;
+        font-weight: 650;
+        letter-spacing: 0.11em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .shell {
+        max-width: 1600px;
+        margin: auto;
+        display: grid;
+        grid-template-columns: 210px minmax(0, 1fr);
+        min-height: 100vh;
+      }
+      .sidebar {
+        padding: 28px 20px;
+        border-right: 1px solid var(--line);
+        background: var(--surface);
+        display: flex;
+        flex-direction: column;
+        gap: 38px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 750;
+        font-size: 16px;
+        letter-spacing: -0.04em;
+      }
+      .brand-icon {
+        width: 32px;
+        height: 32px;
+        display: grid;
+        place-content: center;
+        background: var(--ink);
+        color: var(--surface);
+        border-radius: 10px;
+        font-size: 18px;
+      }
+      .navigation {
+        display: grid;
+        gap: 10px;
+      }
+      .navigation > span {
+        padding: 10px 12px;
+        border-radius: 10px;
+        color: var(--muted);
+      }
+      .navigation .selected {
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-weight: 600;
+      }
+      .nav-caption {
+        padding: 0 12px;
+      }
+      .sidebar-note {
+        margin-top: auto;
+        border-top: 1px solid var(--line);
+        padding: 20px 10px 0;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .workspace {
+        min-width: 0;
+        padding: 0 42px 40px;
+      }
+      .topbar {
+        min-height: 84px;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+      .breadcrumb {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .breadcrumb strong {
+        color: var(--ink);
+        font-weight: 500;
+      }
+      .demo-tag {
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 3px 7px;
+        font-size: 10px;
+        letter-spacing: 0.05em;
+      }
+      .intro {
+        padding: 44px 0 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        gap: 24px;
+      }
+      h1 {
+        font-size: clamp(30px, 3.2vw, 44px);
+        line-height: 1.12;
+        letter-spacing: -0.055em;
+        font-weight: 650;
+        margin: 8px 0 14px;
+      }
+      .intro p {
+        color: var(--muted);
+        max-width: 520px;
+      }
+      .intro small {
+        color: var(--muted);
+        white-space: nowrap;
+        font-size: 12px;
+      }
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+      }
+      .metric {
+        padding: 22px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--surface);
+      }
+      .metric-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: currentColor;
+        flex: none;
+      }
+      .metric strong {
+        display: block;
+        font-size: 32px;
+        letter-spacing: -0.05em;
+        font-weight: 600;
+        margin: 12px 0 4px;
+        line-height: 1;
+      }
+      .metric small {
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .hot {
+        color: var(--hot);
+        --temperature-soft: var(--hot-soft);
+      }
+      .warm {
+        color: var(--warm);
+        --temperature-soft: var(--warm-soft);
+      }
+      .cold {
+        color: var(--cold);
+        --temperature-soft: var(--cold-soft);
+      }
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        margin: 32px 0 16px;
+      }
+      .search {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 13px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        width: min(100%, 300px);
+        color: var(--muted);
+      }
+      .search input {
+        border: 0;
+        background: transparent;
+        color: var(--ink);
+        width: 100%;
+        outline-offset: -2px;
+      }
+      .toolbar-actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .filters,
+      .view-switch {
+        display: flex;
+        gap: 4px;
+      }
+      .filters button {
+        border-color: transparent;
+        background: transparent;
+        color: var(--muted);
+        padding-inline: 12px;
+      }
+      button[aria-pressed="true"] {
+        background: var(--accent-soft);
+        color: var(--accent);
+        border-color: transparent;
+      }
+      .view-switch {
+        padding: 3px;
+        border: 1px solid var(--line);
+        border-radius: 11px;
+        background: var(--surface);
+      }
+      .view-switch button {
+        min-height: 44px;
+        padding: 5px 11px;
+        border: 0;
+        border-radius: 7px;
+        font-size: 12px;
+      }
+      .collection {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        overflow: hidden;
+      }
+      .collection-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 22px 24px;
+        gap: 12px;
+      }
+      .collection-header h2 {
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+      .collection-header p {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      #resultCount {
+        font-size: 12px;
+        color: var(--muted);
+        white-space: nowrap;
+      }
+      .table-head,
+      .opportunity-row {
+        display: grid;
+        grid-template-columns: minmax(180px, 1.25fr) minmax(160px, 1.2fr) 130px 130px 32px;
+        gap: 18px;
+        align-items: center;
+      }
+      .table-head {
+        padding: 10px 24px;
+        background: var(--soft);
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .opportunity-row {
+        width: 100%;
+        border: 0;
+        border-top: 1px solid var(--line);
+        border-radius: 0;
+        text-align: left;
+        padding: 22px 24px;
+        background: var(--surface);
+      }
+      .person {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+      }
+      .avatar {
+        background: var(--soft);
+        color: var(--muted);
+        width: 42px;
+        height: 42px;
+        border-radius: 13px;
+        display: grid;
+        place-content: center;
+        font-size: 12px;
+        font-weight: 600;
+        flex: none;
+      }
+      .person-name {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .person small,
+      .signal small {
+        display: block;
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 3px;
+      }
+      .signal {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .signal strong {
+        color: var(--ink);
+        font-weight: 450;
+      }
+      .temperature {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--temperature-soft);
+        border-radius: 6px;
+        padding: 3px 7px;
+        font-size: 10px;
+        font-weight: 600;
+      }
+      .score {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .score strong {
+        font-size: 15px;
+        letter-spacing: -0.04em;
+        font-weight: 600;
+      }
+      .score-track {
+        display: block;
+        height: 3px;
+        background: var(--soft);
+        border-radius: 3px;
+        overflow: hidden;
+        margin-top: 8px;
+      }
+      .score-track span {
+        display: block;
+        height: 100%;
+        background: currentColor;
+        width: var(--score);
+        border-radius: inherit;
+      }
+      .stage {
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .row-arrow {
+        font-size: 18px;
+        color: var(--muted);
+        justify-self: end;
+      }
+      .board {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+        padding: 0 20px 22px;
+      }
+      .board-column {
+        background: var(--canvas);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 12px;
+      }
+      .board-column h3 {
+        font-size: 12px;
+        margin: 0 0 12px;
+        font-weight: 550;
+      }
+      .board-card {
+        width: 100%;
+        display: grid;
+        gap: 18px;
+        text-align: left;
+        margin-top: 10px;
+        padding: 16px;
+        border-radius: 10px;
+      }
+      .board-card .score {
+        justify-content: start;
+      }
+      .board-empty {
+        color: var(--muted);
+        font-size: 12px;
+        padding: 16px 0;
+      }
+      .empty {
+        padding: 60px 24px;
+        text-align: center;
+      }
+      .empty p {
+        color: var(--muted);
+        margin: 8px 0 20px;
+      }
+      .footnote {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        margin-top: 22px;
+        align-items: start;
+      }
+      .footnote p {
+        font-size: 11px;
+        line-height: 1.7;
+        color: var(--muted);
+        max-width: 650px;
+      }
+      .footnote button {
+        background: transparent;
+        font-size: 11px;
+        white-space: nowrap;
+      }
+      dialog {
+        margin: 0 0 0 auto;
+        width: min(500px, 100%);
+        height: 100dvh;
+        max-height: 100dvh;
+        max-width: 100%;
+        padding: 0;
+        border: 0;
+        border-left: 1px solid var(--line);
+        color: var(--ink);
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+      dialog[open] {
+        animation: drawer-in var(--transition) cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+      dialog::backdrop {
+        background: #08142365;
+      }
+      .drawer-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 22px 26px;
+        border-bottom: 1px solid var(--line);
+      }
+      .drawer-header button {
+        width: 44px;
+        font-size: 20px;
+        padding: 0;
+      }
+      .drawer-body {
+        padding: 28px;
+      }
+      .drawer-body h2 {
+        font-size: 26px;
+        letter-spacing: -0.045em;
+        margin: 5px 0;
+        line-height: 1.2;
+      }
+      .drawer-person {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      .drawer-person .avatar {
+        width: 58px;
+        height: 58px;
+        border-radius: 18px;
+        font-size: 16px;
+      }
+      .evaluation {
+        margin-top: 28px;
+        padding: 24px;
+        background: var(--canvas);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+      }
+      .evaluation strong {
+        font-size: 46px;
+        font-weight: 600;
+        letter-spacing: -0.06em;
+      }
+      .evaluation > p {
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 14px;
+      }
+      .drawer-section {
+        margin-top: 28px;
+      }
+      .drawer-section h3 {
+        font-size: 13px;
+        margin: 0 0 14px;
+        font-weight: 600;
+      }
+      .reasons {
+        padding: 0;
+        list-style: none;
+      }
+      .reasons li {
+        margin: 12px 0;
+        display: flex;
+        gap: 12px;
+        align-items: start;
+        font-size: 13px;
+      }
+      .reason-icon {
+        background: var(--accent-soft);
+        color: var(--accent);
+        display: grid;
+        place-content: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 7px;
+        flex: none;
+        font-size: 12px;
+      }
+      .reasons small {
+        color: var(--muted);
+        display: block;
+        font-size: 11px;
+        margin-top: 3px;
+      }
+      .timeline {
+        list-style: none;
+        padding: 0 0 0 10px;
+      }
+      .timeline li {
+        border-left: 1px solid var(--line);
+        padding: 0 0 22px 22px;
+        position: relative;
+        font-size: 12px;
+      }
+      .timeline li::before {
+        content: "";
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--accent);
+        position: absolute;
+        left: -4px;
+        top: 5px;
+      }
+      .timeline small {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+        margin-top: 4px;
+      }
+      select {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 10px;
+        background: var(--surface);
+        color: var(--ink);
+        margin: 8px 0;
+      }
+      .drawer-section label {
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .drawer-section > p {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .notice {
+        margin-top: 28px;
+        padding: 14px;
+        border: 1px dashed var(--line);
+        border-radius: 10px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      #status {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--ink);
+        color: var(--surface);
+        border-radius: 10px;
+        padding: 12px 18px;
+        box-shadow: var(--shadow);
+        max-width: calc(100vw - 32px);
+        z-index: 2;
+        font-size: 12px;
+      }
+      .row-arrow,
+      .reason-icon {
+        font-size: 0;
+      }
+      .row-arrow::after,
+      .reason-icon::after {
+        content: "";
+        display: block;
+        width: 8px;
+        height: 8px;
+        border-top: 1.5px solid currentColor;
+        border-right: 1.5px solid currentColor;
+      }
+      .search svg {
+        width: 18px;
+        height: 18px;
+        flex: none;
+      }
+      #themeToggle {
+        display: grid;
+        place-items: center;
+        width: 44px;
+      }
+      #themeToggle::after {
+        content: "";
+        width: 16px;
+        height: 16px;
+        border: 1.5px solid currentColor;
+        border-radius: 50%;
+        background: linear-gradient(90deg, currentColor 50%, transparent 50%);
+      }
+      @keyframes drawer-in {
+        from {
+          opacity: 0.3;
+          transform: translateX(20px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      @media (min-width: 1100px) {
+        .metric {
+          animation: settle 550ms both cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .metric:nth-child(2) {
+          animation-delay: 50ms;
+        }
+        .metric:nth-child(3) {
+          animation-delay: 100ms;
+        }
+        .metric:nth-child(4) {
+          animation-delay: 150ms;
+        }
+      }
+      @keyframes settle {
+        from {
+          opacity: 0.4;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      @media (max-width: 1250px) {
+        .workspace {
+          padding-inline: 26px;
+        }
+        .shell {
+          grid-template-columns: 180px minmax(0, 1fr);
+        }
+        .table-head,
+        .opportunity-row {
+          grid-template-columns: minmax(150px, 1fr) minmax(130px, 1fr) 120px 22px;
+          gap: 12px;
+        }
+        .stage-column {
+          display: none;
+        }
+        .toolbar-actions {
+          gap: 8px;
+        }
+      }
+      @media (max-width: 1000px) {
+        .shell {
+          grid-template-columns: 1fr;
+        }
+        .sidebar {
+          display: none;
+        }
+        .toolbar {
+          align-items: start;
+        }
+        .metrics {
+          gap: 10px;
+        }
+        .metric {
+          padding: 18px;
+        }
+      }
+      @media (max-width: 640px) {
+        .workspace {
+          padding: 0 16px 28px;
+        }
+        .topbar {
+          min-height: 72px;
+        }
+        .breadcrumb {
+          gap: 6px;
+          max-width: 230px;
+        }
+        .intro {
+          padding: 30px 0 24px;
+        }
+        .intro small {
+          display: none;
+        }
+        .intro p {
+          font-size: 13px;
+        }
+        .metrics {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .metric {
+          padding: 16px;
+        }
+        .metric strong {
+          font-size: 28px;
+        }
+        .toolbar {
+          gap: 12px;
+          margin-top: 24px;
+        }
+        .search {
+          width: 100%;
+        }
+        .toolbar-actions {
+          width: 100%;
+          justify-content: space-between;
+          gap: 10px;
+        }
+        .filters {
+          width: 100%;
+          justify-content: space-between;
+        }
+        .filters button {
+          padding-inline: 14px;
+        }
+        .view-switch {
+          margin-left: auto;
+        }
+        .collection-header {
+          padding: 18px;
+          align-items: start;
+        }
+        .collection-header p {
+          max-width: 190px;
+        }
+        .table-head {
+          display: none;
+        }
+        .opportunity-row {
+          padding: 20px 16px;
+          grid-template-columns: minmax(0, 1fr) 112px;
+          gap: 14px;
+        }
+        .opportunity-row .person {
+          grid-column: 1;
+          grid-row: 1;
+          gap: 9px;
+        }
+        .opportunity-row .evaluation-cell {
+          grid-column: 2;
+          grid-row: 1 / 3;
+        }
+        .opportunity-row .signal {
+          grid-column: 1;
+          grid-row: 2;
+          margin-left: 0;
+        }
+        .opportunity-row .row-arrow {
+          display: none;
+        }
+        .person-name {
+          font-size: 12px;
+        }
+        .avatar {
+          width: 34px;
+          height: 34px;
+          border-radius: 10px;
+          font-size: 10px;
+        }
+        .board {
+          grid-template-columns: 1fr;
+          padding: 0 14px 16px;
+        }
+        .board-column {
+          padding: 14px;
+        }
+        .footnote {
+          flex-direction: column;
+          gap: 8px;
+        }
+        .drawer-body {
+          padding: 22px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
+          transition: none !important;
+          scroll-behavior: auto !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar" aria-label="Contexto visual do protótipo">
+        <div class="brand"><span class="brand-icon" aria-hidden="true">s.</span> SocialMEI.IA</div>
+        <div class="navigation">
+          <p class="eyebrow nav-caption">Exploração de produto</p>
+          <span>Meu negócio</span>
+          <span class="selected">Oportunidades</span>
+        </div>
+        <div class="sidebar-note">
+          Protótipo independente.<br />Nenhuma conexão com a sua conta ou com o site atual.
+        </div>
+      </aside>
+      <main class="workspace">
+        <header class="topbar">
+          <div class="breadcrumb">
+            <span>Negócio</span><span aria-hidden="true">/</span><strong>Oportunidades</strong
+            ><span class="demo-tag">PROTÓTIPO</span>
+          </div>
+          <button id="themeToggle" type="button" aria-label="Usar tema escuro"></button>
+        </header>
+        <section class="intro" aria-labelledby="pageTitle">
+          <div>
+            <span class="eyebrow">Conversas que podem virar negócio</span>
+            <h1 id="pageTitle">O próximo contato<br />pode fazer a diferença.</h1>
+            <p>
+              Um lugar para entender o interesse, encontrar contexto e decidir com quem conversar
+              primeiro.
+            </p>
+          </div>
+          <small>Visão com dados fictícios</small>
+        </section>
+        <section class="metrics" aria-label="Resumo das oportunidades fictícias">
+          <article class="metric">
+            <span class="metric-label">Oportunidades</span><strong id="totalMetric">6</strong
+            ><small>na demonstração</small>
+          </article>
+          <article class="metric">
+            <span class="metric-label hot"
+              ><span class="dot" aria-hidden="true"></span> Quentes</span
+            ><strong id="hotMetric">2</strong><small>interesse ilustrativo</small>
+          </article>
+          <article class="metric">
+            <span class="metric-label warm"
+              ><span class="dot" aria-hidden="true"></span> Mornas</span
+            ><strong id="warmMetric">2</strong><small>interesse ilustrativo</small>
+          </article>
+          <article class="metric">
+            <span class="metric-label cold"><span class="dot" aria-hidden="true"></span> Frias</span
+            ><strong id="coldMetric">2</strong><small>interesse ilustrativo</small>
+          </article>
+        </section>
+        <div class="toolbar">
+          <label class="search"
+            ><svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              aria-hidden="true"
+            >
+              <circle cx="10.5" cy="10.5" r="6.5" />
+              <path d="m16 16 4 4" /></svg
+            ><input
+              id="search"
+              type="search"
+              placeholder="Buscar pessoa ou interesse…"
+              aria-label="Buscar oportunidades"
+              autocomplete="off"
+          /></label>
+          <div class="toolbar-actions">
+            <div class="filters" role="group" aria-label="Temperatura">
+              <button type="button" data-filter="all" aria-pressed="true">Todas</button>
+              <button type="button" data-filter="hot" aria-pressed="false">Quentes</button>
+              <button type="button" data-filter="warm" aria-pressed="false">Mornas</button>
+              <button type="button" data-filter="cold" aria-pressed="false">Frias</button>
+            </div>
+            <div class="view-switch" role="group" aria-label="Modo de visualização">
+              <button type="button" data-view="list" aria-pressed="true">Lista</button>
+              <button type="button" data-view="board" aria-pressed="false">Quadro</button>
+            </div>
+          </div>
+        </div>
+        <section class="collection" aria-labelledby="collectionTitle">
+          <div class="collection-header">
+            <div>
+              <h2 id="collectionTitle">Pessoas, antes dos números.</h2>
+              <p>Selecione uma oportunidade para entender o contexto.</p>
+            </div>
+            <span id="resultCount" role="status" aria-live="polite"></span>
+          </div>
+          <div id="results"></div>
+        </section>
+        <footer class="footnote">
+          <p>
+            <strong>Uma exploração, ainda sem regra de score.</strong> Percentuais, temperaturas e
+            sinais são fictícios. Não representam probabilidade real de compra. Os critérios serão
+            definidos com a equipe antes de qualquer integração.
+          </p>
+          <button id="resetDemo" type="button">Reiniciar demonstração</button>
+        </footer>
+      </main>
+    </div>
+    <dialog id="detailDialog" aria-labelledby="detailName">
+      <div class="drawer-header">
+        <span class="eyebrow">Contexto da oportunidade</span
+        ><button type="button" id="closeDialog" aria-label="Fechar detalhes">×</button>
+      </div>
+      <div class="drawer-body" id="detailContent"></div>
+    </dialog>
+    <div id="status" role="status" aria-live="polite" hidden></div>
+    <script>
+      "use strict";
+      const initialOpportunities = [
+        {
+          id: "ana",
+          name: "Ana Paula",
+          initials: "AP",
+          segment: "Vestuário",
+          interest: "Duas peças em azul, tamanho M",
+          signal: "Perguntou sobre disponibilidade",
+          time: "Hoje, 10:42 · WhatsApp",
+          temperature: "hot",
+          score: 82,
+          stage: "Em conversa",
+          reasons: ["Perguntou sobre preço e disponibilidade", "Informou tamanho e quantidade"],
+          history: [
+            "Pediu duas peças em azul",
+            "Perguntou os tamanhos disponíveis",
+            "Iniciou uma conversa",
+          ],
+        },
+        {
+          id: "rafael",
+          name: "Rafael Costa",
+          initials: "RC",
+          segment: "Manutenção",
+          interest: "Orçamento de revisão da bicicleta",
+          signal: "Pediu um orçamento",
+          time: "Hoje, 09:18 · WhatsApp",
+          temperature: "hot",
+          score: 78,
+          stage: "Proposta enviada",
+          reasons: ["Pediu um orçamento detalhado", "Informou quando pode levar a bicicleta"],
+          history: [
+            "Recebeu proposta ilustrativa",
+            "Descreveu o reparo necessário",
+            "Pediu informações sobre revisão",
+          ],
+        },
+        {
+          id: "juliana",
+          name: "Juliana Lima",
+          initials: "JL",
+          segment: "Beleza e cuidados",
+          interest: "Horários para corte e hidratação",
+          signal: "Consultou horários da semana",
+          time: "Ontem, 16:20 · Instagram",
+          temperature: "warm",
+          score: 56,
+          stage: "Em conversa",
+          reasons: [
+            "Perguntou quais horários estão livres",
+            "Demonstrou interesse em dois serviços",
+          ],
+          history: [
+            "Consultou horários disponíveis",
+            "Perguntou sobre hidratação",
+            "Conheceu o perfil do negócio",
+          ],
+        },
+        {
+          id: "marcos",
+          name: "Marcos Alves",
+          initials: "MA",
+          segment: "Serviços",
+          interest: "Identidade visual para o negócio",
+          signal: "Pediu exemplos de trabalhos",
+          time: "Ontem, 14:06 · Instagram",
+          temperature: "warm",
+          score: 48,
+          stage: "Novo contato",
+          reasons: [
+            "Pediu referências de trabalhos anteriores",
+            "Ainda está explorando possibilidades",
+          ],
+          history: [
+            "Recebeu portfólio ilustrativo",
+            "Pediu exemplos de identidade visual",
+            "Iniciou contato",
+          ],
+        },
+        {
+          id: "beatriz",
+          name: "Beatriz Souza",
+          initials: "BS",
+          segment: "Presentes",
+          interest: "Caneca para presente",
+          signal: "Primeiro contato, sem pedido",
+          time: "Há 3 dias · WhatsApp",
+          temperature: "cold",
+          score: 24,
+          stage: "Novo contato",
+          reasons: [
+            "Perguntou quais tipos de presente existem",
+            "Ainda não escolheu produto ou quantidade",
+          ],
+          history: ["Conheceu opções de presentes", "Iniciou uma conversa"],
+        },
+        {
+          id: "lucas",
+          name: "Lucas Mendes",
+          initials: "LM",
+          segment: "Barbearia",
+          interest: "Informações sobre o atendimento",
+          signal: "Enviou uma saudação",
+          time: "Há 4 dias · Instagram",
+          temperature: "cold",
+          score: 16,
+          stage: "Novo contato",
+          reasons: [
+            "Iniciou uma conversa sem detalhar interesse",
+            "Ainda não indicou serviço ou horário",
+          ],
+          history: ["Enviou uma saudação", "Conheceu o perfil do negócio"],
+        },
+      ];
+      const temperatureLabels = { hot: "Quente", warm: "Morna", cold: "Fria" };
+      const stages = ["Novo contato", "Em conversa", "Proposta enviada"];
+      let opportunities = structuredClone(initialOpportunities);
+      let activeFilter = "all";
+      let activeView = "list";
+      let selectedId = null;
+      let returnFocusId = null;
+      let notificationTimer;
+      const search = document.querySelector("#search");
+      const results = document.querySelector("#results");
+      const dialog = document.querySelector("#detailDialog");
+      const escapeMarkup = (value) =>
+        String(value).replace(
+          /[&<>"']/g,
+          (character) =>
+            ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character],
+        );
+      const normalize = (value) =>
+        value
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toLowerCase();
+
+      function personMarkup(opportunity) {
+        return `
+          <span class="person">
+            <span class="avatar" aria-hidden="true">${escapeMarkup(opportunity.initials)}</span>
+            <span>
+              <span class="person-name">${escapeMarkup(opportunity.name)}</span>
+              <small>${escapeMarkup(opportunity.segment)}</small>
+            </span>
+          </span>
+        `;
+      }
+
+      function evaluationMarkup(opportunity) {
+        return `
+          <span class="evaluation-cell ${opportunity.temperature}">
+            <span class="score">
+              <strong>${opportunity.score}%</strong>
+              <span class="temperature">
+                <span class="dot" aria-hidden="true"></span>${temperatureLabels[opportunity.temperature]}
+              </span>
+            </span>
+            <span class="score-track" style="--score:${opportunity.score}%" aria-hidden="true"><span></span></span>
+          </span>
+        `;
+      }
+
+      function opportunityMarkup(opportunity, board) {
+        return `
+          <button type="button" class="${board ? "board-card" : "opportunity-row"}"
+            data-opportunity="${opportunity.id}" aria-label="Ver detalhes de ${escapeMarkup(opportunity.name)}">
+            ${personMarkup(opportunity)}
+            <span class="signal">
+              <strong>${escapeMarkup(opportunity.signal)}</strong>
+              <small>${escapeMarkup(opportunity.time)}</small>
+            </span>
+            ${evaluationMarkup(opportunity)}
+            ${
+              board
+                ? ""
+                : `
+              <span class="stage stage-column">${escapeMarkup(opportunity.stage)}</span>
+              <span class="row-arrow" aria-hidden="true"></span>
+            `
+            }
+          </button>
+        `;
+      }
+
+      function render() {
+        const query = normalize(search.value.trim());
+        const visible = opportunities.filter(
+          (opportunity) =>
+            (activeFilter === "all" || opportunity.temperature === activeFilter) &&
+            normalize(
+              `${opportunity.name} ${opportunity.segment} ${opportunity.interest} ${opportunity.signal}`,
+            ).includes(query),
+        );
+        document.querySelector("#resultCount").textContent =
+          `${visible.length} ${visible.length === 1 ? "pessoa" : "pessoas"}`;
+        for (const button of document.querySelectorAll("[data-filter]"))
+          button.setAttribute("aria-pressed", String(button.dataset.filter === activeFilter));
+        for (const button of document.querySelectorAll("[data-view]"))
+          button.setAttribute("aria-pressed", String(button.dataset.view === activeView));
+        document.querySelector("#totalMetric").textContent = opportunities.length;
+        for (const temperature of Object.keys(temperatureLabels))
+          document.querySelector(`#${temperature}Metric`).textContent = opportunities.filter(
+            (opportunity) => opportunity.temperature === temperature,
+          ).length;
+        if (!visible.length) {
+          results.innerHTML = `
+            <div class="empty">
+              <h3>Nenhuma oportunidade por aqui.</h3>
+              <p>Tente outro nome, interesse ou temperatura.</p>
+              <button type="button" data-clear-filters>Limpar filtros</button>
+            </div>
+          `;
+          return;
+        }
+        if (activeView === "board") {
+          results.innerHTML = `<div class="board">${stages
+            .map((stage) => {
+              const items = visible.filter((opportunity) => opportunity.stage === stage);
+              return `
+                <section class="board-column" aria-label="${stage}">
+                  <h3>${stage} <span class="muted">· ${items.length}</span></h3>
+                  ${items.map((opportunity) => opportunityMarkup(opportunity, true)).join("") || '<p class="board-empty">Nenhuma pessoa nesta etapa.</p>'}
+                </section>
+              `;
+            })
+            .join("")}</div>`;
+          return;
+        }
+        results.innerHTML = `
+          <div class="table-head" aria-hidden="true">
+            <span>Pessoa / negócio</span><span>Último sinal</span><span>Interesse ilustrativo</span>
+            <span class="stage-column">Etapa</span><span></span>
+          </div>
+          ${visible.map((opportunity) => opportunityMarkup(opportunity, false)).join("")}
+        `;
+      }
+
+      function openDetails(id) {
+        const opportunity = opportunities.find((item) => item.id === id);
+        if (!opportunity) return;
+        selectedId = id;
+        returnFocusId = id;
+        const reasons = opportunity.reasons
+          .map(
+            (reason) => `
+          <li>
+            <span class="reason-icon" aria-hidden="true"></span>
+            <span>${escapeMarkup(reason)}<small>Sinal fictício · sem peso calculado</small></span>
+          </li>
+        `,
+          )
+          .join("");
+        const history = opportunity.history
+          .map(
+            (event, index) => `
+          <li>${escapeMarkup(event)}
+            <small>${index === 0 ? escapeMarkup(opportunity.time) : "Interação anterior · exemplo"}</small>
+          </li>
+        `,
+          )
+          .join("");
+        const stageOptions = stages
+          .map(
+            (stage) => `
+          <option${stage === opportunity.stage ? " selected" : ""}>${stage}</option>
+        `,
+          )
+          .join("");
+        document.querySelector("#detailContent").innerHTML = `
+          <div class="drawer-person">
+            <span class="avatar" aria-hidden="true">${opportunity.initials}</span>
+            <div>
+              <span class="eyebrow">${escapeMarkup(opportunity.segment)}</span>
+              <h2 id="detailName">${escapeMarkup(opportunity.name)}</h2>
+              <p class="muted">${escapeMarkup(opportunity.interest)}</p>
+            </div>
+          </div>
+          <div class="evaluation ${opportunity.temperature}">
+            <span class="eyebrow">Índice ilustrativo</span>
+            <div class="score">
+              <strong>${opportunity.score}%</strong>
+              <span class="temperature">
+                <span class="dot" aria-hidden="true"></span>${temperatureLabels[opportunity.temperature]}
+              </span>
+            </div>
+            <div class="score-track" style="--score:${opportunity.score}%" aria-hidden="true"><span></span></div>
+            <p>Valor fixo de demonstração. Não é uma previsão de compra.</p>
+          </div>
+          <section class="drawer-section">
+            <h3>O que trouxe essa pessoa até aqui</h3><ul class="reasons">${reasons}</ul>
+          </section>
+          <section class="drawer-section">
+            <label for="stageSelect">Etapa da oportunidade</label>
+            <select id="stageSelect">${stageOptions}</select>
+            <p>Mudança apenas nesta demonstração. Não altera o índice.</p>
+          </section>
+          <section class="drawer-section">
+            <h3>Histórico de interesse · simulado</h3><ol class="timeline">${history}</ol>
+          </section>
+          <p class="notice">Você decide o próximo passo. A integração futura com a Caixa Unificada
+            depende da aprovação desta experiência e da definição dos critérios pela equipe.</p>
+        `;
+        dialog.showModal();
+        document.body.style.overflow = "hidden";
+      }
+
+      function notify(message) {
+        const status = document.querySelector("#status");
+        clearTimeout(notificationTimer);
+        status.textContent = message;
+        status.hidden = false;
+        notificationTimer = setTimeout(() => {
+          status.hidden = true;
+        }, 4000);
+      }
+
+      search.addEventListener("input", render);
+      document.addEventListener("click", (event) => {
+        const filter = event.target.closest("[data-filter]");
+        const view = event.target.closest("[data-view]");
+        const opportunity = event.target.closest("[data-opportunity]");
+        if (filter) {
+          activeFilter = filter.dataset.filter;
+          render();
+        }
+        if (view) {
+          activeView = view.dataset.view;
+          render();
+        }
+        if (opportunity) openDetails(opportunity.dataset.opportunity);
+        if (event.target.closest("[data-clear-filters]")) {
+          activeFilter = "all";
+          search.value = "";
+          render();
+          search.focus();
+        }
+      });
+      document.querySelector("#closeDialog").addEventListener("click", () => dialog.close());
+      dialog.addEventListener("close", () => {
+        document.body.style.overflow = "";
+        document.querySelector(`[data-opportunity="${returnFocusId}"]`)?.focus();
+      });
+      dialog.addEventListener("change", (event) => {
+        if (event.target.id !== "stageSelect" || !stages.includes(event.target.value)) return;
+        const opportunity = opportunities.find((item) => item.id === selectedId);
+        opportunity.stage = event.target.value;
+        render();
+        notify("Etapa alterada somente na demonstração.");
+      });
+      document.querySelector("#themeToggle").addEventListener("click", (event) => {
+        const dark = document.documentElement.dataset.theme !== "dark";
+        document.documentElement.dataset.theme = dark ? "dark" : "light";
+        event.currentTarget.setAttribute("aria-label", `Usar tema ${dark ? "claro" : "escuro"}`);
+      });
+      document.querySelector("#resetDemo").addEventListener("click", () => {
+        opportunities = structuredClone(initialOpportunities);
+        activeFilter = "all";
+        search.value = "";
+        render();
+        notify("Demonstração reiniciada. Os dados são fictícios.");
+      });
+      render();
+    </script>
+  </body>
+</html>

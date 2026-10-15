@@ -1,12 +1,26 @@
 # Roadmap
 
-Atualizado em 14/10/2026. Prioridades baseadas no código e nas evidências disponíveis; publicação na AWS é uma etapa separada. A [revisão de preparação](FUTURE-READINESS-REVIEW.md) e o [mapa de ambientes](docs/ENVIRONMENTS.md) substituem afirmações antigas sobre ausência de API, migrations e isolamento de negócio.
+Atualizado em 15/10/2026. Prioridades baseadas no código e nas evidências disponíveis; publicação na AWS é uma etapa separada. A [revisão de preparação](FUTURE-READINESS-REVIEW.md), o [mapa de ambientes](docs/ENVIRONMENTS.md) e o [V2 Foundation Plan](docs/V2-FOUNDATION-PLAN.md) são as fontes para a próxima fase.
+
+## Marcos de evolução
+
+São marcos de planejamento, não promessa de release/data.
+
+| Marco                           | Prioridade e gate                                                                                                                   |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| V1 — base estável candidata     | P0: suites finais e aceite de conta nova/saída/reentrada/isolamento sobre `db775dc`; tag/release somente depois dos gates           |
+| V1.1 — infraestrutura/ambientes | P1: instalar dependências fixas em ambiente limpo, homologar imagens, conferir n8n→API na AWS e cobertura de backup/restore isolado |
+| V1.2 — Funil/Oportunidades      | P1 após aprovação: protótipo isolado → ajustes → critérios/pesos/fontes do responsável → contrato/testes → integração autorizada    |
+| V1.3 — WhatsApp                 | P0 condicional: A12/A13, identidade/canal, idempotência, chip/sessão e homologação isolada antes de cliente real                    |
+| V1.x — demais features          | P2/P3: requisitos da equipe, multi-MEI produto/serviço/misto e integrações aprovadas; protótipo antes de feature visual grande      |
 
 ## Próxima etapa
 
 | Prioridade     | Ação                                                                   | Evidência / conclusão esperada                                                                                                                        |
 | -------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P1             | Revisar e integrar a limpeza e preparação desta branch                 | Contratos e visual preservados; conferir CI do SHA final. A publicação terá alvo/imagens próprios, sem usar o deploy genérico para team.              |
+| P0             | Confirmar cadastro novo, saída/reentrada e isolamento da V1            | Cadastro sem convite publicado em `db775dc` segundo recibo do responsável; falta aceite humano final. Não repetir publicação.                         |
+| P1             | Homologar o caminho n8n → API Python e conferir runner                 | `/processar` exige `texto`; testar export manual fictício na AWS. PRs #44/#45 seguem separados; preparação de backup não comprova execução.           |
+| P1             | Revisar a exploração de Oportunidades                                  | `prototypes/opportunities.html` isolado; aprovar UX e definir regras antes de API/banco/integração.                                                   |
 | P1             | Consolidar as sugestões da equipe                                      | O responsável aguarda respostas; transformar ideias em requisitos/aceite antes de criar funcionalidades.                                              |
 | P0 condicional | Fechar identidade, autorização e idempotência do atendimento (A12/A13) | O export legado agrupa por nome/canal e não deduplica eventos externos. Exigir IDs estáveis, tenant/canal e reenvio seguro antes de atendimento real. |
 
@@ -17,7 +31,7 @@ Atualizado em 14/10/2026. Prioridades baseadas no código e nas evidências disp
 | P1         | Separar roles de API, migration/backup e consulta | Role team foi observada com superuser; inventariar grants e testar em destino isolado antes de reduzir privilégios.                                         |
 | P1         | Conferir backup e recuperação por serviço         | Team, n8n/chave/volume, WAHA e Caddy têm necessidades distintas. Verificar execução automática, retenção, cópia externa e restore isolado de backup real.   |
 | P1         | Reconciliar exports com workflows publicados      | Sete exports no Git; inventário remoto anterior de 24 workflows. Registrar versão, credenciais por finalidade e resultado de teste sem ativar canais reais. |
-| P1         | Homologar versões fixas de imagens/dependências   | Existem tags flutuantes e requirements sem pins. Conferir versões efetivas e testar a fixação sem atualizar por conveniência.                               |
+| P1         | Homologar versões fixas de imagens/dependências   | Python passa a ter versões diretas/transitivas fixadas aos testes. Conferir runtime e homologar imagem nova; tags base/n8n/WAHA/Caddy ainda flutuam.        |
 | P2         | Tornar o desenvolvimento local mais explícito     | Setup, migrations e modo público dos stores são etapas distintas. Testar o onboarding completo no Windows com o próximo integrante.                         |
 
 ## Médio prazo
@@ -31,7 +45,7 @@ Atualizado em 14/10/2026. Prioridades baseadas no código e nas evidências disp
 
 ## Futuro
 
-- **P3 — Customer Score / chance de compra:** aguardar critérios do responsável. Contexto de Clientes, regra no backend e persistência por negócio apenas se necessária. Não existem fórmula, campos ou pesos aprovados.
+- **P1 após definição — Customer Score / chance de compra:** protótipo de Oportunidades disponível, sem integração. Visão geral própria e contexto futuro na Caixa; aguardar critérios/fontes/pesos e significado do percentual. Sem fórmula, campo ou migration aprovados.
 - **P3 — Relatórios compartilhados e canais adicionais:** definir métricas, fontes e requisitos; não usar mensagens demo como histórico confiável.
 - **P3 — Automação de deploy e staging:** escolher ambiente isolado e gates; os workflows manuais atuais não comprovam infraestrutura instalada.
 
@@ -40,7 +54,7 @@ Atualizado em 14/10/2026. Prioridades baseadas no código e nas evidências disp
 - Scripts clássicos/globais e arquivos de UI/CSS extensos.
 - Transporte parcialmente repetido e contratos legados em português.
 - Modo local, demo, snapshots e dados remotos ainda exigem atenção ao mudar configuração.
-- Dependências/imagens flutuantes.
+- Imagens base flutuantes; lock Python ainda sem hashes de distribuição.
 - Grafos experimentais incompletos, atendimento externo sem homologação multiempresa.
 - Grants, backup externo e restore operacional ainda com pendências de evidência.
 
