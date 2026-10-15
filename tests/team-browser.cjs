@@ -103,7 +103,9 @@ HTTPServer(('0.0.0.0',8000),Handler).serve_forever()
       path.join(directory, "config.js") + ":/srv/frontend/config.js:ro",
       "caddy:2-alpine",
     ]);
-    browser = await chromium.launch();
+    browser = await chromium.launch(
+      process.env.CHROMIUM_EXECUTABLE ? { executablePath: process.env.CHROMIUM_EXECUTABLE } : {},
+    );
     const context = await browser.newContext({
       ignoreHTTPSErrors: true,
       httpCredentials: { username: "member", password },
@@ -123,7 +125,10 @@ HTTPServer(('0.0.0.0',8000),Handler).serve_forever()
       } catch (_) {}
       await new Promise((resolve) => setTimeout(resolve, 200));
     }
-    assert(response?.ok(), "HTTPS authenticated gateway must start");
+    assert(
+      response?.ok(),
+      `HTTPS authenticated gateway must start (HTTP ${response?.status() ?? "unavailable"})`,
+    );
     const document = await page.goto(origin + "/");
     assert.equal(document.status(), 200);
     assert.equal(page.url(), origin + "/", "Short URL must remain in the address bar");
