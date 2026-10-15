@@ -91,8 +91,15 @@ function migrationFiles() {
     .sort();
 }
 
-function appliedVersions() {
-  ensureMigrationTable();
+function appliedVersions({ initialize = false } = {}) {
+  if (initialize) {
+    ensureMigrationTable();
+  } else {
+    const exists = psql("SELECT to_regclass('socialmei.schema_migrations') IS NOT NULL;", {
+      tuplesOnly: true,
+    });
+    if (exists !== "t") return new Set();
+  }
   const output = psql("SELECT version FROM socialmei.schema_migrations ORDER BY version;", {
     tuplesOnly: true,
   });
@@ -126,7 +133,7 @@ function showStatus() {
 }
 
 function migrate() {
-  const applied = appliedVersions();
+  const applied = appliedVersions({ initialize: true });
   const pending = migrationFiles().filter((file) => !applied.has(file));
 
   if (!pending.length) {
