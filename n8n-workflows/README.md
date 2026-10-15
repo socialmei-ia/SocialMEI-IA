@@ -5,10 +5,19 @@
 | `equipe/`       | `01-conferir-conexao.json`                                 | [OPS] Leitura técnica do CRM team; exige credencial Bearer configurada privadamente. Não escreve nem envia mensagens. |
 | `producao/`     | `01-caixa-unificada-api-postgresql.json`                   | LEGADO de entrada/leitura de histórico, export inativo e sem credenciais. O nome da pasta não comprova deploy.        |
 | `examples/`     | `hello-world.json`, `process-text.json`                    | Exercícios HTTP e chamada da API Python interna.                                                                      |
+| `examples/`     | `python-native-check.json`                                 | Teste manual do executor Python nativo, sem HTTP, planilha ou CRM. Requer runner compatível.                          |
 | `experimental/` | `instagram-agent.json`, `instagram-webhook-challenge.json` | Experimentos Meta/Gemini. Selecionar credenciais Gemini e HTTP Header Auth após importar.                             |
 | `experimental/` | `scheduled-request-draft.json`                             | Possível legado — revisar manualmente. Requisição agendada sem destino configurado; preservada sem ativação.          |
 
 Os antigos arquivos `error.json`, `my-workflow.json`, `integracao-n8n-insta.json` e `teste-python.json` foram movidos para nomes descritivos. Seus grafos úteis foram preservados; metadados da instância, dados fixados e autenticação literal foram retirados.
+
+## Workflows recentes — 15/10/2026
+
+O [catálogo atual](../docs/N8N-WORKFLOW-CATALOG.md) registra os 33 workflows observados na AWS, candidatos a export e organização proposta no painel. O histórico de sete exports nas seções abaixo descreve a rodada anterior; agora são oito arquivos JSON. Nenhum workflow vivo foi alterado por esta organização.
+
+`examples/process-text.json` foi atualizado com o template recente `[TEST] Python API — conferência`, preservando o POST `/processar`, com timeout de 15 segundos e nomes de nós descritivos. Não foi criado outro exemplo HTTP duplicado. `examples/python-native-check.json` contém `[TEST] Python Native — conferir executor`: retorna `status: ok` e `resultado: 4`, usando `pythonNative`. Ambos têm trigger manual e export inativo; não enviam mensagens.
+
+O responsável confirmou os dois testes na AWS antes desta coleta. Os arquivos são os templates fornecidos naquela etapa; equivalência integral com o documento salvo na instância não foi comprovada. Python HTTP e Python nativo são caminhos diferentes: o primeiro precisa alcançar `python-api:8000`; o segundo depende do task runner, não daquela API. `/mensagem` e `/estoque` não fazem parte desses testes.
 
 ## Entrada e leitura PostgreSQL
 
