@@ -1,0 +1,195 @@
+{
+  "name": "[STRUCTURE] Integração Instagram",
+  "nodes": [
+    {
+      "id": "bb2e6885-8b7b-50b8-b742-89af58322e69",
+      "name": "01 · Receber webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    },
+    {
+      "id": "dbf80329-4be3-5419-9748-54f07e829eb1",
+      "name": "02 · Responder webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        280,
+        0
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    },
+    {
+      "id": "decd5091-7749-5956-889a-ae80a1e0df24",
+      "name": "03 · Assistente",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        560,
+        0
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    },
+    {
+      "id": "6dafa26e-564d-5171-9f42-21abae18135e",
+      "name": "04 · Modelo Gemini",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        840,
+        0
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    },
+    {
+      "id": "88d00448-282c-5ef2-8129-27c8b56e3c39",
+      "name": "05 · Memória",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        220
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    },
+    {
+      "id": "25f91e2c-7e62-538f-b4cd-1eb38ee19025",
+      "name": "06 · Selecionar caminho",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        280,
+        220
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    },
+    {
+      "id": "14e3d0a8-b71b-58eb-91fa-07cd068f0c1f",
+      "name": "07 · Requisição HTTP",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        560,
+        220
+      ],
+      "parameters": {
+        "url": "https://configure.example.invalid/",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    },
+    {
+      "id": "62759242-2534-5a47-bb5c-fc29e2429493",
+      "name": "08 · Ferramenta Google Sheets",
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        840,
+        220
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    }
+  ],
+  "connections": {
+    "01 · Receber webhook": {
+      "main": [
+        [
+          {
+            "node": "06 · Selecionar caminho",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "04 · Modelo Gemini": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "03 · Assistente",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "05 · Memória": {
+      "ai_memory": [
+        [
+          {
+            "node": "03 · Assistente",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "06 · Selecionar caminho": {
+      "main": [
+        [],
+        [
+          {
+            "node": "03 · Assistente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "03 · Assistente": {
+      "main": [
+        [
+          {
+            "node": "07 · Requisição HTTP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "08 · Ferramenta Google Sheets": {
+      "ai_tool": [
+        [
+          {
+            "node": "03 · Assistente",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

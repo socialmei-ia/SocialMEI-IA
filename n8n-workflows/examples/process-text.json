@@ -1,19 +1,14 @@
 {
-  "name": "[TEST] API · processar texto",
-  "description": null,
+  "name": "[TEST] Python API — conferência",
   "active": false,
-  "isArchived": false,
   "nodes": [
     {
       "parameters": {},
+      "id": "e122949a-8544-4abd-a641-06f81b08c728",
+      "name": "Run isolated test",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [
-        0,
-        0
-      ],
-      "id": "47a3fd4e-bd7b-492e-a511-5ab6fc4c678d",
-      "name": "When clicking ‘Execute workflow’"
+      "position": [0, 0]
     },
     {
       "parameters": {
@@ -22,24 +17,23 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "{\n  \"texto\": \"Ola SocialME\"\n}",
-        "options": {}
+        "options": {
+          "timeout": 15000
+        }
       },
+      "id": "65136e4a-992f-43a6-ad69-6998a3288b91",
+      "name": "Process text in Python API",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
-      "position": [
-        224,
-        0
-      ],
-      "id": "1b3f2ef4-c518-47e6-80f1-d2985b35b63f",
-      "name": "HTTP Request"
+      "position": [280, 0]
     }
   ],
   "connections": {
-    "When clicking ‘Execute workflow’": {
+    "Run isolated test": {
       "main": [
         [
           {
-            "node": "HTTP Request",
+            "node": "Process text in Python API",
             "type": "main",
             "index": 0
           }
@@ -48,12 +42,7 @@
     }
   },
   "settings": {
-    "executionOrder": "v1",
-    "binaryMode": "separate"
+    "executionOrder": "v1"
   },
-  "staticData": null,
-  "nodeGroups": [],
-  "pinData": {},
-  "triggerCount": 0,
-  "tags": []
+  "pinData": {}
 }

@@ -1,0 +1,50 @@
+{
+  "name": "[STRUCTURE] Consultar produtos",
+  "nodes": [
+    {
+      "id": "ad2d3199-0c6e-5601-bac9-8bf2f7304fa1",
+      "name": "01 · Receber chamada",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    },
+    {
+      "id": "3daa17c0-d9ed-5581-8b93-84f9b51adba6",
+      "name": "02 · Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        280,
+        0
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    }
+  ],
+  "connections": {
+    "01 · Receber chamada": {
+      "main": [
+        [
+          {
+            "node": "02 · Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,0 +1,221 @@
+{
+  "name": "[STRUCTURE] Confirmar pedido",
+  "nodes": [
+    {
+      "id": "df3f53c0-f97c-5481-9d93-f06adc6024b6",
+      "name": "01 · Receber chamada",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    },
+    {
+      "id": "347cd286-6635-53cf-b519-8b4a8eef51c8",
+      "name": "02 · Condição",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        280,
+        0
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    },
+    {
+      "id": "3358e6c5-db0a-5e0d-8057-b533f597a620",
+      "name": "03 · Preparar dados",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        560,
+        0
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    },
+    {
+      "id": "4804d036-34cb-5620-b04f-3ee2cc17c3fb",
+      "name": "04 · Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        840,
+        0
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    },
+    {
+      "id": "53746761-f481-5c58-b1ee-7437aac9b296",
+      "name": "05 · Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        0,
+        220
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    },
+    {
+      "id": "f8deefdb-dbe4-5017-bd15-39cbe7c4a72b",
+      "name": "06 · Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        280,
+        220
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    },
+    {
+      "id": "bfeedd08-4b6a-5151-bbd7-e678d816f126",
+      "name": "07 · Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        560,
+        220
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    },
+    {
+      "id": "86c3ea61-1344-5660-820c-64ac0f01f9ee",
+      "name": "08 · Preparar dados",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        840,
+        220
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    },
+    {
+      "id": "9c3be5fe-3a15-546e-9bfd-e5e1e812a74f",
+      "name": "09 · Preparar dados",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        0,
+        440
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    }
+  ],
+  "connections": {
+    "01 · Receber chamada": {
+      "main": [
+        [
+          {
+            "node": "05 · Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02 · Condição": {
+      "main": [
+        [
+          {
+            "node": "04 · Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "09 · Preparar dados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "04 · Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "03 · Preparar dados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "05 · Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "02 · Condição",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "03 · Preparar dados": {
+      "main": [
+        [
+          {
+            "node": "06 · Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "06 · Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "08 · Preparar dados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "08 · Preparar dados": {
+      "main": [
+        [
+          {
+            "node": "07 · Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

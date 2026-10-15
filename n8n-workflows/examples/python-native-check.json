@@ -1,0 +1,43 @@
+{
+  "name": "[TEST] Python Native — conferir executor",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "a282d2c8-4ecb-4bf9-befa-045d04415485",
+      "name": "Run isolated Python test",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "pythonNative",
+        "pythonCode": "return [\n    {\n        \"json\": {\n            \"status\": \"ok\",\n            \"resultado\": 2 + 2\n        }\n    }\n]"
+      },
+      "id": "c3be7e3b-36be-43b7-a2c6-8364a17b8949",
+      "name": "Verify native Python executor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [280, 0]
+    }
+  ],
+  "connections": {
+    "Run isolated Python test": {
+      "main": [
+        [
+          {
+            "node": "Verify native Python executor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

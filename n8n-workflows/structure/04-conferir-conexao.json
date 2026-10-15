@@ -1,0 +1,55 @@
+{
+  "name": "[STRUCTURE] Conferir conexão",
+  "nodes": [
+    {
+      "id": "cc4b10e8-b7af-526e-bcc8-c50edd6c3cc7",
+      "name": "01 · Iniciar manualmente",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    },
+    {
+      "id": "e3911c3d-0a82-5df4-80bb-6f3dd991d1d0",
+      "name": "02 · Requisição HTTP",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        280,
+        0
+      ],
+      "parameters": {
+        "url": "https://configure.example.invalid/",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    }
+  ],
+  "connections": {
+    "01 · Iniciar manualmente": {
+      "main": [
+        [
+          {
+            "node": "02 · Requisição HTTP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

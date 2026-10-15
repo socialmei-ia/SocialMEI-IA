@@ -5,10 +5,21 @@
 | `equipe/`       | `01-conferir-conexao.json`                                 | [OPS] Leitura técnica do CRM team; exige credencial Bearer configurada privadamente. Não escreve nem envia mensagens. |
 | `producao/`     | `01-caixa-unificada-api-postgresql.json`                   | LEGADO de entrada/leitura de histórico, export inativo e sem credenciais. O nome da pasta não comprova deploy.        |
 | `examples/`     | `hello-world.json`, `process-text.json`                    | Exercícios HTTP e chamada da API Python interna.                                                                      |
+| `examples/`     | `python-native-check.json`                                 | Teste manual do executor Python nativo, sem HTTP, planilha ou CRM. Requer runner compatível.                          |
 | `experimental/` | `instagram-agent.json`, `instagram-webhook-challenge.json` | Experimentos Meta/Gemini. Selecionar credenciais Gemini e HTTP Header Auth após importar.                             |
 | `experimental/` | `scheduled-request-draft.json`                             | Possível legado — revisar manualmente. Requisição agendada sem destino configurado; preservada sem ativação.          |
 
+`structure/` reúne oito templates dos documentos salvos na AWS: somente estrutura, com parâmetros privados ausentes, workflows inativos e nós desabilitados. Não executar.
+
 Os antigos arquivos `error.json`, `my-workflow.json`, `integracao-n8n-insta.json` e `teste-python.json` foram movidos para nomes descritivos. Seus grafos úteis foram preservados; metadados da instância, dados fixados e autenticação literal foram retirados.
+
+## Workflows recentes — 15/10/2026
+
+O [catálogo atual](../docs/N8N-WORKFLOW-CATALOG.md) registra a coleta inicial de 33 workflows e a organização posterior confirmada na AWS: 31 permaneceram após renomeação e exclusão de dois vazios arquivados. O histórico de sete exports nas seções abaixo descreve a rodada anterior; são oito exports de exemplo/configuração e oito templates estruturais em `structure/`. A organização no Git e a operação no painel são etapas distintas.
+
+`examples/process-text.json` foi atualizado com o template recente `[TEST] Python API — conferência`, preservando o POST `/processar`, com timeout de 15 segundos e nomes de nós descritivos. Não foi criado outro exemplo HTTP duplicado. `examples/python-native-check.json` contém `[TEST] Python Native — conferir executor`: retorna `status: ok` e `resultado: 4`, usando `pythonNative`. Ambos têm trigger manual e export inativo; não enviam mensagens.
+
+O responsável confirmou os dois testes na AWS antes desta coleta. Os arquivos são os templates fornecidos naquela etapa; equivalência integral com o documento salvo na instância não foi comprovada. Python HTTP e Python nativo são caminhos diferentes: o primeiro precisa alcançar `python-api:8000`; o segundo depende do task runner, não daquela API. `/mensagem` e `/estoque` não fazem parte desses testes.
 
 ## Entrada e leitura PostgreSQL
 
@@ -68,3 +79,17 @@ Antes de alterar um workflow vivo, preservar export da versão publicada, estado
 `npm test` valida exports/normalização estáticos; não comprova consultas no banco vivo, funcionamento de credenciais, autenticação do webhook ou entrega de mensagem. [Mapa dos ambientes e limites](../docs/ENVIRONMENTS.md).
 
 A12/A13 continuam P0 antes de atendimento real: autorização, tenant/canal, IDs externos e deduplicação. Não ligar o legado ao modelo multi-MEI pela troca de nomes. Backup da instância deve preservar seu banco, volume e chave de criptografia originais antes de qualquer alteração viva. Google Sheets permanece pausado.
+
+## Templates estruturais da instância
+
+`tools/export-n8n-structure.py` lê os oito documentos coletados privadamente e gera templates em um destino novo. A ferramenta copia somente tipos/versões de nós e a topologia das conexões. Nomes são reconstruídos; parâmetros, código, SQL, prompts, URLs, dados fixados, credenciais e configurações não são copiados. Todos os nós ficam desabilitados e cada workflow fica inativo. O código dos nós Code é substituído por um erro explícito.
+
+Esses arquivos são referências de estrutura para revisão, **não exports completos nem automações prontas para uso**. Os oito exports existentes continuam separados e não são sobrescritos. O responsável gerou os oito templates na AWS e os enviou no commit `3105444bace9cb8d8c6ccc634d637216366b672d`. A revisão no Git confirmou que os documentos correspondem à saída permitida pelo exportador; as conexões foram coletadas dos documentos salvos, não inferidas do resumo de tipos.
+
+```bash
+python3 tools/export-n8n-structure.py \
+  --source-dir /CAMINHO/PRIVADO/DA/COLETA \
+  --output-dir n8n-workflows/structure
+```
+
+O diretório de destino deve estar ausente. Tipos de nós desconhecidos, conexões inválidas ou documentos ausentes interrompem a geração. Os originais completos continuam no backup privado; não devem ser adicionados ao Git. Para recuperar parâmetros funcionais no Git, revisar o código e os contratos por nó em ambiente com acesso privado antes de promover cada template.

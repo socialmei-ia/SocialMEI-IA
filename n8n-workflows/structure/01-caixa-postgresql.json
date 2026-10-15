@@ -1,0 +1,182 @@
+{
+  "name": "[STRUCTURE] Caixa Unificada PostgreSQL",
+  "nodes": [
+    {
+      "id": "fc1799f4-3a89-527f-a92d-92258751049b",
+      "name": "01 · Receber webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    },
+    {
+      "id": "027d6882-2e98-5029-ac65-723b2751d2c4",
+      "name": "02 · Código",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        280,
+        0
+      ],
+      "parameters": {
+        "jsCode": "throw new Error(\"CONFIGURE_PRIVATELY: código não exportado\");"
+      },
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    },
+    {
+      "id": "cdd528da-0a63-50dd-9097-16a5b1108e6f",
+      "name": "03 · PostgreSQL",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        560,
+        0
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    },
+    {
+      "id": "51c29c49-d96a-5246-a9ed-5c26ff69f091",
+      "name": "04 · Responder webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        840,
+        0
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    },
+    {
+      "id": "5709ddbe-6f6a-54c4-a0d9-c89cea38e001",
+      "name": "05 · Receber webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        220
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    },
+    {
+      "id": "cefad8a4-537d-5fdb-ac80-f6dbe9e78dd3",
+      "name": "06 · PostgreSQL",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        280,
+        220
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    },
+    {
+      "id": "259db39e-9524-5132-98b4-21390c5baa6b",
+      "name": "07 · Responder webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        560,
+        220
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    },
+    {
+      "id": "8a59885d-c95b-5d71-a3f3-8cf2a0e04e2d",
+      "name": "08 · Instruções",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        840,
+        220
+      ],
+      "parameters": {
+        "content": "Template estrutural. Configuração privada e homologação pendentes. Não ativar."
+      },
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    }
+  ],
+  "connections": {
+    "01 · Receber webhook": {
+      "main": [
+        [
+          {
+            "node": "02 · Código",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02 · Código": {
+      "main": [
+        [
+          {
+            "node": "03 · PostgreSQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "03 · PostgreSQL": {
+      "main": [
+        [
+          {
+            "node": "04 · Responder webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "05 · Receber webhook": {
+      "main": [
+        [
+          {
+            "node": "06 · PostgreSQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "06 · PostgreSQL": {
+      "main": [
+        [
+          {
+            "node": "07 · Responder webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

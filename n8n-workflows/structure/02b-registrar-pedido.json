@@ -1,0 +1,50 @@
+{
+  "name": "[STRUCTURE] Registrar pedido",
+  "nodes": [
+    {
+      "id": "5a999c85-bbe3-51fe-962e-a117c61fd7c7",
+      "name": "01 · Receber chamada",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    },
+    {
+      "id": "a4bb41b6-ccc9-5717-9838-f2fa3414bfde",
+      "name": "02 · Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        280,
+        0
+      ],
+      "parameters": {},
+      "disabled": true,
+      "notes": "Template estrutural. Configuração privada e homologação pendentes. Não ativar.",
+      "notesInFlow": true
+    }
+  ],
+  "connections": {
+    "01 · Receber chamada": {
+      "main": [
+        [
+          {
+            "node": "02 · Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
