@@ -37,6 +37,7 @@ Abra um Pull Request para `main`.
 
 - `feat/` — funcionalidade
 - `fix/` — correção
+- `refactor/` — manutenção da implementação sem mudar contratos ou comportamento
 - `ui/` — visual/interface
 - `docs/` — documentação
 - `chore/` — manutenção
@@ -67,3 +68,7 @@ Veja [docs/DOCKER.md](./docs/DOCKER.md) e [docs/ACESSOS.md](./docs/ACESSOS.md).
 ## Nunca faça commit de
 
 `.env`, `.pem`, chave privada SSH, senhas, tokens, chaves de API, credenciais exportadas ou dumps sensíveis.
+
+## Revisar uma refatoração
+
+Separe formatação de mudanças de lógica quando possível. Compare a baseline com o resultado, explique o que foi simplificado e o que permaneceu por compatibilidade. Mantenha testes de erro, conflito, isolamento e recuperação; não ajuste expectativas apenas para tornar o CI verde. Migrations históricas e exports n8n não devem ser reescritos por preferência de estilo.

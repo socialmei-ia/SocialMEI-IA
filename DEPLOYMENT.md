@@ -10,6 +10,8 @@ Depois de publicar, confira as duas entradas, ausência de 404 para CSS/scripts/
 
 ## VPS: Docker Compose e Caddy
 
+Os comandos genéricos desta seção descrevem a pilha legada. Para a equipe em `/home/ubuntu/socialmei-team`, use [docs/OPERACAO-EQUIPE.md](docs/OPERACAO-EQUIPE.md): checkout em SHA aprovado, backup e atualização restrita ao serviço afetado. Não use `git pull` nem o workflow genérico de produção como roteiro automático para team. Esta rodada de manutenção não executa deploy.
+
 Os guias existentes registram uma VPS em `/home/ubuntu/socialmei` e hosts `*.54-94-213-7.sslip.io`. São referências históricas do ambiente, não evidência de disponibilidade. Não há pipeline AWS, Terraform ou deploy automático versionado.
 
 ### Ambiente novo de teste

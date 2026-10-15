@@ -1871,14 +1871,18 @@ ONBOARDING — JAVASCRIPT
       "Preparar pedido de avaliação": "Confirmar a entrega antes de pedir avaliação",
     }[r.then] ||
     "Revisar a tarefa preparada";
-  const ruleIcon = (r) =>
-    ruleAreaOf(r) === "Financeiro"
-      ? "wallet"
-      : ruleAreaOf(r) === "Atendimento"
-        ? "inbox"
-        : ruleAreaOf(r) === "Clientes"
-          ? "users"
-          : "bag";
+  function ruleIcon(rule) {
+    switch (ruleAreaOf(rule)) {
+      case "Financeiro":
+        return "wallet";
+      case "Atendimento":
+        return "inbox";
+      case "Clientes":
+        return "users";
+      default:
+        return "bag";
+    }
+  }
   const localTime = (iso) =>
     new Date(iso).toLocaleString("pt-BR", {
       timeZone: APP_TIMEZONE,
@@ -3244,9 +3248,71 @@ ONBOARDING — JAVASCRIPT
           : (index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
     tabs[next].click();
   });
-  /**
-   * Produz sugestões locais a partir dos registros existentes. O usuário revisa o resultado antes de inserir qualquer texto na Caixa.
-   */
+  function buildAssistantDraftText(
+    { conversation, context, name, first, pending, last, note },
+    tone,
+    intent,
+  ) {
+    const hello =
+      tone === "Formal"
+        ? `Olá, ${name}.`
+        : tone === "Amigável"
+          ? `Oi, ${first}! Tudo bem?`
+          : `Olá, ${first}.`;
+    let text = "";
+    if (intent === "summary") {
+      text = `${name} · ${channelLabel(conversation.canal)} · ${statusLabel(conversation.status)}\nÚltima mensagem: “${last}”${context.client?.observacao ? "\nNota do perfil: " + context.client.observacao : ""}${note ? "\nNota interna: " + (note.texto || note.text || "Nota sem texto") : ""}`;
+      text +=
+        "\n" +
+        (tone === "Curto"
+          ? "Próximo passo: conferir a dúvida e responder."
+          : tone === "Amigável"
+            ? "Vale ler a conversa completa com calma antes de preparar o próximo contato."
+            : "Recomendação: revisar o histórico integral e verificar os dados antes de tomar qualquer ação.");
+    } else if (intent === "reply") {
+      text =
+        hello +
+        " " +
+        (tone === "Curto"
+          ? "Recebi sua mensagem. Vou conferir os detalhes e retorno por aqui."
+          : tone === "Amigável"
+            ? "Obrigado por conversar com a gente. Vou olhar sua dúvida com cuidado e te retorno por aqui."
+            : "Agradeço o contato. Vou verificar as informações da sua solicitação antes de retornar.");
+    } else if (intent === "sales") {
+      text =
+        hello +
+        " " +
+        (pending.length
+          ? `Podemos revisar seu pedido #${pending[0].id} (${money(pending[0].valor)}) antes de preparar um novo orçamento?`
+          : tone === "Curto"
+            ? "Qual produto ou serviço você procura? Posso preparar um orçamento para revisar com você."
+            : tone === "Amigável"
+              ? "Me conta qual produto ou serviço você precisa? Assim preparo um orçamento com os detalhes para você conferir."
+              : "Para preparar uma proposta, poderia informar o produto ou serviço e a quantidade desejados?");
+    } else if (intent === "collect") {
+      text = pending.length
+        ? hello +
+          " " +
+          (tone === "Curto"
+            ? `Podemos conferir o pagamento do pedido #${pending[0].id}, de ${money(pending[0].valor)}?`
+            : tone === "Amigável"
+              ? `Queria conferir com você o pagamento do pedido #${pending[0].id}, de ${money(pending[0].valor)}. Se já pagou, me avise para eu verificar.`
+              : `O pedido #${pending[0].id}, no valor de ${money(pending[0].valor)}, consta como pendente nos registros. Poderia confirmar o pagamento para conferência?`)
+        : "Não há pedido pendente vinculado a esta pessoa. Confira os registros antes de preparar uma cobrança.";
+    } else {
+      text =
+        hello +
+        " " +
+        (tone === "Curto"
+          ? "Podemos continuar nossa conversa?"
+          : tone === "Amigável"
+            ? "Passando para saber se ainda posso ajudar com o que conversamos. Quer continuar por aqui?"
+            : "Gostaria de saber se deseja dar continuidade à nossa conversa. Fico à disposição para revisar sua solicitação.");
+    }
+    return text;
+  }
+
+  // Gera rascunhos locais; inserir na Caixa ainda depende da revisão do usuário.
   function prepareAssistantDraft() {
     const conversation = getAssistantConversation();
     if (!conversation) {
@@ -3269,63 +3335,9 @@ ONBOARDING — JAVASCRIPT
       assistantTone,
       ...["Curto", "Amigável", "Formal"].filter((t) => t !== assistantTone),
     ];
+    const draftContext = { conversation, context: ctx, name, first, pending, last, note };
     assistantDrafts = tones.map((tone) => {
-      const hello =
-        tone === "Formal"
-          ? `Olá, ${name}.`
-          : tone === "Amigável"
-            ? `Oi, ${first}! Tudo bem?`
-            : `Olá, ${first}.`;
-      let text = "";
-      if (assistantIntent === "summary") {
-        text = `${name} · ${channelLabel(conversation.canal)} · ${statusLabel(conversation.status)}\nÚltima mensagem: “${last}”${ctx.client?.observacao ? "\nNota do perfil: " + ctx.client.observacao : ""}${note ? "\nNota interna: " + (note.texto || note.text || "Nota sem texto") : ""}`;
-        text +=
-          "\n" +
-          (tone === "Curto"
-            ? "Próximo passo: conferir a dúvida e responder."
-            : tone === "Amigável"
-              ? "Vale ler a conversa completa com calma antes de preparar o próximo contato."
-              : "Recomendação: revisar o histórico integral e verificar os dados antes de tomar qualquer ação.");
-      } else if (assistantIntent === "reply") {
-        text =
-          hello +
-          " " +
-          (tone === "Curto"
-            ? "Recebi sua mensagem. Vou conferir os detalhes e retorno por aqui."
-            : tone === "Amigável"
-              ? "Obrigado por conversar com a gente. Vou olhar sua dúvida com cuidado e te retorno por aqui."
-              : "Agradeço o contato. Vou verificar as informações da sua solicitação antes de retornar.");
-      } else if (assistantIntent === "sales") {
-        text =
-          hello +
-          " " +
-          (pending.length
-            ? `Podemos revisar seu pedido #${pending[0].id} (${money(pending[0].valor)}) antes de preparar um novo orçamento?`
-            : tone === "Curto"
-              ? "Qual produto ou serviço você procura? Posso preparar um orçamento para revisar com você."
-              : tone === "Amigável"
-                ? "Me conta qual produto ou serviço você precisa? Assim preparo um orçamento com os detalhes para você conferir."
-                : "Para preparar uma proposta, poderia informar o produto ou serviço e a quantidade desejados?");
-      } else if (assistantIntent === "collect") {
-        text = pending.length
-          ? hello +
-            " " +
-            (tone === "Curto"
-              ? `Podemos conferir o pagamento do pedido #${pending[0].id}, de ${money(pending[0].valor)}?`
-              : tone === "Amigável"
-                ? `Queria conferir com você o pagamento do pedido #${pending[0].id}, de ${money(pending[0].valor)}. Se já pagou, me avise para eu verificar.`
-                : `O pedido #${pending[0].id}, no valor de ${money(pending[0].valor)}, consta como pendente nos registros. Poderia confirmar o pagamento para conferência?`)
-          : "Não há pedido pendente vinculado a esta pessoa. Confira os registros antes de preparar uma cobrança.";
-      } else {
-        text =
-          hello +
-          " " +
-          (tone === "Curto"
-            ? "Podemos continuar nossa conversa?"
-            : tone === "Amigável"
-              ? "Passando para saber se ainda posso ajudar com o que conversamos. Quer continuar por aqui?"
-              : "Gostaria de saber se deseja dar continuidade à nossa conversa. Fico à disposição para revisar sua solicitação.");
-      }
+      const text = buildAssistantDraftText(draftContext, tone, assistantIntent);
       return {
         text,
         tone,

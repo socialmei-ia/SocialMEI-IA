@@ -1,5 +1,14 @@
 # Changelog
 
+## Manutenção do código — 2026-10-14
+
+- Seleção de período extraída do listener principal; hora comercial compartilhada entre Home e header.
+- Revisão de venda consolidada sem redefinir a função; estados financeiros mais legíveis.
+- Mensagem inicial local da Inbox compartilhada; composição do texto do Assistente separada do histórico.
+- Quatro declarações CSS idênticas removidas, mantendo as posteriores na cascata; comentários de seções e confirmação de contato legíveis.
+- Consultas de saúde agrupadas por capacidade, preservando SQL, transação e tratamento de falhas.
+- Três testes de período e relatório de manutenção; orientações de desenvolvimento/deploy atualizadas. Sem alterações de schema, workflows ou runtime.
+
 ## Aplicação da base team — 2026-10-13
 
 - PR #35 integrado em `ae73f6e093fc2d271a69a2ba9de1ebffc66c0705`; CI do merge aprovado, separado das evidências AWS.
