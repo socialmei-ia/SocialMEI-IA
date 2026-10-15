@@ -1,5 +1,7 @@
 # Desenvolvimento
 
+Antes de editar, escolha o [ambiente e a fonte de dados](docs/ENVIRONMENTS.md). O [mapa por funcionalidade](docs/PROJECT-STRUCTURE.md) mostra onde alterar Clientes, Caixa, Assistente, stores, tokens e endpoints, além do exemplo conceitual de uma nova feature.
+
 ## Preparação
 
 O caminho recomendado para a equipe é usar o ambiente Docker local:
@@ -11,6 +13,7 @@ git switch -c feat/nome-da-tarefa
 npm ci
 npm run setup
 npm run dev
+npm run db:migrate
 ```
 
 Abra:
@@ -27,6 +30,8 @@ npm run dev:waha
 ```
 
 Veja [docs/ONBOARDING.md](docs/ONBOARDING.md) para o passo a passo completo.
+
+O frontend versionado mantém gestão local por padrão; subir uma API não troca o modo dos stores. Para testar persistência remota local, configure explicitamente os módulos em `frontend/config.js` para a API de desenvolvimento, conforme [SHARED-DATA-API.md](docs/SHARED-DATA-API.md). Não copie a configuração privada do piloto. A matriz de ambientes descreve quais dados pertencem a cada modo.
 
 Se quiser trabalhar apenas no frontend sem Docker, ainda é possível usar:
 
@@ -51,6 +56,7 @@ python -m http.server 5500
 | BUSINESS MODULES                                   | `frontend/scripts/business-views.js` e helpers de cada módulo         |
 | REPORTS / SETTINGS                                 | `frontend/scripts/app.js`; exportação em `reports.js`                 |
 | API Python                                         | `python-service/app.py`                                               |
+| Configuração da API                                | `python-service/settings.py`; validações de auth em `account_auth.py` |
 | Toolbox                                            | `tools/devhub.js`, `tools/devhub.css`, `tools/mike-devhub.html`       |
 
 Os arquivos preservam a ordem dos scripts clássicos do HTML. Não reorganize a sequência somente pelo nome. A inicialização acontece em `app.js` e depois `experience.js`; algumas funções anteriores dependem desse estado quando chamadas.
@@ -117,6 +123,18 @@ bash -n backup.sh
 
 ## Regressão da base estabilizada
 
-`node tests/stability-browser.cjs` cobre nove resoluções, Light/Dark/Auto-Light/Auto-Dark/Custom, telas públicas e módulos, labels de botões e recursos locais. A suite normal mantém CRUD/conflitos/replay/contas/teclado. O alias “Meu negócio” leva intencionalmente à Visão Geral.
+`node tests/stability-browser.cjs` cobre 11 resoluções, Light/Dark/Auto-Light/Auto-Dark/Custom, telas públicas e módulos, labels de botões e recursos locais. A suite normal mantém CRUD/conflitos/replay/contas/teclado. O alias “Meu negócio” leva intencionalmente à Visão Geral.
 
-Use `TEST_DATABASE_URL` apenas em PostgreSQL descartável. `test_workspace_integrity.py` verifica FKs, upgrade interrompido sem reparação, histórico e o perfil interno de leitura; alterações de estrutura/grants são exercitadas em transações de teste. A migration 011 não foi aplicada ao servidor nesta revisão. Resultados em [PROJECT-BASELINE-REVIEW.md](PROJECT-BASELINE-REVIEW.md).
+Use `TEST_DATABASE_URL` apenas em PostgreSQL descartável. `test_workspace_integrity.py` verifica FKs, upgrade interrompido sem reparação, histórico e o perfil interno de leitura; alterações de estrutura/grants são exercitadas em transações de teste. A migration 011 foi confirmada pelo responsável na AWS em 13/10/2026; esta manutenção não a reaplica. Resultados atuais em [FUTURE-READINESS-REVIEW.md](FUTURE-READINESS-REVIEW.md).
+
+`npm run db:status` somente consulta a existência do controle e as versões instaladas, inclusive em banco ainda vazio. `npm run db:migrate` inicializa o controle e aplica pendências transacionalmente, uma migration por vez. Ambos apontam para o Compose de desenvolvimento; nenhum é um comando de atualização da AWS.
+
+## Manutenção sem mudança de comportamento
+
+Antes de refatorar, registre SHA/status e execute as suites da área. Use uma branch `refactor/`, mudanças pequenas e commits por responsabilidade. Preserve nomes de payloads, chaves do armazenamento, classes/IDs usados pelos scripts e ordem de carregamento.
+
+A seleção de período fica em `navigation.js`; a hora comercial, em `home.js`. O listener de `app.js` encaminha essas ações. `inbox.js` monta mensagens iniciais locais. Dentro de `experience.js`, a composição do texto do Assistente fica separada da gravação do histórico. Os stores continuam próprios de cada módulo: versões, importações e estoque têm regras diferentes.
+
+Compare desktop/mobile, temas e movimento reduzido antes/depois de mexer na cascata. Não retire seletores ou `!important` apenas por repetição: estados dinâmicos e media queries podem depender deles. Consultas de saúde estão agrupadas em `python-service/database.py`; permanecem somente leitura e não comprovam conexão real dos canais.
+
+Veja [CODE-MAINTAINABILITY-REVIEW.md](CODE-MAINTAINABILITY-REVIEW.md). Testes usam dados fictícios e banco isolado; nunca a configuração privada da AWS.

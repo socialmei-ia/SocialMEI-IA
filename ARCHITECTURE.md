@@ -1,5 +1,7 @@
 # Arquitetura
 
+Consulte o [mapa dos ambientes](docs/ENVIRONMENTS.md) antes de executar comandos e o [mapa da estrutura](docs/PROJECT-STRUCTURE.md) para localizar uma funcionalidade. A [revisão de preparação](FUTURE-READINESS-REVIEW.md) registra decisões e limites atuais.
+
 ## Gestão local ou compartilhada
 
 O modo de cada módulo é explícito em `config.js`. No GitHub Pages, Clientes, Produtos, Vendas e Financeiro usam armazenamento local. No servidor da equipe, os quatro módulos usam FastAPI e PostgreSQL, protegidos pelo gateway. Dados de demonstração de atendimento não são dados compartilhados do CRM.
@@ -74,6 +76,8 @@ A gravação faz upsert de cliente/conversa e insere mensagem. O frontend identi
 Export inativo não significa workflow inativo na VPS: Git e ambiente remoto são estados separados. Credenciais precisam ser selecionadas após importar. Workflows experimentais de Instagram têm dependências Gemini/Meta e autenticação por credencial n8n; não são a IA do Assistente local.
 
 ## Banco
+
+Na API, `python-service/settings.py` concentra a leitura de ambiente; `database.py` mantém conexão e consultas de readiness. Configuração não seleciona o workspace de uma conta autenticada: a identidade da sessão continua tendo precedência. Não há cache ou logging de segredos. Novos modelos/operações permanecem no router da área; contratos em [API-ENDPOINTS.md](docs/API-ENDPOINTS.md).
 
 PostgreSQL 16 atende o banco interno do n8n e o schema funcional `socialmei` com `clientes`, `conversas`, `mensagens`. `bootstrap.sql` exige a role `socialmei_admin` previamente criada. `permissions.sql` prepara `socialmei_app`, sem senha versionada, e cita explicitamente o banco `n8n`.
 

@@ -2,7 +2,6 @@
 
 import hashlib
 import hmac
-import os
 import re
 import secrets
 import threading
@@ -22,6 +21,7 @@ from starlette.responses import JSONResponse
 
 from database import connect, shared_data_enabled
 from contact_validation import validate_phone
+import settings
 
 COOKIE = "__Host-socialmei-session"
 HASHER = PasswordHasher(time_cost=2, memory_cost=19456, parallelism=1)
@@ -36,18 +36,11 @@ router = APIRouter(prefix="/api/v1", tags=["accounts"])
 
 
 def enabled():
-    # A typo must block access, rather than silently reopen the shared workspace.
-    return os.getenv("SOCIALMEI_AUTH_ENABLED", "false").strip().lower() not in {
-        "false",
-        "0",
-        "no",
-        "off",
-        "",
-    }
+    return settings.authentication_mode() != "disabled"
 
 
 def origin():
-    value = os.getenv("SOCIALMEI_AUTH_ORIGIN", "").strip()
+    value = settings.authentication_origin()
     try:
         parsed = urlsplit(value)
         _ = parsed.port  # Validate malformed ports before accepting the origin.
@@ -69,12 +62,7 @@ def origin():
 def require_enabled():
     if not enabled() or not shared_data_enabled():
         raise HTTPException(503, "Autenticação não ativada neste ambiente.")
-    if os.getenv("SOCIALMEI_AUTH_ENABLED", "").strip().lower() not in {
-        "true",
-        "1",
-        "yes",
-        "on",
-    }:
+    if settings.authentication_mode() != "enabled":
         raise HTTPException(503, "Autenticação não configurada.")
     origin()
 

@@ -1,5 +1,7 @@
 # Publicação e operação
 
+Primeiro identifique o [ambiente e o Compose efetivo](docs/ENVIRONMENTS.md). Estes procedimentos não tornam Pages, staging ou secrets de Actions automaticamente configurados. A revisão de preparação não executa deploy.
+
 ## Frontend: GitHub Pages
 
 O repositório contém `index.html` na raiz e `.nojekyll`. A entrada encaminha para `frontend/socialmei-app.html`; a antiga URL `frontend/socialmei-dashboard.html` continua válida. Publique a raiz com a pasta `frontend/` completa e `tools/` se quiser disponibilizar o DevHub.
@@ -10,7 +12,9 @@ Depois de publicar, confira as duas entradas, ausência de 404 para CSS/scripts/
 
 ## VPS: Docker Compose e Caddy
 
-Os guias existentes registram uma VPS em `/home/ubuntu/socialmei` e hosts `*.54-94-213-7.sslip.io`. São referências históricas do ambiente, não evidência de disponibilidade. Não há pipeline AWS, Terraform ou deploy automático versionado.
+Os comandos genéricos desta seção descrevem a pilha legada. Para a equipe em `/home/ubuntu/socialmei-team`, use [docs/OPERACAO-EQUIPE.md](docs/OPERACAO-EQUIPE.md): checkout em SHA aprovado, backup e atualização restrita ao serviço afetado. Não use `git pull` nem o workflow genérico de produção como roteiro automático para team. Esta rodada de manutenção não executa deploy.
+
+Os guias registram a AWS com pilha legada em `/home/ubuntu/socialmei` e team em `/home/ubuntu/socialmei-team`. O responsável confirmou uso do piloto e atualizações restritas; [imagens e limites da evidência](docs/ENVIRONMENTS.md). Não há Terraform ou publicação automática após merge; existem workflows manuais genéricos, cuja configuração remota não foi confirmada.
 
 ### Ambiente novo de teste
 
@@ -118,6 +122,10 @@ Antes de automatizá-lo, a equipe deve decidir:
 Não use o banco de produção para testes de desenvolvimento ou homologação.
 
 ## Servidor compartilhado da equipe
+
+O checkout team em detached HEAD, a imagem da API e a do gateway podem estar em SHAs distintos. Não usar `git pull` ou o workflow genérico como atualização team. Mudanças locais inesperadas bloqueiam a etapa; preserve-as antes de continuar. Revalidar o backup/configuração e a imagem instalada, preparar a nova imagem e trocar somente o serviço aprovado com `--no-deps --no-build` depois do build separado. O rollback usa configuração e imagem anteriores; não aplica restore de banco automaticamente.
+
+A configuração privada de Basic e o `config.js` montado devem ser preservados. A nova configuração centralizada está em um arquivo adicional `python-service/settings.py`: publicar a imagem completa pelo Dockerfile, não copiar apenas `app.py` para dentro do container. Atualizar esse código exige reconstrução da API, mesmo sem mudança de schema. Não há migration nova nesta revisão.
 
 A instalação opcional com site/API protegidos e banco separado está em
 [docs/SERVIDOR-EQUIPE.md](docs/SERVIDOR-EQUIPE.md). Merge não publica essa pilha.

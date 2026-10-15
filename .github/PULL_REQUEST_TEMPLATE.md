@@ -35,6 +35,10 @@ Explique os passos para outra pessoa reproduzir a validação.
 
 Adicione prints, resultados de testes ou observações úteis.
 
+Informe o SHA de base e o ambiente testado (local, CI, team ou legado). Separe resultados de CI de qualquer conferência de runtime; merge/build não comprovam publicação. Registre skips e serviços externos não testados.
+
 ## Banco / infraestrutura
 
 Explique o impacto, a aplicação e o rollback. Se não houver impacto, escreva **Sem impacto**.
+
+Se houver mudança de contrato, liste request/response/status e compatibilidade. Para configuração, indique somente nomes de variáveis; nunca valores privados. Migration aplicada é imutável; alterações novas precisam de teste e alvo/backup próprios.

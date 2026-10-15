@@ -1,5 +1,23 @@
 # Changelog
 
+## Preparação da base — 2026-10-14
+
+- Limpeza do PR #42 incorporada à branch de preparação, preservando os commits revisados.
+- Leitura de ambiente da API centralizada em `settings.py`, com compatibilidade dos helpers, auth inválida bloqueada e workspace da sessão preservado.
+- `db:status` local tornou-se consulta sem criar schema/tabela; `db:migrate` continua inicializando e aplicando pendências explicitamente.
+- Dez testes de configuração e quatro do executor local; teste HTTPS aceita Chromium já instalado e informa status HTTP em falha de inicialização.
+- Mapa de ambientes, estrutura/estado por módulo e relatório de preparação; roadmap remove afirmações superadas. Backups locais e resíduos de patch ignorados pelo Git.
+- Sem redesign, nova feature, migration, alteração de grafo n8n ou publicação na AWS.
+
+## Manutenção do código — 2026-10-14
+
+- Seleção de período extraída do listener principal; hora comercial compartilhada entre Home e header.
+- Revisão de venda consolidada sem redefinir a função; estados financeiros mais legíveis.
+- Mensagem inicial local da Inbox compartilhada; composição do texto do Assistente separada do histórico.
+- Quatro declarações CSS idênticas removidas, mantendo as posteriores na cascata; comentários de seções e confirmação de contato legíveis.
+- Consultas de saúde agrupadas por capacidade, preservando SQL, transação e tratamento de falhas.
+- Três testes de período e relatório de manutenção; orientações de desenvolvimento/deploy atualizadas. Sem alterações de schema, workflows ou runtime.
+
 ## Aplicação da base team — 2026-10-13
 
 - PR #35 integrado em `ae73f6e093fc2d271a69a2ba9de1ebffc66c0705`; CI do merge aprovado, separado das evidências AWS.

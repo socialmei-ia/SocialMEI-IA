@@ -42,12 +42,8 @@ function updateSaleReview() {
       discount > quantity * price ? "O desconto não pode ser maior que o valor da venda." : "",
     );
   }
-}
-
-const baseSaleReview = updateSaleReview;
-updateSaleReview = function () {
-  baseSaleReview();
-  if (SocialMEISales.remote && $("createType").value === "venda")
+  if (SocialMEISales.remote) {
     $("saleReview").querySelector(".table-help").textContent =
       "Registrar a venda baixa o estoque na mesma operação. Marcar como paga não cria um lançamento financeiro.";
-};
+  }
+}

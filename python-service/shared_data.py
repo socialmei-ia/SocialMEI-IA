@@ -1,5 +1,4 @@
 import json
-import os
 from datetime import datetime
 from typing import Annotated, Any
 
@@ -19,6 +18,7 @@ from database import check_database, connect, shared_data_enabled
 from contact_validation import validate_phone, validate_instagram
 from auth_context import principal
 from account_auth import enabled as auth_enabled, require_enabled as require_auth_enabled
+import settings
 
 router = APIRouter(prefix="/api/v1", tags=["shared-data"])
 
@@ -34,16 +34,13 @@ def require_shared_data() -> None:
 def workspace_slug() -> str:
     if principal.get():
         return principal.get()["workspace_slug"]
-    return os.getenv("SOCIALMEI_WORKSPACE_SLUG", "development").strip() or "development"
+    return settings.workspace_slug()
 
 
 def workspace_name() -> str:
     if principal.get():
         return principal.get()["nome_negocio"]
-    return (
-        os.getenv("SOCIALMEI_WORKSPACE_NAME", "SocialMEI Development").strip()
-        or "SocialMEI Development"
-    )
+    return settings.workspace_name()
 
 
 def ensure_workspace(conn) -> int:

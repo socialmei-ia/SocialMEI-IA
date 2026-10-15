@@ -4,9 +4,11 @@ CRM experimental para MEIs: atendimento, clientes, produtos e serviços, vendas 
 
 ![SocialMEI.IA](docs/assets/socialmei-banner.svg)
 
-[Desenvolvimento](DEVELOPMENT.md) · [Arquitetura](ARCHITECTURE.md) · [Contas](docs/CONTAS-MEIS.md) · [Operação](docs/OPERACAO-EQUIPE.md) · [Revisão da base](PROJECT-BASELINE-REVIEW.md)
+[Desenvolvimento](DEVELOPMENT.md) · [Arquitetura](ARCHITECTURE.md) · [Contas](docs/CONTAS-MEIS.md) · [Operação](docs/OPERACAO-EQUIPE.md) · [Revisão da base](PROJECT-BASELINE-REVIEW.md) · [Manutenção do código](CODE-MAINTAINABILITY-REVIEW.md)
 
 [Design system](docs/DESIGN-SYSTEM.md) · [Redesign e validação](VISUAL-REDESIGN-REPORT.md) · [Configurações](docs/SETTINGS-REDESIGN.md)
+
+Para começar uma alteração: [ambientes e dados](docs/ENVIRONMENTS.md) → [onde editar e como adicionar uma feature](docs/PROJECT-STRUCTURE.md). A [revisão de preparação](FUTURE-READINESS-REVIEW.md) registra a limpeza incorporada, configuração centralizada, testes e pendências; não representa deploy.
 
 ## Estado do projeto
 
@@ -81,7 +83,7 @@ node tests/stability-browser.cjs
 
 Integrações Python exigem `TEST_DATABASE_URL` apontando **somente para um PostgreSQL descartável**: algumas suites alteram/truncam suas fixtures. Sem essa variável, os casos de banco são ignorados. Gateway/HTTPS exigem Docker. Não use credenciais ou banco de produção nos testes.
 
-O CI usa PostgreSQL 16, verifica a stack team isolada, exercita backup/restore no destino de teste e executa os browsers. A matriz adicional cobre nove resoluções e Light/Dark/Auto/Custom. Evidências ficam no artifact `frontend-regression`. Veja [contratos da API](docs/API-ENDPOINTS.md).
+O CI usa PostgreSQL 16, verifica a stack team isolada, exercita backup/restore no destino de teste e executa os browsers. A matriz adicional cobre 11 resoluções e Light/Dark/Auto/Custom. Evidências ficam no artifact `frontend-regression`. Veja [contratos da API](docs/API-ENDPOINTS.md).
 
 ## Publicação e acesso
 
@@ -94,6 +96,8 @@ Backup verificado precede migrations/configuração/deploy. Em 13/10/2026, o res
 
 ## Próxima etapa
 
-Fechar os itens de runtime pendentes, homologar a atualização restrita e validar a operação com o responsável. Depois disso, evolução visual e calculadora de probabilidade de compra: a lógica e os critérios serão fornecidos pelo dono do produto. Nenhuma fórmula foi implementada nesta rodada.
+A rodada de manutenção separa responsabilidades de navegação, sugestões locais e saúde da API, preservando os contratos e a interface. Veja o [relatório de manutenção](CODE-MAINTAINABILITY-REVIEW.md) para alterações, testes e dívida restante.
+
+A próxima etapa operacional continua sendo conferir permissões do banco, cobertura dos backups e identidade/autorização do atendimento antes de conectar canais reais. Recuperação por e-mail, WhatsApp real, onboarding acompanhado e novas funcionalidades dependem das decisões do responsável. Esta revisão não publica serviços na AWS.
 
 [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [Deploy](DEPLOYMENT.md) · [Contribuição](CONTRIBUTING.md) · [Segurança](SECURITY.md)

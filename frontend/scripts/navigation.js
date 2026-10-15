@@ -98,15 +98,9 @@ function updatePeriodLabel() {
   updatePeriodCaptions();
 }
 function renderHeader() {
-  const h = Number(
-    new Intl.DateTimeFormat("en-US", {
-      timeZone: APP_TIMEZONE,
-      hour: "numeric",
-      hourCycle: "h23",
-    }).format(new Date()),
-  );
+  const hour = getBusinessHour();
   $("gr").textContent =
-    `${h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite"}, ${sessionData.usuario.primeiro}. ${capitalizeText(
+    `${hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite"}, ${sessionData.usuario.primeiro}. ${capitalizeText(
       new Date().toLocaleDateString("pt-BR", {
         timeZone: APP_TIMEZONE,
         weekday: "long",
@@ -310,4 +304,57 @@ function businessLinks() {
               >`,
     )
     .join("");
+}
+
+async function selectPeriod(periodName) {
+  if (periodName === "Personalizado") {
+    $("customBox").classList.add("open");
+    selectedPeriod = "Personalizado";
+    updatePeriodLabel();
+  } else {
+    selectedPeriod = periodName;
+    customRange = null;
+    updatePeriodLabel();
+    $("customBox")?.classList.remove("open");
+    closeDropdowns();
+    if (currentView === "Visão Geral") {
+      showLoading();
+      await wait(window.SocialMEIMotion.reduced ? 0 : window.SocialMEIMotion.ms("motion-medium"));
+      hideLoading();
+    } else {
+      renderCurrentView();
+    }
+  }
+}
+
+function applyCustomPeriod() {
+  const startDate = $("dateFrom").value;
+  const endDate = $("dateTo").value;
+  if (!startDate || !endDate) {
+    toast("Selecione as duas datas", "Informe a data inicial e a final.");
+    return;
+  }
+  const from = new Date(startDate + "T12:00:00");
+  const to = new Date(endDate + "T12:00:00");
+  if (to < from) {
+    toast("Período inválido", "A data final deve ser posterior à inicial.");
+    return;
+  }
+  const days = Math.max(1, Math.round((to - from) / 86400000) + 1);
+  customRange = {
+    days,
+    from: startDate,
+    to: endDate,
+    label: `${from.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+    })} – ${to.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+    })}`,
+  };
+  selectedPeriod = "Personalizado";
+  updatePeriodLabel();
+  closeDropdowns();
+  renderCurrentView();
 }
