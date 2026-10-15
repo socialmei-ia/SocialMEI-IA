@@ -43,9 +43,8 @@ class TeamGatewayTests(unittest.TestCase):
         )
         (directory / "private").mkdir()
         (directory / "private/users.Caddyfile").write_text("member " + hashed + "\n")
-        (
-            directory / "mock.py"
-        ).write_text("""from http.server import BaseHTTPRequestHandler, HTTPServer
+        (directory / "mock.py").write_text(
+            """from http.server import BaseHTTPRequestHandler, HTTPServer
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path.startswith('/api/v1/integracoes/'):
@@ -59,7 +58,8 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         if self.path == '/api/v1/clientes': self.wfile.write(b'[{"id":1}]')
 HTTPServer(('0.0.0.0', 8000), Handler).serve_forever()
-""")
+"""
+        )
         (directory / "frontend").mkdir()
         (directory / "frontend/socialmei-app.html").write_text(
             "<h1>Private application</h1>"
@@ -107,6 +107,8 @@ HTTPServer(('0.0.0.0', 8000), Handler).serve_forever()
             "127.0.0.1::80",
             "-e",
             "SOCIALMEI_TEAM_HOST=app.example.com",
+            "-e",
+            "NO_PROXY=team-api,127.0.0.1,localhost",
             "-v",
             str(ROOT / "deploy/team/Caddyfile") + ":/etc/caddy/Caddyfile:ro",
             "-v",
@@ -154,6 +156,7 @@ HTTPServer(('0.0.0.0', 8000), Handler).serve_forever()
             "/config.js",
             "/scripts/app.js",
             "/api/v1/clientes",
+            "/api/v1/auth/registration",
             "/health/db",
         ]:
             self.assertEqual(self.request(path)[0], 401, path)

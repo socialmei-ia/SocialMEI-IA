@@ -12,7 +12,7 @@ Para começar uma alteração: [ambientes e dados](docs/ENVIRONMENTS.md) → [on
 
 ## Estado do projeto
 
-A versão da equipe possui API FastAPI, persistência PostgreSQL e autenticação por convite com isolamento de negócio. O Pages continua sendo uma demonstração local. WhatsApp real, IA remota, recuperação por e-mail e execução automática das regras ainda não estão homologados.
+A versão da equipe possui API FastAPI, persistência PostgreSQL e contas com isolamento de negócio. O cadastro do piloto team está temporariamente aberto, sem convite; login e proteção Basic continuam ativos. É possível voltar ao cadastro por convite pela configuração descrita em [Contas](docs/CONTAS-MEIS.md). O Pages continua sendo uma demonstração local. WhatsApp real, IA remota, recuperação por e-mail e execução automática das regras ainda não estão homologados.
 
 | Área                    | Implementação atual                                                                                                                       |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |

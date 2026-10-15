@@ -20,6 +20,7 @@ PASSWORD = "Private-test-password-123!"
 HEADERS = {"Origin": ORIGIN, "X-SocialMEI-Client": "browser"}
 ENV = {
     "SOCIALMEI_AUTH_ENABLED": "true",
+    "SOCIALMEI_REGISTRATION_MODE": "invite",
     "SOCIALMEI_AUTH_ORIGIN": ORIGIN,
     "SOCIALMEI_SHARED_DATA_ENABLED": "true",
     "SOCIALMEI_WORKSPACE_SLUG": "team",
@@ -33,6 +34,57 @@ class AccountGuards(unittest.TestCase):
         env.start()
         self.addCleanup(env.stop)
         self.client = TestClient(app, base_url=ORIGIN)
+
+    def test_registration_policy_is_public_no_store_and_does_not_open_database(self):
+        with patch(
+            "account_auth.connect", side_effect=AssertionError("unexpected database")
+        ):
+            for mode in ("open", "invite", "invalid"):
+                with self.subTest(mode=mode), patch.dict(
+                    os.environ, {"SOCIALMEI_REGISTRATION_MODE": mode}
+                ):
+                    response = self.client.get("/api/v1/auth/registration")
+                    self.assertEqual(response.status_code, 200)
+                    self.assertEqual(
+                        response.json(),
+                        {"mode": "open" if mode == "open" else "invite"},
+                    )
+                    self.assertEqual(response.headers["cache-control"], "no-store")
+            self.assertEqual(
+                self.client.post("/api/v1/auth/registration").status_code, 403
+            )
+            with patch.dict(os.environ, {"SOCIALMEI_AUTH_ENABLED": "false"}):
+                self.assertEqual(
+                    self.client.get("/api/v1/auth/registration").status_code, 503
+                )
+
+    def test_missing_invite_cannot_bypass_restricted_mode(self):
+        with patch("account_auth.throttle"), patch(
+            "account_auth.connect", side_effect=AssertionError("unexpected database")
+        ):
+            response = self.client.post(
+                "/api/v1/auth/register",
+                headers=HEADERS,
+                json={"nome": "Test", "email": "user@example.com", "senha": PASSWORD},
+            )
+            self.assertEqual(response.status_code, 400)
+
+    def test_open_registration_still_rejects_foreign_origin_and_admin_fields(self):
+        with patch.dict(os.environ, {"SOCIALMEI_REGISTRATION_MODE": "open"}), patch(
+            "account_auth.connect", side_effect=AssertionError("unexpected database")
+        ):
+            data = {"nome": "Test", "email": "user@example.com", "senha": PASSWORD}
+            self.assertEqual(
+                self.client.post("/api/v1/auth/register", json=data).status_code, 403
+            )
+            self.assertEqual(
+                self.client.post(
+                    "/api/v1/auth/register",
+                    headers=HEADERS,
+                    json={**data, "administrador_plataforma": True},
+                ).status_code,
+                422,
+            )
 
     def test_session_required_and_database_not_opened_for_missing_cookie(self):
         with patch(
@@ -228,6 +280,67 @@ class AccountDatabaseTests(unittest.TestCase):
                     "SELECT nome FROM socialmei.workspaces WHERE slug='team'"
                 ).fetchone()[0],
                 "Existing team",
+            )
+
+    def test_open_registration_creates_isolated_non_admin_account_without_invite(self):
+        with patch.dict(os.environ, {"SOCIALMEI_REGISTRATION_MODE": "open"}):
+            client = TestClient(app, base_url=ORIGIN, headers=HEADERS)
+            response = client.post(
+                "/api/v1/auth/register",
+                json={
+                    "nome": "New MEI",
+                    "email": "open@example.com",
+                    "senha": PASSWORD,
+                    "telefone": "11999998888",
+                },
+            )
+            self.assertEqual(response.status_code, 201, response.text)
+            identity = response.json()
+            self.assertFalse(identity["usuario"]["administrador_plataforma"])
+            self.assertEqual(identity["papel"], "owner")
+            self.assertNotEqual(identity["negocio"]["slug"], "team")
+            self.assertEqual(client.get("/api/v1/clientes").json(), [])
+            self.assertEqual(client.get("/api/v1/admin/users").status_code, 403)
+            self.assertEqual(client.get("/api/v1/auth/me").status_code, 200)
+            self.login("open@example.com")
+            with psycopg.connect(DB) as conn:
+                self.assertEqual(
+                    conn.execute(
+                        "SELECT COUNT(*) FROM socialmei.auth_convites"
+                    ).fetchone()[0],
+                    0,
+                )
+            client.headers["X-SocialMEI-CSRF"] = identity["csrf_token"]
+            self.assertEqual(client.post("/api/v1/auth/logout").status_code, 204)
+            self.assertEqual(client.get("/api/v1/auth/me").status_code, 401)
+            duplicate = client.post(
+                "/api/v1/auth/register",
+                json={
+                    "nome": "Duplicate",
+                    "email": "open@example.com",
+                    "senha": PASSWORD,
+                },
+            )
+            self.assertEqual(duplicate.status_code, 400)
+            with psycopg.connect(DB) as conn:
+                self.assertEqual(
+                    conn.execute("SELECT COUNT(*) FROM socialmei.users").fetchone()[0],
+                    2,
+                )
+
+    def test_restricting_registration_again_blocks_new_uninvited_accounts(self):
+        client = TestClient(app, base_url=ORIGIN, headers=HEADERS)
+        fields = {"nome": "MEI", "email": "new@example.com", "senha": PASSWORD}
+        for mode in ("invite", "invalid"):
+            with self.subTest(mode=mode), patch.dict(
+                os.environ, {"SOCIALMEI_REGISTRATION_MODE": mode}
+            ):
+                self.assertEqual(
+                    client.post("/api/v1/auth/register", json=fields).status_code, 400
+                )
+        with psycopg.connect(DB) as conn:
+            self.assertEqual(
+                conn.execute("SELECT COUNT(*) FROM socialmei.users").fetchone()[0], 1
             )
 
     def test_cookie_flags_session_lifetime_and_hash_only_storage(self):

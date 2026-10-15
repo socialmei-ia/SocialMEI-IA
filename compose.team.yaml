@@ -45,6 +45,8 @@ services:
       SOCIALMEI_WORKSPACE_NAME: SocialMEI Equipe
       SOCIALMEI_N8N_READ_TOKEN: ${TEAM_N8N_READ_TOKEN:-}
       SOCIALMEI_AUTH_ENABLED: ${TEAM_AUTH_ENABLED:-false}
+      # Cadastro temporariamente aberto no piloto da equipe; use invite para restringir.
+      SOCIALMEI_REGISTRATION_MODE: ${TEAM_REGISTRATION_MODE:-open}
       SOCIALMEI_AUTH_ORIGIN: https://${SOCIALMEI_TEAM_HOST:?Use tools/team-admin.py init}
       # Same origin via gateway; no cross-origin browser access.
       SOCIALMEI_CORS_ORIGINS: ""

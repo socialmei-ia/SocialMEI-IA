@@ -1,6 +1,18 @@
 # Contas individuais: piloto protegido
 
-A migration `010_account_authentication.sql` e a API implementam contas persistidas, convites, sessões revogáveis e separação dos negócios. A ativação é explícita: `TEAM_AUTH_ENABLED` permanece `false` até existir um administrador e a configuração privada do site estar preparada. Aplicar a migration não cria uma senha, não transforma usuários antigos em administradores e não abre cadastro público.
+A migration `010_account_authentication.sql` e a API implementam contas persistidas, convites, sessões revogáveis e separação dos negócios. A ativação da autenticação é explícita: `TEAM_AUTH_ENABLED` permanece `false` até existir um administrador e a configuração privada do site estar preparada. Aplicar a migration não cria uma senha nem transforma usuários antigos em administradores.
+
+## Cadastro temporariamente sem convite
+
+Por decisão do responsável em 15/10/2026, `compose.team.yaml` configura o cadastro como `open` por padrão neste piloto. Pessoas que passam pela proteção Basic podem criar a própria conta, sem código. Cada cadastro cria um negócio vazio e separado, com papel `owner`, sem administração da plataforma. Não há envio nem verificação de e-mail implementados. Sessão, CSRF, validação de telefone e senha e limites de tentativas continuam ativos.
+
+O frontend consulta `GET /api/v1/auth/registration` para exibir ou ocultar o campo de convite. Se a consulta falhar, apenas o cadastro fica indisponível até recarregar; o login existente continua disponível. Essa rota não expõe contas nem segredos e continua atrás do Basic no gateway.
+
+Para voltar a exigir convite, defina `TEAM_REGISTRATION_MODE=invite` em `.env.team` pelo procedimento privado e recrie **somente a API**, usando os arquivos Compose/imagens efetivos e aprovados. Depois, recarregue a página. Para permitir novamente, use `open`. Não exige migration e não remove contas, sessões ou dados existentes; o administrador continua podendo desativar contas individualmente. Não desligue `TEAM_AUTH_ENABLED` para controlar o cadastro.
+
+Fora desse Compose, a API usa `SOCIALMEI_REGISTRATION_MODE=invite` por padrão. Só o valor explícito `open` dispensa convite; valores desconhecidos mantêm a exigência. Convites fornecidos continuam sendo validados e consumidos uma vez, inclusive no modo aberto.
+
+Esta seção descreve o código e o procedimento; ativação efetiva na AWS depende da publicação e da conferência operacional dessa versão.
 
 O GitHub Pages continua sendo uma demonstração local. No servidor da equipe, a proteção Basic do Caddy permanece ativa durante este piloto: primeiro a pessoa passa pela proteção do site e depois entra na própria conta da aplicação. A retirada dessa proteção e a abertura ao público continuam dependendo da decisão do dono do projeto.
 
@@ -18,7 +30,7 @@ O GitHub Pages continua sendo uma demonstração local. No servidor da equipe, a
 | Tema, notificações, regras, rascunhos e preferências de apresentação | Ainda locais no navegador, separados ao trocar de conta                             |
 | WhatsApp                                                             | Apenas fundação 009; conexão continua aguardando o chip dedicado                    |
 
-O administrador inicial usa o workspace `team`, preservando os registros compartilhados existentes. Cada cadastro por convite cria um workspace próprio, vazio, com papel `owner` e sem administração global. Não há seleção livre de workspace ou promoção pelo formulário. Convites atuais criam negócios independentes; não convidam colegas para um negócio existente.
+O administrador inicial usa o workspace `team`, preservando os registros compartilhados existentes. Cada cadastro cria um workspace próprio, vazio, com papel `owner` e sem administração global. Não há seleção livre de workspace ou promoção pelo formulário. Convites atuais criam negócios independentes; não convidam colegas para um negócio existente.
 
 As APIs de gestão resolvem o workspace pela sessão no servidor. IDs de outra empresa não dão acesso a registros nem podem ser usados para criar vínculos cruzados. A credencial técnica n8n continua limitada aos cinco GETs de leitura do workspace `team`; não recebe acesso às novas empresas, administração ou senhas.
 
@@ -66,7 +78,7 @@ python3 tools/team-maintenance.py backup
 
 O preparador confere a conta administrativa, os quatro módulos remotos na API do mesmo site e a proteção Basic. Faz uma cópia privada da configuração anterior, grava `TEAM_AUTH_ENABLED=true` e a configuração pública `auth` sem credenciais. Ele não reinicia serviços; os comandos seguintes aplicam a configuração.
 
-5. Abra o site por HTTPS, passe pela proteção atual e entre com seu e-mail/senha próprios. Confira seus dados de gestão existentes e **Configurações → Conta → Administração do projeto**. Gere um convite para um e-mail de teste; confirme que a nova empresa começa sem os dados de `team`.
+5. Abra o site por HTTPS, passe pela proteção atual e entre com seu e-mail/senha próprios. Confira seus dados de gestão existentes e **Configurações → Conta → Administração do projeto**. Confira a política de cadastro antes de distribuir o acesso: no modo `invite`, gere um convite para um e-mail de teste; no modo `open`, cadastre uma conta de teste sem convite. Confirme que a nova empresa começa sem os dados de `team`.
 
 Não convide MEIs reais antes dessa conferência. A senha de proteção Basic, a senha da conta do app e a conta do WAHA são acessos distintos.
 
