@@ -10167,6 +10167,40 @@ body.experience-app #experienceRoot {
   }
 }
 @media (max-width: 720px) {
+  #automationsView #automationList .management-table tbody tr {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    padding: 16px;
+  }
+  #automationsView #automationList .management-table td {
+    display: grid;
+    grid-template-columns: 88px minmax(0, 1fr);
+    align-items: start;
+    gap: 8px;
+    min-width: 0;
+    padding: 0;
+  }
+  #automationsView #automationList .management-table td::before {
+    white-space: nowrap;
+    line-height: 1.75;
+  }
+  #automationsView #automationList .management-table td:first-child {
+    display: block;
+    min-width: 0;
+  }
+  #automationsView #automationList .management-table td.act {
+    display: flex;
+  }
+  #automationsView #automationList .management-table td:is(:first-child, .act)::before {
+    content: none;
+  }
+  #automationsView #automationList .management-table .row-action {
+    min-height: 44px;
+  }
+  #automationsView #automationList .management-table .pill {
+    white-space: normal;
+    overflow-wrap: normal;
+  }
   #automationsView #automationFeature {
     padding: 24px 18px 26px;
   }
@@ -10684,6 +10718,12 @@ body.experience-app #experienceRoot {
   gap: 16px;
   margin: 0;
 }
+.report-controls-heading {
+  display: contents;
+}
+.report-controls-heading > .management-button {
+  order: 2;
+}
 .report-period-options {
   order: 0;
   flex-shrink: 0;
@@ -10867,21 +10907,59 @@ body.experience-app #experienceRoot {
 }
 @media (max-width: 720px) {
   #reportsView .management-stack {
-    gap: 18px;
+    gap: 14px;
+  }
+  #reportsView .report-intro p {
+    margin-top: 6px;
+    line-height: 1.5;
+  }
+  #reportsView .report-controls-heading {
+    display: flex;
+    flex-basis: 100%;
+    justify-content: space-between;
+    align-items: start;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  #reportsView .report-controls-heading > .management-button {
+    padding-inline: 10px;
+    font-size: 12px;
+  }
+  #reportsView .report-period-options summary {
+    gap: 8px;
+    padding-inline: 10px;
+  }
+  #reportsView .report-period-options[open] .management-chips {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+  #reportsView #nvReportTabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    overflow: visible;
+  }
+  #reportsView #nvReportTabs .management-chip {
+    min-width: 0;
+    justify-content: center;
+    padding-inline: 6px;
+    font-size: 13px;
   }
   #reportsView .report-eyebrow {
     margin-bottom: 6px;
   }
   #reportsView .management-report-period {
-    gap: 12px;
+    gap: 8px;
   }
   #reportsView .management-report-period .management-card-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     flex-basis: 100%;
-    justify-content: space-between;
+    gap: 8px;
   }
   #reportsView #nvReportKpis {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 22px 16px;
+    gap: 16px 12px;
+    padding-bottom: 18px;
   }
   #reportsView .report-primary {
     padding: 20px 16px;
@@ -10899,11 +10977,9 @@ body.experience-app #experienceRoot {
   .report-detail summary::after {
     margin-left: auto;
   }
-  #reportsView .management-report-period .management-card-header {
-    gap: 10px;
-  }
   #reportsView .management-report-period .management-check {
     font-size: 12px;
+    white-space: nowrap;
   }
   .report-actions .management-button {
     flex: 1;

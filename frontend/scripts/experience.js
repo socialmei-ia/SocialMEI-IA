@@ -1937,7 +1937,7 @@ ONBOARDING — JAVASCRIPT
     const last7 = ruleTests.filter((t) => Date.parse(t.at) >= Date.now() - 7 * 864e5).length;
     q("#nvRuleKpis").innerHTML = [
       [
-        "Rotinas ativas",
+        "Habilitadas localmente",
         rules.filter((rule) => rule.enabled).length,
         "Configuração salva · sem execução automática",
       ],
@@ -2072,10 +2072,10 @@ ONBOARDING — JAVASCRIPT
                         data-rule-toggle="${escapeHtml(r.id)}"
                         role="switch"
                         aria-checked="${!!r.enabled}"
-                        aria-label="${r.enabled ? "Pausar" : "Ativar"} ${escapeHtml(r.name)}"
+                        aria-label="${r.enabled ? "Pausar configuração local de" : "Habilitar configuração local de"} ${escapeHtml(r.name)}"
                       ></button
                       ><span class="pill ${r.enabled ? "info" : "draft"}"
-                        >${r.enabled ? "Ativa" : "Pausada"}</span
+                        >${r.enabled ? "Habilitada localmente" : "Pausada"}</span
                       >
                     </div>`,
               /* HTML */ `<button

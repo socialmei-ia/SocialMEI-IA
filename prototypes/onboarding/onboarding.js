@@ -56,6 +56,17 @@ const profiles = {
     example: "Troca de tela; acessórios; diagnóstico",
     channel: ["physical", "whatsapp"],
   },
+  other: {
+    label: "Outro tipo de negócio",
+    description: "Ajuste produtos, serviços e recursos na próxima etapa",
+    products: true,
+    services: true,
+    stock: false,
+    appointments: false,
+    term: "Produtos e serviços",
+    example: "Um produto ou serviço escolhido por você",
+    channel: ["physical", "whatsapp"],
+  },
 };
 const channels = {
   physical: "Loja ou atendimento presencial",

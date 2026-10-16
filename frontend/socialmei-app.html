@@ -3788,21 +3788,28 @@
               </header>
               <div class="management-demo" id="reportsDataSourceStatus" role="status"></div>
               <div class="management-report-period management-card">
-                <details class="report-period-options">
-                  <summary><span>Período</span><b id="reportPeriodChoice">Este mês</b></summary>
-                  <div
-                    id="nvReportPeriods"
-                    class="management-chips"
-                    role="group"
-                    aria-label="Período do relatório"
-                  ></div>
-                </details>
+                <div class="report-controls-heading">
+                  <details class="report-period-options">
+                    <summary><span>Período</span><b id="reportPeriodChoice">Este mês</b></summary>
+                    <div
+                      id="nvReportPeriods"
+                      class="management-chips"
+                      role="group"
+                      aria-label="Período do relatório"
+                    ></div>
+                  </details>
+                  <button class="management-button" data-nv-hide>Ocultar valores</button>
+                </div>
                 <div class="management-card-header">
-                  <span id="reportsPeriodLabel" class="management-note" data-current-period></span
-                  ><label class="management-check"
-                    ><input type="checkbox" id="nvReportCompare" checked />Comparar com período
-                    anterior</label
-                  ><button class="management-button" data-nv-hide>Ocultar valores</button>
+                  <span id="reportsPeriodLabel" class="management-note" data-current-period></span>
+                  <label class="management-check"
+                    ><input
+                      type="checkbox"
+                      id="nvReportCompare"
+                      aria-label="Comparar com período anterior"
+                      checked
+                    />Comparar anterior</label
+                  >
                 </div>
               </div>
               <div id="nvReportKpis" class="management-kpis"></div>

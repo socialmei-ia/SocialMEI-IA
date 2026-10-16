@@ -103,6 +103,7 @@ async function run() {
     await page.keyboard.press("Escape");
     const output = path.join(root, "test-results/autonomous");
     fs.mkdirSync(output, { recursive: true });
+    console.log(await require("./mobile-refinement-browser.cjs")(browser, origin));
     let appLayouts = 0;
     for (const width of [320, 360, 390, 768, 1024, 1440]) {
       await page.setViewportSize({ width, height: 1000 });
@@ -210,7 +211,7 @@ async function run() {
       } else {
         await page.locator("#next").click();
         assert((await page.locator("#validation").textContent()).includes("Escolha"));
-        for (const profile of ["perfume", "grocery", "barber", "tailor", "repair"]) {
+        for (const profile of ["perfume", "grocery", "barber", "tailor", "repair", "other"]) {
           await page.locator("#" + profile).check();
           await page.locator("#next").click();
           assert(await page.locator(profile === "barber" ? "#services" : "#products").isChecked());
@@ -256,7 +257,7 @@ async function run() {
       );
     }
     console.log(
-      `${demoLayouts} layouts dos protótipos passaram; busca, filtros, etapas, diálogo, rascunhos, cinco perfis, ajustes e JSON passaram.`,
+      `${demoLayouts} layouts dos protótipos passaram; busca, filtros, etapas, diálogo, rascunhos, seis perfis, ajustes e JSON passaram.`,
     );
     assert.deepEqual(errors, []);
     assert.deepEqual(external, []);
