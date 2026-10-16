@@ -17,7 +17,7 @@ No mesmo computador, abrir `http://127.0.0.1:5500/prototypes/`. Se seu Python us
 | Aplicação experimental     | `frontend/socialmei-app.html`         | Entrar no modo demonstrativo local. Relatórios compacto, rascunhos na Caixa, edição do Assistente e clareza das simulações. A aplicação mantém seus modos local/remoto existentes. |
 | Referência de Relatórios A | `prototypes/reports/index.html`       | Dois períodos fictícios, comparação, gráfico/tabela, privacidade e estados. É uma referência simplificada, não o renderer integrado.                                               |
 | Oportunidades              | `prototypes/opportunities/index.html` | Buscar, filtrar sinais, alternar lista/quadro, abrir detalhes, mudar etapa, preparar/editar retorno e visitar Cliente 360.                                                         |
-| Onboarding adaptativo      | `prototypes/onboarding/index.html`    | Escolher um de cinco segmentos, ajustar produtos/serviços/estoque/agendamentos/canais/equipe/área, revisar e baixar JSON.                                                          |
+| Onboarding adaptativo      | `prototypes/onboarding/index.html`    | Escolher um de cinco segmentos ou “Outro tipo de negócio”, ajustar produtos/serviços/estoque/agendamentos/canais/equipe/área, revisar e baixar JSON.                               |
 
 ## Decisões e limites
 

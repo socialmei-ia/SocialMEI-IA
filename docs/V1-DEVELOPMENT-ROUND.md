@@ -49,3 +49,17 @@ Implementação e coordenação diretas. Apenas um agente independente nesta rod
 Avaliar as telas e demos na branch/draft; apontar ajustes e aprovar o escopo final antes de merge. Depois, priorizar o ciclo de Caixa/Assistente conforme uso real. Oportunidades ainda depende de critérios e dados autorizados; onboarding real depende de desenho de configuração/conta; IA e canais dependem de arquitetura, segurança e homologação próprias.
 
 AWS permanece não inventariada nesta execução. Nenhum merge, deploy, alteração de banco real, migration de produção, mudança de credenciais, mensagem real ou operação em n8n/WAHA foi realizado. Publicação futura continua exigindo inventário, backup, rollback, autorização e smoke no alvo correto. Feature freeze de 23/10 continua proposta sem confirmação.
+
+## Ajustes após revisão visual do responsável — PR #54
+
+Rodada incremental sobre `a25930f`, sem nova auditoria geral, agentes ou mudança de escopo.
+
+- **Automações mobile:** o grid genérico `1fr auto`, somado ao padding das células, deixava Área e Situação com 48 px em 320 px. Agora cada rotina usa largura total, com rótulos inteiros e colunas próprias para rótulo/conteúdo. Tabela desktop, seleção, habilitação local e edição preservadas. O status e o indicador dizem “Habilitada(s) localmente”; o controle acessível também explicita configuração local, sem sugerir execução externa.
+- **Relatórios mobile:** controles reorganizados em duas linhas e cinco abas inteiramente visíveis em duas linhas. Na mesma fixture de 390 px, o início do gráfico passou de 897 para 829 px (cerca de 69 px antes); em 320 px também houve redução, mesmo exibindo agora todas as abas. Mantidos oito períodos, comparação, privacidade, gráficos/tabelas, cálculos e exportações. Desktop não teve alteração da posição inicial do gráfico.
+- **Onboarding:** acrescentado “Outro tipo de negócio” após os cinco exemplos, sem etapa extra. Produtos/serviços são sugestões editáveis; estoque e agendamento não são presumidos. Configuração continua demonstrativa e sem integração. Oportunidades permaneceu intacta.
+
+Teste de regressão novo: `tests/mobile-refinement-browser.cjs`, chamado por `npm run test:development` no CI. Verifica todas as células das rotinas (largura útil, altura e rótulos inteiros), áreas clicáveis, alternância/edição, abas completas, períodos, comparação, privacidade e teclado em 320/360/390/1440, claro/escuro. Inclui o fluxo “Outro” e confirma as três etapas e os flags demonstrativos. O teste reproduziu a falha de 48 px antes da correção.
+
+Validação local desta revisão: helper novo, `reports-browser.cjs` (fontes remotas simuladas, totais, períodos, privacidade, CSV/cópia/impressão) e `visual-motion-browser.cjs` passaram. Dez testes Node de navegação/períodos, temas e workspace passaram. Prettier dos arquivos alterados e `git diff --check` passaram. As suites gerais da rodada anterior não foram repetidas localmente; o CI da PR executa suas próprias verificações no SHA atualizado.
+
+Capturas reais antes/depois em `test-results/pr54-refinements/{before,after}/`: rotinas em 320/360/390 e desktop, claro/escuro; Relatórios 390/1440, claro/escuro; opção genérica do onboarding. Nenhum merge, deploy ou operação externa foi realizado. A aprovação de merge continua pendente do responsável.
