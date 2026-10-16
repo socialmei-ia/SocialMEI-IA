@@ -39,6 +39,7 @@ async function run() {
     );
     checks.push(await require("./account-browser.cjs")(browser, origin));
     checks.push(await require("./native-opportunities-browser.cjs")(browser, origin));
+    checks.push(await require("./adaptive-onboarding-browser.cjs")(browser, origin));
     const page = await browser.newPage({
       viewport: { width: 1440, height: 1000 },
       reducedMotion: "reduce",
@@ -62,7 +63,12 @@ async function run() {
     await page.locator(".contact-confirmation button[value=confirm]").click();
     await page.locator("[data-onboard-next]").click();
     await page.locator("#obBusiness").fill("Negócio QA");
-    for (let step = 0; step < 3; step++) await page.locator("[data-onboard-next]").click();
+    await page.locator("#obSegment").selectOption("barber");
+    for (let step = 3; step <= 6; step++) {
+      await page.locator("[data-onboard-next]").click();
+      await page.locator(`[data-onboard-panel="${step}"].is-active`).waitFor();
+    }
+    await page.locator("[data-onboard-next]").click();
     await page.waitForFunction(() => document.body.classList.contains("experience-app"));
     checks.push("Landing, cadastro local e onboarding");
     assert.deepEqual(

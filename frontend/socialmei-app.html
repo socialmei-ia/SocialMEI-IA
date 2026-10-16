@@ -60,6 +60,7 @@
     <link rel="stylesheet" href="styles/account-ui.css" />
     <link rel="stylesheet" href="styles/interaction-components.css" />
     <link rel="stylesheet" href="styles/workspace-refinement.css" />
+    <link rel="stylesheet" href="styles/business-profile.css" />
     <link rel="stylesheet" href="styles/opportunities.css" />
     <script src="scripts/storage-and-themes.js"></script>
     <script src="scripts/motion.js"></script>
@@ -2285,24 +2286,36 @@
         </header>
         <div class="onboarding-shell">
           <main class="onboarding-main">
-            <div class="experience-steps">
-              <div class="experience-step is-current" data-onboard-step="1">
+            <div class="experience-steps" aria-label="Etapas do cadastro">
+              <div class="experience-step" data-onboard-step="1">
                 <span>1</span>
-                <div><b>Você</b><small>contato principal</small></div>
+                <div><b>Você</b></div>
               </div>
               <div class="experience-step" data-onboard-step="2">
                 <span>2</span>
-                <div><b>Seu negócio</b><small>identidade e segmento</small></div>
+                <div><b>Negócio</b></div>
               </div>
               <div class="experience-step" data-onboard-step="3">
                 <span>3</span>
-                <div><b>Sua rotina</b><small>canais e prioridades</small></div>
+                <div><b>Ofertas</b></div>
               </div>
               <div class="experience-step" data-onboard-step="4">
                 <span>4</span>
-                <div><b>Pronto</b><small>seu espaço inicial</small></div>
+                <div><b>Rotina</b></div>
+              </div>
+              <div class="experience-step" data-onboard-step="5">
+                <span>5</span>
+                <div><b>Ferramentas</b></div>
+              </div>
+              <div class="experience-step" data-onboard-step="6">
+                <span>6</span>
+                <div><b>Revisão</b></div>
               </div>
             </div>
+            <p class="management-note" id="businessProfileStorageNotice">
+              Demonstração local · preferências apenas neste navegador. Nenhuma conta é criada no
+              servidor.
+            </p>
             <div class="onboarding-progress" id="xpOnboardingProgress"><span></span></div>
             <section class="onboarding-panel is-active" data-onboard-panel="1">
               <span class="landing-kicker">Etapa 1 · Você</span>
@@ -2348,22 +2361,24 @@
               <div class="experience-form">
                 <div class="experience-field">
                   <label for="obBusiness">Nome do negócio</label
-                  ><input id="obBusiness" required placeholder="Ex.: Ateliê da Ana" />
+                  ><input
+                    id="obBusiness"
+                    maxlength="120"
+                    required
+                    placeholder="Ex.: Ateliê da Ana"
+                  />
                 </div>
                 <div class="experience-form-row">
                   <div class="experience-field">
                     <label for="obSegment"
                       >O que você faz? <span class="landing-muted">(opcional)</span></label
                     ><select id="obSegment">
-                      <option value="">Escolha um segmento</option>
-                      <option>Comércio / Loja</option>
-                      <option>Moda e confecção</option>
-                      <option>Beleza e estética</option>
-                      <option>Alimentação</option>
-                      <option>Serviços profissionais</option>
-                      <option>Manutenção e reparos</option>
-                      <option>Artesanato</option>
-                      <option>Outro</option>
+                      <option value="other">Outro segmento</option>
+                      <option value="barber">Barbearia</option>
+                      <option value="perfume">Perfumaria</option>
+                      <option value="tailoring">Costura e confecção</option>
+                      <option value="commerce">Comércio</option>
+                      <option value="services">Prestação de serviços</option>
                     </select>
                   </div>
                   <div class="experience-field">
@@ -2388,11 +2403,50 @@
                   </div>
                 </div>
               </div>
+              <div class="experience-field" id="businessActivityOther">
+                <label for="obActivity"
+                  >Qual é sua atividade? <span class="landing-muted">(opcional)</span></label
+                ><input
+                  id="obActivity"
+                  maxlength="120"
+                  placeholder="Descreva seu negócio com suas palavras"
+                />
+              </div>
+              <fieldset class="business-profile-group">
+                <legend>
+                  Você trabalha com… <span class="landing-muted">(selecione uma ou ambas)</span>
+                </legend>
+                <div class="business-profile-options">
+                  <label
+                    ><input type="checkbox" name="businessOffer" value="products" />Produtos</label
+                  ><label
+                    ><input type="checkbox" name="businessOffer" value="services" />Serviços</label
+                  >
+                </div>
+              </fieldset>
             </section>
             <section class="onboarding-panel" data-onboard-panel="3">
-              <span class="landing-kicker">Etapa 3 · Sua rotina</span>
+              <span class="landing-kicker">Etapa 3 · Suas ofertas</span>
+              <h1>O que seus clientes encontram aqui?</h1>
+              <p>
+                Escolha o que faz sentido. São sugestões para seu perfil, não cadastros de produtos
+                ou serviços.
+              </p>
+              <div id="businessOfferDetails"></div>
+            </section>
+            <section class="onboarding-panel" data-onboard-panel="4">
+              <span class="landing-kicker">Etapa 4 · Sua rotina</span>
+              <h1>Como seu negócio funciona?</h1>
+              <p>
+                Marque apenas o que utiliza. Nenhuma seleção cria equipe, estoque ou agendamentos.
+              </p>
+              <div id="businessCapabilities"></div>
+            </section>
+            <section class="onboarding-panel" data-onboard-panel="5">
+              <span class="landing-kicker">Etapa 5 · Suas ferramentas</span>
               <h1>O que você quer organizar primeiro?</h1>
-              <p>Escolha seus canais e uma prioridade para começar.</p>
+              <p>Escolha ferramentas e uma prioridade. Você poderá mudar tudo em Configurações.</p>
+              <div id="businessModules"></div>
               <h3 style="font-size: var(--text-base); margin: 0 0 10px">
                 Onde seus clientes mais falam com você?
               </h3>
@@ -2449,7 +2503,7 @@
                 </button>
               </div>
             </section>
-            <section class="onboarding-panel" data-onboard-panel="4">
+            <section class="onboarding-panel" data-onboard-panel="6">
               <div class="experience-complete">
                 <div class="experience-complete-mark">
                   <svg viewbox="0 0 32 32" aria-hidden="true">
@@ -2457,11 +2511,12 @@
                   </svg>
                 </div>
                 <span class="landing-kicker">Seu espaço inicial</span>
-                <h2 id="xpReadyTitle">Seu espaço está pronto.</h2>
+                <h2 id="xpReadyTitle">Confira antes de salvar.</h2>
                 <p>
-                  Seu próximo passo começa no Início. Conversas, vendas e financeiro ficam à mão na
-                  lateral.
+                  Suas escolhas organizam o perfil do negócio. Nenhum produto, venda ou conexão será
+                  criado.
                 </p>
+                <div id="businessProfileReview"></div>
                 <div class="experience-complete-list">
                   <div><small>Negócio</small><b id="xpReadyBusiness">Meu negócio</b></div>
                   <div>
@@ -2473,6 +2528,12 @@
               </div>
             </section>
             <div class="onboarding-actions">
+              <button class="landing-button" type="button" data-business-cancel hidden>
+                Cancelar edição
+              </button>
+              <button class="landing-button" type="button" data-business-skip hidden>
+                Pular por enquanto
+              </button>
               <button class="landing-button" type="button" data-onboard-back>← Voltar</button
               ><button
                 class="landing-button landing-button--primary"
@@ -3919,6 +3980,7 @@
                     </button>
                     <span class="settings-nav-group">NEGÓCIO</span>
                     <button type="button" data-settings-tab="negocio">Negócio</button>
+                    <button type="button" data-settings-tab="perfil">Perfil e ferramentas</button>
                     <button type="button" data-settings-tab="integracoes">Integrações</button>
                     <button type="button" data-settings-tab="equipe">Equipe</button>
                     <button type="button" data-settings-tab="plano">Plano e cobrança</button>
@@ -4276,6 +4338,7 @@
     <script src="scripts/sale-store.js"></script>
     <script src="scripts/finance-store.js"></script>
     <script src="scripts/contact-validation.js"></script>
+    <script src="scripts/business-profile.js"></script>
     <script src="scripts/app.js"></script>
     <script src="scripts/experience.js"></script>
     <script id="landingEnhancementsV2" src="scripts/landing-accessibility.js"></script>

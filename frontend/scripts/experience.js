@@ -7,6 +7,13 @@
   const screens = [...experienceRoot.querySelectorAll("[data-xp-screen]")];
   let onboardingStep = 1;
   let authMode = "register";
+  const businessModel = window.SocialMEIBusinessProfile;
+  const businessStore = businessModel.browserRepository();
+  let businessDraft = businessModel.normalize();
+  let businessEditing = false;
+  let businessScope = null;
+  let businessToolsChosen = false;
+  const registrationOnboardingKey = "onboarding-after-registration";
   const PROFILE_KEY = "socialmei-experience-profile-v1";
   function loadExperienceProfile() {
     const fallback = {
@@ -270,21 +277,6 @@
       showScreen("auth");
       return;
     }
-    if (q('[data-xp-screen="onboarding"].is-active') && onboardingStep === 4) {
-      appData.prefs.conta = {
-        ...(appData.prefs.conta || {}),
-        nome: profile.name,
-        email: profile.email,
-        telefone: profile.phone,
-      };
-      appData.prefs.negocio = {
-        ...(appData.prefs.negocio || {}),
-        nome: profile.business,
-        cnpj: profile.cnpj,
-        telefone: profile.phone,
-      };
-      saveAppData();
-    }
     refreshExperienceProfile();
     persistExperienceProfile();
     if (window.SocialMEIThemes) {
@@ -386,6 +378,7 @@
       try {
         sessionStorage.removeItem("socialmei-experience-screen");
         sessionStorage.removeItem("socialmei-current-view");
+        sessionStorage.removeItem("socialmei-business-demo-identity");
       } catch (_) {}
       try {
         document.querySelector("#profileDd")?.classList.remove("open");
@@ -434,6 +427,237 @@ AUTENTICAÇÃO — JAVASCRIPT
   /* ==================================================
 ONBOARDING — JAVASCRIPT
 ================================================== */
+  function renderBusinessOptions(host, name, options, selected) {
+    host.replaceChildren();
+    const group = document.createElement("div");
+    group.className = "business-profile-options";
+    options.forEach(([value, label]) => {
+      const item = document.createElement("label");
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.name = name;
+      input.value = value;
+      input.checked = selected.includes(value);
+      item.append(input, document.createTextNode(label));
+      group.append(item);
+    });
+    host.append(group);
+  }
+  function selectedBusinessValues(name) {
+    return qa(`input[name="${name}"]:checked`).map((input) => input.value);
+  }
+  function renderBusinessFields() {
+    const segment = businessModel.segments[businessDraft.segment];
+    q("#businessActivityOther").hidden = businessDraft.segment !== "other";
+    q("#obActivity").value = businessDraft.activity;
+    qa('input[name="businessOffer"]').forEach((input) => {
+      input.checked = businessDraft.offers.includes(input.value);
+    });
+    const host = q("#businessOfferDetails");
+    host.replaceChildren();
+    for (const [offer, key, label, suggestions] of [
+      ["services", "services", "Quais serviços você realiza?", segment.services],
+      ["products", "productCategories", "Que tipos de produtos comercializa?", segment.products],
+    ]) {
+      if (!businessDraft.offers.includes(offer)) continue;
+      const group = document.createElement("fieldset");
+      group.className = "business-profile-group";
+      const legend = document.createElement("legend");
+      legend.textContent = label + " (opcional)";
+      const options = document.createElement("div");
+      const items = [...new Set([...suggestions, ...businessDraft[key]])];
+      renderBusinessOptions(
+        options,
+        "business-" + key,
+        items.map((item) => [item, item]),
+        businessDraft[key],
+      );
+      const customLabel = document.createElement("label");
+      customLabel.htmlFor = "businessCustom-" + key;
+      customLabel.textContent = "Outros, separados por vírgula (opcional)";
+      const custom = document.createElement("input");
+      custom.id = customLabel.htmlFor;
+      custom.maxLength = 360;
+      custom.placeholder =
+        offer === "services" ? "Ex.: atendimento em domicílio" : "Ex.: perfumes artesanais";
+      const field = document.createElement("div");
+      field.className = "experience-field";
+      field.append(customLabel, custom);
+      group.append(legend, options, field);
+      host.append(group);
+    }
+    const caps = Object.entries(businessModel.capabilities).filter(([id]) =>
+      id === "inventory"
+        ? businessDraft.offers.includes("products")
+        : id === "appointments"
+          ? businessDraft.offers.includes("services")
+          : true,
+    );
+    renderBusinessOptions(
+      q("#businessCapabilities"),
+      "businessCapability",
+      caps,
+      caps.filter(([id]) => businessDraft.capabilities[id]).map(([id]) => id),
+    );
+    const teamNote = document.createElement("p");
+    teamNote.className = "management-note";
+    teamNote.textContent =
+      "Sem equipe selecionada, consideramos que você trabalha sozinho. Você pode pular e ajustar depois.";
+    q("#businessCapabilities").append(teamNote);
+    renderBusinessOptions(
+      q("#businessModules"),
+      "businessModule",
+      businessModel.availableModules(businessDraft).map((id) => [id, businessModel.modules[id]]),
+      businessDraft.modules,
+    );
+  }
+  function startBusinessOnboarding(editing = false) {
+    businessEditing = editing;
+    businessScope = businessStore.scope();
+    const saved = businessStore.read();
+    businessDraft = saved.profile || businessModel.normalize();
+    businessToolsChosen = !!saved.profile;
+    onboardingStep = editing ? 2 : 1;
+    if (editing) refreshExperienceProfile();
+    showScreen("onboarding");
+    q("#obSegment").value = businessDraft.segment;
+    q("#obBusiness").value =
+      businessDraft.businessName ||
+      (editing || SocialMEIAuth.remote ? profile.business : "Meu negócio");
+    q("#obBusiness").disabled = SocialMEIAuth.remote;
+    for (const id of ["obName", "obEmail", "obPhone"]) q("#" + id).readOnly = SocialMEIAuth.remote;
+    q("#businessProfileStorageNotice").textContent = SocialMEIAuth.remote
+      ? "Preferências deste usuário e negócio, apenas neste navegador. Ainda não sincronizam com o servidor ou outros dispositivos."
+      : "Demonstração local · preferências apenas neste navegador. Nenhuma conta é criada no servidor.";
+    q("[data-business-cancel]").hidden = !editing;
+    renderBusinessFields();
+    const heading = q(".onboarding-panel.is-active h1");
+    if (heading) {
+      heading.tabIndex = -1;
+      heading.focus();
+    }
+    q(".onboarding-main").scrollIntoView({ block: "start", behavior: "instant" });
+  }
+  function collectBusinessStep() {
+    if (onboardingStep === 2) {
+      businessDraft.businessName = q("#obBusiness").value.trim();
+      businessDraft.segment = q("#obSegment").value;
+      businessDraft.activity = q("#obActivity").value.trim();
+      businessDraft.offers = selectedBusinessValues("businessOffer");
+    }
+    if (onboardingStep === 3) {
+      for (const key of ["services", "productCategories"]) {
+        const custom = q("#businessCustom-" + key)?.value || "";
+        businessDraft[key] = [
+          ...selectedBusinessValues("business-" + key),
+          ...custom
+            .split(",")
+            .map((item) => item.trim())
+            .filter(Boolean),
+        ];
+      }
+    }
+    if (onboardingStep === 4) {
+      const enabled = selectedBusinessValues("businessCapability");
+      Object.keys(businessDraft.capabilities).forEach((id) => {
+        businessDraft.capabilities[id] = enabled.includes(id);
+      });
+    }
+    if (onboardingStep === 5) {
+      businessDraft.modules = selectedBusinessValues("businessModule");
+      businessToolsChosen = true;
+    }
+    businessDraft = businessModel.normalize(businessDraft);
+    if (!businessToolsChosen)
+      businessDraft.modules = businessModel.recommendedModules(businessDraft);
+    renderBusinessFields();
+    renderBusinessReview();
+  }
+  function renderBusinessReview() {
+    const host = q("#businessProfileReview");
+    host.replaceChildren();
+    const rows = [
+      [
+        "Atividade",
+        businessDraft.segment === "other"
+          ? businessDraft.activity || "A definir"
+          : businessModel.segments[businessDraft.segment].label,
+      ],
+      [
+        "Ofertas",
+        businessDraft.offers.map((id) => (id === "products" ? "Produtos" : "Serviços")).join(" e "),
+      ],
+      ["Serviços sugeridos", businessDraft.services.join(", ") || "Nenhum selecionado"],
+      ["Categorias sugeridas", businessDraft.productCategories.join(", ") || "Nenhuma selecionada"],
+      [
+        "Rotina",
+        Object.keys(businessDraft.capabilities)
+          .filter((id) => businessDraft.capabilities[id])
+          .map((id) => businessModel.capabilities[id])
+          .join(" · ") || "Sem necessidades adicionais informadas",
+      ],
+      [
+        "Ferramentas de interesse",
+        businessDraft.modules.map((id) => businessModel.modules[id]).join(", ") ||
+          "Escolher depois",
+      ],
+    ];
+    rows.forEach(([label, value]) => {
+      const row = document.createElement("div"),
+        title = document.createElement("small"),
+        text = document.createElement("b");
+      title.textContent = label;
+      text.textContent = value;
+      row.append(title, text);
+      host.append(row);
+    });
+  }
+  function finishBusinessOnboarding() {
+    businessDraft.completed = true;
+    if (!businessStore.save(businessDraft, businessScope)) {
+      q("#obValidation").textContent =
+        "Não foi possível salvar neste navegador. Confira a sessão e a permissão de armazenamento e tente novamente. Suas respostas continuam nesta tela.";
+      return false;
+    }
+    if (!SocialMEIAuth.remote) {
+      appData.prefs.conta = {
+        ...(appData.prefs.conta || {}),
+        nome: profile.name,
+        email: profile.email,
+        telefone: profile.phone,
+      };
+      appData.prefs.negocio = {
+        ...(appData.prefs.negocio || {}),
+        nome: profile.business,
+        cnpj: profile.cnpj,
+        telefone: profile.phone,
+      };
+      saveAppData();
+    }
+    persistExperienceProfile();
+    document.dispatchEvent(new CustomEvent("socialmei-business-profile-change"));
+    return true;
+  }
+  document.addEventListener("click", (event) => {
+    if (event.target.closest("[data-business-profile-edit]")) startBusinessOnboarding(true);
+    if (event.target.closest("[data-business-cancel]")) {
+      refreshExperienceProfile();
+      enterApp("Configurações");
+    }
+  });
+  q("#obSegment").addEventListener("change", () => {
+    businessDraft.segment = q("#obSegment").value;
+    businessDraft.offers = [...businessModel.segments[businessDraft.segment].offers];
+    renderBusinessFields();
+  });
+  experienceRoot.addEventListener("change", (event) => {
+    if (event.target.matches('input[name="businessOffer"]')) {
+      businessDraft.activity = q("#obActivity").value.trim();
+      businessDraft.offers = selectedBusinessValues("businessOffer");
+      businessDraft = businessModel.normalize(businessDraft);
+      renderBusinessFields();
+    }
+  });
   function hydrateOnboarding() {
     for (const [id, key] of [
       ["obName", "name"],
@@ -462,12 +686,12 @@ ONBOARDING — JAVASCRIPT
   function syncOnboarding() {
     const bar = q("#xpOnboardingProgress span");
     if (bar) {
-      bar.style.transform = `scaleX(${Math.min(1, onboardingStep / 4)})`;
+      bar.style.transform = `scaleX(${Math.min(1, onboardingStep / 6)})`;
     }
     q("#xpOnboardingProgress").setAttribute("role", "progressbar");
     q("#xpOnboardingProgress").setAttribute("aria-label", "Configuração do espaço");
     q("#xpOnboardingProgress").setAttribute("aria-valuemin", "0");
-    q("#xpOnboardingProgress").setAttribute("aria-valuemax", "4");
+    q("#xpOnboardingProgress").setAttribute("aria-valuemax", "6");
     q("#xpOnboardingProgress").setAttribute("aria-valuenow", onboardingStep);
     qa("[data-onboard-panel]").forEach((p) =>
       p.classList.toggle("is-active", Number(p.dataset.onboardPanel) === onboardingStep),
@@ -501,12 +725,13 @@ ONBOARDING — JAVASCRIPT
       }
     });
     previousStep = onboardingStep;
-    q("[data-onboard-back]").classList.toggle("show", onboardingStep > 1);
+    q("[data-onboard-back]").classList.toggle("show", onboardingStep > (businessEditing ? 2 : 1));
+    q("[data-business-skip]").hidden = ![3, 4, 5].includes(onboardingStep);
     q("[data-onboard-next]").textContent =
-      onboardingStep === 3
-        ? "Preparar meu espaço"
-        : onboardingStep === 4
-          ? "Entrar no SocialMEI"
+      onboardingStep === 5
+        ? "Revisar escolhas"
+        : onboardingStep === 6
+          ? "Salvar e entrar no SocialMEI"
           : "Continuar";
   }
   function collectStep() {
@@ -522,7 +747,7 @@ ONBOARDING — JAVASCRIPT
       profile.instagram = q("#obInstagram")?.value.trim() || "";
       profile.city = q("#obCity")?.value.trim() || "";
     }
-    if (onboardingStep === 3) {
+    if (onboardingStep === 5) {
       profile.channels = qa('.experience-choice.is-selected[data-choice-group="channel"]').map(
         (x) => x.dataset.choice,
       );
@@ -533,8 +758,8 @@ ONBOARDING — JAVASCRIPT
       const title = q("#xpReadyTitle");
       if (title) {
         title.textContent = profile.name.trim()
-          ? `Seu espaço está pronto, ${profile.name.trim().split(/\s+/)[0]}.`
-          : "Seu espaço está pronto.";
+          ? `Confira suas escolhas, ${profile.name.trim().split(/\s+/)[0]}.`
+          : "Confira suas escolhas.";
       }
       const business = q("#xpReadyBusiness");
       if (business) {
@@ -555,7 +780,6 @@ ONBOARDING — JAVASCRIPT
             .join(", ") || "Organizar minha rotina";
       }
     }
-    persistExperienceProfile();
   }
   experienceRoot.addEventListener("click", (event) => {
     const go = event.target.closest("[data-xp-go]");
@@ -612,22 +836,38 @@ ONBOARDING — JAVASCRIPT
       updateOnboardingPreview();
       return;
     }
+    const skip = event.target.closest("[data-business-skip]");
+    if (skip && !onboardingBusy && [3, 4, 5].includes(onboardingStep)) {
+      qa('.onboarding-panel.is-active input[type="checkbox"]').forEach((input) => {
+        input.checked = false;
+      });
+      qa('.onboarding-panel.is-active input:not([type="checkbox"])').forEach((input) => {
+        input.value = "";
+      });
+      collectStep();
+      collectBusinessStep();
+      stepTransition(onboardingStep + 1);
+      return;
+    }
     const next = event.target.closest("[data-onboard-next]");
     if (next) {
+      if (onboardingBusy) return;
       if (!validateOnboard()) {
         return;
       }
       collectStep();
-      if (onboardingStep < 4) {
+      collectBusinessStep();
+      if (onboardingStep < 6) {
         stepTransition(onboardingStep + 1);
-      } else {
-        enterApp();
+      } else if (finishBusinessOnboarding()) {
+        enterApp(businessEditing ? "Configurações" : "Início");
       }
       return;
     }
     const back = event.target.closest("[data-onboard-back]");
-    if (back && onboardingStep > 1) {
+    if (back && !onboardingBusy && onboardingStep > (businessEditing ? 2 : 1)) {
       collectStep();
+      collectBusinessStep();
       stepTransition(onboardingStep - 1);
       return;
     }
@@ -675,6 +915,10 @@ ONBOARDING — JAVASCRIPT
           if (!registrationAvailable) {
             throw new Error("Recarregue a página para conferir a disponibilidade do cadastro.");
           }
+          sessionStorage.setItem(
+            registrationOnboardingKey,
+            q("#registerEmail").value.trim().toLowerCase(),
+          );
           await SocialMEIAuth.register({
             nome: q("#registerName").value.trim(),
             email: q("#registerEmail").value.trim(),
@@ -713,6 +957,7 @@ ONBOARDING — JAVASCRIPT
       }
       if (event.target.id === "xpLoginForm") {
         profile.email = q("#loginEmail").value.trim();
+        sessionStorage.setItem("socialmei-business-demo-identity", profile.email.toLowerCase());
         persistExperienceProfile();
         enterApp();
       } else {
@@ -720,12 +965,12 @@ ONBOARDING — JAVASCRIPT
         profile.email = q("#registerEmail").value.trim();
         profile.phone = q("#registerPhone").value.trim();
         persistExperienceProfile();
-        onboardingStep = 1;
+        sessionStorage.setItem("socialmei-business-demo-identity", profile.email.toLowerCase());
         // Reutiliza os dados do cadastro no preenchimento inicial do onboarding.
         q("#obName").value = profile.name;
         q("#obEmail").value = profile.email;
         q("#obPhone").value = profile.phone;
-        showScreen("onboarding");
+        startBusinessOnboarding();
       }
       q("#registerPassword").value = "";
       q("#loginPassword").value = "";
@@ -744,6 +989,7 @@ ONBOARDING — JAVASCRIPT
         toggle.setAttribute("aria-label", "Mostrar senha");
       });
     } catch (error) {
+      sessionStorage.removeItem(registrationOnboardingKey);
       const feedback = q("#authConfirmation");
       feedback.textContent = error.message || "Não foi possível entrar. Tente novamente.";
       feedback.tabIndex = -1;
@@ -1615,6 +1861,11 @@ ONBOARDING — JAVASCRIPT
         .join(", ") || "Organizar minha rotina";
   }
   function validateOnboard() {
+    if (onboardingStep === 2 && !selectedBusinessValues("businessOffer").length) {
+      q("#obValidation").textContent = "Escolha produtos, serviços ou ambos para continuar.";
+      q('input[name="businessOffer"]').focus();
+      return false;
+    }
     const fields = qa(".onboarding-panel.is-active input,.onboarding-panel.is-active select");
     fields.forEach((element) => {
       let message = "";
@@ -1682,9 +1933,8 @@ ONBOARDING — JAVASCRIPT
     const title = next.querySelector("h1,h2");
     if (title) {
       title.tabIndex = -1;
-      title.focus({
-        preventScroll: true,
-      });
+      title.focus({ preventScroll: true });
+      q(".onboarding-main").scrollIntoView({ block: "start", behavior: "instant" });
     }
     await motion.animate(
       next,
@@ -1701,7 +1951,7 @@ ONBOARDING — JAVASCRIPT
       150,
       "ease-enter",
     );
-    if (nextStep === 4) {
+    if (nextStep === 6) {
       motion.animate(
         q("#readyCheck"),
         [
@@ -4140,7 +4390,10 @@ ONBOARDING — JAVASCRIPT
     SocialMEIAuth.ready.then(async (identity) => {
       if (identity) {
         refreshExperienceProfile();
-        enterApp(restored);
+        const requested = sessionStorage.getItem(registrationOnboardingKey);
+        sessionStorage.removeItem(registrationOnboardingKey);
+        if (requested === identity.usuario.email.toLowerCase()) startBusinessOnboarding();
+        else enterApp(restored);
       } else {
         authMode = "login";
         showScreen("auth");

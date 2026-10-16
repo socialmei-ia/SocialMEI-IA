@@ -1,0 +1,118 @@
+/* Adaptive onboarding extends the official experience and its theme tokens. */
+.onboarding-screen .experience-steps {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+.onboarding-screen .experience-step {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.onboarding-screen .experience-step b {
+  font-size: 12px;
+}
+.business-profile-group {
+  border: 0;
+  padding: 0;
+  margin: 22px 0;
+  min-width: 0;
+}
+.business-profile-group legend {
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.business-profile-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 12px 0 20px;
+}
+.business-profile-options label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 14px;
+  border: 1px solid var(--ln);
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--tx);
+  background: var(--sf);
+  min-height: 46px;
+  font-size: 14px;
+}
+.business-profile-options label:has(input:checked) {
+  border-color: var(--brand-primary);
+  background: var(--selected);
+}
+.business-profile-options label:focus-within {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 3px;
+}
+.business-profile-options input {
+  accent-color: var(--brand-primary);
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+#businessProfileReview {
+  text-align: left;
+  margin: 20px 0;
+}
+#businessProfileReview > div,
+.business-profile-summary > div {
+  display: grid;
+  gap: 5px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--ln);
+  overflow-wrap: anywhere;
+}
+#businessProfileReview small,
+.business-profile-summary small {
+  color: var(--mt);
+}
+#businessProfileReview b,
+.business-profile-summary b {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.6;
+}
+.onboarding-actions {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.onboarding-actions [hidden],
+#businessActivityOther[hidden] {
+  display: none;
+}
+#businessProfileStorageNotice {
+  font-size: 12px;
+  line-height: 1.6;
+  margin-bottom: 18px;
+}
+@media (max-width: 600px) {
+  .onboarding-screen .experience-step:not(.is-current) div {
+    display: none;
+  }
+  .onboarding-screen .experience-step.is-current {
+    grid-column: span 2;
+  }
+  .onboarding-screen .experience-steps {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+  .onboarding-screen .experience-step {
+    align-items: center;
+  }
+  .onboarding-actions [data-onboard-next] {
+    flex: 1 1 100%;
+  }
+  .business-profile-options {
+    gap: 8px;
+  }
+  .business-profile-options label {
+    flex: 1 1 auto;
+    padding: 12px;
+  }
+  .onboarding-screen input:not([type="checkbox"]),
+  .onboarding-screen select {
+    font-size: 16px;
+  }
+}
