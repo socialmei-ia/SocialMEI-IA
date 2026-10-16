@@ -287,15 +287,15 @@
 /* Pequenas telas: controles acessíveis sem deslocamento horizontal da página */
 @media (max-width: 760px) {
   .experience-app .workspace-shell {
-    margin-bottom: 20px;
-    padding: 20px 16px;
+    margin-bottom: 14px;
+    padding: 14px;
     border-radius: 18px;
   }
 
   .experience-app .workspace-shell .management-header {
     align-items: stretch;
-    gap: 18px;
-    margin-bottom: 18px;
+    gap: 12px;
+    margin-bottom: 12px;
   }
 
   .experience-app .workspace-shell .management-header-controls {
@@ -324,7 +324,7 @@
   }
 
   .experience-app :is(#salesView, #clientsView) .workspace-summary {
-    padding: 14px 14px 18px;
+    padding: 4px 12px 10px;
   }
 
   .experience-app .workspace-list-panel .management-table td {
@@ -347,8 +347,8 @@
   }
 
   .experience-app .workspace-list-toolbar .management-input[type="search"] {
-    flex-basis: 100%;
-    width: 100%;
+    flex-basis: 168px;
+    width: auto;
   }
 
   .experience-app .workspace-list-panel .management-meta {
