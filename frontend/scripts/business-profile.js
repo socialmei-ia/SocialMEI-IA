@@ -72,6 +72,7 @@
         ].slice(0, 30)
       : [];
   function normalize(value = {}) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) value = {};
     const offers = list(value.offers).filter((id) => ["products", "services"].includes(id));
     const caps = Object.fromEntries(
       Object.keys(capabilities).map((id) => [id, value.capabilities?.[id] === true]),
@@ -88,6 +89,15 @@
       productCategories: offers.includes("products") ? list(value.productCategories) : [],
       capabilities: caps,
       modules: list(value.modules).filter((id) => Object.hasOwn(modules, id)),
+      ignoredSuggestions: Array.isArray(value.ignoredSuggestions)
+        ? [
+            ...new Set(
+              value.ignoredSuggestions
+                .filter((id) => typeof id === "string")
+                .map((id) => id.slice(0, 160)),
+            ),
+          ].slice(0, 60)
+        : [],
       completed: value.completed === true,
     };
     profile.modules = profile.modules.filter((id) => availableModules(profile).includes(id));
@@ -102,6 +112,77 @@
   }
   function recommendedModules(profile) {
     return availableModules(profile).filter((id) => !["reports", "team"].includes(id));
+  }
+  const featureRoutes = {
+    products: { label: "Produtos", view: "Produtos e Serviços", type: "Produto" },
+    services: { label: "Serviços", view: "Produtos e Serviços", type: "Serviço" },
+    inventory: { label: "Estoque", view: "Produtos e Serviços", type: "Produto" },
+    clients: { label: "Clientes", view: "Clientes" },
+    sales: { label: "Vendas", view: "Vendas" },
+    finance: { label: "Financeiro", view: "Financeiro" },
+    inbox: { label: "Caixa Unificada", view: "Caixa Unificada" },
+    opportunities: { label: "Oportunidades", view: "Oportunidades" },
+    reports: { label: "Relatórios", view: "Relatórios" },
+  };
+  const futureFeatures = {
+    appointments: "Agenda",
+    orders: "Encomendas",
+    deliveries: "Entregas",
+    team: "Gestão operacional de equipe",
+  };
+  function contextualTools(value) {
+    const profile = normalize(value);
+    const order = [
+      ...(profile.offers.includes("services") ? ["services"] : []),
+      ...(profile.offers.includes("products") ? ["products", "inventory"] : []),
+      "clients",
+      "sales",
+      "finance",
+      "opportunities",
+      "inbox",
+      "reports",
+    ];
+    return {
+      active: order
+        .filter((id) => profile.modules.includes(id))
+        .map((id) => ({ id, ...featureRoutes[id] })),
+      future: Object.keys(futureFeatures)
+        .filter((id) => profile.modules.includes(id))
+        .map((id) => ({ id, label: futureFeatures[id] })),
+    };
+  }
+  const catalogText = (text) =>
+    String(text)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .replace(/\s+/g, " ")
+      .toLowerCase();
+  function catalogSuggestions(value, catalog = []) {
+    const profile = normalize(value),
+      segment = segments[profile.segment];
+    const items = [];
+    for (const [offer, kind, chosen, fallback] of [
+      ["services", "Serviço", profile.services, segment.services],
+      ["products", "Produto", profile.productCategories, segment.products],
+    ]) {
+      if (!profile.offers.includes(offer)) continue;
+      for (const label of chosen.length ? chosen : fallback) {
+        const id = kind + ":" + catalogText(label);
+        if (items.some((item) => item.id === id)) continue;
+        if (profile.ignoredSuggestions.includes(id)) continue;
+        if (
+          kind === "Serviço" &&
+          catalog.some(
+            (item) =>
+              !item.excluida && item.tipo === kind && catalogText(item.nome) === catalogText(label),
+          )
+        )
+          continue;
+        items.push({ id, label, kind, name: kind === "Serviço" ? label : "" });
+      }
+    }
+    return items;
   }
   function scope(auth, demoIdentity = "preview", boundScope = "") {
     if (auth?.remote === false)
@@ -184,6 +265,10 @@
     normalize,
     availableModules,
     recommendedModules,
+    contextualTools,
+    catalogSuggestions,
+    featureRoutes,
+    futureFeatures,
     scope,
     repository,
     browserRepository,

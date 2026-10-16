@@ -507,7 +507,13 @@ ONBOARDING — JAVASCRIPT
     renderBusinessOptions(
       q("#businessModules"),
       "businessModule",
-      businessModel.availableModules(businessDraft).map((id) => [id, businessModel.modules[id]]),
+      businessModel
+        .availableModules(businessDraft)
+        .map((id) => [
+          id,
+          businessModel.modules[id] +
+            (businessModel.futureFeatures[id] ? " (em desenvolvimento)" : ""),
+        ]),
       businessDraft.modules,
     );
   }
@@ -3927,6 +3933,7 @@ ONBOARDING — JAVASCRIPT
           <button class="btn" data-home-go="Clientes">Ver clientes →</button>
         `;
     renderHomeOperations();
+    SocialMEIPersonalization.renderHome();
     q("#homeLiveIcon").innerHTML = renderIcon(homeIcons?.[iconCycle] || "inbox");
     nextHomeIcon();
   };

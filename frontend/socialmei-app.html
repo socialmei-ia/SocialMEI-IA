@@ -2759,7 +2759,8 @@
                     aria-hidden="true"
                   ></span>
                 </h2>
-                <p>Comece por um próximo passo.</p>
+                <p id="homeProfileContext">Comece por um próximo passo.</p>
+                <p id="homeDataSource" class="management-note"></p>
               </div>
               <div class="desk-command client-command-wrap">
                 <label class="sr-only" for="clientCommandInput">O que você quer fazer?</label>
@@ -2789,7 +2790,11 @@
                     hidden
                   ></ul>
                 </div>
-                <div class="command-starters" aria-label="Comece por aqui">
+                <div
+                  class="command-starters"
+                  id="homeDefaultShortcuts"
+                  aria-label="Comece por aqui"
+                >
                   <button data-home-go="Caixa Unificada">
                     Responder clientes <span id="homeActionInbox"></span></button
                   ><button data-home-go="Vendas" data-home-create="venda">
@@ -2798,6 +2803,13 @@
                     Preparar rotina <span id="homeActionRules"></span>
                   </button>
                 </div>
+                <div
+                  class="command-starters"
+                  id="homeProfileShortcuts"
+                  aria-label="Atalhos do seu perfil"
+                  hidden
+                ></div>
+                <p class="management-note profile-home-limits" id="homeProfileLimits" hidden></p>
               </div>
               <aside class="desk-margin">
                 <span class="chapter-label">No seu radar</span
@@ -3387,6 +3399,11 @@
           <section class="page-view" data-view="Produtos e Serviços" id="productsView">
             <div class="management-stack">
               <div id="productsSourceStatus" class="management-card" role="status" hidden></div>
+              <section
+                id="catalogProfileSuggestions"
+                class="management-card profile-catalog"
+                aria-labelledby="catalogProfileTitle"
+              ></section>
               <div id="catalogIntro" class="management-chips"></div>
               <section class="management-card management-flush workspace-list-panel">
                 <div class="management-tools workspace-list-toolbar">
@@ -4339,6 +4356,7 @@
     <script src="scripts/finance-store.js"></script>
     <script src="scripts/contact-validation.js"></script>
     <script src="scripts/business-profile.js"></script>
+    <script src="scripts/personalization.js"></script>
     <script src="scripts/app.js"></script>
     <script src="scripts/experience.js"></script>
     <script id="landingEnhancementsV2" src="scripts/landing-accessibility.js"></script>

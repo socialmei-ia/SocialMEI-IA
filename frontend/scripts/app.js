@@ -3609,13 +3609,18 @@ function renderSettings() {
           ],
           [
             "Ferramentas de interesse",
-            businessProfile.modules.map((id) => model.modules[id]).join(", ") || "Escolher depois",
+            businessProfile.modules
+              .map(
+                (id) =>
+                  model.modules[id] + (model.futureFeatures[id] ? " (em desenvolvimento)" : ""),
+              )
+              .join(", ") || "Escolher depois",
           ],
         ]
       : [];
     host.innerHTML = `<h3>Perfil e ferramentas</h3><p class="management-note">Preferências apenas neste navegador${SocialMEIAuth.remote ? ", separadas por usuário e negócio" : " · demonstração local, sem conta no servidor"}. Não sincronizam entre dispositivos.</p>
       <div class="business-profile-summary">${rows.map(([label, value]) => `<div><small>${escapeHtml(label)}</small><b>${escapeHtml(value)}</b></div>`).join("")}</div>
-      <p class="management-note">${businessProfile ? "Sugestões não são registros reais. O perfil está preparado para orientar Produtos, Serviços e Home na próxima etapa; ainda não ativa ou oculta abas." : state.status === "unavailable" ? "Não foi possível recuperar o perfil. Confira a sessão e as permissões de armazenamento." : state.status === "invalid" ? "O perfil local está incompatível. Prepare-o novamente; nenhum cadastro comercial será alterado." : "Conte como seu negócio funciona para preparar sugestões pertinentes. Nenhum produto, serviço ou agendamento será criado."}</p>
+      <p class="management-note">${businessProfile ? "Suas escolhas priorizam atalhos na Home e sugestões em Produtos e Serviços. Não criam registros nem ocultam abas. Agenda, Encomendas, Entregas e gestão operacional de equipe ainda dependem de desenvolvimento." : state.status === "unavailable" ? "Não foi possível recuperar o perfil. Confira a sessão e as permissões de armazenamento." : state.status === "invalid" ? "O perfil local está incompatível. Prepare-o novamente; nenhum cadastro comercial será alterado." : "Conte como seu negócio funciona para preparar sugestões pertinentes. Nenhum produto, serviço ou agendamento será criado."}</p>
       <button type="button" class="management-button pr" data-business-profile-edit>${businessProfile ? "Editar perfil e ferramentas" : "Preparar meu perfil"}</button>`;
   } else if (selectedSettingsTab === "negocio") {
     host.innerHTML = /* HTML */ `<h3>Negócio</h3>

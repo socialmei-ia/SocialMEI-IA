@@ -40,6 +40,7 @@ async function run() {
     checks.push(await require("./account-browser.cjs")(browser, origin));
     checks.push(await require("./native-opportunities-browser.cjs")(browser, origin));
     checks.push(await require("./adaptive-onboarding-browser.cjs")(browser, origin));
+    checks.push(await require("./personalization-browser.cjs")(browser, origin));
     const page = await browser.newPage({
       viewport: { width: 1440, height: 1000 },
       reducedMotion: "reduce",

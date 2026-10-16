@@ -183,6 +183,15 @@ module.exports = async function onboarding(browser, origin) {
       );
       assert.equal(saved.segment, segment);
       assert.equal(saved.businessName, label);
+      if (segment === "barber" && !mixed) await capture(page, "home-after-signup");
+      assert.match(await page.locator("#homeProfileContext").textContent(), /serviços|produtos/);
+      const tool = service ? "services" : "products";
+      await page.locator(`[data-profile-route="${tool}"]`).click();
+      assert.match(
+        await page.locator("#catalogProfileSuggestions").textContent(),
+        new RegExp(service || category),
+      );
+      await page.evaluate(() => setView("Início"));
       if (service) assert(saved.services.includes(service));
       if (category) assert(saved.productCategories.includes(category));
       assert.equal(
@@ -200,7 +209,7 @@ module.exports = async function onboarding(browser, origin) {
       if (segment === "barber" && !mixed) await capture(page, "settings");
       assert.match(
         await page.locator("#settingsPanel").textContent(),
-        /ainda não ativa ou oculta abas/,
+        /Não criam registros nem ocultam abas/,
       );
       await page.reload();
       await page.waitForFunction(() => document.body.classList.contains("experience-app"));

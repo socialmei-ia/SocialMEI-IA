@@ -137,7 +137,10 @@ async function run() {
       false,
     );
     await page.evaluate(() => setView("Início"));
-    await page.locator('[data-home-create="venda"]').click();
+    if (await page.locator('[data-profile-route="sales"]').isVisible()) {
+      await page.locator('[data-profile-route="sales"]').click();
+      await page.locator("#globalCreateBtn").click();
+    } else await page.locator('[data-home-create="venda"]').click();
     assert(
       await page.locator("#createModal").evaluate((element) => element.classList.contains("open")),
     );

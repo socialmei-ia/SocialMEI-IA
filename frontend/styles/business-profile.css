@@ -116,3 +116,76 @@
     font-size: 16px;
   }
 }
+
+/* Contextual content keeps the existing Home and catalog layout. */
+#homeDefaultShortcuts[hidden],
+#homeProfileShortcuts[hidden],
+#homeProfileLimits[hidden] {
+  display: none;
+}
+#homeDataSource {
+  font-size: 12px;
+  max-width: 65ch;
+  line-height: 1.6;
+  margin-top: 12px;
+}
+.profile-home-limits {
+  font-size: 12px;
+  line-height: 1.65;
+}
+.profile-home-limits span {
+  display: block;
+  margin-top: 10px;
+}
+.profile-catalog h3 {
+  font-size: 18px;
+  margin: 0 0 8px;
+}
+.profile-catalog-suggestions {
+  padding: 0;
+  margin: 16px 0;
+  list-style: none;
+}
+.profile-catalog-suggestions li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--ln);
+}
+.profile-catalog-suggestions li div {
+  display: grid;
+  gap: 4px;
+  overflow-wrap: anywhere;
+}
+.profile-catalog-suggestions small {
+  color: var(--mt);
+  font-size: 12px;
+}
+.profile-catalog-suggestions button {
+  min-height: 44px;
+}
+.profile-catalog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+}
+.profile-catalog-actions button {
+  min-height: 44px;
+}
+@media (max-width: 600px) {
+  .profile-catalog-suggestions li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .profile-catalog-suggestions li div {
+    grid-column: 1 / -1;
+  }
+  .profile-catalog-suggestions li > .management-button {
+    justify-self: start;
+  }
+}
+#profileSuggestionNote {
+  grid-column: 1 / -1;
+}

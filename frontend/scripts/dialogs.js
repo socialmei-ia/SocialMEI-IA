@@ -413,6 +413,7 @@ function renderCreateFields(type, preset = {}) {
   } else {
     h.innerHTML = [
       createField("Nome", "nome", "text", {
+        value: preset.nome || "",
         required: true,
         full: true,
       }),
@@ -458,6 +459,8 @@ function openCreate(type = "venda", preset = {}) {
       produto: "Novo produto ou serviço",
     }[type] || "Criar";
   renderCreateFields(type, preset);
+  if (type === "produto" && ["Produto", "Serviço"].includes(preset.tipo))
+    $("f_tipo").value = preset.tipo;
   toggleProductInventory();
   openModal("createModal");
 }

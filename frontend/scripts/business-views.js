@@ -1278,6 +1278,7 @@ function getProductUnitsSold(product) {
   ).length;
 }
 function renderProducts() {
+  SocialMEIPersonalization.renderCatalog();
   const searchQuery = normalizedText($("productsSearch").value.trim());
   const type = $("productsTypeFilter").value;
   const all = appData.produtos;
@@ -1319,7 +1320,7 @@ function renderProducts() {
     ? emptyMarkup(
         "Nenhum produto ou serviço ainda",
         "Cadastre o que você vende para registrar vendas mais rápido.",
-        '<button class="management-button pr" data-create="produto">Cadastrar primeiro produto</button>',
+        '<button class="management-button pr" data-create="produto">Cadastrar primeiro item</button>',
       )
     : !rows.length
       ? emptyMarkup(
