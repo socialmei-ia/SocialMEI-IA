@@ -5,7 +5,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
   const MAX_LENGTH = 4000;
-  const VERSION = "local-rules-2";
+  const VERSION = "local-rules-3";
   const rules = [
     {
       id: "price",
@@ -126,7 +126,7 @@
       polarity: "ambiguous",
       negatable: true,
       pattern:
-        /\b(?:preciso\s+de\s+(?:suporte|ajuda)|nao\s+chegou|veio\s+quebrad[oa]|nao\s+funciona|reembolso|devolucao|cobranca\s+indevida)\b/g,
+        /\b(?:preciso\s+de\s+(?:suporte|ajuda)|nao\s+chegou|veio\s+quebrad[oa]|nao\s+funciona|(?:leite|alimento|produto)\s+(?:que\s+comprei\s+)?(?:esta|veio)\s+vencid[oa]|(?:corte|barra|ajuste)\s+ficou\s+tort[oa]|reembolso|devolucao|cobranca\s+indevida)\b/g,
     },
     {
       id: "after_sales",
