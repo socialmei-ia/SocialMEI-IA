@@ -148,6 +148,7 @@ async function run() {
       external.push(route.request().url());
       return route.abort();
     });
+    console.log(await require("./tapioca-valley-browser.cjs")(browser, origin));
     console.log(await require("./intent-browser.cjs")(browser, origin));
     let demoLayouts = 0;
     for (const demo of ["opportunities", "onboarding"]) {
