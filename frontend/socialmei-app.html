@@ -59,6 +59,7 @@
     <link rel="stylesheet" href="styles/socialmei.css" />
     <link rel="stylesheet" href="styles/account-ui.css" />
     <link rel="stylesheet" href="styles/interaction-components.css" />
+    <link rel="stylesheet" href="styles/workspace-refinement.css" />
     <script src="scripts/storage-and-themes.js"></script>
     <script src="scripts/motion.js"></script>
 
@@ -2663,9 +2664,10 @@
         </header>
         <nav aria-label="Seções do meu negócio" class="sr-only" hidden="" id="businessTabs"></nav>
         <div class="ct">
-          <div class="management-shell" id="nvShell" hidden>
+          <div class="management-shell workspace-shell" id="nvShell" hidden>
             <div class="management-header">
               <div>
+                <span class="workspace-eyebrow">Seu espaço de trabalho</span>
                 <h2 id="nvTitle" tabindex="-1"></h2>
                 <p id="nvSub"></p>
               </div>
@@ -2677,7 +2679,7 @@
               </div>
             </div>
             <div
-              class="management-tabs"
+              class="management-tabs workspace-tabs"
               id="nvTabs"
               role="tablist"
               aria-label="Seções do negócio"
@@ -3171,15 +3173,19 @@
           <section class="page-view" data-view="Vendas" id="salesView">
             <div class="management-stack">
               <div id="salesSourceStatus" class="management-card" role="status" hidden></div>
-              <div id="salesPremiumSummary" class="internal-summary" aria-live="polite"></div>
+              <div
+                id="salesPremiumSummary"
+                class="internal-summary workspace-summary"
+                aria-live="polite"
+              ></div>
               <div
                 id="salesSummary"
                 class="management-chips"
                 role="group"
                 aria-label="Filtrar por situação"
               ></div>
-              <section class="management-card management-flush">
-                <div class="management-tools">
+              <section class="management-card management-flush workspace-list-panel">
+                <div class="management-tools workspace-list-toolbar">
                   <input
                     class="management-input"
                     id="salesSearch"
@@ -3242,15 +3248,19 @@
           <section class="page-view" data-view="Clientes" id="clientsView">
             <div class="management-stack">
               <div id="clientsSourceStatus" class="management-card" role="status" hidden></div>
-              <div id="clientsPremiumSummary" class="internal-summary" aria-live="polite"></div>
+              <div
+                id="clientsPremiumSummary"
+                class="internal-summary workspace-summary"
+                aria-live="polite"
+              ></div>
               <div
                 id="clientsIntro"
                 class="management-chips"
                 role="group"
                 aria-label="Filtrar clientes"
               ></div>
-              <section class="management-card management-flush">
-                <div class="management-tools">
+              <section class="management-card management-flush workspace-list-panel">
+                <div class="management-tools workspace-list-toolbar">
                   <input
                     class="management-input"
                     id="clientsSearch"
@@ -3316,8 +3326,8 @@
             <div class="management-stack">
               <div id="productsSourceStatus" class="management-card" role="status" hidden></div>
               <div id="catalogIntro" class="management-chips"></div>
-              <section class="management-card management-flush">
-                <div class="management-tools">
+              <section class="management-card management-flush workspace-list-panel">
+                <div class="management-tools workspace-list-toolbar">
                   <input
                     class="management-input"
                     id="productsSearch"
@@ -3358,8 +3368,8 @@
                 <div id="financeMiniChart"></div>
               </section>
               <h3 class="management-section-label">Movimentações</h3>
-              <section class="management-card management-flush">
-                <div class="management-tools">
+              <section class="management-card management-flush workspace-list-panel">
+                <div class="management-tools workspace-list-toolbar">
                   <input
                     class="management-input"
                     id="financeSearch"
