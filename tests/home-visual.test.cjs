@@ -12,7 +12,10 @@ test("Home highlights the real sales action without hiding other shortcuts", () 
   assert.match(markup, /data-home-go="Caixa Unificada"/);
   assert.match(markup, /data-home-go="Automações"/);
   assert.match(css, /\.command-starters button\[data-home-create="venda"\] \{/);
-  assert.match(css, /\.command-starters button\[data-home-create="venda"\]:is\(:hover, :focus-visible\)/);
+  assert.match(
+    css,
+    /\.command-starters button\[data-home-create="venda"\]:is\(:hover, :focus-visible\)/,
+  );
 });
 
 test("Home actions have keyboard focus feedback and mobile-friendly sales totals", () => {
