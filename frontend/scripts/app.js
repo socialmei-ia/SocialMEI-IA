@@ -191,6 +191,8 @@ if (SocialMEIAuth.remote) {
   sessionData.notificacoes = [];
   sessionData.conversas = [];
 }
+// Snapshot of the existing fictional conversations, before local/remote messages are restored.
+const opportunityDemoSnapshot = structuredClone(sessionData.conversas);
 const DEFAULT_APP_DATA = {
   schemaVersion: SOCIALMEI_APP_SCHEMA_VERSION,
   financeiro: [
@@ -2719,7 +2721,13 @@ document.addEventListener(
 );
 
 /* Telas de gestão e preferências explicitamente locais. */
-const MANAGEMENT_AUXILIARY_VIEWS = ["Automações", "Assistente", "Relatórios", "Configurações"];
+const MANAGEMENT_AUXILIARY_VIEWS = [
+  "Automações",
+  "Assistente",
+  "Relatórios",
+  "Oportunidades",
+  "Configurações",
+];
 const readStoredJson = (key, fallback) => {
   try {
     return JSON.parse(localStorage.getItem(key) || "null") ?? fallback;

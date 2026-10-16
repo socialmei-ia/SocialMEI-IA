@@ -1,0 +1,195 @@
+/* Native Opportunities uses the application's existing tokens and controls. */
+#opportunitiesView .management-stack {
+  max-width: 1200px;
+  margin-inline: auto;
+}
+#opportunitiesView h3 {
+  font-size: 18px;
+  margin: 16px 0;
+}
+#opportunitiesView .native-opportunity-actions {
+  margin: 14px 0;
+}
+.native-opportunity-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.native-opportunity-actions button {
+  min-height: 44px;
+}
+.native-opportunity-empty {
+  padding: 24px;
+}
+.native-opportunity-empty p {
+  max-width: 76ch;
+  margin-bottom: 18px;
+  line-height: 1.65;
+}
+.native-opportunity-empty button {
+  margin: 0 10px 8px 0;
+}
+.native-opportunity-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--ln);
+  border-radius: 12px;
+  background: var(--sf);
+}
+.native-opportunity-list > li {
+  padding: 16px;
+  display: grid;
+  grid-template-columns: minmax(180px, 0.8fr) minmax(0, 1.6fr) auto;
+  gap: 12px 20px;
+  align-items: start;
+  border-bottom: 1px solid var(--ln);
+}
+.native-opportunity-list > li:last-child {
+  border-bottom: 0;
+}
+.native-opportunity-person {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.native-opportunity-position {
+  color: var(--mt);
+  font-variant-numeric: tabular-nums;
+}
+.native-opportunity-list > li > button {
+  grid-column: 3;
+  grid-row: 1;
+  min-height: 44px;
+}
+.native-opportunity-why {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+}
+.native-opportunity-why p {
+  margin-top: 6px;
+  line-height: 1.6;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.native-opportunity-criteria {
+  padding-block: 12px;
+  border-block: 1px solid var(--ln);
+  color: var(--mt);
+  font-size: 13px;
+}
+.native-opportunity-criteria summary {
+  color: var(--tx);
+  min-height: 44px;
+  cursor: pointer;
+  padding: 10px 0;
+}
+.native-opportunity-criteria p {
+  margin: 10px 0;
+  line-height: 1.65;
+}
+.native-opportunity-analysis {
+  padding: 24px;
+}
+#opportunityAnalyzeForm,
+#opportunityReviewForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  margin-top: 16px;
+}
+#opportunityAnalyzeForm textarea,
+#opportunityReviewForm textarea,
+#opportunityReviewForm select {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--ln);
+  border-radius: 8px;
+  background: var(--sf);
+  color: var(--tx);
+  padding: 12px;
+  font: inherit;
+  font-size: 16px;
+}
+#opportunityAnalyzeForm label,
+#opportunityReviewForm label {
+  font-size: 13px;
+  font-weight: 600;
+}
+#opportunityReviewForm button {
+  min-height: 44px;
+}
+#opportunityAnalysis {
+  margin-top: 20px;
+}
+.native-opportunity-signals h4,
+#opportunityAnalysis > h4,
+#opportunityDetail h4 {
+  font-size: 16px;
+  margin: 20px 0 10px;
+}
+.native-opportunity-signals p,
+#opportunityDetail p,
+#opportunityDetail li {
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.native-opportunity-signals blockquote,
+#opportunityDetail blockquote {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  border-left: 2px solid var(--ln);
+  padding-left: 12px;
+  margin: 12px 0;
+  color: var(--mt);
+}
+.native-opportunity-signals details {
+  border-block: 1px solid var(--ln);
+  padding: 10px 0;
+  margin: 16px 0;
+  font-size: 13px;
+}
+.native-opportunity-signals summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding: 10px 0;
+}
+.native-opportunity-message {
+  border-top: 1px solid var(--ln);
+  margin-top: 20px;
+  padding-top: 12px;
+}
+#opportunityModal .modal {
+  width: min(760px, calc(100vw - 24px));
+}
+@media (max-width: 700px) {
+  .native-opportunity-list > li {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    padding: 14px;
+  }
+  .native-opportunity-list > li > button {
+    grid-column: 2;
+    font-size: 12px;
+    padding-inline: 10px;
+  }
+  .native-opportunity-why {
+    grid-column: 1/-1;
+    grid-row: 2;
+  }
+  .native-opportunity-empty,
+  .native-opportunity-analysis {
+    padding: 18px;
+  }
+  .native-opportunity-person {
+    font-size: 14px;
+  }
+  .native-opportunity-actions {
+    align-items: stretch;
+  }
+  .native-opportunity-actions button {
+    flex: 1;
+  }
+}

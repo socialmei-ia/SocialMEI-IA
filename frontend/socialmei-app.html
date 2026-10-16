@@ -60,6 +60,7 @@
     <link rel="stylesheet" href="styles/account-ui.css" />
     <link rel="stylesheet" href="styles/interaction-components.css" />
     <link rel="stylesheet" href="styles/workspace-refinement.css" />
+    <link rel="stylesheet" href="styles/opportunities.css" />
     <script src="scripts/storage-and-themes.js"></script>
     <script src="scripts/motion.js"></script>
 
@@ -3771,6 +3772,76 @@
             </section>
           </section>
 
+          <section
+            class="page-view management-view"
+            data-view="Oportunidades"
+            id="opportunitiesView"
+            aria-labelledby="opportunitiesTitle"
+          >
+            <div class="management-stack">
+              <header class="management-header">
+                <div>
+                  <span class="report-eyebrow">OPORTUNIDADES</span>
+                  <h2 id="opportunitiesTitle">Quem acompanhar primeiro?</h2>
+                  <p>Confira os sinais, esclareça dúvidas e mantenha a decisão com você.</p>
+                </div>
+              </header>
+              <div class="management-demo">
+                <span class="pill draft">Análise local experimental</span
+                ><span
+                  >Sem probabilidade de venda ou envio automático. Nenhuma revisão altera o
+                  cadastro.</span
+                >
+              </div>
+              <div id="opportunitySource"></div>
+              <div id="opportunityQueue"></div>
+              <details class="native-opportunity-criteria">
+                <summary>Como a recomendação é formada</summary>
+                <p>
+                  Compra explícita e orçamento vêm antes de consultas e esclarecimentos. Recusa,
+                  suporte e compra concluída têm encaminhamentos próprios. Mais mensagens não
+                  significam mais intenção.
+                </p>
+                <p>
+                  Prazo e recência só contam com datas confiáveis. A janela de 24 horas é
+                  experimental, ainda sem validação por negócio. As conversas fictícias originais
+                  não têm datas completas: nenhuma recência é inventada.
+                </p>
+                <p>
+                  As regras podem errar. Revise o texto e o contexto antes de agir. Revisões existem
+                  somente enquanto esta página está aberta.
+                </p>
+              </details>
+              <section
+                class="management-card native-opportunity-analysis"
+                aria-labelledby="opportunityAnalyzeTitle"
+              >
+                <h3 id="opportunityAnalyzeTitle">Analisar uma mensagem</h3>
+                <p class="management-note">
+                  Texto informado por você, processado somente neste navegador. A análise avulsa não
+                  cria oportunidades nem altera conversas.
+                </p>
+                <form id="opportunityAnalyzeForm" autocomplete="off">
+                  <label for="opportunityText">Mensagem para análise local</label
+                  ><textarea
+                    id="opportunityText"
+                    rows="4"
+                    maxlength="4000"
+                    placeholder="Digite o texto que deseja examinar"
+                  ></textarea>
+                  <div class="native-opportunity-actions">
+                    <button class="management-button pr" type="submit">Analisar intenção</button
+                    ><button class="management-button" type="button" data-opportunity-clear>
+                      Limpar texto
+                    </button>
+                  </div>
+                </form>
+                <p id="opportunityAnalysisStatus" role="status" class="management-note"></p>
+                <div id="opportunityAnalysis" hidden></div>
+              </section>
+            </div>
+          </section>
+
           <!-- RELATÓRIOS -->
           <section class="page-view management-view" data-view="Relatórios" id="reportsView">
             <div class="management-stack">
@@ -4025,6 +4096,27 @@
         <div class="command-results" id="globalSearchResults"></div>
       </section>
     </div>
+    <div aria-hidden="true" class="modal-backdrop" id="opportunityModal">
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="opportunityModalTitle"
+        class="modal"
+      >
+        <div class="modal-head">
+          <h3 id="opportunityModalTitle" tabindex="-1">Oportunidade</h3>
+          <button
+            aria-label="Fechar oportunidade"
+            class="btn ib"
+            type="button"
+            data-close-modal="opportunityModal"
+          >
+            ×
+          </button>
+        </div>
+        <div class="modal-body" id="opportunityDetail"></div>
+      </section>
+    </div>
     <div aria-hidden="true" class="modal-backdrop client-drawer" id="clientModal">
       <section aria-labelledby="clientModalTitle" aria-modal="true" class="modal" role="dialog">
         <div class="modal-head">
@@ -4165,6 +4257,10 @@
     <script src="scripts/sales.js"></script>
     <script src="scripts/customers.js"></script>
     <script src="scripts/products.js"></script>
+    <script src="scripts/intent-engine.js"></script>
+    <script src="scripts/priority-engine.js"></script>
+    <script src="scripts/opportunity-data.js"></script>
+    <script src="scripts/opportunities.js"></script>
     <script src="scripts/inbox.js"></script>
     <script src="scripts/reports.js"></script>
     <script src="scripts/appearance.js"></script>

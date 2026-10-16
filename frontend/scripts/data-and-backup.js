@@ -757,6 +757,8 @@ function renderCurrentView() {
     renderProducts();
   } else if (currentView === "Caixa Unificada") {
     renderInbox();
+  } else if (currentView === "Oportunidades") {
+    renderOpportunities();
   } else if (currentView === "Relatórios") {
     renderReports();
   } else if (currentView === "Configurações") {

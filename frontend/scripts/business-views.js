@@ -347,7 +347,7 @@ function renderNavigation() {
           >`;
   $("nav").innerHTML = /* HTML */ `<span class="nav-indicator" aria-hidden="true"></span
           ><span class="nav-group-label">Dia a dia</span
-          >${L("Início", "Início", "user")}${L("Caixa Unificada", "Caixa Unificada", "inbox")}<span
+          >${L("Início", "Início", "user")}${L("Caixa Unificada", "Caixa Unificada", "inbox")}${L("Oportunidades", "Oportunidades", "star")}<span
             class="nav-group-label"
             >Negócio</span
           >${L("Visão Geral", "Negócio", "bag", "Negócio")}<span class="nav-group-label"
