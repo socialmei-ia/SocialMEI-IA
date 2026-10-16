@@ -411,6 +411,11 @@ const DEFAULT_APP_DATA = {
     notificacoes: true,
   },
 };
+// Authenticated accounts start empty; persisted account data is loaded normally below.
+if (SocialMEIAuth.remote) {
+  for (const collection of ["clientes", "produtos", "vendas", "financeiro"])
+    DEFAULT_APP_DATA[collection] = [];
+}
 let appData = loadAppData();
 SocialMEIClients.attach(appData);
 SocialMEIProducts.attach(appData);

@@ -188,7 +188,7 @@ function loadAppData() {
     }
     return migrated;
   } catch (error) {
-    console.warn("Dados locais inválidos; usando a base de demonstração.", error);
+    console.warn("Dados locais inválidos; usando a base inicial deste modo.", error);
     return cloneData(DEFAULT_APP_DATA);
   }
 }
