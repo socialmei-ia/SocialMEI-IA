@@ -2,6 +2,10 @@
 
 Entrada única: `prototypes/index.html`. Os protótipos estão fora de `frontend/` e da imagem do gateway. Não são destinos da navegação principal nem prova de funcionalidades publicadas.
 
+## Demonstração Tapioca Valley
+
+Roteiro de aproximadamente cinco minutos: `python3 prototypes/tapioca-valley/preview.py` abre o hub local; selecione **Começar demonstração**. [Guia, limites e capturas](tapioca-valley/README.md). Usa Perfumaria Aurora e os mesmos três clientes nas conversas ilustrativas, análise e fila. Branch `demo/tapioca-valley`, derivada da PR #55 e dependente da #54, sem integração real.
+
 ## Abrir e experimentar
 
 Na raiz do checkout desta branch:

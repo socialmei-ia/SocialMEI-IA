@@ -22,7 +22,8 @@
     "data:export": "node tools/export-workspace.mjs",
     "test:development": "node tests/autonomous-browser.cjs",
     "test:intent": "node --test tests/purchase-intent.test.cjs && node tests/intent-browser.cjs",
-    "test:priority": "node --test tests/customer-priority.test.cjs tests/purchase-intent.test.cjs && node tests/priority-browser.cjs"
+    "test:priority": "node --test tests/customer-priority.test.cjs tests/purchase-intent.test.cjs && node tests/priority-browser.cjs",
+    "test:tour": "node tests/tapioca-valley-browser.cjs"
   },
   "devDependencies": {
     "playwright": "1.62.1",
