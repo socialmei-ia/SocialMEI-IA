@@ -5,11 +5,16 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Prévia de desenvolvimento · SocialMEI.IA</title>
     <link rel="stylesheet" href="demo.css" />
+    <link rel="stylesheet" href="tapioca-valley/tour.css" />
+    <script src="opportunities/priority-scenario.js" defer></script>
+    <script src="tapioca-valley/scenario.js" defer></script>
+    <script src="tapioca-valley/tour.js" defer></script>
   </head>
   <body>
     <header>
       <a class="brand" href="index.html">Social<span>MEI</span>.IA</a
-      ><span class="eyebrow">Branch de desenvolvimento · sem publicação</span>
+      ><span class="eyebrow">Branch de desenvolvimento · sem publicação</span
+      ><button id="theme" data-tour-theme aria-pressed="false">Tema escuro</button>
     </header>
     <main>
       <p class="eyebrow">Para avaliação do responsável</p>
@@ -21,6 +26,41 @@
         As prévias não representam aprovação final. Oportunidades e onboarding usam apenas estado em
         memória; não consultam contas, mensagens ou dados do CRM.
       </div>
+      <section class="tour-feature" aria-labelledby="tour-title">
+        <p class="eyebrow">Tapioca Valley · demonstração supervisionada · cerca de 5 minutos</p>
+        <h2 id="tour-title">Do negócio ao próximo contato.</h2>
+        <p data-tour-business></p>
+        <p class="muted">
+          Conheça Ana, interessada; Diego, indeciso; e Gabriela, que precisa de suporte. Um cenário
+          fictício do início ao fim.
+        </p>
+        <div class="actions">
+          <a
+            class="tour-next"
+            data-tour-link="onboarding/index.html"
+            href="onboarding/index.html?tour=tapioca-valley"
+            >Começar demonstração</a
+          ><a href="tapioca-valley/README.md">Roteiro de cinco minutos</a>
+        </div>
+        <details>
+          <summary>O que funciona, o que é ilustrativo e o que é futuro</summary>
+          <ul>
+            <li>
+              <strong>Funciona localmente:</strong> escolhas do onboarding, análise por regras,
+              evidências, ordenação e revisão humana.
+            </li>
+            <li>
+              <strong>Ilustrativo:</strong> negócio, clientes, mensagens e Caixa. As escolhas do
+              onboarding não configuram uma conta real. Navegação entre páginas não sincroniza
+              alterações.
+            </li>
+            <li>
+              <strong>Futuro:</strong> conectar canais autorizados, aplicar o perfil no CRM,
+              consultar histórico real e enviar respostas. Nenhuma dessas integrações está ativa.
+            </li>
+          </ul>
+        </details>
+      </section>
       <div class="collection">
         <article class="row">
           <div>

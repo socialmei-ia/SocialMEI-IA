@@ -2,7 +2,9 @@
   "use strict";
   const byId = (id) => document.getElementById(id);
   const engine = window.SocialMEIPriority;
-  const scenario = window.SocialMEIPriorityScenario;
+  const scenario = window.SocialMEITapiocaScenario?.active
+    ? window.SocialMEITapiocaScenario
+    : window.SocialMEIPriorityScenario;
   let customers = structuredClone(scenario.customers),
     reviews = {},
     rows = [],
@@ -16,12 +18,12 @@
   };
   const date = (value) =>
     new Intl.DateTimeFormat("pt-BR", {
-      timeZone: "UTC",
+      timeZone: scenario.active ? "America/Fortaleza" : "UTC",
       day: "2-digit",
       month: "2-digit",
       hour: "2-digit",
       minute: "2-digit",
-    }).format(new Date(value)) + " UTC";
+    }).format(new Date(value)) + (scenario.active ? " · Fortaleza" : " UTC");
   const firstSentence = (text) => text.split(". ")[0].replace(/\.$/, "") + ".";
   function briefReason(row) {
     if (row.review) return row.review.reason;
@@ -210,6 +212,7 @@
     byId("priority-detail-status").textContent =
       "Revisão aplicada apenas nesta sessão. Lista reordenada; a recomendação automática continua visível.";
     byId("priority-detail-title").focus();
+    if (scenario.active) byId("priority-detail").scrollTop = 0;
   });
   byId("priority-remove-review").addEventListener("click", () => {
     delete reviews[selectedId];
@@ -245,7 +248,7 @@
   byId("reanalyze-customers").addEventListener("click", () => {
     renderList();
     byId("priority-status").textContent =
-      "Oito clientes reanalisados localmente. Revisões humanas preservadas; nenhum envio externo.";
+      `${customers.length} clientes reanalisados localmente. Revisões humanas preservadas; nenhum envio externo.`;
   });
   byId("reset-customers").addEventListener("click", () => {
     customers = structuredClone(scenario.customers);

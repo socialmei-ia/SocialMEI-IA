@@ -1,0 +1,93 @@
+.tour-banner {
+  margin: 0 0 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+}
+.tour-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0;
+}
+.tour-steps a,
+.tour-next {
+  display: inline-block;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  text-decoration: none;
+  min-height: 44px;
+  font-size: 13px;
+}
+.tour-steps [aria-current="step"],
+.tour-next {
+  color: var(--blue);
+  background: var(--soft);
+}
+.tour-note {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 12px 0;
+}
+.tour-feature {
+  padding: 24px;
+  margin: 24px 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.tour-feature h2 {
+  margin: 8px 0 12px;
+}
+.tour-feature details {
+  margin-top: 16px;
+  font-size: 13px;
+}
+.tour-feature summary {
+  min-height: 44px;
+  padding: 8px 0;
+}
+.tour-feature li {
+  margin: 8px 0;
+}
+.tour-feature .actions {
+  margin-top: 16px;
+}
+.tour-conversation {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.tour-conversation:last-child {
+  border-bottom: 0;
+}
+.tour-conversation summary {
+  min-height: 44px;
+}
+.tour-conversation summary strong {
+  margin-right: 12px;
+}
+.tour-conversation .timeline {
+  margin: 16px 0;
+}
+.tour-conversation blockquote {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 8px 0 18px;
+}
+.tour-conversation time {
+  color: var(--muted);
+  font-size: 12px;
+}
+@media (max-width: 540px) {
+  .tour-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .tour-feature {
+    padding: 18px;
+  }
+  .tour-feature .actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

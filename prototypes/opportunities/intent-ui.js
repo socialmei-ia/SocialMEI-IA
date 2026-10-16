@@ -2,23 +2,31 @@
   "use strict";
   const byId = (id) => document.getElementById(id);
   const engine = window.SocialMEIIntent;
-  const samples = [
-    [
-      "Produto, preço e entrega",
-      "Quanto custa o 212 VIP? Tem pronta entrega? Consegue entregar hoje?",
-    ],
-    ["Decisão explícita", 'Quero comprar o produto "Sabonete Flor do Campo". Vocês aceitam Pix?'],
-    ["Só preço", "Quanto custa?"],
-    ["Produto e estoque", "Tem o iPhone 15 em estoque?"],
-    ["Pesquisa sem compromisso", "Só estou pesquisando. Quanto custa o 212 VIP?"],
-    ["Elogio, sem pedido", "Amei seu atendimento, parabéns!"],
-    ["Urgência, sem contexto", "Preciso disso hoje, é urgente!"],
-    ["Recusa", "Não quero comprar o 212 VIP."],
-    ["Desistência", "Desisti. Pode cancelar."],
-    ["Sinais conflitantes", "Quero comprar, mas não quero comprar agora."],
-    ["Condição ou objeção", "Quero comprar a camisa, mas está muito caro."],
-    ["Pós-venda", "Minha entrega não chegou. Quero saber o prazo de entrega."],
-  ];
+  const samples = window.SocialMEITapiocaScenario?.active
+    ? window.SocialMEITapiocaScenario.customers.map((customer) => [
+        customer.name,
+        customer.messages.at(-1).text,
+      ])
+    : [
+        [
+          "Produto, preço e entrega",
+          "Quanto custa o 212 VIP? Tem pronta entrega? Consegue entregar hoje?",
+        ],
+        [
+          "Decisão explícita",
+          'Quero comprar o produto "Sabonete Flor do Campo". Vocês aceitam Pix?',
+        ],
+        ["Só preço", "Quanto custa?"],
+        ["Produto e estoque", "Tem o iPhone 15 em estoque?"],
+        ["Pesquisa sem compromisso", "Só estou pesquisando. Quanto custa o 212 VIP?"],
+        ["Elogio, sem pedido", "Amei seu atendimento, parabéns!"],
+        ["Urgência, sem contexto", "Preciso disso hoje, é urgente!"],
+        ["Recusa", "Não quero comprar o 212 VIP."],
+        ["Desistência", "Desisti. Pode cancelar."],
+        ["Sinais conflitantes", "Quero comprar, mas não quero comprar agora."],
+        ["Condição ou objeção", "Quero comprar a camisa, mas está muito caro."],
+        ["Pós-venda", "Minha entrega não chegou. Quero saber o prazo de entrega."],
+      ];
   byId("intent-message").value = "";
   let current = null;
   let comparisons = [];
@@ -181,7 +189,15 @@
     const content = byId("intent-context-content");
     content.replaceChildren();
     content.append(
-      element("p", "Cliente de demonstração", "eyebrow"),
+      element(
+        "p",
+        window.SocialMEITapiocaScenario?.active
+          ? window.SocialMEITapiocaScenario.customers.find(
+              (customer) => customer.messages.at(-1).text === current.text,
+            )?.name || "Mensagem avulsa · cliente não identificado"
+          : "Cliente de demonstração",
+        "eyebrow",
+      ),
       element("h3", result.label),
       element("p", result.explanation),
     );
