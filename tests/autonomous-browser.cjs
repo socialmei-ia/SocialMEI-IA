@@ -148,6 +148,7 @@ async function run() {
       external.push(route.request().url());
       return route.abort();
     });
+    console.log(await require("./intent-browser.cjs")(browser, origin));
     let demoLayouts = 0;
     for (const demo of ["opportunities", "onboarding"]) {
       await page.goto(origin + `/prototypes/${demo}/index.html`);
@@ -170,6 +171,7 @@ async function run() {
       }
       await page.setViewportSize({ width: 390, height: 900 });
       if (demo === "opportunities") {
+        await page.locator("#manual-library > summary").click();
         assert.equal(await page.locator("[data-open]").count(), 6);
         assert(
           !(await page

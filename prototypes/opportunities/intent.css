@@ -1,0 +1,219 @@
+.intent-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 32px;
+  align-items: start;
+  margin: 28px 0;
+}
+.intent-composer {
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  min-width: 0;
+}
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.section-heading h2 {
+  margin-top: 6px;
+}
+.intent-composer .field {
+  margin-bottom: 20px;
+}
+.intent-composer textarea {
+  width: 100%;
+  min-height: 180px;
+  resize: vertical;
+  line-height: 1.6;
+  font-size: 16px;
+}
+.intent-composer .muted {
+  font-size: 12px;
+}
+.intent-result {
+  min-width: 0;
+  padding: 4px 0 0;
+}
+.intent-result > h2 {
+  margin: 8px 0 16px;
+  border-left: 3px solid var(--blue);
+  padding-left: 14px;
+}
+.intent-result[data-category="declined"] > h2,
+.intent-result[data-category="conflicting"] > h2,
+.intent-result[data-category="unclear"] > h2 {
+  border-color: var(--gold);
+}
+.intent-result p {
+  overflow-wrap: anywhere;
+}
+.intent-result h3 {
+  margin: 24px 0 12px;
+}
+.intent-result ul {
+  padding-left: 20px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.intent-result li {
+  margin-bottom: 8px;
+}
+.intent-signal {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+.intent-signal-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 14px;
+}
+.intent-signal-heading strong {
+  font-weight: 550;
+}
+.intent-signal-heading .polarity {
+  font-size: 12px;
+  color: var(--muted);
+}
+.intent-evidence {
+  margin: 10px 0 0;
+  padding-left: 12px;
+  border-left: 2px solid var(--line);
+  font-size: 13px;
+  color: var(--muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.intent-next {
+  padding: 18px 20px;
+  background: var(--soft);
+  border-radius: 8px;
+  margin: 24px 0;
+}
+.intent-next h3 {
+  margin: 0 0 10px;
+}
+.intent-next p {
+  font-size: 14px;
+}
+.intent-limits {
+  border-block: 1px solid var(--line);
+}
+.intent-limits summary,
+.manual-library > summary {
+  cursor: pointer;
+  min-height: 48px;
+  padding: 12px 0;
+}
+.intent-limits p {
+  font-size: 13px;
+  margin: 12px 0;
+}
+.intent-comparisons {
+  margin: 40px 0;
+  border-top: 1px solid var(--line);
+  padding-top: 28px;
+}
+.intent-comparisons .section-heading {
+  margin-bottom: 12px;
+}
+.intent-comparisons > p {
+  font-size: 13px;
+}
+#intent-comparison-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  margin-top: 24px;
+}
+.intent-comparison {
+  min-width: 0;
+  border-top: 2px solid var(--line);
+  padding-top: 16px;
+}
+.intent-comparison .intent-evidence {
+  min-height: 72px;
+}
+.intent-comparison h3 {
+  margin: 16px 0 12px;
+}
+.intent-comparison p,
+.intent-comparison ul {
+  color: var(--muted);
+  font-size: 13px;
+}
+.intent-comparison ul {
+  padding-left: 18px;
+}
+.intent-comparison button {
+  margin-top: 16px;
+}
+.manual-library {
+  margin-top: 40px;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+.manual-library > summary {
+  font-weight: 550;
+}
+.manual-library > p {
+  margin-top: 12px;
+}
+#intent-context .dialog-head {
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  z-index: 1;
+}
+#intent-context .intent-context-message {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 16px;
+  border-radius: 8px;
+  background: var(--bg);
+  margin: 18px 0;
+}
+#intent-context-content h3 {
+  margin-top: 18px;
+}
+#intent-context-content ul {
+  padding-left: 20px;
+}
+#intent-context-content li {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 900px) {
+  .intent-workspace {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+  #intent-comparison-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 540px) {
+  .intent-composer {
+    padding: 20px 16px;
+  }
+  .intent-workspace {
+    margin-top: 24px;
+  }
+  .intent-result > h2 {
+    font-size: 26px;
+  }
+  .intent-result .actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .intent-composer .actions {
+    align-items: stretch;
+  }
+}

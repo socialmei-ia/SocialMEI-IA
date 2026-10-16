@@ -5,7 +5,14 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Oportunidades · SocialMEI.IA · Demonstração</title>
     <link rel="stylesheet" href="../demo.css" />
+    <link rel="stylesheet" href="intent.css" />
+    <link rel="stylesheet" href="priority.css" />
+    <script src="intent-engine.js" defer></script>
+    <script src="priority-engine.js" defer></script>
+    <script src="priority-scenario.js" defer></script>
     <script src="opportunities.js" defer></script>
+    <script src="intent-ui.js" defer></script>
+    <script src="priority-ui.js" defer></script>
   </head>
   <body>
     <header>
@@ -18,43 +25,270 @@
     <main>
       <p class="eyebrow">Experiência demonstrativa · sem conexão com o CRM</p>
       <h1>Oportunidades</h1>
-      <p class="muted">Um lugar para organizar sinais de interesse e escolher quem acompanhar.</p>
+      <p class="muted">Saiba quem acompanhar primeiro, por quê e qual pode ser o próximo passo.</p>
       <div class="notice">
-        <strong>Exemplos sintéticos, classificação manual.</strong> Os sinais abaixo foram definidos
-        para demonstrar a experiência. Não há análise real de mensagens, IA ou probabilidade de
-        conversão.
+        <strong>Demonstração com mensagens fictícias.</strong> Regras locais, sem probabilidade ou
+        garantia de venda. Textos ficam nesta página, sem envio externo.
       </div>
-      <div class="stats" aria-label="Resumo dos exemplos">
-        <span>Contatos fictícios<b id="total"></b></span
-        ><span>Com pedido explícito<b id="explicit"></b></span
-        ><span>Interesse a esclarecer<b id="exploring"></b></span>
-      </div>
-      <div class="toolbar">
-        <label class="field search"
-          ><span>Buscar por pessoa ou interesse</span
-          ><input id="search" type="search" placeholder="Nome, produto ou serviço" /></label
-        ><label class="field"
-          ><span>Sinal demonstrativo</span
-          ><select id="signal">
-            <option value="all">Todos os sinais</option>
-            <option value="explicit">Pedido explícito</option>
-            <option value="exploring">Interesse a esclarecer</option>
-            <option value="initial">Contato inicial</option>
-          </select></label
-        >
-        <div class="switch" aria-label="Visualização">
-          <button data-view="list" aria-pressed="true">Lista</button
-          ><button data-view="board" aria-pressed="false">Quadro</button>
+      <section id="customer-priorities" aria-labelledby="priority-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Oito clientes sintéticos · recomendação revisável</p>
+            <h2 id="priority-title">Quem acompanhar primeiro?</h2>
+          </div>
+          <div class="priority-controls">
+            <button id="reanalyze-customers" type="button">Reanalisar clientes</button>
+            <button id="reset-customers" type="button">Reiniciar cenário</button>
+          </div>
         </div>
-      </div>
-      <p id="results-status" class="status" role="status"></p>
-      <div id="results"></div>
-      <div class="actions"><button id="reset">Reiniciar demonstração</button></div>
+        <p class="muted priority-reference">Referência fictícia fixa: 16/10/2026, 12h UTC.</p>
+        <details class="priority-criteria">
+          <summary>Como a ordem é sugerida</summary>
+          <ol>
+            <li>
+              Compra explícita, combinação elevada de sinais ou pedido de orçamento: acompanhar
+              primeiro. Depois, responder consultas, esclarecer decisões, retomar sinais antigos e
+              entender necessidades.
+            </li>
+            <li>
+              Dentro do mesmo grupo: prazo reconhecido nas últimas 24 horas; depois, sinal decisivo
+              mais recente. Empates restantes usam identificador estável, sem significado comercial.
+            </li>
+            <li>
+              Mais mensagens não aumentam a prioridade. Sinais de mensagens diferentes não são
+              somados para fabricar intenção elevada. Recusa posterior prevalece sobre interesse
+              antigo.
+            </li>
+            <li>
+              Interesse com mais de 24 horas pede confirmação de contexto. Datas ausentes ou
+              inválidas não recebem recência inventada. “Hoje” antigo não vira urgência atual.
+            </li>
+            <li>
+              Suporte, compra relatada como concluída e desistência têm encaminhamentos próprios.
+              Fora da fila comercial não significa menor importância no atendimento.
+            </li>
+          </ol>
+          <p>
+            O limiar de 24 horas é experimental: precisa ser validado e futuramente configurável por
+            negócio, sem constituir uma regra definitiva.
+          </p>
+          <p>
+            Sentimento não é intenção de compra. Heurísticas em português podem errar. Revise as
+            evidências; não há probabilidade de venda, confirmação de estoque ou pagamento.
+          </p>
+        </details>
+        <p id="priority-status" class="status" role="status"></p>
+        <h3 class="priority-list-title">
+          Acompanhamento comercial <span id="commercial-count" class="badge"></span>
+        </h3>
+        <ol
+          id="commercial-priorities"
+          class="priority-list"
+          aria-label="Ordem sugerida de acompanhamento comercial"
+        ></ol>
+        <h3 class="priority-list-title">
+          Outros encaminhamentos <span id="other-count" class="badge"></span>
+        </h3>
+        <p class="muted priority-reference">
+          Atendimento de suporte, pós-venda e recusas. Esta área não ordena a importância do
+          atendimento.
+        </p>
+        <ul
+          id="other-priorities"
+          class="priority-list"
+          aria-label="Encaminhamentos fora da fila comercial"
+        ></ul>
+      </section>
+      <h2 class="single-analysis-title">Experimentar uma mensagem avulsa</h2>
+      <section class="intent-workspace" aria-label="Análise local de mensagem">
+        <form id="intent-form" class="intent-composer" autocomplete="off">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Experimente uma mensagem nova</p>
+              <h2>Que sinais aparecem aqui?</h2>
+            </div>
+            <span class="badge">Sem API externa</span>
+          </div>
+          <label class="field" for="intent-example"
+            ><span>Carregar exemplo sintético</span
+            ><select id="intent-example">
+              <option value="">Escolher um exemplo (opcional)</option>
+            </select></label
+          >
+          <label class="field" for="intent-message"
+            ><span>Mensagem fictícia de cliente</span
+            ><textarea
+              id="intent-message"
+              rows="5"
+              maxlength="4000"
+              aria-describedby="intent-input-note"
+              placeholder="Ex.: Quanto custa o 212 VIP? Tem pronta entrega? Consegue entregar hoje?"
+            ></textarea>
+          </label>
+          <p id="intent-input-note" class="muted">
+            Até 4.000 caracteres. A análise considera apenas esta mensagem, sem histórico ou
+            catálogo.
+          </p>
+          <div class="actions">
+            <button id="analyze-intent" class="primary" type="submit">Analisar intenção</button
+            ><button id="clear-intent" type="button">Limpar sessão</button>
+          </div>
+          <p id="intent-status" class="status" role="status">
+            Nenhuma mensagem analisada nesta sessão.
+          </p>
+        </form>
+        <section
+          id="intent-result"
+          class="intent-result"
+          aria-labelledby="intent-result-title"
+          hidden
+        >
+          <p class="eyebrow">Leitura provisória do texto informado</p>
+          <h2 id="intent-result-title" tabindex="-1"></h2>
+          <p id="intent-explanation"></p>
+          <h3>Sinais e trechos encontrados</h3>
+          <div id="intent-signals"></div>
+          <h3>O que ainda não sabemos</h3>
+          <ul id="intent-missing"></ul>
+          <div class="intent-next">
+            <h3>Próximo passo prudente</h3>
+            <p id="intent-next-step"></p>
+          </div>
+          <details class="intent-limits">
+            <summary>Critério e limitações da análise</summary>
+            <p id="intent-rule"></p>
+            <ul id="intent-limitations"></ul>
+          </details>
+          <div class="actions">
+            <button id="compare-intent" type="button">Guardar para comparar</button
+            ><button type="button" data-intent-context="conversation">Prévia na Caixa</button
+            ><button type="button" data-intent-context="client">Prévia no Cliente 360</button>
+          </div>
+        </section>
+      </section>
+      <section
+        id="intent-comparisons"
+        class="intent-comparisons"
+        aria-labelledby="intent-comparison-title"
+        hidden
+      >
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Comparação manual, só nesta sessão</p>
+            <h2 id="intent-comparison-title">Mensagens lado a lado</h2>
+          </div>
+          <button id="clear-comparisons" type="button">Apagar comparações</button>
+        </div>
+        <p class="muted">
+          Até três análises, sem ordenar pessoas por chance de venda. Recarregar ou limpar descarta
+          os textos.
+        </p>
+        <div id="intent-comparison-list"></div>
+      </section>
+      <details id="manual-library" class="manual-library">
+        <summary>Explorar a biblioteca de seis exemplos manuais da rodada anterior</summary>
+        <p class="muted">
+          Composição ilustrativa de lista/quadro. As classificações destes seis contatos continuam
+          manuais e são independentes da análise de texto acima.
+        </p>
+        <div class="stats" aria-label="Resumo dos exemplos">
+          <span>Contatos fictícios<b id="total"></b></span
+          ><span>Com pedido explícito<b id="explicit"></b></span
+          ><span>Interesse a esclarecer<b id="exploring"></b></span>
+        </div>
+        <div class="toolbar">
+          <label class="field search"
+            ><span>Buscar por pessoa ou interesse</span
+            ><input id="search" type="search" placeholder="Nome, produto ou serviço" /></label
+          ><label class="field"
+            ><span>Sinal demonstrativo</span
+            ><select id="signal">
+              <option value="all">Todos os sinais</option>
+              <option value="explicit">Pedido explícito</option>
+              <option value="exploring">Interesse a esclarecer</option>
+              <option value="initial">Contato inicial</option>
+            </select></label
+          >
+          <div class="switch" aria-label="Visualização">
+            <button data-view="list" aria-pressed="true">Lista</button
+            ><button data-view="board" aria-pressed="false">Quadro</button>
+          </div>
+        </div>
+        <p id="results-status" class="status" role="status"></p>
+        <div id="results"></div>
+        <div class="actions"><button id="reset">Reiniciar demonstração</button></div>
+      </details>
       <footer>
-        Alterações de etapa e rascunhos existem apenas nesta prévia. Recarregar descarta as
-        mudanças. Nenhum contato real é consultado.
+        Textos analisados, comparações, alterações de etapa e rascunhos existem apenas nesta prévia.
+        Recarregar descarta as mudanças. Nenhum contato real é consultado.
       </footer>
     </main>
+    <dialog id="priority-detail" aria-labelledby="priority-detail-title">
+      <div class="dialog-head">
+        <h2 id="priority-detail-title" tabindex="-1"></h2>
+        <form method="dialog"><button>Fechar cliente</button></form>
+      </div>
+      <div class="dialog-body">
+        <p class="eyebrow">Cliente fictício · revisão apenas nesta sessão</p>
+        <div id="priority-detail-summary"></div>
+        <h3>Conversa e evidências literais</h3>
+        <p class="muted priority-reference">
+          Cada mensagem é analisada separadamente. O sinal decisivo está identificado; somente falas
+          do cliente entram na recomendação.
+        </p>
+        <div id="priority-conversation"></div>
+        <details class="priority-editor">
+          <summary>Acrescentar mensagem fictícia e analisar</summary>
+          <form id="priority-message-form" autocomplete="off">
+            <label class="field" for="priority-message"
+              ><span>Nova mensagem deste cliente fictício</span
+              ><textarea id="priority-message" maxlength="4000" rows="3" required></textarea>
+            </label>
+            <p class="muted priority-reference">
+              Será registrada em 16/10/2026, 12h UTC. Uma nova mensagem descarta a revisão deste
+              cliente para permitir nova avaliação.
+            </p>
+            <button class="primary" type="submit">Adicionar e reanalisar</button>
+          </form>
+        </details>
+        <h3>Revisão humana</h3>
+        <p class="muted priority-reference">
+          Pode alterar o encaminhamento com um motivo. A recomendação original fica visível; nenhuma
+          ação externa acontece.
+        </p>
+        <form id="priority-review-form" autocomplete="off">
+          <label class="field" for="priority-review-group"
+            ><span>Encaminhamento revisado</span
+            ><select id="priority-review-group"></select
+          ></label>
+          <label class="field" for="priority-review-reason"
+            ><span>Motivo da revisão</span
+            ><textarea id="priority-review-reason" rows="2" maxlength="300" required></textarea>
+          </label>
+          <div class="actions">
+            <button class="primary" type="submit">Aplicar revisão local</button
+            ><button id="priority-remove-review" type="button">Voltar à recomendação</button>
+          </div>
+        </form>
+        <p id="priority-detail-status" class="status" role="status"></p>
+      </div>
+    </dialog>
+    <dialog id="intent-context" aria-labelledby="intent-context-title">
+      <div class="dialog-head">
+        <h2 id="intent-context-title"></h2>
+        <form method="dialog"><button>Fechar prévia</button></form>
+      </div>
+      <div class="dialog-body">
+        <p class="notice">
+          Painel fictício com o texto desta sessão. Sem conexão com a Caixa ou o CRM reais.
+        </p>
+        <div class="switch" aria-label="Alternar contexto demonstrativo">
+          <button type="button" data-intent-context="conversation">Caixa Unificada</button
+          ><button type="button" data-intent-context="client">Cliente 360</button>
+        </div>
+        <div id="intent-context-content"></div>
+      </div>
+    </dialog>
     <dialog id="detail" aria-labelledby="detail-title">
       <div class="dialog-head">
         <h2 id="detail-title"></h2>

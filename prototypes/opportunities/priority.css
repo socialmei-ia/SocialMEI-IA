@@ -1,0 +1,264 @@
+#customer-priorities {
+  margin: 32px 0 48px;
+}
+#customer-priorities .section-heading {
+  margin-bottom: 8px;
+}
+#priority-status:empty {
+  display: none;
+}
+.priority-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.priority-controls button {
+  font-size: 13px;
+}
+.priority-reference {
+  font-size: 12px;
+}
+.priority-criteria {
+  margin: 16px 0;
+  border-block: 1px solid var(--line);
+  font-size: 13px;
+  color: var(--muted);
+}
+.priority-criteria summary {
+  color: var(--text);
+  padding: 12px 0;
+  min-height: 48px;
+}
+.priority-criteria ol {
+  padding-left: 22px;
+}
+.priority-criteria li {
+  margin: 8px 0;
+}
+.priority-criteria > p {
+  margin: 12px 0;
+}
+.priority-list-title {
+  margin: 24px 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.priority-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.priority-card {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.8fr) minmax(0, 1.4fr) minmax(0, 1.2fr) auto;
+  gap: 20px;
+  align-items: start;
+  padding: 20px;
+  border-bottom: 1px solid var(--line);
+}
+.priority-card:last-child {
+  border-bottom: 0;
+}
+.priority-card > div {
+  min-width: 0;
+}
+.priority-person {
+  display: flex;
+  gap: 12px;
+}
+.priority-person > div {
+  flex: 1;
+  min-width: 0;
+}
+.priority-position {
+  font-size: 22px;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  min-width: 20px;
+}
+.priority-card h4 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+.priority-card p {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.priority-card .priority-time {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+.priority-card .badge {
+  margin-bottom: 8px;
+}
+.priority-card .review-badge {
+  color: var(--warning);
+  background: transparent;
+  padding-left: 0;
+}
+.priority-step-label {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.priority-card button {
+  font-size: 13px;
+  white-space: nowrap;
+}
+.single-analysis-title {
+  border-top: 1px solid var(--line);
+  padding-top: 28px;
+}
+#priority-detail {
+  width: min(760px, calc(100% - 24px));
+}
+#priority-detail .dialog-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface);
+}
+#priority-detail-summary > p {
+  margin: 12px 0;
+  font-size: 13px;
+}
+#priority-detail-summary ul {
+  font-size: 13px;
+  color: var(--muted);
+}
+#priority-detail-summary .intent-next {
+  margin-bottom: 12px;
+}
+.priority-message {
+  border-top: 1px solid var(--line);
+  margin-top: 20px;
+  padding-top: 16px;
+}
+.priority-message .intent-evidence {
+  color: var(--text);
+}
+.priority-message .priority-quotes .intent-evidence {
+  color: var(--muted);
+}
+.priority-message time {
+  color: var(--muted);
+  font-size: 12px;
+}
+.priority-message h4 {
+  font-size: 14px;
+  margin: 12px 0 0;
+}
+.priority-quotes {
+  padding-left: 16px;
+}
+.priority-quotes p {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.priority-message > p {
+  font-size: 13px;
+  margin-top: 10px;
+}
+.priority-editor {
+  margin-top: 24px;
+  padding-block: 12px;
+  border-block: 1px solid var(--line);
+}
+.priority-editor summary {
+  min-height: 44px;
+  padding: 8px 0;
+}
+#priority-message-form button {
+  margin-top: 12px;
+}
+#priority-detail .field {
+  margin-top: 14px;
+  grid-template-columns: minmax(0, 1fr);
+}
+#priority-detail select {
+  width: 100%;
+  min-width: 0;
+}
+#priority-detail textarea {
+  margin: 0;
+  min-height: 80px;
+  font-size: 16px;
+}
+@media (max-width: 1000px) {
+  .priority-card {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    gap: 14px 24px;
+  }
+  .priority-card > button {
+    justify-self: start;
+  }
+}
+@media (max-width: 540px) {
+  #customer-priorities {
+    margin-top: 24px;
+  }
+  .priority-controls {
+    width: 100%;
+  }
+  .priority-controls button {
+    flex: 1;
+  }
+  .priority-card {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px 10px;
+    padding: 12px 14px;
+  }
+  .priority-card .priority-person {
+    grid-column: 1;
+    grid-row: 1;
+    align-items: center;
+    gap: 8px;
+  }
+  .priority-card > div:nth-child(2) {
+    grid-column: 1 / -1;
+  }
+  .priority-card .priority-person p,
+  .priority-card .priority-time,
+  .priority-card .priority-step {
+    display: none;
+  }
+  .priority-card .badge {
+    margin-bottom: 4px;
+  }
+  .priority-position {
+    font-size: 18px;
+    min-width: 18px;
+  }
+  .priority-card > button {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: center;
+    padding-inline: 10px;
+  }
+  #priority-detail .dialog-head h2 {
+    font-size: 20px;
+  }
+  #priority-detail .dialog-head {
+    gap: 10px;
+    padding: 16px;
+  }
+  #priority-detail .dialog-head button {
+    font-size: 12px;
+  }
+  #priority-detail .actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
