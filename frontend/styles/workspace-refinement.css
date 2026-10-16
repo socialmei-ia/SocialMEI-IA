@@ -1,0 +1,376 @@
+/* SocialMEI · Workspace
+   Composição dos módulos internos, independente da landing e dos dados.
+   Respeita os tokens de cor, tipografia e movimento já definidos no produto.
+*/
+
+/* Navegação e contexto do negócio */
+.experience-app .workspace-shell {
+  position: relative;
+  isolation: isolate;
+  margin-bottom: 28px;
+  padding: clamp(20px, 2.5vw, 32px);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background:
+    radial-gradient(
+      circle at 95% -30%,
+      color-mix(in srgb, var(--brand-primary) 12%, transparent),
+      transparent 48%
+    ),
+    var(--surface);
+  box-shadow: 0 14px 44px color-mix(in srgb, var(--text-primary) 4%, transparent);
+}
+
+.experience-app .workspace-shell .management-header {
+  align-items: center;
+  margin-bottom: 24px;
+  gap: 16px 24px;
+}
+
+.experience-app .workspace-shell .management-header > div:first-child {
+  min-width: 0;
+  max-width: 62ch;
+}
+
+.experience-app .workspace-shell .management-header h2 {
+  font-size: clamp(27px, 2.8vw, 38px);
+  font-weight: 650;
+  line-height: 1.12;
+  letter-spacing: -0.045em;
+  overflow-wrap: anywhere;
+}
+
+.workspace-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: var(--brand-primary-text);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.workspace-eyebrow::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--brand-primary);
+  box-shadow: 0 0 0 4px var(--brand-primary-soft);
+}
+
+.experience-app .workspace-shell .management-header p {
+  margin-top: 8px;
+  max-width: 60ch;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.experience-app .workspace-shell .management-header-controls {
+  justify-content: flex-end;
+  max-width: 100%;
+}
+
+.experience-app .workspace-shell #nvActs {
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.experience-app .workspace-shell #nvActs .management-button.pr {
+  border-radius: 11px;
+  box-shadow: 0 5px 14px color-mix(in srgb, var(--brand-primary) 15%, transparent);
+}
+
+.experience-app .workspace-tabs {
+  width: fit-content;
+  max-width: 100%;
+  gap: 4px;
+  padding: 5px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-secondary);
+}
+
+.workspace-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.experience-app .workspace-tabs button {
+  position: relative;
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 clamp(12px, 1.4vw, 20px);
+  border-radius: 10px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 550;
+  scroll-snap-align: start;
+  transition:
+    color var(--motion-fast),
+    background-color var(--motion-fast),
+    box-shadow var(--motion-fast);
+}
+
+.experience-app .workspace-tabs button[aria-selected="true"] {
+  background: var(--surface);
+  color: var(--text-primary);
+  font-weight: 680;
+  box-shadow: 0 2px 9px color-mix(in srgb, var(--text-primary) 9%, transparent);
+}
+
+.experience-app .workspace-tabs button:hover {
+  background: var(--hover);
+}
+
+.experience-app .workspace-tabs button[aria-selected="true"]:hover {
+  background: var(--surface);
+}
+
+.experience-app .workspace-tabs button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -3px;
+}
+
+.experience-app .workspace-tabs .management-tab-indicator {
+  height: 3px;
+  bottom: 1px;
+  border-radius: 999px;
+}
+
+/* Resumos editoriais: não empilhar cartões para cada métrica */
+.experience-app :is(#salesView, #clientsView) .workspace-summary {
+  position: relative;
+  padding: 16px 22px 22px;
+  border: 0;
+  border-left: 3px solid var(--brand-primary);
+  border-radius: 0 14px 14px 0;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--brand-primary) 6%, var(--surface)),
+    transparent 88%
+  );
+}
+
+.experience-app :is(#salesView, #clientsView) .workspace-summary .internal-metric > span {
+  font-size: 12px;
+  font-weight: 550;
+}
+
+.experience-app :is(#salesView, #clientsView) .workspace-summary .internal-metric--primary > b {
+  color: var(--text-primary);
+  letter-spacing: -0.05em;
+}
+
+/* Uma superfície coesa para busca, filtros, listagem e paginação */
+.experience-app .workspace-list-panel {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: 0 12px 35px color-mix(in srgb, var(--text-primary) 4%, transparent);
+}
+
+.experience-app .workspace-list-toolbar {
+  gap: 10px;
+  min-height: 80px;
+  padding: 16px 20px;
+  background: color-mix(in srgb, var(--surface-secondary) 32%, var(--surface));
+  border-bottom: 1px solid var(--border);
+}
+
+.experience-app .workspace-list-toolbar .management-input[type="search"] {
+  flex: 1 1 260px;
+  min-width: min(240px, 100%);
+  min-height: 48px;
+  padding: 0 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text-primary);
+  font-size: 14px;
+  transition:
+    border-color var(--motion-fast),
+    box-shadow var(--motion-fast);
+}
+
+.experience-app .workspace-list-toolbar .management-input[type="search"]::placeholder {
+  color: var(--text-muted);
+}
+
+.experience-app .workspace-list-toolbar .management-input[type="search"]:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+  border-color: var(--brand-primary);
+}
+
+.experience-app .workspace-list-toolbar .management-button {
+  min-height: 44px;
+  border-radius: 11px;
+  padding-inline: 16px;
+}
+
+.experience-app .workspace-list-panel .management-table th {
+  padding: 14px 20px;
+  background: color-mix(in srgb, var(--surface-secondary) 42%, var(--surface));
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.experience-app .workspace-list-panel .management-table td {
+  padding: 16px 20px;
+  line-height: 1.55;
+}
+
+.experience-app .workspace-list-panel .management-table tbody tr {
+  transition: background-color var(--motion-fast);
+}
+
+.experience-app .workspace-list-panel .management-table tbody tr:focus-within {
+  background: var(--brand-primary-soft);
+}
+
+.experience-app .workspace-list-panel .management-contact .row-action,
+.experience-app .workspace-list-panel .management-product-card .row-action {
+  font-weight: 650;
+}
+
+.experience-app .workspace-list-panel .management-meta {
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-secondary) 18%, var(--surface));
+}
+
+.experience-app .workspace-list-panel .empty {
+  min-height: 180px;
+  padding: 38px 24px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Catálogo e lançamentos compartilham a linguagem do workspace */
+.experience-app #productsView .workspace-list-panel .management-product-card {
+  border-radius: 16px;
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+.experience-app #productsView .workspace-list-panel .management-product-card:focus-within {
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 2px var(--brand-primary-soft);
+}
+
+.experience-app #financeView .workspace-list-panel .management-ledger-row:focus-within {
+  background: var(--brand-primary-soft);
+}
+
+.experience-app #financeView .management-section-label {
+  margin-bottom: -12px;
+  font-weight: 650;
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .experience-app #productsView .workspace-list-panel .management-product-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--border-strong);
+    box-shadow: 0 10px 28px color-mix(in srgb, var(--text-primary) 7%, transparent);
+  }
+}
+
+/* Pequenas telas: controles acessíveis sem deslocamento horizontal da página */
+@media (max-width: 760px) {
+  .experience-app .workspace-shell {
+    margin-bottom: 20px;
+    padding: 20px 16px;
+    border-radius: 18px;
+  }
+
+  .experience-app .workspace-shell .management-header {
+    align-items: stretch;
+    gap: 18px;
+    margin-bottom: 18px;
+  }
+
+  .experience-app .workspace-shell .management-header-controls {
+    justify-content: flex-start;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .experience-app .workspace-tabs {
+    width: 100%;
+    border-radius: 12px;
+  }
+
+  .experience-app .workspace-list-panel {
+    border-radius: 16px;
+  }
+
+  .experience-app .workspace-list-toolbar {
+    min-height: 0;
+    padding: 14px;
+    gap: 10px;
+  }
+
+  .experience-app .workspace-list-toolbar .management-input[type="search"] {
+    min-width: 0;
+  }
+
+  .experience-app :is(#salesView, #clientsView) .workspace-summary {
+    padding: 14px 14px 18px;
+  }
+
+  .experience-app .workspace-list-panel .management-table td {
+    padding: 12px 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .experience-app .workspace-shell .management-header h2 {
+    font-size: clamp(27px, 7.5vw, 34px);
+  }
+
+  .experience-app .workspace-shell .management-header-controls > * {
+    min-width: 0;
+  }
+
+  .experience-app .workspace-tabs button {
+    padding-inline: 14px;
+    font-size: 12px;
+  }
+
+  .experience-app .workspace-list-toolbar .management-input[type="search"] {
+    flex-basis: 100%;
+    width: 100%;
+  }
+
+  .experience-app .workspace-list-panel .management-meta {
+    padding: 14px;
+  }
+
+  .experience-app .workspace-list-panel .empty {
+    min-height: 140px;
+    padding: 24px 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .experience-app .workspace-tabs button,
+  .experience-app .workspace-list-toolbar .management-input,
+  .experience-app .workspace-list-panel .management-table tbody tr,
+  .experience-app #productsView .workspace-list-panel .management-product-card {
+    transition: none;
+    transform: none;
+  }
+
+  .experience-app .workspace-tabs {
+    scroll-behavior: auto;
+  }
+}
