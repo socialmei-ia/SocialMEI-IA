@@ -32,10 +32,10 @@ Não foi identificado um arquivo versionado seguramente descartável nesta rodad
 
 | Área                         | UI e comportamento                                                          | Estado / API / testes                                                                             |
 | ---------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| Home                         | `home.js`, `experience.js`; shell em `app.js`                               | Estado atual dos stores; `visual-browser.cjs` e `visual-refinement-browser.cjs`                   |
+| Home                         | `home.js`, `experience.js`, `personalization.js`; shell em `app.js`         | Estado atual dos stores; `visual-browser.cjs` e `visual-refinement-browser.cjs`                   |
 | Caixa Unificada              | `inbox.js`, `record-editor.js`, `dialogs.js`                                | `inbox-sync.js`, estado local; `inbox-sync.test.cjs`, navegador                                   |
 | Clientes                     | `customers.js`, `business-views.js`, `record-editor.js`                     | `client-store.js`, `shared_data.py`, `client_import.py`; suites client/remote/transfer            |
-| Produtos                     | `products.js`, `business-views.js`                                          | `product-store.js`, `catalog_data.py`, `product_import.py`; suites catalog                        |
+| Produtos                     | `products.js`, `business-views.js`, `personalization.js`                    | `product-store.js`, `catalog_data.py`, `product_import.py`; suites catalog                        |
 | Vendas                       | `sales.js`, `business-views.js`                                             | `sale-store.js`, `sales_data.py`, `sale_import.py`; suites sales/replay/estoque                   |
 | Financeiro                   | `finance.js`, `business-views.js`                                           | `finance-store.js`, `finance_data.py`, `finance_import.py`; suites finance                        |
 | Relatórios                   | `reports.js`, `app.js` e componentes existentes                             | Estado de gestão e período; `reports-browser.cjs`                                                 |

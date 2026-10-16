@@ -46,6 +46,6 @@ Capturas reais dentro do app: [desktop claro](native-integration/queue-1440-ligh
 ## Etapas seguintes da integração
 
 2. **Concluído nesta branch:** onboarding progressivo, perfil extensível, edição posterior e persistência local explícita por identidade/workspace; sem autenticação paralela. Veja [Etapa 2 e suas limitações](ADAPTIVE-ONBOARDING.md).
-3. Aplicar o perfil a sugestões e módulos/Home, sem cadastrar produtos ou serviços automaticamente.
+3. **Implementado nesta branch:** Home e atalhos contextuais, sugestões abrindo o formulário nativo e preferências de sugestões no mesmo perfil. Veja [Etapa 3 e limitações](NATIVE-PERSONALIZATION.md).
 4. Ler integralmente o arquivo anexado `SocialMEI-Relatorios-Prototipo-V2 (1).html` e integrar componentes/animações na seção oficial, preservando cálculos, filtros/exportações e acessibilidade. O anexo foi localizado, mas não foi analisado nem incorporado nesta etapa.
 5. Validar consistência entre as funcionalidades e estados vazios de contas sem canais. O conector real de Oportunidades continua bloqueado até existir contrato seguro.

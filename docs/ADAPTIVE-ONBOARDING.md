@@ -25,7 +25,7 @@ O contrato de backend existente foi conferido: `PATCH /auth/profile` aceita dado
 
 `SocialMEIBusinessProfile.browserRepository().read()` fornece `{status, profile}`; ausência ou indisponibilidade produz `profile: null`. `save()` normaliza uma lista permitida de campos e exige confirmação, ofertas e nome. O perfil contém `businessName`, `segment`, `activity`, `offers`, `services`, `productCategories`, `capabilities`, `modules`, `version`, `completed`.
 
-Este é o contrato reutilizável para Home, Produtos e Serviços. **As sugestões e ferramentas escolhidas ainda não cadastram itens, reorganizam a Home ou ativam/ocultam abas.** A interface deixa isso explícito. Não foram inventados produtos, serviços, preços, estoque, clientes, vendas ou agendamentos. Aplicar as preferências aos módulos é a próxima etapa, separada da conclusão do onboarding.
+Este é o contrato reutilizável para Home, Produtos e Serviços. A aplicação desse perfil foi implementada posteriormente na [Etapa 3](NATIVE-PERSONALIZATION.md); as limitações do restante deste parágrafo descrevem a entrega original da Etapa 2. **As sugestões e ferramentas escolhidas ainda não cadastram itens, reorganizam a Home ou ativam/ocultam abas.** A interface deixa isso explícito. Não foram inventados produtos, serviços, preços, estoque, clientes, vendas ou agendamentos. Aplicar as preferências aos módulos é a próxima etapa, separada da conclusão do onboarding.
 
 ## Abrir e conferir
 
