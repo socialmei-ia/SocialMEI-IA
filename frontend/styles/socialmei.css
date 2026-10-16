@@ -8050,6 +8050,12 @@ body.experience-app #experienceRoot {
 .home-sale-row:hover {
   background: var(--hover);
 }
+.home-priority-row:focus-visible,
+.home-sale-row:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+  background: var(--brand-primary-soft);
+}
 .home-priority-row > span:nth-child(2),
 .home-sale-row > span {
   min-width: 0;
@@ -8069,10 +8075,12 @@ body.experience-app #experienceRoot {
   line-height: 1.5;
 }
 .home-sale-row > strong {
+  min-width: 0;
   font-size: 14px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+  text-align: right;
+  overflow-wrap: anywhere;
 }
 .home-priority-dot {
   width: 7px;
@@ -8292,6 +8300,25 @@ body.experience-app #experienceRoot {
   background: var(--bs);
   padding: 1px 5px;
   border-radius: 5px;
+}
+.command-starters button[data-home-create="venda"] {
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+  color: var(--on-primary);
+  font-weight: 600;
+}
+.command-starters button[data-home-create="venda"] span {
+  background: color-mix(in srgb, var(--on-primary) 16%, transparent);
+  color: var(--on-primary);
+}
+.command-starters button[data-home-create="venda"]:is(:hover, :focus-visible) {
+  background: var(--brand-primary-hover);
+  border-color: var(--brand-primary-hover);
+  color: var(--on-primary);
+}
+.command-starters button:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 3px;
 }
 .desk-margin {
   grid-area: margin;
