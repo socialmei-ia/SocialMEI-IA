@@ -9719,6 +9719,25 @@ body.experience-app #experienceRoot {
   min-height: 20px;
   font-size: 11px;
 }
+#automationsView .automation-integration-state {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 36px;
+  padding: 16px 0;
+  border-block: 1px solid var(--internal-line);
+}
+#automationsView .automation-integration-state > div {
+  display: grid;
+  gap: 4px;
+}
+#automationsView .automation-integration-state span {
+  color: var(--mt);
+  font-size: 12px;
+}
+#automationsView .automation-integration-state b {
+  font-size: 13px;
+  font-weight: 550;
+}
 #automationsView #nvRuleKpis {
   display: flex;
   flex-wrap: wrap;
@@ -22004,6 +22023,35 @@ body.management-view-active .toast-zone .toast {
   padding: 12px 0;
   margin-top: 14px;
   border-top: 1px dashed var(--border);
+}
+#aiToolsView .assistant-edit {
+  margin-block: 18px;
+  border-block: 1px solid var(--internal-line);
+}
+#aiToolsView .assistant-edit summary {
+  min-height: 44px;
+  padding-block: 12px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--brand-primary-text);
+}
+#aiToolsView .assistant-edit textarea {
+  display: block;
+  width: 100%;
+  min-height: 150px;
+  resize: vertical;
+  padding: 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--tx);
+  font: inherit;
+  line-height: 1.6;
+}
+#aiToolsView .assistant-edit p {
+  font-size: 12px;
+  color: var(--mt);
+  margin: 10px 0 16px;
 }
 #aiToolsView .assistant-draft-actions {
   display: flex;

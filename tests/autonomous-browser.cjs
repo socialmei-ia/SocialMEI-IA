@@ -69,10 +69,42 @@ async function run() {
         "Rascunho:",
       ),
     );
+    await page.evaluate(() => setView("Assistente"));
+    await page.locator("[data-ai-conversation]").first().click();
+    await page.locator("[data-ai-intent=reply]").click();
+    await page.locator("[data-ai-prepare]").first().click();
+    await page.locator(".assistant-edit summary").click();
+    await page
+      .locator("#assistantDraftEditor")
+      .fill("Texto revisado pelo empreendedor, sem envio.");
+    assert.equal(
+      await page.locator(".assistant-draft-text").textContent(),
+      "Texto revisado pelo empreendedor, sem envio.",
+    );
+    const beforeInsert = await page.evaluate(() =>
+      sessionData.conversas.reduce((n, c) => n + c.mensagens.length, 0),
+    );
+    await page.locator("[data-ai-insert]").click();
+    assert(
+      (await page.locator("#messageInput").inputValue()).includes(
+        "Texto revisado pelo empreendedor, sem envio.",
+      ),
+    );
+    assert.equal(
+      await page.evaluate(() => sessionData.conversas.reduce((n, c) => n + c.mensagens.length, 0)),
+      beforeInsert,
+    );
+    await page.evaluate(() => setView("Automações"));
+    assert(
+      (await page.locator(".automation-integration-state").textContent()).includes("Não conectada"),
+    );
+    await page.locator("#automationFeature [data-rule-test]").click();
+    assert.match(await page.locator("#nvManagementDrawerTitle").innerText(), /simulado/);
+    await page.keyboard.press("Escape");
     assert.deepEqual(errors, []);
     assert.deepEqual(external, []);
     console.log(
-      "Atendimento: rascunho preservado, preview atualizado e resposta local sem envio externo.",
+      "Atendimento, edição do Assistente e simulação de Automações passaram, sem envio externo.",
     );
   } finally {
     await browser.close();

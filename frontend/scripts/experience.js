@@ -1974,7 +1974,7 @@ ONBOARDING — JAVASCRIPT
                   <div class="rule-feature-title">
                     <h3>${escapeHtml(featured.name)}</h3>
                     <span class="pill ${featured.enabled ? "info" : "draft"}"
-                      >${featured.enabled ? "Ativa" : "Pausada"}</span
+                      >${featured.enabled ? "Habilitada localmente" : "Pausada"}</span
                     >
                   </div>
                   <div class="management-inline-actions rule-feature-actions">
@@ -2726,6 +2726,11 @@ ONBOARDING — JAVASCRIPT
           escapeHtml(d.instruction) +
           "</p>"
         : "") +
+      '<details class="assistant-edit"><summary>Editar rascunho antes de usar</summary><label for="assistantDraftEditor" class="sr-only">Texto do rascunho</label><textarea id="assistantDraftEditor" data-ai-edit="' +
+      activeAssistantDraftIndex +
+      '" rows="5">' +
+      escapeHtml(d.text) +
+      "</textarea><p>Você pode ajustar o texto. Nenhuma mensagem será enviada.</p></details>" +
       actions +
       '<div class="assistant-draft-sources"><p>Preparado usando</p><div class="assistant-source-items">' +
       renderAssistantSources(d.sources || []) +
@@ -3385,6 +3390,23 @@ ONBOARDING — JAVASCRIPT
     renderAssistantDrafts();
     renderAssistantHistory();
   }
+  assistantRoot.addEventListener("input", (event) => {
+    if (!event.target.matches("[data-ai-edit]")) return;
+    const draft = assistantDrafts[Number(event.target.dataset.aiEdit)];
+    if (!draft) return;
+    draft.text = event.target.value;
+    q(".assistant-draft-text").textContent = draft.text;
+    q("#aiReviewContext").textContent = "Editado por você · rascunho local";
+  });
+  assistantRoot.addEventListener("change", (event) => {
+    if (!event.target.matches("[data-ai-edit]")) return;
+    socialmeiStorageSet(
+      "socialmei-ai-drafts-v1",
+      JSON.stringify(assistantHistory),
+      "os rascunhos recentes",
+    );
+    renderAssistantHistory();
+  });
   q("#nvAiSearch").addEventListener("input", renderAssistantConversations);
   q("#aiContextSelect").addEventListener("change", () => {
     isAssistantMainVisibleOnMobile = !!getAssistantConversation();
