@@ -295,10 +295,14 @@
     box-shadow: none;
   }
 
+  .experience-app .workspace-eyebrow {
+    display: none;
+  }
+
   .experience-app .workspace-shell .management-header {
     align-items: stretch;
-    gap: 12px;
-    margin-bottom: 12px;
+    gap: 6px;
+    margin-bottom: 4px;
   }
 
   .experience-app .workspace-shell .management-header-controls {
