@@ -24,3 +24,8 @@ test("Home actions have keyboard focus feedback and mobile-friendly sales totals
   assert.match(css, /\.command-starters button:focus-visible/);
   assert.match(css, /\.home-sale-row > strong \{[\s\S]*?overflow-wrap: anywhere;/);
 });
+
+test("Home heading remains readable on the narrowest screens", () => {
+  const narrow = css.slice(css.indexOf("@media (max-width: 360px)"));
+  assert.match(narrow, /\.desk-opening h2 \{\s*font-size: clamp\(29px, 9vw, 35px\);/);
+});
