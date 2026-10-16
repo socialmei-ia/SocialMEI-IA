@@ -6,8 +6,8 @@
   "scripts": {
     "test": "node --test tests/*.test.cjs",
     "test:browser": "node tests/browser.cjs",
-    "format": "prettier --write frontend tools tests *.html *.json .github docs *.md compose*.yaml",
-    "format:check": "prettier --check frontend tools tests *.html *.json .github docs *.md compose*.yaml",
+    "format": "prettier --write frontend prototypes tools tests *.html *.json .github docs *.md compose*.yaml",
+    "format:check": "prettier --check frontend prototypes tools tests *.html *.json .github docs *.md compose*.yaml",
     "setup": "node tools/dev-workspace.mjs setup",
     "dev": "node tools/dev-workspace.mjs up",
     "dev:tools": "node tools/dev-workspace.mjs up-tools",
@@ -19,7 +19,8 @@
     "db:migrate": "node tools/db-migrate.mjs migrate",
     "db:status": "node tools/db-migrate.mjs status",
     "doctor": "node tools/team-doctor.mjs",
-    "data:export": "node tools/export-workspace.mjs"
+    "data:export": "node tools/export-workspace.mjs",
+    "test:development": "node tests/autonomous-browser.cjs"
   },
   "devDependencies": {
     "playwright": "1.62.1",

@@ -27,7 +27,7 @@ async function run() {
   const errors = [],
     external = [];
   try {
-    const page = await browser.newPage({
+    let page = await browser.newPage({
       viewport: { width: 1440, height: 1000 },
       reducedMotion: "reduce",
     });
@@ -101,6 +101,163 @@ async function run() {
     await page.locator("#automationFeature [data-rule-test]").click();
     assert.match(await page.locator("#nvManagementDrawerTitle").innerText(), /simulado/);
     await page.keyboard.press("Escape");
+    const output = path.join(root, "test-results/autonomous");
+    fs.mkdirSync(output, { recursive: true });
+    let appLayouts = 0;
+    for (const width of [320, 360, 390, 768, 1024, 1440]) {
+      await page.setViewportSize({ width, height: 1000 });
+      for (const theme of ["light", "dark"]) {
+        await page.evaluate((theme) => setTheme(theme), theme);
+        for (const view of ["Relatórios", "Caixa Unificada", "Assistente", "Automações"]) {
+          await page.evaluate((view) => setView(view), view);
+          if (view === "Caixa Unificada")
+            await page.locator("#conversationList [data-conversation]").first().click();
+          await page.evaluate(
+            () =>
+              new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+          );
+          assert.equal(await page.locator(".page-view.active").getAttribute("data-view"), view);
+          assert(
+            await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+            `${view}/${width}/${theme}: overflow`,
+          );
+          if ([390, 1440].includes(width)) {
+            await page.evaluate(() =>
+              document.querySelectorAll(".toast").forEach((toast) => toast.remove()),
+            );
+            await page.screenshot({
+              path: path.join(
+                output,
+                `app-${["Relatórios", "Caixa Unificada", "Assistente", "Automações"].indexOf(view)}-${width}-${theme}.png`,
+              ),
+              fullPage: true,
+            });
+          }
+          appLayouts++;
+        }
+      }
+    }
+    console.log(`${appLayouts} layouts das quatro experiências alteradas passaram.`);
+    await page.close();
+    const demoContext = await browser.newContext({ reducedMotion: "reduce" });
+    page = await demoContext.newPage();
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.route("**/*", (route) => {
+      if (new URL(route.request().url()).origin === origin) return route.continue();
+      external.push(route.request().url());
+      return route.abort();
+    });
+    let demoLayouts = 0;
+    for (const demo of ["opportunities", "onboarding"]) {
+      await page.goto(origin + `/prototypes/${demo}/index.html`);
+      for (const width of [320, 360, 390, 768, 1024, 1440]) {
+        await page.setViewportSize({ width, height: 1000 });
+        for (const theme of ["light", "dark"]) {
+          if ((await page.locator("html").getAttribute("data-theme")) !== theme)
+            await page.locator("#theme").click();
+          assert(
+            await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+            `${demo}/${width}/${theme}: overflow`,
+          );
+          if ([390, 1440].includes(width))
+            await page.screenshot({
+              path: path.join(output, `${demo}-${width}-${theme}.png`),
+              fullPage: true,
+            });
+          demoLayouts++;
+        }
+      }
+      await page.setViewportSize({ width: 390, height: 900 });
+      if (demo === "opportunities") {
+        assert.equal(await page.locator("[data-open]").count(), 6);
+        assert(
+          !(await page
+            .locator("main")
+            .textContent()
+            .then((text) => /\d+%/.test(text))),
+        );
+        await page.locator("#search").fill("hidratacao");
+        assert.equal(await page.locator("[data-open]").count(), 1);
+        await page.locator("#search").fill("sem-resultado");
+        await page.locator("#clear").click();
+        await page.locator("#signal").selectOption("explicit");
+        assert.equal(await page.locator("[data-open]").count(), 2);
+        await page.locator("[data-view=board]").click();
+        await page.locator("[data-open=ana]").click();
+        await page.locator("#stage").selectOption("Proposta enviada");
+        await page.locator("#prepare").click();
+        await page.locator("#draft").fill("Retorno sintético <img src=x>, não enviado");
+        await page.locator("#save-draft").click();
+        assert((await page.locator("#detail-status").textContent()).includes("Nada foi enviado"));
+        await page.locator("[data-panel=client]").click();
+        assert((await page.locator("#detail-content").textContent()).includes("Proposta enviada"));
+        await page.locator("[data-panel=conversation]").click();
+        assert.equal(
+          await page.locator("#draft").inputValue(),
+          "Retorno sintético <img src=x>, não enviado",
+        );
+        assert.equal(await page.locator("#detail-content img").count(), 0);
+        await page.screenshot({
+          path: path.join(output, "opportunities-context-390-dark.png"),
+          fullPage: true,
+        });
+        await page.keyboard.press("Escape");
+        assert(
+          await page.locator("[data-open=ana]").evaluate((el) => el === document.activeElement),
+        );
+        await page.locator("#reset").click();
+        assert.equal(await page.locator("[data-open]").count(), 6);
+      } else {
+        await page.locator("#next").click();
+        assert((await page.locator("#validation").textContent()).includes("Escolha"));
+        for (const profile of ["perfume", "grocery", "barber", "tailor", "repair"]) {
+          await page.locator("#" + profile).check();
+          await page.locator("#next").click();
+          assert(await page.locator(profile === "barber" ? "#services" : "#products").isChecked());
+          await page.locator("#area").fill("Bairro demonstrativo <sem HTML>");
+          await page.locator("#next").click();
+          const config = JSON.parse(await page.locator("#config-preview").textContent());
+          assert.equal(config.demo, true);
+          assert.equal(config.businessProfile, profile);
+          assert.equal(config.integrationsEnabled, false);
+          assert.deepEqual(config.core, ["Clientes", "Vendas", "Financeiro", "Relatórios"]);
+          assert(config.defaults.serviceArea.includes("<sem HTML>"));
+          assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+          if (profile === "barber") {
+            const downloadPromise = page.waitForEvent("download");
+            await page.locator("#download").click();
+            const file = await downloadPromise;
+            assert.equal(
+              JSON.parse(fs.readFileSync(await file.path(), "utf8")).businessProfile,
+              "barber",
+            );
+            await page.screenshot({
+              path: path.join(output, "onboarding-review-390-dark.png"),
+              fullPage: true,
+            });
+            await page.locator("#back").click();
+            await page.locator("#products").check();
+            await page.locator("#stock").check();
+            await page.locator("#next").click();
+            const adjusted = JSON.parse(await page.locator("#config-preview").textContent());
+            assert(
+              adjusted.capabilities.products &&
+                adjusted.capabilities.services &&
+                adjusted.capabilities.inventory,
+            );
+          }
+          await page.locator("#restart").click();
+        }
+      }
+      assert.equal(
+        await page.evaluate(() => localStorage.length),
+        0,
+        "Demonstrações não persistem estado do app",
+      );
+    }
+    console.log(
+      `${demoLayouts} layouts dos protótipos passaram; busca, filtros, etapas, diálogo, rascunhos, cinco perfis, ajustes e JSON passaram.`,
+    );
     assert.deepEqual(errors, []);
     assert.deepEqual(external, []);
     console.log(
