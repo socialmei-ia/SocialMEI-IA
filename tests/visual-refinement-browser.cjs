@@ -107,7 +107,21 @@ module.exports = async function visualRefinementFlows(browser, origin, errors = 
       false,
     );
     await page.evaluate(() => setView("Vendas"));
-    assert((await page.locator("#salesTable tbody tr").first().boundingBox()).y < 760);
+    const salesLayout = await page.evaluate(() => {
+      const bottom = (selector) =>
+        document.querySelector(selector)?.getBoundingClientRect().bottom ?? 0;
+      return {
+        workspace: bottom("#nvShell"),
+        summary: bottom("#salesPremiumSummary"),
+        filters: bottom("#salesSummary"),
+        toolbar: bottom("#salesView .workspace-list-toolbar"),
+        firstRow: document.querySelector("#salesTable tbody tr")?.getBoundingClientRect().top ?? 0,
+      };
+    });
+    assert(
+      salesLayout.firstRow < 760,
+      `Vendas no mobile: topo=${salesLayout.firstRow}; workspace=${salesLayout.workspace}; resumo=${salesLayout.summary}; filtros=${salesLayout.filters}; busca=${salesLayout.toolbar}`,
+    );
     for (const table of ["clientsTable", "salesTable"]) {
       await page.evaluate(
         (name) => setView(name),
