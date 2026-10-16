@@ -5,6 +5,7 @@ const http = require("node:http");
 const { chromium } = require("playwright");
 const root = path.resolve(__dirname, "..");
 module.exports = async function intentBrowserFlows(browser, origin) {
+  console.log(await require("./priority-browser.cjs")(browser, origin));
   const output = path.join(root, "test-results/purchase-intent");
   fs.mkdirSync(output, { recursive: true });
   const context = await browser.newContext({ reducedMotion: "reduce" });

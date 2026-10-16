@@ -6,9 +6,13 @@
     <title>Oportunidades · SocialMEI.IA · Demonstração</title>
     <link rel="stylesheet" href="../demo.css" />
     <link rel="stylesheet" href="intent.css" />
+    <link rel="stylesheet" href="priority.css" />
     <script src="intent-engine.js" defer></script>
+    <script src="priority-engine.js" defer></script>
+    <script src="priority-scenario.js" defer></script>
     <script src="opportunities.js" defer></script>
     <script src="intent-ui.js" defer></script>
+    <script src="priority-ui.js" defer></script>
   </head>
   <body>
     <header>
@@ -21,14 +25,77 @@
     <main>
       <p class="eyebrow">Experiência demonstrativa · sem conexão com o CRM</p>
       <h1>Oportunidades</h1>
-      <p class="muted">
-        Reconheça sinais comerciais no texto e entenda o que ainda precisa ser esclarecido.
-      </p>
+      <p class="muted">Saiba quem acompanhar primeiro, por quê e qual pode ser o próximo passo.</p>
       <div class="notice">
-        <strong>Análise funcional por regras locais.</strong> Use apenas mensagens fictícias. O
-        texto não é enviado a serviços nem salvo automaticamente. Sentimento não é intenção de
-        compra; o resultado é provisório, sem probabilidade de venda.
+        <strong>Demonstração com mensagens fictícias.</strong> Regras locais, sem probabilidade ou
+        garantia de venda. Textos ficam nesta página, sem envio externo.
       </div>
+      <section id="customer-priorities" aria-labelledby="priority-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Oito clientes sintéticos · recomendação revisável</p>
+            <h2 id="priority-title">Quem acompanhar primeiro?</h2>
+          </div>
+          <div class="priority-controls">
+            <button id="reanalyze-customers" type="button">Reanalisar clientes</button>
+            <button id="reset-customers" type="button">Reiniciar cenário</button>
+          </div>
+        </div>
+        <p class="muted priority-reference">Referência fictícia fixa: 16/10/2026, 12h UTC.</p>
+        <details class="priority-criteria">
+          <summary>Como a ordem é sugerida</summary>
+          <ol>
+            <li>
+              Compra explícita, combinação elevada de sinais ou pedido de orçamento: acompanhar
+              primeiro. Depois, responder consultas, esclarecer decisões, retomar sinais antigos e
+              entender necessidades.
+            </li>
+            <li>
+              Dentro do mesmo grupo: prazo reconhecido nas últimas 24 horas; depois, sinal decisivo
+              mais recente. Empates restantes usam identificador estável, sem significado comercial.
+            </li>
+            <li>
+              Mais mensagens não aumentam a prioridade. Sinais de mensagens diferentes não são
+              somados para fabricar intenção elevada. Recusa posterior prevalece sobre interesse
+              antigo.
+            </li>
+            <li>
+              Interesse com mais de 24 horas pede confirmação de contexto. Datas ausentes ou
+              inválidas não recebem recência inventada. “Hoje” antigo não vira urgência atual.
+            </li>
+            <li>
+              Suporte, compra relatada como concluída e desistência têm encaminhamentos próprios.
+              Fora da fila comercial não significa menor importância no atendimento.
+            </li>
+          </ol>
+          <p>
+            Sentimento não é intenção de compra. Heurísticas em português podem errar. Revise as
+            evidências; não há probabilidade de venda, confirmação de estoque ou pagamento.
+          </p>
+        </details>
+        <p id="priority-status" class="status" role="status"></p>
+        <h3 class="priority-list-title">
+          Acompanhamento comercial <span id="commercial-count" class="badge"></span>
+        </h3>
+        <ol
+          id="commercial-priorities"
+          class="priority-list"
+          aria-label="Ordem sugerida de acompanhamento comercial"
+        ></ol>
+        <h3 class="priority-list-title">
+          Outros encaminhamentos <span id="other-count" class="badge"></span>
+        </h3>
+        <p class="muted priority-reference">
+          Atendimento de suporte, pós-venda e recusas. Esta área não ordena a importância do
+          atendimento.
+        </p>
+        <ul
+          id="other-priorities"
+          class="priority-list"
+          aria-label="Encaminhamentos fora da fila comercial"
+        ></ul>
+      </section>
+      <h2 class="single-analysis-title">Experimentar uma mensagem avulsa</h2>
       <section class="intent-workspace" aria-label="Análise local de mensagem">
         <form id="intent-form" class="intent-composer" autocomplete="off">
           <div class="section-heading">
@@ -152,6 +219,56 @@
         Recarregar descarta as mudanças. Nenhum contato real é consultado.
       </footer>
     </main>
+    <dialog id="priority-detail" aria-labelledby="priority-detail-title">
+      <div class="dialog-head">
+        <h2 id="priority-detail-title" tabindex="-1"></h2>
+        <form method="dialog"><button>Fechar cliente</button></form>
+      </div>
+      <div class="dialog-body">
+        <p class="eyebrow">Cliente fictício · revisão apenas nesta sessão</p>
+        <div id="priority-detail-summary"></div>
+        <h3>Conversa e evidências literais</h3>
+        <p class="muted priority-reference">
+          Cada mensagem é analisada separadamente. O sinal decisivo está identificado; somente falas
+          do cliente entram na recomendação.
+        </p>
+        <div id="priority-conversation"></div>
+        <details class="priority-editor">
+          <summary>Acrescentar mensagem fictícia e analisar</summary>
+          <form id="priority-message-form" autocomplete="off">
+            <label class="field" for="priority-message"
+              ><span>Nova mensagem deste cliente fictício</span
+              ><textarea id="priority-message" maxlength="4000" rows="3" required></textarea>
+            </label>
+            <p class="muted priority-reference">
+              Será registrada em 16/10/2026, 12h UTC. Uma nova mensagem descarta a revisão deste
+              cliente para permitir nova avaliação.
+            </p>
+            <button class="primary" type="submit">Adicionar e reanalisar</button>
+          </form>
+        </details>
+        <h3>Revisão humana</h3>
+        <p class="muted priority-reference">
+          Pode alterar o encaminhamento com um motivo. A recomendação original fica visível; nenhuma
+          ação externa acontece.
+        </p>
+        <form id="priority-review-form" autocomplete="off">
+          <label class="field" for="priority-review-group"
+            ><span>Encaminhamento revisado</span
+            ><select id="priority-review-group"></select
+          ></label>
+          <label class="field" for="priority-review-reason"
+            ><span>Motivo da revisão</span
+            ><textarea id="priority-review-reason" rows="2" maxlength="300" required></textarea>
+          </label>
+          <div class="actions">
+            <button class="primary" type="submit">Aplicar revisão local</button
+            ><button id="priority-remove-review" type="button">Voltar à recomendação</button>
+          </div>
+        </form>
+        <p id="priority-detail-status" class="status" role="status"></p>
+      </div>
+    </dialog>
     <dialog id="intent-context" aria-labelledby="intent-context-title">
       <div class="dialog-head">
         <h2 id="intent-context-title"></h2>
