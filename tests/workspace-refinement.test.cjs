@@ -12,7 +12,10 @@ test("business workspace uses its own design layer without changing script order
   assert.match(html, /class="management-shell workspace-shell" id="nvShell"/);
   assert.match(html, /class="workspace-eyebrow"/);
   assert.match(html, /class="management-tabs workspace-tabs"/);
-  assert.equal((html.match(/class="management-card management-flush workspace-list-panel"/g) || []).length, 4);
+  assert.equal(
+    (html.match(/class="management-card management-flush workspace-list-panel"/g) || []).length,
+    4,
+  );
   assert.equal((html.match(/class="management-tools workspace-list-toolbar"/g) || []).length, 4);
   assert(fs.existsSync(cssPath), "workspace stylesheet must exist");
 });
