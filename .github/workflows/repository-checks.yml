@@ -169,6 +169,14 @@ jobs:
         run: node tests/settings-browser.cjs
       - name: HTTPS authentication regression
         run: node tests/team-browser.cjs
+      - name: Save development preview sources
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: development-preview
+          path: |
+            prototypes/
+            frontend/
       - name: Save browser evidence
         if: always()
         uses: actions/upload-artifact@v4

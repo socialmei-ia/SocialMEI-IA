@@ -1,5 +1,7 @@
 # Continuidade V1 — Relatórios
 
+Registro histórico da etapa anterior à autorização de desenvolvimento autônomo. A situação posterior está em [Rodada de desenvolvimento V1](V1-DEVELOPMENT-ROUND.md).
+
 Rodada de 16/10/2026. Protótipo visual ainda sem aprovação do responsável. Nenhuma mudança integrada à aplicação, commit, merge, publicação ou operação na AWS.
 
 ## Estado confirmado
