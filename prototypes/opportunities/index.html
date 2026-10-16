@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Oportunidades · SocialMEI.IA · Demonstração</title>
     <link rel="stylesheet" href="../demo.css" />
+    <link rel="stylesheet" href="intent.css" />
+    <script src="intent-engine.js" defer></script>
     <script src="opportunities.js" defer></script>
+    <script src="intent-ui.js" defer></script>
   </head>
   <body>
     <header>
@@ -18,43 +21,153 @@
     <main>
       <p class="eyebrow">Experiência demonstrativa · sem conexão com o CRM</p>
       <h1>Oportunidades</h1>
-      <p class="muted">Um lugar para organizar sinais de interesse e escolher quem acompanhar.</p>
+      <p class="muted">
+        Reconheça sinais comerciais no texto e entenda o que ainda precisa ser esclarecido.
+      </p>
       <div class="notice">
-        <strong>Exemplos sintéticos, classificação manual.</strong> Os sinais abaixo foram definidos
-        para demonstrar a experiência. Não há análise real de mensagens, IA ou probabilidade de
-        conversão.
+        <strong>Análise funcional por regras locais.</strong> Use apenas mensagens fictícias. O
+        texto não é enviado a serviços nem salvo automaticamente. Sentimento não é intenção de
+        compra; o resultado é provisório, sem probabilidade de venda.
       </div>
-      <div class="stats" aria-label="Resumo dos exemplos">
-        <span>Contatos fictícios<b id="total"></b></span
-        ><span>Com pedido explícito<b id="explicit"></b></span
-        ><span>Interesse a esclarecer<b id="exploring"></b></span>
-      </div>
-      <div class="toolbar">
-        <label class="field search"
-          ><span>Buscar por pessoa ou interesse</span
-          ><input id="search" type="search" placeholder="Nome, produto ou serviço" /></label
-        ><label class="field"
-          ><span>Sinal demonstrativo</span
-          ><select id="signal">
-            <option value="all">Todos os sinais</option>
-            <option value="explicit">Pedido explícito</option>
-            <option value="exploring">Interesse a esclarecer</option>
-            <option value="initial">Contato inicial</option>
-          </select></label
+      <section class="intent-workspace" aria-label="Análise local de mensagem">
+        <form id="intent-form" class="intent-composer" autocomplete="off">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Experimente uma mensagem nova</p>
+              <h2>Que sinais aparecem aqui?</h2>
+            </div>
+            <span class="badge">Sem API externa</span>
+          </div>
+          <label class="field" for="intent-example"
+            ><span>Carregar exemplo sintético</span
+            ><select id="intent-example">
+              <option value="">Escolher um exemplo (opcional)</option>
+            </select></label
+          >
+          <label class="field" for="intent-message"
+            ><span>Mensagem fictícia de cliente</span
+            ><textarea
+              id="intent-message"
+              rows="5"
+              maxlength="4000"
+              aria-describedby="intent-input-note"
+              placeholder="Ex.: Quanto custa o 212 VIP? Tem pronta entrega? Consegue entregar hoje?"
+            ></textarea>
+          </label>
+          <p id="intent-input-note" class="muted">
+            Até 4.000 caracteres. A análise considera apenas esta mensagem, sem histórico ou
+            catálogo.
+          </p>
+          <div class="actions">
+            <button id="analyze-intent" class="primary" type="submit">Analisar intenção</button
+            ><button id="clear-intent" type="button">Limpar sessão</button>
+          </div>
+          <p id="intent-status" class="status" role="status">
+            Nenhuma mensagem analisada nesta sessão.
+          </p>
+        </form>
+        <section
+          id="intent-result"
+          class="intent-result"
+          aria-labelledby="intent-result-title"
+          hidden
         >
-        <div class="switch" aria-label="Visualização">
-          <button data-view="list" aria-pressed="true">Lista</button
-          ><button data-view="board" aria-pressed="false">Quadro</button>
+          <p class="eyebrow">Leitura provisória do texto informado</p>
+          <h2 id="intent-result-title" tabindex="-1"></h2>
+          <p id="intent-explanation"></p>
+          <h3>Sinais e trechos encontrados</h3>
+          <div id="intent-signals"></div>
+          <h3>O que ainda não sabemos</h3>
+          <ul id="intent-missing"></ul>
+          <div class="intent-next">
+            <h3>Próximo passo prudente</h3>
+            <p id="intent-next-step"></p>
+          </div>
+          <details class="intent-limits">
+            <summary>Critério e limitações da análise</summary>
+            <p id="intent-rule"></p>
+            <ul id="intent-limitations"></ul>
+          </details>
+          <div class="actions">
+            <button id="compare-intent" type="button">Guardar para comparar</button
+            ><button type="button" data-intent-context="conversation">Prévia na Caixa</button
+            ><button type="button" data-intent-context="client">Prévia no Cliente 360</button>
+          </div>
+        </section>
+      </section>
+      <section
+        id="intent-comparisons"
+        class="intent-comparisons"
+        aria-labelledby="intent-comparison-title"
+        hidden
+      >
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Comparação manual, só nesta sessão</p>
+            <h2 id="intent-comparison-title">Mensagens lado a lado</h2>
+          </div>
+          <button id="clear-comparisons" type="button">Apagar comparações</button>
         </div>
-      </div>
-      <p id="results-status" class="status" role="status"></p>
-      <div id="results"></div>
-      <div class="actions"><button id="reset">Reiniciar demonstração</button></div>
+        <p class="muted">
+          Até três análises, sem ordenar pessoas por chance de venda. Recarregar ou limpar descarta
+          os textos.
+        </p>
+        <div id="intent-comparison-list"></div>
+      </section>
+      <details id="manual-library" class="manual-library">
+        <summary>Explorar a biblioteca de seis exemplos manuais da rodada anterior</summary>
+        <p class="muted">
+          Composição ilustrativa de lista/quadro. As classificações destes seis contatos continuam
+          manuais e são independentes da análise de texto acima.
+        </p>
+        <div class="stats" aria-label="Resumo dos exemplos">
+          <span>Contatos fictícios<b id="total"></b></span
+          ><span>Com pedido explícito<b id="explicit"></b></span
+          ><span>Interesse a esclarecer<b id="exploring"></b></span>
+        </div>
+        <div class="toolbar">
+          <label class="field search"
+            ><span>Buscar por pessoa ou interesse</span
+            ><input id="search" type="search" placeholder="Nome, produto ou serviço" /></label
+          ><label class="field"
+            ><span>Sinal demonstrativo</span
+            ><select id="signal">
+              <option value="all">Todos os sinais</option>
+              <option value="explicit">Pedido explícito</option>
+              <option value="exploring">Interesse a esclarecer</option>
+              <option value="initial">Contato inicial</option>
+            </select></label
+          >
+          <div class="switch" aria-label="Visualização">
+            <button data-view="list" aria-pressed="true">Lista</button
+            ><button data-view="board" aria-pressed="false">Quadro</button>
+          </div>
+        </div>
+        <p id="results-status" class="status" role="status"></p>
+        <div id="results"></div>
+        <div class="actions"><button id="reset">Reiniciar demonstração</button></div>
+      </details>
       <footer>
-        Alterações de etapa e rascunhos existem apenas nesta prévia. Recarregar descarta as
-        mudanças. Nenhum contato real é consultado.
+        Textos analisados, comparações, alterações de etapa e rascunhos existem apenas nesta prévia.
+        Recarregar descarta as mudanças. Nenhum contato real é consultado.
       </footer>
     </main>
+    <dialog id="intent-context" aria-labelledby="intent-context-title">
+      <div class="dialog-head">
+        <h2 id="intent-context-title"></h2>
+        <form method="dialog"><button>Fechar prévia</button></form>
+      </div>
+      <div class="dialog-body">
+        <p class="notice">
+          Painel fictício com o texto desta sessão. Sem conexão com a Caixa ou o CRM reais.
+        </p>
+        <div class="switch" aria-label="Alternar contexto demonstrativo">
+          <button type="button" data-intent-context="conversation">Caixa Unificada</button
+          ><button type="button" data-intent-context="client">Cliente 360</button>
+        </div>
+        <div id="intent-context-content"></div>
+      </div>
+    </dialog>
     <dialog id="detail" aria-labelledby="detail-title">
       <div class="dialog-head">
         <h2 id="detail-title"></h2>

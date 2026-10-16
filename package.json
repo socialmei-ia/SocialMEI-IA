@@ -20,7 +20,8 @@
     "db:status": "node tools/db-migrate.mjs status",
     "doctor": "node tools/team-doctor.mjs",
     "data:export": "node tools/export-workspace.mjs",
-    "test:development": "node tests/autonomous-browser.cjs"
+    "test:development": "node tests/autonomous-browser.cjs",
+    "test:intent": "node --test tests/purchase-intent.test.cjs && node tests/intent-browser.cjs"
   },
   "devDependencies": {
     "playwright": "1.62.1",
