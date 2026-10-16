@@ -13373,7 +13373,7 @@ html[data-theme="dark"] .assistance-review {
     max-width: 95px;
   }
   .desk-opening h2 {
-    font-size: 46px;
+    font-size: clamp(29px, 9vw, 35px);
   }
   .now-chapter h2 {
     font-size: 39px;
