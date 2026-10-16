@@ -157,6 +157,8 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Offline application regression
         run: npm run test:browser
+      - name: Development interactions and isolated product demos
+        run: npm run test:development
       - name: Human Basic login and account registration
         run: node tests/signup-basic-browser.cjs
       - name: Eleven resolutions and all theme modes
@@ -167,6 +169,14 @@ jobs:
         run: node tests/settings-browser.cjs
       - name: HTTPS authentication regression
         run: node tests/team-browser.cjs
+      - name: Save development preview sources
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: development-preview
+          path: |
+            prototypes/
+            frontend/
       - name: Save browser evidence
         if: always()
         uses: actions/upload-artifact@v4

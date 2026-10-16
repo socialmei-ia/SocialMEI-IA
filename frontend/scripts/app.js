@@ -3078,6 +3078,7 @@ function renderReports() {
   $("reportsDataSourceStatus").innerHTML =
     `<span class="pill info">${escapeHtml(origin.label)}</span><span>${escapeHtml(origin.description)}</span>`;
   $("reportsPeriodLabel").textContent = rangeCaption(dateRange);
+  $("reportPeriodChoice").textContent = selectedPeriod;
   $("nvReportPeriods").innerHTML = [
     "Hoje",
     "7 dias",
@@ -3126,6 +3127,18 @@ function renderReports() {
       financeReady ? money(metrics.balance) : "—",
       renderReportVariation(metrics.balance, prev.balance),
     );
+  const metricDescriptions = [
+    "Total das vendas pagas",
+    "Média das vendas pagas",
+    "Quantidade de vendas pagas",
+    "Entradas menos saídas pagas",
+  ];
+  document.querySelectorAll("#nvReportKpis .management-kpi").forEach((metric, index) => {
+    const description = document.createElement("span");
+    description.className = "report-metric-description";
+    description.textContent = metricDescriptions[index];
+    metric.querySelector("b").after(description);
+  });
   const tabs = ["Resumo", "Vendas", "Clientes", "Atendimento", "Financeiro"];
   $("reportsGrid").setAttribute("aria-labelledby", `reportTab${tabs.indexOf(selectedReportTab)}`);
   $("nvReportTabs").innerHTML = tabs

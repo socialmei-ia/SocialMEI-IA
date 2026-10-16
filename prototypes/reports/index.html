@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Relatórios · Protótipo SocialMEI.IA</title>
+    <link rel="stylesheet" href="reports.css" />
+    <script src="reports.js" defer></script>
+  </head>
+  <body>
+    <a class="skip" href="#content">Ir para Relatórios</a>
+    <header class="topbar">
+      <a class="brand" href="#content">Social<span>MEI</span><small>.IA</small></a>
+      <span class="prototype">Protótipo · dados fictícios</span>
+      <button id="theme" aria-pressed="false">Tema escuro</button>
+    </header>
+    <main id="content">
+      <div class="heading">
+        <div>
+          <p class="eyebrow">Seu negócio em números</p>
+          <h1>Relatórios</h1>
+          <p class="muted">Resultados e próximos passos.</p>
+        </div>
+        <button id="privacy" aria-pressed="false">Ocultar valores</button>
+      </div>
+      <section class="period" aria-label="Período e cenário">
+        <div>
+          <label for="period">Período</label
+          ><select id="period">
+            <option value="month">Este mês</option>
+            <option value="week">Últimos 7 dias</option>
+          </select>
+        </div>
+        <div>
+          <label for="scenario">Cenário fictício</label
+          ><select id="scenario">
+            <option value="ready">Com dados</option>
+            <option value="empty">Sem dados</option>
+            <option value="loading">Carregando</option>
+            <option value="error">Indisponível</option>
+          </select>
+        </div>
+      </section>
+      <p id="print-period" class="print-period"></p>
+      <p id="context" class="context" role="status"></p>
+      <p class="source-note">Origem: dados fictícios em memória · nenhuma API conectada</p>
+      <label class="compare"
+        ><input id="compare" type="checkbox" /> Comparar com período anterior (fictício)</label
+      >
+      <section class="metrics" aria-label="Indicadores do período">
+        <article>
+          <h2>Faturamento</h2>
+          <strong data-value="sales"></strong>
+          <p>Total das vendas pagas</p>
+        </article>
+        <article>
+          <h2>Vendas pagas</h2>
+          <strong data-value="orders"></strong>
+          <p>Quantidade de vendas pagas</p>
+        </article>
+        <article>
+          <h2>Ticket médio</h2>
+          <strong data-value="ticket"></strong>
+          <p>Média das vendas pagas</p>
+        </article>
+        <article>
+          <h2>Saldo do período</h2>
+          <strong data-value="balance"></strong>
+          <p>Entradas menos saídas registradas</p>
+        </article>
+      </section>
+      <nav class="report-tabs" aria-label="Visões do relatório">
+        <button aria-pressed="true" data-report-view="summary">Resumo</button>
+        <button aria-pressed="false" data-report-view="sales">Vendas</button>
+        <button aria-pressed="false" data-report-view="clients">Clientes</button>
+        <button aria-pressed="false" data-report-view="service">Atendimento</button>
+        <button aria-pressed="false" data-report-view="finance">Financeiro</button>
+      </nav>
+      <section id="view-detail" aria-labelledby="view-title" hidden>
+        <h2 id="view-title"></h2>
+        <p id="view-copy" class="muted"></p>
+        <div id="view-table"></div>
+      </section>
+      <section class="overview" aria-label="Visão geral">
+        <article class="chart-card">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Vendas</p>
+              <h2>Como o período evoluiu</h2>
+            </div>
+            <span id="chart-unit" class="muted">Valores em reais</span>
+          </div>
+          <div id="chart" class="chart" aria-label="Vendas por intervalo"></div>
+          <p id="chart-message" class="chart-message" hidden></p>
+          <details id="chart-details">
+            <summary>Ver valores em tabela</summary>
+            <table>
+              <caption>
+                Vendas por intervalo — dados fictícios
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Intervalo</th>
+                  <th scope="col">Valor</th>
+                </tr>
+              </thead>
+              <tbody id="chart-table"></tbody>
+            </table>
+          </details>
+        </article>
+        <aside class="care">
+          <p class="eyebrow">Próximo cuidado</p>
+          <h2 id="care-title">Acompanhe o que falta receber</h2>
+          <p id="care-copy"></p>
+          <details id="care-detail">
+            <summary>Ver contexto financeiro</summary>
+            <p>
+              Os recebimentos e pagamentos são registros financeiros. O total de vendas pode incluir
+              valores que ainda não foram recebidos.
+            </p>
+          </details>
+        </aside>
+      </section>
+      <section class="breakdowns" aria-label="Detalhes do período">
+        <details>
+          <summary>Clientes <span>Participação nas vendas</span></summary>
+          <p>
+            Exemplo fictício: Cliente A representa 40% do valor vendido, Cliente B representa 35% e
+            Cliente C, 25%.
+          </p>
+        </details>
+        <details>
+          <summary>Produtos e serviços <span>O que mais vendeu</span></summary>
+          <p>Exemplo fictício: Serviço A representa 60% do valor vendido e Produto B, 40%.</p>
+        </details>
+        <details>
+          <summary>Movimento financeiro <span>Entradas e saídas</span></summary>
+          <p id="finance-detail"></p>
+        </details>
+      </section>
+      <div class="exports">
+        <button id="copy-report">Copiar resumo</button
+        ><button id="export-report">CSV de vendas fictícias</button
+        ><button id="print-report">Imprimir / PDF</button>
+        <p id="export-status" role="status"></p>
+      </div>
+      <footer>Prévia visual isolada. Nenhum registro real é consultado ou alterado.</footer>
+    </main>
+  </body>
+</html>

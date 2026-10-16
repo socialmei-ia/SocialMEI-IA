@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Seu negócio · Onboarding demonstrativo · SocialMEI.IA</title>
+    <link rel="stylesheet" href="../demo.css" />
+    <script src="onboarding.js" defer></script>
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="../index.html">Social<span>MEI</span>.IA</a>
+      <nav aria-label="Prévia">
+        <a href="../index.html">Outras experiências</a
+        ><button id="theme" aria-pressed="false">Tema escuro</button>
+      </nav>
+    </header>
+    <main>
+      <p class="eyebrow">Experiência demonstrativa · cadastro real preservado</p>
+      <h1>Um espaço que acompanha seu negócio.</h1>
+      <p class="muted">
+        Poucas escolhas para sugerir uma organização inicial. Você continua no controle.
+      </p>
+      <div class="notice">
+        Esta prévia não cria conta, não altera módulos do aplicativo e não salva dados no servidor.
+        Agendamento e outras capacidades futuras são apenas sugestões de produto.
+      </div>
+      <div class="wizard">
+        <aside>
+          <ol class="steps" aria-label="Etapas">
+            <li data-step="0" aria-current="step">1. Seu negócio</li>
+            <li data-step="1">2. Sua rotina</li>
+            <li data-step="2">3. Sua prévia</li>
+          </ol>
+          <p class="status">O mesmo SocialMEI para diferentes negócios.</p>
+        </aside>
+        <section class="wizard-panel">
+          <h2 id="step-title" tabindex="-1"></h2>
+          <p id="step-copy" class="muted"></p>
+          <form id="wizard" novalidate>
+            <div id="step-content"></div>
+            <p id="validation" role="alert" class="status"></p>
+            <div class="actions">
+              <button id="back" type="button">Voltar</button
+              ><button id="next" type="submit" class="primary">Continuar</button
+              ><button id="download" type="button" hidden>Baixar perfil demonstrativo</button
+              ><button id="restart" type="button" hidden>Recomeçar</button>
+            </div>
+          </form>
+          <p id="result-status" class="status" role="status"></p>
+        </section>
+      </div>
+      <footer>
+        CORE comum + perfil do negócio + capacidades + sugestões iniciais. Nenhuma aplicação
+        separada por segmento; nenhum fluxo de cadastro real é modificado.
+      </footer>
+    </main>
+  </body>
+</html>

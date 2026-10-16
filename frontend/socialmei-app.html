@@ -2807,6 +2807,11 @@
                   >Simulação local</span
                 ><span>Configurações locais · sem execução de workflows ou envio aos canais.</span>
               </div>
+              <div class="automation-integration-state" aria-label="Estado da integração">
+                <div><span>Configuração</span><b>Neste navegador</b></div>
+                <div><span>Testes</span><b>Simulações manuais</b></div>
+                <div><span>Execução externa</span><b>Não conectada</b></div>
+              </div>
               <div id="nvRuleKpis" class="management-kpis management-kpis-three"></div>
               <section class="management-card management-flush" id="automationLibrary">
                 <div class="management-tools">
@@ -3755,8 +3760,8 @@
                     ></button>
                   </form>
                   <p class="demo-disclosure">
-                    <strong>Protótipo · respostas locais.</strong> Registradas no SocialMEI. Não
-                    envia ao WhatsApp ou Instagram.
+                    <strong>Resposta local, sem envio.</strong> O texto fica em rascunho até você
+                    salvar. Salvar registra somente neste navegador; não envia ao cliente.
                   </p>
                 </div>
               </section>
@@ -3777,27 +3782,34 @@
               <header class="management-header report-intro">
                 <div>
                   <span class="report-eyebrow">RELATÓRIOS</span>
-                  <h2>Dados que apontam <span>o próximo passo.</span></h2>
-                  <p>Entenda o período e escolha seu próximo cuidado.</p>
+                  <h2>Relatórios</h2>
+                  <p>Resultados e próximos passos do seu negócio.</p>
                 </div>
               </header>
               <div class="management-demo" id="reportsDataSourceStatus" role="status"></div>
               <div class="management-report-period management-card">
-                <details class="report-period-options">
-                  <summary>Alterar período</summary>
-                  <div
-                    id="nvReportPeriods"
-                    class="management-chips"
-                    role="group"
-                    aria-label="Período do relatório"
-                  ></div>
-                </details>
+                <div class="report-controls-heading">
+                  <details class="report-period-options">
+                    <summary><span>Período</span><b id="reportPeriodChoice">Este mês</b></summary>
+                    <div
+                      id="nvReportPeriods"
+                      class="management-chips"
+                      role="group"
+                      aria-label="Período do relatório"
+                    ></div>
+                  </details>
+                  <button class="management-button" data-nv-hide>Ocultar valores</button>
+                </div>
                 <div class="management-card-header">
-                  <span id="reportsPeriodLabel" class="management-note" data-current-period></span
-                  ><label class="management-check"
-                    ><input type="checkbox" id="nvReportCompare" checked />Comparar com período
-                    anterior</label
-                  ><button class="management-button" data-nv-hide>Ocultar valores</button>
+                  <span id="reportsPeriodLabel" class="management-note" data-current-period></span>
+                  <label class="management-check"
+                    ><input
+                      type="checkbox"
+                      id="nvReportCompare"
+                      aria-label="Comparar com período anterior"
+                      checked
+                    />Comparar anterior</label
+                  >
                 </div>
               </div>
               <div id="nvReportKpis" class="management-kpis"></div>

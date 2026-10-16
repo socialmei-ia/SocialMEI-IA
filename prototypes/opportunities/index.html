@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Oportunidades · SocialMEI.IA · Demonstração</title>
+    <link rel="stylesheet" href="../demo.css" />
+    <script src="opportunities.js" defer></script>
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="../index.html">Social<span>MEI</span>.IA</a>
+      <nav aria-label="Prévia">
+        <a href="../index.html">Outras experiências</a
+        ><button id="theme" aria-pressed="false">Tema escuro</button>
+      </nav>
+    </header>
+    <main>
+      <p class="eyebrow">Experiência demonstrativa · sem conexão com o CRM</p>
+      <h1>Oportunidades</h1>
+      <p class="muted">Um lugar para organizar sinais de interesse e escolher quem acompanhar.</p>
+      <div class="notice">
+        <strong>Exemplos sintéticos, classificação manual.</strong> Os sinais abaixo foram definidos
+        para demonstrar a experiência. Não há análise real de mensagens, IA ou probabilidade de
+        conversão.
+      </div>
+      <div class="stats" aria-label="Resumo dos exemplos">
+        <span>Contatos fictícios<b id="total"></b></span
+        ><span>Com pedido explícito<b id="explicit"></b></span
+        ><span>Interesse a esclarecer<b id="exploring"></b></span>
+      </div>
+      <div class="toolbar">
+        <label class="field search"
+          ><span>Buscar por pessoa ou interesse</span
+          ><input id="search" type="search" placeholder="Nome, produto ou serviço" /></label
+        ><label class="field"
+          ><span>Sinal demonstrativo</span
+          ><select id="signal">
+            <option value="all">Todos os sinais</option>
+            <option value="explicit">Pedido explícito</option>
+            <option value="exploring">Interesse a esclarecer</option>
+            <option value="initial">Contato inicial</option>
+          </select></label
+        >
+        <div class="switch" aria-label="Visualização">
+          <button data-view="list" aria-pressed="true">Lista</button
+          ><button data-view="board" aria-pressed="false">Quadro</button>
+        </div>
+      </div>
+      <p id="results-status" class="status" role="status"></p>
+      <div id="results"></div>
+      <div class="actions"><button id="reset">Reiniciar demonstração</button></div>
+      <footer>
+        Alterações de etapa e rascunhos existem apenas nesta prévia. Recarregar descarta as
+        mudanças. Nenhum contato real é consultado.
+      </footer>
+    </main>
+    <dialog id="detail" aria-labelledby="detail-title">
+      <div class="dialog-head">
+        <h2 id="detail-title"></h2>
+        <form method="dialog"><button aria-label="Fechar detalhes">Fechar</button></form>
+      </div>
+      <div class="dialog-body">
+        <p id="detail-interest" class="muted"></p>
+        <label class="field"
+          ><span>Etapa nesta demonstração</span
+          ><select id="stage">
+            <option>Novo contato</option>
+            <option>Em conversa</option>
+            <option>Proposta enviada</option>
+          </select></label
+        >
+        <div class="switch" aria-label="Contexto da oportunidade">
+          <button data-panel="signals" aria-pressed="true">Sinais</button
+          ><button data-panel="conversation" aria-pressed="false">Conversa</button
+          ><button data-panel="client" aria-pressed="false">Cliente 360</button>
+        </div>
+        <div id="detail-content"></div>
+        <p id="detail-status" class="status" role="status"></p>
+      </div>
+    </dialog>
+  </body>
+</html>

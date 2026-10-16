@@ -233,6 +233,10 @@ function renderConversationList() {
   }
   $("conversationList").innerHTML = list
     .map((c) => {
+      const draft = conversationDrafts.get(c.id);
+      const preview = draft?.text?.trim()
+        ? `${draft.note ? "Nota em rascunho" : "Rascunho"}: ${draft.text.trim()}`
+        : lastMessage(c);
       const statusClass =
         c.status === "andamento" ? "progress" : c.status === "aberto" ? "open" : "";
       return /* HTML */ `<li role="presentation">
@@ -257,10 +261,10 @@ function renderConversationList() {
                       >${escapeHtml(c.atualizado)}</span
                     ></span
                   >
-                  <span class="conv-preview" title="${escapeHtml(lastMessage(c))}"
+                  <span class="conv-preview${draft?.text?.trim() ? " has-draft" : ""}" title="${escapeHtml(preview)}"
                     ><span class="preview-channel" aria-label="${channelLabel(c.canal)}"
                       >${channelIcon(c.canal)}</span
-                    ><span class="preview-text">${escapeHtml(lastMessage(c))}</span></span
+                    ><span class="preview-text">${escapeHtml(preview)}</span></span
                   >
                   <span class="conv-tags"
                     ><span class="status-mini ${statusClass}">${statusLabel(c.status)}</span
@@ -311,7 +315,11 @@ function messageHTML(m, prev = null, animate = false) {
   const cls = m.de === "empresa" ? "out" : m.de === "nota" ? "note" : "in";
   const grouped =
     prev && prev.de === m.de && messageDateKey(prev) === messageDateKey(m) ? " grouped" : "";
-  const suffix = m.localOnly ? " · local" : m.de === "nota" ? " · nota interna" : "";
+  const suffix = m.localOnly
+    ? " · somente local, não enviada"
+    : m.de === "nota"
+      ? " · nota interna"
+      : "";
   return /* HTML */ `<div
           class="msg ${cls}${grouped}${animate ? " new-message" : ""}"
           data-message-text="${escapeHtml(m.texto).toLowerCase()}"
@@ -924,6 +932,7 @@ async function selectConversation(id) {
   });
   isConversationSwitching = false;
   thread.removeAttribute("aria-busy");
+  updateComposerState();
   syncMobileInert();
   if (opening && innerWidth <= 720) {
     $("mobileBack").focus({
@@ -1104,12 +1113,14 @@ function updateComposerState() {
     $("noteModeHint").hidden = !isComposerNoteMode;
   }
   positionNewMessagesButton();
-  send.textContent = isComposerNoteMode ? "Salvar nota" : "Salvar";
+  send.textContent = isComposerNoteMode ? "Salvar nota" : "Salvar local";
   send.setAttribute(
     "aria-label",
     isComposerNoteMode ? "Salvar nota interna" : "Salvar resposta local",
   );
-  input.placeholder = isComposerNoteMode ? "Escreva uma nota interna..." : "Digite uma mensagem...";
+  input.placeholder = isComposerNoteMode
+    ? "Escreva uma nota interna..."
+    : "Prepare uma resposta local...";
   if ($("composerDemoLabel")) {
     $("composerDemoLabel").textContent = isComposerNoteMode
       ? "Nota local — não enviada"
@@ -1503,6 +1514,18 @@ function saveCurrentDraft() {
       text: $("messageInput").value,
       note: isComposerNoteMode,
     });
+    const preview = document.querySelector(
+      `#conversationList [data-conversation="${conversation.id}"] .conv-preview`,
+    );
+    if (preview) {
+      const text = $("messageInput").value.trim();
+      const caption = text
+        ? `${isComposerNoteMode ? "Nota em rascunho" : "Rascunho"}: ${text}`
+        : lastMessage(conversation);
+      preview.classList.toggle("has-draft", !!text);
+      preview.title = caption;
+      preview.querySelector(".preview-text").textContent = caption;
+    }
   }
 }
 function loadCurrentDraft() {
