@@ -5,7 +5,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
   const MAX_LENGTH = 4000;
-  const VERSION = "local-rules-1";
+  const VERSION = "local-rules-2";
   const rules = [
     {
       id: "price",
@@ -67,6 +67,7 @@
       id: "urgency",
       label: "Prazo ou urgência mencionados",
       polarity: "ambiguous",
+      negatable: true,
       pattern:
         /\b(?:ainda\s+hoje|hoje|agora|urgente|urgencia|o\s+quanto\s+antes|imediat[ao]|pronta\s+entrega)\b/g,
     },
@@ -112,9 +113,26 @@
         /\b(?:muito\s+caro|(?:esta|ta|achei)\s+caro|fora\s+do\s+orcamento|nao\s+cabe\s+no\s+orcamento|sem\s+dinheiro|tenho\s+duvidas?|nao\s+sei\s+se\s+vale)\b/g,
     },
     {
+      id: "completed",
+      label: "Relato de compra concluída",
+      polarity: "ambiguous",
+      negatable: true,
+      pattern:
+        /\b(?:ja\s+comprei|finalizei\s+a\s+compra|compra\s+concluida|pagamento\s+aprovado)\b/g,
+    },
+    {
+      id: "support",
+      label: "Solicitação de suporte ou problema relatado",
+      polarity: "ambiguous",
+      negatable: true,
+      pattern:
+        /\b(?:preciso\s+de\s+(?:suporte|ajuda)|nao\s+chegou|veio\s+quebrad[oa]|nao\s+funciona|reembolso|devolucao|cobranca\s+indevida)\b/g,
+    },
+    {
       id: "after_sales",
       label: "Possível contexto de pós-venda",
       polarity: "ambiguous",
+      negatable: true,
       pattern:
         /\b(?:minha\s+entrega|meu\s+pedido|ja\s+comprei|produto\s+que\s+comprei|nao\s+chegou|reembolso|devolucao|cobranca\s+indevida)\b/g,
     },
@@ -197,7 +215,7 @@
         nextStep:
           "Confirme quem tem interesse e o que essa pessoa deseja, sem atribuir a compra ao remetente automaticamente.",
       };
-    if (has("after_sales"))
+    if (has("after_sales") || has("completed") || has("support"))
       return {
         category: positive("purchase") ? "unclear" : "insufficient",
         label: positive("purchase") ? "Intenção a esclarecer" : "Informações insuficientes",
@@ -212,7 +230,10 @@
       has("condition") ||
       has("objection") ||
       signals.some(
-        (s) => s.id.startsWith("negated_") && !(s.id === "negated_decline" && has("exploration")),
+        (s) =>
+          s.id.startsWith("negated_") &&
+          s.id !== "negated_urgency" &&
+          !(s.id === "negated_decline" && has("exploration")),
       )
     )
       return {
@@ -307,7 +328,10 @@
         )
           continue;
         const negation = negationBefore(normalized.folded, match.index);
-        if (negation !== null && ["positive", "negative"].includes(rule.polarity)) {
+        if (
+          negation !== null &&
+          (rule.negatable || ["positive", "negative"].includes(rule.polarity))
+        ) {
           const id = rule.id === "purchase" ? "decline" : `negated_${rule.id}`;
           add(
             {
