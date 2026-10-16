@@ -216,15 +216,36 @@
     flex: 1;
   }
   .priority-card {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 12px;
-    padding: 18px 16px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px 10px;
+    padding: 12px 14px;
   }
   .priority-card .priority-person {
+    grid-column: 1;
+    grid-row: 1;
     align-items: center;
+    gap: 8px;
+  }
+  .priority-card > div:nth-child(2) {
+    grid-column: 1 / -1;
+  }
+  .priority-card .priority-person p,
+  .priority-card .priority-time,
+  .priority-card .priority-step {
+    display: none;
+  }
+  .priority-card .badge {
+    margin-bottom: 4px;
+  }
+  .priority-position {
+    font-size: 18px;
+    min-width: 18px;
   }
   .priority-card > button {
-    width: 100%;
+    grid-column: 2;
+    grid-row: 1;
+    align-self: center;
+    padding-inline: 10px;
   }
   #priority-detail .dialog-head h2 {
     font-size: 20px;

@@ -98,7 +98,7 @@
             "priority-time",
           ),
         );
-        const step = node("div");
+        const step = node("div", undefined, "priority-step");
         step.append(
           node("span", "PRÓXIMO PASSO", "priority-step-label"),
           node("p", firstSentence(row.nextStep)),

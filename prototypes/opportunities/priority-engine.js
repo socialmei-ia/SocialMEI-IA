@@ -14,14 +14,14 @@
       commercial: true,
       order: 0,
       nextStep:
-        "Responda ao pedido e confira preço, estoque e prazo. Confirme se a pessoa quer avançar, sem prometer disponibilidade.",
+        "Confirme a necessidade e os detalhes do pedido. Verifique valores, condições e prazo aplicáveis antes de propor o próximo passo.",
     }),
     inquiry: Object.freeze({
       label: "Responder consulta",
       commercial: true,
       order: 1,
       nextStep:
-        "Responda à consulta comercial e confirme produto, quantidade e necessidade antes de propor uma compra.",
+        "Confirme a necessidade e os detalhes da consulta. Verifique valores, condições e prazo aplicáveis antes de propor o próximo passo.",
     }),
     clarify: Object.freeze({
       label: "Esclarecer decisão",
@@ -65,10 +65,50 @@
         "Respeite a recusa e encerre a abordagem comercial. Confirme eventual cancelamento antes de agir.",
     }),
   });
-  const day = 86400000;
+  // Experimental default; business-specific configuration still needs validation.
+  const EXPERIMENTAL_POLICY = Object.freeze({ followUpHours: 24 });
+  const followUpWindowMs = EXPERIMENTAL_POLICY.followUpHours * 3600000;
   const has = (result, id) => result.signals.some((s) => s.id === id);
   const positive = (result, id) =>
     result.signals.some((s) => s.id === id && s.polarity === "positive");
+  function offerContext(customer, decisive) {
+    const evidence =
+      decisive?.result.signals
+        .filter(
+          (signal) =>
+            signal.polarity === "positive" && ["item", "specific_item"].includes(signal.id),
+        )
+        .flatMap((signal) => signal.evidence.map((entry) => entry.text))
+        .join(" ") || "";
+    const identify = (text) => {
+      const folded = text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+      const service =
+        /\b(?:servicos?|troca de tela|corte de cabelo|conserto|reparo|manutencao|consultoria|instalacao|aulas?)\b/.test(
+          folded,
+        );
+      const product =
+        /\b(?:produtos?|perfumes?|212\s*vip|malbec|camisas?|canecas?|tenis|kits?|fones?|sabonetes?|cremes?|notebooks?|celulares?|iphone|galaxy)\b/.test(
+          folded,
+        );
+      return service && product ? "mixed" : service ? "service" : product ? "product" : null;
+    };
+    return identify(evidence) || identify(customer.interest || "") || "unknown";
+  }
+  function nextStepFor(group, context) {
+    if (context === "service") {
+      if (group === "first")
+        return "Confirme os detalhes do serviço para preparar o orçamento. Verifique valor e prazo de atendimento antes de propor uma data.";
+      if (group === "inquiry")
+        return "Responda à consulta e esclareça o serviço solicitado. Confirme os detalhes necessários e verifique valor e prazo de atendimento.";
+    }
+    if (context === "product") {
+      if (group === "first")
+        return "Confirme o produto e verifique preço e disponibilidade reais. Confira as condições de entrega ou retirada antes de combinar um prazo.";
+      if (group === "inquiry")
+        return "Responda à consulta e confirme o produto e a quantidade desejados. Verifique preço e disponibilidade reais antes de fazer uma oferta.";
+    }
+    return GROUPS[group].nextStep;
+  }
   function timestamp(value, reference) {
     if (
       typeof value !== "string" ||
@@ -174,7 +214,7 @@
       const recommendation = recommend(analyses);
       let { group, decisive } = recommendation;
       const recency = datesReliable && decisive ? timestamp(decisive.message.at, reference) : null;
-      const stale = recency !== null && reference - recency > day;
+      const stale = recency !== null && reference - recency > followUpWindowMs;
       const urgent =
         !!decisive &&
         !stale &&
@@ -216,7 +256,8 @@
         reasons.push(
           "Datas ausentes, inválidas ou futuras: ordem da conversa informada, sem desempate por recência.",
         );
-      const base = { group, label: GROUPS[group].label, nextStep: GROUPS[group].nextStep };
+      const context = offerContext(customer, decisive);
+      const base = { group, label: GROUPS[group].label, nextStep: nextStepFor(group, context) };
       const review = Object.hasOwn(reviews, customer.id) ? reviews[customer.id] : null;
       if (
         review &&
@@ -236,7 +277,7 @@
         label: effective.label,
         commercial: effective.commercial,
         reasons,
-        nextStep: effective.nextStep,
+        nextStep: nextStepFor(group, context),
         analyses,
         decisiveMessageId: decisive?.message.id ?? null,
         recency,
@@ -255,5 +296,5 @@
         (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
     );
   }
-  return Object.freeze({ prioritizeCustomers, GROUPS });
+  return Object.freeze({ prioritizeCustomers, GROUPS, EXPERIMENTAL_POLICY });
 });

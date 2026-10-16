@@ -46,10 +46,13 @@ module.exports = async function priorityBrowserFlows(browser, origin) {
         );
         const measures = await page.locator(".priority-card").evaluateAll((cards) =>
           cards.map((card) => ({
-            paragraphs: [...card.querySelectorAll("p")].map((p) => ({
-              width: p.getBoundingClientRect().width,
-              size: parseFloat(getComputedStyle(p).fontSize),
-            })),
+            height: card.getBoundingClientRect().height,
+            paragraphs: [...card.querySelectorAll("p")]
+              .filter((p) => p.getBoundingClientRect().height > 0)
+              .map((p) => ({
+                width: p.getBoundingClientRect().width,
+                size: parseFloat(getComputedStyle(p).fontSize),
+              })),
             nameHeight: card.querySelector("h4").getBoundingClientRect().height,
             buttonHeight: card.querySelector("button").getBoundingClientRect().height,
           })),
@@ -57,6 +60,8 @@ module.exports = async function priorityBrowserFlows(browser, origin) {
         for (const card of measures) {
           assert(card.nameHeight < 55, "Nome não pode quebrar em colunas estreitas");
           assert(card.buttonHeight >= 44);
+          if (width <= 390)
+            assert(card.height <= 190, `${width}/${theme}: linha de ${card.height}px`);
           for (const p of card.paragraphs) {
             assert(
               p.width >= (width <= 390 ? 200 : 100),
@@ -88,9 +93,20 @@ module.exports = async function priorityBrowserFlows(browser, origin) {
             .locator("#priority-detail")
             .screenshot({ path: path.join(output, `detail-${width}-${theme}.png`) });
         await close();
+        await open("bruno");
+        const serviceStep = await page
+          .locator("#priority-detail-summary .intent-next")
+          .textContent();
+        assert(serviceStep.includes("serviço") && serviceStep.includes("orçamento"));
+        assert(!/estoque|produto/.test(serviceStep));
+        if ([390, 1440].includes(width))
+          await page
+            .locator("#priority-detail")
+            .screenshot({ path: path.join(output, `service-${width}-${theme}.png`) });
+        await close();
         assert(
           await page
-            .locator('[data-customer-id="ana"] button')
+            .locator('[data-customer-id="bruno"] button')
             .evaluate((el) => el === document.activeElement),
         );
         layouts++;

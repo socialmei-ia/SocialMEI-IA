@@ -233,3 +233,44 @@ test("negated urgency cannot promote a customer or erase explicit purchase inten
   assert.equal(row.analyses[0].result.category, "high");
   assert.equal(run([client("b", ["Quanto custa? Sem urgência."])])[0].urgent, false);
 });
+test("next steps distinguish services, products and unknown offers without changing ranking", () => {
+  const rows = run(customers);
+  assert.match(rows.find((row) => row.id === "bruno").nextStep, /serviço.*orçamento/);
+  assert.doesNotMatch(
+    rows.find((row) => row.id === "bruno").nextStep,
+    /estoque|quantidade|produto/,
+  );
+  assert.match(rows.find((row) => row.id === "ana").nextStep, /produto.*disponibilidade reais/);
+  for (const text of ["Quero comprar.", "Quanto custa?", "Pode fazer um orçamento?"]) {
+    const row = run([client("a", [text])])[0];
+    assert.match(row.nextStep, /necessidade/);
+    assert.doesNotMatch(row.nextStep, /estoque|produto|quantidade|serviço/);
+  }
+  assert.deepEqual(
+    rows.filter((row) => row.commercial).map((row) => row.id),
+    ["ana", "bruno", "camila", "diego", "helena"],
+  );
+});
+test("offer context uses recognized text or explicit interest, and mixed context remains neutral", () => {
+  const service = client("a", ["Quanto custa o serviço de troca de tela?"]);
+  assert.match(run([service])[0].nextStep, /serviço solicitado/);
+  const product = client("a", ["Quanto custa o perfume?"]);
+  assert.match(run([product])[0].nextStep, /produto e a quantidade/);
+  const withContext = { ...client("a", ["Pode fazer um orçamento?"]), interest: "Troca de tela" };
+  assert.match(run([withContext])[0].nextStep, /serviço/);
+  const mixed = client("a", ["Quero comprar um perfume e contratar um serviço."]);
+  assert.match(run([mixed])[0].nextStep, /necessidade/);
+});
+test("human review applies the relevant next step and preserves original recommendation", () => {
+  const row = run(customers, {
+    bruno: { group: "inquiry", reason: "Confirmar o serviço primeiro." },
+  }).find((row) => row.id === "bruno");
+  assert.match(row.nextStep, /serviço solicitado/);
+  assert.match(row.recommendation.nextStep, /preparar o orçamento/);
+  for (const group of ["support", "completed", "declined"]) {
+    const review = run(customers, { bruno: { group, reason: "Encaminhamento revisado." } }).find(
+      (row) => row.id === "bruno",
+    );
+    assert.equal(review.nextStep, GROUPS[group].nextStep);
+  }
+});
