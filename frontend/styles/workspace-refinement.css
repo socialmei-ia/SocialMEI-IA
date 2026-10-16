@@ -287,9 +287,12 @@
 /* Pequenas telas: controles acessíveis sem deslocamento horizontal da página */
 @media (max-width: 760px) {
   .experience-app .workspace-shell {
-    margin-bottom: 14px;
-    padding: 14px;
-    border-radius: 18px;
+    margin-bottom: 12px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
   }
 
   .experience-app .workspace-shell .management-header {
