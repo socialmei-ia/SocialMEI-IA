@@ -12048,8 +12048,19 @@ body.experience-app #experienceRoot {
   border: 0;
   border-bottom: 1px solid var(--ln);
   border-radius: 0;
-  padding: 18px 16px;
+  padding: 15px 16px;
   background: transparent;
+  transition: background-color var(--motion-fast);
+}
+.inbox-shell .conv-item:hover {
+  background: var(--hover);
+}
+.inbox-shell .conv-item:focus-visible {
+  outline-offset: -3px;
+}
+.inbox-shell .conv-preview.has-draft {
+  color: var(--warning);
+  font-weight: 550;
 }
 .inbox-shell .conv-item.active {
   background: var(--bs);
@@ -12088,9 +12099,9 @@ body.experience-app #experienceRoot {
 .inbox-shell .msg {
   font-size: 15px;
   line-height: 1.65;
-  padding: 15px 18px;
-  border-radius: 17px;
-  max-width: 88%;
+  padding: 12px 16px;
+  border-radius: 13px;
+  max-width: min(88%, 68ch);
   box-shadow: none;
 }
 .inbox-shell .msg.out {
@@ -12112,11 +12123,11 @@ body.experience-app #experienceRoot {
 }
 .inbox-shell .composer-zone {
   background: var(--sf);
-  padding: 16px 20px 18px;
+  padding: 12px 16px 14px;
 }
 .inbox-shell .composer {
-  border: 1px solid var(--ln);
-  border-radius: 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
   background: var(--bg);
   padding: 12px;
   align-items: flex-end;
@@ -12135,7 +12146,7 @@ body.experience-app #experienceRoot {
   background: var(--bg);
 }
 .inbox-shell .details-top {
-  padding: 22px;
+  padding: 18px 22px;
 }
 .inbox-shell .context-card {
   border: 0;
