@@ -528,10 +528,12 @@ function rangeCaption(range = periodRange()) {
   return `${formatDate(range.from)} — ${formatDate(range.to)}`;
 }
 function operationalMetrics(range = periodRange()) {
-  const sales = appData.vendas.filter((sale) => inRange(sale.data, range));
+  const sales = appData.vendas.filter((sale) => !sale.excluida && inRange(sale.data, range));
   const valid = sales.filter((sale) => !["Cancelado", "Rascunho"].includes(sale.status));
   const paidSales = sales.filter((sale) => sale.status === "Pago");
-  const ledger = appData.financeiro.filter((entry) => inRange(entry.vencimento, range));
+  const ledger = appData.financeiro.filter(
+    (entry) => !entry.excluida && inRange(entry.vencimento, range),
+  );
   const sum = (items, key) => items.reduce((s, x) => s + (Number(x[key]) || 0), 0);
   const received = sum(
     ledger.filter((x) => x.tipo === "receita" && x.status === "pago"),
@@ -685,14 +687,16 @@ function chartSeries(range, source = "finance") {
     }
   }
   if (source === "sales") {
-    for (const v of appData.vendas.filter((sale) => sale.status === "Pago")) {
+    for (const v of appData.vendas.filter((sale) => !sale.excluida && sale.status === "Pago")) {
       const b = buckets.find((b) => inRange(v.data, b));
       if (b) {
         b.r += Number(v.valor) || 0;
       }
     }
   } else {
-    for (const x of appData.financeiro.filter((entry) => entry.status === "pago")) {
+    for (const x of appData.financeiro.filter(
+      (entry) => !entry.excluida && entry.status === "pago",
+    )) {
       const b = buckets.find((b) => inRange(x.vencimento, b));
       if (b) {
         b[x.tipo === "receita" ? "r" : "d"] += Number(x.valor) || 0;
