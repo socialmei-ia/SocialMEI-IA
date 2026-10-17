@@ -48,10 +48,6 @@ jobs:
         run: npm ci
       - name: Contracts and repository structure
         run: npm test
-      - name: Inspect HTML formatting
-        run: |
-          npx prettier --write frontend/socialmei-app.html
-          git diff --unified=0 -- frontend/socialmei-app.html
       - name: Formatting
         run: npm run format:check
       - name: Python contracts
