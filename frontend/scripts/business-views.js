@@ -347,7 +347,7 @@ function renderNavigation() {
           >`;
   $("nav").innerHTML = /* HTML */ `<span class="nav-indicator" aria-hidden="true"></span
           ><span class="nav-group-label">Dia a dia</span
-          >${L("Início", "Início", "user")}${L("Caixa Unificada", "Caixa Unificada", "inbox")}<span
+          >${L("Início", "Início", "user")}${L("Caixa Unificada", "Caixa Unificada", "inbox")}${L("Oportunidades", "Oportunidades", "star")}<span
             class="nav-group-label"
             >Negócio</span
           >${L("Visão Geral", "Negócio", "bag", "Negócio")}<span class="nav-group-label"
@@ -1278,6 +1278,7 @@ function getProductUnitsSold(product) {
   ).length;
 }
 function renderProducts() {
+  SocialMEIPersonalization.renderCatalog();
   const searchQuery = normalizedText($("productsSearch").value.trim());
   const type = $("productsTypeFilter").value;
   const all = appData.produtos;
@@ -1319,7 +1320,7 @@ function renderProducts() {
     ? emptyMarkup(
         "Nenhum produto ou serviço ainda",
         "Cadastre o que você vende para registrar vendas mais rápido.",
-        '<button class="management-button pr" data-create="produto">Cadastrar primeiro produto</button>',
+        '<button class="management-button pr" data-create="produto">Cadastrar primeiro item</button>',
       )
     : !rows.length
       ? emptyMarkup(

@@ -7,6 +7,17 @@
   const screens = [...experienceRoot.querySelectorAll("[data-xp-screen]")];
   let onboardingStep = 1;
   let authMode = "register";
+  const businessModel = window.SocialMEIBusinessProfile;
+  const businessStore = businessModel.browserRepository();
+  let businessDraft = businessModel.normalize();
+  let businessEditing = false;
+  let businessScope = null;
+  let businessToolsChosen = false;
+  let businessSegmentChosen = false;
+  let activeBusinessFamily = null;
+  let onboardingReviewReturn = false;
+  let onboardingTransition = 0;
+  const registrationOnboardingKey = "onboarding-after-registration";
   const PROFILE_KEY = "socialmei-experience-profile-v1";
   function loadExperienceProfile() {
     const fallback = {
@@ -270,21 +281,6 @@
       showScreen("auth");
       return;
     }
-    if (q('[data-xp-screen="onboarding"].is-active') && onboardingStep === 4) {
-      appData.prefs.conta = {
-        ...(appData.prefs.conta || {}),
-        nome: profile.name,
-        email: profile.email,
-        telefone: profile.phone,
-      };
-      appData.prefs.negocio = {
-        ...(appData.prefs.negocio || {}),
-        nome: profile.business,
-        cnpj: profile.cnpj,
-        telefone: profile.phone,
-      };
-      saveAppData();
-    }
     refreshExperienceProfile();
     persistExperienceProfile();
     if (window.SocialMEIThemes) {
@@ -386,6 +382,7 @@
       try {
         sessionStorage.removeItem("socialmei-experience-screen");
         sessionStorage.removeItem("socialmei-current-view");
+        sessionStorage.removeItem("socialmei-business-demo-identity");
       } catch (_) {}
       try {
         document.querySelector("#profileDd")?.classList.remove("open");
@@ -434,6 +431,552 @@ AUTENTICAÇÃO — JAVASCRIPT
   /* ==================================================
 ONBOARDING — JAVASCRIPT
 ================================================== */
+  function renderBusinessOptions(host, name, options, selected) {
+    host.replaceChildren();
+    const group = document.createElement("div");
+    group.className = "business-profile-options";
+    options.forEach(([value, label]) => {
+      const item = document.createElement("label");
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.name = name;
+      input.value = value;
+      input.checked = selected.includes(value);
+      item.append(input, document.createTextNode(label));
+      group.append(item);
+    });
+    host.append(group);
+  }
+  function selectedBusinessValues(name) {
+    return qa(`input[name="${name}"]:checked`).map((input) => input.value);
+  }
+  function renderBusinessSegmentOptions() {
+    const select = q("#obSegment");
+    const selected = select.value;
+    const groups = new Map();
+    for (const [id, item] of Object.entries(businessModel.segments)) {
+      if (!groups.has(item.family)) groups.set(item.family, document.createElement("optgroup"));
+      const option = document.createElement("option");
+      option.value = id;
+      option.textContent = item.label;
+      groups.get(item.family).label = item.family;
+      groups.get(item.family).append(option);
+    }
+    select.replaceChildren(...groups.values());
+    select.value = Object.hasOwn(businessModel.segments, selected) ? selected : "other";
+  }
+  renderBusinessSegmentOptions();
+  const businessFamilyCards = [
+    {
+      id: "Beleza e cuidados",
+      title: "Beleza e cuidados",
+      symbol: "✂",
+      detail: "Cabelo, unhas e produtos de beleza",
+      families: ["Beleza e cuidados"],
+    },
+    {
+      id: "Moda e confecção",
+      title: "Moda e confecção",
+      symbol: "◈",
+      detail: "Costura, ajustes e roupas",
+      families: ["Moda e confecção"],
+    },
+    {
+      id: "Alimentação",
+      title: "Alimentação",
+      symbol: "☕",
+      detail: "Doces, lanches e refeições",
+      families: ["Alimentação"],
+    },
+    {
+      id: "Comércio e varejo",
+      title: "Comércio e varejo",
+      symbol: "▦",
+      detail: "Lojas, mercadinhos e vendas",
+      families: ["Comércio e varejo"],
+    },
+    {
+      id: "Tecnologia e reparos",
+      title: "Tecnologia e reparos",
+      symbol: "⌘",
+      detail: "Celulares, eletrônicos e consertos",
+      families: ["Tecnologia e reparos"],
+    },
+    {
+      id: "Serviços e outros",
+      title: "Serviços e outros",
+      symbol: "✳",
+      detail: "Autônomos, profissionais e outras atividades",
+      families: ["Serviços profissionais", "Outras atividades"],
+    },
+  ];
+  const businessSearchAliases = {
+    barber: "barbeiro",
+    hairdresser: "cabeleireira cabeleireiro",
+    tailoring: "costureira costureiro",
+    bakery: "boleira bolos confeiteira",
+    phoneRepair: "conserto celular manutenção telefone",
+    laboratory: "química químico",
+    manicure: "nail designer",
+  };
+  function businessSearchText(value) {
+    return String(value)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLocaleLowerCase("pt-BR")
+      .trim();
+  }
+  function familyForSegment(segment) {
+    const family = businessModel.segments[segment]?.family;
+    return businessFamilyCards.find((card) => card.families.includes(family))?.id || null;
+  }
+  function renderBusinessPicker() {
+    const query = businessSearchText(q("#businessSegmentSearch").value);
+    const familyHost = q("#businessFamilyChoices");
+    familyHost.hidden = !!query;
+    q(".business-discovery").classList.toggle("is-searching", !!query);
+    qa("button[data-family]", familyHost).forEach((button) => {
+      const active = button.dataset.family === activeBusinessFamily;
+      button.setAttribute("aria-pressed", String(active));
+      button.classList.toggle("is-active", active);
+    });
+    const choices = Object.entries(businessModel.segments).filter(([id, segment]) =>
+      query
+        ? businessSearchText(
+            [
+              segment.label,
+              segment.family,
+              segment.description,
+              businessSearchAliases[id] || "",
+            ].join(" "),
+          ).includes(query)
+        : businessFamilyCards
+            .find((card) => card.id === activeBusinessFamily)
+            ?.families.includes(segment.family),
+    );
+    const section = q("#businessSpecialtySection");
+    const empty = q("#businessSpecialtyEmpty");
+    section.hidden = !choices.length;
+    empty.hidden = !(query && !choices.length);
+    empty.textContent =
+      query && !choices.length
+        ? "Não encontramos essa atividade. Tente outro termo ou escolha Serviços e outros."
+        : "";
+    q("#businessSelectionSummary").textContent = businessSegmentChosen
+      ? `Atividade escolhida: ${businessModel.segments[businessDraft.segment].label}`
+      : "";
+    const host = q("#businessSpecialtyChoices");
+    host.replaceChildren();
+    choices.forEach(([id, segment]) => {
+      const label = document.createElement("label");
+      label.className = "business-specialty-choice";
+      const input = document.createElement("input");
+      input.type = "radio";
+      input.name = "businessSpecialty";
+      input.value = id;
+      input.checked = businessSegmentChosen && businessDraft.segment === id;
+      const description = document.createElement("span");
+      const title = document.createElement("b");
+      title.textContent = segment.label;
+      const detail = document.createElement("small");
+      detail.textContent = segment.description;
+      description.append(title, detail);
+      label.append(input, description);
+      input.addEventListener("change", () => {
+        if (!input.checked) return;
+        chooseBusinessSegment(id, true);
+      });
+      host.append(label);
+    });
+  }
+  function chooseBusinessSegment(id, focusSpecialty = false) {
+    if (!Object.hasOwn(businessModel.segments, id)) return;
+    const changed = businessDraft.segment !== id;
+    businessDraft.segment = id;
+    businessSegmentChosen = true;
+    activeBusinessFamily = familyForSegment(id);
+    q("#obSegment").value = id;
+    if (changed) businessDraft.offers = [...businessModel.segments[id].offers];
+    renderBusinessFields();
+    if (focusSpecialty) {
+      const picked = q("#businessSpecialtyChoices input:checked");
+      picked?.focus({ preventScroll: true });
+    }
+  }
+  const businessFamilyHost = q("#businessFamilyChoices");
+  businessFamilyCards.forEach((family) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "business-family-card";
+    button.dataset.family = family.id;
+    button.setAttribute("aria-pressed", "false");
+    const symbol = document.createElement("span");
+    symbol.className = "business-family-icon";
+    symbol.setAttribute("aria-hidden", "true");
+    const paths = {
+      "Beleza e cuidados":
+        '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="m9 8 12 13M9 16 21 3M12 12l9-9"/>',
+      "Moda e confecção": '<path d="M9 5a3 3 0 0 1 6 0c0 3-3 3-3 6l9 7H3l9-7"/>',
+      Alimentação:
+        '<path d="M4 7h13v8a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V7Zm13 1h2a3 3 0 0 1 0 6h-2M7 3v1m5-1v1M2 22h20"/>',
+      "Comércio e varejo":
+        '<path d="m3 8 2-5h14l2 5M3 8v3a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0V8H3Zm2 6v7h14v-7M9 21v-6h6v6"/>',
+      "Tecnologia e reparos":
+        '<rect x="5" y="2" width="14" height="20" rx="2"/><path d="m8 11 3 3 5-6M10 19h4"/>',
+      "Serviços e outros": '<path d="m14 6 4-4 4 4-4 4-3-1-7 7 1 3-4 3-3-3 3-4 3 1 7-7-1-3Z"/>',
+    };
+    symbol.innerHTML = `<svg viewBox="0 0 24 24">${paths[family.id]}</svg>`;
+    const title = document.createElement("strong");
+    title.textContent = family.title;
+    const description = document.createElement("small");
+    description.textContent = family.detail;
+    button.append(symbol, title, description);
+    button.addEventListener("click", () => {
+      activeBusinessFamily = family.id;
+      q("#businessSegmentSearch").value = "";
+      renderBusinessPicker();
+      motion.animate(
+        q("#businessSpecialtySection"),
+        [
+          { opacity: 0, transform: "translateY(4px)" },
+          { opacity: 1, transform: "none" },
+        ],
+        180,
+      );
+      if (innerWidth <= 820) {
+        q("#businessSpecialtyLabel").tabIndex = -1;
+        q("#businessSpecialtyLabel").focus({ preventScroll: true });
+        q("#businessSpecialtySection").scrollIntoView({
+          block: "center",
+          behavior: motion.reduced ? "instant" : "smooth",
+        });
+      }
+    });
+    businessFamilyHost.append(button);
+  });
+  q("#businessSegmentSearch").addEventListener("input", renderBusinessPicker);
+  function renderBusinessFields() {
+    const segment = businessModel.segments[businessDraft.segment];
+    q("#businessSegmentHint").textContent =
+      segment.description + " Você pode escolher mais de um tipo de oferta.";
+    q("#businessActivityOther").hidden = businessDraft.segment !== "other";
+    q("#obActivity").value = businessDraft.activity;
+    qa('input[name="businessOffer"]').forEach((input) => {
+      input.checked = businessDraft.offers.includes(input.value);
+    });
+    const host = q("#businessOfferDetails");
+    host.replaceChildren();
+    for (const [offer, key, label, suggestions] of [
+      ["services", "services", "Quais serviços você realiza?", segment.services],
+      ["products", "productCategories", "Que tipos de produtos comercializa?", segment.products],
+    ]) {
+      if (!businessDraft.offers.includes(offer)) continue;
+      const group = document.createElement("fieldset");
+      group.className = "business-profile-group";
+      const legend = document.createElement("legend");
+      legend.textContent = label + " (opcional)";
+      const options = document.createElement("div");
+      const items = [...new Set([...suggestions, ...businessDraft[key]])];
+      renderBusinessOptions(
+        options,
+        "business-" + key,
+        items.map((item) => [item, item]),
+        businessDraft[key],
+      );
+      const customLabel = document.createElement("label");
+      customLabel.htmlFor = "businessCustom-" + key;
+      customLabel.textContent =
+        offer === "services" ? "Adicionar outro serviço" : "Adicionar outra categoria";
+      const custom = document.createElement("input");
+      custom.id = customLabel.htmlFor;
+      custom.maxLength = 80;
+      custom.setAttribute("aria-describedby", "obValidation");
+      custom.placeholder =
+        offer === "services" ? "Ex.: atendimento em domicílio" : "Ex.: perfumes artesanais";
+      const field = document.createElement("div");
+      field.className = "experience-field";
+      field.append(customLabel, custom);
+      const add = document.createElement("button");
+      add.type = "button";
+      add.className = "landing-button";
+      add.dataset.businessAdd = key;
+      add.setAttribute(
+        "aria-label",
+        offer === "services" ? "Adicionar serviço" : "Adicionar categoria",
+      );
+      add.textContent = "+";
+      const row = document.createElement("div");
+      row.className = "business-custom-row";
+      row.append(field, add);
+      const count = document.createElement("p");
+      count.className = "business-choice-count";
+      count.dataset.businessCount = key;
+      count.textContent = `${businessDraft[key].length} selecionados`;
+      group.append(legend, options, count, row);
+      host.append(group);
+    }
+    const caps = businessModel.routineOptions(businessDraft);
+    const capsHost = q("#businessCapabilities");
+    capsHost.replaceChildren();
+    for (const [title, ids] of [
+      ["Atendimentos", ["appointments", "walkIns", "recurring"]],
+      ["Pedidos e entregas", ["orders", "deliveries", "onlineOrders", "quotes"]],
+      ["Estrutura", ["inventory", "team"]],
+    ]) {
+      const options = caps.filter(([id]) => ids.includes(id));
+      if (!options.length) continue;
+      const fieldset = document.createElement("fieldset");
+      fieldset.className = "business-routine-group";
+      const legend = document.createElement("legend");
+      legend.textContent = title;
+      const choices = document.createElement("div");
+      renderBusinessOptions(
+        choices,
+        "businessCapability",
+        options,
+        options.filter(([id]) => businessDraft.capabilities[id]).map(([id]) => id),
+      );
+      fieldset.append(legend, choices);
+      capsHost.append(fieldset);
+    }
+    const teamNote = document.createElement("p");
+    teamNote.className = "management-note";
+    teamNote.textContent =
+      "Sem equipe selecionada, consideramos que você trabalha sozinho. Você pode ajustar depois.";
+    capsHost.append(teamNote);
+    const modules = businessModel.availableModules(businessDraft);
+    const modulesHost = q("#businessModules");
+    const futureOpen = modulesHost.querySelector("details")?.open || false;
+    modulesHost.replaceChildren();
+    const availableTitle = document.createElement("h3");
+    availableTitle.textContent = "Disponíveis no aplicativo";
+    const available = document.createElement("div");
+    renderBusinessOptions(
+      available,
+      "businessModule",
+      modules
+        .filter((id) => !businessModel.futureFeatures[id])
+        .map((id) => [id, businessModel.modules[id]]),
+      businessDraft.modules,
+    );
+    modulesHost.append(availableTitle, available);
+    const future = modules.filter((id) => businessModel.futureFeatures[id]);
+    if (future.length) {
+      const details = document.createElement("details");
+      details.className = "business-future";
+      details.open = futureOpen;
+      const summary = document.createElement("summary");
+      summary.textContent = "Para o futuro · ainda em desenvolvimento";
+      const note = document.createElement("p");
+      note.textContent = "Marque apenas seu interesse. Isso não libera uma funcionalidade.";
+      const choices = document.createElement("div");
+      renderBusinessOptions(
+        choices,
+        "businessModule",
+        future.map((id) => [id, businessModel.modules[id] + " (em desenvolvimento)"]),
+        businessDraft.modules,
+      );
+      details.append(summary, note, choices);
+      modulesHost.append(details);
+    }
+    renderBusinessPicker();
+  }
+  function suggestedOnboardingModules() {
+    const eligible = businessModel.availableModules(businessDraft);
+    return [
+      ...(businessDraft.offers.includes("services") ? ["services"] : []),
+      ...(businessDraft.offers.includes("products") ? ["products"] : []),
+      "clients",
+      "sales",
+      "finance",
+    ].filter((id) => eligible.includes(id));
+  }
+  function startBusinessOnboarding(editing = false) {
+    onboardingTransition++;
+    onboardingBusy = false;
+    onboardingReviewReturn = false;
+    businessEditing = editing;
+    businessScope = businessStore.scope();
+    const saved = businessStore.read();
+    businessDraft = saved.profile || businessModel.normalize();
+    businessToolsChosen = !!saved.profile;
+    businessSegmentChosen = !!saved.profile;
+    activeBusinessFamily = saved.profile ? familyForSegment(businessDraft.segment) : null;
+    if (!saved.profile) businessDraft.modules = suggestedOnboardingModules();
+    q("#businessSegmentAlternative").open = false;
+    q(".onboarding-optional").open = false;
+    q("#businessSegmentSearch").value = "";
+    onboardingStep = editing ? 2 : 1;
+    if (editing) refreshExperienceProfile();
+    showScreen("onboarding");
+    q("#obSegment").value = businessDraft.segment;
+    q("#obBusiness").value =
+      businessDraft.businessName ||
+      (editing || SocialMEIAuth.remote ? profile.business : "Meu negócio");
+    q("#obBusiness").disabled = SocialMEIAuth.remote;
+    for (const id of ["obName", "obEmail", "obPhone"]) q("#" + id).readOnly = SocialMEIAuth.remote;
+    q("#businessProfileStorageNotice").textContent = SocialMEIAuth.remote
+      ? "Preferências deste usuário e negócio, apenas neste navegador. Ainda não sincronizam com o servidor ou outros dispositivos."
+      : "Demonstração local · preferências apenas neste navegador. Nenhuma conta é criada no servidor.";
+    q("[data-business-cancel]").hidden = !editing;
+    q('[data-review-edit-step="1"]').hidden = editing || SocialMEIAuth.remote;
+    renderBusinessFields();
+    updateOnboardingPreview();
+    const heading = q(".onboarding-panel.is-active h1");
+    if (heading) {
+      heading.tabIndex = -1;
+      heading.focus();
+    }
+    q(".onboarding-main").scrollIntoView({ block: "start", behavior: "instant" });
+  }
+  function collectBusinessStep() {
+    if (onboardingStep === 2) {
+      businessDraft.businessName = q("#obBusiness").value.trim();
+      businessDraft.segment = q("#obSegment").value;
+      businessDraft.activity = q("#obActivity").value.trim();
+      businessDraft.offers = selectedBusinessValues("businessOffer");
+    }
+    if (onboardingStep === 3) {
+      const choices = readBusinessOfferChoices();
+      if (!choices) return false;
+      Object.assign(businessDraft, choices);
+    }
+    if (onboardingStep === 4) {
+      const enabled = selectedBusinessValues("businessCapability");
+      Object.keys(businessDraft.capabilities).forEach((id) => {
+        businessDraft.capabilities[id] = enabled.includes(id);
+      });
+    }
+    if (onboardingStep === 5) {
+      businessDraft.modules = selectedBusinessValues("businessModule");
+      businessToolsChosen = true;
+    }
+    businessDraft = businessModel.normalize(businessDraft);
+    if (!businessToolsChosen) businessDraft.modules = suggestedOnboardingModules();
+    renderBusinessFields();
+    renderBusinessReview();
+    return true;
+  }
+  function renderBusinessReview() {
+    const host = q("#businessProfileReview");
+    host.replaceChildren();
+    q("#xpReadySegment").textContent =
+      businessDraft.segment === "other" && businessDraft.activity
+        ? businessDraft.activity
+        : businessModel.segments[businessDraft.segment].label;
+    const title = q("#xpReadyTitle");
+    if (title) {
+      title.textContent = profile.name.trim()
+        ? `Seu negócio está quase pronto, ${profile.name.trim().split(/\s+/)[0]}.`
+        : "Seu negócio está quase pronto.";
+    }
+    const business = q("#xpReadyBusiness");
+    if (business) {
+      business.textContent = profile.business || "Meu negócio";
+    }
+    const channels = q("#xpReadyChannels");
+    if (channels) {
+      channels.textContent =
+        qa('.experience-choice.is-selected[data-choice-group="channel"]')
+          .map((x) => x.dataset.choice)
+          .join(", ") || "Você pode conectar depois";
+    }
+    const focus = q("#xpReadyFocus");
+    if (focus) {
+      focus.textContent =
+        qa('.experience-choice.is-selected[data-choice-group="focus"]')
+          .map((x) => x.dataset.choice)
+          .join(", ") || "Organizar minha rotina";
+    }
+    const rows = [
+      ["Seus dados", [profile.name, profile.email, profile.phone].filter(Boolean).join(" · ")],
+      [
+        "Atividade",
+        businessDraft.segment === "other"
+          ? businessDraft.activity || "A definir"
+          : businessModel.segments[businessDraft.segment].label,
+      ],
+      [
+        "Ofertas",
+        businessDraft.offers.map((id) => (id === "products" ? "Produtos" : "Serviços")).join(" e "),
+      ],
+      ["Serviços sugeridos", businessDraft.services.join(", ") || "Nenhum selecionado"],
+      ["Categorias sugeridas", businessDraft.productCategories.join(", ") || "Nenhuma selecionada"],
+      [
+        "Rotina",
+        Object.keys(businessDraft.capabilities)
+          .filter((id) => businessDraft.capabilities[id])
+          .map((id) => businessModel.capabilities[id])
+          .join(" · ") || "Sem necessidades adicionais informadas",
+      ],
+      [
+        "Ferramentas de interesse",
+        businessDraft.modules
+          .map(
+            (id) =>
+              businessModel.modules[id] +
+              (businessModel.futureFeatures[id] ? " (em desenvolvimento)" : ""),
+          )
+          .join(", ") || "Escolher depois",
+      ],
+    ];
+    rows.forEach(([label, value]) => {
+      const row = document.createElement("div"),
+        title = document.createElement("small"),
+        text = document.createElement("b");
+      title.textContent = label;
+      text.textContent = value;
+      row.append(title, text);
+      host.append(row);
+    });
+  }
+  function finishBusinessOnboarding() {
+    businessDraft.completed = true;
+    if (!businessStore.save(businessDraft, businessScope)) {
+      q("#obValidation").textContent =
+        "Não foi possível salvar neste navegador. Confira a sessão e a permissão de armazenamento e tente novamente. Suas respostas continuam nesta tela.";
+      return false;
+    }
+    if (!SocialMEIAuth.remote) {
+      appData.prefs.conta = {
+        ...(appData.prefs.conta || {}),
+        nome: profile.name,
+        email: profile.email,
+        telefone: profile.phone,
+      };
+      appData.prefs.negocio = {
+        ...(appData.prefs.negocio || {}),
+        nome: profile.business,
+        cnpj: profile.cnpj,
+        telefone: profile.phone,
+      };
+      saveAppData();
+    }
+    persistExperienceProfile();
+    document.dispatchEvent(new CustomEvent("socialmei-business-profile-change"));
+    return true;
+  }
+  document.addEventListener("click", (event) => {
+    if (event.target.closest("[data-business-profile-edit]")) startBusinessOnboarding(true);
+    if (event.target.closest("[data-business-cancel]")) {
+      if (onboardingBusy) return;
+      onboardingTransition++;
+      refreshExperienceProfile();
+      enterApp("Configurações");
+    }
+  });
+  q("#obSegment").addEventListener("change", () => {
+    q("#businessSegmentSearch").value = "";
+    chooseBusinessSegment(q("#obSegment").value);
+  });
+  experienceRoot.addEventListener("change", (event) => {
+    if (event.target.matches('input[name="businessOffer"]')) {
+      businessDraft.activity = q("#obActivity").value.trim();
+      businessDraft.offers = selectedBusinessValues("businessOffer");
+      businessDraft = businessModel.normalize(businessDraft);
+      renderBusinessFields();
+    }
+  });
   function hydrateOnboarding() {
     for (const [id, key] of [
       ["obName", "name"],
@@ -460,54 +1003,57 @@ ONBOARDING — JAVASCRIPT
     });
   }
   function syncOnboarding() {
+    const steps = ["Você", "Negócio", "Ofertas", "Rotina", "Ferramentas", "Revisão"];
+    const nextLabel = steps[onboardingStep];
+    q(".onboarding-screen").dataset.onboardingStep = onboardingStep;
+    q("#xpOnboardingStepStatus").textContent =
+      `Etapa ${onboardingStep} de 6 · ${steps[onboardingStep - 1]}` +
+      (nextLabel ? ` · Próxima: ${nextLabel}` : " · Última etapa");
     const bar = q("#xpOnboardingProgress span");
     if (bar) {
-      bar.style.transform = `scaleX(${Math.min(1, onboardingStep / 4)})`;
+      bar.style.transform = `scaleX(${Math.min(1, (onboardingStep - 1) / 5)})`;
     }
     q("#xpOnboardingProgress").setAttribute("role", "progressbar");
     q("#xpOnboardingProgress").setAttribute("aria-label", "Configuração do espaço");
     q("#xpOnboardingProgress").setAttribute("aria-valuemin", "0");
-    q("#xpOnboardingProgress").setAttribute("aria-valuemax", "4");
+    q("#xpOnboardingProgress").setAttribute("aria-valuemax", "6");
     q("#xpOnboardingProgress").setAttribute("aria-valuenow", onboardingStep);
-    qa("[data-onboard-panel]").forEach((p) =>
-      p.classList.toggle("is-active", Number(p.dataset.onboardPanel) === onboardingStep),
+    q("#xpOnboardingProgress").setAttribute(
+      "aria-valuetext",
+      `Etapa ${onboardingStep} de 6: ${steps[onboardingStep - 1]}`,
     );
+    qa("[data-onboard-panel]").forEach((p) => {
+      const active = Number(p.dataset.onboardPanel) === onboardingStep;
+      p.classList.toggle("is-active", active);
+      p.inert = !active;
+      p.setAttribute("aria-hidden", String(!active));
+    });
     qa("[data-onboard-step]").forEach((s) => {
       const n = Number(s.dataset.onboardStep);
       s.classList.toggle("is-current", n === onboardingStep);
       s.classList.toggle("is-done", n < onboardingStep);
       s.setAttribute("aria-current", n === onboardingStep ? "step" : "false");
+      const canRevisit = n < onboardingStep && n >= (businessEditing ? 2 : 1);
+      s.disabled = !canRevisit;
+      s.setAttribute(
+        "aria-label",
+        canRevisit ? `Voltar para ${steps[n - 1]}` : `Etapa ${n}: ${steps[n - 1]}`,
+      );
       const mark = s.querySelector("span");
       if (mark) {
         mark.textContent = n < onboardingStep ? "✓" : n;
       }
-      if (n === onboardingStep && previousStep !== onboardingStep) {
-        motion.animate(
-          mark,
-          [
-            {
-              transform: "scale(.96)",
-            },
-            {
-              transform: "scale(1.02)",
-            },
-            {
-              transform: "none",
-            },
-          ],
-          "motion-medium",
-          "ease-spring",
-        );
-      }
     });
-    previousStep = onboardingStep;
-    q("[data-onboard-back]").classList.toggle("show", onboardingStep > 1);
+    q("[data-onboard-back]").classList.toggle("show", onboardingStep > (businessEditing ? 2 : 1));
+    q("[data-business-skip]").hidden = ![3, 4, 5].includes(onboardingStep);
     q("[data-onboard-next]").textContent =
-      onboardingStep === 3
-        ? "Preparar meu espaço"
-        : onboardingStep === 4
-          ? "Entrar no SocialMEI"
-          : "Continuar";
+      onboardingReviewReturn && onboardingStep !== 6
+        ? "Aplicar e voltar à revisão"
+        : onboardingStep === 5
+          ? "Revisar escolhas"
+          : onboardingStep === 6
+            ? "Salvar e entrar no SocialMEI"
+            : "Continuar";
   }
   function collectStep() {
     if (onboardingStep === 1) {
@@ -522,7 +1068,7 @@ ONBOARDING — JAVASCRIPT
       profile.instagram = q("#obInstagram")?.value.trim() || "";
       profile.city = q("#obCity")?.value.trim() || "";
     }
-    if (onboardingStep === 3) {
+    if (onboardingStep === 5) {
       profile.channels = qa('.experience-choice.is-selected[data-choice-group="channel"]').map(
         (x) => x.dataset.choice,
       );
@@ -530,36 +1076,28 @@ ONBOARDING — JAVASCRIPT
         qa('.experience-choice.is-selected[data-choice-group="focus"]').map(
           (x) => x.dataset.choice,
         )[0] || "Atendimento";
-      const title = q("#xpReadyTitle");
-      if (title) {
-        title.textContent = profile.name.trim()
-          ? `Seu espaço está pronto, ${profile.name.trim().split(/\s+/)[0]}.`
-          : "Seu espaço está pronto.";
-      }
-      const business = q("#xpReadyBusiness");
-      if (business) {
-        business.textContent = profile.business || "Meu negócio";
-      }
-      const channels = q("#xpReadyChannels");
-      if (channels) {
-        channels.textContent =
-          qa('.experience-choice.is-selected[data-choice-group="channel"]')
-            .map((x) => x.dataset.choice)
-            .join(", ") || "Você pode conectar depois";
-      }
-      const focus = q("#xpReadyFocus");
-      if (focus) {
-        focus.textContent =
-          qa('.experience-choice.is-selected[data-choice-group="focus"]')
-            .map((x) => x.dataset.choice)
-            .join(", ") || "Organizar minha rotina";
-      }
     }
-    persistExperienceProfile();
   }
   experienceRoot.addEventListener("click", (event) => {
+    const completedStep = event.target.closest("button[data-onboard-step]");
+    if (completedStep) {
+      const target = Number(completedStep.dataset.onboardStep);
+      if (!onboardingBusy && target >= (businessEditing ? 2 : 1) && target < onboardingStep) {
+        collectStep();
+        if (!collectBusinessStep()) return;
+        stepTransition(target);
+      }
+      return;
+    }
+    const reviewEdit = event.target.closest("[data-review-edit-step]");
+    if (reviewEdit && onboardingStep === 6 && !onboardingBusy) {
+      onboardingReviewReturn = true;
+      stepTransition(Number(reviewEdit.dataset.reviewEditStep));
+      return;
+    }
     const go = event.target.closest("[data-xp-go]");
     if (go) {
+      onboardingTransition++;
       const dest = go.dataset.xpGo;
       if (dest === "app") {
         enterApp();
@@ -612,22 +1150,32 @@ ONBOARDING — JAVASCRIPT
       updateOnboardingPreview();
       return;
     }
+    const skip = event.target.closest("[data-business-skip]");
+    if (skip && !onboardingBusy && [3, 4, 5].includes(onboardingStep)) {
+      collectStep();
+      if (!collectBusinessStep()) return;
+      navigateOnboardingForward();
+      return;
+    }
     const next = event.target.closest("[data-onboard-next]");
     if (next) {
+      if (onboardingBusy) return;
       if (!validateOnboard()) {
         return;
       }
       collectStep();
-      if (onboardingStep < 4) {
-        stepTransition(onboardingStep + 1);
-      } else {
-        enterApp();
+      if (!collectBusinessStep()) return;
+      if (onboardingStep < 6) {
+        navigateOnboardingForward();
+      } else if (finishBusinessOnboarding()) {
+        enterApp(businessEditing ? "Configurações" : "Início");
       }
       return;
     }
     const back = event.target.closest("[data-onboard-back]");
-    if (back && onboardingStep > 1) {
+    if (back && !onboardingBusy && onboardingStep > (businessEditing ? 2 : 1)) {
       collectStep();
+      if (!collectBusinessStep()) return;
       stepTransition(onboardingStep - 1);
       return;
     }
@@ -675,6 +1223,10 @@ ONBOARDING — JAVASCRIPT
           if (!registrationAvailable) {
             throw new Error("Recarregue a página para conferir a disponibilidade do cadastro.");
           }
+          sessionStorage.setItem(
+            registrationOnboardingKey,
+            q("#registerEmail").value.trim().toLowerCase(),
+          );
           await SocialMEIAuth.register({
             nome: q("#registerName").value.trim(),
             email: q("#registerEmail").value.trim(),
@@ -713,6 +1265,7 @@ ONBOARDING — JAVASCRIPT
       }
       if (event.target.id === "xpLoginForm") {
         profile.email = q("#loginEmail").value.trim();
+        sessionStorage.setItem("socialmei-business-demo-identity", profile.email.toLowerCase());
         persistExperienceProfile();
         enterApp();
       } else {
@@ -720,12 +1273,12 @@ ONBOARDING — JAVASCRIPT
         profile.email = q("#registerEmail").value.trim();
         profile.phone = q("#registerPhone").value.trim();
         persistExperienceProfile();
-        onboardingStep = 1;
+        sessionStorage.setItem("socialmei-business-demo-identity", profile.email.toLowerCase());
         // Reutiliza os dados do cadastro no preenchimento inicial do onboarding.
         q("#obName").value = profile.name;
         q("#obEmail").value = profile.email;
         q("#obPhone").value = profile.phone;
-        showScreen("onboarding");
+        startBusinessOnboarding();
       }
       q("#registerPassword").value = "";
       q("#loginPassword").value = "";
@@ -744,6 +1297,7 @@ ONBOARDING — JAVASCRIPT
         toggle.setAttribute("aria-label", "Mostrar senha");
       });
     } catch (error) {
+      sessionStorage.removeItem(registrationOnboardingKey);
       const feedback = q("#authConfirmation");
       feedback.textContent = error.message || "Não foi possível entrar. Tente novamente.";
       feedback.tabIndex = -1;
@@ -1407,7 +1961,6 @@ ONBOARDING — JAVASCRIPT
   let previewTimer = 0;
   let submitBusy = false;
   let onboardingBusy = false;
-  let previousStep = 1;
   function updatePreview() {
     const name = q("#registerName").value.trim();
     const first = name.split(/\s+/)[0].slice(0, 28);
@@ -1594,6 +2147,15 @@ ONBOARDING — JAVASCRIPT
     choice.setAttribute("aria-pressed", String(choice.classList.contains("is-selected"))),
   );
   function updateOnboardingPreview() {
+    const tools = q("#obPreviewTools");
+    tools.replaceChildren();
+    for (const id of selectedBusinessValues("businessModule").filter(
+      (id) => !businessModel.futureFeatures[id],
+    )) {
+      const item = document.createElement("li");
+      item.textContent = businessModel.modules[id];
+      tools.append(item);
+    }
     const name = q("#obName").value.trim() || profile.name;
     const business = q("#obBusiness").value.trim() || profile.business;
     q("#obPreviewBusiness").textContent = business;
@@ -1615,6 +2177,23 @@ ONBOARDING — JAVASCRIPT
         .join(", ") || "Organizar minha rotina";
   }
   function validateOnboard() {
+    if (
+      onboardingStep === 2 &&
+      (!businessSegmentChosen ||
+        (activeBusinessFamily && familyForSegment(businessDraft.segment) !== activeBusinessFamily))
+    ) {
+      q("#obValidation").textContent = "Escolha uma área e uma atividade para continuar.";
+      const target = q("#businessSegmentSearch").value
+        ? q("#businessSegmentSearch")
+        : q("#businessSpecialtyChoices input") || q("#businessFamilyChoices button");
+      target?.focus();
+      return false;
+    }
+    if (onboardingStep === 2 && !selectedBusinessValues("businessOffer").length) {
+      q("#obValidation").textContent = "Escolha produtos, serviços ou ambos para continuar.";
+      q('input[name="businessOffer"]').focus();
+      return false;
+    }
     const fields = qa(".onboarding-panel.is-active input,.onboarding-panel.is-active select");
     fields.forEach((element) => {
       let message = "";
@@ -1630,6 +2209,15 @@ ONBOARDING — JAVASCRIPT
         message = "Confira os 14 dígitos do CNPJ ou deixe em branco.";
       }
       element.setCustomValidity(message);
+      const feedback = q("#" + element.id + "Feedback");
+      if (feedback)
+        feedback.textContent =
+          message ||
+          (element.validity.valid
+            ? ""
+            : element.type === "email"
+              ? "Informe um e-mail válido."
+              : "Confira este campo.");
     });
     const invalid = fields.find((element) => !element.checkValidity());
     fields.forEach((element) =>
@@ -1637,8 +2225,11 @@ ONBOARDING — JAVASCRIPT
     );
     if (invalid) {
       q("#obValidation").textContent = "Confira o campo indicado antes de continuar.";
+      for (let parent = invalid.parentElement; parent; parent = parent.parentElement) {
+        if (parent.matches("details")) parent.open = true;
+      }
       invalid.focus();
-      invalid.reportValidity();
+      invalid.scrollIntoView({ block: "center", behavior: "instant" });
       return false;
     }
     return true;
@@ -1648,95 +2239,187 @@ ONBOARDING — JAVASCRIPT
       element.setCustomValidity("");
       element.removeAttribute("aria-invalid");
       q("#obValidation").textContent = "";
+      const feedback = q("#" + element.id + "Feedback");
+      if (feedback) feedback.textContent = "";
       updateOnboardingPreview();
+    });
+    element.addEventListener("blur", () => {
+      if (!element.closest(".onboarding-panel.is-active") || element.readOnly || element.disabled)
+        return;
+      const feedback = q("#" + element.id + "Feedback");
+      if (!feedback) return;
+      let message = "";
+      if (element.required && !element.value.trim())
+        message = "Preencha este campo antes de continuar.";
+      else if (element.type === "email" && !element.validity.valid)
+        message = "Informe um e-mail válido.";
+      else if (
+        element.id === "obPhone" &&
+        element.value &&
+        !SocialMEIContacts.phone(element.value).valid
+      )
+        message = SocialMEIContacts.phone(element.value).message;
+      else if (element.id === "obCnpj" && element.value && !isValidCnpj(element.value))
+        message = "Confira os 14 dígitos do CNPJ ou deixe em branco.";
+      feedback.textContent = message;
+      element.setAttribute("aria-invalid", String(!!message));
     });
     element.addEventListener("change", updateOnboardingPreview);
   });
-  async function stepTransition(nextStep) {
-    if (onboardingBusy) {
-      return;
+  function navigateOnboardingForward() {
+    const target = onboardingReviewReturn ? 6 : onboardingStep + 1;
+    if (onboardingReviewReturn) {
+      const current = onboardingStep;
+      for (let step = businessEditing ? 2 : 1; step < 6; step++) {
+        onboardingStep = step;
+        syncOnboarding();
+        if (!validateOnboard()) {
+          q(".onboarding-panel.is-active [aria-invalid=true]")?.focus();
+          return;
+        }
+      }
+      onboardingStep = current;
+      syncOnboarding();
     }
+    stepTransition(target);
+  }
+  async function stepTransition(nextStep) {
+    if (onboardingBusy || nextStep === onboardingStep) return;
     onboardingBusy = true;
+    const transition = ++onboardingTransition;
     const direction = nextStep > onboardingStep ? 1 : -1;
     const old = q(".onboarding-panel.is-active");
-    await motion.animate(
-      old,
-      [
-        {
-          opacity: 1,
-          transform: "none",
-        },
-        {
-          opacity: 0,
-          transform: `translateX(${-direction * 12}px)`,
-        },
-      ],
-      150,
-      "ease-exit",
+    const controls = qa(
+      ".onboarding-actions button,[data-onboard-step],[data-xp-screen='onboarding'] [data-xp-go]",
     );
-    onboardingStep = nextStep;
-    syncOnboarding();
-    updateOnboardingPreview();
-    q("#obValidation").textContent = "";
-    const next = q(".onboarding-panel.is-active");
-    const title = next.querySelector("h1,h2");
-    if (title) {
-      title.tabIndex = -1;
-      title.focus({
-        preventScroll: true,
-      });
-    }
-    await motion.animate(
-      next,
-      [
-        {
-          opacity: 0,
-          transform: `translateX(${direction * 12}px)`,
-        },
-        {
-          opacity: 1,
-          transform: "none",
-        },
-      ],
-      150,
-      "ease-enter",
-    );
-    if (nextStep === 4) {
-      motion.animate(
-        q("#readyCheck"),
+    controls.forEach((button) => (button.disabled = true));
+    old.inert = true;
+    try {
+      await motion.animate(
+        old,
         [
-          {
-            strokeDasharray: "1",
-            strokeDashoffset: "1",
-          },
-          {
-            strokeDasharray: "1",
-            strokeDashoffset: "0",
-          },
+          { opacity: 1, transform: "none" },
+          { opacity: 0, transform: `translateX(${-direction * 8}px)` },
         ],
-        "motion-slow",
+        160,
+        "ease-exit",
       );
-      qa(".experience-complete-list>div").forEach((element, i) =>
-        motion.animate(
-          element,
-          [
-            {
-              opacity: 0,
-              transform: "translateY(8px)",
-            },
-            {
-              opacity: 1,
-              transform: "none",
-            },
-          ],
-          "motion-medium",
-          "ease-enter",
-          i * motion.ms("stagger"),
-        ),
+      if (
+        transition !== onboardingTransition ||
+        !q(".onboarding-screen").classList.contains("is-active")
+      )
+        return;
+      onboardingStep = nextStep;
+      if (nextStep === 6) onboardingReviewReturn = false;
+      syncOnboarding();
+      updateOnboardingPreview();
+      q("#obValidation").textContent = "";
+      const next = q(".onboarding-panel.is-active");
+      const title = next.querySelector("h1,h2");
+      // The panel remains inert until entrance settles, preventing input loss mid-transition.
+      next.inert = true;
+      controls.forEach((button) => (button.disabled = true));
+      q(".onboarding-main").scrollIntoView({ block: "start", behavior: "instant" });
+      await motion.animate(
+        next,
+        [
+          { opacity: 0, transform: `translateX(${direction * 8}px)` },
+          { opacity: 1, transform: "none" },
+        ],
+        180,
+        "ease-enter",
       );
+      if (transition !== onboardingTransition) return;
+      next.inert = false;
+      if (title) {
+        title.tabIndex = -1;
+        title.focus({ preventScroll: true });
+      }
+    } finally {
+      if (transition === onboardingTransition) {
+        onboardingBusy = false;
+        controls.forEach((button) => (button.disabled = false));
+        syncOnboarding();
+      }
     }
-    onboardingBusy = false;
   }
+  // Footer height follows wrapped controls, zoom, storage notices and validation errors.
+  const onboardingFooter = q(".onboarding-footer");
+  new ResizeObserver(() => {
+    q(".onboarding-screen").style.setProperty(
+      "--onboard-footer-height",
+      `${Math.ceil(onboardingFooter.getBoundingClientRect().height)}px`,
+    );
+  }).observe(onboardingFooter);
+  function readBusinessOfferChoices() {
+    const choices = {};
+    for (const key of ["services", "productCategories"]) {
+      const input = q("#businessCustom-" + key);
+      const pending = (input?.value || "")
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean);
+      choices[key] = [...new Set([...selectedBusinessValues("business-" + key), ...pending])];
+      if (choices[key].length > 30) {
+        q("#obValidation").textContent =
+          "Você pode escolher até 30 opções por grupo. Remova uma escolha para adicionar outra.";
+        input?.setAttribute("aria-invalid", "true");
+        input?.focus();
+        input?.scrollIntoView({ block: "center", behavior: "instant" });
+        return null;
+      }
+      input?.removeAttribute("aria-invalid");
+    }
+    return choices;
+  }
+  function addBusinessSuggestion(key) {
+    if (onboardingBusy || !["services", "productCategories"].includes(key)) return;
+    const input = q("#businessCustom-" + key);
+    if (!input.value.trim()) {
+      input.focus();
+      return;
+    }
+    const choices = readBusinessOfferChoices();
+    if (!choices) return;
+    Object.assign(businessDraft, choices);
+    businessDraft = businessModel.normalize(businessDraft);
+    q("#obValidation").textContent = "";
+    renderBusinessFields();
+    q("#businessCustom-" + key).focus();
+  }
+  experienceRoot.addEventListener("click", (event) => {
+    const add = event.target.closest("[data-business-add]");
+    if (add) addBusinessSuggestion(add.dataset.businessAdd);
+  });
+  experienceRoot.addEventListener("keydown", (event) => {
+    if (
+      event.key !== "Enter" ||
+      event.isComposing ||
+      !event.target.closest(".onboarding-panel.is-active")
+    )
+      return;
+    if (event.target.id.startsWith("businessCustom-")) {
+      event.preventDefault();
+      addBusinessSuggestion(event.target.id.replace("businessCustom-", ""));
+    } else if (event.target.matches("input:not([type=checkbox]):not([type=radio])")) {
+      event.preventDefault();
+      q("[data-onboard-next]").click();
+    }
+  });
+  experienceRoot.addEventListener("change", (event) => {
+    const input = event.target;
+    if (input.name?.startsWith("business-")) {
+      const key = input.name.replace("business-", "");
+      if (input.checked && selectedBusinessValues(input.name).length > 30) {
+        input.checked = false;
+        q("#obValidation").textContent = "Você pode escolher até 30 opções por grupo.";
+      }
+      const count = q(`[data-business-count="${key}"]`);
+      const length = selectedBusinessValues(input.name).length;
+      if (count) count.textContent = `${length} ${length === 1 ? "selecionado" : "selecionados"}`;
+    }
+    if (input.name === "businessModule") updateOnboardingPreview();
+  });
   window.addEventListener("pagehide", () => clearTimeout(previewTimer));
 
   /* AUTOMAÇÕES — JAVASCRIPT
@@ -3677,6 +4360,7 @@ ONBOARDING — JAVASCRIPT
           <button class="btn" data-home-go="Clientes">Ver clientes →</button>
         `;
     renderHomeOperations();
+    SocialMEIPersonalization.renderHome();
     q("#homeLiveIcon").innerHTML = renderIcon(homeIcons?.[iconCycle] || "inbox");
     nextHomeIcon();
   };
@@ -4140,7 +4824,10 @@ ONBOARDING — JAVASCRIPT
     SocialMEIAuth.ready.then(async (identity) => {
       if (identity) {
         refreshExperienceProfile();
-        enterApp(restored);
+        const requested = sessionStorage.getItem(registrationOnboardingKey);
+        sessionStorage.removeItem(registrationOnboardingKey);
+        if (requested === identity.usuario.email.toLowerCase()) startBusinessOnboarding();
+        else enterApp(restored);
       } else {
         authMode = "login";
         showScreen("auth");

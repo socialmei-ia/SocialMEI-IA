@@ -545,8 +545,17 @@ module.exports = async function accountFlow(browser, origin) {
     await page.waitForFunction(
       () =>
         window.SocialMEIAuth?.current?.usuario.id === 2 &&
-        document.body.classList.contains("experience-app"),
+        !!document.querySelector('[data-onboard-panel="1"].is-active'),
     );
+    await page.locator("[data-onboard-next]").click();
+    await page.locator("#businessSegmentAlternative").evaluate((el) => (el.open = true));
+    await page.locator("#obSegment").selectOption("perfume");
+    for (let step = 3; step <= 6; step++) {
+      await page.locator("[data-onboard-next]").click();
+      await page.locator(`[data-onboard-panel="${step}"].is-active`).waitFor();
+    }
+    await page.locator("[data-onboard-next]").click();
+    await page.waitForFunction(() => document.body.classList.contains("experience-app"));
     assert.equal(await page.evaluate(() => localStorage.getItem("socialmei-private-test")), null);
     assert.equal(await page.locator("#profileAdminLink").evaluate((link) => link.hidden), true);
     await assertRealSession();

@@ -115,41 +115,5 @@ function reportTrend(series, label) {
   );
 }
 function exportReportCsv() {
-  const range = periodRange();
-  const metrics = operationalMetrics(range);
-  const rows = [
-    ["Período inicial", range.from],
-    ["Período final", range.to],
-    ["Faturamento · vendas pagas", metrics.revenue],
-    ["Receitas recebidas", metrics.received],
-    ["Despesas pagas", metrics.spent],
-    ["Saldo realizado", metrics.balance],
-    [],
-    ["tipo", "descricao", "vencimento", "valor", "status"],
-    ...metrics.ledger.map((x) => [
-      x.tipo,
-      x.descricao,
-      x.vencimento,
-      x.valor,
-      financeStatusLabel(ledgerStatus(x), x.tipo),
-    ]),
-  ];
-  const safe = (v) => {
-    const s = String(v ?? "");
-    return /^[=+@\-\t\r]/.test(s) ? "'" + s : s;
-  };
-  const csv = rows
-    .map((r) => r.map((v) => `"${safe(v).replace(/"/g, '""')}"`).join(";"))
-    .join("\r\n");
-  const url = URL.createObjectURL(
-    new Blob(["\ufeff" + csv], {
-      type: "text/csv;charset=utf-8",
-    }),
-  );
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `socialmei-relatorio-${range.from}-${range.to}.csv`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 500);
-  toast("Relatório exportado", rangeCaption(range));
+  SocialMEIReportUI.exportCurrent();
 }

@@ -1,0 +1,14 @@
+{
+  "layouts": 84,
+  "checks": [
+    "Fluxo misto, erros, teclado, seis etapas, edição direta, guardas, conclusão, motion e reset",
+    "barber: capacidades condicionais, opcionais e conclusão sem persistir",
+    "perfume: capacidades condicionais, opcionais e conclusão sem persistir",
+    "tailoring: capacidades condicionais, opcionais e conclusão sem persistir",
+    "phoneRepair: capacidades condicionais, opcionais e conclusão sem persistir",
+    "other: capacidades condicionais, opcionais e conclusão sem persistir"
+  ],
+  "errors": [],
+  "external": [],
+  "api": []
+}

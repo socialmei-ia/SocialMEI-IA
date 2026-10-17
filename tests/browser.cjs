@@ -38,6 +38,9 @@ async function run() {
       process.env.CHROMIUM_EXECUTABLE ? { executablePath: process.env.CHROMIUM_EXECUTABLE } : {},
     );
     checks.push(await require("./account-browser.cjs")(browser, origin));
+    checks.push(await require("./native-opportunities-browser.cjs")(browser, origin));
+    checks.push(await require("./adaptive-onboarding-browser.cjs")(browser, origin));
+    checks.push(await require("./personalization-browser.cjs")(browser, origin));
     const page = await browser.newPage({
       viewport: { width: 1440, height: 1000 },
       reducedMotion: "reduce",
@@ -61,7 +64,13 @@ async function run() {
     await page.locator(".contact-confirmation button[value=confirm]").click();
     await page.locator("[data-onboard-next]").click();
     await page.locator("#obBusiness").fill("Negócio QA");
-    for (let step = 0; step < 3; step++) await page.locator("[data-onboard-next]").click();
+    await page.locator('#businessFamilyChoices button[data-family="Beleza e cuidados"]').click();
+    await page.locator('#businessSpecialtyChoices input[value="barber"]').check();
+    for (let step = 3; step <= 6; step++) {
+      await page.locator("[data-onboard-next]").click();
+      await page.locator(`[data-onboard-panel="${step}"].is-active`).waitFor();
+    }
+    await page.locator("[data-onboard-next]").click();
     await page.waitForFunction(() => document.body.classList.contains("experience-app"));
     checks.push("Landing, cadastro local e onboarding");
     assert.deepEqual(
@@ -275,6 +284,7 @@ async function run() {
     checks.push(await require("./finance-browser.cjs")(browser, origin, errors));
     checks.push(await require("./transfer-browser.cjs")(browser, origin, errors));
     checks.push(await require("./reports-browser.cjs")(browser, origin, errors));
+    checks.push(await require("./reports-v2-browser.cjs")(browser, origin));
     checks.push(await require("./visual-refinement-browser.cjs")(browser, origin, errors));
     checks.push(await require("./data-origin-browser.cjs")(browser, origin, errors));
     checks.push(await require("./visual-layout-browser.cjs")(browser, origin, errors));

@@ -183,7 +183,9 @@ async function auditedUiFlows(browser, origin) {
               await column.focus();
               const label = await column.getAttribute("aria-label");
               const geometry = await column.evaluate((e) => {
-                const tooltip = e.querySelector(".management-chart-tooltip");
+                const tooltip =
+                  e.closest(".management-chart").querySelector(".rv2-chart-tooltip") ||
+                  e.querySelector(".management-chart-tooltip");
                 const r = tooltip.getBoundingClientRect();
                 const chart = e.closest(".management-chart").getBoundingClientRect();
                 return {
@@ -214,9 +216,12 @@ async function auditedUiFlows(browser, origin) {
               );
               await column.hover();
               check(
-                await column
-                  .locator(".management-chart-tooltip")
-                  .evaluate((e) => Number(getComputedStyle(e).opacity) === 1),
+                await column.evaluate((e) => {
+                  const tooltip =
+                    e.closest(".management-chart").querySelector(".rv2-chart-tooltip") ||
+                    e.querySelector(".management-chart-tooltip");
+                  return !tooltip.hidden && Number(getComputedStyle(tooltip).opacity) === 1;
+                }),
                 `${context}: hover tooltip visible`,
               );
               if (

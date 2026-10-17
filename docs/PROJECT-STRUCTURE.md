@@ -30,20 +30,21 @@ Não foi identificado um arquivo versionado seguramente descartável nesta rodad
 
 ## Onde alterar cada funcionalidade
 
-| Área                         | UI e comportamento                                                  | Estado / API / testes                                                                  |
-| ---------------------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| Home                         | `home.js`, `experience.js`; shell em `app.js`                       | Estado atual dos stores; `visual-browser.cjs` e `visual-refinement-browser.cjs`        |
-| Caixa Unificada              | `inbox.js`, `record-editor.js`, `dialogs.js`                        | `inbox-sync.js`, estado local; `inbox-sync.test.cjs`, navegador                        |
-| Clientes                     | `customers.js`, `business-views.js`, `record-editor.js`             | `client-store.js`, `shared_data.py`, `client_import.py`; suites client/remote/transfer |
-| Produtos                     | `products.js`, `business-views.js`                                  | `product-store.js`, `catalog_data.py`, `product_import.py`; suites catalog             |
-| Vendas                       | `sales.js`, `business-views.js`                                     | `sale-store.js`, `sales_data.py`, `sale_import.py`; suites sales/replay/estoque        |
-| Financeiro                   | `finance.js`, `business-views.js`                                   | `finance-store.js`, `finance_data.py`, `finance_import.py`; suites finance             |
-| Relatórios                   | `reports.js`, `app.js` e componentes existentes                     | Estado de gestão e período; `reports-browser.cjs`                                      |
-| Assistente / Automações      | Seções nomeadas em `experience.js`                                  | Rascunhos/regras locais; sem executor externo confirmado; browser                      |
-| Configurações / tema         | `appearance.js`, `app.js`, `storage-and-themes.js`                  | Preferências e perfil; `settings-browser.cjs`, `themes.test.cjs`                       |
-| Login / convite              | `experience.js`, `auth-store.js`, `admin-accounts.js`               | `account_auth.py`, `account_admin.py`; suites account/team                             |
-| Navegação / período          | `navigation.js`, renderers do shell                                 | `app.js`; `navigation.test.cjs` e browser                                              |
-| Transferência / backup local | `data-and-backup.js`, `workspace-transfer.js`, `transferencia.html` | `workspace_transfer.py`; suites export/transfer                                        |
+| Área                         | UI e comportamento                                                          | Estado / API / testes                                                                             |
+| ---------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Home                         | `home.js`, `experience.js`, `personalization.js`; shell em `app.js`         | Estado atual dos stores; `visual-browser.cjs` e `visual-refinement-browser.cjs`                   |
+| Caixa Unificada              | `inbox.js`, `record-editor.js`, `dialogs.js`                                | `inbox-sync.js`, estado local; `inbox-sync.test.cjs`, navegador                                   |
+| Clientes                     | `customers.js`, `business-views.js`, `record-editor.js`                     | `client-store.js`, `shared_data.py`, `client_import.py`; suites client/remote/transfer            |
+| Produtos                     | `products.js`, `business-views.js`, `personalization.js`                    | `product-store.js`, `catalog_data.py`, `product_import.py`; suites catalog                        |
+| Vendas                       | `sales.js`, `business-views.js`                                             | `sale-store.js`, `sales_data.py`, `sale_import.py`; suites sales/replay/estoque                   |
+| Financeiro                   | `finance.js`, `business-views.js`                                           | `finance-store.js`, `finance_data.py`, `finance_import.py`; suites finance                        |
+| Relatórios                   | `reports.js`, `app.js` e componentes existentes                             | Estado de gestão e período; `reports-browser.cjs`                                                 |
+| Assistente / Automações      | Seções nomeadas em `experience.js`                                          | Rascunhos/regras locais; sem executor externo confirmado; browser                                 |
+| Configurações / tema         | `appearance.js`, `app.js`, `storage-and-themes.js`                          | Preferências e perfil; `settings-browser.cjs`, `themes.test.cjs`                                  |
+| Onboarding adaptativo        | `business-profile.js`, `experience.js`; perfil em Configurações de `app.js` | Preferências locais explícitas por usuário/workspace; suites business-profile/adaptive-onboarding |
+| Login / convite              | `experience.js`, `auth-store.js`, `admin-accounts.js`                       | `account_auth.py`, `account_admin.py`; suites account/team                                        |
+| Navegação / período          | `navigation.js`, renderers do shell                                         | `app.js`; `navigation.test.cjs` e browser                                                         |
+| Transferência / backup local | `data-and-backup.js`, `workspace-transfer.js`, `transferencia.html`         | `workspace_transfer.py`; suites export/transfer                                                   |
 
 Os caminhos JS da tabela são relativos a `frontend/scripts/`; os Python são relativos a `python-service/`. Buscar pelos nomes das seções antes de extrair um novo arquivo. `business-views.js`, `app.js` e `experience.js` ainda são grandes; não são componentes independentes.
 

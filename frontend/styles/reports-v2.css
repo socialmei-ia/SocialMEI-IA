@@ -1,0 +1,603 @@
+/* Reports V2 uses official tokens; every screen rule is scoped to Reports. */
+#reportsView > .management-stack {
+  max-width: 1320px;
+  margin-inline: auto;
+  gap: 20px;
+}
+#reportsView .report-intro {
+  align-items: end;
+  margin: 0;
+  padding: 0;
+}
+#reportsView .report-intro h2 {
+  font-size: clamp(30px, 3.4vw, 44px);
+  margin: 8px 0;
+}
+#reportsView .report-intro h2::after {
+  display: none;
+}
+#reportsView .report-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+#reportsView .report-eyebrow::before {
+  content: "";
+  width: 17px;
+  height: 3px;
+  border-radius: 8px;
+  background: var(--brand-accent);
+}
+#reportsView #reportProfileContext {
+  margin: -8px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+#reportsView #reportsDataSourceStatus {
+  border-left: 3px solid var(--brand-primary);
+  border-radius: 10px;
+  margin: 0;
+  font-size: 12px;
+}
+#reportsView .management-report-period {
+  position: static;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  padding: 18px 20px;
+  background: var(--sf);
+  border: 1px solid var(--ln);
+}
+#reportsView .management-report-period > .management-card-header {
+  display: flex;
+  position: static;
+  order: 3;
+  flex: 1 1 100%;
+  grid-column: auto;
+  width: 100%;
+  margin: 0;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+}
+#reportsView .rv2-quick-periods {
+  display: flex;
+  position: relative;
+  isolation: isolate;
+  padding: 4px;
+  gap: 3px;
+  background: var(--surface-secondary);
+  border: 1px solid var(--ln);
+  border-radius: 9px;
+}
+#reportsView .rv2-quick-periods button {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+  border: 0;
+  color: var(--tx);
+  padding: 9px 12px;
+  min-height: 40px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+#reportsView #reportPeriodIndicator {
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  border-radius: 6px;
+  background: var(--sf);
+  box-shadow: var(--shadow-sm);
+  transition:
+    width 330ms var(--ease-enter),
+    transform 330ms var(--ease-enter);
+  pointer-events: none;
+}
+#reportsView .rv2-quick-periods button[aria-pressed="true"] {
+  color: var(--brand-primary-text);
+}
+#reportsView .report-period-options {
+  margin: 0;
+  min-width: 0;
+  max-width: 100%;
+}
+#reportsView .report-period-options[open] {
+  width: 100%;
+}
+#reportsView #nvReportPeriods {
+  margin: 10px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  min-width: 0;
+  width: 100%;
+}
+#reportsView #nvReportPeriods button {
+  flex: 0 1 auto;
+  min-height: 44px;
+}
+#reportsView #nvReportKpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  background: var(--sf);
+  border: 1px solid var(--ln);
+  border-radius: 14px;
+  overflow: hidden;
+  gap: 0;
+}
+#reportsView #nvReportKpis .management-kpi {
+  min-width: 0;
+  border: 0;
+  border-right: 1px solid var(--ln);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 23px;
+  background: transparent;
+}
+#reportsView #nvReportKpis .management-kpi:last-child {
+  border-right: 0;
+}
+#reportsView #nvReportKpis b {
+  font-size: clamp(24px, 2.2vw, 35px);
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+  white-space: nowrap;
+}
+#reportsView #nvReportKpis small {
+  font-size: 12px;
+  line-height: 1.5;
+  min-height: 36px;
+}
+#reportsView #nvReportTabs {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 5px;
+  overflow: visible;
+  background: var(--surface-secondary);
+  border: 1px solid var(--ln);
+  padding: 5px;
+  border-radius: 10px;
+}
+#reportsView #nvReportTabs button {
+  justify-content: center;
+  min-width: 0;
+  min-height: 44px;
+  margin: 0;
+  white-space: normal;
+}
+#reportsView .report-overview {
+  grid-template-columns: minmax(0, 1.66fr) minmax(260px, 1fr);
+  gap: 16px;
+}
+#reportsView .report-primary,
+#reportsView .report-care,
+#reportsView .management-card {
+  border-radius: 14px;
+}
+#reportsView .report-primary,
+#reportsView .report-care {
+  padding: 22px;
+  background: var(--sf);
+  border: 1px solid var(--ln);
+}
+#reportsView .report-care {
+  display: block;
+}
+#reportsView .report-care h3,
+#reportsView .management-card h3 {
+  font-size: 17px;
+  margin: 0 0 9px;
+}
+#reportsView .rv2-stacked {
+  display: flex;
+  height: 14px;
+  overflow: hidden;
+  border-radius: 5px;
+  background: var(--surface-secondary);
+  margin: 22px 0;
+}
+#reportsView .rv2-stacked span {
+  display: block;
+  min-width: 0;
+}
+#reportsView .rv2-status-list {
+  margin: 0 0 22px;
+  display: grid;
+  gap: 12px;
+}
+#reportsView .rv2-status-list > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+}
+#reportsView .rv2-status-list dd {
+  margin: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+#reportsView .rv2-lower-grid {
+  align-items: start;
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(260px, 1fr);
+  gap: 16px;
+}
+#reportsView .rv2-product-item {
+  margin: 18px 0;
+}
+#reportsView .rv2-product-item > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+#reportsView .rv2-product-track {
+  height: 7px;
+  border-radius: 10px;
+  background: var(--surface-secondary);
+  overflow: hidden;
+}
+#reportsView .rv2-product-track span {
+  display: block;
+  height: 100%;
+  background: var(--brand-primary);
+  border-radius: inherit;
+}
+#reportsView .rv2-observations {
+  display: grid;
+  gap: 14px;
+}
+#reportsView .rv2-observations > div + div {
+  border-top: 1px solid var(--ln);
+  padding-top: 12px;
+}
+#reportsView .rv2-observations p {
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 5px 0 0;
+  color: var(--mt);
+}
+#reportsView .rv2-trend {
+  display: block;
+  position: relative;
+  min-height: 0;
+}
+#reportsView .rv2-trend svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+#reportsView .rv2-point {
+  display: inline;
+  cursor: pointer;
+  outline: none;
+}
+#reportsView .rv2-point:focus-visible circle:last-child {
+  stroke: var(--tx);
+  stroke-width: 3;
+}
+#reportsView .rv2-chart-tooltip {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 92%;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: var(--tooltip-background);
+  color: var(--tooltip-text);
+  font-size: 12px;
+  pointer-events: none;
+  box-shadow: var(--shadow-sm);
+}
+#reportsView .rv2-chart-readout {
+  margin: 4px 0;
+  min-height: 36px;
+  font-size: 12px;
+}
+#reportsView .rv2-history {
+  margin-top: 12px;
+}
+#reportsView .rv2-history-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 20px;
+  justify-content: space-between;
+  align-items: end;
+  margin-bottom: 15px;
+}
+#reportsView .rv2-history-header h3 {
+  font-size: 20px;
+  margin: 0 0 6px;
+}
+#reportsView .rv2-history-header p {
+  font-size: 12px;
+  max-width: 65ch;
+  line-height: 1.6;
+}
+#reportsView .rv2-history-tools,
+.rv2-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+#reportsView .rv2-history-tools input {
+  min-width: 160px;
+  width: 210px;
+}
+#reportsView #reportHistoryList {
+  border: 1px solid var(--ln);
+  background: var(--sf);
+  border-radius: 14px;
+  overflow: hidden;
+}
+#reportsView .rv2-history-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 12px 20px;
+  align-items: center;
+  padding: 18px 22px;
+  transition: background-color 175ms;
+}
+#reportsView .rv2-history-row + .rv2-history-row {
+  border-top: 1px solid var(--ln);
+}
+#reportsView .rv2-history-row:hover {
+  background: var(--hover);
+}
+#reportsView .rv2-history-row b {
+  display: block;
+  overflow-wrap: anywhere;
+}
+#reportsView .rv2-history-row small {
+  display: block;
+  font-size: 12px;
+  color: var(--mt);
+  margin-top: 5px;
+}
+#reportsView .rv2-empty {
+  padding: 30px;
+  margin: 0;
+  color: var(--mt);
+  line-height: 1.7;
+}
+#reportsView .rv2-row-enter {
+  animation: rv2-row-enter 380ms var(--ease-enter);
+}
+@keyframes rv2-row-enter {
+  from {
+    opacity: 0;
+    transform: translateY(9px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+#reportsView .management-button,
+#reportGenerateModal .management-button {
+  min-height: 44px;
+  transition:
+    background-color 190ms,
+    border-color 190ms,
+    color 190ms,
+    transform 190ms;
+}
+#reportsView .management-button:active,
+#reportGenerateModal .management-button:active {
+  transform: scale(0.98);
+}
+#reportsView .management-card,
+#reportsView #nvReportKpis,
+#reportsView .report-care,
+#reportsView #reportHistoryList {
+  transition:
+    background-color 270ms,
+    border-color 270ms,
+    color 270ms;
+}
+#reportGenerateModal .modal {
+  max-width: 640px;
+}
+#reportGenerateModal .rv2-form-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+#reportGenerateModal .rv2-generation-preview {
+  padding: 14px;
+  background: var(--surface-secondary);
+  border: 1px solid var(--ln);
+  border-radius: 10px;
+  line-height: 1.6;
+  margin: 16px 0;
+}
+#reportGenerateModal table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 18px 0;
+  font-size: 13px;
+}
+#reportGenerateModal td,
+#reportGenerateModal th {
+  padding: 10px 5px;
+  border-bottom: 1px solid var(--ln);
+  text-align: left;
+}
+#reportGenerateModal td {
+  font-variant-numeric: tabular-nums;
+}
+#reportGenerateModal p {
+  line-height: 1.7;
+}
+#reportGenerateModal progress {
+  width: 100%;
+  accent-color: var(--brand-primary);
+}
+#reportGenerateModal .rv2-progress-steps {
+  display: grid;
+  gap: 18px;
+  padding-left: 22px;
+}
+#reportGenerateModal .rv2-progress-steps .done {
+  color: var(--success);
+}
+#reportPrintDocument {
+  display: none;
+}
+@media (max-width: 1100px) {
+  #reportsView #nvReportKpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  #reportsView #nvReportKpis .management-kpi:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--ln);
+  }
+  #reportsView #nvReportKpis .management-kpi:nth-child(2) {
+    border-right: 0;
+  }
+  #reportsView .report-overview,
+  #reportsView .rv2-lower-grid {
+    grid-template-columns: 1fr;
+  }
+  #reportsView .rv2-history-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  #reportsView .rv2-history-row .rv2-actions {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 600px) {
+  #reportsView > .management-stack {
+    gap: 16px;
+  }
+  #reportsView .report-intro {
+    flex-direction: column;
+    align-items: start;
+    gap: 14px;
+  }
+  #reportsView .report-intro > button {
+    align-self: start;
+  }
+  #reportsView .management-report-period {
+    padding: 14px;
+  }
+  #reportsView .rv2-quick-periods {
+    width: 100%;
+  }
+  #reportsView .rv2-quick-periods button {
+    flex: 1;
+    padding: 8px 4px;
+    font-size: 12px;
+  }
+  #reportsView #nvReportTabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  #reportsView #nvReportTabs button {
+    padding: 8px 3px;
+    font-size: 12px;
+  }
+  #reportsView #nvReportKpis .management-kpi {
+    padding: 17px 13px;
+  }
+  #reportsView #nvReportKpis b {
+    font-size: clamp(18px, 5vw, 24px);
+  }
+  #reportsView .report-primary,
+  #reportsView .report-care,
+  #reportsView .management-card {
+    padding: 17px;
+  }
+  #reportsView .rv2-history-row {
+    padding: 16px;
+  }
+  #reportsView .rv2-history-tools {
+    width: 100%;
+  }
+  #reportsView .rv2-history-tools input,
+  #reportsView .rv2-history-tools select {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+  #reportGenerateModal .rv2-form-fields {
+    grid-template-columns: 1fr;
+  }
+  #reportGenerateModal .form-control {
+    font-size: 16px;
+  }
+  #reportGenerateModal td,
+  #reportGenerateModal th {
+    padding: 8px 3px;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #reportsView *,
+  #reportGenerateModal * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+@media print {
+  body.report-print-active {
+    overflow: visible !important;
+    position: static !important;
+    height: auto !important;
+  }
+  body.report-print-active > * {
+    display: none !important;
+  }
+  body.report-print-active > #reportPrintDocument {
+    display: block !important;
+    color: #111;
+    background: white;
+    font:
+      11pt Arial,
+      sans-serif;
+  }
+  #reportPrintDocument h1 {
+    color: #1e73d8;
+    font-size: 23pt;
+  }
+  #reportPrintDocument h2 {
+    font-size: 14pt;
+    margin-top: 20pt;
+  }
+  #reportPrintDocument p {
+    font-size: 10pt;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+  #reportPrintDocument table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9pt;
+    margin: 15pt 0;
+  }
+  #reportPrintDocument td,
+  #reportPrintDocument th {
+    padding: 6pt 4pt;
+    text-align: left;
+    border-bottom: 1px solid #ccc;
+    overflow-wrap: anywhere;
+  }
+  #reportPrintDocument thead {
+    display: table-header-group;
+  }
+  #reportPrintDocument tr {
+    break-inside: avoid;
+  }
+  @page {
+    size: A4;
+    margin: 15mm;
+  }
+}
+#reportGenerateFooter[hidden] {
+  display: none;
+}
+#reportGenerateFooter .rv2-actions {
+  width: 100%;
+  justify-content: flex-end;
+}
