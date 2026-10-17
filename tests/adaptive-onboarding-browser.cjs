@@ -160,7 +160,9 @@ module.exports = async function onboarding(browser, origin) {
           .locator('#businessFamilyChoices button[data-family="Beleza e cuidados"]')
           .click();
         assert(await page.locator('#businessSpecialtyChoices input[value="barber"]').isVisible());
-        assert(await page.locator('#businessSpecialtyChoices input[value="hairdresser"]').isVisible());
+        assert(
+          await page.locator('#businessSpecialtyChoices input[value="hairdresser"]').isVisible(),
+        );
         assert.equal(
           await page.locator('#businessSpecialtyChoices input[value="phoneRepair"]').count(),
           0,
@@ -168,7 +170,9 @@ module.exports = async function onboarding(browser, origin) {
         await page.locator('#businessSpecialtyChoices input[value="hairdresser"]').check();
         assert.equal(await page.locator("#obSegment").inputValue(), "hairdresser");
         await page.locator("#businessSegmentSearch").fill("celular");
-        assert(await page.locator('#businessSpecialtyChoices input[value="phoneRepair"]').isVisible());
+        assert(
+          await page.locator('#businessSpecialtyChoices input[value="phoneRepair"]').isVisible(),
+        );
         assert.equal(
           await page.locator('#businessSpecialtyChoices input[value="barber"]').count(),
           0,
@@ -176,7 +180,10 @@ module.exports = async function onboarding(browser, origin) {
         await page.locator('#businessSpecialtyChoices input[value="phoneRepair"]').check();
         assert.equal(await page.locator("#obSegment").inputValue(), "phoneRepair");
         await page.locator("#businessSegmentSearch").fill("atividade inexistente xyz");
-        assert.match(await page.locator("#businessSpecialtyEmpty").textContent(), /não encontramos/i);
+        assert.match(
+          await page.locator("#businessSpecialtyEmpty").textContent(),
+          /não encontramos/i,
+        );
         await page.locator("#businessSegmentSearch").fill("");
         assert.equal(
           await page.locator('#businessFamilyChoices button[aria-pressed="true"]').count(),
