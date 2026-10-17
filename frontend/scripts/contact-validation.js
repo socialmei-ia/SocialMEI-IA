@@ -329,6 +329,24 @@
         },
         { once: true },
       );
+      const dismiss = (value) => {
+        if (dialog.hasAttribute("data-closing")) return;
+        const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (reduced) {
+          dialog.close(value);
+          return;
+        }
+        dialog.setAttribute("data-closing", "");
+        window.setTimeout(() => dialog.close(value), 180);
+      };
+      dialog.querySelector("form").addEventListener("submit", (event) => {
+        event.preventDefault();
+        dismiss(event.submitter?.value === "confirm" ? "confirm" : "edit");
+      });
+      dialog.addEventListener("cancel", (event) => {
+        event.preventDefault();
+        dismiss("edit");
+      });
       document.body.append(dialog);
       dialog.showModal();
     });
