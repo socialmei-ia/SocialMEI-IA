@@ -212,6 +212,11 @@ module.exports = async function onboarding(browser, origin) {
       }
       await next(page, 6);
       assert.match(await page.locator("#xpReadyTitle").textContent(), /quase pronto/i);
+      if (segment === "barber" && !mixed)
+        assert.match(
+          await page.locator("#businessProfileReview").textContent(),
+          /Agenda \(em desenvolvimento\)/,
+        );
       assert(
         (await page.locator("#xpReadySegment").textContent()).includes(
           await page.locator("#obSegment option:checked").textContent(),
