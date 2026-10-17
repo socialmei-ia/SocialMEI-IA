@@ -194,12 +194,15 @@
    Scoped to onboarding and the native contact dialog; no flow/data changes. */
 .contact-confirmation[open] {
   position: fixed;
-  inset: 0;
+  inset: auto;
+  top: 50dvh;
+  left: 50vw;
+  translate: -50% -50%;
   box-sizing: border-box;
   width: min(480px, calc(100vw - 24px));
   max-width: calc(100vw - 24px);
   max-height: calc(100dvh - 24px);
-  margin: auto;
+  margin: 0;
   padding: clamp(20px, 3.4vh, 32px);
   overflow-y: auto;
   overscroll-behavior: contain;
