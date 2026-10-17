@@ -9,6 +9,7 @@ module.exports = async function onboarding(browser, origin) {
   fs.mkdirSync(output, { recursive: true });
   const errors = [],
     external = [];
+  let layouts = 0;
   const next = async (page, step) => {
     await page.locator("[data-onboard-next]").click();
     await page.locator(`[data-onboard-panel="${step}"].is-active`).waitFor();
@@ -31,14 +32,43 @@ module.exports = async function onboarding(browser, origin) {
     await page.locator('[data-settings-tab="perfil"]').click();
   };
   const capture = async (page, name) => {
-    for (const width of [320, 390, 1440])
+    for (const width of [320, 360, 390, 768, 1024, 1440])
       for (const theme of ["light", "dark"]) {
         await page.setViewportSize({ width, height: 1000 });
-        await page.evaluate((theme) => SocialMEIThemes.select(theme), theme);
+        if (await page.locator(".onboarding-screen.is-active").count()) {
+          if ((await page.locator("html").getAttribute("data-public-theme")) !== theme)
+            await page.locator(".onboarding-screen [data-public-theme-toggle]").click();
+          assert.equal(await page.locator("html").getAttribute("data-theme"), theme);
+          assert.equal(
+            await page
+              .locator(".onboarding-screen [data-public-theme-toggle]")
+              .getAttribute("aria-label"),
+            theme === "dark" ? "Ativar tema claro" : "Ativar tema escuro",
+          );
+        } else await page.evaluate((theme) => SocialMEIThemes.select(theme), theme);
         assert(
           await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
           `${name} ${width} overflow`,
         );
+        layouts++;
+        if (await page.locator(".onboarding-screen.is-active").count()) {
+          const button = await page.locator("[data-onboard-next]").boundingBox();
+          assert(
+            button && button.y >= 0 && button.y + button.height <= 1001 && button.height >= 44,
+            `${name} ${width}: primary action visible`,
+          );
+          const last = page.locator(".onboarding-panel.is-active input:visible").last();
+          if (await last.count()) {
+            await last.evaluate((e) => e.scrollIntoView({ block: "center" }));
+            const box = await last.boundingBox();
+            const footer = await page.locator(".onboarding-footer").boundingBox();
+            assert(
+              box.y >= 0 && box.y + box.height <= footer.y + 1,
+              `${name} ${width}: final field reachable`,
+            );
+          }
+          await page.evaluate(() => scrollTo(0, 0));
+        }
         const labels = await page
           .locator(".onboarding-panel.is-active .business-profile-options label")
           .evaluateAll((items) =>
@@ -51,10 +81,10 @@ module.exports = async function onboarding(browser, origin) {
           labels.every((item) => item.width >= 80 && item.height >= 44),
           `${name} unreadable choices`,
         );
-        if (width !== 320)
+        if ([390, 1440].includes(width))
           await page.screenshot({
             path: path.join(output, `${name}-${width}-${theme}.png`),
-            fullPage: true,
+            fullPage: false,
           });
       }
   };
@@ -128,6 +158,102 @@ module.exports = async function onboarding(browser, origin) {
         /Etapa 1 de 6.*Você.*Negócio/,
       );
       assert.equal(await page.locator("#obName").inputValue(), "Pessoa sintética");
+      if (segment === "barber" && !mixed) {
+        await page.locator("#obName").fill("");
+        await page.locator("[data-onboard-next]").click();
+        assert.equal(await page.locator("#obName").getAttribute("aria-invalid"), "true");
+        await page.locator("#obName").fill("Pessoa sintética");
+        await page.locator("#obName").focus();
+        await page.keyboard.press("Tab");
+        assert(await page.locator("#obEmail").evaluate((e) => e === document.activeElement));
+        await page.keyboard.press("Shift+Tab");
+        assert(await page.locator("#obName").evaluate((e) => e === document.activeElement));
+        await capture(page, "you");
+        await page.setViewportSize({ width: 320, height: 780 });
+        await page.evaluate(() => {
+          window.onboardTextStyles = [
+            ...document.querySelectorAll(
+              ".onboarding-screen h1,.onboarding-screen label,.onboarding-screen p,.onboarding-screen button,.onboarding-screen input,.onboarding-screen small",
+            ),
+          ].map((e) => [e, e.getAttribute("style")]);
+          const sizes = onboardTextStyles.map(([e]) => parseFloat(getComputedStyle(e).fontSize));
+          onboardTextStyles.forEach(([e], i) => (e.style.fontSize = `${sizes[i] * 2}px`));
+        });
+        await page.evaluate(
+          () =>
+            new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+        );
+        assert(
+          await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+          "200% text stress at 320px must reflow",
+        );
+        await page.locator("#obPhone").evaluate((e) => e.scrollIntoView({ block: "center" }));
+        const zoomPhone = await page.locator("#obPhone").boundingBox();
+        const zoomFooter = await page.locator(".onboarding-footer").boundingBox();
+        assert(
+          zoomPhone.y + zoomPhone.height <= zoomFooter.y + 1,
+          "200% text keeps final input reachable",
+        );
+        await page.screenshot({ path: path.join(output, "text-200-320-dark.png") });
+        await page.evaluate(() =>
+          onboardTextStyles.forEach(([e, old]) =>
+            old === null ? e.removeAttribute("style") : e.setAttribute("style", old),
+          ),
+        );
+        await page.emulateMedia({ reducedMotion: "no-preference" });
+        await page.evaluate(() => {
+          window.onboardingMotionFrames = [];
+          const animate = Element.prototype.animate;
+          Element.prototype.animate = function (frames, options) {
+            if (this.matches(".onboarding-panel"))
+              onboardingMotionFrames.push({ frames, duration: options.duration });
+            return animate.call(this, frames, options);
+          };
+        });
+        const started = Date.now();
+        await page.evaluate(() => {
+          const button = document.querySelector("[data-onboard-next]");
+          for (let i = 0; i < 8; i++) button.click();
+        });
+        assert(await page.locator("[data-onboard-next]").isDisabled());
+        await page.setViewportSize({ width: 360, height: 780 });
+        await page.waitForFunction(
+          () =>
+            document.querySelector('[data-onboard-panel="2"]').classList.contains("is-active") &&
+            !document.querySelector("[data-onboard-next]").disabled,
+        );
+        assert.equal(
+          await page.locator(".onboarding-panel.is-active").getAttribute("data-onboard-panel"),
+          "2",
+        );
+        const frames = await page.evaluate(() => onboardingMotionFrames);
+        assert.deepEqual(
+          frames.map((e) => e.duration),
+          [160, 180],
+        );
+        assert(frames[0].frames[1].transform.includes("-8px"));
+        fs.writeFileSync(
+          path.join(output, "transition-sample.json"),
+          JSON.stringify(
+            {
+              elapsedMs: Date.now() - started,
+              durations: frames.map((e) => e.duration),
+              note: "One local Chromium sample including viewport resize; not a device performance guarantee.",
+            },
+            null,
+            2,
+          ),
+        );
+        await back(page, 1);
+        await page.waitForFunction(() => !document.querySelector("[data-onboard-next]").disabled);
+        assert(
+          (await page.evaluate(() => onboardingMotionFrames))[2].frames[1].transform.includes(
+            "8px",
+          ),
+        );
+        await page.emulateMedia({ reducedMotion: "reduce" });
+        await page.setViewportSize({ width: 390, height: 1000 });
+      }
       assert.match(
         await page.locator("#businessProfileStorageNotice").textContent(),
         /Nenhuma conta/,
@@ -180,6 +306,14 @@ module.exports = async function onboarding(browser, origin) {
           "only six business areas should be shown initially",
         );
         assert(!(await page.locator("#businessSpecialtySection").isVisible()));
+        await page.locator("#businessSegmentSearch").fill("atividade inexistente xyz");
+        await page.locator("[data-onboard-next]").click();
+        assert(
+          await page
+            .locator("#businessSegmentSearch")
+            .evaluate((e) => e === document.activeElement),
+        );
+        await page.locator("#businessSegmentSearch").fill("");
         await page
           .locator('#businessFamilyChoices button[data-family="Beleza e cuidados"]')
           .click();
@@ -217,6 +351,16 @@ module.exports = async function onboarding(browser, origin) {
       await page.locator("#obBusiness").fill(label);
       await page.locator("#businessSegmentAlternative").evaluate((el) => (el.open = true));
       await page.locator("#obSegment").selectOption(segment);
+      if (segment === "barber" && !mixed) {
+        await page.locator(".onboarding-optional").evaluate((e) => (e.open = true));
+        await page.locator("#obCnpj").fill("11111111111111");
+        await page.locator(".onboarding-optional").evaluate((e) => (e.open = false));
+        await page.locator("[data-onboard-next]").click();
+        assert(await page.locator(".onboarding-optional").evaluate((e) => e.open));
+        assert(await page.locator("#obCnpj").evaluate((e) => e === document.activeElement));
+        await page.locator("#obCnpj").fill("");
+        await page.locator(".onboarding-optional").evaluate((e) => (e.open = false));
+      }
       assert(
         (await page.locator("#businessSegmentHint").textContent()).trim().length >= 20,
         "a segment-specific explanation must be visible",
@@ -246,6 +390,49 @@ module.exports = async function onboarding(browser, origin) {
         assert(!(await keyboardChoice.isChecked()));
         await page.locator("#businessCustom-services").fill("Atendimento em domicílio");
         await capture(page, "offers");
+        await page.locator('[data-business-add="services"]').click();
+        for (let n = 1; n <= 28; n++) {
+          await page.locator("#businessCustom-services").fill(`Extra ${n}`);
+          await page.locator('[data-business-add="services"]').click();
+        }
+        await page.locator("#businessCustom-services").fill("Não descartar silenciosamente");
+        await page.locator("[data-onboard-next]").click();
+        assert(
+          await page.locator('[data-onboard-panel="3"].is-active').count(),
+          "pending custom text beyond limit must block navigation",
+        );
+        assert.equal(
+          await page.locator("#businessCustom-services").inputValue(),
+          "Não descartar silenciosamente",
+        );
+        assert.match(await page.locator("#obValidation").textContent(), /30/);
+        await page.locator("#businessCustom-services").fill("");
+        for (let n = 1; n <= 28; n++)
+          await page.locator(`input[name="business-services"][value="Extra ${n}"]`).uncheck();
+      }
+      if (mixed) {
+        for (let n = 1; n <= 29; n++) {
+          await page.locator("#businessCustom-productCategories").fill(`Categoria extra ${n}`);
+          await page.locator('[data-business-add="productCategories"]').click();
+        }
+        await page.locator("#businessCustom-productCategories").fill("Categoria pendente 31");
+        await page.locator("#businessCustom-services").fill("Serviço pendente");
+        await page.locator('[data-business-add="services"]').click();
+        assert.equal(
+          await page.locator("#businessCustom-productCategories").inputValue(),
+          "Categoria pendente 31",
+        );
+        assert.equal(
+          await page.locator("#businessCustom-services").inputValue(),
+          "Serviço pendente",
+        );
+        assert.match(await page.locator("#obValidation").textContent(), /30/);
+        await page.locator("#businessCustom-productCategories").fill("");
+        await page.locator("#businessCustom-services").fill("");
+        for (let n = 1; n <= 29; n++)
+          await page
+            .locator(`input[name="business-productCategories"][value="Categoria extra ${n}"]`)
+            .uncheck();
       }
       await next(page, 4);
       assert.equal(
@@ -262,13 +449,17 @@ module.exports = async function onboarding(browser, origin) {
         await page.locator('input[name="businessCapability"][value="inventory"]').check();
       if (segment === "tailoring")
         await page.locator('input[name="businessCapability"][value="orders"]').check();
+      if (segment === "barber" && !mixed) await capture(page, "routine");
       await next(page, 5);
-      if (service)
+      if (service) {
+        await page.locator(".business-future summary").click();
         assert(
-          await page.locator('input[name="businessModule"][value="appointments"]').isChecked(),
+          !(await page.locator('input[name="businessModule"][value="appointments"]').isChecked()),
+          "future tools require explicit interest, not automatic activation",
         );
-      if (category)
-        assert(await page.locator('input[name="businessModule"][value="inventory"]').isChecked());
+        await page.locator('input[name="businessModule"][value="appointments"]').check();
+      }
+      if (category) await page.locator('input[name="businessModule"][value="inventory"]').check();
       if (segment === "barber" && !mixed) {
         await page.locator('input[name="businessModule"][value="reports"]').check();
         await capture(page, "tools");
@@ -308,11 +499,31 @@ module.exports = async function onboarding(browser, origin) {
       );
       if (segment === "barber" && !mixed) {
         await capture(page, "review");
+        await page.locator('[data-review-edit-step="2"]').click();
+        await page.locator('[data-onboard-panel="2"].is-active').waitFor();
+        await page.locator("#obBusiness").fill("Nome revisado de teste");
+        await next(page, 6);
+        assert.equal(
+          await page.locator("#xpReadyBusiness").textContent(),
+          "Nome revisado de teste",
+          "direct review return updates business heading",
+        );
+        await page.locator('[data-review-edit-step="2"]').click();
+        await page.locator('[data-onboard-panel="2"].is-active').waitFor();
+        await page.locator("#obBusiness").fill(label);
+        await next(page, 6);
+        await page.locator('[data-review-edit-step="1"]').click();
+        await page.locator('[data-onboard-panel="1"].is-active').waitFor();
+        await page.locator("#obName").fill("Ana sintética");
+        await next(page, 6);
+        assert.match(
+          await page.locator("#xpReadyTitle").textContent(),
+          /Ana/,
+          "direct review return updates person greeting",
+        );
         await page.locator('[data-review-edit-step="3"]').click();
         await page.locator('[data-onboard-panel="3"].is-active').waitFor();
         assert(await page.getByLabel("Corte masculino", { exact: true }).isChecked());
-        await next(page, 4);
-        await next(page, 5);
         await next(page, 6);
         assert.match(await page.locator("#businessProfileReview").textContent(), /Corte masculino/);
         await page.evaluate(() => {
@@ -389,6 +600,14 @@ module.exports = async function onboarding(browser, origin) {
       await page.locator("#obActivity").fill("Atividade manual de teste");
       await page.locator('input[name="businessOffer"][value="services"]').check();
       await next(page, 3);
+      const skippedChoices = await page.evaluate(() => ({
+        modules: [...document.querySelectorAll('input[name="businessModule"]:checked')].map(
+          (e) => e.value,
+        ),
+        services: [...document.querySelectorAll('input[name="business-services"]:checked')].map(
+          (e) => e.value,
+        ),
+      }));
       for (const step of [4, 5, 6]) {
         await page.locator("[data-business-skip]").click();
         await page.locator(`[data-onboard-panel="${step}"].is-active`).waitFor();
@@ -399,8 +618,8 @@ module.exports = async function onboarding(browser, origin) {
         () => SocialMEIBusinessProfile.browserRepository().read().profile,
       );
       assert.equal(edited.activity, "Atividade manual de teste");
-      assert.deepEqual(edited.modules, []);
-      assert.deepEqual(edited.services, []);
+      assert.deepEqual(edited.modules, skippedChoices.modules);
+      assert.deepEqual(edited.services, skippedChoices.services);
       // Local identities are explicit demo selectors, not authenticated accounts.
       await page.evaluate(() =>
         sessionStorage.setItem("socialmei-business-demo-identity", "another@example.com"),
@@ -563,7 +782,7 @@ module.exports = async function onboarding(browser, origin) {
   }
   assert.deepEqual(errors, []);
   assert.deepEqual(external, []);
-  return "Onboarding adaptativo: 4 cadastros, edição/cancelamento, opcionais, recuperação/isolamento local e autenticado por workspace, sessões ausente/indisponível, falha de armazenamento e 6 layouts claro/escuro";
+  return `Onboarding adaptativo: 6 cadastros, edição/cancelamento, opcionais, recuperação/isolamento local e autenticado por workspace, sessões ausente/indisponível, falha de armazenamento; ${layouts} estados de layout em 6 larguras claro/escuro`;
 };
 
 if (require.main === module) {

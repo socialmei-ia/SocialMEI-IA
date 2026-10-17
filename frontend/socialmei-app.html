@@ -2288,6 +2288,7 @@
         <div class="onboarding-shell">
           <main class="onboarding-main">
             <div class="experience-steps" aria-label="Etapas do cadastro">
+              <div class="onboarding-progress" id="xpOnboardingProgress"><span></span></div>
               <button type="button" class="experience-step" data-onboard-step="1" disabled>
                 <span>1</span>
                 <b>Você</b>
@@ -2316,21 +2317,25 @@
             <p class="onboarding-stage-context" id="xpOnboardingStepStatus" aria-live="polite">
               Etapa 1 de 6 · Você · Próxima: Negócio
             </p>
-            <p class="management-note" id="businessProfileStorageNotice">
-              Demonstração local · preferências apenas neste navegador. Nenhuma conta é criada no
-              servidor.
-            </p>
-            <div class="onboarding-progress" id="xpOnboardingProgress"><span></span></div>
+
             <section class="onboarding-panel is-active" data-onboard-panel="1">
               <span class="landing-kicker">Etapa 1 · Você</span>
-              <h1>Primeiro, como falamos com você?</h1>
-              <p>
-                Usaremos essas informações apenas para personalizar esta demonstração do espaço.
-              </p>
+              <div class="onboarding-heading">
+                <h1>Seu negócio começa com você.</h1>
+                <p>
+                  Usaremos essas informações apenas para personalizar esta demonstração do espaço.
+                </p>
+              </div>
               <div class="experience-form">
                 <div class="experience-field">
                   <label for="obName">Nome</label
-                  ><input id="obName" required autocomplete="name" placeholder="Seu nome" />
+                  ><input
+                    id="obName"
+                    required
+                    autocomplete="name"
+                    placeholder="Seu nome"
+                    aria-describedby="obNameFeedback"
+                  /><small class="onboard-field-feedback" id="obNameFeedback"></small>
                 </div>
                 <div class="experience-form-row">
                   <div class="experience-field">
@@ -2341,7 +2346,8 @@
                       autocomplete="email"
                       type="email"
                       placeholder="voce@empresa.com"
-                    />
+                      aria-describedby="obEmailFeedback"
+                    /><small class="onboard-field-feedback" id="obEmailFeedback"></small>
                   </div>
                   <div class="experience-field">
                     <label for="obPhone"
@@ -2353,15 +2359,18 @@
                       autocomplete="tel"
                       maxlength="32"
                       placeholder="(81) 99999-0000"
-                    />
+                      aria-describedby="obPhoneFeedback"
+                    /><small class="onboard-field-feedback" id="obPhoneFeedback"></small>
                   </div>
                 </div>
               </div>
             </section>
             <section class="onboarding-panel" data-onboard-panel="2">
               <span class="landing-kicker">Etapa 2 · Seu negócio</span>
-              <h1>Vamos conhecer seu negócio?</h1>
-              <p>Conte o que você faz. Assim, as próximas escolhas combinam com seu dia a dia.</p>
+              <div class="onboarding-heading">
+                <h1>Seu negócio, do seu jeito.</h1>
+                <p>Conte o que você faz. Assim, as próximas escolhas combinam com seu dia a dia.</p>
+              </div>
               <div class="experience-form">
                 <div class="experience-field">
                   <label for="obBusiness">Nome do negócio</label
@@ -2370,16 +2379,11 @@
                     maxlength="120"
                     required
                     placeholder="Ex.: Ateliê da Ana"
-                  />
+                    aria-describedby="obBusinessFeedback"
+                  /><small class="onboard-field-feedback" id="obBusinessFeedback"></small>
                 </div>
                 <section class="business-segment-picker" aria-labelledby="businessFamilyTitle">
-                  <div class="business-segment-picker-heading">
-                    <h2 id="businessFamilyTitle">Com o que você trabalha?</h2>
-                    <p>
-                      Escolha uma área. Depois, encontre sua atividade sem precisar olhar tudo de
-                      uma vez.
-                    </p>
-                  </div>
+                  <h2 id="businessFamilyTitle" class="sr-only">Com o que você trabalha?</h2>
                   <div class="experience-field">
                     <label for="businessSegmentSearch">Ou busque sua atividade</label>
                     <input
@@ -2391,22 +2395,25 @@
                       aria-controls="businessSpecialtyChoices"
                     />
                   </div>
-                  <div
-                    id="businessFamilyChoices"
-                    class="business-family-grid"
-                    role="group"
-                    aria-label="Áreas de negócio"
-                  ></div>
-                  <div id="businessSpecialtySection" class="business-specialty-section" hidden>
-                    <p id="businessSpecialtyLabel">Qual atividade combina mais com você?</p>
+                  <div class="business-discovery">
                     <div
-                      id="businessSpecialtyChoices"
-                      class="business-specialty-grid"
-                      role="radiogroup"
-                      aria-labelledby="businessSpecialtyLabel"
+                      id="businessFamilyChoices"
+                      class="business-family-grid"
+                      role="group"
+                      aria-label="Áreas de negócio"
                     ></div>
+                    <div id="businessSpecialtySection" class="business-specialty-section" hidden>
+                      <p id="businessSpecialtyLabel">Qual atividade combina mais com você?</p>
+                      <div
+                        id="businessSpecialtyChoices"
+                        class="business-specialty-grid"
+                        role="radiogroup"
+                        aria-labelledby="businessSpecialtyLabel"
+                      ></div>
+                    </div>
+                    <p id="businessSpecialtyEmpty" class="management-note" role="status" hidden></p>
                   </div>
-                  <p id="businessSpecialtyEmpty" class="management-note" role="status" hidden></p>
+                  <p id="businessSelectionSummary" class="management-note" role="status"></p>
                   <details id="businessSegmentAlternative" class="business-segment-alternative">
                     <summary>Prefiro ver a lista completa</summary>
                     <div class="experience-field">
@@ -2421,26 +2428,38 @@
                     </div>
                   </details>
                 </section>
-                <div class="experience-field">
-                  <label for="obCity">Cidade <span class="landing-muted">(opcional)</span></label>
-                  <input id="obCity" placeholder="Ex.: Belo Jardim - PE" />
-                </div>
-                <div class="experience-form-row">
+                <details class="onboarding-optional">
+                  <summary>Mais detalhes do negócio (opcional)</summary>
                   <div class="experience-field">
-                    <label for="obInstagram"
-                      >Instagram <span class="landing-muted">(opcional)</span></label
-                    ><input id="obInstagram" placeholder="@seunegocio" />
+                    <label for="obCity">Cidade <span class="landing-muted">(opcional)</span></label>
+                    <input
+                      id="obCity"
+                      placeholder="Ex.: Belo Jardim - PE"
+                      aria-describedby="obCityFeedback"
+                    /><small class="onboard-field-feedback" id="obCityFeedback"></small>
                   </div>
-                  <div class="experience-field">
-                    <label for="obCnpj">CNPJ <span class="landing-muted">(opcional)</span></label
-                    ><input
-                      id="obCnpj"
-                      inputmode="numeric"
-                      maxlength="18"
-                      placeholder="00.000.000/0001-00"
-                    />
+                  <div class="experience-form-row">
+                    <div class="experience-field">
+                      <label for="obInstagram"
+                        >Instagram <span class="landing-muted">(opcional)</span></label
+                      ><input
+                        id="obInstagram"
+                        placeholder="@seunegocio"
+                        aria-describedby="obInstagramFeedback"
+                      /><small class="onboard-field-feedback" id="obInstagramFeedback"></small>
+                    </div>
+                    <div class="experience-field">
+                      <label for="obCnpj">CNPJ <span class="landing-muted">(opcional)</span></label
+                      ><input
+                        id="obCnpj"
+                        inputmode="numeric"
+                        maxlength="18"
+                        placeholder="00.000.000/0001-00"
+                        aria-describedby="obCnpjFeedback"
+                      /><small class="onboard-field-feedback" id="obCnpjFeedback"></small>
+                    </div>
                   </div>
-                </div>
+                </details>
               </div>
               <div class="experience-field" id="businessActivityOther">
                 <label for="obActivity"
@@ -2449,7 +2468,8 @@
                   id="obActivity"
                   maxlength="120"
                   placeholder="Descreva seu negócio com suas palavras"
-                />
+                  aria-describedby="obActivityFeedback"
+                /><small class="onboard-field-feedback" id="obActivityFeedback"></small>
               </div>
               <fieldset class="business-profile-group">
                 <legend>
@@ -2466,28 +2486,60 @@
             </section>
             <section class="onboarding-panel" data-onboard-panel="3">
               <span class="landing-kicker">Etapa 3 · Suas ofertas</span>
-              <h1>O que seus clientes encontram aqui?</h1>
-              <p>
-                Marque o que você vende ou faz. São sugestões para seu perfil, sem cadastrar
-                produtos ou serviços automaticamente.
-              </p>
+              <div class="onboarding-heading">
+                <h1>O que você faz bem?</h1>
+                <p>
+                  Marque o que você vende ou faz. São sugestões para seu perfil, sem cadastrar
+                  produtos ou serviços automaticamente.
+                </p>
+              </div>
               <div id="businessOfferDetails"></div>
             </section>
             <section class="onboarding-panel" data-onboard-panel="4">
               <span class="landing-kicker">Etapa 4 · Sua rotina</span>
-              <h1>Como seu negócio funciona?</h1>
-              <p>Marque o que faz parte do seu dia a dia. Nada será criado automaticamente.</p>
+              <div class="onboarding-heading">
+                <h1>Cada negócio tem seu ritmo.</h1>
+                <p>Marque o que faz parte do seu dia a dia. Nada será criado automaticamente.</p>
+              </div>
               <div id="businessCapabilities"></div>
             </section>
             <section class="onboarding-panel" data-onboard-panel="5">
               <span class="landing-kicker">Etapa 5 · Suas ferramentas</span>
-              <h1>O que você quer organizar primeiro?</h1>
-              <p>
-                Escolha por onde começar. Você poderá mudar essas preferências em Configurações.
-              </p>
-              <div id="businessModules"></div>
-              <h3 style="font-size: var(--text-base); margin: 0 0 10px">
-                Onde seus clientes mais falam com você?
+              <div class="onboarding-heading">
+                <h1>Seu espaço começa a ganhar forma.</h1>
+                <p>
+                  Escolha por onde começar. Você poderá mudar essas preferências em Configurações.
+                </p>
+              </div>
+              <div class="business-tools-layout">
+                <div class="business-tools-options"><div id="businessModules"></div></div>
+                <aside class="onboarding-side" aria-label="Prévia do seu negócio">
+                  <div class="onboarding-preview-top">
+                    <span>SEU ESPAÇO · PRÉVIA</span><i aria-hidden="true"></i>
+                  </div>
+                  <div class="onboarding-preview-avatar" id="obPreviewAvatar" aria-hidden="true">
+                    SM
+                  </div>
+                  <h2 id="obPreviewBusiness">Meu negócio</h2>
+                  <p id="obPreviewPerson">Seu nome aparece aqui</p>
+                  <div class="onboarding-preview-line">
+                    <small>Canais escolhidos</small
+                    ><b id="obPreviewChannels">WhatsApp, Instagram</b>
+                  </div>
+                  <div class="onboarding-preview-line">
+                    <small>Primeiro foco</small><b id="obPreviewFocus">Atendimento</b>
+                  </div>
+                  <ul id="obPreviewTools" aria-label="Ferramentas disponíveis escolhidas"></ul>
+                  <p class="onboarding-preview-note">
+                    Os canais podem ser conectados depois. Nenhuma conexão é feita nesta etapa.
+                  </p>
+                </aside>
+              </div>
+              <h3
+                class="business-channel-choices"
+                style="font-size: var(--text-base); margin-bottom: 10px"
+              >
+                Canais de interesse · nenhuma conexão nesta etapa
               </h3>
               <div class="experience-choice-grid" style="margin-bottom: 24px">
                 <button
@@ -2506,7 +2558,10 @@
                   <b>Instagram</b><small>direct, comentários e novos contatos</small>
                 </button>
               </div>
-              <h3 style="font-size: var(--text-base); margin: 0 0 10px">
+              <h3
+                class="business-channel-choices"
+                style="font-size: var(--text-base); margin-bottom: 10px"
+              >
                 Qual é sua maior prioridade agora?
               </h3>
               <div class="experience-choice-grid">
@@ -2553,10 +2608,7 @@
                   <div>
                     <span class="landing-kicker">Seu espaço inicial</span>
                     <h2 id="xpReadyTitle">Seu negócio está quase pronto.</h2>
-                    <p>
-                      Confira como organizamos suas escolhas. Você ainda pode voltar e ajustar
-                      qualquer informação.
-                    </p>
+                    <p>Confira suas escolhas. Você pode editar qualquer seção antes de salvar.</p>
                   </div>
                 </div>
                 <div class="experience-review-identity">
@@ -2569,7 +2621,8 @@
                 </div>
                 <h3 class="experience-review-section-title">O que você escolheu</h3>
                 <nav class="business-review-jump" aria-label="Corrigir escolhas">
-                  <button type="button" data-review-edit-step="2">Editar negócio</button>
+                  <button type="button" data-review-edit-step="1">Editar seus dados</button
+                  ><button type="button" data-review-edit-step="2">Editar negócio</button>
                   <button type="button" data-review-edit-step="3">Editar ofertas</button>
                   <button type="button" data-review-edit-step="4">Editar rotina</button>
                   <button type="button" data-review-edit-step="5">Editar ferramentas</button>
@@ -2580,7 +2633,7 @@
                     <small>Canais escolhidos</small><b id="xpReadyChannels">WhatsApp, Instagram</b>
                   </div>
                   <div><small>Primeiro foco</small><b id="xpReadyFocus">Atendimento</b></div>
-                  <div><small>Integrações</small><b>Podem ser conectadas depois</b></div>
+                  <div><small>Integrações</small><b>Nenhuma conexão é feita neste cadastro</b></div>
                 </div>
                 <div class="experience-review-next">
                   <strong>Próximo passo</strong>
@@ -2591,46 +2644,35 @@
                 </div>
               </div>
             </section>
-            <div class="onboarding-actions">
-              <button class="landing-button" type="button" data-business-cancel hidden>
-                Cancelar edição
-              </button>
-              <button class="landing-button" type="button" data-business-skip hidden>
-                Pular por enquanto
-              </button>
-              <button class="landing-button" type="button" data-onboard-back>← Voltar</button
-              ><button
-                class="landing-button landing-button--primary"
-                type="button"
-                data-onboard-next
-              >
-                Continuar →
-              </button>
-            </div>
-            <p
-              id="obValidation"
-              class="experience-field-status"
-              role="status"
-              aria-live="polite"
-            ></p>
+            <footer class="onboarding-footer">
+              <p
+                id="obValidation"
+                class="experience-field-status"
+                role="status"
+                aria-live="polite"
+              ></p>
+              <div class="onboarding-actions">
+                <button class="landing-button" type="button" data-business-cancel hidden>
+                  Cancelar edição
+                </button>
+                <button class="landing-button" type="button" data-business-skip hidden>
+                  Pular por enquanto
+                </button>
+                <button class="landing-button" type="button" data-onboard-back>← Voltar</button
+                ><button
+                  class="landing-button landing-button--primary"
+                  type="button"
+                  data-onboard-next
+                >
+                  Continuar →
+                </button>
+              </div>
+              <p class="management-note" id="businessProfileStorageNotice">
+                Demonstração local · preferências apenas neste navegador. Nenhuma conta é criada no
+                servidor.
+              </p>
+            </footer>
           </main>
-          <aside class="onboarding-side" aria-label="Prévia do seu negócio">
-            <div class="onboarding-preview-top">
-              <span>SEU ESPAÇO · PRÉVIA</span><i aria-hidden="true"></i>
-            </div>
-            <div class="onboarding-preview-avatar" id="obPreviewAvatar" aria-hidden="true">SM</div>
-            <h2 id="obPreviewBusiness">Meu negócio</h2>
-            <p id="obPreviewPerson">Seu nome aparece aqui</p>
-            <div class="onboarding-preview-line">
-              <small>Canais escolhidos</small><b id="obPreviewChannels">WhatsApp, Instagram</b>
-            </div>
-            <div class="onboarding-preview-line">
-              <small>Primeiro foco</small><b id="obPreviewFocus">Atendimento</b>
-            </div>
-            <p class="onboarding-preview-note">
-              Os canais podem ser conectados depois. Nenhuma conexão é feita nesta etapa.
-            </p>
-          </aside>
         </div>
       </section>
     </div>
