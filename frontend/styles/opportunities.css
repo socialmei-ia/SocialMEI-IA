@@ -44,6 +44,20 @@
   gap: 12px 20px;
   align-items: start;
   border-bottom: 1px solid var(--ln);
+  transition: background-color var(--motion-fast);
+}
+.native-opportunity-list > li:focus-within {
+  background-color: var(--hover);
+}
+@media (hover: hover) and (pointer: fine) {
+  .native-opportunity-list > li:hover {
+    background-color: var(--hover);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .native-opportunity-list > li {
+    transition: none;
+  }
 }
 .native-opportunity-list > li:last-child {
   border-bottom: 0;
