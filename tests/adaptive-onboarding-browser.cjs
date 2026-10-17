@@ -25,6 +25,11 @@ module.exports = async function onboarding(browser, origin) {
     await page.locator("[data-onboard-back]").click();
     await page.locator(`[data-onboard-panel="${step}"].is-active`).waitFor();
   };
+  const chooseFromCompleteList = async (page, segment) => {
+    await page.locator("#businessSegmentAlternative summary").click();
+    await page.locator("#obSegment").selectOption(segment);
+    await page.locator("#businessSegmentAlternative summary").click();
+  };
   const navigateProfile = async (page) => {
     if (await page.evaluate(() => innerWidth <= 900)) await page.locator("#mb").click();
     await page.locator('#nav [data-nav="Configurações"]').click();
@@ -149,8 +154,37 @@ module.exports = async function onboarding(browser, origin) {
           .count(),
         1,
       );
+      if (segment === "barber" && !mixed) {
+        assert.equal(
+          await page.locator("#businessFamilyChoices button").count(),
+          6,
+          "show six approachable business areas, not all 23 specialties at once",
+        );
+        assert(!(await page.locator("#businessSpecialtySection").isVisible()));
+        await page.locator('#businessFamilyChoices button[data-family="Beleza e cuidados"]').click();
+        assert(await page.locator('#businessSpecialtyChoices input[value="barber"]').isVisible());
+        assert(await page.locator('#businessSpecialtyChoices input[value="hairdresser"]').isVisible());
+        assert.equal(
+          await page.locator('#businessSpecialtyChoices input[value="phoneRepair"]').count(),
+          0,
+        );
+        await page.locator('#businessSpecialtyChoices input[value="hairdresser"]').check();
+        assert.equal(await page.locator("#obSegment").inputValue(), "hairdresser");
+        await page.locator("#businessSegmentSearch").fill("celular");
+        assert(await page.locator('#businessSpecialtyChoices input[value="phoneRepair"]').isVisible());
+        assert.equal(await page.locator('#businessSpecialtyChoices input[value="barber"]').count(), 0);
+        await page.locator('#businessSpecialtyChoices input[value="phoneRepair"]').check();
+        assert.equal(await page.locator("#obSegment").inputValue(), "phoneRepair");
+        await page.locator("#businessSegmentSearch").fill("atividade inexistente xyz");
+        assert.match(await page.locator("#businessSpecialtyEmpty").textContent(), /não encontramos/i);
+        await page.locator("#businessSegmentSearch").fill("");
+        assert.equal(
+          await page.locator('#businessFamilyChoices button[aria-pressed="true"]').count(),
+          1,
+        );
+      }
       await page.locator("#obBusiness").fill(label);
-      await page.locator("#obSegment").selectOption(segment);
+      await chooseFromCompleteList(page, segment);
       assert(
         (await page.locator("#businessSegmentHint").textContent()).trim().length >= 20,
         "a segment-specific explanation must be visible",
@@ -307,7 +341,7 @@ module.exports = async function onboarding(browser, origin) {
       await page.locator('[data-settings-tab="perfil"]').click();
       await page.locator("[data-business-profile-edit]").click();
       await page.locator('[data-onboard-panel="2"].is-active').waitFor();
-      await page.locator("#obSegment").selectOption("other");
+      await chooseFromCompleteList(page, "other");
       await page.locator("#obActivity").fill("Atividade manual de teste");
       await page.locator('input[name="businessOffer"][value="services"]').check();
       await page.locator("[data-business-cancel]").click();
@@ -317,7 +351,7 @@ module.exports = async function onboarding(browser, origin) {
         "cancel does not commit draft",
       );
       await page.locator("[data-business-profile-edit]").click();
-      await page.locator("#obSegment").selectOption("other");
+      await chooseFromCompleteList(page, "other");
       await page.locator("#obActivity").fill("Atividade manual de teste");
       await page.locator('input[name="businessOffer"][value="services"]').check();
       await next(page, 3);
@@ -424,7 +458,7 @@ module.exports = async function onboarding(browser, origin) {
       await page.locator("#businessProfileStorageNotice").textContent(),
       /apenas neste navegador/,
     );
-    await page.locator("#obSegment").selectOption("barber");
+    await chooseFromCompleteList(page, "barber");
     await next(page, 3);
     await page.getByLabel("Corte masculino", { exact: true }).check();
     await capture(page, "account-offers");
