@@ -21,28 +21,29 @@ module.exports = async function visualMotionFlows(browser, origin, errors = []) 
     await page.evaluate(() => SocialMEIExperience.enterApp("Relatórios"));
     await page.locator(".report-period-options >summary").click();
     await page.locator('[data-nv-report-period="7 dias"]').click();
-    const durations = await page
-      .locator("#reportsGrid")
-      .evaluate((element) =>
-        element.getAnimations().map((animation) => animation.effect.getTiming().duration),
-      );
-    assert(durations.length > 0, "A troca de período deve ter feedback visual");
-    assert(durations.every((duration) => duration === 210));
-    await page.waitForFunction(
-      () => document.getElementById("reportsGrid").getAnimations().length === 0,
+    const duration = await page
+      .locator("#reportPeriodIndicator")
+      .evaluate((element) => getComputedStyle(element).transitionDuration);
+    assert(
+      duration.split(",").every((value) => parseFloat(value) === 0.33),
+      "O indicador do período deve ter transição de 330ms",
     );
     assert.equal(
-      await page.locator("#reportsGrid").evaluate((element) => element.style.willChange),
-      "",
+      await page.locator("#reportsGrid").evaluate((element) => element.getAnimations().length),
+      0,
+      "A página inteira não deve piscar ao atualizar o período",
     );
     assert.equal(
       await page
-        .locator('[data-nv-report-period="7 dias"]')
-        .evaluate((element) => element === document.activeElement),
+        .locator('[data-report-quick="7 dias"]')
+        .evaluate(
+          (element) =>
+            element === document.activeElement && element.getAttribute("aria-pressed") === "true",
+        ),
       true,
     );
     await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.locator('[data-nv-report-period="30 dias"]').click();
+    await page.locator('[data-report-quick="30 dias"]').click();
     assert.equal(
       await page.locator("#reportsGrid").evaluate((element) => element.getAnimations().length),
       0,
@@ -57,7 +58,7 @@ module.exports = async function visualMotionFlows(browser, origin, errors = []) 
       await page.locator("#mainContent").evaluate((element) => element === document.activeElement),
       true,
     );
-    return "Motion: período em 210ms, cleanup de will-change, foco preservado, reduced motion e skip link";
+    return "Motion: indicador em 330ms, sem fade da página, foco preservado, reduced motion e skip link";
   } finally {
     await page.close();
   }

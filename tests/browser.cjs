@@ -283,6 +283,7 @@ async function run() {
     checks.push(await require("./finance-browser.cjs")(browser, origin, errors));
     checks.push(await require("./transfer-browser.cjs")(browser, origin, errors));
     checks.push(await require("./reports-browser.cjs")(browser, origin, errors));
+    checks.push(await require("./reports-v2-browser.cjs")(browser, origin));
     checks.push(await require("./visual-refinement-browser.cjs")(browser, origin, errors));
     checks.push(await require("./data-origin-browser.cjs")(browser, origin, errors));
     checks.push(await require("./visual-layout-browser.cjs")(browser, origin, errors));

@@ -62,6 +62,7 @@
     <link rel="stylesheet" href="styles/workspace-refinement.css" />
     <link rel="stylesheet" href="styles/business-profile.css" />
     <link rel="stylesheet" href="styles/opportunities.css" />
+    <link rel="stylesheet" href="styles/reports-v2.css" />
     <script src="scripts/storage-and-themes.js"></script>
     <script src="scripts/motion.js"></script>
 
@@ -3926,14 +3927,32 @@
               <header class="management-header report-intro">
                 <div>
                   <span class="report-eyebrow">RELATÓRIOS</span>
-                  <h2>Dados que apontam <span>o próximo passo.</span></h2>
-                  <p>Entenda o período e escolha seu próximo cuidado.</p>
+                  <h2>Relatórios</h2>
+                  <p>
+                    Veja o que mudou, encontre oportunidades e guarde um resumo quando precisar.
+                  </p>
                 </div>
+                <button type="button" class="management-button pr" data-report-generate>
+                  + Gerar relatório
+                </button>
               </header>
+              <p id="reportProfileContext" class="management-note"></p>
               <div class="management-demo" id="reportsDataSourceStatus" role="status"></div>
               <div class="management-report-period management-card">
+                <div
+                  id="reportQuickPeriods"
+                  class="rv2-quick-periods"
+                  role="group"
+                  aria-label="Períodos rápidos"
+                >
+                  <span id="reportPeriodIndicator" aria-hidden="true"></span>
+                  <button type="button" data-report-quick="7 dias">7 dias</button>
+                  <button type="button" data-report-quick="30 dias">30 dias</button>
+                  <button type="button" data-report-quick="Este mês">Este mês</button>
+                  <button type="button" data-report-quick="3 meses">3 meses</button>
+                </div>
                 <details class="report-period-options">
-                  <summary>Alterar período</summary>
+                  <summary>Outros períodos e intervalo personalizado</summary>
                   <div
                     id="nvReportPeriods"
                     class="management-chips"
@@ -3949,6 +3968,7 @@
                   ><button class="management-button" data-nv-hide>Ocultar valores</button>
                 </div>
               </div>
+              <p id="reportUpdateStatus" class="sr-only" role="status"></p>
               <div id="nvReportKpis" class="management-kpis"></div>
               <div
                 id="nvReportTabs"
@@ -3964,6 +3984,30 @@
                   ><button class="management-button" id="printReport">Imprimir / PDF</button>
                 </div>
               </footer>
+              <section class="rv2-history" aria-labelledby="reportHistoryTitle">
+                <div class="rv2-history-header">
+                  <div>
+                    <h3 id="reportHistoryTitle">Relatórios gerados</h3>
+                    <p id="reportHistoryNotice" class="management-note"></p>
+                  </div>
+                  <div class="rv2-history-tools">
+                    <label class="sr-only" for="reportHistorySearch">Buscar relatório</label
+                    ><input
+                      id="reportHistorySearch"
+                      type="search"
+                      class="management-input"
+                      placeholder="Buscar relatório"
+                    /><label class="sr-only" for="reportHistoryStatus">Filtrar situação</label
+                    ><select id="reportHistoryStatus" class="management-input">
+                      <option value="all">Todas as situações</option>
+                      <option value="ready">Concluídos</option>
+                      <option value="error">Com falha</option>
+                      <option value="processing">Preparando</option>
+                    </select>
+                  </div>
+                </div>
+                <div id="reportHistoryList" aria-live="polite"></div>
+              </section>
             </div>
           </section>
 
@@ -4196,6 +4240,24 @@
         <div class="modal-body" id="opportunityDetail"></div>
       </section>
     </div>
+    <div aria-hidden="true" class="modal-backdrop" id="reportGenerateModal">
+      <section class="modal" role="dialog" aria-modal="true" aria-labelledby="reportGenerateTitle">
+        <div class="modal-head">
+          <h3 id="reportGenerateTitle" tabindex="-1">Gerar relatório</h3>
+          <button
+            class="btn ib"
+            type="button"
+            aria-label="Fechar relatório"
+            data-close-modal="reportGenerateModal"
+          >
+            ×
+          </button>
+        </div>
+        <div class="modal-body" id="reportGenerateBody"></div>
+        <div class="modal-foot" id="reportGenerateFooter" hidden></div>
+      </section>
+    </div>
+    <section id="reportPrintDocument" aria-label="Relatório para impressão"></section>
     <div aria-hidden="true" class="modal-backdrop client-drawer" id="clientModal">
       <section aria-labelledby="clientModalTitle" aria-modal="true" class="modal" role="dialog">
         <div class="modal-head">
@@ -4342,6 +4404,7 @@
     <script src="scripts/opportunities.js"></script>
     <script src="scripts/inbox.js"></script>
     <script src="scripts/reports.js"></script>
+    <script src="scripts/report-data.js"></script>
     <script src="scripts/appearance.js"></script>
     <script src="scripts/navigation.js"></script>
     <script src="scripts/dialogs.js"></script>
@@ -4357,6 +4420,7 @@
     <script src="scripts/contact-validation.js"></script>
     <script src="scripts/business-profile.js"></script>
     <script src="scripts/personalization.js"></script>
+    <script src="scripts/report-ui.js"></script>
     <script src="scripts/app.js"></script>
     <script src="scripts/experience.js"></script>
     <script id="landingEnhancementsV2" src="scripts/landing-accessibility.js"></script>

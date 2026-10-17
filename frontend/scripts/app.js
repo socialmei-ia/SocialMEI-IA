@@ -1031,7 +1031,7 @@ document.addEventListener("click", async (event) => {
     return;
   }
   if (event.target.closest("#printReport")) {
-    window.print();
+    SocialMEIReportUI.printCurrent();
     return;
   }
   const searchResult = event.target.closest("[data-search-view]");
@@ -2566,7 +2566,10 @@ $("mobilePeriodForm").addEventListener("submit", (event) => {
   $("mobileDateTo").removeAttribute("aria-invalid");
   updatePeriodLabel();
   renderCurrentView();
-  closeModal("periodModal");
+  closeModal("periodModal").then(() => {
+    if (currentView === "Relatórios")
+      document.querySelector("#reportsView .report-period-options summary")?.focus();
+  });
 });
 let isBusinessNavigationExpanded = true;
 let drawerClientId = null;
@@ -2943,6 +2946,7 @@ const getPreviousReportRange = (r) => {
 const getCustomerRegistrationDate = (c) => {
   const v = c.criadoEm || c.createdAt || c.dataCadastro;
   if (typeof v !== "string" || !/^\d{4}-\d{2}-\d{2}/.test(v)) return null;
+  if (!SocialMEIReportData.validRange({ from: v.slice(0, 10), to: v.slice(0, 10) })) return null;
   if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
   const date = new Date(v);
   return Number.isNaN(date.getTime())
@@ -2954,7 +2958,13 @@ const getCustomerRegistrationDate = (c) => {
         day: "2-digit",
       });
 };
-function renderReportVariation(a, b, available = true) {
+function renderReportVariation(a, b, available = true, source = "sales") {
+  if (
+    !["local", "ready"].includes(
+      (source === "finance" ? SocialMEIFinance : SocialMEISales).connectionState,
+    )
+  )
+    return "Fonte indisponível";
   if (!isReportComparisonEnabled) {
     return "Comparação desativada";
   }
@@ -2964,9 +2974,16 @@ function renderReportVariation(a, b, available = true) {
   if (areMoneyValuesHidden) {
     return "Comparação oculta";
   }
-  if (!b) {
-    return "Sem comparação ainda";
-  }
+  const rows = source === "finance" ? appData.financeiro : appData.vendas;
+  if (
+    !SocialMEIReportData.hasHistory(
+      rows,
+      source === "finance" ? "vencimento" : "data",
+      getPreviousReportRange(periodRange()),
+    )
+  )
+    return "Histórico anterior insuficiente";
+  if (!b) return "Sem base anterior para porcentagem";
   const v = ((a - b) / Math.abs(b)) * 100;
   return `${v >= 0 ? "+" : ""}${v.toLocaleString("pt-BR", {
     maximumFractionDigits: 1,
@@ -2996,7 +3013,7 @@ function renderReportChart(source) {
   }
   return (
     (Math.max(0, ...series.r, ...series.d) > 0
-      ? renderManagementChart(series)
+      ? SocialMEIReportUI.trend(series)
       : emptyMarkup("Sem movimento neste período", "Os registros pagos formarão este gráfico.")) +
     /* HTML */ `<div class="management-chart-legend">
               <span style="--c:var(--chart-1)">${sales ? "Vendas pagas" : "Entrou"}</span
@@ -3137,7 +3154,7 @@ function renderReports() {
     renderManagementMetric(
       "Saldo do período",
       financeReady ? money(metrics.balance) : "—",
-      renderReportVariation(metrics.balance, prev.balance),
+      renderReportVariation(metrics.balance, prev.balance, true, "finance"),
     );
   const tabs = ["Resumo", "Vendas", "Clientes", "Atendimento", "Financeiro"];
   $("reportsGrid").setAttribute("aria-labelledby", `reportTab${tabs.indexOf(selectedReportTab)}`);
@@ -3165,7 +3182,11 @@ function renderReports() {
         label: label(x) || "Não informado",
         count: (o.get(k)?.count || 0) + 1,
         value: (o.get(k)?.value || 0) + (Number(x.valor) || 0),
-        quantity: (o.get(k)?.quantity || 0) + (Number(x.quantidade) || 1),
+        quantity:
+          (o.get(k)?.quantity || 0) +
+          (Number.isFinite(x.quantidade) && x.quantidade > 0 ? x.quantidade : 0),
+        quantityKnown:
+          (o.get(k)?.quantityKnown ?? true) && Number.isFinite(x.quantidade) && x.quantidade > 0,
       });
     });
     return [...o.values()].sort((a, b) => b.value - a.value).map((item) => [item.label, item]);
@@ -3193,7 +3214,12 @@ function renderReports() {
     (v) =>
       SocialMEISales.remote && v.produto_id != null ? `id:${v.produto_id}` : `nome:${v.item}`,
   ).map(([name, d]) => {
-    return [escapeHtml(name), String(d.quantity), String(d.count), money(d.value)];
+    return [
+      escapeHtml(name),
+      d.quantityKnown ? String(d.quantity) : "Não informada",
+      String(d.count),
+      money(d.value),
+    ];
   });
   const views = {};
   const pending = metrics.pendingSales;
@@ -3209,12 +3235,12 @@ function renderReports() {
             <div>${renderReportChart("sales")}</div>
           </section>
           <section class="report-care" id="careChapter">
-            <div><span class="report-eyebrow">PRÓXIMO CUIDADO</span><h3>${pending.length ? "Pedidos para acompanhar" : "Relacionamentos em dia"}</h3><p>${pending.length ? `${plural(pending.length, "pedido aguarda", "pedidos aguardam")} pagamento neste período.` : "Não há pedido pendente neste período. Confira os clientes antes do próximo contato."}</p></div>
-            <button class="management-button" data-go="${pending.length ? "Vendas" : "Clientes"}">${pending.length ? "Conferir pedidos" : "Abrir clientes"} →</button>
+            ${SocialMEIReportUI.statusPanel(metrics)}
+            <button class="management-button" data-go="Vendas">Conferir vendas →</button>
           </section>
         </div>
         ${metrics.paidSales.length ? `<details class="report-detail" id="driversChapter"><summary><span>Clientes que compõem o resultado</span><small>${contributors.length} clientes</small></summary><div class="report-detail-body">${contributorsTable}<button class="management-button" data-go="Clientes">Abrir clientes</button></div></details>` : ""}
-        ${metrics.ledger.length ? `<details class="report-detail" id="flowChapter"><summary><span>Movimento financeiro</span><small>${money(metrics.balance)} de saldo</small></summary><div class="report-detail-body"><p>Entrou ${money(metrics.received)}, saiu ${money(metrics.spent)}. Lançamentos pagos pelo vencimento; não representa saldo bancário.</p>${renderReportChart("finance")}</div></details>` : ""}`;
+        ${financeReady && metrics.ledger.length ? `<details class="report-detail" id="flowChapter"><summary><span>Movimento financeiro</span><small>${money(metrics.balance)} de saldo</small></summary><div class="report-detail-body"><p>Entrou ${money(metrics.received)}, saiu ${money(metrics.spent)}. Lançamentos pagos pelo vencimento; não representa saldo bancário.</p>${renderReportChart("finance")}</div></details>` : ""}`;
   const channelPayment = metrics.paidSales.length
     ? /* HTML */ `<details class="report-detail" id="reportChannelDetails"><summary><span>Canais e formas de pagamento</span><small>De onde vem o resultado</small></summary><div class="report-detail-body management-report-split">
           <section class="management-card">
@@ -3240,12 +3266,16 @@ function renderReports() {
         </div></details>`
     : "";
   const productTable = metrics.paidSales.length
-    ? /* HTML */ `<details class="report-detail" id="reportProductsDetails"><summary><span>Produtos e serviços mais vendidos</span><small>${topProducts.length} itens</small></summary><div class="report-detail-body">
-          <p class="management-note">Itens registrados em vendas pagas neste período.</p>
+    ? /* HTML */ `<details class="report-detail" id="reportProductsDetails"><summary><span>Itens informados nas vendas</span><small>${topProducts.length} itens</small></summary><div class="report-detail-body">
+          <p class="management-note">Itens registrados em vendas pagas neste período. Sem vínculo por ID, nomes livres não comprovam o tipo de produto ou serviço.</p>
           ${renderManagementTable("Itens vendidos", ["Item", "Quantidade", "Pedidos", "Total"], topProducts)}${metrics.paidSales.some((v) => !v.item) ? '<p class="management-note">Há pedidos sem item informado; não entram no ranking.</p>' : ""}
         </div></details>`
     : "";
-  views.Resumo = narrative + channelPayment + productTable;
+  views.Resumo =
+    narrative +
+    `<div class="rv2-lower-grid"><section class="management-card"><h3>Saídas de produtos e serviços</h3><p class="management-note">Vendas pagas, com vínculo por ID ao catálogo e quantidade informada.</p>${SocialMEIReportUI.linkedItems(metrics)}</section><section class="management-card"><h3>O que observar</h3><div class="rv2-observations"><div><b>Faturamento e financeiro separados</b><p>Vendas pagas não são somadas novamente às receitas financeiras.</p></div><div><b>Pagamento não significa entrega</b><p>O app não informa entregas nem atendimentos concluídos sem os eventos necessários.</p></div><div><b>Comparação com cuidado</b><p>Usamos a mesma definição e uma janela anterior com a mesma duração. Sem cobertura anterior suficiente, não há porcentagem.</p></div></div></section></div>` +
+    channelPayment +
+    productTable;
   views.Vendas =
     /* HTML */ `<section class="management-card"><h3>Vendas pagas no período</h3>${renderManagementTable(
       "Vendas pagas",
@@ -3298,11 +3328,11 @@ function renderReports() {
           <h3>Conversa, pedido e pagamento</h3>
           <div class="management-report-funnel">
             <div><b>${conversations.length}</b><span>Conversas com mensagem no período</span></div>
-            <div><b>${linkedSales.length}</b><span>Pedidos com cliente correspondente</span></div>
-            <div><b>${linkedPaid.length}</b><span>Desses pedidos, pagos</span></div>
+            <div><b>${salesReady ? linkedSales.length : "—"}</b><span>Pedidos com cliente correspondente</span></div>
+            <div><b>${salesReady ? linkedPaid.length : "—"}</b><span>Desses pedidos, pagos</span></div>
           </div>
           <p class="management-note">
-            ${linked.length ? (SocialMEISales.remote ? "Vínculo pelo ID do cliente associado à conversa." : "Vínculo pelo perfil ou nome exato do cliente.") : "Sem pedidos vinculados às conversas do período."}
+            ${!salesReady ? "Leitura de vendas indisponível; pedidos e pagamentos não foram interpretados." : linked.length ? (SocialMEISales.remote ? "Vínculo pelo ID do cliente associado à conversa." : "Vínculo pelo perfil ou nome exato do cliente.") : "Sem pedidos vinculados às conversas do período."}
             Não há evento de conversão rastreado: estes números não formam uma taxa de conversão.
             Conversas sem mensagem datada não entram.
           </p>
@@ -3354,9 +3384,9 @@ function renderReports() {
             )}
           </section>`;
   const insights = [];
-  const late = appData.vendas.filter(
-    (sale) => sale.status === "Pendente" && sale.data < dateShift(todayISO(), -5),
-  );
+  const late = salesReady
+    ? metrics.pendingSales.filter((sale) => sale.data < dateShift(todayISO(), -5))
+    : [];
   if (late.length) {
     insights.push([
       "Pedidos aguardando",
@@ -3365,7 +3395,9 @@ function renderReports() {
       "Conferir pedidos",
     ]);
   }
-  const overdue = appData.financeiro.filter((entry) => ledgerStatus(entry) === "atrasado");
+  const overdue = financeReady
+    ? metrics.ledger.filter((entry) => ledgerStatus(entry) === "atrasado")
+    : [];
   if (overdue.length) {
     insights.push([
       "Vencimentos atrasados",
@@ -3376,9 +3408,18 @@ function renderReports() {
   }
   const stale = appData.clientes.filter((client) => {
     const paid = appData.vendas
-      .filter((sale) => sale.status === "Pago" && SocialMEISales.matchesClient(sale, client))
+      .filter(
+        (sale) =>
+          !sale.excluida && sale.status === "Pago" && SocialMEISales.matchesClient(sale, client),
+      )
       .sort((sale, otherSale) => otherSale.data.localeCompare(sale.data));
-    return paid[0] && paid[0].data < dateShift(todayISO(), -30);
+    return (
+      salesReady &&
+      clientsReady &&
+      paid[0] &&
+      inRange(paid[0].data, dateRange) &&
+      paid[0].data < dateShift(todayISO(), -30)
+    );
   });
   if (stale.length) {
     insights.push([
@@ -3418,6 +3459,7 @@ function renderReports() {
     if (detail) detail.open = true;
   });
   updatePeriodCaptions();
+  SocialMEIReportUI.afterRender(metrics, salesReady, financeReady);
 }
 function renderAccountSecurityControls(administrator) {
   return /* HTML */ `
@@ -4261,8 +4303,10 @@ document.addEventListener("click", (event) => {
       customRange = null;
       updatePeriodLabel();
       renderReports();
-      playPeriodReveal();
-      document.querySelector(`[data-nv-report-period="${name}"]`)?.focus();
+      (
+        document.querySelector(`[data-report-quick="${name}"]`) ||
+        document.querySelector("#reportsView .report-period-options summary")
+      )?.focus();
     }
     return;
   }
@@ -4270,7 +4314,6 @@ document.addEventListener("click", (event) => {
   if (rt) {
     selectedReportTab = rt.dataset.nvReportTab;
     renderReports();
-    playPeriodReveal();
     document.querySelector(`[data-nv-report-tab="${selectedReportTab}"]`)?.focus();
     return;
   }
