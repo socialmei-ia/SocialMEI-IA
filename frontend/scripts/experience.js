@@ -540,9 +540,12 @@ ONBOARDING — JAVASCRIPT
     const choices = Object.entries(businessModel.segments).filter(([id, segment]) =>
       query
         ? businessSearchText(
-            [segment.label, segment.family, segment.description, businessSearchAliases[id] || ""].join(
-              " ",
-            ),
+            [
+              segment.label,
+              segment.family,
+              segment.description,
+              businessSearchAliases[id] || "",
+            ].join(" "),
           ).includes(query)
         : businessFamilyCards
             .find((card) => card.id === activeBusinessFamily)
@@ -552,9 +555,10 @@ ONBOARDING — JAVASCRIPT
     const empty = q("#businessSpecialtyEmpty");
     section.hidden = !choices.length;
     empty.hidden = !(query && !choices.length);
-    empty.textContent = query && !choices.length
-      ? "Não encontramos essa atividade. Tente outro termo ou escolha Serviços e outros."
-      : "";
+    empty.textContent =
+      query && !choices.length
+        ? "Não encontramos essa atividade. Tente outro termo ou escolha Serviços e outros."
+        : "";
     const host = q("#businessSpecialtyChoices");
     host.replaceChildren();
     choices.forEach(([id, segment]) => {
@@ -2062,8 +2066,7 @@ ONBOARDING — JAVASCRIPT
         (activeBusinessFamily && familyForSegment(businessDraft.segment) !== activeBusinessFamily))
     ) {
       q("#obValidation").textContent = "Escolha uma área e uma atividade para continuar.";
-      const target =
-        q("#businessSpecialtyChoices input") || q("#businessFamilyChoices button");
+      const target = q("#businessSpecialtyChoices input") || q("#businessFamilyChoices button");
       target?.focus();
       return false;
     }
