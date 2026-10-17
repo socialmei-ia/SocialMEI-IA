@@ -195,15 +195,28 @@
 .contact-confirmation[open] {
   position: fixed;
   inset: 0;
+  box-sizing: border-box;
+  width: min(480px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 24px);
   margin: auto;
-  max-width: calc(100vw - 32px);
-  max-height: calc(100dvh - 32px);
+  padding: clamp(20px, 3.4vh, 32px);
   overflow-y: auto;
+  overscroll-behavior: contain;
   border-color: var(--ln);
   background: var(--sf);
   box-shadow:
     0 28px 80px rgb(0 0 0 / 18%),
     0 1px 0 rgb(255 255 255 / 8%) inset;
+}
+.contact-confirmation form {
+  min-width: 0;
+}
+.contact-confirmation[open][data-closing] {
+  animation: profile-dialog-exit 180ms ease-in both;
+}
+.contact-confirmation[open][data-closing]::backdrop {
+  animation: profile-backdrop-exit 180ms ease-in both;
 }
 .contact-confirmation .contact-confirmation-symbol {
   border-radius: 18px;
@@ -220,6 +233,7 @@
   letter-spacing: -0.03em;
   text-align: center;
   font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }
 .contact-confirmation .contact-confirmation-actions {
   display: grid;
@@ -233,6 +247,17 @@
 .contact-confirmation .contact-confirmation-actions button:focus-visible {
   outline: 3px solid var(--br);
   outline-offset: 3px;
+}
+@keyframes profile-dialog-exit {
+  to {
+    opacity: 0;
+    transform: translateY(6px) scale(0.99);
+  }
+}
+@keyframes profile-backdrop-exit {
+  to {
+    opacity: 0;
+  }
 }
 
 /* Bring the full six-step setup closer to the official register screen. */
@@ -268,6 +293,18 @@
 }
 .onboarding-screen .experience-step.is-done span {
   border: 1px solid color-mix(in srgb, var(--success) 25%, transparent);
+}
+.onboarding-screen .onboarding-stage-context {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.5;
+  color: var(--brand-primary-text);
+  letter-spacing: 0.01em;
+}
+.onboarding-screen #businessProfileStorageNotice {
+  margin-bottom: 13px;
+  max-width: 70ch;
 }
 .onboarding-screen .onboarding-progress {
   height: 5px;
@@ -322,6 +359,13 @@
   border-color: var(--br);
   background: color-mix(in srgb, var(--br) 7%, var(--sf));
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--br) 18%, transparent) inset;
+}
+.onboarding-screen .business-profile-options label:has(input:checked)::after {
+  content: "✓";
+  margin-left: auto;
+  color: var(--brand-primary-text);
+  font-size: 16px;
+  font-weight: 750;
 }
 .onboarding-screen .experience-choice {
   min-height: 102px;
@@ -388,6 +432,83 @@
 /* The summary is an intentional review surface, not a plain list of fields. */
 .onboarding-screen .experience-complete {
   padding-top: 0;
+}
+.onboarding-screen .experience-review-heading {
+  display: grid;
+  grid-template-columns: 60px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  margin-bottom: 26px;
+}
+.onboarding-screen .experience-review-heading .experience-complete-mark {
+  margin: 0;
+}
+.onboarding-screen .experience-review-heading h2 {
+  margin: 8px 0 12px;
+  max-width: 24ch;
+}
+.onboarding-screen .experience-review-heading p {
+  max-width: 62ch;
+  line-height: 1.6;
+}
+.onboarding-screen .experience-review-identity {
+  display: flex;
+  align-items: center;
+  gap: 17px;
+  padding: 22px;
+  border: 1px solid var(--ln);
+  border-left: 4px solid var(--brand-accent);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--br) 5%, var(--sf));
+}
+.onboarding-screen .experience-review-identity .landing-brand-mark {
+  flex: 0 0 auto;
+}
+.onboarding-screen .experience-review-identity > div {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.onboarding-screen .experience-review-identity small {
+  color: var(--mt);
+  font-size: 12px;
+}
+.onboarding-screen .experience-review-identity strong {
+  font-size: clamp(20px, 2.7vw, 27px);
+  font-weight: 680;
+  letter-spacing: -0.035em;
+  color: var(--tx);
+  overflow-wrap: anywhere;
+}
+.onboarding-screen .experience-review-identity > div > span {
+  color: var(--mt);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.onboarding-screen .experience-review-section-title {
+  margin: 30px 0 0;
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--tx);
+}
+.onboarding-screen .experience-review-next {
+  display: grid;
+  gap: 8px;
+  margin-top: 24px;
+  padding: 18px 20px;
+  border: 1px solid var(--ln);
+  border-radius: 14px;
+  background: var(--sf);
+}
+.onboarding-screen .experience-review-next strong {
+  font-weight: 650;
+  color: var(--brand-primary-text);
+}
+.onboarding-screen .experience-review-next p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--mt);
 }
 .onboarding-screen .experience-complete-mark {
   margin-bottom: 18px;
@@ -483,6 +604,26 @@
   .onboarding-screen #businessProfileReview > div:nth-last-child(2) {
     border-bottom: 1px solid var(--ln);
   }
+  .onboarding-screen .experience-review-heading {
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 12px;
+  }
+  .onboarding-screen .experience-review-heading .experience-complete-mark {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+  }
+  .onboarding-screen .experience-review-identity {
+    gap: 12px;
+    padding: 17px 14px;
+  }
+  .onboarding-screen #businessProfileReview,
+  .onboarding-screen .experience-complete-list {
+    padding-inline: 14px;
+  }
+  .onboarding-screen .experience-review-next {
+    padding: 16px 14px;
+  }
   .onboarding-screen .onboarding-actions {
     gap: 8px;
   }
@@ -497,7 +638,26 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+@media (max-height: 540px) {
+  .contact-confirmation[open] {
+    padding-block: 16px;
+  }
+  .contact-confirmation .contact-eyebrow {
+    margin-top: 12px;
+  }
+  .contact-confirmation .contact-confirmation-number {
+    margin-block: 10px;
+    padding-block: 12px;
+  }
+  .contact-confirmation .contact-confirmation-actions {
+    margin-top: 14px;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
+  .contact-confirmation[open][data-closing],
+  .contact-confirmation[open][data-closing]::backdrop {
+    animation: none;
+  }
   .onboarding-screen .onboarding-panel.is-active {
     animation: none;
   }
