@@ -184,6 +184,7 @@ module.exports = async function onboarding(browser, origin) {
         );
       }
       await page.locator("#obBusiness").fill(label);
+      await page.locator("#businessSegmentAlternative").evaluate((el) => (el.open = true));
       await page.locator("#obSegment").selectOption(segment);
       assert(
         (await page.locator("#businessSegmentHint").textContent()).trim().length >= 20,
@@ -341,6 +342,7 @@ module.exports = async function onboarding(browser, origin) {
       await page.locator('[data-settings-tab="perfil"]').click();
       await page.locator("[data-business-profile-edit]").click();
       await page.locator('[data-onboard-panel="2"].is-active').waitFor();
+      await page.locator("#businessSegmentAlternative").evaluate((el) => (el.open = true));
       await page.locator("#obSegment").selectOption("other");
       await page.locator("#obActivity").fill("Atividade manual de teste");
       await page.locator('input[name="businessOffer"][value="services"]').check();
@@ -351,6 +353,7 @@ module.exports = async function onboarding(browser, origin) {
         "cancel does not commit draft",
       );
       await page.locator("[data-business-profile-edit]").click();
+      await page.locator("#businessSegmentAlternative").evaluate((el) => (el.open = true));
       await page.locator("#obSegment").selectOption("other");
       await page.locator("#obActivity").fill("Atividade manual de teste");
       await page.locator('input[name="businessOffer"][value="services"]').check();
@@ -458,6 +461,7 @@ module.exports = async function onboarding(browser, origin) {
       await page.locator("#businessProfileStorageNotice").textContent(),
       /apenas neste navegador/,
     );
+    await page.locator("#businessSegmentAlternative").evaluate((el) => (el.open = true));
     await page.locator("#obSegment").selectOption("barber");
     await next(page, 3);
     await page.getByLabel("Corte masculino", { exact: true }).check();
