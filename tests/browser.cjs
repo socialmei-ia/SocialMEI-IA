@@ -64,7 +64,10 @@ async function run() {
     await page.locator(".contact-confirmation button[value=confirm]").click();
     await page.locator("[data-onboard-next]").click();
     await page.locator("#obBusiness").fill("Negócio QA");
-    await page.locator("#obSegment").selectOption("barber");
+    await page
+      .locator('#businessFamilyChoices button[data-family="Beleza e cuidados"]')
+      .click();
+    await page.locator('#businessSpecialtyChoices input[value="barber"]').check();
     for (let step = 3; step <= 6; step++) {
       await page.locator("[data-onboard-next]").click();
       await page.locator(`[data-onboard-panel="${step}"].is-active`).waitFor();
