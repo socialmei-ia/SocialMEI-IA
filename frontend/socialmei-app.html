@@ -2313,6 +2313,9 @@
                 <div><b>Revisão</b></div>
               </div>
             </div>
+            <p class="onboarding-stage-context" id="xpOnboardingStepStatus" aria-live="polite">
+              Etapa 1 de 6 · Você · Próxima: Negócio
+            </p>
             <p class="management-note" id="businessProfileStorageNotice">
               Demonstração local · preferências apenas neste navegador. Nenhuma conta é criada no
               servidor.
@@ -2506,25 +2509,44 @@
             </section>
             <section class="onboarding-panel" data-onboard-panel="6">
               <div class="experience-complete">
-                <div class="experience-complete-mark">
-                  <svg viewbox="0 0 32 32" aria-hidden="true">
-                    <path id="readyCheck" d="M6 16l7 7L26 8" pathlength="1"></path>
-                  </svg>
+                <div class="experience-review-heading">
+                  <div class="experience-complete-mark">
+                    <svg viewbox="0 0 32 32" aria-hidden="true">
+                      <path id="readyCheck" d="M6 16l7 7L26 8" pathlength="1"></path>
+                    </svg>
+                  </div>
+                  <div>
+                    <span class="landing-kicker">Seu espaço inicial</span>
+                    <h2 id="xpReadyTitle">Seu negócio está quase pronto.</h2>
+                    <p>
+                      Confira como organizamos suas escolhas. Você ainda pode voltar e ajustar qualquer
+                      informação.
+                    </p>
+                  </div>
                 </div>
-                <span class="landing-kicker">Seu espaço inicial</span>
-                <h2 id="xpReadyTitle">Confira antes de salvar.</h2>
-                <p>
-                  Suas escolhas organizam o perfil do negócio. Nenhum produto, venda ou conexão será
-                  criado.
-                </p>
+                <div class="experience-review-identity">
+                  <span class="landing-brand-mark" aria-hidden="true"></span>
+                  <div>
+                    <small>Seu negócio</small>
+                    <strong id="xpReadyBusiness">Meu negócio</strong>
+                    <span>Seu perfil será salvo somente após a confirmação.</span>
+                  </div>
+                </div>
+                <h3 class="experience-review-section-title">O que você escolheu</h3>
                 <div id="businessProfileReview"></div>
                 <div class="experience-complete-list">
-                  <div><small>Negócio</small><b id="xpReadyBusiness">Meu negócio</b></div>
                   <div>
                     <small>Canais escolhidos</small><b id="xpReadyChannels">WhatsApp, Instagram</b>
                   </div>
                   <div><small>Primeiro foco</small><b id="xpReadyFocus">Atendimento</b></div>
                   <div><small>Integrações</small><b>Podem ser conectadas depois</b></div>
+                </div>
+                <div class="experience-review-next">
+                  <strong>Próximo passo</strong>
+                  <p>
+                    Confirme para salvar o perfil neste navegador e entrar no seu espaço. Isso não
+                    cadastra produtos, vendas ou conexões.
+                  </p>
                 </div>
               </div>
             </section>
