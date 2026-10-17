@@ -137,6 +137,30 @@ module.exports = async function onboarding(browser, origin) {
         await page.locator("#xpOnboardingStepStatus").textContent(),
         /Etapa 2 de 6.*Negócio.*Ofertas/,
       );
+      if (segment === "barber" && !mixed) {
+        assert.equal(
+          await page.locator('[data-onboard-step="5"]').isDisabled(),
+          true,
+          "steps not reached must not be clickable",
+        );
+        assert.equal(
+          await page.locator('[data-onboard-step="1"]').isEnabled(),
+          true,
+          "completed step must be revisitable",
+        );
+        await page.locator('[data-onboard-step="1"]').focus();
+        await page.keyboard.press("Enter");
+        await page.locator('[data-onboard-panel="1"].is-active').waitFor();
+        await next(page, 2);
+        assert.equal(
+          await page.locator("#xpOnboardingProgress").getAttribute("aria-valuenow"),
+          "2",
+        );
+        assert.equal(
+          await page.locator('[data-onboard-step="2"]').getAttribute("aria-current"),
+          "step",
+        );
+      }
       assert.equal(
         await page
           .locator('#obSegment optgroup[label="Beleza e cuidados"] option[value="hairdresser"]')
