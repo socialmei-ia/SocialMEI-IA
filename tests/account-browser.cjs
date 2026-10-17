@@ -548,6 +548,7 @@ module.exports = async function accountFlow(browser, origin) {
         !!document.querySelector('[data-onboard-panel="1"].is-active'),
     );
     await page.locator("[data-onboard-next]").click();
+    await page.locator("#businessSegmentAlternative").evaluate((el) => (el.open = true));
     await page.locator("#obSegment").selectOption("perfume");
     for (let step = 3; step <= 6; step++) {
       await page.locator("[data-onboard-next]").click();
