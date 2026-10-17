@@ -201,3 +201,21 @@ test("legacy saved profiles keep their exact recognized segment identifiers", ()
     assert.equal(normalized.version, 1);
   }
 });
+
+test("routine questions are tailored but never forced onto a business", () => {
+  const barber = model.routineOptions(profile("barber")).map(([id]) => id);
+  const repairs = model.routineOptions(profile("phoneRepair", ["services", "products"])).map(
+    ([id]) => id,
+  );
+  const market = model.routineOptions(profile("market")).map(([id]) => id);
+  assert.equal(barber[0], "appointments");
+  assert.equal(repairs[0], "quotes");
+  assert.equal(market[0], "inventory");
+  assert(barber.includes("walkIns"));
+  assert(repairs.includes("onlineOrders"));
+  assert(market.includes("deliveries"));
+  assert(!model.routineOptions(profile("barber")).some(([id]) => id === "inventory"));
+  const legacy = model.normalize({ segment: "tailoring", offers: ["services"] });
+  assert.equal(legacy.capabilities.quotes, false);
+  assert.equal(legacy.capabilities.onlineOrders, false);
+});
