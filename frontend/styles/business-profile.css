@@ -455,7 +455,9 @@
     padding: clamp(18px, 4vw, 30px);
   }
   .onboarding-screen .onboarding-side {
-    display: none;
+    position: static;
+    margin-top: 0;
+    padding: 18px;
   }
 }
 @media (max-width: 600px) {
