@@ -149,6 +149,40 @@ module.exports = async function onboarding(browser, origin) {
           .count(),
         1,
       );
+      if (segment === "barber" && !mixed) {
+        assert.equal(
+          await page.locator("#businessFamilyChoices button").count(),
+          6,
+          "only six business areas should be shown initially",
+        );
+        assert(!(await page.locator("#businessSpecialtySection").isVisible()));
+        await page
+          .locator('#businessFamilyChoices button[data-family="Beleza e cuidados"]')
+          .click();
+        assert(await page.locator('#businessSpecialtyChoices input[value="barber"]').isVisible());
+        assert(await page.locator('#businessSpecialtyChoices input[value="hairdresser"]').isVisible());
+        assert.equal(
+          await page.locator('#businessSpecialtyChoices input[value="phoneRepair"]').count(),
+          0,
+        );
+        await page.locator('#businessSpecialtyChoices input[value="hairdresser"]').check();
+        assert.equal(await page.locator("#obSegment").inputValue(), "hairdresser");
+        await page.locator("#businessSegmentSearch").fill("celular");
+        assert(await page.locator('#businessSpecialtyChoices input[value="phoneRepair"]').isVisible());
+        assert.equal(
+          await page.locator('#businessSpecialtyChoices input[value="barber"]').count(),
+          0,
+        );
+        await page.locator('#businessSpecialtyChoices input[value="phoneRepair"]').check();
+        assert.equal(await page.locator("#obSegment").inputValue(), "phoneRepair");
+        await page.locator("#businessSegmentSearch").fill("atividade inexistente xyz");
+        assert.match(await page.locator("#businessSpecialtyEmpty").textContent(), /não encontramos/i);
+        await page.locator("#businessSegmentSearch").fill("");
+        assert.equal(
+          await page.locator('#businessFamilyChoices button[aria-pressed="true"]').count(),
+          1,
+        );
+      }
       await page.locator("#obBusiness").fill(label);
       await page.locator("#obSegment").selectOption(segment);
       assert(
