@@ -213,6 +213,34 @@
     deliveries: "Faço entregas",
     inventory: "Preciso controlar estoque",
     team: "Trabalho com equipe",
+    walkIns: "Atendo sem marcar horário",
+    quotes: "Faço orçamentos antes de vender",
+    onlineOrders: "Recebo pedidos pela internet",
+    recurring: "Tenho clientes com atendimentos recorrentes",
+  };
+  const routinePriorities = {
+    barber: ["appointments", "walkIns"],
+    hairdresser: ["appointments", "walkIns"],
+    manicure: ["appointments", "recurring"],
+    perfume: ["inventory", "onlineOrders"],
+    cosmetics: ["inventory", "onlineOrders"],
+    beautyReseller: ["orders", "onlineOrders", "deliveries"],
+    tailoring: ["orders", "quotes"],
+    fashion: ["inventory", "onlineOrders"],
+    bakery: ["orders", "deliveries"],
+    snack: ["orders", "deliveries"],
+    restaurant: ["orders", "deliveries"],
+    commerce: ["inventory", "onlineOrders"],
+    market: ["inventory", "deliveries"],
+    convenience: ["inventory", "walkIns"],
+    phoneRepair: ["quotes", "orders"],
+    electronics: ["inventory", "onlineOrders"],
+    consulting: ["quotes", "appointments"],
+    tutor: ["appointments", "recurring"],
+    laboratory: ["quotes", "appointments"],
+    photography: ["appointments", "quotes"],
+    design: ["quotes", "orders"],
+    services: ["quotes", "appointments"],
   };
   const clean = (value) => (typeof value === "string" ? value.trim().slice(0, 120) : "");
   const list = (value) =>
@@ -263,6 +291,20 @@
       if (["products", "services"].includes(id)) return profile.offers.includes(id);
       if (Object.hasOwn(capabilities, id)) return profile.capabilities[id];
       return true;
+    });
+  }
+  function routineOptions(value) {
+    const profile = normalize(value);
+    const priorities = routinePriorities[profile.segment] || [];
+    const options = Object.entries(capabilities).filter(([id]) => {
+      if (id === "inventory") return profile.offers.includes("products");
+      if (id === "appointments") return profile.offers.includes("services");
+      return true;
+    });
+    return options.sort(([a], [b]) => {
+      const rankA = priorities.includes(a) ? priorities.indexOf(a) : priorities.length;
+      const rankB = priorities.includes(b) ? priorities.indexOf(b) : priorities.length;
+      return rankA - rankB;
     });
   }
   function recommendedModules(profile) {
@@ -420,6 +462,7 @@
     normalize,
     availableModules,
     recommendedModules,
+    routineOptions,
     contextualTools,
     catalogSuggestions,
     featureRoutes,
