@@ -887,6 +887,10 @@ ONBOARDING — JAVASCRIPT
     q("#xpOnboardingProgress").setAttribute("aria-valuemin", "0");
     q("#xpOnboardingProgress").setAttribute("aria-valuemax", "6");
     q("#xpOnboardingProgress").setAttribute("aria-valuenow", onboardingStep);
+    q("#xpOnboardingProgress").setAttribute(
+      "aria-valuetext",
+      `Etapa ${onboardingStep} de 6: ${steps[onboardingStep - 1]}`,
+    );
     qa("[data-onboard-panel]").forEach((p) =>
       p.classList.toggle("is-active", Number(p.dataset.onboardPanel) === onboardingStep),
     );
