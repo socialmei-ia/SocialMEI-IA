@@ -155,6 +155,11 @@ jobs:
         run: |
           npm ci
           npx playwright install --with-deps chromium
+      - name: Install PDF text extraction for Reports V2 tests
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends poppler-utils
+          command -v pdftotext
       - name: Offline application regression
         run: npm run test:browser
       - name: Human Basic login and account registration
