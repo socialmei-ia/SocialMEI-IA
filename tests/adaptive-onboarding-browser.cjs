@@ -138,11 +138,15 @@ module.exports = async function onboarding(browser, origin) {
         /Etapa 2 de 6.*Negócio.*Ofertas/,
       );
       assert.equal(
-        await page.locator('#obSegment optgroup[label="Beleza e cuidados"] option[value="hairdresser"]').count(),
+        await page
+          .locator('#obSegment optgroup[label="Beleza e cuidados"] option[value="hairdresser"]')
+          .count(),
         1,
       );
       assert.equal(
-        await page.locator('#obSegment optgroup[label="Tecnologia e reparos"] option[value="phoneRepair"]').count(),
+        await page
+          .locator('#obSegment optgroup[label="Tecnologia e reparos"] option[value="phoneRepair"]')
+          .count(),
         1,
       );
       await page.locator("#obBusiness").fill(label);
