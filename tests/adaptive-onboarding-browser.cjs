@@ -233,6 +233,13 @@ module.exports = async function onboarding(browser, origin) {
       );
       if (segment === "barber" && !mixed) {
         await capture(page, "review");
+        await page.locator('[data-review-edit-step="3"]').click();
+        await page.locator('[data-onboard-panel="3"].is-active').waitFor();
+        assert(await page.getByLabel("Corte masculino", { exact: true }).isChecked());
+        await next(page, 4);
+        await next(page, 5);
+        await next(page, 6);
+        assert.match(await page.locator("#businessProfileReview").textContent(), /Corte masculino/);
         await page.evaluate(() => {
           window.originalProfileSet = Storage.prototype.setItem;
           Storage.prototype.setItem = function (key, value) {
