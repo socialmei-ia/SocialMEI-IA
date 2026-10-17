@@ -13,6 +13,8 @@
   let businessEditing = false;
   let businessScope = null;
   let businessToolsChosen = false;
+  let businessSegmentChosen = false;
+  let activeBusinessFamily = null;
   const registrationOnboardingKey = "onboarding-after-registration";
   const PROFILE_KEY = "socialmei-experience-profile-v1";
   function loadExperienceProfile() {
@@ -462,6 +464,159 @@ ONBOARDING — JAVASCRIPT
     select.value = Object.hasOwn(businessModel.segments, selected) ? selected : "other";
   }
   renderBusinessSegmentOptions();
+  const businessFamilyCards = [
+    {
+      id: "Beleza e cuidados",
+      title: "Beleza e cuidados",
+      symbol: "✂",
+      detail: "Cabelo, unhas e produtos de beleza",
+      families: ["Beleza e cuidados"],
+    },
+    {
+      id: "Moda e confecção",
+      title: "Moda e confecção",
+      symbol: "◈",
+      detail: "Costura, ajustes e roupas",
+      families: ["Moda e confecção"],
+    },
+    {
+      id: "Alimentação",
+      title: "Alimentação",
+      symbol: "☕",
+      detail: "Doces, lanches e refeições",
+      families: ["Alimentação"],
+    },
+    {
+      id: "Comércio e varejo",
+      title: "Comércio e varejo",
+      symbol: "▦",
+      detail: "Lojas, mercadinhos e vendas",
+      families: ["Comércio e varejo"],
+    },
+    {
+      id: "Tecnologia e reparos",
+      title: "Tecnologia e reparos",
+      symbol: "⌘",
+      detail: "Celulares, eletrônicos e consertos",
+      families: ["Tecnologia e reparos"],
+    },
+    {
+      id: "Serviços e outros",
+      title: "Serviços e outros",
+      symbol: "✳",
+      detail: "Autônomos, profissionais e outras atividades",
+      families: ["Serviços profissionais", "Outras atividades"],
+    },
+  ];
+  const businessSearchAliases = {
+    barber: "barbeiro",
+    hairdresser: "cabeleireira cabeleireiro",
+    tailoring: "costureira costureiro",
+    bakery: "boleira bolos confeiteira",
+    phoneRepair: "conserto celular manutenção telefone",
+    laboratory: "química químico",
+    manicure: "nail designer",
+  };
+  function businessSearchText(value) {
+    return String(value)
+      .normalize("NFD")
+      .replace(/[\\u0300-\\u036f]/g, "")
+      .toLocaleLowerCase("pt-BR")
+      .trim();
+  }
+  function familyForSegment(segment) {
+    const family = businessModel.segments[segment]?.family;
+    return businessFamilyCards.find((card) => card.families.includes(family))?.id || null;
+  }
+  function renderBusinessPicker() {
+    const query = businessSearchText(q("#businessSegmentSearch").value);
+    const familyHost = q("#businessFamilyChoices");
+    familyHost.hidden = !!query;
+    qa("button[data-family]", familyHost).forEach((button) => {
+      const active = button.dataset.family === activeBusinessFamily;
+      button.setAttribute("aria-pressed", String(active));
+      button.classList.toggle("is-active", active);
+    });
+    const choices = Object.entries(businessModel.segments).filter(([id, segment]) =>
+      query
+        ? businessSearchText(
+            [segment.label, segment.family, segment.description, businessSearchAliases[id] || ""].join(
+              " ",
+            ),
+          ).includes(query)
+        : businessFamilyCards
+            .find((card) => card.id === activeBusinessFamily)
+            ?.families.includes(segment.family),
+    );
+    const section = q("#businessSpecialtySection");
+    const empty = q("#businessSpecialtyEmpty");
+    section.hidden = !choices.length;
+    empty.hidden = !(query && !choices.length);
+    empty.textContent = query && !choices.length
+      ? "Não encontramos essa atividade. Tente outro termo ou escolha Serviços e outros."
+      : "";
+    const host = q("#businessSpecialtyChoices");
+    host.replaceChildren();
+    choices.forEach(([id, segment]) => {
+      const label = document.createElement("label");
+      label.className = "business-specialty-choice";
+      const input = document.createElement("input");
+      input.type = "radio";
+      input.name = "businessSpecialty";
+      input.value = id;
+      input.checked = businessSegmentChosen && businessDraft.segment === id;
+      const description = document.createElement("span");
+      const title = document.createElement("b");
+      title.textContent = segment.label;
+      const detail = document.createElement("small");
+      detail.textContent = segment.description;
+      description.append(title, detail);
+      label.append(input, description);
+      input.addEventListener("change", () => {
+        if (!input.checked) return;
+        chooseBusinessSegment(id, true);
+      });
+      host.append(label);
+    });
+  }
+  function chooseBusinessSegment(id, focusSpecialty = false) {
+    if (!Object.hasOwn(businessModel.segments, id)) return;
+    const changed = businessDraft.segment !== id;
+    businessDraft.segment = id;
+    businessSegmentChosen = true;
+    activeBusinessFamily = familyForSegment(id);
+    q("#obSegment").value = id;
+    if (changed) businessDraft.offers = [...businessModel.segments[id].offers];
+    renderBusinessFields();
+    if (focusSpecialty) {
+      const picked = q("#businessSpecialtyChoices input:checked");
+      picked?.focus({ preventScroll: true });
+    }
+  }
+  const businessFamilyHost = q("#businessFamilyChoices");
+  businessFamilyCards.forEach((family) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "business-family-card";
+    button.dataset.family = family.id;
+    button.setAttribute("aria-pressed", "false");
+    const symbol = document.createElement("span");
+    symbol.className = "business-family-icon";
+    symbol.setAttribute("aria-hidden", "true");
+    symbol.textContent = family.symbol;
+    const title = document.createElement("strong");
+    title.textContent = family.title;
+    const description = document.createElement("small");
+    description.textContent = family.detail;
+    button.append(symbol, title, description);
+    button.addEventListener("click", () => {
+      activeBusinessFamily = family.id;
+      q("#businessSegmentSearch").value = "";
+      renderBusinessPicker();
+    });
+    businessFamilyHost.append(button);
+  });
+  q("#businessSegmentSearch").addEventListener("input", renderBusinessPicker);
   function renderBusinessFields() {
     const segment = businessModel.segments[businessDraft.segment];
     q("#businessSegmentHint").textContent =
@@ -528,6 +683,7 @@ ONBOARDING — JAVASCRIPT
         ]),
       businessDraft.modules,
     );
+    renderBusinessPicker();
   }
   function startBusinessOnboarding(editing = false) {
     businessEditing = editing;
@@ -535,6 +691,9 @@ ONBOARDING — JAVASCRIPT
     const saved = businessStore.read();
     businessDraft = saved.profile || businessModel.normalize();
     businessToolsChosen = !!saved.profile;
+    businessSegmentChosen = !!saved.profile;
+    activeBusinessFamily = saved.profile ? familyForSegment(businessDraft.segment) : null;
+    q("#businessSegmentSearch").value = "";
     onboardingStep = editing ? 2 : 1;
     if (editing) refreshExperienceProfile();
     showScreen("onboarding");
@@ -673,9 +832,8 @@ ONBOARDING — JAVASCRIPT
     }
   });
   q("#obSegment").addEventListener("change", () => {
-    businessDraft.segment = q("#obSegment").value;
-    businessDraft.offers = [...businessModel.segments[businessDraft.segment].offers];
-    renderBusinessFields();
+    q("#businessSegmentSearch").value = "";
+    chooseBusinessSegment(q("#obSegment").value);
   });
   experienceRoot.addEventListener("change", (event) => {
     if (event.target.matches('input[name="businessOffer"]')) {
@@ -1898,6 +2056,17 @@ ONBOARDING — JAVASCRIPT
         .join(", ") || "Organizar minha rotina";
   }
   function validateOnboard() {
+    if (
+      onboardingStep === 2 &&
+      (!businessSegmentChosen ||
+        (activeBusinessFamily && familyForSegment(businessDraft.segment) !== activeBusinessFamily))
+    ) {
+      q("#obValidation").textContent = "Escolha uma área e uma atividade para continuar.";
+      const target =
+        q("#businessSpecialtyChoices input") || q("#businessFamilyChoices button");
+      target?.focus();
+      return false;
+    }
     if (onboardingStep === 2 && !selectedBusinessValues("businessOffer").length) {
       q("#obValidation").textContent = "Escolha produtos, serviços ou ambos para continuar.";
       q('input[name="businessOffer"]').focus();
