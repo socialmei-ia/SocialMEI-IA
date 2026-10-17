@@ -305,7 +305,7 @@
   margin-bottom: 18px;
 }
 @media (max-width: 600px) {
-  .onboarding-screen .experience-step:not(.is-current) div {
+  .onboarding-screen .experience-step:not(.is-current) b {
     display: none;
   }
   .onboarding-screen .experience-step.is-current {
