@@ -87,7 +87,10 @@ module.exports = async function onboarding(browser, origin) {
       await page.locator("#xpRegisterForm [type=submit]").click();
       const phoneDialog = page.locator(".contact-confirmation");
       await phoneDialog.waitFor({ state: "visible" });
-      for (const [width, height] of [[390, 560], [320, 480]]) {
+      for (const [width, height] of [
+        [390, 560],
+        [320, 480],
+      ]) {
         await page.setViewportSize({ width, height });
         const bounds = await phoneDialog.boundingBox();
         assert(bounds, "phone confirmation dialog must be visible");
