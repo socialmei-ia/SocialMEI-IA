@@ -895,6 +895,12 @@ ONBOARDING — JAVASCRIPT
       s.classList.toggle("is-current", n === onboardingStep);
       s.classList.toggle("is-done", n < onboardingStep);
       s.setAttribute("aria-current", n === onboardingStep ? "step" : "false");
+      const canRevisit = n < onboardingStep && n >= (businessEditing ? 2 : 1);
+      s.disabled = !canRevisit;
+      s.setAttribute(
+        "aria-label",
+        canRevisit ? `Voltar para ${steps[n - 1]}` : `Etapa ${n}: ${steps[n - 1]}`,
+      );
       const mark = s.querySelector("span");
       if (mark) {
         mark.textContent = n < onboardingStep ? "✓" : n;
@@ -976,6 +982,16 @@ ONBOARDING — JAVASCRIPT
     }
   }
   experienceRoot.addEventListener("click", (event) => {
+    const completedStep = event.target.closest("button[data-onboard-step]");
+    if (completedStep) {
+      const target = Number(completedStep.dataset.onboardStep);
+      if (!onboardingBusy && target >= (businessEditing ? 2 : 1) && target < onboardingStep) {
+        collectStep();
+        collectBusinessStep();
+        stepTransition(target);
+      }
+      return;
+    }
     const reviewEdit = event.target.closest("[data-review-edit-step]");
     if (reviewEdit && onboardingStep === 6 && !onboardingBusy) {
       stepTransition(Number(reviewEdit.dataset.reviewEditStep));
