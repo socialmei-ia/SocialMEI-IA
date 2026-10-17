@@ -152,10 +152,7 @@ test("segment families distinguish adjacent occupations with useful descriptions
     assert(model.segments[left].description);
     assert(model.segments[right].description);
     assert.notEqual(model.segments[left].label, model.segments[right].label);
-    const suggestions = (key) => [
-      ...model.segments[key].services,
-      ...model.segments[key].products,
-    ];
+    const suggestions = (key) => [...model.segments[key].services, ...model.segments[key].products];
     assert(suggestions(left).includes(before), left + " expected " + before);
     assert(suggestions(right).includes(after), right + " expected " + after);
   }
@@ -163,11 +160,29 @@ test("segment families distinguish adjacent occupations with useful descriptions
 
 test("catalog covers the requested business specialties without dropping legacy IDs", () => {
   const keys = [
-    "barber", "hairdresser", "manicure", "tailoring", "bakery",
-    "perfume", "cosmetics", "beautyReseller", "market", "convenience",
-    "fashion", "phoneRepair", "electronics", "snack", "restaurant",
-    "consulting", "tutor", "laboratory", "photography", "design",
-    "commerce", "services", "other",
+    "barber",
+    "hairdresser",
+    "manicure",
+    "tailoring",
+    "bakery",
+    "perfume",
+    "cosmetics",
+    "beautyReseller",
+    "market",
+    "convenience",
+    "fashion",
+    "phoneRepair",
+    "electronics",
+    "snack",
+    "restaurant",
+    "consulting",
+    "tutor",
+    "laboratory",
+    "photography",
+    "design",
+    "commerce",
+    "services",
+    "other",
   ];
   for (const key of keys) {
     const segment = model.segments[key];
@@ -204,9 +219,9 @@ test("legacy saved profiles keep their exact recognized segment identifiers", ()
 
 test("routine questions are tailored but never forced onto a business", () => {
   const barber = model.routineOptions(profile("barber")).map(([id]) => id);
-  const repairs = model.routineOptions(profile("phoneRepair", ["services", "products"])).map(
-    ([id]) => id,
-  );
+  const repairs = model
+    .routineOptions(profile("phoneRepair", ["services", "products"]))
+    .map(([id]) => id);
   const market = model.routineOptions(profile("market")).map(([id]) => id);
   assert.equal(barber[0], "appointments");
   assert.equal(repairs[0], "quotes");
