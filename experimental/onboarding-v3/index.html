@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'none'; form-action 'none'; base-uri 'none'; frame-src 'none'"
+    />
+    <title>Seu negócio, do seu jeito · SocialMEI V3</title>
+    <link rel="icon" href="../../frontend/assets/brand-icon.png" type="image/png" />
+    <script src="theme.js"></script>
+    <link rel="stylesheet" href="../../frontend/styles/socialmei.css" />
+    <link rel="stylesheet" href="onboarding.css" />
+  </head>
+  <body class="ob3">
+    <a class="ob3-skip" href="#stageTitle">Pular para a etapa atual</a>
+    <header class="ob3-header">
+      <a class="ob3-brand" href="./" aria-label="SocialMEI, reinício do protótipo"
+        ><img src="../../frontend/assets/brand-icon.png" alt="" width="32" height="32" /><span
+          >SocialMEI<span class="ob3-brand-accent">.IA</span></span
+        ></a
+      >
+      <span class="ob3-demo">Protótipo V3 <span>· dados demonstrativos</span></span>
+      <div class="ob3-header-actions">
+        <button id="resetPreview" class="ob3-text-button" type="button">Reiniciar</button
+        ><button
+          id="themeToggle"
+          class="ob3-icon-button"
+          type="button"
+          aria-label="Ativar tema escuro"
+        ></button>
+      </div>
+    </header>
+    <div class="ob3-wrap">
+      <nav class="ob3-progress" aria-label="Etapas de configuração">
+        <div class="ob3-progress-line" aria-hidden="true"><span id="progressFill"></span></div>
+        <ol id="stepList"></ol>
+      </nav>
+      <p class="ob3-stage-status" id="stepStatus" aria-live="polite"></p>
+      <main id="previewMain">
+        <form id="stepForm" novalidate><div id="stage" class="ob3-stage"></div></form>
+      </main>
+    </div>
+    <footer class="ob3-footer">
+      <div class="ob3-footer-inner">
+        <p id="footerNote">Só uma prévia. Nenhuma conta será criada.</p>
+        <div class="ob3-footer-buttons">
+          <button id="backButton" class="ob3-button ob3-secondary" type="button">← Voltar</button
+          ><button id="nextButton" class="ob3-button ob3-primary" type="submit" form="stepForm">
+            Continuar <span aria-hidden="true">→</span>
+          </button>
+        </div>
+      </div>
+    </footer>
+    <p id="announcement" class="ob3-sr" role="status" aria-live="polite"></p>
+    <dialog
+      id="resetDialog"
+      class="ob3-dialog"
+      aria-labelledby="resetTitle"
+      aria-describedby="resetDescription"
+    >
+      <h2 id="resetTitle">Começar uma nova demonstração?</h2>
+      <p id="resetDescription">
+        As respostas desta prévia serão apagadas. Nenhum dado do aplicativo oficial será alterado.
+      </p>
+      <div class="ob3-dialog-actions">
+        <button type="button" id="cancelReset" class="ob3-button ob3-secondary" autofocus>
+          Continuar preenchendo</button
+        ><button type="button" id="confirmReset" class="ob3-button ob3-primary">Recomeçar</button>
+      </div>
+    </dialog>
+    <script src="../../frontend/scripts/business-profile.js"></script>
+    <script src="../../frontend/scripts/contact-validation.js"></script>
+    <script src="onboarding.js"></script>
+  </body>
+</html>
