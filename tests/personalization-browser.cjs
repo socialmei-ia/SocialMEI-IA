@@ -213,6 +213,7 @@ module.exports = async function personalization(browser, origin) {
     await page.evaluate(() => setView("Início"));
     await page.locator("#homeProfileShortcuts [data-profile-configure]").click();
     await page.locator("[data-business-profile-edit]").click();
+    await page.locator("#businessSegmentAlternative").evaluate((el) => (el.open = true));
     await page.locator("#obSegment").selectOption("tailoring");
     for (const step of [3, 4, 5, 6]) {
       await page.locator("[data-onboard-next]").click();
