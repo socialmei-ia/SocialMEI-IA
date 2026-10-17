@@ -523,7 +523,9 @@
   font-weight: 600;
   text-align: center;
   cursor: pointer;
-  transition: border-color 180ms ease, background-color 180ms ease;
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease;
 }
 .onboarding-screen .business-review-jump button:focus-visible {
   outline: 3px solid var(--br);
