@@ -620,8 +620,13 @@ ONBOARDING — JAVASCRIPT
       ],
       [
         "Ferramentas de interesse",
-        businessDraft.modules.map((id) => businessModel.modules[id]).join(", ") ||
-          "Escolher depois",
+        businessDraft.modules
+          .map(
+            (id) =>
+              businessModel.modules[id] +
+              (businessModel.futureFeatures[id] ? " (em desenvolvimento)" : ""),
+          )
+          .join(", ") || "Escolher depois",
       ],
     ];
     rows.forEach(([label, value]) => {
