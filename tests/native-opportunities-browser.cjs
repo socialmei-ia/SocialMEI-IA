@@ -59,6 +59,19 @@ module.exports = async function nativeOpportunities(browser, origin) {
           });
         await page.locator("[data-opportunity-demo]").click();
         assert.equal(await page.locator("[data-opportunity-open]").count(), 4);
+        const firstOpportunity = page.locator(".native-opportunity-list > li").first();
+        const restingBackground = await firstOpportunity.evaluate(
+          (element) => getComputedStyle(element).backgroundColor,
+        );
+        await firstOpportunity.locator("[data-opportunity-open]").focus();
+        const focusedBackground = await firstOpportunity.evaluate(
+          (element) => getComputedStyle(element).backgroundColor,
+        );
+        assert.notEqual(
+          focusedBackground,
+          restingBackground,
+          "A linha de Oportunidades deve responder visualmente ao foco.",
+        );
         assert(
           (await page.locator("#opportunitySource").textContent()).includes("mensagens fictícias"),
         );
