@@ -60,6 +60,11 @@ module.exports = async function nativeOpportunities(browser, origin) {
         await page.locator("[data-opportunity-demo]").click();
         assert.equal(await page.locator("[data-opportunity-open]").count(), 4);
         const firstOpportunity = page.locator(".native-opportunity-list > li").first();
+        await page.mouse.move(1, 1);
+        assert.equal(
+          await firstOpportunity.evaluate((element) => element.matches(":hover")),
+          false,
+        );
         const restingBackground = await firstOpportunity.evaluate(
           (element) => getComputedStyle(element).backgroundColor,
         );
