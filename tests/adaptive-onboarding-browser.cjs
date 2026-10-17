@@ -102,9 +102,23 @@ module.exports = async function onboarding(browser, origin) {
           bounds.y >= 0 && bounds.y + bounds.height <= height + 1,
           `phone dialog ${width}x${height} fits short mobile viewport: ${JSON.stringify(bounds)}`,
         );
+        if (segment === "barber" && !mixed)
+          await page.screenshot({
+            path: path.join(output, `phone-dialog-${width}x${height}.png`),
+          });
       }
       await page.setViewportSize({ width: 390, height: 1000 });
       assert.match(await phoneDialog.textContent(), /não envia SMS/i);
+      assert(
+        await phoneDialog.evaluate((element) => element.contains(document.activeElement)),
+        "phone confirmation retains keyboard focus",
+      );
+      if (segment === "barber" && !mixed) {
+        await page.keyboard.press("Escape");
+        await phoneDialog.waitFor({ state: "detached" });
+        await page.locator("#xpRegisterForm [type=submit]").click();
+        await phoneDialog.waitFor({ state: "visible" });
+      }
       await page.locator(".contact-confirmation button[value=confirm]").click();
       await page.locator('[data-onboard-panel="1"].is-active').waitFor();
       assert.match(
