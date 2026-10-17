@@ -73,7 +73,10 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: border-color 180ms ease, background 180ms ease, transform 180ms ease;
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    transform 180ms ease;
 }
 .business-family-card:hover {
   border-color: var(--brand-primary);
@@ -140,7 +143,9 @@
   border: 1px solid var(--ln);
   border-radius: 12px;
   cursor: pointer;
-  transition: border-color 160ms ease, background 160ms ease;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease;
 }
 .business-specialty-choice:hover {
   border-color: var(--brand-primary);
