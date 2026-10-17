@@ -48,10 +48,6 @@ jobs:
         run: npm ci
       - name: Contracts and repository structure
         run: npm test
-      - name: Preview formatting
-        run: |
-          npx prettier --write frontend/scripts/experience.js frontend/socialmei-app.html frontend/styles/business-profile.css tests/adaptive-onboarding-browser.cjs tests/account-browser.cjs tests/personalization-browser.cjs
-          git diff --unified=0 -- frontend/scripts/experience.js frontend/socialmei-app.html frontend/styles/business-profile.css tests/adaptive-onboarding-browser.cjs tests/account-browser.cjs tests/personalization-browser.cjs
       - name: Formatting
         run: npm run format:check
       - name: Python contracts
