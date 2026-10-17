@@ -2374,16 +2374,13 @@
                 </div>
                 <div class="experience-form-row">
                   <div class="experience-field">
-                    <label for="obSegment"
-                      >O que você faz? <span class="landing-muted">(opcional)</span></label
-                    ><select id="obSegment">
-                      <option value="other">Outro segmento</option>
-                      <option value="barber">Barbearia</option>
-                      <option value="perfume">Perfumaria</option>
-                      <option value="tailoring">Costura e confecção</option>
-                      <option value="commerce">Comércio</option>
-                      <option value="services">Prestação de serviços</option>
+                    <label for="obSegment">Qual é seu tipo de negócio?</label>
+                    <select id="obSegment" aria-describedby="businessSegmentHint">
+                      <option value="other">Outra atividade</option>
                     </select>
+                    <small id="businessSegmentHint" class="business-segment-hint">
+                      Não encontrou sua atividade? Escolha Outra atividade e descreva com suas palavras.
+                    </small>
                   </div>
                   <div class="experience-field">
                     <label for="obCity">Cidade <span class="landing-muted">(opcional)</span></label
@@ -2527,7 +2524,7 @@
                 <div class="experience-review-identity">
                   <span class="landing-brand-mark" aria-hidden="true"></span>
                   <div>
-                    <small>Seu negócio</small>
+                    <small id="xpReadySegment">Sua atividade</small>
                     <strong id="xpReadyBusiness">Meu negócio</strong>
                     <span>Seu perfil será salvo somente após a confirmação.</span>
                   </div>
