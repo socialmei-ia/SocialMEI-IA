@@ -137,3 +137,67 @@ test("a stale draft cannot be written into a newly switched identity", () => {
   assert.equal(repo.save(profile("barber"), owner), false);
   assert.equal(repo.read().profile, null);
 });
+
+test("segment families distinguish adjacent occupations with useful descriptions", () => {
+  const cases = [
+    ["barber", "hairdresser", "Corte masculino", "Escova"],
+    ["perfume", "cosmetics", "Perfumes", "Maquiagem"],
+    ["tailoring", "fashion", "Ajustes", "Camisetas"],
+    ["commerce", "market", "Utilidades", "Mercearia"],
+    ["services", "phoneRepair", "Instalação", "Troca de tela"],
+  ];
+  for (const [left, right, before, after] of cases) {
+    assert(model.segments[left].family, left + " must have a family");
+    assert(model.segments[right].family, right + " must have a family");
+    assert(model.segments[left].description);
+    assert(model.segments[right].description);
+    assert.notEqual(model.segments[left].label, model.segments[right].label);
+    const suggestions = (key) => [
+      ...model.segments[key].services,
+      ...model.segments[key].products,
+    ];
+    assert(suggestions(left).includes(before), left + " expected " + before);
+    assert(suggestions(right).includes(after), right + " expected " + after);
+  }
+});
+
+test("catalog covers the requested business specialties without dropping legacy IDs", () => {
+  const keys = [
+    "barber", "hairdresser", "manicure", "tailoring", "bakery",
+    "perfume", "cosmetics", "beautyReseller", "market", "convenience",
+    "fashion", "phoneRepair", "electronics", "snack", "restaurant",
+    "consulting", "tutor", "laboratory", "photography", "design",
+    "commerce", "services", "other",
+  ];
+  for (const key of keys) {
+    const segment = model.segments[key];
+    assert(segment && segment.label && segment.family && segment.description, key);
+    const p = profile(key);
+    assert.equal(p.segment, key);
+    assert(p.offers.length, key + " should suggest a type of offering");
+  }
+});
+
+test("new segment suggestions remain preferences, not created catalog items", () => {
+  const configured = model.normalize({
+    segment: "phoneRepair",
+    businessName: "Oficina sintética",
+    offers: ["services", "products"],
+    services: ["Troca de tela"],
+    productCategories: ["Capinhas"],
+  });
+  const suggested = model.catalogSuggestions(configured, []);
+  assert(suggested.some((item) => item.kind === "Serviço" && item.label === "Troca de tela"));
+  assert(suggested.some((item) => item.kind === "Produto" && item.label === "Capinhas"));
+  assert.equal(configured.version, 1);
+  assert.equal(configured.segment, "phoneRepair");
+});
+
+test("legacy saved profiles keep their exact recognized segment identifiers", () => {
+  for (const key of ["barber", "perfume", "tailoring", "commerce", "services", "other"]) {
+    const normalized = model.normalize({ ...profile(key), activity: "Detalhe existente" });
+    assert.equal(normalized.segment, key);
+    assert.equal(normalized.activity, "Detalhe existente");
+    assert.equal(normalized.version, 1);
+  }
+});
