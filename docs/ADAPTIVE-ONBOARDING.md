@@ -1,5 +1,7 @@
 # Etapa 2 — cadastro e perfil adaptativo nativos
 
+> Evolução integrada: [Onboarding V3 — QA e capturas atuais](ONBOARDING-V3-NATIVE.md). Os resultados abaixo registram a entrega original da Etapa 2.
+
 Continuação da Etapa 1 na branch `feat/socialmei-native-integration`, PR #57. Entrada única: `frontend/socialmei-app.html`. Sem nova aplicação, protótipo, iframe, autenticação, migração ou conexão externa.
 
 ## O que funciona
