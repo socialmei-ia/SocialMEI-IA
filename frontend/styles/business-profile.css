@@ -189,3 +189,319 @@
 #profileSuggestionNote {
   grid-column: 1 / -1;
 }
+
+/* Registration polish — consistent with the existing authentication experience.
+   Scoped to onboarding and the native contact dialog; no flow/data changes. */
+.contact-confirmation[open] {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  border-color: var(--ln);
+  background: var(--sf);
+  box-shadow:
+    0 28px 80px rgb(0 0 0 / 18%),
+    0 1px 0 rgb(255 255 255 / 8%) inset;
+}
+.contact-confirmation .contact-confirmation-symbol {
+  border-radius: 18px;
+  margin-bottom: 4px;
+}
+.contact-confirmation .contact-confirmation-number {
+  margin: 20px 0;
+  padding: 19px 18px;
+  border: 1px solid color-mix(in srgb, var(--br) 22%, var(--ln));
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--br) 6%, var(--sf));
+  color: var(--tx);
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.contact-confirmation .contact-confirmation-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.contact-confirmation .contact-confirmation-actions button {
+  min-width: 0;
+  min-height: 48px;
+  border-radius: 12px;
+}
+.contact-confirmation .contact-confirmation-actions button:focus-visible {
+  outline: 3px solid var(--br);
+  outline-offset: 3px;
+}
+
+/* Bring the full six-step setup closer to the official register screen. */
+.onboarding-screen .onboarding-shell {
+  max-width: 1120px;
+  gap: clamp(24px, 3.5vw, 48px);
+  margin-top: clamp(20px, 3vw, 42px);
+  padding: clamp(20px, 3.4vw, 40px);
+  border: 1px solid var(--ln);
+  border-radius: 26px;
+  background: var(--sf);
+  box-shadow: 0 16px 54px rgb(12 32 62 / 5%);
+}
+.onboarding-screen .onboarding-main {
+  min-height: 0;
+}
+.onboarding-screen .experience-steps {
+  gap: clamp(4px, 0.8vw, 12px);
+  margin-bottom: 22px;
+}
+.onboarding-screen .experience-step {
+  gap: 9px;
+  transition: color 180ms ease;
+}
+.onboarding-screen .experience-step span {
+  width: 34px;
+  height: 34px;
+  font-weight: 650;
+  border-radius: 12px;
+}
+.onboarding-screen .experience-step.is-current span {
+  box-shadow: 0 5px 16px color-mix(in srgb, var(--br) 24%, transparent);
+}
+.onboarding-screen .experience-step.is-done span {
+  border: 1px solid color-mix(in srgb, var(--success) 25%, transparent);
+}
+.onboarding-screen .onboarding-progress {
+  height: 5px;
+  border-radius: 999px;
+  margin-bottom: clamp(26px, 3.2vw, 40px);
+}
+.onboarding-screen .onboarding-progress span {
+  border-radius: inherit;
+}
+.onboarding-screen .onboarding-panel.is-active {
+  animation: profile-step-enter 260ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+.onboarding-screen .onboarding-panel h1 {
+  max-width: 24ch;
+  font-size: clamp(29px, 3.2vw, 40px);
+  font-weight: 650;
+}
+.onboarding-screen .onboarding-panel > p {
+  line-height: 1.65;
+}
+.onboarding-screen .experience-form {
+  gap: 16px;
+}
+.onboarding-screen .experience-field {
+  gap: 8px;
+}
+.onboarding-screen .experience-field input,
+.onboarding-screen .experience-field select {
+  border-radius: 13px;
+  min-height: 51px;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    background-color 180ms ease;
+}
+.onboarding-screen .business-profile-options {
+  gap: 10px;
+}
+.onboarding-screen .business-profile-options label {
+  flex: 1 1 150px;
+  min-height: 56px;
+  padding: 15px 16px;
+  border-radius: 15px;
+  font-weight: 560;
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+.onboarding-screen .business-profile-options label:has(input:checked) {
+  border-color: var(--br);
+  background: color-mix(in srgb, var(--br) 7%, var(--sf));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--br) 18%, transparent) inset;
+}
+.onboarding-screen .experience-choice {
+  min-height: 102px;
+  border-radius: 16px;
+  border-color: var(--ln);
+  padding: 19px 38px 19px 19px;
+  transition:
+    transform 180ms ease,
+    background-color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+.onboarding-screen .experience-choice b {
+  font-size: 14px;
+  font-weight: 650;
+}
+.onboarding-screen .experience-choice small {
+  line-height: 1.55;
+}
+.onboarding-screen .experience-choice.is-selected {
+  border-color: var(--br);
+  background: color-mix(in srgb, var(--br) 7%, var(--sf));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--br) 15%, transparent) inset;
+}
+.onboarding-screen .experience-choice:focus-visible {
+  outline: 3px solid var(--br);
+  outline-offset: 3px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .onboarding-screen .experience-choice:hover,
+  .onboarding-screen .business-profile-options label:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--br) 55%, var(--ln));
+    box-shadow: 0 9px 22px rgb(12 32 62 / 8%);
+  }
+  .onboarding-screen .onboarding-actions .landing-button:hover {
+    transform: translateY(-1px);
+  }
+}
+.onboarding-screen .onboarding-side {
+  top: 24px;
+  margin-top: 0;
+  padding: 24px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--br) 3%, var(--sf));
+}
+.onboarding-screen .onboarding-actions {
+  margin-top: 34px;
+  padding-top: 22px;
+}
+.onboarding-screen .onboarding-actions .landing-button {
+  min-height: 48px;
+  border-radius: 12px;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    background-color 180ms ease;
+}
+.onboarding-screen .onboarding-actions [data-onboard-next] {
+  padding-inline: 24px;
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--br) 19%, transparent);
+}
+
+/* The summary is an intentional review surface, not a plain list of fields. */
+.onboarding-screen .experience-complete {
+  padding-top: 0;
+}
+.onboarding-screen .experience-complete-mark {
+  margin-bottom: 18px;
+  width: 60px;
+  height: 60px;
+  border-radius: 20px;
+}
+.onboarding-screen #businessProfileReview {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 22px;
+  padding: 6px 20px;
+  margin: 24px 0;
+  border: 1px solid var(--ln);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--br) 2%, var(--sf));
+}
+.onboarding-screen #businessProfileReview > div {
+  min-width: 0;
+  padding: 17px 0;
+  border-bottom: 1px solid var(--ln);
+}
+.onboarding-screen #businessProfileReview > div:nth-last-child(-n + 2) {
+  border-bottom: 0;
+}
+.onboarding-screen #businessProfileReview small,
+.onboarding-screen .experience-complete-list small {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mt);
+}
+.onboarding-screen #businessProfileReview b,
+.onboarding-screen .experience-complete-list b {
+  display: block;
+  font-size: 14px;
+  line-height: 1.55;
+  font-weight: 600;
+  color: var(--tx);
+  overflow-wrap: anywhere;
+}
+.onboarding-screen .experience-complete-list {
+  gap: 0 20px;
+  padding: 6px 20px;
+  border: 1px solid var(--ln);
+  border-radius: 18px;
+}
+.onboarding-screen .experience-complete-list div {
+  padding: 16px 0;
+}
+@keyframes profile-step-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (max-width: 820px) {
+  .onboarding-screen .onboarding-shell {
+    max-width: 640px;
+    padding: clamp(18px, 4vw, 30px);
+  }
+  .onboarding-screen .onboarding-side {
+    display: none;
+  }
+}
+@media (max-width: 600px) {
+  .onboarding-screen .onboarding-shell {
+    margin-top: 16px;
+    padding: 20px 16px 24px;
+    border-radius: 20px;
+  }
+  .onboarding-screen .experience-steps {
+    gap: 4px;
+    margin-bottom: 16px;
+  }
+  .onboarding-screen .experience-step span {
+    width: 30px;
+    height: 30px;
+    border-radius: 10px;
+  }
+  .onboarding-screen .experience-choice-grid,
+  .onboarding-screen #businessProfileReview,
+  .onboarding-screen .experience-complete-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .onboarding-screen #businessProfileReview > div:nth-last-child(2) {
+    border-bottom: 1px solid var(--ln);
+  }
+  .onboarding-screen .onboarding-actions {
+    gap: 8px;
+  }
+  .onboarding-screen .onboarding-actions .landing-button {
+    min-height: 46px;
+  }
+  .contact-confirmation[open] {
+    padding: 22px 18px;
+    border-radius: 20px;
+  }
+  .contact-confirmation .contact-confirmation-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .onboarding-screen .onboarding-panel.is-active {
+    animation: none;
+  }
+  .onboarding-screen .experience-choice,
+  .onboarding-screen .business-profile-options label,
+  .onboarding-screen .onboarding-actions .landing-button {
+    transition: none;
+  }
+}
