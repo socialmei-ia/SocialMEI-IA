@@ -446,8 +446,26 @@ ONBOARDING — JAVASCRIPT
   function selectedBusinessValues(name) {
     return qa(`input[name="${name}"]:checked`).map((input) => input.value);
   }
+  function renderBusinessSegmentOptions() {
+    const select = q("#obSegment");
+    const selected = select.value;
+    const groups = new Map();
+    for (const [id, item] of Object.entries(businessModel.segments)) {
+      if (!groups.has(item.family)) groups.set(item.family, document.createElement("optgroup"));
+      const option = document.createElement("option");
+      option.value = id;
+      option.textContent = item.label;
+      groups.get(item.family).label = item.family;
+      groups.get(item.family).append(option);
+    }
+    select.replaceChildren(...groups.values());
+    select.value = Object.hasOwn(businessModel.segments, selected) ? selected : "other";
+  }
+  renderBusinessSegmentOptions();
   function renderBusinessFields() {
     const segment = businessModel.segments[businessDraft.segment];
+    q("#businessSegmentHint").textContent =
+      segment.description + " Você pode escolher mais de um tipo de oferta.";
     q("#businessActivityOther").hidden = businessDraft.segment !== "other";
     q("#obActivity").value = businessDraft.activity;
     qa('input[name="businessOffer"]').forEach((input) => {
@@ -582,6 +600,10 @@ ONBOARDING — JAVASCRIPT
   function renderBusinessReview() {
     const host = q("#businessProfileReview");
     host.replaceChildren();
+    q("#xpReadySegment").textContent =
+      businessDraft.segment === "other" && businessDraft.activity
+        ? businessDraft.activity
+        : businessModel.segments[businessDraft.segment].label;
     const rows = [
       [
         "Atividade",
