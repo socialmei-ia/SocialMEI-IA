@@ -513,6 +513,85 @@
 .onboarding-screen .experience-step.is-done span {
   border: 1px solid color-mix(in srgb, var(--success) 25%, transparent);
 }
+/* A lightweight, accessible multi-step rail inspired by the supplied React wizard. */
+.onboarding-screen .experience-steps {
+  padding: 12px 14px;
+  border: 1px solid var(--ln);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--br) 3%, var(--sf));
+}
+.onboarding-screen button.experience-step {
+  appearance: none;
+  min-height: 52px;
+  padding: 6px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--mt);
+  font: inherit;
+  text-align: left;
+  cursor: default;
+  opacity: 1;
+  transition:
+    background-color 170ms ease,
+    border-color 170ms ease;
+}
+.onboarding-screen button.experience-step.is-current {
+  color: var(--tx);
+  background: color-mix(in srgb, var(--br) 9%, var(--sf));
+}
+.onboarding-screen button.experience-step:not(:disabled) {
+  cursor: pointer;
+}
+.onboarding-screen button.experience-step:not(:disabled):hover {
+  border-color: color-mix(in srgb, var(--br) 32%, var(--ln));
+  background: var(--selected);
+}
+.onboarding-screen button.experience-step:not(:disabled):hover span {
+  transform: translateY(-2px);
+}
+.onboarding-screen button.experience-step:focus-visible {
+  outline: 3px solid var(--brand-primary);
+  outline-offset: 2px;
+}
+.onboarding-screen .experience-step span {
+  border-radius: 50%;
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+.onboarding-screen .experience-step.is-current span {
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--br) 15%, transparent);
+}
+.onboarding-screen .experience-step.is-done b {
+  color: var(--tx);
+}
+.onboarding-screen .onboarding-actions [data-onboard-next]:active:not(:disabled) {
+  transform: scale(0.985);
+}
+@media (max-width: 600px) {
+  .onboarding-screen .experience-steps {
+    padding: 9px 6px;
+  }
+  .onboarding-screen button.experience-step {
+    min-height: 45px;
+    padding: 5px 1px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .onboarding-screen button.experience-step,
+  .onboarding-screen .experience-step span {
+    transition: none;
+  }
+  .onboarding-screen button.experience-step:not(:disabled):hover span,
+  .onboarding-screen .onboarding-actions [data-onboard-next]:active:not(:disabled) {
+    transform: none;
+  }
+}
 .onboarding-screen .onboarding-stage-context {
   margin: 0 0 8px;
   font-size: 12px;
