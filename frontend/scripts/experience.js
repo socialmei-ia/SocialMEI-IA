@@ -504,13 +504,7 @@ ONBOARDING — JAVASCRIPT
       group.append(legend, options, field);
       host.append(group);
     }
-    const caps = Object.entries(businessModel.capabilities).filter(([id]) =>
-      id === "inventory"
-        ? businessDraft.offers.includes("products")
-        : id === "appointments"
-          ? businessDraft.offers.includes("services")
-          : true,
-    );
+    const caps = businessModel.routineOptions(businessDraft);
     renderBusinessOptions(
       q("#businessCapabilities"),
       "businessCapability",
@@ -815,6 +809,11 @@ ONBOARDING — JAVASCRIPT
     }
   }
   experienceRoot.addEventListener("click", (event) => {
+    const reviewEdit = event.target.closest("[data-review-edit-step]");
+    if (reviewEdit && onboardingStep === 6 && !onboardingBusy) {
+      stepTransition(Number(reviewEdit.dataset.reviewEditStep));
+      return;
+    }
     const go = event.target.closest("[data-xp-go]");
     if (go) {
       const dest = go.dataset.xpGo;
