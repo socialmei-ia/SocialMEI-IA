@@ -60,6 +60,8 @@ module.exports = async function onboarding(browser, origin) {
   };
   for (const [segment, label, service, category, mixed] of [
     ["barber", "Barbearia de teste", "Corte masculino", null, false],
+    ["hairdresser", "Salão de teste", "Escova", null, false],
+    ["phoneRepair", "Assistência de teste", "Troca de tela", null, false],
     ["perfume", "Perfumaria de teste", null, "Perfumes", false],
     ["tailoring", "Ateliê de teste", "Ajustes", null, false],
     ["barber", "Negócio misto de teste", "Barba", "Cosméticos", true],
@@ -135,8 +137,20 @@ module.exports = async function onboarding(browser, origin) {
         await page.locator("#xpOnboardingStepStatus").textContent(),
         /Etapa 2 de 6.*Negócio.*Ofertas/,
       );
+      assert.equal(
+        await page.locator('#obSegment optgroup[label="Beleza e cuidados"] option[value="hairdresser"]').count(),
+        1,
+      );
+      assert.equal(
+        await page.locator('#obSegment optgroup[label="Tecnologia e reparos"] option[value="phoneRepair"]').count(),
+        1,
+      );
       await page.locator("#obBusiness").fill(label);
       await page.locator("#obSegment").selectOption(segment);
+      assert(
+        (await page.locator("#businessSegmentHint").textContent()).trim().length >= 20,
+        "a segment-specific explanation must be visible",
+      );
       if (mixed) await page.locator('input[name="businessOffer"][value="products"]').check();
       const before = await page.evaluate(() =>
         JSON.stringify({
@@ -194,6 +208,12 @@ module.exports = async function onboarding(browser, origin) {
       }
       await next(page, 6);
       assert.match(await page.locator("#xpReadyTitle").textContent(), /quase pronto/i);
+      assert(
+        (await page.locator("#xpReadySegment").textContent()).includes(
+          await page.locator("#obSegment option:checked").textContent(),
+        ),
+        "the review must identify the precise selected specialty",
+      );
       assert.equal(
         await page.locator(".experience-review-identity #xpReadyBusiness").textContent(),
         label,
