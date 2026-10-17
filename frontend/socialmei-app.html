@@ -2372,21 +2372,60 @@
                     placeholder="Ex.: Ateliê da Ana"
                   />
                 </div>
-                <div class="experience-form-row">
-                  <div class="experience-field">
-                    <label for="obSegment">Qual é seu tipo de negócio?</label>
-                    <select id="obSegment" aria-describedby="businessSegmentHint">
-                      <option value="other">Outra atividade</option>
-                    </select>
-                    <small id="businessSegmentHint" class="business-segment-hint">
-                      Não encontrou sua atividade? Escolha Outra atividade e descreva com suas
-                      palavras.
-                    </small>
+                <section class="business-segment-picker" aria-labelledby="businessFamilyTitle">
+                  <div class="business-segment-picker-heading">
+                    <h2 id="businessFamilyTitle">Com o que você trabalha?</h2>
+                    <p>Escolha uma área. Depois, encontre sua atividade sem precisar olhar tudo de uma vez.</p>
                   </div>
                   <div class="experience-field">
-                    <label for="obCity">Cidade <span class="landing-muted">(opcional)</span></label
-                    ><input id="obCity" placeholder="Ex.: Belo Jardim - PE" />
+                    <label for="businessSegmentSearch">Ou busque sua atividade</label>
+                    <input
+                      id="businessSegmentSearch"
+                      type="search"
+                      autocomplete="off"
+                      maxlength="90"
+                      placeholder="Ex.: barbeiro, costura, celular"
+                      aria-controls="businessSpecialtyChoices"
+                    />
                   </div>
+                  <div
+                    id="businessFamilyChoices"
+                    class="business-family-grid"
+                    role="group"
+                    aria-label="Áreas de negócio"
+                  ></div>
+                  <div id="businessSpecialtySection" class="business-specialty-section" hidden>
+                    <p id="businessSpecialtyLabel">Qual atividade combina mais com você?</p>
+                    <div
+                      id="businessSpecialtyChoices"
+                      class="business-specialty-grid"
+                      role="radiogroup"
+                      aria-labelledby="businessSpecialtyLabel"
+                    ></div>
+                  </div>
+                  <p
+                    id="businessSpecialtyEmpty"
+                    class="management-note"
+                    role="status"
+                    hidden
+                  ></p>
+                  <details id="businessSegmentAlternative" class="business-segment-alternative">
+                    <summary>Prefiro ver a lista completa</summary>
+                    <div class="experience-field">
+                      <label for="obSegment">Todas as atividades</label>
+                      <select id="obSegment" aria-describedby="businessSegmentHint">
+                        <option value="other">Outra atividade</option>
+                      </select>
+                      <small id="businessSegmentHint" class="business-segment-hint">
+                        Não encontrou sua atividade? Escolha Outra atividade e descreva com suas
+                        palavras.
+                      </small>
+                    </div>
+                  </details>
+                </section>
+                <div class="experience-field">
+                  <label for="obCity">Cidade <span class="landing-muted">(opcional)</span></label>
+                  <input id="obCity" placeholder="Ex.: Belo Jardim - PE" />
                 </div>
                 <div class="experience-form-row">
                   <div class="experience-field">
