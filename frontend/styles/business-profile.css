@@ -20,6 +20,18 @@
   font-weight: 600;
   margin-bottom: 12px;
 }
+.onboarding-screen .business-segment-hint {
+  display: block;
+  margin-top: 8px;
+  max-width: 52ch;
+  color: var(--mt);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.onboarding-screen #obSegment {
+  max-width: 100%;
+  text-overflow: ellipsis;
+}
 .business-profile-options {
   display: flex;
   flex-wrap: wrap;
@@ -494,6 +506,35 @@
   font-weight: 650;
   color: var(--tx);
 }
+.onboarding-screen .business-review-jump {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+.onboarding-screen .business-review-jump button {
+  min-height: 44px;
+  border: 1px solid var(--ln);
+  border-radius: 11px;
+  padding: 9px 13px;
+  color: var(--tx);
+  background: var(--sf);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 180ms ease, background-color 180ms ease;
+}
+.onboarding-screen .business-review-jump button:focus-visible {
+  outline: 3px solid var(--br);
+  outline-offset: 2px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .onboarding-screen .business-review-jump button:hover {
+    background: var(--hv);
+    border-color: var(--br);
+  }
+}
 .onboarding-screen .experience-review-next {
   display: grid;
   gap: 8px;
@@ -657,6 +698,9 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .onboarding-screen .business-review-jump button {
+    transition: none;
+  }
   .contact-confirmation[open][data-closing],
   .contact-confirmation[open][data-closing]::backdrop {
     animation: none;
