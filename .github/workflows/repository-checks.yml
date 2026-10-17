@@ -49,12 +49,7 @@ jobs:
       - name: Contracts and repository structure
         run: npm test
       - name: Formatting
-        run: |
-          if ! npm run format:check; then
-            npx prettier --write frontend/socialmei-app.html tests/adaptive-onboarding-browser.cjs
-            git diff -- frontend/socialmei-app.html tests/adaptive-onboarding-browser.cjs
-            exit 1
-          fi
+        run: npm run format:check
       - name: Python contracts
         run: |
           python -m pip install -r python-service/requirements.txt
