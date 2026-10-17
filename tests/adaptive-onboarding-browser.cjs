@@ -91,21 +91,33 @@ module.exports = async function onboarding(browser, origin) {
         await page.setViewportSize({ width, height });
         const bounds = await phoneDialog.boundingBox();
         assert(bounds, "phone confirmation dialog must be visible");
-        assert(Math.abs(bounds.x + bounds.width / 2 - width / 2) <= 3, "phone dialog centered horizontally");
-        assert(bounds.y >= 0 && bounds.y + bounds.height <= height + 1, "phone dialog fits short mobile viewport");
+        assert(
+          Math.abs(bounds.x + bounds.width / 2 - width / 2) <= 3,
+          `phone dialog ${width}x${height} centered horizontally: ${JSON.stringify(bounds)}`,
+        );
+        assert(
+          bounds.y >= 0 && bounds.y + bounds.height <= height + 1,
+          `phone dialog ${width}x${height} fits short mobile viewport: ${JSON.stringify(bounds)}`,
+        );
       }
       await page.setViewportSize({ width: 390, height: 1000 });
       assert.match(await phoneDialog.textContent(), /não envia SMS/i);
       await page.locator(".contact-confirmation button[value=confirm]").click();
       await page.locator('[data-onboard-panel="1"].is-active').waitFor();
-      assert.match(await page.locator("#xpOnboardingStepStatus").textContent(), /Etapa 1 de 6.*Você.*Negócio/);
+      assert.match(
+        await page.locator("#xpOnboardingStepStatus").textContent(),
+        /Etapa 1 de 6.*Você.*Negócio/,
+      );
       assert.equal(await page.locator("#obName").inputValue(), "Pessoa sintética");
       assert.match(
         await page.locator("#businessProfileStorageNotice").textContent(),
         /Nenhuma conta/,
       );
       await next(page, 2);
-      assert.match(await page.locator("#xpOnboardingStepStatus").textContent(), /Etapa 2 de 6.*Negócio.*Ofertas/);
+      assert.match(
+        await page.locator("#xpOnboardingStepStatus").textContent(),
+        /Etapa 2 de 6.*Negócio.*Ofertas/,
+      );
       await page.locator("#obBusiness").fill(label);
       await page.locator("#obSegment").selectOption(segment);
       if (mixed) await page.locator('input[name="businessOffer"][value="products"]').check();
@@ -165,8 +177,14 @@ module.exports = async function onboarding(browser, origin) {
       }
       await next(page, 6);
       assert.match(await page.locator("#xpReadyTitle").textContent(), /quase pronto/i);
-      assert.equal(await page.locator(".experience-review-identity #xpReadyBusiness").textContent(), label);
-      assert.match(await page.locator("#xpOnboardingStepStatus").textContent(), /Etapa 6 de 6.*Revisão/);
+      assert.equal(
+        await page.locator(".experience-review-identity #xpReadyBusiness").textContent(),
+        label,
+      );
+      assert.match(
+        await page.locator("#xpOnboardingStepStatus").textContent(),
+        /Etapa 6 de 6.*Revisão/,
+      );
       assert.match(
         await page.locator("#businessProfileReview").textContent(),
         new RegExp(service || category),
