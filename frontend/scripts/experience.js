@@ -690,6 +690,11 @@ ONBOARDING — JAVASCRIPT
     });
   }
   function syncOnboarding() {
+    const steps = ["Você", "Negócio", "Ofertas", "Rotina", "Ferramentas", "Revisão"];
+    const nextLabel = steps[onboardingStep];
+    q("#xpOnboardingStepStatus").textContent =
+      `Etapa ${onboardingStep} de 6 · ${steps[onboardingStep - 1]}` +
+      (nextLabel ? ` · Próxima: ${nextLabel}` : " · Última etapa");
     const bar = q("#xpOnboardingProgress span");
     if (bar) {
       bar.style.transform = `scaleX(${Math.min(1, onboardingStep / 6)})`;
@@ -764,8 +769,8 @@ ONBOARDING — JAVASCRIPT
       const title = q("#xpReadyTitle");
       if (title) {
         title.textContent = profile.name.trim()
-          ? `Confira suas escolhas, ${profile.name.trim().split(/\s+/)[0]}.`
-          : "Confira suas escolhas.";
+          ? `Seu negócio está quase pronto, ${profile.name.trim().split(/\s+/)[0]}.`
+          : "Seu negócio está quase pronto.";
       }
       const business = q("#xpReadyBusiness");
       if (business) {
