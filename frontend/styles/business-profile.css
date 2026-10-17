@@ -32,6 +32,205 @@
   max-width: 100%;
   text-overflow: ellipsis;
 }
+.business-segment-picker {
+  min-width: 0;
+  margin: 8px 0 20px;
+}
+.business-segment-picker-heading h2 {
+  margin: 0 0 4px;
+  color: var(--tx);
+  font-size: clamp(18px, 2vw, 22px);
+  letter-spacing: -0.025em;
+}
+.business-segment-picker-heading p {
+  margin: 0 0 16px;
+  max-width: 50ch;
+  color: var(--mt);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.business-segment-picker .experience-field {
+  margin-bottom: 14px;
+}
+.business-family-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 8px 0 16px;
+}
+.business-family-card {
+  display: flex;
+  min-width: 0;
+  min-height: 132px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 15px;
+  border: 1px solid var(--ln);
+  border-radius: 16px;
+  background: var(--sf);
+  color: var(--tx);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 180ms ease, background 180ms ease, transform 180ms ease;
+}
+.business-family-card:hover {
+  border-color: var(--brand-primary);
+  transform: translateY(-2px);
+}
+.business-family-card.is-active {
+  border-color: var(--brand-primary);
+  background: var(--selected);
+}
+.business-family-card:focus-visible,
+.business-specialty-choice:focus-within {
+  outline: 3px solid var(--brand-primary);
+  outline-offset: 3px;
+}
+.business-family-icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 11px;
+  background: var(--selected);
+  color: var(--brand-primary);
+  font-size: 19px;
+  font-weight: 700;
+}
+.business-family-card.is-active .business-family-icon {
+  background: var(--brand-primary);
+  color: #fff;
+}
+.business-family-card strong {
+  font-size: 14px;
+  line-height: 1.3;
+}
+.business-family-card small {
+  color: var(--mt);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.business-specialty-section {
+  margin: 12px 0 16px;
+  padding: 16px;
+  border: 1px solid var(--ln);
+  border-radius: 16px;
+  background: var(--sf);
+  animation: business-specialties-enter 200ms ease-out both;
+}
+.business-specialty-section > p {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 650;
+}
+.business-specialty-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.business-specialty-choice {
+  display: flex;
+  min-width: 0;
+  min-height: 58px;
+  align-items: center;
+  gap: 10px;
+  padding: 11px;
+  border: 1px solid var(--ln);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+.business-specialty-choice:hover {
+  border-color: var(--brand-primary);
+}
+.business-specialty-choice:has(input:checked) {
+  border-color: var(--brand-primary);
+  background: var(--selected);
+}
+.business-specialty-choice input {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  accent-color: var(--brand-primary);
+}
+.business-specialty-choice span {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+.business-specialty-choice b {
+  font-size: 14px;
+  line-height: 1.3;
+}
+.business-specialty-choice small {
+  color: var(--mt);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.business-segment-alternative {
+  margin: 14px 0 0;
+}
+.business-segment-alternative summary {
+  width: fit-content;
+  min-height: 44px;
+  padding: 10px 0;
+  color: var(--brand-primary);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+.business-segment-alternative .experience-field {
+  margin: 10px 0 0;
+}
+#businessSpecialtyEmpty {
+  padding: 12px 0;
+}
+#businessFamilyChoices[hidden],
+#businessSpecialtySection[hidden],
+#businessSpecialtyEmpty[hidden] {
+  display: none !important;
+}
+@keyframes business-specialties-enter {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (max-width: 720px) {
+  .business-family-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 480px) {
+  .business-family-card {
+    min-height: 124px;
+    padding: 12px;
+  }
+  .business-specialty-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .business-specialty-section {
+    padding: 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .business-family-card,
+  .business-specialty-choice {
+    transition: none;
+  }
+  .business-family-card:hover {
+    transform: none;
+  }
+  .business-specialty-section {
+    animation: none;
+  }
+}
 .business-profile-options {
   display: flex;
   flex-wrap: wrap;
