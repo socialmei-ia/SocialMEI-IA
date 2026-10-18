@@ -1,0 +1,17 @@
+{
+  "errors": [],
+  "network": [],
+  "contrast": [
+    {
+      "theme": "light",
+      "minimum": 4.567575631519041,
+      "samples": 28
+    },
+    {
+      "theme": "dark",
+      "minimum": 5.681433292069665,
+      "samples": 28
+    }
+  ],
+  "fileScheme": "blocked by managed browser policy; HTTP single-file verified"
+}

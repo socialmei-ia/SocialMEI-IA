@@ -1,0 +1,50 @@
+[
+  {
+    "version": "official-before",
+    "width": 1440,
+    "theme": "light",
+    "familyHeight": 293.1875,
+    "specialtiesHeight": 442.125,
+    "independentColumnGap": 182.625
+  },
+  {
+    "version": "official-before",
+    "width": 1440,
+    "theme": "dark",
+    "familyHeight": 293.1875,
+    "specialtiesHeight": 442.125,
+    "independentColumnGap": 182.625
+  },
+  {
+    "version": "official-before",
+    "width": 768,
+    "theme": "light",
+    "familyHeight": 290,
+    "specialtiesHeight": 442.125,
+    "independentColumnGap": 0
+  },
+  {
+    "version": "official-before",
+    "width": 768,
+    "theme": "dark",
+    "familyHeight": 290,
+    "specialtiesHeight": 442.125,
+    "independentColumnGap": 0
+  },
+  {
+    "version": "official-before",
+    "width": 390,
+    "theme": "light",
+    "familyHeight": 333.09375,
+    "specialtiesHeight": 442.125,
+    "independentColumnGap": 0
+  },
+  {
+    "version": "official-before",
+    "width": 390,
+    "theme": "dark",
+    "familyHeight": 333.09375,
+    "specialtiesHeight": 442.125,
+    "independentColumnGap": 0
+  }
+]

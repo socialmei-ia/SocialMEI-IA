@@ -1,3 +1,13 @@
+# Rodada atual — composição da etapa Negócio
+
+O protótipo foi atualizado para avaliar a composição vertical solicitada após a publicação da PR #57. **Esta nova rodada ainda não foi aprovada nem integrada ao frontend oficial.**
+
+Consulte [BUSINESS-LAYOUT.md](BUSINESS-LAYOUT.md) para o diagnóstico, capturas, testes e limites desta proposta. A URL local continua `/experimental/onboarding-v3/`: use **Usar exemplo → Continuar** para chegar à etapa Negócio. Os dados ficam em memória.
+
+A documentação abaixo registra a entrega anterior do protótipo V3. Seus estados de PR/aprovação e capturas são históricos; a PR #57 já foi incorporada à main antes desta rodada.
+
+---
+
 # Onboarding V3 — avaliação visual e interativa
 
 Protótipo isolado conforme `docs/PROJECT-STRUCTURE.md`, na mesma branch experimental `feat/socialmei-native-integration` (PR #57, Draft). Base oficial inspecionada: `7a9d73a`. **Não substitui o onboarding de `frontend/socialmei-app.html`. Aguarda aprovação visual explícita antes de qualquer integração.**
