@@ -339,6 +339,27 @@
   }
 }
 
+@media (max-width: 720px) {
+  .experience-app .workspace-tabs {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    overflow: visible;
+    scroll-snap-type: none;
+  }
+  .experience-app .workspace-tabs button {
+    grid-column: span 2;
+    min-width: 0;
+    padding-inline: 6px;
+    font-size: 14px;
+  }
+  .experience-app .workspace-tabs button:nth-of-type(n + 4) {
+    grid-column: span 3;
+  }
+  .experience-app .workspace-tabs .management-tab-indicator {
+    display: none;
+  }
+}
+
 @media (max-width: 480px) {
   .experience-app .workspace-shell .management-header h2 {
     font-size: clamp(27px, 7.5vw, 34px);
@@ -349,8 +370,8 @@
   }
 
   .experience-app .workspace-tabs button {
-    padding-inline: 14px;
-    font-size: 12px;
+    padding-inline: 6px;
+    font-size: 14px;
   }
 
   .experience-app .workspace-list-toolbar .management-input[type="search"] {

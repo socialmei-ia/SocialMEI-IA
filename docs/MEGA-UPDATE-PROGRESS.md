@@ -35,3 +35,39 @@ Branch `feat/client-analysis-v2`; [PR #61](https://github.com/socialmei-ia/Socia
 Último commit conhecido anterior: `d2bf6a6`. O SHA do checkpoint que contém este
 registro é consultável em `git log -1 -- docs/MEGA-UPDATE-PROGRESS.md`; a próxima
 entrega registrará seu SHA completo. Não houve merge/deploy ou acesso a runtime.
+
+## Checkpoint complementar — Divulgação e revisão global
+
+Branch: `feat/content-studio-native`, criada a partir do checkpoint P0
+`832f20fe30297eba956fabafead51ae2e95458b5`. A PR complementar depende da #61;
+não há squash/rebase/force-push nem alteração na main.
+
+Concluído no código:
+
+- Auditoria real: landing/auth e 12 módulos em 1440/390, claro/escuro;
+  48 estados de módulos, sem overflow ou erros JavaScript. Melhorias com evidência
+  em `MEGA-UPDATE-UX-REVIEW.md`; demais composições preservadas.
+- Navegação mobile de Negócio em grade 3+2: cinco abas visíveis e alvos de 44 px.
+- Ferramentas → Divulgação nativa. Story/Feed/Reel, editor/prévia, mídia local
+  validada, rascunhos por identidade/workspace, editar/duplicar/excluir com
+  confirmação, cópia e download de texto, falhas explícitas, publicação desabilitada.
+- `content-drafts.js`, `content-studio.js`, `content-studio.css`, markup oficial;
+  registro da nova tela auxiliar em app.js; testes próprios e no runner global.
+- Investigação por um especialista, somente Git: workflow histórico de publicação
+  sem export disponível; existentes tratam Direct/challenge, não posts.
+  Resultado em `INSTAGRAM-PUBLISH-READINESS.md`, sem acesso ao runtime.
+- Roadmap fundamentado em `MEGA-UPDATE-ROADMAP.md`.
+
+Validação do checkpoint: 227 testes Node aprovados, formatação aprovada; suíte
+focada de Divulgação aprovada em 36 layouts, com imagem/vídeo reais de teste,
+CRUD, quota, XSS, exportação, teclado, reduced motion e API simulada por workspace.
+`npm run test:browser` completo está em execução. CI final e evidências são a
+próxima etapa, não devem ser apresentados como aprovados antes de terminarem.
+
+CI P0 #274: validate aprovado; primeira tentativa browser passou na regressão
+global, mas falhou na medição financeira 1600/dark. Teste visual específico passou
+localmente sem mudança em Financeiro; somente o job falho foi repetido, pendente.
+
+Próxima ação exata: aguardar suíte global, corrigir falhas comprovadas; coletar
+capturas finais; abrir PR complementar Draft, acompanhar CI no HEAD final;
+registrar links/resultados e manter merge/deploy bloqueados para decisão do dono.

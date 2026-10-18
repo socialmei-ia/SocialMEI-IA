@@ -2730,6 +2730,7 @@ document.addEventListener(
 
 /* Telas de gestão e preferências explicitamente locais. */
 const MANAGEMENT_AUXILIARY_VIEWS = [
+  "Divulgação",
   "Automações",
   "Assistente",
   "Relatórios",
