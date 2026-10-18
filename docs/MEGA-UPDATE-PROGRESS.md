@@ -1,73 +1,79 @@
-# Mega atualização — checkpoint
+# Mega atualização — continuidade
 
-Objetivo: finalizar Análise de Clientes, corrigir problemas visuais comprovados,
-entregar Central de Divulgação local e documentar dependências, sem publicar.
-HEAD inicial: `d2bf6a6f16dccebd098ff28eb6b913f25b358e2f`.
-Main conferida: `6f4c8e1795cbb2e9074845edd9ac099a8ea3925b`.
+Objetivo: finalizar Análise de Clientes, revisar a experiência do aplicativo e
+entregar preparação segura de conteúdo, sem publicar no ambiente team.
 
-## P0 — concluído localmente
+## Branches e checkpoints
 
-Branch `feat/client-analysis-v2`; [PR #61](https://github.com/socialmei-ia/SocialMEI-IA/pull/61), Draft.
+- Main conferida: `6f4c8e1795cbb2e9074845edd9ac099a8ea3925b`.
+- HEAD inicial: `d2bf6a6f16dccebd098ff28eb6b913f25b358e2f`.
+- P0: branch `feat/client-analysis-v2`, commit
+  `832f20fe30297eba956fabafead51ae2e95458b5`, [PR #61](https://github.com/socialmei-ia/SocialMEI-IA/pull/61), Draft.
+- Complemento: `feat/content-studio-native`, criado a partir de P0;
+  núcleo `148425526eb46e31c8c384f2421debb8d869a302`, [PR #62](https://github.com/socialmei-ia/SocialMEI-IA/pull/62), Draft.
+- O SHA do checkpoint mais recente deste documento é obtido por
+  `git log -1 -- docs/MEGA-UPDATE-PROGRESS.md`. A PR registra o HEAD final e seus checks.
 
-- `clearAnalysis()` agora só limpa estado/UI. Listeners de click/keydown ficam
-  apenas na inicialização. O teste reproduziu 16 registros extras em oito limpezas
-  na versão anterior e zero após a correção.
-- Cards em duas colunas acima de 1000 px, uma coluna nos menores; expansão não
-  estica o card vizinho. Análise avulsa vira recurso complementar recolhível.
-- Preservados motor, revisão humana, isolamento, fonte remota vazia e limites.
-- Testes Node: 222 aprovados, sem falhas/skips. Formatação aprovada.
-- Navegador focado: 12 combinações (320/390/768/1024/1280/1440, claro/escuro),
-  ciclos de múltiplas limpezas/encerrar/reabrir demo e resolver/reabrir exatamente
-  uma vez, além das verificações existentes. Aprovado.
-- Arquivos: opportunities.js/css, seção Oportunidades no HTML, seus dois testes,
-  este registro e [evidências P0](mega-update-evidence/p0/).
+## Entregas
 
-## Em andamento / próxima ação exata
+**Análise de Clientes:** corrigido registro repetido de click/keydown na limpeza.
+O teste reproduziu 16 registros extras em oito chamadas antes da correção e zero
+depois. Eventos só na inicialização; ciclos de limpeza, demo e resolução testados.
+Cards em duas colunas desktop/uma mobile; análise avulsa recolhível. Motor,
+revisão humana e isolamento preservados. Arquivos: opportunities.js/css, seção
+Oportunidades no HTML e testes de análise.
 
-1. Confirmar CI da PR #61 no novo HEAD; não usar o resultado do HEAD anterior.
-2. Criar branch complementar a partir deste checkpoint para auditoria no navegador
-   e Central de Divulgação, mantendo a PR #61 restrita à Análise de Clientes.
-3. Conferir telas reais e corrigir somente problemas com evidências.
-4. Implementar preparação de Story/Feed/Reel, prévia e rascunhos locais por escopo,
-   sem enviar mídia/post nem conectar n8n; testar armazenamento/falhas/isolamento.
-5. Publicar capturas, roadmap e PR complementar em Draft; aguardar decisão.
+**Revisão geral:** 48 estados de 12 módulos no navegador, landing/auth e onboarding
+com seus temas públicos próprios. Sem novo redesign de telas aprovadas. Cinco
+abas de Negócio agora visíveis no mobile, em 3+2, com alvos de 44 px. Corrigida
+precedência de espaçamentos antigos para preservar densidade de Vendas. A opção
+Divulgação fica no fim de Ferramentas para manter Tab → busca global.
 
-Último commit conhecido anterior: `d2bf6a6`. O SHA do checkpoint que contém este
-registro é consultável em `git log -1 -- docs/MEGA-UPDATE-PROGRESS.md`; a próxima
-entrega registrará seu SHA completo. Não houve merge/deploy ou acesso a runtime.
+**Divulgação:** Story/Feed/Reel no app nativo, editor/prévia, mídia local validada,
+rascunhos por identidade/workspace, editar/duplicar/excluir com confirmação,
+clipboard com falha explícita, download de texto UTF-8. Publicação desabilitada.
+Texto e metadados são locais; arquivos não persistem e precisam ser reanexados.
+Arquivos: content-drafts.js, content-studio.js/css, markup oficial, registro da
+nova tela auxiliar em app.js; workspace-refinement.css para a navegação mobile.
 
-## Checkpoint complementar — Divulgação e revisão global
+**Integração futura:** um especialista revisou somente os arquivos Git. Workflow
+histórico de publicação sem export disponível; exports atuais tratam Direct e
+challenge. Nenhum runtime/credencial foi acessado. Documento:
+[INSTAGRAM-PUBLISH-READINESS.md](INSTAGRAM-PUBLISH-READINESS.md).
 
-Branch: `feat/content-studio-native`, criada a partir do checkpoint P0
-`832f20fe30297eba956fabafead51ae2e95458b5`. A PR complementar depende da #61;
-não há squash/rebase/force-push nem alteração na main.
+## Testes e evidências
 
-Concluído no código:
+- 227 testes Node, zero falhas/skips; formatação aprovada no checkpoint do núcleo.
+- P0: 12 layouts, seis larguras em dois temas; regressão de eventos e isolamento.
+  [CI #274 aprovado](https://github.com/socialmei-ia/SocialMEI-IA/actions/runs/39164324631).
+- Divulgação: 36 layouts nas seis larguras, três formatos, claro/escuro, imagem PNG
+  e vídeo WebM reais de teste, CRUD, quota/corrupção, XSS, download, teclado/foco,
+  confirmação/Escape, reduced motion e conta remota/API simulada com dois workspaces.
+- `npm run test:browser` executado. As execuções locais encontraram densidade de
+  Vendas e ordem de Tab no menu; ambos corrigidos no produto, sem enfraquecer os
+  testes. Suítes afetadas reexecutadas; o resultado global final está nos checks
+  do HEAD da PR #62.
+- P0 teve uma falha intermitente de medição financeira 1600/dark. A suíte específica
+  passou localmente e a repetição apenas do job falho passou sem mudança nesse módulo.
+- [Evidências P0](mega-update-evidence/p0/), [estúdio e navegação](mega-update-evidence/studio/),
+  [mosaicos da auditoria e onboarding preservado](mega-update-evidence/audit/).
 
-- Auditoria real: landing/auth e 12 módulos em 1440/390, claro/escuro;
-  48 estados de módulos, sem overflow ou erros JavaScript. Melhorias com evidência
-  em `MEGA-UPDATE-UX-REVIEW.md`; demais composições preservadas.
-- Navegação mobile de Negócio em grade 3+2: cinco abas visíveis e alvos de 44 px.
-- Ferramentas → Divulgação nativa. Story/Feed/Reel, editor/prévia, mídia local
-  validada, rascunhos por identidade/workspace, editar/duplicar/excluir com
-  confirmação, cópia e download de texto, falhas explícitas, publicação desabilitada.
-- `content-drafts.js`, `content-studio.js`, `content-studio.css`, markup oficial;
-  registro da nova tela auxiliar em app.js; testes próprios e no runner global.
-- Investigação por um especialista, somente Git: workflow histórico de publicação
-  sem export disponível; existentes tratam Direct/challenge, não posts.
-  Resultado em `INSTAGRAM-PUBLISH-READINESS.md`, sem acesso ao runtime.
-- Roadmap fundamentado em `MEGA-UPDATE-ROADMAP.md`.
+## Próxima ação exata e limites
 
-Validação do checkpoint: 227 testes Node aprovados, formatação aprovada; suíte
-focada de Divulgação aprovada em 36 layouts, com imagem/vídeo reais de teste,
-CRUD, quota, XSS, exportação, teclado, reduced motion e API simulada por workspace.
-`npm run test:browser` completo está em execução. CI final e evidências são a
-próxima etapa, não devem ser apresentados como aprovados antes de terminarem.
+1. Conferir o HEAD remoto de ambas as PRs e seus checks; não usar CI de commit antigo.
+2. Revisar #61 e depois #62 (dependência), mantendo Draft até decisão do responsável.
+3. Qualquer integração futura deve começar pelos contratos e bloqueios em
+   [CONTENT-STUDIO-NATIVE.md](CONTENT-STUDIO-NATIVE.md) e pelo
+   [roadmap](MEGA-UPDATE-ROADMAP.md); não ativar backlog automaticamente.
+4. Para publicar: nova autorização específica e preflight/backup/rollback team.
+   Não usar workflow genérico de produção.
 
-CI P0 #274: validate aprovado; primeira tentativa browser passou na regressão
-global, mas falhou na medição financeira 1600/dark. Teste visual específico passou
-localmente sem mudança em Financeiro; somente o job falho foi repetido, pendente.
+Relatórios V2.1, cálculos financeiros, autenticação, banco, APIs, n8n vivo, WAHA e
+AWS não foram alterados. Sem merge/deploy. Um agente (n8n), Skills locais
+n8n-workflow-review e interface-finish-gate. Chromium emulado não substitui
+homologação em aparelho físico/Safari.
 
-Próxima ação exata: aguardar suíte global, corrigir falhas comprovadas; coletar
-capturas finais; abrir PR complementar Draft, acompanhar CI no HEAD final;
-registrar links/resultados e manter merge/deploy bloqueados para decisão do dono.
+A autenticação do push Git expirou nesta sessão. O conector GitHub publicou a
+mesma árvore conferida por SHA, sem reescrever histórico remoto. O commit local
+original `730746d` permanece em `backup/content-studio-local-730746d`. O núcleo
+publicado é `1484255`; novos checkpoints seguem como commits filhos, sem force-push.

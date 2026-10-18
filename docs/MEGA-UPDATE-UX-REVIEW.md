@@ -33,4 +33,14 @@ com métricas, registros ou cards inventados. Não foram alteradas regras financ
 
 A primeira tentativa do CI P0 falhou numa medição de altura monetária em Financeiro
 1600/dark. A suíte visual específica passou localmente sem mudar Financeiro. O job
-foi repetido uma vez; o resultado final fica registrado na PR, sem remover a asserção.
+foi repetido uma vez e passou, sem alterar Financeiro ou remover a asserção.
+
+A regressão global detectou ainda a primeira linha de Vendas abaixo do limite de
+densidade em 390 px após a grade de abas. Medições mostraram regras antigas por
+ID anulando os gaps/margens mobile. A precedência foi corrigida no arquivo de
+workspace, com controles de 44 px e sem mudar valores/cálculos; a suíte focada
+voltou a passar sem aumentar o limite original de 760 px.
+
+A auditoria de teclado identificou que a nova opção Divulgação antecedia a busca
+global no menu Ferramentas. A opção foi colocada ao final do menu, preservando
+Tab → busca e a ordem dos controles existentes, sem alterar as asserções.

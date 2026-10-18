@@ -286,7 +286,7 @@
 
 /* Pequenas telas: controles acessíveis sem deslocamento horizontal da página */
 @media (max-width: 760px) {
-  .experience-app .workspace-shell {
+  .experience-app #nvShell.workspace-shell {
     margin-bottom: 12px;
     padding: 0;
     border: 0;
@@ -299,16 +299,16 @@
     display: none;
   }
 
-  .experience-app .workspace-shell .management-header {
+  .experience-app #nvShell.workspace-shell .management-header {
     align-items: stretch;
     gap: 6px;
-    margin-bottom: 4px;
+    margin-bottom: 0;
   }
 
-  .experience-app .workspace-shell .management-header-controls {
+  .experience-app #nvShell.workspace-shell .management-header-controls {
     justify-content: flex-start;
     width: 100%;
-    gap: 10px;
+    gap: 8px;
   }
 
   .experience-app .workspace-tabs {
@@ -322,7 +322,7 @@
 
   .experience-app .workspace-list-toolbar {
     min-height: 0;
-    padding: 14px;
+    padding: 12px;
     gap: 10px;
   }
 
@@ -340,8 +340,10 @@
 }
 
 @media (max-width: 720px) {
-  .experience-app .workspace-tabs {
+  .experience-app #nvTabs.workspace-tabs {
     display: grid;
+    padding: 4px;
+    gap: 4px;
     grid-template-columns: repeat(6, minmax(0, 1fr));
     overflow: visible;
     scroll-snap-type: none;
@@ -380,7 +382,7 @@
   }
 
   .experience-app .workspace-list-panel .management-meta {
-    padding: 14px;
+    padding: 12px;
   }
 
   .experience-app .workspace-list-panel .empty {
