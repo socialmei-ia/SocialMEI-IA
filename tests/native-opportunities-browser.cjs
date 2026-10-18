@@ -43,7 +43,7 @@ module.exports = async function nativeOpportunities(browser, origin) {
     const tab = async (id) => {
       await page.locator(`[data-analysis-tab="${id}"]`).click();
     };
-    for (const width of [320, 390, 768, 1440])
+    for (const width of [320, 390, 768, 1024, 1280, 1440])
       for (const theme of ["light", "dark"]) {
         await page.setViewportSize({ width, height: 1000 });
         await page.evaluate((value) => SocialMEIThemes.select(value), theme);
@@ -68,6 +68,23 @@ module.exports = async function nativeOpportunities(browser, origin) {
         }
         layouts++;
       }
+    await page.locator(".native-opportunity-analysis > summary").click();
+    for (let cycle = 0; cycle < 4; cycle++) {
+      for (let clear = 0; clear < 3; clear++)
+        await page.locator("[data-opportunity-clear]").click();
+      await tab("attention");
+      await page.locator('[data-analysis-alert="open"]').click();
+      assert.equal(await page.locator(".client-analysis-list .client-analysis-card").count(), 3);
+      await page.locator('[data-analysis-resolve="analysis-demo-critical"]').click();
+      assert.equal(await page.locator(".client-analysis-list .client-analysis-card").count(), 2);
+      await page.locator('[data-analysis-alert="resolved"]').click();
+      assert.equal(await page.locator(".client-analysis-list .client-analysis-card").count(), 1);
+      await page.locator('[data-analysis-resolve="analysis-demo-critical"]').click();
+      assert.equal(await page.locator(".client-analysis-list .client-analysis-card").count(), 0);
+      await page.locator("[data-opportunity-stop]").click();
+      await page.locator("[data-opportunity-demo]").click();
+    }
+    await page.locator(".native-opportunity-analysis > summary").click();
     const before = await page.evaluate(() =>
       JSON.stringify({ data: appData, conversations: sessionData.conversas }),
     );
@@ -99,6 +116,7 @@ module.exports = async function nativeOpportunities(browser, origin) {
     await page.locator('[data-analysis-level="frio"]').click();
     assert.equal(await page.locator(".client-analysis-list .client-analysis-card").count(), 0);
     await tab("attention");
+    await page.locator('[data-analysis-alert="open"]').click();
     assert.deepEqual(
       await page
         .locator(".client-analysis-list [data-priority]")
@@ -190,6 +208,7 @@ module.exports = async function nativeOpportunities(browser, origin) {
       await page.locator('[data-analysis-tab="analysis"]').getAttribute("aria-selected"),
       "true",
     );
+    await page.locator(".native-opportunity-analysis > summary").click();
     await page
       .locator("#opportunityText")
       .fill('<img src=x onerror="window.opportunityInjection=true"> Não quero comprar.');
@@ -289,6 +308,7 @@ module.exports = async function nativeOpportunities(browser, origin) {
           "Texto sintético sem identidade",
         ),
       );
+      await account.locator(".native-opportunity-analysis > summary").click();
       await account.locator("#opportunityText").fill("Quero comprar.");
       await account.locator('#opportunityAnalyzeForm [type="submit"]').click();
       assert.equal(

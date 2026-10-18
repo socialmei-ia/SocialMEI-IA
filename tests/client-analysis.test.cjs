@@ -73,3 +73,44 @@ test("old urgency is not reused for a later support request", () => {
   assert.equal(model.present(row).priority, "normal");
   assert.equal(model.present(analyze("É urgente!")).lane, "analysis");
 });
+
+test("clearing analysis repeatedly clears UI without installing any event handler", () => {
+  const fs = require("node:fs"),
+    vm = require("node:vm");
+  const source = fs.readFileSync(
+    require("node:path").join(__dirname, "../frontend/scripts/opportunities.js"),
+    "utf8",
+  );
+  const start = source.indexOf("  function clearAnalysis() {");
+  const end = source.indexOf('\n  document.addEventListener("click"', start);
+  const elements = new Map();
+  let registrations = 0;
+  const byId = (id) => {
+    if (!elements.has(id))
+      elements.set(id, {
+        value: "old",
+        hidden: false,
+        textContent: "old",
+        children: [1],
+        replaceChildren() {
+          this.children = [];
+        },
+        addEventListener() {
+          registrations++;
+        },
+      });
+    return elements.get(id);
+  };
+  const clear = vm.runInNewContext("(" + source.slice(start, end).trim() + ")", {
+    byId,
+    document: {
+      addEventListener() {
+        registrations++;
+      },
+    },
+  });
+  for (let i = 0; i < 8; i++) clear();
+  assert.equal(registrations, 0, "clearAnalysis must not re-register click/keydown handlers");
+  assert.equal(byId("opportunityText").value, "");
+  assert.equal(byId("opportunityAnalysis").hidden, true);
+});

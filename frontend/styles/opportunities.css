@@ -94,6 +94,8 @@
 }
 .client-analysis-list {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
   gap: 20px;
 }
 .client-analysis-card {
@@ -236,6 +238,11 @@
     transform: none;
   }
 }
+@media (max-width: 1000px) {
+  .client-analysis-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 @media (max-width: 700px) {
   .client-analysis-tabs > button {
     font-size: 14px;
@@ -375,4 +382,12 @@
   .native-opportunity-analysis {
     padding: 18px;
   }
+}
+
+.native-opportunity-analysis > summary {
+  cursor: pointer;
+  min-height: 44px;
+  font-size: 16px;
+  font-weight: 650;
+  padding-block: 10px;
 }
