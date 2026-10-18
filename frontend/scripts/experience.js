@@ -14,6 +14,7 @@
   let businessScope = null;
   let businessToolsChosen = false;
   let businessSegmentChosen = false;
+  let businessOffersChosen = false;
   let activeBusinessFamily = null;
   let onboardingReviewReturn = false;
   let onboardingTransition = 0;
@@ -562,6 +563,11 @@ ONBOARDING — JAVASCRIPT
       query && !choices.length
         ? "Não encontramos essa atividade. Tente outro termo ou escolha Serviços e outros."
         : "";
+    q("#businessSpecialtyCount").textContent = query
+      ? `${choices.length} ${choices.length === 1 ? "atividade encontrada" : "atividades encontradas"}`
+      : choices.length
+        ? `${choices.length} opções em ${activeBusinessFamily}`
+        : "";
     q("#businessSelectionSummary").textContent = businessSegmentChosen
       ? `Atividade escolhida: ${businessModel.segments[businessDraft.segment].label}`
       : "";
@@ -596,7 +602,10 @@ ONBOARDING — JAVASCRIPT
     businessSegmentChosen = true;
     activeBusinessFamily = familyForSegment(id);
     q("#obSegment").value = id;
-    if (changed) businessDraft.offers = [...businessModel.segments[id].offers];
+    // Segment defaults never replace explicit offers or a recovered profile.
+    if (changed && !businessOffersChosen)
+      businessDraft.offers = [...businessModel.segments[id].offers];
+    q("#businessPickerFeedback").textContent = "";
     renderBusinessFields();
     if (focusSpecialty) {
       const picked = q("#businessSpecialtyChoices input:checked");
@@ -610,6 +619,7 @@ ONBOARDING — JAVASCRIPT
     button.className = "business-family-card";
     button.dataset.family = family.id;
     button.setAttribute("aria-pressed", "false");
+    button.setAttribute("aria-controls", "businessSpecialtyChoices");
     const symbol = document.createElement("span");
     symbol.className = "business-family-icon";
     symbol.setAttribute("aria-hidden", "true");
@@ -630,27 +640,26 @@ ONBOARDING — JAVASCRIPT
     title.textContent = family.title;
     const description = document.createElement("small");
     description.textContent = family.detail;
-    button.append(symbol, title, description);
+    const mark = document.createElement("span");
+    mark.className = "business-family-mark";
+    mark.setAttribute("aria-hidden", "true");
+    mark.textContent = "✓";
+    button.append(symbol, title, description, mark);
     button.addEventListener("click", () => {
       activeBusinessFamily = family.id;
       q("#businessSegmentSearch").value = "";
       renderBusinessPicker();
+      q("#businessSpecialtySection")
+        .getAnimations()
+        .forEach((animation) => animation.cancel());
       motion.animate(
         q("#businessSpecialtySection"),
         [
-          { opacity: 0, transform: "translateY(4px)" },
+          { opacity: 0.65, transform: "translateY(4px)" },
           { opacity: 1, transform: "none" },
         ],
         180,
       );
-      if (innerWidth <= 820) {
-        q("#businessSpecialtyLabel").tabIndex = -1;
-        q("#businessSpecialtyLabel").focus({ preventScroll: true });
-        q("#businessSpecialtySection").scrollIntoView({
-          block: "center",
-          behavior: motion.reduced ? "instant" : "smooth",
-        });
-      }
     });
     businessFamilyHost.append(button);
   });
@@ -801,6 +810,8 @@ ONBOARDING — JAVASCRIPT
     businessDraft = saved.profile || businessModel.normalize();
     businessToolsChosen = !!saved.profile;
     businessSegmentChosen = !!saved.profile;
+    businessOffersChosen = !!saved.profile;
+    q("#businessPickerFeedback").textContent = "";
     activeBusinessFamily = saved.profile ? familyForSegment(businessDraft.segment) : null;
     if (!saved.profile) businessDraft.modules = suggestedOnboardingModules();
     q("#businessSegmentAlternative").open = false;
@@ -835,6 +846,7 @@ ONBOARDING — JAVASCRIPT
       businessDraft.segment = q("#obSegment").value;
       businessDraft.activity = q("#obActivity").value.trim();
       businessDraft.offers = selectedBusinessValues("businessOffer");
+      businessOffersChosen ||= businessDraft.offers.length > 0;
     }
     if (onboardingStep === 3) {
       const choices = readBusinessOfferChoices();
@@ -971,6 +983,7 @@ ONBOARDING — JAVASCRIPT
   });
   experienceRoot.addEventListener("change", (event) => {
     if (event.target.matches('input[name="businessOffer"]')) {
+      businessOffersChosen = true;
       businessDraft.activity = q("#obActivity").value.trim();
       businessDraft.offers = selectedBusinessValues("businessOffer");
       businessDraft = businessModel.normalize(businessDraft);
@@ -2177,12 +2190,10 @@ ONBOARDING — JAVASCRIPT
         .join(", ") || "Organizar minha rotina";
   }
   function validateOnboard() {
-    if (
-      onboardingStep === 2 &&
-      (!businessSegmentChosen ||
-        (activeBusinessFamily && familyForSegment(businessDraft.segment) !== activeBusinessFamily))
-    ) {
-      q("#obValidation").textContent = "Escolha uma área e uma atividade para continuar.";
+    if (onboardingStep === 2 && !businessSegmentChosen) {
+      const message = "Escolha uma área e uma atividade para continuar.";
+      q("#obValidation").textContent = message;
+      q("#businessPickerFeedback").textContent = message;
       const target = q("#businessSegmentSearch").value
         ? q("#businessSegmentSearch")
         : q("#businessSpecialtyChoices input") || q("#businessFamilyChoices button");

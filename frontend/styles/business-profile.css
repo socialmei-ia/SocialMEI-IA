@@ -164,29 +164,56 @@
   padding-top: 14px;
 }
 .onboarding-screen [data-onboard-panel="2"].is-active {
+  display: block;
+  min-height: 0;
+}
+.onboarding-screen .business-introduction {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0 60px;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 40px;
+  align-items: end;
+  margin-bottom: 28px;
 }
-.onboarding-screen [data-onboard-panel="2"] > .experience-form {
-  display: contents;
+.onboarding-screen .business-introduction .onboarding-heading,
+.onboarding-screen .business-introduction .experience-field {
+  margin: 0;
 }
-.onboarding-screen [data-onboard-panel="2"] > .experience-form > .experience-field:first-child {
-  grid-column: 2;
-  grid-row: 1;
-  align-self: center;
-}
-.onboarding-screen [data-onboard-panel="2"] .business-segment-picker,
-.onboarding-screen [data-onboard-panel="2"] .onboarding-optional,
-.onboarding-screen [data-onboard-panel="2"] > .experience-field,
-.onboarding-screen [data-onboard-panel="2"] > .business-profile-group {
-  grid-column: 1 / -1;
+.onboarding-screen .business-introduction h1 {
+  font-size: clamp(30px, 3.4vw, 44px);
+  max-width: 23ch;
+  margin-bottom: 12px;
 }
 .onboarding-screen [data-onboard-panel="2"] .business-segment-picker {
-  margin-top: 0;
+  margin: 0 0 20px;
 }
-.onboarding-screen .business-segment-picker > .experience-field {
-  max-width: 520px;
+.onboarding-screen .business-segment-picker-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 14px;
+}
+.onboarding-screen .business-segment-picker-heading .experience-field {
+  width: 360px;
+  max-width: 100%;
+  margin: 0;
+}
+.onboarding-screen .business-segment-picker-heading .onboard-field-feedback:empty {
+  display: none;
+}
+.onboarding-screen .business-type-section {
+  border-top: 1px solid var(--ln);
+  padding-top: 20px;
+  margin-top: 20px;
+}
+.onboarding-screen [data-onboard-panel="2"] .business-profile-group {
+  margin: 0;
+}
+.onboarding-screen [data-onboard-panel="2"] .business-profile-options {
+  margin-bottom: 0;
+}
+.onboarding-screen [data-onboard-panel="2"] .onboarding-optional {
+  margin: 20px 0 0;
 }
 .onboarding-screen .experience-form {
   margin: 0;
@@ -248,28 +275,25 @@
 }
 .onboarding-screen .business-discovery {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 40px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
   align-items: start;
-}
-.onboarding-screen .business-discovery.is-searching {
-  grid-template-columns: minmax(0, 760px);
 }
 .onboarding-screen .business-family-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   margin: 0;
 }
 .onboarding-screen .business-family-card {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr);
+  grid-template-columns: 28px minmax(0, 1fr) 18px;
   column-gap: 14px;
   row-gap: 4px;
   align-content: center;
   text-align: left;
-  min-height: 90px;
-  padding: 15px;
+  min-height: 76px;
+  padding: 14px;
   border: 1px solid var(--ln);
   border-radius: 11px;
   background: var(--sf);
@@ -296,13 +320,26 @@
   stroke-linejoin: round;
 }
 .onboarding-screen .business-family-card strong {
+  grid-column: 2;
   font-size: 14px;
   line-height: 1.4;
 }
 .onboarding-screen .business-family-card small {
+  grid-column: 2;
   color: var(--mt);
   font-size: 12px;
   line-height: 1.5;
+}
+.onboarding-screen .business-family-mark {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  align-self: center;
+  opacity: 0;
+  color: var(--brand-primary-text);
+  transition: opacity 180ms ease;
+}
+.onboarding-screen .business-family-card.is-active .business-family-mark {
+  opacity: 1;
 }
 .onboarding-screen .business-family-card.is-active {
   background: var(--selected);
@@ -320,25 +357,35 @@
   animation: none;
 }
 .onboarding-screen .business-specialty-section > p {
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 600;
-  margin: 0 0 12px;
+  margin: 0 0 4px;
+}
+.onboarding-screen #businessSpecialtyCount {
+  display: block;
+  color: var(--mt);
+  font-size: 13px;
+  margin-bottom: 10px;
 }
 .onboarding-screen .business-specialty-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  gap: 0 24px;
 }
 .onboarding-screen .business-specialty-choice {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 14px 0;
+  padding: 14px 8px;
   min-height: 60px;
   border: 0;
   border-bottom: 1px solid var(--ln);
-  border-radius: 0;
+  border-radius: 6px;
   cursor: pointer;
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease;
 }
 .onboarding-screen .business-specialty-choice input {
   flex: 0 0 auto;
@@ -361,10 +408,23 @@
   font-size: 12px;
   line-height: 1.5;
 }
+.onboarding-screen .business-specialty-choice:has(input:checked) {
+  background: var(--selected);
+  border-bottom-color: var(--brand-primary-text);
+}
+.onboarding-screen #businessSelectionSummary {
+  margin: 16px 0 0;
+}
+.onboarding-screen #businessPickerFeedback:empty {
+  display: none;
+}
+.onboarding-screen #businessPickerFeedback {
+  color: var(--danger);
+}
 .onboarding-screen .business-specialty-choice:has(input:checked) b {
   color: var(--brand-primary-text);
 }
-.onboarding-screen .business-specialty-choice:focus-within {
+.onboarding-screen .business-specialty-choice:has(input:focus-visible) {
   outline: 2px solid var(--br);
   outline-offset: 4px;
 }
@@ -701,6 +761,17 @@
   line-height: 1.6;
   margin-top: 8px;
 }
+.onboarding-screen[data-onboarding-step="2"] {
+  padding-bottom: 24px;
+}
+.onboarding-screen[data-onboarding-step="2"] .onboarding-footer {
+  position: static;
+  margin-top: 20px;
+}
+.onboarding-screen[data-onboarding-step="2"] input,
+.onboarding-screen[data-onboarding-step="2"] button {
+  scroll-margin-bottom: 24px;
+}
 .onboarding-screen .onboarding-footer {
   position: fixed;
   bottom: 0;
@@ -774,16 +845,15 @@
 }
 @media (max-width: 820px) {
   .onboarding-screen [data-onboard-panel="1"].is-active,
-  .onboarding-screen [data-onboard-panel="2"].is-active,
   .onboarding-screen .business-discovery,
   .onboarding-screen #businessOfferDetails,
   .onboarding-screen .business-tools-layout {
     grid-template-columns: minmax(0, 1fr);
     gap: 28px;
   }
-  .onboarding-screen [data-onboard-panel="2"] > .experience-form > .experience-field:first-child {
-    grid-column: 1;
-    grid-row: auto;
+  .onboarding-screen .business-introduction {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
   }
   .onboarding-screen .business-tools-layout {
     grid-template-areas: "options" "preview";
@@ -796,6 +866,16 @@
   .onboarding-screen .business-routine-group {
     grid-template-columns: minmax(0, 1fr);
     gap: 16px;
+  }
+}
+@media (min-width: 601px) and (max-width: 999px) {
+  .onboarding-screen .business-family-grid,
+  .onboarding-screen .business-specialty-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .onboarding-screen .business-segment-picker-heading .experience-field {
+    width: 320px;
+    flex-shrink: 0;
   }
 }
 @media (max-width: 600px) {
@@ -852,21 +932,34 @@
   .onboarding-screen select {
     font-size: 16px;
   }
+  .onboarding-screen .business-segment-picker-heading {
+    display: block;
+  }
+  .onboarding-screen .business-segment-picker-heading h2 {
+    margin-bottom: 14px;
+  }
+  .onboarding-screen .business-segment-picker-heading .experience-field {
+    width: 100%;
+  }
+  .onboarding-screen .business-family-grid,
+  .onboarding-screen .business-specialty-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
   .onboarding-screen .business-family-card {
-    padding: 12px;
+    padding: 11px 13px;
     column-gap: 8px;
-    grid-template-columns: 22px minmax(0, 1fr);
-    min-height: 100px;
+    grid-template-columns: 26px minmax(0, 1fr) 18px;
+    min-height: 68px;
   }
   .onboarding-screen .business-family-icon svg {
     width: 22px;
     height: 22px;
   }
   .onboarding-screen .business-family-card strong {
-    font-size: 12px;
+    font-size: 14px;
   }
   .onboarding-screen .business-family-card small {
-    font-size: 11px;
+    font-size: 12px;
   }
   .onboarding-screen .experience-complete-list,
   .onboarding-screen #businessProfileReview {
@@ -904,6 +997,20 @@
   }
   .onboarding-screen .onboarding-actions [data-onboard-back]:not(.show) + [data-onboard-next] {
     grid-column: 1/-1;
+  }
+  .onboarding-screen[data-onboarding-step="2"] .onboarding-actions {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  .onboarding-screen[data-onboarding-step="2"] .onboarding-actions [data-onboard-back] {
+    flex: 0 0 auto;
+  }
+  .onboarding-screen[data-onboarding-step="2"] .onboarding-actions [data-onboard-next] {
+    flex: 1 1 140px;
+  }
+  .onboarding-screen[data-onboarding-step="2"] .onboarding-actions [data-business-cancel] {
+    flex-basis: 100%;
+    min-height: 44px;
   }
   .onboarding-screen #businessProfileStorageNotice {
     font-size: 10px;

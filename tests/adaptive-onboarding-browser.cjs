@@ -53,10 +53,41 @@ module.exports = async function onboarding(browser, origin) {
         layouts++;
         if (await page.locator(".onboarding-screen.is-active").count()) {
           const button = await page.locator("[data-onboard-next]").boundingBox();
-          assert(
-            button && button.y >= 0 && button.y + button.height <= 1001 && button.height >= 44,
-            `${name} ${width}: primary action visible`,
-          );
+          if (name === "business") {
+            await page.locator("[data-onboard-next]").scrollIntoViewIfNeeded();
+            const reached = await page.locator("[data-onboard-next]").boundingBox();
+            assert(
+              reached.y >= 0 && reached.y + reached.height <= 1001 && reached.height >= 44,
+              `${name} ${width}: primary action reachable`,
+            );
+            const footer = await page.locator(".onboarding-footer").boundingBox();
+            const panel = await page.locator('[data-onboard-panel="2"]').boundingBox();
+            assert(footer.y >= panel.y + panel.height - 1, "business footer follows content");
+            const geometry = await page.evaluate(() => {
+              const areas = document
+                .querySelector("#businessFamilyChoices")
+                .getBoundingClientRect();
+              const choices = document
+                .querySelector("#businessSpecialtySection")
+                .getBoundingClientRect();
+              return {
+                below: choices.top >= areas.bottom,
+                width: Math.abs(areas.width - choices.width),
+                columns: getComputedStyle(
+                  document.querySelector("#businessFamilyChoices"),
+                ).gridTemplateColumns.split(" ").length,
+              };
+            });
+            assert(
+              geometry.below && geometry.width < 2,
+              "specialties below the six areas, at full width",
+            );
+            assert.equal(geometry.columns, width >= 1000 ? 3 : width > 600 ? 2 : 1);
+          } else
+            assert(
+              button && button.y >= 0 && button.y + button.height <= 1001 && button.height >= 44,
+              `${name} ${width}: primary action visible`,
+            );
           const last = page.locator(".onboarding-panel.is-active input:visible").last();
           if (await last.count()) {
             await last.evaluate((e) => e.scrollIntoView({ block: "center" }));
@@ -87,6 +118,154 @@ module.exports = async function onboarding(browser, origin) {
             fullPage: false,
           });
       }
+  };
+  let businessLayouts = 0;
+  const captureBusinessChoices = async (page) => {
+    await page.locator("#businessSegmentAlternative").evaluate((e) => (e.open = false));
+    const ids = new Set();
+    for (const family of [
+      "Beleza e cuidados",
+      "Moda e confecção",
+      "Alimentação",
+      "Comércio e varejo",
+      "Tecnologia e reparos",
+      "Serviços e outros",
+    ]) {
+      await page.locator(`#businessFamilyChoices [data-family="${family}"]`).click();
+      for (const id of await page
+        .locator("#businessSpecialtyChoices input")
+        .evaluateAll((inputs) => inputs.map((e) => e.value)))
+        ids.add(id);
+    }
+    assert.equal(ids.size, 23, "six families expose all original specialties");
+    for (const width of [1440, 768, 390])
+      for (const theme of ["light", "dark"]) {
+        await page.setViewportSize({ width, height: 1000 });
+        if ((await page.locator("html").getAttribute("data-public-theme")) !== theme)
+          await page.locator(".onboarding-screen [data-public-theme-toggle]").click();
+        for (const [family, count, file] of [
+          ["Beleza e cuidados", 6, "beauty"],
+          ["Moda e confecção", 2, "fashion"],
+          ["Alimentação", 3, "food"],
+        ]) {
+          const button = page.locator(`#businessFamilyChoices [data-family="${family}"]`);
+          await button.click();
+          assert(
+            await button.evaluate((e) => e === document.activeElement),
+            "area click retains focus instead of jumping down the page",
+          );
+          const choices = page.locator("#businessSpecialtyChoices input");
+          assert.equal(await choices.count(), count);
+          const readable = await page
+            .locator(".business-specialty-choice")
+            .evaluateAll((labels) =>
+              labels.every(
+                (e) =>
+                  e.offsetWidth >= 200 &&
+                  e.offsetHeight >= 44 &&
+                  e.scrollWidth <= e.clientWidth &&
+                  e.querySelector("small").textContent.trim(),
+              ),
+            );
+          assert(readable, `readable specialties ${family} ${width} ${theme}`);
+          await choices.first().check();
+          await page.evaluate(() => scrollTo(0, 0));
+          assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+          await page.screenshot({
+            path: path.join(output, `business-${file}-${width}-${theme}.png`),
+            fullPage: true,
+            animations: "disabled",
+          });
+          businessLayouts++;
+        }
+      }
+    await page.setViewportSize({ width: 320, height: 480 });
+    await page.locator("[data-onboard-next]").scrollIntoViewIfNeeded();
+    for (const selector of ["[data-onboard-next]", "[data-onboard-back]"]) {
+      const box = await page.locator(selector).boundingBox();
+      assert(
+        box.y >= 0 && box.y + box.height <= 480 && box.height >= 44,
+        "mobile footer actions are comfortably reachable",
+      );
+    }
+    await page.screenshot({ path: path.join(output, "business-footer-320-dark.png") });
+    const enlarged = await page.evaluate(() => {
+      const elements = [
+        ...document.querySelectorAll(
+          '[data-onboard-panel="2"] h1,[data-onboard-panel="2"] h2,[data-onboard-panel="2"] legend,[data-onboard-panel="2"] label,[data-onboard-panel="2"] p,[data-onboard-panel="2"] b,[data-onboard-panel="2"] small,[data-onboard-panel="2"] strong,.onboarding-footer button,.onboarding-footer p',
+        ),
+      ];
+      const styles = elements.map((e) => [
+        e,
+        e.style.fontSize,
+        parseFloat(getComputedStyle(e).fontSize),
+      ]);
+      window.businessTextStyles = styles;
+      styles.forEach(([e, , size]) => (e.style.fontSize = `${size * 2}px`));
+      return document.documentElement.scrollWidth <= innerWidth;
+    });
+    assert(enlarged, "business screen fits with text enlarged to 200% in 320px");
+    for (const selector of ["[data-onboard-next]", "[data-onboard-back]"]) {
+      assert(
+        await page.locator(selector).evaluate((e) => e.scrollWidth <= e.clientWidth),
+        "enlarged footer text must fit inside each button",
+      );
+    }
+    await page.locator("[data-onboard-next]").scrollIntoViewIfNeeded();
+    await page.screenshot({ path: path.join(output, "business-footer-text-200-320-dark.png") });
+    await page.evaluate(() => {
+      businessTextStyles.forEach(([e, size]) => (e.style.fontSize = size));
+      delete window.businessTextStyles;
+    });
+    await page.setViewportSize({ width: 390, height: 1000 });
+    await page.locator('#businessFamilyChoices [data-family="Beleza e cuidados"]').click();
+    await page.locator('#businessSpecialtyChoices input[value="barber"]').check();
+    await page.locator('#businessFamilyChoices [data-family="Moda e confecção"]').focus();
+    await page.keyboard.press("Enter");
+    assert.equal(
+      await page.locator("#obSegment").inputValue(),
+      "barber",
+      "exploring an area never clears the selected specialty",
+    );
+    await page.locator("#businessSegmentSearch").fill("atividade inexistente xyz");
+    await page.screenshot({
+      path: path.join(output, "business-empty-390-dark.png"),
+      fullPage: true,
+    });
+    assert.equal(
+      await page.locator("#obSegment").inputValue(),
+      "barber",
+      "searching never clears the draft",
+    );
+    await page.locator("#businessSegmentSearch").fill("");
+    await page.locator('#businessFamilyChoices [data-family="Beleza e cuidados"]').click();
+    await page.locator('#businessSpecialtyChoices input[value="barber"]').focus();
+    await page.keyboard.press("ArrowRight");
+    assert.equal(await page.locator("#obSegment").inputValue(), "hairdresser");
+    assert(
+      await page
+        .locator("#businessSpecialtyChoices input:checked")
+        .evaluate((e) => e === document.activeElement),
+    );
+    await page.locator('#businessSpecialtyChoices input[value="barber"]').check();
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.locator('#businessFamilyChoices [data-family="Alimentação"]').click();
+    assert(
+      await page.locator("#businessSpecialtySection").evaluate((e) => e.getAnimations().length > 0),
+    );
+    await page.locator('#businessFamilyChoices [data-family="Moda e confecção"]').click();
+    await page.locator('#businessFamilyChoices [data-family="Beleza e cuidados"]').click();
+    await page.waitForTimeout(240);
+    assert.equal(
+      await page.locator("#businessSpecialtySection").evaluate((e) => e.getAnimations().length),
+      0,
+    );
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.locator('#businessFamilyChoices [data-family="Beleza e cuidados"]').click();
+    assert.equal(
+      await page.locator("#businessSpecialtySection").evaluate((e) => e.getAnimations().length),
+      0,
+    );
   };
   for (const [segment, label, service, category, mixed] of [
     ["barber", "Barbearia de teste", "Corte masculino", null, false],
@@ -356,7 +535,10 @@ module.exports = async function onboarding(browser, origin) {
         await page.locator("#obCnpj").fill("11111111111111");
         await page.locator(".onboarding-optional").evaluate((e) => (e.open = false));
         await page.locator("[data-onboard-next]").click();
-        assert(await page.locator(".onboarding-optional").evaluate((e) => e.open));
+        assert(
+          await page.locator(".onboarding-optional").evaluate((e) => e.open),
+          await page.locator("#obValidation").textContent(),
+        );
         assert(await page.locator("#obCnpj").evaluate((e) => e === document.activeElement));
         await page.locator("#obCnpj").fill("");
         await page.locator(".onboarding-optional").evaluate((e) => (e.open = false));
@@ -373,7 +555,10 @@ module.exports = async function onboarding(browser, origin) {
           sales: appData.vendas,
         }),
       );
-      if (segment === "barber" && !mixed) await capture(page, "business");
+      if (segment === "barber" && !mixed) {
+        await captureBusinessChoices(page);
+        await capture(page, "business");
+      }
       await next(page, 3);
       if (service) await page.getByLabel(service, { exact: true }).check();
       if (category) await page.getByLabel(category, { exact: true }).check();
@@ -497,6 +682,22 @@ module.exports = async function onboarding(browser, origin) {
         null,
         "not saved before confirmation",
       );
+      if (mixed) {
+        await page.locator('[data-review-edit-step="2"]').click();
+        await page.locator('[data-onboard-panel="2"].is-active').waitFor();
+        await page.locator("#businessSegmentAlternative").evaluate((e) => (e.open = true));
+        await page.locator("#obSegment").selectOption("perfume");
+        assert(
+          await page.locator('input[name="businessOffer"][value="services"]').isChecked(),
+          "changing specialty preserves explicit mixed offers",
+        );
+        assert(await page.locator('input[name="businessOffer"][value="products"]').isChecked());
+        await page.locator("#obSegment").selectOption("barber");
+        await page.locator('[data-family="Alimentação"]').click();
+        await next(page, 6);
+        assert.match(await page.locator("#businessProfileReview").textContent(), /Barba/);
+        assert.match(await page.locator("#businessProfileReview").textContent(), /Cosméticos/);
+      }
       if (segment === "barber" && !mixed) {
         await capture(page, "review");
         await page.locator('[data-review-edit-step="2"]').click();
@@ -582,9 +783,39 @@ module.exports = async function onboarding(browser, origin) {
         saved,
       );
       await page.locator('[data-settings-tab="perfil"]').click();
+      await page.setViewportSize({ width: 390, height: 1000 });
       await page.locator("[data-business-profile-edit]").click();
+      if (segment === "barber" && !mixed) {
+        await page.locator("[data-onboard-next]").scrollIntoViewIfNeeded();
+        for (const selector of ["[data-business-cancel]", "[data-onboard-next]"]) {
+          const box = await page.locator(selector).boundingBox();
+          assert(
+            box && box.height >= 44 && box.y >= 0 && box.y + box.height <= 1000,
+            "mobile profile editor actions stay reachable",
+          );
+        }
+        await page.screenshot({ path: path.join(output, "business-editor-footer-390-dark.png") });
+        await page.screenshot({
+          path: path.join(output, "business-editor-390-dark.png"),
+          fullPage: true,
+        });
+      }
       await page.locator('[data-onboard-panel="2"].is-active').waitFor();
       await page.locator("#businessSegmentAlternative").evaluate((el) => (el.open = true));
+      const savedOffers = [...saved.offers].sort();
+      await page.locator("#obSegment").selectOption(segment === "perfume" ? "barber" : "perfume");
+      assert.deepEqual(
+        await page
+          .locator('input[name="businessOffer"]:checked')
+          .evaluateAll((inputs) => inputs.map((e) => e.value).sort()),
+        savedOffers,
+        "editing an existing profile preserves its offering types across specialties",
+      );
+      assert.deepEqual(
+        await page.evaluate(() => SocialMEIBusinessProfile.browserRepository().read().profile),
+        saved,
+        "editing does not persist before confirmation",
+      );
       await page.locator("#obSegment").selectOption("other");
       await page.locator("#obActivity").fill("Atividade manual de teste");
       await page.locator('input[name="businessOffer"][value="services"]').check();
@@ -782,7 +1013,7 @@ module.exports = async function onboarding(browser, origin) {
   }
   assert.deepEqual(errors, []);
   assert.deepEqual(external, []);
-  return `Onboarding adaptativo: 6 cadastros, edição/cancelamento, opcionais, recuperação/isolamento local e autenticado por workspace, sessões ausente/indisponível, falha de armazenamento; ${layouts} estados de layout em 6 larguras claro/escuro`;
+  return `Onboarding adaptativo: 6 cadastros, edição/cancelamento, opcionais, recuperação/isolamento local e autenticado por workspace, sessões ausente/indisponível, falha de armazenamento; ${layouts} estados de layout em 6 larguras claro/escuro; ${businessLayouts} composições de 2/3/6 especialidades`;
 };
 
 if (require.main === module) {

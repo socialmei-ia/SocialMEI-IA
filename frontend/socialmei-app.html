@@ -2367,11 +2367,13 @@
             </section>
             <section class="onboarding-panel" data-onboard-panel="2">
               <span class="landing-kicker">Etapa 2 · Seu negócio</span>
-              <div class="onboarding-heading">
-                <h1>Seu negócio, do seu jeito.</h1>
-                <p>Conte o que você faz. Assim, as próximas escolhas combinam com seu dia a dia.</p>
-              </div>
-              <div class="experience-form">
+              <div class="business-introduction">
+                <div class="onboarding-heading">
+                  <h1>Seu negócio, do seu jeito.</h1>
+                  <p>
+                    Conte o que você faz. Assim, as próximas escolhas combinam com seu dia a dia.
+                  </p>
+                </div>
                 <div class="experience-field">
                   <label for="obBusiness">Nome do negócio</label
                   ><input
@@ -2382,18 +2384,23 @@
                     aria-describedby="obBusinessFeedback"
                   /><small class="onboard-field-feedback" id="obBusinessFeedback"></small>
                 </div>
+              </div>
+              <div class="experience-form">
                 <section class="business-segment-picker" aria-labelledby="businessFamilyTitle">
-                  <h2 id="businessFamilyTitle" class="sr-only">Com o que você trabalha?</h2>
-                  <div class="experience-field">
-                    <label for="businessSegmentSearch">Ou busque sua atividade</label>
-                    <input
-                      id="businessSegmentSearch"
-                      type="search"
-                      autocomplete="off"
-                      maxlength="90"
-                      placeholder="Ex.: barbeiro, costura, celular"
-                      aria-controls="businessSpecialtyChoices"
-                    />
+                  <div class="business-segment-picker-heading">
+                    <h2 id="businessFamilyTitle">Em qual área você trabalha?</h2>
+                    <div class="experience-field">
+                      <label for="businessSegmentSearch">Ou busque sua atividade</label>
+                      <input
+                        id="businessSegmentSearch"
+                        type="search"
+                        autocomplete="off"
+                        maxlength="90"
+                        placeholder="Ex.: barbeiro, costura, celular"
+                        aria-controls="businessSpecialtyChoices"
+                        aria-describedby="businessPickerFeedback"
+                      />
+                    </div>
                   </div>
                   <div class="business-discovery">
                     <div
@@ -2403,7 +2410,8 @@
                       aria-label="Áreas de negócio"
                     ></div>
                     <div id="businessSpecialtySection" class="business-specialty-section" hidden>
-                      <p id="businessSpecialtyLabel">Qual atividade combina mais com você?</p>
+                      <p id="businessSpecialtyLabel">Agora, sua especialidade</p>
+                      <small id="businessSpecialtyCount" role="status"></small>
                       <div
                         id="businessSpecialtyChoices"
                         class="business-specialty-grid"
@@ -2413,6 +2421,7 @@
                     </div>
                     <p id="businessSpecialtyEmpty" class="management-note" role="status" hidden></p>
                   </div>
+                  <p id="businessPickerFeedback" class="onboard-field-feedback" role="status"></p>
                   <p id="businessSelectionSummary" class="management-note" role="status"></p>
                   <details id="businessSegmentAlternative" class="business-segment-alternative">
                     <summary>Prefiro ver a lista completa</summary>
@@ -2428,6 +2437,38 @@
                     </div>
                   </details>
                 </section>
+                <div class="experience-field" id="businessActivityOther">
+                  <label for="obActivity"
+                    >Qual é sua atividade? <span class="landing-muted">(opcional)</span></label
+                  ><input
+                    id="obActivity"
+                    maxlength="120"
+                    placeholder="Descreva seu negócio com suas palavras"
+                    aria-describedby="obActivityFeedback"
+                  /><small class="onboard-field-feedback" id="obActivityFeedback"></small>
+                </div>
+                <div class="business-type-section">
+                  <fieldset class="business-profile-group">
+                    <legend>
+                      Você trabalha com… <span class="landing-muted">(selecione uma ou ambas)</span>
+                    </legend>
+                    <div class="business-profile-options">
+                      <label
+                        ><input
+                          type="checkbox"
+                          name="businessOffer"
+                          value="products"
+                        />Produtos</label
+                      ><label
+                        ><input
+                          type="checkbox"
+                          name="businessOffer"
+                          value="services"
+                        />Serviços</label
+                      >
+                    </div>
+                  </fieldset>
+                </div>
                 <details class="onboarding-optional">
                   <summary>Mais detalhes do negócio (opcional)</summary>
                   <div class="experience-field">
@@ -2461,28 +2502,6 @@
                   </div>
                 </details>
               </div>
-              <div class="experience-field" id="businessActivityOther">
-                <label for="obActivity"
-                  >Qual é sua atividade? <span class="landing-muted">(opcional)</span></label
-                ><input
-                  id="obActivity"
-                  maxlength="120"
-                  placeholder="Descreva seu negócio com suas palavras"
-                  aria-describedby="obActivityFeedback"
-                /><small class="onboard-field-feedback" id="obActivityFeedback"></small>
-              </div>
-              <fieldset class="business-profile-group">
-                <legend>
-                  Você trabalha com… <span class="landing-muted">(selecione uma ou ambas)</span>
-                </legend>
-                <div class="business-profile-options">
-                  <label
-                    ><input type="checkbox" name="businessOffer" value="products" />Produtos</label
-                  ><label
-                    ><input type="checkbox" name="businessOffer" value="services" />Serviços</label
-                  >
-                </div>
-              </fieldset>
             </section>
             <section class="onboarding-panel" data-onboard-panel="3">
               <span class="landing-kicker">Etapa 3 · Suas ofertas</span>
