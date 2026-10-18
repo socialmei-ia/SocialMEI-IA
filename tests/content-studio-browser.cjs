@@ -67,6 +67,15 @@ module.exports = async function contentStudio(browser, origin) {
       () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
     );
     await page.locator("#utilityTools > summary").click();
+    await page.evaluate(async () => {
+      window.dispatchEvent(new Event("resize"));
+      await new Promise((resolve) => setTimeout(resolve, 180));
+    });
+    assert.equal(
+      await page.locator("#utilityTools").evaluate((e) => e.open),
+      true,
+      "Header resize must preserve the tools menu opened by the user",
+    );
     await page.locator("#contentStudioOpen").click();
     assert.equal(await page.evaluate(() => currentView), "Divulgação");
     assert(await page.locator("#contentPublish").isDisabled());

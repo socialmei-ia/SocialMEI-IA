@@ -44,3 +44,9 @@ voltou a passar sem aumentar o limite original de 760 px.
 A auditoria de teclado identificou que a nova opção Divulgação antecedia a busca
 global no menu Ferramentas. A opção foi colocada ao final do menu, preservando
 Tab → busca e a ordem dos controles existentes, sem alterar as asserções.
+
+O CI do checkpoint 250dbb2 reproduziu o fechamento intermitente de Ferramentas
+após resize: o debounce do cabeçalho fechava o menu recém-aberto. Um teste novo
+dispara resize com o menu aberto e confirmou a falha antes da correção. O
+fechamento foi movido da atualização do cabeçalho para a navegação explícita,
+preservando a interação durante resize sem forçar abertura no teste.

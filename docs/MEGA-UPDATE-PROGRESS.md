@@ -73,7 +73,14 @@ AWS não foram alterados. Sem merge/deploy. Um agente (n8n), Skills locais
 n8n-workflow-review e interface-finish-gate. Chromium emulado não substitui
 homologação em aparelho físico/Safari.
 
-A autenticação do push Git expirou nesta sessão. O conector GitHub publicou a
+O acesso HTTPS de escrita do Git ficou indisponível nesta sessão. O conector GitHub publicou a
 mesma árvore conferida por SHA, sem reescrever histórico remoto. O commit local
 original `730746d` permanece em `backup/content-studio-local-730746d`. O núcleo
 publicado é `1484255`; novos checkpoints seguem como commits filhos, sem force-push.
+
+Checkpoint de correção final: o CI de 250dbb2 encontrou uma corrida ao abrir
+Ferramentas durante o debounce de resize. Reproduzida em teste de navegador: o
+menu passava de aberto para fechado após resize. Corrigido em navigation.js e
+business-views.js: fechar somente na navegação explícita, não na atualização do
+cabeçalho. A regressão nova preserva o menu após resize e percorre o fluxo da
+Central. O CI do commit filho deve ser usado para a decisão final, não #276.

@@ -326,7 +326,6 @@ function updateHeaderContext() {
     : T[currentView] || currentView;
   $("gr").textContent = "Seu espaço";
   $("globalCreateBtn").style.display = "none";
-  $("utilityTools").open = false;
   updatePeriodCaptions();
   positionSidebarIndicator();
   closeRowMenu();
