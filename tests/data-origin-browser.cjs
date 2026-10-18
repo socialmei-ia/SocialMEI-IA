@@ -40,6 +40,14 @@ module.exports = async function dataOriginFlows(browser, origin, errors = []) {
             ? "Fontes mistas"
             : "Dados compartilhados";
       assert.match(await page.locator("#appDataOrigin").innerText(), new RegExp(expected));
+      await page.waitForFunction(() =>
+        [SocialMEIClients, SocialMEIProducts, SocialMEISales, SocialMEIFinance].every((store) =>
+          ["local", "ready", "unavailable"].includes(store.connectionState),
+        ),
+      );
+      const sourceDetails = page.locator("#reportsView .rv2-source-details");
+      if (!(await sourceDetails.evaluate((details) => details.open)))
+        await sourceDetails.locator("summary").click();
       assert.match(
         await page.locator("#reportsDataSourceStatus").innerText(),
         new RegExp(expected),

@@ -38,8 +38,11 @@ module.exports = async function visualRefinementFlows(browser, origin, errors = 
         assert.equal(order.overflow, false);
       }
     }
-    await page.locator(".overview-more summary").focus();
-    await page.keyboard.press("Enter");
+    await page.evaluate(
+      () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+    );
+    await page.locator(".overview-more summary").press("Enter");
+    await page.waitForFunction(() => document.querySelector(".overview-more details")?.open);
     const salesAction = page.locator("#attentionList [data-record-open=sales]").first();
     await salesAction.click();
     assert.equal(

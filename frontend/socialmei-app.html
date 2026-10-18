@@ -4051,17 +4051,18 @@
               <header class="management-header report-intro">
                 <div>
                   <span class="report-eyebrow">RELATÓRIOS</span>
-                  <h2>Relatórios</h2>
-                  <p>
-                    Veja o que mudou, encontre oportunidades e guarde um resumo quando precisar.
-                  </p>
+                  <h2>Seu negócio em perspectiva.</h2>
+                  <p>Entenda o resultado. Decida o próximo passo.</p>
                 </div>
                 <button type="button" class="management-button pr" data-report-generate>
                   + Gerar relatório
                 </button>
               </header>
               <p id="reportProfileContext" class="management-note"></p>
-              <div class="management-demo" id="reportsDataSourceStatus" role="status"></div>
+              <details class="rv2-source-details">
+                <summary>Sobre estes dados</summary>
+                <div class="management-demo" id="reportsDataSourceStatus" role="status"></div>
+              </details>
               <div class="management-report-period management-card">
                 <div
                   id="reportQuickPeriods"
@@ -4075,22 +4076,22 @@
                   <button type="button" data-report-quick="Este mês">Este mês</button>
                   <button type="button" data-report-quick="3 meses">3 meses</button>
                 </div>
+                <span id="reportsPeriodLabel" class="rv2-range" data-current-period></span>
                 <details class="report-period-options">
-                  <summary>Outros períodos e intervalo personalizado</summary>
+                  <summary>Ajustar período e opções</summary>
                   <div
                     id="nvReportPeriods"
                     class="management-chips"
                     role="group"
                     aria-label="Período do relatório"
                   ></div>
+                  <div class="management-card-header">
+                    <label class="management-check"
+                      ><input type="checkbox" id="nvReportCompare" checked />Comparar com período
+                      anterior</label
+                    ><button class="management-button" data-nv-hide>Ocultar valores</button>
+                  </div>
                 </details>
-                <div class="management-card-header">
-                  <span id="reportsPeriodLabel" class="management-note" data-current-period></span
-                  ><label class="management-check"
-                    ><input type="checkbox" id="nvReportCompare" checked />Comparar com período
-                    anterior</label
-                  ><button class="management-button" data-nv-hide>Ocultar valores</button>
-                </div>
               </div>
               <p id="reportUpdateStatus" class="sr-only" role="status"></p>
               <div id="nvReportKpis" class="management-kpis"></div>
@@ -4111,8 +4112,11 @@
               <section class="rv2-history" aria-labelledby="reportHistoryTitle">
                 <div class="rv2-history-header">
                   <div>
-                    <h3 id="reportHistoryTitle">Relatórios gerados</h3>
-                    <p id="reportHistoryNotice" class="management-note"></p>
+                    <h3 id="reportHistoryTitle">Seus relatórios, prontos para consultar</h3>
+                    <details class="rv2-history-info">
+                      <summary>Salvos neste navegador · sem sincronização</summary>
+                      <p id="reportHistoryNotice" class="management-note"></p>
+                    </details>
                   </div>
                   <div class="rv2-history-tools">
                     <label class="sr-only" for="reportHistorySearch">Buscar relatório</label
@@ -4544,6 +4548,7 @@
     <script src="scripts/contact-validation.js"></script>
     <script src="scripts/business-profile.js"></script>
     <script src="scripts/personalization.js"></script>
+    <script src="scripts/report-motion.js"></script>
     <script src="scripts/report-ui.js"></script>
     <script src="scripts/app.js"></script>
     <script src="scripts/experience.js"></script>

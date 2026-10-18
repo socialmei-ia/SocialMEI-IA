@@ -1,0 +1,32 @@
+{
+  "checks": [
+    "Contas: cadastro aberto/convite/indisponível em desktop e mobile, login/logout, administrador e isolamento de dados",
+    "Oportunidades nativa: 6 layouts, menu real, vazio, análise/negação, evidências, revisão sem persistência, Caixa, cliente, foco, XSS, reset e conta remota controlada sem dados inventados passaram.",
+    "Onboarding adaptativo: 6 cadastros, edição/cancelamento, opcionais, recuperação/isolamento local e autenticado por workspace, sessões ausente/indisponível, falha de armazenamento; 108 estados de layout em 6 larguras claro/escuro; 18 composições de 2/3/6 especialidades",
+    "Personalização: quatro perfis, Home/atalhos, sugestões nativas, cancelar/confirmar, recuperar/ignorar/restaurar, edição, identidade, conta remota vazia e recusa sem fallback; 320/390/1440 claro/escuro",
+    "Landing, cadastro local e onboarding",
+    "CRUD, drawer e busca vazia",
+    "Inbox e Assistente inserem rascunhos sem envio externo",
+    "Automações locais e teste simulado",
+    "CSV, localStorage, exclusão confirmada e restauração JSON",
+    "Login local, sidebar mobile e foco/inert",
+    "Temas automático e custom",
+    "Modo remoto: importação idempotente, CRUD, Caixa, conflito, indisponibilidade e duas sessões",
+    "Catálogo remoto: importação, produto/serviço, CRUD, estoque, conflito, falha e duas sessões",
+    "Vendas remotas: vínculos, estoque, edição, cancelamento, rascunho, pagamento, recuperação e histórico",
+    "Financeiro remoto: duas sessões, entrada/saída, vínculo por ID, conflito, quitação, recuperação após reload, importação repetida, snapshot, exclusão e indisponibilidade",
+    "Transferência: arquivo inválido bloqueado, prévia explícita, confirmação, resposta perdida recuperada sem duplicar e layout móvel",
+    "Relatórios: totais e períodos, IDs com nomes repetidos, canais, fonte compartilhada, privacidade, SVG e mensagens desativadas",
+    "Relatórios V2: fontes legítimas, comparação, animações sem replay, filtros rápidos, 12 layouts, CSV/PDF iguais ao snapshot, histórico isolado/imutável, geração local, quota/arquivo/API com falha, conta vazia e modo demonstrativo",
+    "Relatórios V2.1 nativos: navegação oficial, 8 layouts, datas BR/ISO preservado, seletor mobile, histórico, cancelamento, teclado/foco e movimento reduzido",
+    "Refinamento: prioridades do Resumo, ação de venda, temas e Caixa com contexto, rascunho e filtros compactos de Clientes/Vendas",
+    "Origem dos dados: local, remota, híbrida e API indisponível; vazio não é cadastro sem data",
+    "Matriz visual: 484 estados, 11 resoluções, 11 módulos, dois temas e fontes locais/remotas; zero overflow e reduced motion",
+    "Motion: indicador V2.1 em 240ms, sem fade da página, foco preservado, reduced motion e skip link",
+    "A01/A02: 36 tool states and 936 chart columns, nine resolutions, themes, keyboard and tooltips",
+    "Contatos: telefone/Instagram, confirmação do cadastro, exclusão local persistente e cliente preservado, desktop/mobile e claro/escuro",
+    "11 módulos, quatro larguras, claro/escuro, toasts e reduced motion"
+  ],
+  "states": 88,
+  "errors": []
+}

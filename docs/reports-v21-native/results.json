@@ -1,0 +1,74 @@
+{
+  "layouts": [
+    {
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "tabs": [44, 44, 44, 44, 44],
+      "clippedValues": false,
+      "noteSize": "12px"
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "tabs": [44, 44, 44, 44, 44],
+      "clippedValues": false,
+      "noteSize": "12px"
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "overflow": false,
+      "tabs": [44, 44, 44, 44, 44],
+      "clippedValues": false,
+      "noteSize": "12px"
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "overflow": false,
+      "tabs": [44, 44, 44, 44, 44],
+      "clippedValues": false,
+      "noteSize": "12px"
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "tabs": [44.796875, 44.796875, 44.796875, 44.796875, 44.796875],
+      "clippedValues": false,
+      "noteSize": "14px"
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "tabs": [44.796875, 44.796875, 44.796875, 44.796875, 44.796875],
+      "clippedValues": false,
+      "noteSize": "14px"
+    },
+    {
+      "width": 320,
+      "theme": "light",
+      "overflow": false,
+      "tabs": [44.796875, 44.796875, 44.796875, 44.796875, 44.796875],
+      "clippedValues": false,
+      "noteSize": "14px"
+    },
+    {
+      "width": 320,
+      "theme": "dark",
+      "overflow": false,
+      "tabs": [44.796875, 44.796875, 44.796875, 44.796875, 44.796875],
+      "clippedValues": false,
+      "noteSize": "14px"
+    }
+  ],
+  "datePresentation": "pt-BR; persisted ISO unchanged",
+  "snapshotsUnchanged": true,
+  "cancellation": "no saved copy",
+  "errors": [],
+  "external": [],
+  "writes": []
+}

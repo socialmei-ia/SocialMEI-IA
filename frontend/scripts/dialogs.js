@@ -194,6 +194,8 @@ function closeModal(id) {
   if (m._closing) {
     return m._closePromise || Promise.resolve();
   }
+  if (id === "reportGenerateModal" && typeof SocialMEIReportUI !== "undefined")
+    SocialMEIReportUI.cancelGeneration();
   m._closing = true;
   const epoch = m._closeEpoch;
   const motion = window.SocialMEIMotion;

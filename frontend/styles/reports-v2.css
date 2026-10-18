@@ -1,17 +1,58 @@
-/* Reports V2 uses official tokens; every screen rule is scoped to Reports. */
+/* Native Reports V2.1. Approved composition, scoped to Reports and its dialogs. */
+#reportsView {
+  --report-radius: 12px;
+}
+#reportsView .rv2-source-details {
+  font-size: 13px;
+  color: var(--mt);
+  margin-top: -12px;
+}
+#reportsView .rv2-history-info {
+  font-size: 13px;
+  color: var(--mt);
+}
+#reportsView .rv2-source-details > summary,
+#reportsView .rv2-history-info > summary {
+  min-height: 44px;
+  align-content: center;
+  cursor: pointer;
+}
+#reportsView .rv2-source-details.has-warning > summary {
+  color: var(--warning);
+}
+#reportsView .report-period-options .management-card-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin: 16px 0 0;
+}
+#reportGenerateModal .rv2-generation-range {
+  margin: 14px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.7;
+  overflow-wrap: normal;
+}
+#reportGenerateModal.open .modal {
+  animation: rv21-modal-enter 220ms var(--ease-out);
+}
 #reportsView > .management-stack {
   max-width: 1320px;
   margin-inline: auto;
-  gap: 20px;
+  gap: 24px;
 }
 #reportsView .report-intro {
-  align-items: end;
+  align-items: center;
   margin: 0;
   padding: 0;
 }
-#reportsView .report-intro h2 {
-  font-size: clamp(30px, 3.4vw, 44px);
-  margin: 8px 0;
+.experience-app #reportsView .report-intro h2 {
+  font-size: clamp(30px, 3.4vw, 46px);
+  margin: 12px 0 9px;
+  font-weight: 650;
+  max-width: none;
+  letter-spacing: -0.055em;
+  line-height: 1.13;
 }
 #reportsView .report-intro h2::after {
   display: none;
@@ -20,6 +61,9 @@
   display: flex;
   align-items: center;
   gap: 9px;
+  font-size: 12px;
+  letter-spacing: 0.13em;
+  font-weight: 700;
 }
 #reportsView .report-eyebrow::before {
   content: "";
@@ -29,15 +73,19 @@
   background: var(--brand-accent);
 }
 #reportsView #reportProfileContext {
-  margin: -8px 0 0;
+  margin: -14px 0 0;
   font-size: 12px;
   line-height: 1.6;
 }
 #reportsView #reportsDataSourceStatus {
   border-left: 3px solid var(--brand-primary);
-  border-radius: 10px;
+  border-radius: 0;
   margin: 0;
   font-size: 12px;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin-top: -12px;
 }
 #reportsView .management-report-period {
   position: static;
@@ -45,30 +93,33 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 12px 20px;
-  padding: 18px 20px;
-  background: var(--sf);
-  border: 1px solid var(--ln);
+  padding: 0 0 18px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--ln);
+  border-radius: 0;
 }
 #reportsView .management-report-period > .management-card-header {
   display: flex;
   position: static;
-  order: 3;
-  flex: 1 1 100%;
+  order: initial;
+  flex: 1 1 auto;
   grid-column: auto;
-  width: 100%;
+  width: auto;
   margin: 0;
   flex-wrap: wrap;
-  gap: 10px 16px;
+  gap: 10px 15px;
+  justify-content: flex-end;
 }
 #reportsView .rv2-quick-periods {
   display: flex;
   position: relative;
   isolation: isolate;
   padding: 4px;
-  gap: 3px;
-  background: var(--surface-secondary);
+  gap: 2px;
+  background: var(--sf);
   border: 1px solid var(--ln);
-  border-radius: 9px;
+  border-radius: 8px;
 }
 #reportsView .rv2-quick-periods button {
   position: relative;
@@ -76,31 +127,35 @@
   background: transparent;
   border: 0;
   color: var(--tx);
-  padding: 9px 12px;
-  min-height: 40px;
+  padding: 7px 15px;
+  min-height: 44px;
   border-radius: 6px;
   font-weight: 600;
+  font-size: 12px;
 }
 #reportsView #reportPeriodIndicator {
   position: absolute;
   left: 0;
   top: 4px;
   bottom: 4px;
-  border-radius: 6px;
-  background: var(--sf);
-  box-shadow: var(--shadow-sm);
+  border-radius: 5px;
+  background: var(--brand-primary);
+  box-shadow: none;
   transition:
-    width 330ms var(--ease-enter),
-    transform 330ms var(--ease-enter);
+    width 240ms var(--ease-out),
+    transform 240ms var(--ease-out);
   pointer-events: none;
 }
 #reportsView .rv2-quick-periods button[aria-pressed="true"] {
-  color: var(--brand-primary-text);
+  color: var(--on-primary);
 }
 #reportsView .report-period-options {
   margin: 0;
   min-width: 0;
   max-width: 100%;
+  order: 4;
+  font-size: 12px;
+  flex-basis: 100%;
 }
 #reportsView .report-period-options[open] {
   width: 100%;
@@ -118,12 +173,18 @@
 }
 #reportsView #nvReportKpis {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  background: var(--sf);
-  border: 1px solid var(--ln);
-  border-radius: 14px;
+  grid-template-columns: 1.2fr 1fr 1fr 1fr;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   overflow: hidden;
   gap: 0;
+  transition:
+    background-color 270ms,
+    border-color 270ms,
+    color 270ms;
+  border-bottom: 1px solid var(--ln);
+  padding-bottom: 22px;
 }
 #reportsView #nvReportKpis .management-kpi {
   min-width: 0;
@@ -131,71 +192,100 @@
   border-right: 1px solid var(--ln);
   border-radius: 0;
   box-shadow: none;
-  padding: 23px;
+  padding: 6px 22px;
   background: transparent;
+  display: block;
+  border-bottom: 0;
 }
 #reportsView #nvReportKpis .management-kpi:last-child {
   border-right: 0;
 }
-#reportsView #nvReportKpis b {
-  font-size: clamp(24px, 2.2vw, 35px);
+#reportsView #nvReportKpis .management-kpi > b {
+  font-size: clamp(24px, 2.8vw, 38px);
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.055em;
   white-space: nowrap;
+  font-weight: 600;
+  margin: 10px 0 8px;
 }
 #reportsView #nvReportKpis small {
   font-size: 12px;
-  line-height: 1.5;
-  min-height: 36px;
+  line-height: 1.6;
+  min-height: 28px;
 }
 #reportsView #nvReportTabs {
-  display: grid;
+  display: flex;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 5px;
+  gap: 26px;
   overflow: visible;
-  background: var(--surface-secondary);
-  border: 1px solid var(--ln);
-  padding: 5px;
-  border-radius: 10px;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  border-radius: 0;
+  border-bottom: 1px solid var(--ln);
 }
 #reportsView #nvReportTabs button {
   justify-content: center;
-  min-width: 0;
+  min-width: 65px;
   min-height: 44px;
   margin: 0;
   white-space: normal;
+  position: relative;
+  padding: 0 0 12px;
+  border-radius: 0;
+  border: 0;
+  background: none;
+  font-size: 12px;
+  color: var(--mt);
+  flex: 0 1 auto;
+  box-shadow: none;
 }
 #reportsView .report-overview {
-  grid-template-columns: minmax(0, 1.66fr) minmax(260px, 1fr);
-  gap: 16px;
+  grid-template-columns: minmax(0, 2.5fr) minmax(230px, 1fr);
+  gap: 20px;
+  display: grid;
 }
-#reportsView .report-primary,
-#reportsView .report-care,
-#reportsView .management-card {
-  border-radius: 14px;
-}
-#reportsView .report-primary,
-#reportsView .report-care {
-  padding: 22px;
+#reportsView .report-primary {
+  border-radius: var(--report-radius);
+  padding: 26px;
   background: var(--sf);
   border: 1px solid var(--ln);
 }
 #reportsView .report-care {
+  border-radius: 0;
+  padding: 8px 0 0 24px;
+  background: transparent;
+  border: 0;
   display: block;
+  transition:
+    background-color 270ms,
+    border-color 270ms,
+    color 270ms;
+  border-left: 1px solid var(--ln);
+}
+#reportsView .management-card {
+  border-radius: 14px;
+  transition:
+    background-color 220ms,
+    border-color 220ms,
+    color 220ms;
 }
 #reportsView .report-care h3,
 #reportsView .management-card h3 {
-  font-size: 17px;
+  font-size: 16px;
   margin: 0 0 9px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
 }
 #reportsView .rv2-stacked {
   display: flex;
-  height: 14px;
+  height: 8px;
   overflow: hidden;
-  border-radius: 5px;
-  background: var(--surface-secondary);
-  margin: 22px 0;
+  border-radius: 0;
+  background: transparent;
+  margin: 24px 0;
+  gap: 3px;
 }
 #reportsView .rv2-stacked span {
   display: block;
@@ -204,26 +294,34 @@
 #reportsView .rv2-status-list {
   margin: 0 0 22px;
   display: grid;
-  gap: 12px;
+  gap: 0;
 }
 #reportsView .rv2-status-list > div {
   display: flex;
   justify-content: space-between;
   gap: 15px;
+  border-bottom: 1px solid var(--ln);
+  padding: 14px 0;
+  font-size: 12px;
 }
 #reportsView .rv2-status-list dd {
   margin: 0;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  font-size: 15px;
 }
 #reportsView .rv2-lower-grid {
   align-items: start;
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(260px, 1fr);
-  gap: 16px;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 32px;
+  padding: 22px 0;
+  border-top: 1px solid var(--ln);
+  border-bottom: 1px solid var(--ln);
 }
 #reportsView .rv2-product-item {
-  margin: 18px 0;
+  margin: 20px 0;
+  font-size: 12px;
 }
 #reportsView .rv2-product-item > div:first-child {
   display: flex;
@@ -232,7 +330,7 @@
   margin-bottom: 8px;
 }
 #reportsView .rv2-product-track {
-  height: 7px;
+  height: 5px;
   border-radius: 10px;
   background: var(--surface-secondary);
   overflow: hidden;
@@ -252,7 +350,7 @@
   padding-top: 12px;
 }
 #reportsView .rv2-observations p {
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.6;
   margin: 5px 0 0;
   color: var(--mt);
@@ -267,6 +365,7 @@
   width: 100%;
   height: auto;
   overflow: visible;
+  min-height: 190px;
 }
 #reportsView .rv2-point {
   display: inline;
@@ -276,28 +375,35 @@
 #reportsView .rv2-point:focus-visible circle:last-child {
   stroke: var(--tx);
   stroke-width: 3;
+  r: 6px;
 }
 #reportsView .rv2-chart-tooltip {
   position: absolute;
-  top: 8px;
+  top: auto;
   left: 50%;
   transform: translateX(-50%);
   max-width: 92%;
-  padding: 9px 12px;
+  padding: 10px 14px;
   border-radius: 8px;
   background: var(--tooltip-background);
   color: var(--tooltip-text);
   font-size: 12px;
   pointer-events: none;
   box-shadow: var(--shadow-sm);
+  bottom: 36px;
+  border: 1px solid var(--ln);
+  line-height: 1.5;
 }
 #reportsView .rv2-chart-readout {
   margin: 4px 0;
-  min-height: 36px;
+  min-height: 32px;
   font-size: 12px;
+  line-height: 1.6;
 }
 #reportsView .rv2-history {
-  margin-top: 12px;
+  margin-top: 10px;
+  padding-top: 26px;
+  border-top: 1px solid var(--ln);
 }
 #reportsView .rv2-history-header {
   display: flex;
@@ -308,12 +414,14 @@
   margin-bottom: 15px;
 }
 #reportsView .rv2-history-header h3 {
-  font-size: 20px;
+  font-size: 21px;
   margin: 0 0 6px;
+  letter-spacing: -0.035em;
+  font-weight: 600;
 }
 #reportsView .rv2-history-header p {
   font-size: 12px;
-  max-width: 65ch;
+  max-width: 48ch;
   line-height: 1.6;
 }
 #reportsView .rv2-history-tools,
@@ -327,17 +435,22 @@
   width: 210px;
 }
 #reportsView #reportHistoryList {
-  border: 1px solid var(--ln);
-  background: var(--sf);
-  border-radius: 14px;
+  border: 0;
+  background: transparent;
+  border-radius: 0;
   overflow: hidden;
+  transition:
+    background-color 270ms,
+    border-color 270ms,
+    color 270ms;
+  border-top: 1px solid var(--ln);
 }
 #reportsView .rv2-history-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
-  gap: 12px 20px;
+  gap: 10px 18px;
   align-items: center;
-  padding: 18px 22px;
+  padding: 20px 0;
   transition: background-color 175ms;
 }
 #reportsView .rv2-history-row + .rv2-history-row {
@@ -349,6 +462,8 @@
 #reportsView .rv2-history-row b {
   display: block;
   overflow-wrap: anywhere;
+  font-size: 12px;
+  font-weight: 600;
 }
 #reportsView .rv2-history-row small {
   display: block;
@@ -357,25 +472,26 @@
   margin-top: 5px;
 }
 #reportsView .rv2-empty {
-  padding: 30px;
+  padding: 36px 20px;
   margin: 0;
   color: var(--mt);
   line-height: 1.7;
+  text-align: center;
+  font-size: 13px;
 }
 #reportsView .rv2-row-enter {
   animation: rv2-row-enter 380ms var(--ease-enter);
 }
-@keyframes rv2-row-enter {
-  from {
-    opacity: 0;
-    transform: translateY(9px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
+#reportsView .management-button {
+  min-height: 44px;
+  transition:
+    background-color 190ms,
+    border-color 190ms,
+    color 190ms,
+    transform 190ms;
+  font-size: 12px;
+  border-radius: 7px;
 }
-#reportsView .management-button,
 #reportGenerateModal .management-button {
   min-height: 44px;
   transition:
@@ -388,17 +504,9 @@
 #reportGenerateModal .management-button:active {
   transform: scale(0.98);
 }
-#reportsView .management-card,
-#reportsView #nvReportKpis,
-#reportsView .report-care,
-#reportsView #reportHistoryList {
-  transition:
-    background-color 270ms,
-    border-color 270ms,
-    color 270ms;
-}
 #reportGenerateModal .modal {
   max-width: 640px;
+  border-radius: 16px;
 }
 #reportGenerateModal .rv2-form-fields {
   display: grid;
@@ -419,14 +527,16 @@
   margin: 18px 0;
   font-size: 13px;
 }
-#reportGenerateModal td,
+#reportGenerateModal td {
+  padding: 10px 5px;
+  border-bottom: 1px solid var(--ln);
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+}
 #reportGenerateModal th {
   padding: 10px 5px;
   border-bottom: 1px solid var(--ln);
   text-align: left;
-}
-#reportGenerateModal td {
-  font-variant-numeric: tabular-nums;
 }
 #reportGenerateModal p {
   line-height: 1.7;
@@ -443,28 +553,186 @@
 #reportGenerateModal .rv2-progress-steps .done {
   color: var(--success);
 }
-#reportPrintDocument {
+#reportPrintDocument,
+#reportGenerateFooter[hidden] {
   display: none;
 }
-@media (max-width: 1100px) {
+#reportGenerateFooter .rv2-actions {
+  width: 100%;
+  justify-content: flex-end;
+}
+#reportsView .report-intro p {
+  font-size: 14px;
+  margin: 0;
+  color: var(--mt);
+}
+#reportsView .management-report-period #reportsPeriodLabel {
+  font-size: 12px;
+  width: 100%;
+  text-align: right;
+}
+#reportsView .management-report-period .management-check {
+  font-size: 12px;
+  min-height: 32px;
+}
+#reportsView #nvReportKpis .management-kpi > * {
+  display: block;
+}
+#reportsView #nvReportKpis .management-kpi:first-child {
+  padding-left: 0;
+}
+#reportsView #nvReportKpis .management-kpi span {
+  font-size: 12px;
+  color: var(--mt);
+}
+#reportsView #nvReportKpis .management-kpi:first-child b,
+#reportsView #nvReportTabs button[aria-selected="true"] {
+  color: var(--brand-primary-text);
+}
+#reportsView #nvReportTabs button::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 -1px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--brand-primary);
+  transform: scaleX(0);
+  transition: transform 180ms var(--ease-out);
+}
+#reportsView #nvReportTabs button[aria-selected="true"]::after {
+  transform: scaleX(1);
+}
+#reportsView #reportsGrid {
+  gap: 20px;
+}
+#reportsView .report-section-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+#reportsView .report-primary h3 {
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: -0.025em;
+}
+#reportsView .report-primary .report-eyebrow {
+  display: none;
+}
+#reportsView .report-primary > .management-note {
+  font-size: 12px;
+  max-width: 65ch;
+  margin-bottom: 20px;
+}
+#reportsView .rv2-point circle:last-child {
+  r: 3px;
+}
+#reportsView .rv2-stacked > span {
+  border-radius: 2px;
+}
+#reportsView .rv2-status-list > div:last-child {
+  border: 0;
+}
+#reportsView .rv2-status-list dt {
+  color: var(--mt);
+}
+#reportsView .rv2-lower-grid > .management-card {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+}
+#reportsView .rv2-lower-grid > .management-card + .management-card {
+  border-left: 1px solid var(--ln);
+  padding-left: 32px;
+}
+#reportsView .rv2-product-item small {
+  font-size: 12px;
+  color: var(--mt);
+}
+#reportsView .rv2-observations b {
+  font-size: 12px;
+  font-weight: 600;
+}
+#reportsView .report-detail {
+  border: 0;
+  border-bottom: 1px solid var(--ln);
+  border-radius: 0;
+  background: transparent;
+  transition:
+    background-color 220ms,
+    border-color 220ms,
+    color 220ms;
+}
+#reportsView .report-detail summary {
+  font-size: 13px;
+  min-height: 52px;
+  padding: 14px 0;
+}
+#reportsView .report-actions {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+#reportGenerateModal .modal-head {
+  padding: 22px 24px;
+}
+#reportGenerateModal .modal-body {
+  padding: 24px;
+}
+#reportGenerateModal td:not(:first-child) {
+  white-space: nowrap;
+}
+#reportsView .rv2-range {
+  font-size: 12px;
+  color: var(--mt);
+}
+@media (max-width: 1024px) {
   #reportsView #nvReportKpis {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
-  #reportsView #nvReportKpis .management-kpi:nth-child(-n + 2) {
-    border-bottom: 1px solid var(--ln);
+  #reportsView #nvReportKpis .management-kpi {
+    padding: 6px 14px;
   }
-  #reportsView #nvReportKpis .management-kpi:nth-child(2) {
-    border-right: 0;
+  #reportsView #nvReportKpis .management-kpi > b {
+    font-size: 25px;
   }
-  #reportsView .report-overview,
-  #reportsView .rv2-lower-grid {
-    grid-template-columns: 1fr;
+  #reportsView .report-overview {
+    grid-template-columns: minmax(0, 1.8fr) minmax(200px, 1fr);
   }
   #reportsView .rv2-history-row {
     grid-template-columns: minmax(0, 1fr) auto;
   }
-  #reportsView .rv2-history-row .rv2-actions {
-    grid-column: 1 / -1;
+}
+@media (max-width: 800px) {
+  #reportsView .report-overview {
+    grid-template-columns: 1fr;
+  }
+  #reportsView .report-care {
+    border-left: 0;
+    padding: 4px 0 0;
+  }
+  #reportsView .rv2-status-list {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+  }
+  #reportsView .rv2-status-list > div {
+    display: block;
+    border: 0;
+    padding: 2px 0;
+  }
+  #reportsView .rv2-status-list dd {
+    margin-top: 5px;
+  }
+  #reportsView .management-report-period > .management-card-header {
+    flex-basis: 100%;
+    justify-content: flex-start;
+  }
+  #reportsView .management-report-period #reportsPeriodLabel {
+    width: auto;
+    text-align: left;
   }
 }
 @media (max-width: 600px) {
@@ -474,7 +742,7 @@
   #reportsView .report-intro {
     flex-direction: column;
     align-items: start;
-    gap: 14px;
+    gap: 16px;
   }
   #reportsView .report-intro > button {
     align-self: start;
@@ -487,37 +755,55 @@
   }
   #reportsView .rv2-quick-periods button {
     flex: 1;
-    padding: 8px 4px;
-    font-size: 12px;
+    padding: 7px 4px;
+    font-size: 13px;
+    min-height: 44px;
+    line-height: 1.6;
   }
   #reportsView #nvReportTabs {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(6, 1fr);
+    display: grid;
+    gap: 0;
+    border: 0;
   }
   #reportsView #nvReportTabs button {
-    padding: 8px 3px;
-    font-size: 12px;
+    padding: 12px 4px;
+    font-size: 13px;
+    grid-column: span 2;
+    min-height: 44px;
+    border-bottom: 1px solid var(--ln);
+    line-height: 1.6;
   }
   #reportsView #nvReportKpis .management-kpi {
-    padding: 17px 13px;
+    padding: 14px 12px;
+    border-bottom: 1px solid var(--ln);
+    padding-inline: 10px;
   }
-  #reportsView #nvReportKpis b {
-    font-size: clamp(18px, 5vw, 24px);
+  #reportsView #nvReportKpis .management-kpi > b {
+    font-size: clamp(20px, 5.5vw, 23px);
+    margin: 7px 0;
   }
-  #reportsView .report-primary,
+  #reportsView .report-primary {
+    padding: 18px 14px;
+  }
   #reportsView .report-care,
   #reportsView .management-card {
     padding: 17px;
   }
   #reportsView .rv2-history-row {
-    padding: 16px;
+    padding: 18px 0;
   }
   #reportsView .rv2-history-tools {
     width: 100%;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
   }
   #reportsView .rv2-history-tools input,
   #reportsView .rv2-history-tools select {
     flex: 1 1 100%;
     width: 100%;
+    min-width: 0;
   }
   #reportGenerateModal .rv2-form-fields {
     grid-template-columns: 1fr;
@@ -530,6 +816,91 @@
     padding: 8px 3px;
     font-size: 12px;
     overflow-wrap: anywhere;
+  }
+  .experience-app #reportsView .report-intro h2 {
+    font-size: 34px;
+    max-width: 13ch;
+  }
+  #reportsView .report-intro p {
+    font-size: 14px;
+    line-height: 1.65;
+  }
+  #reportsView #nvReportKpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding-bottom: 0;
+  }
+  #reportsView #nvReportKpis .management-kpi:nth-child(odd) {
+    padding-left: 0;
+  }
+  #reportsView #nvReportKpis .management-kpi:nth-child(even) {
+    border-right: 0;
+  }
+  #reportsView #nvReportKpis .management-kpi:nth-last-child(-n + 2) {
+    border-bottom: 0;
+  }
+  #reportsView #nvReportTabs button:nth-child(n + 4) {
+    grid-column: span 3;
+  }
+  #reportsView .management-report-period > .management-card-header {
+    gap: 8px 12px;
+  }
+  #reportsView .management-report-period #reportsPeriodLabel {
+    flex-basis: 100%;
+  }
+  #reportsView .rv2-lower-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  #reportsView .rv2-lower-grid > .management-card + .management-card {
+    padding: 24px 0 0;
+    border: 0;
+    border-top: 1px solid var(--ln);
+  }
+  #reportsView .rv2-history-header {
+    gap: 12px;
+  }
+  #reportsView .rv2-history-row .rv2-actions {
+    gap: 6px;
+  }
+  #reportsView .report-detail summary {
+    flex-wrap: wrap;
+  }
+  #reportGenerateModal .modal-body,
+  #reportGenerateModal .modal-head {
+    padding: 18px 16px;
+  }
+  #reportsView .management-note,
+  #reportsView .report-primary > .management-note,
+  #reportsView #reportsDataSourceStatus,
+  #reportsView .rv2-observations p,
+  #reportsView .rv2-empty,
+  #reportsView .rv2-history-header p,
+  #reportGenerateModal .management-note {
+    font-size: 14px;
+    line-height: 1.65;
+  }
+  #reportsView #reportProfileContext,
+  #reportsView .rv2-chart-readout {
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  #reportsView #nvReportKpis small {
+    font-size: 13px;
+    line-height: 1.6;
+    min-height: 42px;
+  }
+  #reportsView #nvReportKpis .management-kpi span,
+  #reportsView .rv2-history-row small,
+  #reportsView .rv2-product-item,
+  #reportsView .rv2-source-details,
+  #reportsView .rv2-history-info,
+  #reportsView .rv2-range,
+  #reportsView .report-period-options {
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  #reportsView #reportHistoryList .rv2-actions button {
+    font-size: 13px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -589,15 +960,28 @@
   #reportPrintDocument tr {
     break-inside: avoid;
   }
-  @page {
-    size: A4;
-    margin: 15mm;
+}
+@keyframes rv21-modal-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
-#reportGenerateFooter[hidden] {
-  display: none;
+@keyframes rv2-row-enter {
+  from {
+    opacity: 0;
+    transform: translateY(9px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
-#reportGenerateFooter .rv2-actions {
-  width: 100%;
-  justify-content: flex-end;
+@page {
+  size: A4;
+  margin: 15mm;
 }

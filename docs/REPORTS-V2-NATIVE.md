@@ -1,5 +1,8 @@
 # Relatórios V2 na aplicação oficial — Etapa 4
 
+> A evolução visual aprovada está documentada em [Relatórios V2.1 nativos](REPORTS-V21-NATIVE.md).
+> As definições financeiras e os contratos descritos abaixo foram preservados.
+
 Branch `feat/socialmei-native-integration`, PR #57 (Draft). Acesso: abrir
 `frontend/socialmei-app.html` e selecionar **Relatórios** na navegação original.
 Não há página independente, iframe, novo backend ou acesso a produção.

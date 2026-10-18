@@ -30,13 +30,15 @@ const SocialMEIReportUI = (() => {
     transient: [],
     values: new Map(),
     bars: new Map(),
-    charts: new Map(),
     frame: 0,
+    pendingId: null,
     periodX: 0,
     periodWidth: 0,
     generation: 0,
     owner: null,
     busy: false,
+    sourceAutoOpened: false,
+    historyAutoOpened: false,
   };
   const el = (tag, text, className) => {
     const node = document.createElement(tag);
@@ -52,9 +54,11 @@ const SocialMEIReportUI = (() => {
       state.transient = [];
       state.values.clear();
       state.bars.clear();
-      state.charts.clear();
       state.generation++;
+      state.busy = false;
+      state.pendingId = null;
       cancelAnimationFrame(state.frame);
+      SocialMEIReportMotion.reset();
       if (document.getElementById("reportGenerateModal")?.classList.contains("open")) {
         closeModal("reportGenerateModal");
         document.getElementById("reportGenerateBody").replaceChildren();
@@ -134,6 +138,13 @@ const SocialMEIReportUI = (() => {
         ? money(value)
         : Number(value).toLocaleString("pt-BR");
   }
+  function displayTitle(record) {
+    return record.title.replace(/\b\d{4}-\d{2}-\d{2}\b/g, (date) =>
+      data.validRange({ from: date, to: date }) ? formatDate(date) : date,
+    );
+  }
+  const createdCaption = (value) =>
+    new Date(value).toLocaleString("pt-BR", { timeZone: APP_TIMEZONE });
   function table(headers, rows) {
     const node = el("table"),
       head = el("thead"),
@@ -157,12 +168,12 @@ const SocialMEIReportUI = (() => {
     host.append(
       el("h1", "SocialMEI.IA · " + data.types[snapshot.type]),
       el("h2", snapshot.business),
-      el("p", `${snapshot.range.from} a ${snapshot.range.to} · Gerado em ${snapshot.createdAt}`),
+      el("p", `${rangeCaption(snapshot.range)} · Gerado em ${createdCaption(snapshot.createdAt)}`),
       el("p", snapshot.source),
       el(
         "p",
         snapshot.comparisonEnabled
-          ? `Período anterior: ${snapshot.previousRange.from} a ${snapshot.previousRange.to}.`
+          ? `Período anterior: ${rangeCaption(snapshot.previousRange)}.`
           : "Comparação desativada.",
       ),
       table(["Indicador", "Atual", "Anterior"], metricRows(snapshot)),
@@ -179,7 +190,7 @@ const SocialMEIReportUI = (() => {
           ["Pedido", "Data", "Cliente", "Item", "Situação", "Valor"],
           snapshot.sales.map((row) => [
             row.id,
-            row.data,
+            formatDate(row.data),
             row.cliente,
             row.item,
             row.status,
@@ -195,7 +206,7 @@ const SocialMEIReportUI = (() => {
           snapshot.ledger.map((row) => [
             row.tipo,
             row.descricao,
-            row.vencimento,
+            formatDate(row.vencimento),
             row.status,
             money(row.valor),
           ]),
@@ -237,7 +248,7 @@ const SocialMEIReportUI = (() => {
     const rows = records().filter(
       (record) =>
         (status === "all" || record.status === status) &&
-        record.title.toLocaleLowerCase("pt-BR").includes(search),
+        (record.title + " " + displayTitle(record)).toLocaleLowerCase("pt-BR").includes(search),
     );
     document.getElementById("reportHistoryNotice").textContent =
       (result.status === "invalid"
@@ -246,6 +257,14 @@ const SocialMEIReportUI = (() => {
           ? "O histórico não está disponível para esta sessão ou navegador. "
           : "") +
       "Histórico local deste usuário/negócio, sem sincronização entre dispositivos. Limpar os dados do navegador remove o histórico e suas cópias. Até 20 relatórios; os mais antigos deixam esta lista.";
+    const historyInfo = document.getElementById("reportHistoryNotice").closest("details");
+    if (["invalid", "unavailable"].includes(result.status)) {
+      if (!historyInfo.open) state.historyAutoOpened = true;
+      historyInfo.open = true;
+    } else if (state.historyAutoOpened) {
+      historyInfo.open = false;
+      state.historyAutoOpened = false;
+    }
     host.replaceChildren();
     rows.forEach((record) => {
       const row = el(
@@ -255,10 +274,10 @@ const SocialMEIReportUI = (() => {
       );
       const summary = el("div");
       summary.append(
-        el("b", record.title),
+        el("b", displayTitle(record)),
         el(
           "small",
-          new Date(record.createdAt).toLocaleString("pt-BR") +
+          createdCaption(record.createdAt) +
             (state.transient.includes(record)
               ? " · somente nesta página"
               : " · salvo neste navegador"),
@@ -306,6 +325,7 @@ const SocialMEIReportUI = (() => {
       );
   }
   function beginDialog(title) {
+    cancelGeneration();
     sync();
     state.generation++;
     state.owner = scope();
@@ -317,12 +337,11 @@ const SocialMEIReportUI = (() => {
   }
   function preview() {
     const host = document.getElementById("reportGenerationPreview");
+    const range = generationRange();
+    document.getElementById("reportGenerateRange").textContent = "Período: " + rangeCaption(range);
     try {
-      const snapshot = capture(
-        document.getElementById("reportGenerateType").value,
-        generationRange(),
-      );
-      host.textContent = `${snapshot.range.from} a ${snapshot.range.to} · ${snapshot.sales.length} vendas e ${snapshot.ledger.length} lançamentos datados. Valores congelados na geração; não há processamento em servidor.`;
+      const snapshot = capture(document.getElementById("reportGenerateType").value, range);
+      host.textContent = `${snapshot.sales.length} vendas e ${snapshot.ledger.length} lançamentos datados. Valores congelados na geração; não há processamento em servidor.`;
     } catch (error) {
       host.textContent = error.message;
     }
@@ -345,7 +364,7 @@ const SocialMEIReportUI = (() => {
         "reportGeneratePeriod",
         "Período",
         [
-          ["current", "Seleção atual · " + rangeCaption()],
+          ["current", "Período selecionado"],
           ["7", "Últimos 7 dias"],
           ["30", "Últimos 30 dias"],
           ["90", "Últimos 90 dias"],
@@ -357,6 +376,8 @@ const SocialMEIReportUI = (() => {
         select = el("select", undefined, "form-control");
       name.htmlFor = id;
       select.id = id;
+      if (id === "reportGeneratePeriod")
+        select.setAttribute("aria-describedby", "reportGenerateRange");
       options.forEach(([value, text]) => {
         const option = el("option", text);
         option.value = value;
@@ -368,6 +389,9 @@ const SocialMEIReportUI = (() => {
     }
     const hint = el("p", undefined, "rv2-generation-preview");
     hint.id = "reportGenerationPreview";
+    const range = el("p", undefined, "rv2-generation-range");
+    range.id = "reportGenerateRange";
+    range.setAttribute("role", "status");
     const note = el(
       "p",
       "Um resumo dos indicadores e dos registros datados. CSV é baixado localmente; PDF utiliza Imprimir / salvar como PDF do navegador. O histórico é local e não sincroniza.",
@@ -378,13 +402,22 @@ const SocialMEIReportUI = (() => {
     const status = el("p", undefined, "management-note");
     status.id = "reportGenerationStatus";
     status.setAttribute("role", "status");
-    form.append(fields, hint, note, submit, status);
+    form.append(fields, range, hint, note, submit, status);
     host.append(form);
     form.addEventListener("submit", generate);
     preview();
   }
   const nextPaint = () =>
     new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  function cancelGeneration() {
+    if (!state.busy) return;
+    state.generation++;
+    state.busy = false;
+    state.transient = state.transient.filter((record) => record.id !== state.pendingId);
+    state.pendingId = null;
+    renderHistory();
+    toast("Geração cancelada", "Nenhuma cópia foi guardada. Você pode gerar novamente.");
+  }
   async function generate(event) {
     event.preventDefault();
     if (state.busy) return;
@@ -400,6 +433,14 @@ const SocialMEIReportUI = (() => {
       status: "processing",
       snapshot: null,
       error: "",
+    };
+    state.pendingId = record.id;
+    const active = () => {
+      if (scope() !== owner) {
+        sync();
+        return false;
+      }
+      return token === state.generation;
     };
     const body = document.getElementById("reportGenerateBody"),
       list = el("ol", undefined, "rv2-progress-steps"),
@@ -420,18 +461,17 @@ const SocialMEIReportUI = (() => {
     renderHistory();
     try {
       await nextPaint();
-      if (scope() !== owner || token !== state.generation)
-        throw Error("A sessão mudou. Gere novamente no espaço atual.");
+      if (!active()) return;
       record.snapshot = capture(type, range);
       bar.value = 1;
       list.children[0].classList.add("done");
       await nextPaint();
+      if (!active()) return;
       data.csv(record.snapshot);
       bar.value = 2;
       list.children[1].classList.add("done");
       await nextPaint();
-      if (scope() !== owner || token !== state.generation)
-        throw Error("A sessão mudou. Gere novamente no espaço atual.");
+      if (!active()) return;
       record.status = "ready";
       const saved = history.save(record, owner);
       bar.value = 3;
@@ -445,10 +485,8 @@ const SocialMEIReportUI = (() => {
       )
         showRecord(record, !saved);
     } catch (error) {
-      state.busy = false;
-      if (scope() !== owner) {
-        sync();
-        fail(error);
+      if (!active()) {
+        if (scope() !== owner) sync();
         return;
       }
       record.status = "error";
@@ -462,6 +500,11 @@ const SocialMEIReportUI = (() => {
         document.getElementById("reportGenerateModal").classList.contains("open")
       )
         showRecord(record, false);
+    } finally {
+      if (token === state.generation) {
+        state.busy = false;
+        state.pendingId = null;
+      }
     }
   }
   function showRecord(record, temporary = false) {
@@ -476,12 +519,12 @@ const SocialMEIReportUI = (() => {
     }
     const snapshot = record.snapshot;
     host.append(
-      el("p", `${snapshot.range.from} a ${snapshot.range.to} · ${snapshot.business}`),
+      el("p", `${rangeCaption(snapshot.range)} · ${snapshot.business}`),
       el("p", snapshot.source, "management-note"),
       el(
         "p",
         snapshot.comparisonEnabled
-          ? `Período anterior: ${snapshot.previousRange.from} a ${snapshot.previousRange.to}.`
+          ? `Período anterior: ${rangeCaption(snapshot.previousRange)}.`
           : "Comparação desativada.",
       ),
       table(["Indicador", "Atual", "Anterior"], metricRows(snapshot)),
@@ -524,8 +567,8 @@ const SocialMEIReportUI = (() => {
   function context() {
     const profile = profileStore.read().profile;
     return profile
-      ? `${profile.segment === "other" ? profile.activity || "Seu negócio" : SocialMEIBusinessProfile.segments[profile.segment].label} · ${profile.offers.includes("products") && profile.offers.includes("services") ? "produtos e serviços" : profile.offers.includes("services") ? "serviços, vendas e financeiro" : "produtos, estoque e vendas"}. Indicadores disponíveis para qualquer segmento; entregas e atendimentos concluídos não são inferidos.`
-      : "Indicadores dos registros disponíveis. Configure seu perfil em Configurações para contextualizar esta visão.";
+      ? `${profile.segment === "other" ? profile.activity || "Seu negócio" : SocialMEIBusinessProfile.segments[profile.segment].label} · ${profile.offers.includes("products") && profile.offers.includes("services") ? "produtos e serviços" : profile.offers.includes("services") ? "serviços, vendas e financeiro" : "produtos, estoque e vendas"}.`
+      : "Indicadores dos registros disponíveis. Personalize seu perfil em Configurações.";
   }
   function updateIndicator() {
     const wrap = document.getElementById("reportQuickPeriods"),
@@ -615,6 +658,26 @@ const SocialMEIReportUI = (() => {
             : "Demonstração local: pode conter exemplos existentes; não são dados sincronizados.",
         ),
       );
+    const sourceDetails = document.querySelector("#reportsView .rv2-source-details");
+    const sourceProblem = [
+      SocialMEISales,
+      SocialMEIFinance,
+      SocialMEIClients,
+      SocialMEIProducts,
+    ].some((store) => !ready(store));
+    sourceDetails.classList.toggle("has-warning", sourceProblem);
+    sourceDetails.querySelector("summary").textContent = sourceProblem
+      ? "Confira a disponibilidade dos dados"
+      : SocialMEIAuth.remote
+        ? "Sobre estes dados"
+        : "Demonstração local · sobre estes dados";
+    if (sourceProblem) {
+      if (!sourceDetails.open) state.sourceAutoOpened = true;
+      sourceDetails.open = true;
+    } else if (state.sourceAutoOpened) {
+      sourceDetails.open = false;
+      state.sourceAutoOpened = false;
+    }
     state.chartMobile = innerWidth <= 600;
     animateMetrics(metrics, salesReady, financeReady);
     updateIndicator();
@@ -637,23 +700,12 @@ const SocialMEIReportUI = (() => {
         );
       return;
     }
+    document.querySelectorAll("#nvReportKpis small").forEach((note) => {
+      note.title = note.textContent;
+      note.textContent = note.textContent.replace("vs. período anterior", "vs. anterior");
+    });
+    SocialMEIReportMotion.update();
     document.querySelectorAll("#reportsView .rv2-trend").forEach((chart) => {
-      const key = chart.dataset.source,
-        signature = chart.dataset.series;
-      const changed = state.charts.get(key) !== signature;
-      state.charts.set(key, signature);
-      if (changed && !SocialMEIMotion.reduced && !document.hidden)
-        chart.querySelectorAll(".rv2-line").forEach((path) => {
-          const length = path.getTotalLength();
-          SocialMEIMotion.animate(
-            path,
-            [
-              { strokeDasharray: String(length), strokeDashoffset: length },
-              { strokeDasharray: String(length), strokeDashoffset: 0 },
-            ],
-            740,
-          );
-        });
       const tip = chart.querySelector(".rv2-chart-tooltip"),
         readout = chart.querySelector(".rv2-chart-readout");
       chart.querySelectorAll(".rv2-point").forEach((point) => {
@@ -706,13 +758,14 @@ const SocialMEIReportUI = (() => {
       values.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
     const sales = series.source === "sales",
       labelStep = Math.ceil(n / (mobile ? 5 : 7));
+    const hitRadius = n > 1 ? Math.min(22, (w - L - R) / (n - 1) / 2 - 1) : 22;
     const ticks = [0, 0.5, 1]
       .map(
         (value) =>
-          `<line x1="${L}" x2="${w - R}" y1="${y(max * value)}" y2="${y(max * value)}" stroke="var(--ln)"/><text x="${L - 6}" y="${y(max * value) + 4}" text-anchor="end" fill="var(--mt)" font-size="${mobile ? 11 : 14}">${(max * value).toLocaleString("pt-BR", { notation: "compact", maximumFractionDigits: 1 })}</text>`,
+          `<line x1="${L}" x2="${w - R}" y1="${y(max * value)}" y2="${y(max * value)}" stroke="var(--ln)"/><text x="${L - 6}" y="${y(max * value) + 4}" text-anchor="end" fill="var(--mt)" font-size="${mobile ? 12 : 14}">${(max * value).toLocaleString("pt-BR", { notation: "compact", maximumFractionDigits: 1 })}</text>`,
       )
       .join("");
-    return `<div class="management-chart rv2-trend" data-source="${series.source}" data-series="${escapeHtml(JSON.stringify(series))}"><svg viewBox="0 0 ${w} ${h}" role="group" aria-label="${sales ? "Faturamento das vendas pagas" : "Receitas e despesas pagas"}, em reais. Percorra os pontos com Tab.">${ticks}<path class="rv2-line" d="${path(series.r)}" fill="none" stroke="var(--brand-primary)" stroke-width="2.5" vector-effect="non-scaling-stroke"/>${sales ? "" : `<path class="rv2-line" d="${path(series.d)}" fill="none" stroke="var(--brand-accent)" stroke-width="2.5" vector-effect="non-scaling-stroke"/>`}${series.labels.map((label, i) => `<g class="rv2-point management-chart-column" role="button" tabindex="0" aria-label="${escapeHtml(label + ": " + (sales ? "faturamento " : "entrou ") + money(series.r[i]) + (sales ? "" : "; saiu " + money(series.d[i])))}"><circle cx="${x(i)}" cy="${y(series.r[i])}" r="12" fill="transparent"/><circle cx="${x(i)}" cy="${y(series.r[i])}" r="${mobile ? 5 : 4}" fill="var(--sf)" stroke="var(--brand-primary)" stroke-width="2" vector-effect="non-scaling-stroke"/></g>${i % labelStep === 0 || i === n - 1 ? `<text x="${x(i)}" y="${h - 12}" text-anchor="middle" fill="var(--mt)" font-size="${mobile ? 12 : 16}">${escapeHtml(label)}</text>` : ""}`).join("")}</svg><p class="rv2-chart-tooltip" hidden></p><p class="rv2-chart-readout management-note" role="status">Passe o mouse ou use Tab nos pontos para conferir valores.</p></div>`;
+    return `<div class="management-chart rv2-trend" data-source="${series.source}" data-series="${escapeHtml(JSON.stringify(series))}"><svg viewBox="0 0 ${w} ${h}" role="group" aria-label="${sales ? "Faturamento das vendas pagas" : "Receitas e despesas pagas"}, em reais. Percorra os pontos com Tab.">${ticks}<path class="rv2-line" d="${path(series.r)}" fill="none" stroke="var(--brand-primary)" stroke-width="2.5" vector-effect="non-scaling-stroke"/>${sales ? "" : `<path class="rv2-line" d="${path(series.d)}" fill="none" stroke="var(--brand-accent)" stroke-width="2.5" vector-effect="non-scaling-stroke"/>`}${series.labels.map((label, i) => `<g class="rv2-point management-chart-column" role="button" tabindex="0" aria-label="${escapeHtml(label + ": " + (sales ? "faturamento " : "entrou ") + money(series.r[i]) + (sales ? "" : "; saiu " + money(series.d[i])))}"><ellipse cx="${x(i)}" cy="${y(series.r[i])}" rx="${hitRadius}" ry="22" fill="transparent"/><circle cx="${x(i)}" cy="${y(series.r[i])}" r="${mobile ? 5 : 4}" fill="var(--sf)" stroke="var(--brand-primary)" stroke-width="2" vector-effect="non-scaling-stroke"/></g>${i % labelStep === 0 || i === n - 1 ? `<text x="${x(i)}" y="${h - 12}" text-anchor="middle" fill="var(--mt)" font-size="${mobile ? 12 : 16}">${escapeHtml(label)}</text>` : ""}`).join("")}</svg><p class="rv2-chart-tooltip" hidden></p><p class="rv2-chart-readout management-note" role="status">Passe o mouse ou use Tab nos pontos para conferir valores.</p></div>`;
   }
   function statusPanel(metrics) {
     const total = metrics.sales.length;
@@ -810,7 +863,7 @@ const SocialMEIReportUI = (() => {
       return;
     }
     if (control.dataset.reportAction === "details") {
-      beginDialog(record.title);
+      beginDialog(displayTitle(record));
       showRecord(record, state.transient.includes(record));
       return;
     }
@@ -837,6 +890,28 @@ const SocialMEIReportUI = (() => {
     cancelAnimationFrame(state.frame);
     if (typeof currentView !== "undefined" && currentView === "Relatórios") renderReports();
   });
+  document.addEventListener(
+    "toggle",
+    (event) => {
+      if (
+        event.target.matches(
+          "#reportsView .report-detail[open], #reportsView .management-chart-alternative[open]",
+        )
+      ) {
+        const content = event.target.querySelector(".report-detail-body, .table-wrap");
+        SocialMEIMotion.animate(
+          content,
+          [
+            { opacity: 0.6, transform: "translateY(-4px)" },
+            { opacity: 1, transform: "none" },
+          ],
+          180,
+        );
+        SocialMEIReportMotion.update();
+      }
+    },
+    true,
+  );
   return {
     afterRender,
     trend,
@@ -846,5 +921,6 @@ const SocialMEIReportUI = (() => {
     printCurrent,
     scope,
     capture,
+    cancelGeneration,
   };
 })();
