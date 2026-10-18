@@ -75,6 +75,8 @@ const SocialMEIOpportunities = (() => {
       .map(([, text]) => text);
     if (row.group === "inquiry" && found.length)
       return "Consultou " + new Intl.ListFormat("pt-BR").format(found) + ".";
+    if (row.group === "first") return "Indicou interesse explícito em compra ou contratação.";
+    if (row.group === "support") return "Relatou um problema ou pediu suporte; confira o contexto.";
     if (row.group === "unknown") return "Ainda faltam sinais para entender a necessidade.";
     return row.reasons[0];
   }
@@ -85,31 +87,255 @@ const SocialMEIOpportunities = (() => {
       snapshot: opportunityDemoSnapshot,
       conversations: sessionData.conversas,
     });
+    if (demoEnabled && !remote()) customers.push(...SocialMEIClientAnalysis.demoCustomers());
     rows = SocialMEIPriority.prioritizeCustomers(customers, {
       referenceTime: new Date().toISOString(),
       reviews,
     });
   }
+  let profileScope;
+  let identity,
+    activeTab = "analysis",
+    chanceFilter = "all",
+    alertFilter = "open",
+    levels = {},
+    resolved = {};
+  const levelsLabel = SocialMEIClientAnalysis.LEVELS;
+  const status = (text) => {
+    byId("clientAnalysisStatus").textContent = text;
+  };
+  function syncIdentity() {
+    let next;
+    try {
+      profileScope ||= SocialMEIBusinessProfile.browserRepository();
+      next = profileScope.scope();
+    } catch {
+      next = null;
+    }
+    if (identity !== next) {
+      identity = next;
+      demoEnabled = false;
+      reviews = {};
+      levels = {};
+      resolved = {};
+      rows = [];
+      activeTab = "analysis";
+      chanceFilter = "all";
+      alertFilter = "open";
+      clearAnalysis();
+      byId("opportunityAnalysisStatus").textContent = "";
+      if (byId("opportunityModal").classList.contains("open")) closeModal("opportunityModal");
+    }
+  }
+  function presentation(row) {
+    return SocialMEIClientAnalysis.present(row, levels[row.id]);
+  }
+  function filters(entries, attribute, selected) {
+    const group = node("div", undefined, "client-analysis-filters");
+    group.setAttribute("role", "group");
+    group.setAttribute(
+      "aria-label",
+      attribute === "data-analysis-level" ? "Filtrar interesse" : "Filtrar alertas",
+    );
+    for (const [value, label, count] of entries) {
+      const control = button(label + " · " + count, attribute, value);
+      control.setAttribute("aria-pressed", String(value === selected));
+      group.append(control);
+    }
+    return group;
+  }
+  function renderTabs() {
+    const counts = { analysis: 0, chance: 0, attention: 0 };
+    rows.forEach((row) => {
+      const p = presentation(row);
+      if (p.lane in counts && !(p.lane === "attention" && resolved[row.id])) counts[p.lane]++;
+    });
+    document.querySelectorAll("[data-analysis-tab]").forEach((tab) => {
+      const selected = tab.dataset.analysisTab === activeTab;
+      tab.setAttribute("aria-selected", String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+      tab.querySelector("[data-analysis-count]").textContent = counts[tab.dataset.analysisTab];
+    });
+    byId("clientAnalysisTabs").style.setProperty(
+      "--client-tab",
+      ["analysis", "chance", "attention"].indexOf(activeTab),
+    );
+    byId("opportunityQueue").setAttribute("aria-labelledby", "clientTab-" + activeTab);
+  }
+  function evidence(row) {
+    const list = node("div", undefined, "client-analysis-evidence");
+    list.append(node("h4", "Mensagens e evidências"));
+    row.analyses.forEach(({ message, result }) => {
+      list.append(node("blockquote", message.text));
+      result.signals.forEach((signal) => list.append(node("p", signal.label, "management-note")));
+    });
+    return list;
+  }
+  function customerCard(row, p) {
+    const card = node("article", undefined, "client-analysis-card");
+    card.dataset.nativeOpportunity = row.id;
+    const head = node("div", undefined, "client-analysis-person");
+    const initials = row.name
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((s) => s[0])
+      .join("");
+    const avatar = node("span", initials, "client-analysis-avatar");
+    avatar.setAttribute("aria-hidden", "true");
+    const title = node("div");
+    title.append(
+      node("h3", row.name),
+      node("span", "Exemplo fictício · datas não disponíveis", "management-note"),
+    );
+    head.append(avatar, title);
+    const label =
+      p.lane === "analysis"
+        ? "Em análise"
+        : p.lane === "chance"
+          ? levelsLabel[p.level]
+          : p.lane === "excluded"
+            ? displayLabel(row)
+            : { critical: "Crítica", high: "Alta", normal: "Normal" }[p.priority];
+    head.append(
+      node(
+        "span",
+        label,
+        "client-analysis-badge " +
+          (p.lane === "chance" ? p.level : p.lane === "attention" ? p.priority : ""),
+      ),
+    );
+    card.append(head);
+    if (p.lane === "analysis") {
+      const known = node("div", undefined, "client-analysis-grid");
+      const left = node("div");
+      left.append(node("h4", "O que já sabemos"), node("p", p.known));
+      const right = node("div");
+      right.append(node("h4", "O que falta saber"));
+      const list = node("ul");
+      p.missing.forEach((text) => list.append(node("li", text)));
+      right.append(list);
+      known.append(left, right);
+      card.append(
+        known,
+        node("h4", "Pergunta sugerida"),
+        node("blockquote", p.question),
+        button("Copiar pergunta", "data-analysis-copy", row.id),
+      );
+      const choice = node("details", undefined, "client-analysis-choice");
+      choice.append(node("summary", "Já sei o que ele quer"));
+      const actions = node("div", undefined, "native-opportunity-actions");
+      for (const [level, text] of Object.entries(levelsLabel)) {
+        const control = button(text, "data-analysis-classify", row.id);
+        control.dataset.analysisValue = level;
+        actions.append(control);
+      }
+      choice.append(
+        node(
+          "p",
+          "Sua classificação vale só nesta sessão; confirme o contexto antes de agir.",
+          "management-note",
+        ),
+        actions,
+      );
+      card.append(choice);
+    } else {
+      card.append(node("p", briefReason(row), "client-analysis-reason"));
+      if (p.lane === "chance") {
+        const interest = node("div", undefined, "client-analysis-interest");
+        interest.setAttribute("role", "img");
+        interest.setAttribute(
+          "aria-label",
+          "Interesse " + levelsLabel[p.level] + ": nível qualitativo, sem probabilidade de compra",
+        );
+        for (let i = 0; i < 3; i++)
+          interest.append(
+            node("i", undefined, i < { quente: 3, morno: 2, frio: 1 }[p.level] ? "on" : ""),
+          );
+        card.append(
+          interest,
+          node(
+            "p",
+            p.manual
+              ? "Classificação manual · apenas nesta sessão"
+              : "Recomendação heurística · confirme com o cliente",
+            "management-note",
+          ),
+        );
+      }
+      const detail = node("details", undefined, "client-analysis-expand");
+      detail.append(
+        node(
+          "summary",
+          p.lane === "attention" ? "Motivo, evidências e resposta" : "Por que esse resultado?",
+        ),
+        evidence(row),
+      );
+      const reasons = node("ul");
+      row.reasons.forEach((reason) => reasons.append(node("li", reason)));
+      detail.append(reasons, node("h4", "Próximo passo sugerido"), node("p", nextStep(row)));
+      if (p.lane === "attention") {
+        detail.append(
+          node("h4", "Resposta sugerida · revise antes de usar"),
+          node("blockquote", p.response),
+          button("Copiar resposta", "data-analysis-copy", row.id),
+        );
+      }
+      card.append(detail);
+      if (p.lane === "attention") {
+        card.dataset.priority = p.priority;
+        card.append(
+          node(
+            "p",
+            resolved[row.id]
+              ? "Resolvido nesta demonstração"
+              : "Sem notificação externa ou envio de mensagem",
+            "management-note",
+          ),
+          button(
+            resolved[row.id] ? "Reabrir" : "Marcar como resolvido",
+            "data-analysis-resolve",
+            row.id,
+          ),
+        );
+      }
+      if (p.manual)
+        card.append(button("Restaurar análise automática", "data-analysis-reset", row.id));
+    }
+    const actions = node("div", undefined, "native-opportunity-actions");
+    actions.append(button("Ver conversa e revisar", "data-opportunity-open", row.id));
+    card.append(actions);
+    return card;
+  }
   function render() {
+    syncIdentity();
     refreshRows();
     const source = byId("opportunitySource"),
       queue = byId("opportunityQueue");
     source.replaceChildren();
     queue.replaceChildren();
     if (!demoEnabled || remote()) {
-      const empty = node("div", undefined, "management-card native-opportunity-empty");
+      rows = [];
+      renderTabs();
+      const empty = node("div", undefined, "native-opportunity-empty");
       empty.append(
         node("h3", "Ainda não há conversas disponíveis para esta análise"),
         node(
           "p",
-          "Para identificar oportunidades, precisamos de conversas vinculadas aos clientes do seu negócio. Confira os canais em Configurações. A integração com esta aba ainda está em preparação.",
+          "Precisamos de conversas vinculadas aos clientes do seu negócio. Confira os canais em Configurações. A integração com esta análise ainda está em preparação.",
+          "management-note",
+        ),
+        button("Ver integrações", "data-opportunity-integrations"),
+      );
+      if (!remote())
+        empty.append(button("Explorar demonstração fictícia", "data-opportunity-demo"));
+      source.append(empty);
+      queue.append(
+        node(
+          "p",
+          "Nenhum cliente nesta seção. Não inferimos oportunidades sem uma fonte confiável.",
           "management-note",
         ),
       );
-      empty.append(button("Ver integrações", "data-opportunity-integrations"));
-      if (!remote() && opportunityDemoSnapshot.length)
-        empty.append(button("Explorar conversas fictícias da Caixa", "data-opportunity-demo"));
-      source.append(empty);
       return;
     }
     const note = node("div", undefined, "management-demo");
@@ -117,7 +343,7 @@ const SocialMEIOpportunities = (() => {
       node("span", "Demonstração · mensagens fictícias", "pill draft"),
       node(
         "span",
-        "Análise dos exemplos da Caixa. Nenhuma mensagem ou recomendação desta demonstração representa uma oportunidade real.",
+        "Exemplos da Caixa e casos sintéticos isolados. Nada é salvo no CRM ou enviado aos canais.",
       ),
     );
     const actions = node("div", undefined, "native-opportunity-actions");
@@ -126,35 +352,87 @@ const SocialMEIOpportunities = (() => {
       button("Encerrar demonstração", "data-opportunity-stop"),
     );
     source.append(note, actions);
-    if (!rows.length) {
+    renderTabs();
+    let items = rows.filter((row) => presentation(row).lane === activeTab);
+    if (activeTab === "analysis") {
       queue.append(
-        node("p", "As conversas fictícias não estão mais disponíveis na Caixa.", "management-note"),
+        node(
+          "p",
+          "Entenda a necessidade → esclareça o que falta → revise a classificação.",
+          "client-analysis-intro",
+        ),
       );
-      return;
+    } else if (activeTab === "chance") {
+      const all = items;
+      queue.append(
+        node(
+          "p",
+          "Níveis de interesse por regras locais, não probabilidades de compra. Expanda um cliente para conferir os motivos.",
+          "client-analysis-intro",
+        ),
+        filters(
+          [
+            ["all", "Todos", all.length],
+            ...Object.entries(levelsLabel).map(([key, label]) => [
+              key,
+              label,
+              all.filter((r) => presentation(r).level === key).length,
+            ]),
+          ],
+          "data-analysis-level",
+          chanceFilter,
+        ),
+      );
+      items = all.filter(
+        (row) => chanceFilter === "all" || presentation(row).level === chanceFilter,
+      );
+      items.sort(
+        (a, b) =>
+          ["quente", "morno", "frio"].indexOf(presentation(a).level) -
+          ["quente", "morno", "frio"].indexOf(presentation(b).level),
+      );
+    } else {
+      const all = items;
+      queue.append(
+        node(
+          "p",
+          "Suporte e situações urgentes têm prioridade própria. Resolução é apenas uma marca nesta sessão, sem alterar atendimentos reais.",
+          "client-analysis-intro",
+        ),
+        filters(
+          [
+            ["open", "Abertos", all.filter((r) => !resolved[r.id]).length],
+            ["resolved", "Resolvidos", all.filter((r) => resolved[r.id]).length],
+          ],
+          "data-analysis-alert",
+          alertFilter,
+        ),
+      );
+      items = all.filter((r) => (alertFilter === "resolved" ? resolved[r.id] : !resolved[r.id]));
+      items.sort(
+        (a, b) =>
+          ["critical", "high", "normal"].indexOf(presentation(a).priority) -
+          ["critical", "high", "normal"].indexOf(presentation(b).priority),
+      );
     }
-    for (const commercial of [true, false]) {
-      queue.append(
-        node("h3", commercial ? "Acompanhamento comercial" : "Atendimento, pós-venda e recusas"),
+    const list = node("div", undefined, "client-analysis-list");
+    items.forEach((row) => list.append(customerCard(row, presentation(row))));
+    if (!items.length)
+      list.append(node("p", "Nenhum cliente neste filtro.", "native-opportunity-empty"));
+    queue.append(list);
+    if (activeTab === "chance") {
+      const outside = rows.filter((row) => presentation(row).lane === "excluded");
+      const detail = node("details", undefined, "client-analysis-excluded");
+      detail.append(
+        node("summary", "Fora da fila comercial · " + outside.length),
+        node(
+          "p",
+          "Recusas, compras concluídas e pós-venda não são novas oportunidades. Respeite a decisão e confira o contexto.",
+          "management-note",
+        ),
       );
-      const list = node(commercial ? "ol" : "ul", undefined, "native-opportunity-list");
-      const items = rows.filter((row) => row.commercial === commercial);
-      for (const [index, row] of items.entries()) {
-        const card = node("li");
-        card.dataset.nativeOpportunity = row.id;
-        const title = node("div", undefined, "native-opportunity-person");
-        if (commercial)
-          title.append(
-            node("span", String(index + 1).padStart(2, "0"), "native-opportunity-position"),
-          );
-        title.append(node("strong", row.name));
-        const why = node("div", undefined, "native-opportunity-why");
-        why.append(node("span", displayLabel(row), "pill"), node("p", briefReason(row)));
-        card.append(title, button("Ver evidências", "data-opportunity-open", row.id), why);
-        list.append(card);
-      }
-      if (!items.length)
-        list.append(node("li", "Nenhum exemplo neste encaminhamento.", "management-note"));
-      queue.append(list);
+      outside.forEach((row) => detail.append(customerCard(row, presentation(row))));
+      queue.append(detail);
     }
   }
   function signalPanel(result) {
@@ -208,12 +486,14 @@ const SocialMEIOpportunities = (() => {
       node("h4", displayLabel(row)),
       node("p", "Recomendação automática: " + displayLabel(row, row.recommendation.group)),
     );
+    if (levels[id]) body.append(node("p", "Classificação manual: " + levelsLabel[levels[id]]));
     if (row.review) body.append(node("p", "Revisão humana: " + row.review.reason));
     const reasons = node("ul");
     row.reasons.forEach((reason) => reasons.append(node("li", reason)));
     body.append(reasons, node("h4", "Próximo passo prudente"), node("p", nextStep(row)));
     const actions = node("div", undefined, "native-opportunity-actions");
-    actions.append(button("Abrir na Caixa Unificada", "data-opportunity-conversation", id));
+    if (findConversation(row))
+      actions.append(button("Abrir na Caixa Unificada", "data-opportunity-conversation", id));
     const client = linkedClient(row);
     if (client)
       actions.append(button("Consultar cliente vinculado", "data-opportunity-client", id));
@@ -286,12 +566,102 @@ const SocialMEIOpportunities = (() => {
       byId("opportunityModalTitle").focus();
       body.scrollTop = 0;
     });
-    const opener = document.querySelector(`[data-opportunity-open="${CSS.escape(id)}"]`);
+    let opener = document.querySelector(`[data-opportunity-open="${CSS.escape(id)}"]`);
+    if (!opener?.getClientRects().length || opener.closest("details:not([open])"))
+      opener = document.querySelector(`[data-analysis-tab="${activeTab}"]`);
     if (byId("opportunityModal").classList.contains("open"))
       byId("opportunityModal")._returnFocus = opener;
     return true;
   }
   function clearAnalysis() {
+    byId("clientAnalysisTabs").addEventListener("keydown", (event) => {
+      const tabs = [...document.querySelectorAll("[data-analysis-tab]")];
+      const index = tabs.indexOf(event.target);
+      if (index < 0) return;
+      const next =
+        event.key === "ArrowRight"
+          ? (index + 1) % 3
+          : event.key === "ArrowLeft"
+            ? (index + 2) % 3
+            : event.key === "Home"
+              ? 0
+              : event.key === "End"
+                ? 2
+                : null;
+      if (next === null) return;
+      event.preventDefault();
+      tabs[next].click();
+      tabs[next].focus();
+    });
+    document.addEventListener("click", async (event) => {
+      const action = event.target.closest(
+        "[data-analysis-tab],[data-analysis-level],[data-analysis-alert],[data-analysis-classify],[data-analysis-copy],[data-analysis-resolve],[data-analysis-reset]",
+      );
+      if (!action) return;
+      syncIdentity();
+      refreshRows();
+      const focus = (selector) => {
+        render();
+        document.querySelector(selector)?.focus();
+      };
+      if (action.hasAttribute("data-analysis-tab")) {
+        activeTab = action.dataset.analysisTab;
+        focus(`[data-analysis-tab="${activeTab}"]`);
+        return;
+      }
+      if (action.hasAttribute("data-analysis-level")) {
+        chanceFilter = action.dataset.analysisLevel;
+        focus(`[data-analysis-level="${chanceFilter}"]`);
+        return;
+      }
+      if (action.hasAttribute("data-analysis-alert")) {
+        alertFilter = action.dataset.analysisAlert;
+        focus(`[data-analysis-alert="${alertFilter}"]`);
+        return;
+      }
+      const id =
+        action.dataset.analysisClassify ||
+        action.dataset.analysisCopy ||
+        action.dataset.analysisResolve ||
+        action.dataset.analysisReset;
+      const row = rows.find((r) => r.id === id);
+      if (!row || remote() || !demoEnabled) return;
+      const p = presentation(row);
+      if (
+        action.hasAttribute("data-analysis-classify") &&
+        p.lane === "analysis" &&
+        Object.hasOwn(levelsLabel, action.dataset.analysisValue)
+      ) {
+        levels[id] = action.dataset.analysisValue;
+        activeTab = "chance";
+        chanceFilter = "all";
+        focus('[data-analysis-tab="chance"]');
+        status(row.name + ": classificação manual aplicada só nesta sessão.");
+      }
+      if (action.hasAttribute("data-analysis-reset")) {
+        delete levels[id];
+        focus('[data-analysis-tab="chance"]');
+        status("Classificação automática restaurada.");
+      }
+      if (action.hasAttribute("data-analysis-resolve") && p.lane === "attention") {
+        resolved[id] = !resolved[id];
+        focus(`[data-analysis-alert="${alertFilter}"]`);
+        status(
+          resolved[id]
+            ? "Alerta marcado como resolvido apenas nesta sessão."
+            : "Alerta reaberto apenas nesta sessão.",
+        );
+      }
+      if (action.hasAttribute("data-analysis-copy")) {
+        try {
+          if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
+          await navigator.clipboard.writeText(p.lane === "analysis" ? p.question : p.response);
+          status("Texto copiado. Revise antes de usar; nenhuma mensagem foi enviada.");
+        } catch {
+          status("Não foi possível copiar. Selecione o texto e copie manualmente.");
+        }
+      }
+    });
     byId("opportunityText").value = "";
     byId("opportunityAnalysis").replaceChildren();
     byId("opportunityAnalysis").hidden = true;
@@ -302,6 +672,7 @@ const SocialMEIOpportunities = (() => {
       "[data-opportunity-demo],[data-opportunity-stop],[data-opportunity-refresh],[data-opportunity-integrations],[data-opportunity-open],[data-opportunity-restore],[data-opportunity-conversation],[data-opportunity-client],[data-opportunity-clear]",
     );
     if (!action) return;
+    syncIdentity();
     if (action.hasAttribute("data-opportunity-demo")) {
       if (remote()) return;
       demoEnabled = true;
@@ -310,6 +681,8 @@ const SocialMEIOpportunities = (() => {
     if (action.hasAttribute("data-opportunity-stop")) {
       demoEnabled = false;
       reviews = {};
+      levels = {};
+      resolved = {};
       clearAnalysis();
       render();
     }
@@ -359,6 +732,94 @@ const SocialMEIOpportunities = (() => {
       } else toast("Conversa indisponível", "A conversa não está mais disponível na Caixa.");
     }
   });
+  byId("clientAnalysisTabs").addEventListener("keydown", (event) => {
+    const tabs = [...document.querySelectorAll("[data-analysis-tab]")];
+    const index = tabs.indexOf(event.target);
+    if (index < 0) return;
+    const next =
+      event.key === "ArrowRight"
+        ? (index + 1) % 3
+        : event.key === "ArrowLeft"
+          ? (index + 2) % 3
+          : event.key === "Home"
+            ? 0
+            : event.key === "End"
+              ? 2
+              : null;
+    if (next === null) return;
+    event.preventDefault();
+    tabs[next].click();
+    tabs[next].focus();
+  });
+  document.addEventListener("click", async (event) => {
+    const action = event.target.closest(
+      "[data-analysis-tab],[data-analysis-level],[data-analysis-alert],[data-analysis-classify],[data-analysis-copy],[data-analysis-resolve],[data-analysis-reset]",
+    );
+    if (!action) return;
+    syncIdentity();
+    refreshRows();
+    const focus = (selector) => {
+      render();
+      document.querySelector(selector)?.focus();
+    };
+    if (action.hasAttribute("data-analysis-tab")) {
+      activeTab = action.dataset.analysisTab;
+      focus(`[data-analysis-tab="${activeTab}"]`);
+      return;
+    }
+    if (action.hasAttribute("data-analysis-level")) {
+      chanceFilter = action.dataset.analysisLevel;
+      focus(`[data-analysis-level="${chanceFilter}"]`);
+      return;
+    }
+    if (action.hasAttribute("data-analysis-alert")) {
+      alertFilter = action.dataset.analysisAlert;
+      focus(`[data-analysis-alert="${alertFilter}"]`);
+      return;
+    }
+    const id =
+      action.dataset.analysisClassify ||
+      action.dataset.analysisCopy ||
+      action.dataset.analysisResolve ||
+      action.dataset.analysisReset;
+    const row = rows.find((r) => r.id === id);
+    if (!row || remote() || !demoEnabled) return;
+    const p = presentation(row);
+    if (
+      action.hasAttribute("data-analysis-classify") &&
+      p.lane === "analysis" &&
+      Object.hasOwn(levelsLabel, action.dataset.analysisValue)
+    ) {
+      levels[id] = action.dataset.analysisValue;
+      activeTab = "chance";
+      chanceFilter = "all";
+      focus('[data-analysis-tab="chance"]');
+      status(row.name + ": classificação manual aplicada só nesta sessão.");
+    }
+    if (action.hasAttribute("data-analysis-reset")) {
+      delete levels[id];
+      focus('[data-analysis-tab="chance"]');
+      status("Classificação automática restaurada.");
+    }
+    if (action.hasAttribute("data-analysis-resolve") && p.lane === "attention") {
+      resolved[id] = !resolved[id];
+      focus(`[data-analysis-alert="${alertFilter}"]`);
+      status(
+        resolved[id]
+          ? "Alerta marcado como resolvido apenas nesta sessão."
+          : "Alerta reaberto apenas nesta sessão.",
+      );
+    }
+    if (action.hasAttribute("data-analysis-copy")) {
+      try {
+        if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
+        await navigator.clipboard.writeText(p.lane === "analysis" ? p.question : p.response);
+        status("Texto copiado. Revise antes de usar; nenhuma mensagem foi enviada.");
+      } catch {
+        status("Não foi possível copiar. Selecione o texto e copie manualmente.");
+      }
+    }
+  });
   byId("opportunityText").value = "";
   byId("opportunityAnalyzeForm").addEventListener("submit", (event) => {
     event.preventDefault();
@@ -388,6 +849,5 @@ const SocialMEIOpportunities = (() => {
   return Object.freeze({ render });
 })();
 function renderOpportunities() {
-  if (typeof SocialMEISalesCalculator !== "undefined") SocialMEISalesCalculator.reset();
   SocialMEIOpportunities.render();
 }

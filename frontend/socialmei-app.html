@@ -62,7 +62,6 @@
     <link rel="stylesheet" href="styles/workspace-refinement.css" />
     <link rel="stylesheet" href="styles/business-profile.css" />
     <link rel="stylesheet" href="styles/opportunities.css" />
-    <link rel="stylesheet" href="styles/sales-calculator.css" />
     <link rel="stylesheet" href="styles/reports-v2.css" />
     <script src="scripts/storage-and-themes.js"></script>
     <script src="scripts/motion.js"></script>
@@ -3986,8 +3985,8 @@
               <header class="management-header">
                 <div>
                   <span class="report-eyebrow">OPORTUNIDADES</span>
-                  <h2 id="opportunitiesTitle">Quem acompanhar primeiro?</h2>
-                  <p>Confira os sinais, esclareça dúvidas e mantenha a decisão com você.</p>
+                  <h2 id="opportunitiesTitle">Análise de clientes</h2>
+                  <p>Entenda a necessidade, acompanhe o interesse e cuide de quem precisa.</p>
                 </div>
               </header>
               <div class="management-demo">
@@ -3997,166 +3996,59 @@
                   cadastro.</span
                 >
               </div>
-              <section
-                class="management-card sales-calculator"
-                id="salesCalculator"
-                aria-labelledby="salesCalcTitle"
-              >
-                <header class="sales-calc-head">
-                  <div>
-                    <span class="report-eyebrow">CALCULADORA DE VENDAS V3</span>
-                    <h3 id="salesCalcTitle">Simule suas próximas vendas.</h3>
-                    <p class="management-note">
-                      Compare cenários com números informados por você. As taxas são hipóteses, não
-                      chances reais de compra.
-                    </p>
-                  </div>
-                  <span class="sales-calc-label">Simulação manual · sem salvar ou enviar</span>
-                </header>
-                <div class="sales-calc-layout">
-                  <form id="salesCalcForm" autocomplete="off" novalidate>
-                    <h4>Suas hipóteses</h4>
-                    <label for="salesCalcCount">Quantas oportunidades?</label>
-                    <input
-                      id="salesCalcCount"
-                      type="number"
-                      min="0"
-                      max="1000000"
-                      step="1"
-                      inputmode="numeric"
-                      placeholder="Ex.: 10"
-                      aria-describedby="salesCalcCountHelp salesCalcCountError"
-                    />
-                    <small id="salesCalcCountHelp"
-                      >Digite a quantidade manualmente; não lemos as conversas fictícias.</small
-                    >
-                    <small id="salesCalcCountError" class="sales-calc-error" role="alert"></small>
-                    <label for="salesCalcTicket">Ticket médio por venda (R$)</label>
-                    <input
-                      id="salesCalcTicket"
-                      type="number"
-                      min="0"
-                      max="1000000000"
-                      step="0.01"
-                      inputmode="decimal"
-                      placeholder="Ex.: 150"
-                      aria-describedby="salesCalcTicketError"
-                    />
-                    <small id="salesCalcTicketError" class="sales-calc-error" role="alert"></small>
-                    <label for="salesCalcClosed">Se esta quantidade fechar (opcional)</label>
-                    <input
-                      id="salesCalcClosed"
-                      type="number"
-                      min="0"
-                      max="1000000"
-                      step="1"
-                      inputmode="numeric"
-                      placeholder="Ex.: 2"
-                      aria-describedby="salesCalcClosedError"
-                    />
-                    <small id="salesCalcClosedError" class="sales-calc-error" role="alert"></small>
-                    <button type="button" id="salesCalcReset" class="management-button">
-                      Limpar simulação
-                    </button>
-                  </form>
-                  <div class="sales-calc-results">
-                    <h4>Três cenários</h4>
-                    <p class="management-note">
-                      Ajuste as taxas para visualizar diferentes resultados.
-                    </p>
-                    <div class="sales-calc-cards">
-                      <article class="sales-calc-scenario">
-                        <h5>Conservador</h5>
-                        <label for="salesCalcRate0"
-                          >Taxa de conversão hipotética:
-                          <output id="salesCalcRateLabel0">20%</output></label
-                        >
-                        <input
-                          type="range"
-                          id="salesCalcRate0"
-                          min="0"
-                          max="100"
-                          step="5"
-                          value="20"
-                        />
-                        <span>Vendas estimadas</span><strong id="salesCalcSales0">—</strong>
-                        <span>Receita potencial bruta</span
-                        ><strong id="salesCalcRevenue0">—</strong>
-                        <div class="sales-calc-track" aria-hidden="true">
-                          <i id="salesCalcBar0"></i>
-                        </div>
-                        <small id="salesCalcDelta0">—</small>
-                      </article>
-                      <article class="sales-calc-scenario is-reference">
-                        <h5>Intermediário</h5>
-                        <label for="salesCalcRate1"
-                          >Taxa de conversão hipotética:
-                          <output id="salesCalcRateLabel1">40%</output></label
-                        >
-                        <input
-                          type="range"
-                          id="salesCalcRate1"
-                          min="0"
-                          max="100"
-                          step="5"
-                          value="40"
-                        />
-                        <span>Vendas estimadas</span><strong id="salesCalcSales1">—</strong>
-                        <span>Receita potencial bruta</span
-                        ><strong id="salesCalcRevenue1">—</strong>
-                        <div class="sales-calc-track" aria-hidden="true">
-                          <i id="salesCalcBar1"></i>
-                        </div>
-                        <small id="salesCalcDelta1">—</small>
-                      </article>
-                      <article class="sales-calc-scenario">
-                        <h5>Otimista</h5>
-                        <label for="salesCalcRate2"
-                          >Taxa de conversão hipotética:
-                          <output id="salesCalcRateLabel2">60%</output></label
-                        >
-                        <input
-                          type="range"
-                          id="salesCalcRate2"
-                          min="0"
-                          max="100"
-                          step="5"
-                          value="60"
-                        />
-                        <span>Vendas estimadas</span><strong id="salesCalcSales2">—</strong>
-                        <span>Receita potencial bruta</span
-                        ><strong id="salesCalcRevenue2">—</strong>
-                        <div class="sales-calc-track" aria-hidden="true">
-                          <i id="salesCalcBar2"></i>
-                        </div>
-                        <small id="salesCalcDelta2">—</small>
-                      </article>
-                    </div>
-                    <div class="sales-calc-closed">
-                      <span>Receita bruta se a quantidade informada fechar</span>
-                      <strong id="salesCalcClosedRevenue">—</strong>
-                    </div>
-                    <p role="status" class="management-note" id="salesCalcStatus">
-                      Preencha oportunidades e ticket médio para calcular.
-                    </p>
-                  </div>
-                </div>
-                <details class="sales-calc-method">
-                  <summary>Como calculamos?</summary>
-                  <p>
-                    Vendas estimadas = oportunidades × taxa escolhida. Receita potencial bruta =
-                    vendas estimadas × ticket médio, arredondada ao centavo. A diferença é relativa
-                    ao cenário intermediário.
-                  </p>
-                  <p>
-                    Os resultados não representam vendas confirmadas, lucro ou probabilidades reais.
-                    Nada é salvo, transmitido ou consultado no CRM. Os campos são limpos ao reabrir
-                    Oportunidades.
-                  </p>
-                </details>
-              </section>
               <div id="opportunitySource"></div>
-              <div id="opportunityQueue"></div>
+              <div
+                class="client-analysis-tabs"
+                role="tablist"
+                aria-label="Análise de clientes"
+                id="clientAnalysisTabs"
+              >
+                <span class="client-analysis-indicator" aria-hidden="true"></span>
+                <button
+                  type="button"
+                  role="tab"
+                  id="clientTab-analysis"
+                  data-analysis-tab="analysis"
+                  aria-controls="opportunityQueue"
+                  aria-selected="true"
+                >
+                  Em análise <span data-analysis-count="analysis">0</span>
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  id="clientTab-chance"
+                  data-analysis-tab="chance"
+                  aria-controls="opportunityQueue"
+                  aria-selected="false"
+                  tabindex="-1"
+                >
+                  Chance de fechar <span data-analysis-count="chance">0</span>
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  id="clientTab-attention"
+                  data-analysis-tab="attention"
+                  aria-controls="opportunityQueue"
+                  aria-selected="false"
+                  tabindex="-1"
+                >
+                  Atenção <span data-analysis-count="attention">0</span>
+                </button>
+              </div>
+              <div
+                id="opportunityQueue"
+                role="tabpanel"
+                tabindex="0"
+                aria-labelledby="clientTab-analysis"
+              ></div>
+              <p
+                id="clientAnalysisStatus"
+                role="status"
+                aria-live="polite"
+                class="management-note"
+              ></p>
               <details class="native-opportunity-criteria">
                 <summary>Como a recomendação é formada</summary>
                 <p>
@@ -4688,8 +4580,8 @@
     <script src="scripts/intent-engine.js"></script>
     <script src="scripts/priority-engine.js"></script>
     <script src="scripts/opportunity-data.js"></script>
+    <script src="scripts/client-analysis.js"></script>
     <script src="scripts/opportunities.js"></script>
-    <script src="scripts/sales-calculator.js"></script>
     <script src="scripts/inbox.js"></script>
     <script src="scripts/reports.js"></script>
     <script src="scripts/report-data.js"></script>

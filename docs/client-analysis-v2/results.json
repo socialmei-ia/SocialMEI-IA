@@ -1,0 +1,17 @@
+{
+  "base": "6f4c8e1795cbb2e9074845edd9ac099a8ea3925b",
+  "node": {
+    "pass": 221,
+    "fail": 0,
+    "skip": 0
+  },
+  "focusedBrowser": {
+    "layouts": 8,
+    "widths": [320, 390, 768, 1440],
+    "themes": ["light", "dark"],
+    "status": "passed"
+  },
+  "data": "Synthetic opt-in local demo; remote accounts empty; no API writes",
+  "review": "interface-finish-gate PASS; no agents",
+  "ci": "See Draft PR checks for final commit"
+}
