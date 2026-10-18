@@ -355,10 +355,13 @@
     if (!before) {
       const options = q(".report-period-options");
       options.querySelector("summary").textContent = "Ajustar período e opções";
-      options.append(q(".management-report-period > .management-card-header"));
-      const caption = make("span", undefined, "v21-range");
-      caption.dataset.currentPeriod = "";
-      q("#reportQuickPeriods").after(caption);
+      const controls = q(".management-report-period > .management-card-header");
+      if (controls) options.append(controls);
+      if (!q(".rv2-range")) {
+        const caption = make("span", undefined, "v21-range");
+        caption.dataset.currentPeriod = "";
+        q("#reportQuickPeriods").after(caption);
+      }
       document.addEventListener(
         "submit",
         (event) => {
