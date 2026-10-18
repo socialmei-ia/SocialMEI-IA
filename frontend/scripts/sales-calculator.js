@@ -26,11 +26,16 @@
       integer(closed, "Fechamentos");
       if (closed > count) throw new RangeError("Fechamentos excedem oportunidades.");
     }
-    if (!Array.isArray(rates) || rates.length !== 3 ||
-      rates.some((rate) => typeof rate !== "number" || !Number.isFinite(rate) || rate < 0 || rate > 100))
+    if (
+      !Array.isArray(rates) ||
+      rates.length !== 3 ||
+      rates.some(
+        (rate) => typeof rate !== "number" || !Number.isFinite(rate) || rate < 0 || rate > 100,
+      )
+    )
       throw new RangeError("Taxas inválidas.");
     const values = rates.map((rate) => {
-      const expectedSales = count * rate / 100;
+      const expectedSales = (count * rate) / 100;
       const grossRevenue = Math.round(expectedSales * ticket * 100) / 100;
       return { rate, expectedSales, grossRevenue };
     });
@@ -46,7 +51,9 @@
     rootEl = document.getElementById("salesCalculator");
     if (!rootEl) return;
     const el = (id) => document.getElementById(id);
-    const put = (id, value) => { el(id).textContent = value; };
+    const put = (id, value) => {
+      el(id).textContent = value;
+    };
     const read = (id) => {
       const node = el(id);
       return node.value.trim() === "" ? null : node.validity.badInput ? NaN : Number(node.value);
@@ -58,13 +65,22 @@
       const rates = INITIAL_RATES.map((_, i) => Number(el("salesCalcRate" + i).value));
       rates.forEach((rate, i) => put("salesCalcRateLabel" + i, rate + "%"));
       const problems = {
-        salesCalcCount: count !== null && (!Number.isSafeInteger(count) || count < 0 || count > 1000000)
-          ? "Informe um inteiro entre 0 e 1.000.000." : "",
-        salesCalcTicket: ticket !== null && (!Number.isFinite(ticket) || ticket < 0 || ticket > 1000000000)
-          ? "Informe um ticket de R$ 0 a R$ 1 bilhão." : "",
-        salesCalcClosed: closed !== null && (!Number.isSafeInteger(closed) || closed < 0 ||
-          closed > 1000000 || (Number.isSafeInteger(count) && closed > count))
-          ? "Informe um número válido, até o total de oportunidades." : "",
+        salesCalcCount:
+          count !== null && (!Number.isSafeInteger(count) || count < 0 || count > 1000000)
+            ? "Informe um inteiro entre 0 e 1.000.000."
+            : "",
+        salesCalcTicket:
+          ticket !== null && (!Number.isFinite(ticket) || ticket < 0 || ticket > 1000000000)
+            ? "Informe um ticket de R$ 0 a R$ 1 bilhão."
+            : "",
+        salesCalcClosed:
+          closed !== null &&
+          (!Number.isSafeInteger(closed) ||
+            closed < 0 ||
+            closed > 1000000 ||
+            (Number.isSafeInteger(count) && closed > count))
+            ? "Informe um número válido, até o total de oportunidades."
+            : "",
       };
       Object.entries(problems).forEach(([id, problem]) => {
         put(id + "Error", problem);
@@ -79,16 +95,30 @@
         const s = result && result.scenarios[i];
         put("salesCalcSales" + i, s ? asNumber.format(s.expectedSales) : "—");
         put("salesCalcRevenue" + i, s ? asMoney.format(s.grossRevenue) : "—");
-        put("salesCalcDelta" + i, i === 1 ? "Cenário de referência" :
-          s ? (s.difference >= 0 ? "+ " : "− ") + asMoney.format(Math.abs(s.difference)) +
-          " em relação ao intermediário" : "—");
-        el("salesCalcBar" + i).style.width = s ? (s.grossRevenue / max * 100) + "%" : "0%";
+        put(
+          "salesCalcDelta" + i,
+          i === 1
+            ? "Cenário de referência"
+            : s
+              ? (s.difference >= 0 ? "+ " : "− ") +
+                asMoney.format(Math.abs(s.difference)) +
+                " em relação ao intermediário"
+              : "—",
+        );
+        el("salesCalcBar" + i).style.width = s ? (s.grossRevenue / max) * 100 + "%" : "0%";
       });
-      put("salesCalcClosedRevenue", result && result.closedRevenue !== null
-        ? asMoney.format(result.closedRevenue) : "—");
-      put("salesCalcStatus", invalid ? "Corrija os campos para atualizar a simulação." :
-        missing ? "Preencha oportunidades e ticket médio para calcular." :
-        "Simulação atualizada. Nenhum dado foi salvo ou enviado.");
+      put(
+        "salesCalcClosedRevenue",
+        result && result.closedRevenue !== null ? asMoney.format(result.closedRevenue) : "—",
+      );
+      put(
+        "salesCalcStatus",
+        invalid
+          ? "Corrija os campos para atualizar a simulação."
+          : missing
+            ? "Preencha oportunidades e ticket médio para calcular."
+            : "Simulação atualizada. Nenhum dado foi salvo ou enviado.",
+      );
     };
     rootEl._salesCalcDraw = draw;
     rootEl.addEventListener("input", (event) => {
