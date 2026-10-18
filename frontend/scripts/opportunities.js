@@ -388,5 +388,6 @@ const SocialMEIOpportunities = (() => {
   return Object.freeze({ render });
 })();
 function renderOpportunities() {
+  if (typeof SocialMEISalesCalculator !== "undefined") SocialMEISalesCalculator.reset();
   SocialMEIOpportunities.render();
 }
