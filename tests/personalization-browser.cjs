@@ -215,6 +215,13 @@ module.exports = async function personalization(browser, origin) {
     await page.locator("[data-business-profile-edit]").click();
     await page.locator("#businessSegmentAlternative").evaluate((el) => (el.open = true));
     await page.locator("#obSegment").selectOption("tailoring");
+    assert(
+      await page.locator('input[name="businessOffer"][value="products"]').isChecked(),
+      "specialty changes preserve the existing product offering",
+    );
+    // A service-only business is now an explicit choice, not a destructive segment default.
+    await page.locator('input[name="businessOffer"][value="services"]').check();
+    await page.locator('input[name="businessOffer"][value="products"]').uncheck();
     for (const step of [3, 4, 5, 6]) {
       await page.locator("[data-onboard-next]").click();
       await page.locator(`[data-onboard-panel="${step}"].is-active`).waitFor();

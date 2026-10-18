@@ -1,5 +1,7 @@
 # Onboarding V3 integrado — PR #57
 
+> Atualização posterior: a composição vertical da etapa Negócio está documentada em [ONBOARDING-BUSINESS-NATIVE.md](ONBOARDING-BUSINESS-NATIVE.md), com capturas e regressões próprias. O restante deste guia registra a integração anterior da PR #57.
+
 Integração autorizada explicitamente após apresentação do protótipo `experimental/onboarding-v3/`. Mesma branch `feat/socialmei-native-integration`, base inicial **b03342bb0b2023956f24aab75836c030d34ef52c**, árvore inicialmente limpa e HEAD remoto idêntico. CI inicial: **Repository checks #258, success** (em execução no início, sucesso confirmado durante a rodada).
 
 ## Abrir dentro da aplicação oficial

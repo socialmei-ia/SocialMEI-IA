@@ -419,57 +419,104 @@ html[data-preview-theme="dark"] {
   padding-top: 24px;
   margin-top: 28px;
 }
+.ob3-business-step {
+  padding-bottom: 24px;
+}
+.ob3-business-step .ob3-stage {
+  min-height: 0;
+  padding-top: 30px;
+  padding-bottom: 20px;
+}
+.ob3-business-step .ob3-footer {
+  position: static;
+  padding: 0;
+}
 .ob3-business-top {
   display: grid;
-  grid-template-columns: 1.1fr 1fr;
-  gap: 60px;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 40px;
   align-items: end;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
 }
-.ob3-business-top .ob3-intro {
-  margin: 0;
+.ob3-business-top h1 {
+  font-size: clamp(30px, 3.4vw, 44px);
+  max-width: 23ch;
+  margin-bottom: 12px;
 }
-.ob3-business-top .ob3-field {
+.ob3-business-top .ob3-intro,
+.ob3-business-top .ob3-field,
+.ob3-area-heading .ob3-field {
   margin: 0;
 }
 .ob3-discovery {
   display: grid;
-  grid-template-columns: 1.05fr 1fr;
-  gap: 38px;
-  align-items: start;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+}
+.ob3-area-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 14px;
 }
 .ob3-search {
-  max-width: 520px;
-  margin-bottom: 18px;
+  width: 360px;
+  max-width: 100%;
 }
-.ob3-discovery.is-searching {
-  grid-template-columns: 1fr;
-  max-width: 760px;
+.ob3-business-offers {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px 20px;
+  margin-top: 20px;
+  padding-top: 20px;
 }
-.ob3-discovery.is-searching .ob3-picker {
-  grid-row: 1;
+.ob3-business-offers .ob3-offer-switch {
+  margin-top: 0;
 }
-.ob3-reveal {
-  animation: ob3-reveal 180ms ease-out;
+.ob3-business-offers .ob3-error:not(:empty) {
+  flex-basis: 100%;
 }
-@keyframes ob3-reveal {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
+.ob3-business-step .ob3-search .ob3-feedback:empty,
+.ob3-business-step .ob3-error:empty {
+  display: none;
+}
+.ob3-all-activities {
+  margin-top: 12px;
+}
+.ob3-all-activities summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-secondary);
+  padding: 10px 0;
+  min-height: 44px;
+}
+.ob3-all-activities select {
+  font: inherit;
+  padding: 12px;
+  min-height: 48px;
+  width: 100%;
+  max-width: 100%;
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+}
+.ob3-all-activities select:focus-visible,
+.ob3-specialty-grid label:has(input:focus-visible) {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 3px;
 }
 .ob3-families {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 .ob3-family {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
+  grid-template-columns: 28px minmax(0, 1fr) 18px;
   align-items: center;
   column-gap: 9px;
   text-align: left;
@@ -477,8 +524,8 @@ html[data-preview-theme="dark"] {
   color: var(--text-primary);
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
-  padding: 16px 13px;
-  min-height: 90px;
+  padding: 14px;
+  min-height: 76px;
   transition:
     background-color 180ms,
     border-color 180ms,
@@ -501,6 +548,14 @@ html[data-preview-theme="dark"] {
   line-height: 1.5;
   margin-top: 4px;
 }
+.ob3-family-mark {
+  opacity: 0;
+  color: var(--brand-primary-text);
+  transition: opacity 180ms;
+}
+.ob3-family[aria-pressed="true"] .ob3-family-mark {
+  opacity: 1;
+}
 .ob3-family[aria-pressed="true"] {
   background: var(--selected);
   border-color: var(--brand-primary);
@@ -515,9 +570,33 @@ html[data-preview-theme="dark"] {
   min-width: 0;
 }
 .ob3-specialties legend {
-  font-size: 14px;
+  font-size: 19px;
   font-weight: 600;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
+}
+.ob3-specialties legend small {
+  display: block;
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 3px;
+}
+.ob3-specialty-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0 24px;
+  align-items: start;
+}
+.ob3-specialty-grid .ob3-radio-row {
+  padding: 14px 8px;
+  border-radius: 6px;
+  transition:
+    background-color 180ms,
+    border-color 180ms;
+}
+.ob3-specialty-grid .ob3-radio-row:has(input:checked) {
+  background: var(--selected);
+  border-bottom-color: var(--brand-primary);
 }
 .ob3-radio-row {
   position: relative;
@@ -546,17 +625,14 @@ html[data-preview-theme="dark"] {
 .ob3-radio-row:has(input:checked) b {
   color: var(--brand-primary-text);
 }
-.ob3-selection {
-  padding: 12px 15px;
-  border-left: 3px solid var(--brand-accent);
-  background: var(--surface);
-  margin-top: 18px;
+.ob3 .ob3-selection {
+  margin: 16px 0 0;
   font-size: 13px;
+  color: var(--text-secondary);
 }
 .ob3-selection b {
-  display: block;
-  font-size: 15px;
-  margin-bottom: 2px;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 .ob3-offer-switch {
   display: flex;
@@ -985,9 +1061,20 @@ html[data-preview-theme="dark"] {
   .ob3-discovery {
     gap: 24px;
   }
-  .ob3-family {
+  .ob3-families,
+  .ob3-specialty-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ob3-business-top {
     grid-template-columns: 1fr;
-    gap: 8px;
+    gap: 20px;
+  }
+  .ob3-area-heading {
+    gap: 20px;
+  }
+  .ob3-search {
+    width: 320px;
+    flex-shrink: 0;
   }
   .ob3-routine {
     gap: 22px;
@@ -1124,11 +1211,30 @@ html[data-preview-theme="dark"] {
   .ob3-business-top {
     margin-bottom: 20px;
   }
-  .ob3-family {
-    min-height: 117px;
-    padding: 13px 11px;
-    gap: 8px;
+  .ob3-business-step {
+    padding-bottom: 24px;
+  }
+  .ob3-business-step .ob3-stage {
+    padding-top: 24px;
+  }
+  .ob3-area-heading {
+    display: block;
+  }
+  .ob3-area-heading h2 {
+    margin-bottom: 14px;
+  }
+  .ob3-search {
+    width: 100%;
+  }
+  .ob3-families,
+  .ob3-specialty-grid {
     grid-template-columns: 1fr;
+  }
+  .ob3-family {
+    min-height: 68px;
+    padding: 11px 13px;
+    gap: 8px;
+    grid-template-columns: 28px minmax(0, 1fr) 18px;
   }
   .ob3-family b {
     font-size: 13px;

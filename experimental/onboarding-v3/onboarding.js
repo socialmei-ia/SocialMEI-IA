@@ -81,6 +81,7 @@
     returnTo: null,
     family: null,
     segmentChosen: false,
+    offersTouched: false,
     search: "",
     toolsTouched: false,
     contact: { name: "", email: "", phone: "", city: "", instagram: "", cnpj: "" },
@@ -91,6 +92,7 @@
   });
   let state = initial();
   let lastResetTrigger = null;
+  let specialtyAnimation = null;
   const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
   const announce = (text) => {
     $("announcement").textContent = text;
@@ -111,8 +113,39 @@
     return `<div class="ob3-split"><section class="ob3-welcome"><p class="ob3-eyebrow">Um começo leve</p>${intro("Vamos começar por você.", "Seu negócio tem um jeito próprio. Vamos preparar um espaço que combine com ele.")}<p class="ob3-note">Explore com <strong>dados fictícios</strong>. Nada é enviado ou salvo.</p></section><section class="ob3-contact-form" aria-label="Seus dados demonstrativos">${field("personName", "Como podemos chamar você?", state.contact.name, "text", 'required maxlength="80" autocomplete="name"', "Seu nome")}${field("email", "E-mail demonstrativo", state.contact.email, "email", 'required maxlength="254" autocomplete="email"', "ana@example.com")}${field("phone", "WhatsApp <small>(opcional)</small>", state.contact.phone, "tel", 'maxlength="32" autocomplete="tel" inputmode="tel"', "(81) 99999-0000")}<div class="ob3-example"><span>Prefere explorar sem preencher?</span><button class="ob3-text-button" type="button" data-action="example">Usar exemplo</button></div></section></div>`;
   }
   function businessView() {
-    return `<div class="ob3-business-top">${intro("Seu negócio, do seu jeito.", "Escolha uma área ou busque sua atividade. Os próximos passos se adaptam a você.")}${field("businessName", "Nome do seu negócio", state.draft.businessName, "text", 'required maxlength="120" autocomplete="organization"', "Ex.: Barbearia da Ana")}</div><div class="ob3-search">${field("activitySearch", "Encontre sua especialidade", state.search, "search", 'maxlength="90" autocomplete="off" aria-controls="specialties"', "Ex.: barbeiro, costura, celular")}</div><div class="ob3-discovery"><section aria-label="Áreas comerciais"><div id="familyGrid" class="ob3-families">${families.map((f) => `<button type="button" class="ob3-family" data-family="${f.id}" aria-pressed="${state.family === f.id}">${icon(f.id)}<span><b>${f.title}</b><small>${f.hint}</small></span></button>`).join("")}</div><div id="currentSelection"></div></section><section class="ob3-picker"><div id="specialties" aria-live="polite"></div><p class="ob3-error" id="segmentFeedback" role="status"></p><div id="manualActivity"${state.draft.segment === "other" && state.segmentChosen ? "" : " hidden"}>${field("activity", "Sua atividade, com suas palavras", state.draft.activity, "text", 'maxlength="120"', "Ex.: restauração de móveis")}</div></section></div><section class="ob3-section" aria-labelledby="offeringTitle"><h2 id="offeringTitle">E o que você oferece?</h2><p class="ob3-note">Uma sugestão inicial pela sua atividade. Pode escolher as duas opções.</p><div class="ob3-offer-switch" role="group" aria-labelledby="offeringTitle" aria-describedby="offersFeedback"><label><input type="checkbox" name="offers" value="products"${selection("offers", "products")}/>Produtos</label><label><input type="checkbox" name="offers" value="services"${selection("offers", "services")}/>Serviços</label></div><p id="offersFeedback" class="ob3-error" role="status"></p></section><details class="ob3-optional"><summary>Adicionar informações do negócio <span>(opcional)</span></summary><div class="ob3-fields-row">${field("city", "Cidade", state.contact.city, "text", 'maxlength="100" autocomplete="address-level2"', "Ex.: Belo Jardim – PE")}${field("instagram", "Instagram", state.contact.instagram, "text", 'maxlength="40"', "@seunegocio")}${field("cnpj", "CNPJ", state.contact.cnpj, "text", 'maxlength="18" inputmode="numeric"', "00.000.000/0001-00")}</div><p class="ob3-note">Informações demonstrativas; não há consulta nem cadastro de empresa.</p></details>`;
+    return `<div class="ob3-business-top">${intro("Seu negócio, do seu jeito.", "Escolha sua área. Depois, a especialidade que combina com você.")}${field("businessName", "Nome do seu negócio", state.draft.businessName, "text", 'required maxlength="120" autocomplete="organization"', "Ex.: Barbearia da Ana")}</div>
+      <div class="ob3-discovery">
+        <section aria-labelledby="familyTitle">
+          <div class="ob3-area-heading"><h2 id="familyTitle">Em qual área você trabalha?</h2><div class="ob3-search">${field("activitySearch", "Ou busque sua atividade", state.search, "search", 'maxlength="90" autocomplete="off" aria-controls="specialties"', "Ex.: barbeiro, costura, celular")}</div></div>
+          <div id="familyGrid" class="ob3-families">${families.map((f) => `<button type="button" class="ob3-family" data-family="${f.id}" aria-pressed="${state.family === f.id}" aria-controls="specialties">${icon(f.id)}<span><b>${f.title}</b><small>${f.hint}</small></span><span class="ob3-family-mark" aria-hidden="true">✓</span></button>`).join("")}</div>
+        </section>
+        <section class="ob3-picker" aria-label="Escolha da especialidade">
+          <div id="specialties"></div><p class="ob3-error" id="segmentFeedback" role="status"></p>
+          <div id="currentSelection" role="status"></div>
+          <details class="ob3-all-activities"><summary>Prefiro ver a lista completa</summary><label class="ob3-field" for="allActivities"><span>Todas as atividades</span><select id="allActivities"><option value="" disabled${!state.segmentChosen ? " selected" : ""}>Escolha uma atividade</option>${Object.entries(
+            model.segments,
+          )
+            .map(
+              ([id, item]) =>
+                `<option value="${id}"${state.segmentChosen && state.draft.segment === id ? " selected" : ""}>${escape(item.label)}</option>`,
+            )
+            .join("")}</select></label></details>
+          <div id="manualActivity"${state.draft.segment === "other" && state.segmentChosen ? "" : " hidden"}>${field("activity", "Sua atividade, com suas palavras", state.draft.activity, "text", 'maxlength="120"', "Ex.: restauração de móveis")}</div>
+        </section>
+      </div>
+      <section class="ob3-section ob3-business-offers" aria-labelledby="offeringTitle"><div><h2 id="offeringTitle">E o que você oferece?</h2><p class="ob3-note">Pode escolher as duas opções.</p></div><div class="ob3-offer-switch" role="group" aria-labelledby="offeringTitle" aria-describedby="offersFeedback"><label><input type="checkbox" name="offers" value="products"${selection("offers", "products")}/>Produtos</label><label><input type="checkbox" name="offers" value="services"${selection("offers", "services")}/>Serviços</label></div><p id="offersFeedback" class="ob3-error" role="status"></p></section>
+      <details class="ob3-optional"><summary>Adicionar informações do negócio <span>(opcional)</span></summary><div class="ob3-fields-row">${field("city", "Cidade", state.contact.city, "text", 'maxlength="100" autocomplete="address-level2"', "Ex.: Belo Jardim – PE")}${field("instagram", "Instagram", state.contact.instagram, "text", 'maxlength="40"', "@seunegocio")}${field("cnpj", "CNPJ", state.contact.cnpj, "text", 'maxlength="18" inputmode="numeric"', "00.000.000/0001-00")}</div><p class="ob3-note">Informações demonstrativas; não há consulta nem cadastro de empresa.</p></details>`;
   }
+
+  const searchAliases = {
+    barber: "barbeiro",
+    hairdresser: "cabeleireira cabeleireiro",
+    tailoring: "costureira costureiro",
+    bakery: "boleira bolos confeiteira",
+    phoneRepair: "conserto celular manutenção telefone",
+    laboratory: "química químico",
+    manicure: "nail designer",
+  };
   function picker() {
     const needle = state.search
       .normalize("NFD")
@@ -121,12 +154,25 @@
       .toLowerCase();
     const family = families.find((f) => f.id === state.family);
     const entries = Object.entries(model.segments).filter(([id, segment]) => {
-      const haystack = (id + " " + segment.label + " " + segment.description)
+      const haystack = [
+        id,
+        segment.label,
+        segment.family,
+        segment.description,
+        searchAliases[id] || "",
+      ]
+        .join(" ")
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
         .toLowerCase();
       return needle ? haystack.includes(needle) : family?.groups.includes(segment.family);
     });
+    if (needle)
+      announce(
+        entries.length
+          ? `${entries.length} atividades encontradas.`
+          : "Nenhuma atividade encontrada. Tente outro termo ou use a lista completa.",
+      );
     $("familyGrid").hidden = !!needle;
     document.querySelector(".ob3-discovery").classList.toggle("is-searching", !!needle);
     $("familyGrid")
@@ -136,13 +182,14 @@
       );
     $("specialties").innerHTML =
       !needle && !family
-        ? '<p class="ob3-note">Escolha uma das seis áreas ao lado ou use a busca. Você também pode descrever outra atividade.</p><button class="ob3-text-button" type="button" data-action="other">Descrever outra atividade →</button>'
+        ? '<p class="ob3-note">Escolha uma área acima para ver suas especialidades. Você também pode descrever outra atividade.</p><button class="ob3-text-button" type="button" data-action="other">Descrever outra atividade →</button>'
         : !entries.length
           ? '<p class="ob3-note">Não encontramos essa atividade. Tente outra palavra ou descreva seu trabalho.</p><button class="ob3-text-button" type="button" data-action="other">Descrever outra atividade →</button>'
-          : `<fieldset class="ob3-specialties"><legend>${needle ? `${entries.length} ${entries.length === 1 ? "resultado" : "resultados"} para sua busca` : "Qual atividade combina com você?"}</legend>${entries.map(([id, item]) => `<label class="ob3-radio-row"><input type="radio" name="segment" value="${id}"${state.segmentChosen && id === state.draft.segment ? " checked" : ""}/><span><b>${escape(item.label)}</b><small>${escape(item.description)}</small></span></label>`).join("")}</fieldset>`;
+          : `<fieldset class="ob3-specialties" aria-describedby="segmentFeedback"><legend>${needle ? "Resultados da busca" : "Agora, sua especialidade"}<small>${entries.length} ${entries.length === 1 ? "opção" : "opções"}${needle ? " encontradas" : " em " + escape(family.title)}</small></legend><div class="ob3-specialty-grid">${entries.map(([id, item]) => `<label class="ob3-radio-row"><input type="radio" name="segment" value="${id}"${state.segmentChosen && id === state.draft.segment ? " checked" : ""}/><span><b>${escape(item.label)}</b><small>${escape(item.description)}</small></span></label>`).join("")}</div></fieldset>`;
     $("currentSelection").innerHTML = state.segmentChosen
-      ? `<div class="ob3-selection"><b>${escape(model.segments[state.draft.segment].label)}</b>Selecionado para este exemplo. Você pode mudar.</div>`
+      ? `<p class="ob3-selection">Sua escolha: <b>${escape(model.segments[state.draft.segment].label)}</b></p>`
       : "";
+    $("allActivities").value = state.segmentChosen ? state.draft.segment : "";
     $("manualActivity").hidden = !(state.segmentChosen && state.draft.segment === "other");
   }
   function choiceGroup(kind, title, description, glyph) {
@@ -265,6 +312,7 @@
     }
   }
   function render() {
+    document.body.classList.toggle("ob3-business-step", state.step === 2 && !state.done);
     if (state.step === 5) prepareModules();
     $("stepList").innerHTML = names
       .map((name, i) => {
@@ -297,7 +345,9 @@
       ? "Demonstração concluída nesta página. Nada foi salvo."
       : state.step === 6
         ? "Demonstração em memória. Sem criar conta ou registros."
-        : "Dados fictícios · respostas só nesta página.";
+        : state.step === 2
+          ? "Prévia em memória. No aplicativo, o perfil é local neste navegador, sem sincronização."
+          : "Dados fictícios · respostas só nesta página.";
     state.errors = {};
   }
   function setError(id, message) {
@@ -447,9 +497,13 @@
     requestStep(target);
   }
   function chooseSegment(id) {
+    const firstChoice = !state.segmentChosen;
+    const changed = state.draft.segment !== id;
     state.segmentChosen = true;
     state.draft.segment = id;
-    state.draft.offers = [...model.segments[id].offers];
+    state.family = families.find((f) => f.groups.includes(model.segments[id].family))?.id || null;
+    if ((firstChoice || changed) && !state.offersTouched && state.maxVisited < 3)
+      state.draft.offers = [...model.segments[id].offers];
     state.draft = profile();
     state.dirty = true;
     document.querySelectorAll('input[name="offers"]').forEach((input) => {
@@ -459,7 +513,9 @@
     clearError("activitySearch");
     clearError("offers");
     picker();
-    announce(`${model.segments[id].label} selecionado. Confira o tipo de oferta sugerido.`);
+    announce(
+      `${model.segments[id].label} selecionado. Confira suas opções de produtos e serviços.`,
+    );
   }
   function addCustom(kind) {
     const input = $(kind + "Custom"),
@@ -523,21 +579,15 @@
       state.search = "";
       $("activitySearch").value = "";
       picker();
+      specialtyAnimation?.cancel();
       if (!reduced()) {
-        $("specialties").classList.add("ob3-reveal");
-        $("specialties").addEventListener(
-          "animationend",
-          () => $("specialties")?.classList.remove("ob3-reveal"),
-          { once: true },
+        specialtyAnimation = $("specialties").animate(
+          [
+            { opacity: 0.65, transform: "translateY(4px)" },
+            { opacity: 1, transform: "none" },
+          ],
+          { duration: 180, easing: "ease-out" },
         );
-      }
-      if (innerWidth <= 600) {
-        const legend = $("specialties").querySelector("legend");
-        if (legend) {
-          legend.tabIndex = -1;
-          legend.focus({ preventScroll: true });
-          legend.scrollIntoView({ block: "start", behavior: reduced() ? "instant" : "smooth" });
-        }
       }
       announce("Especialidades de " + families.find((f) => f.id === state.family).title);
       return;
@@ -606,6 +656,12 @@
   });
   $("stage").addEventListener("change", (event) => {
     const input = event.target;
+    if (input.id === "allActivities") {
+      state.search = "";
+      $("activitySearch").value = "";
+      chooseSegment(input.value);
+      if (input.value === "other") $("activity").focus();
+    }
     if (input.name === "segment") {
       chooseSegment(input.value);
       document
@@ -624,6 +680,7 @@
       if (input.name === "channels") state.channels = values;
       else state.draft[input.name] = values;
       if (input.name === "offers") {
+        state.offersTouched = true;
         state.draft = profile();
         clearError("offers");
       }
