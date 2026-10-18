@@ -25,8 +25,8 @@ module.exports = async function visualMotionFlows(browser, origin, errors = []) 
       .locator("#reportPeriodIndicator")
       .evaluate((element) => getComputedStyle(element).transitionDuration);
     assert(
-      duration.split(",").every((value) => parseFloat(value) === 0.33),
-      "O indicador do período deve ter transição de 330ms",
+      duration.split(",").every((value) => parseFloat(value) === 0.24),
+      "O indicador V2.1 deve usar a transição aprovada de 240ms",
     );
     assert.equal(
       await page.locator("#reportsGrid").evaluate((element) => element.getAnimations().length),
@@ -58,7 +58,7 @@ module.exports = async function visualMotionFlows(browser, origin, errors = []) 
       await page.locator("#mainContent").evaluate((element) => element === document.activeElement),
       true,
     );
-    return "Motion: indicador em 330ms, sem fade da página, foco preservado, reduced motion e skip link";
+    return "Motion: indicador V2.1 em 240ms, sem fade da página, foco preservado, reduced motion e skip link";
   } finally {
     await page.close();
   }

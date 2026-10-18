@@ -2,6 +2,7 @@
 const SocialMEIReportMotion = (() => {
   const geometries = new Map();
   let frame = 0;
+  let deferredUpdate = false;
   const points = (path) => {
     const values = (path.match(/-?\d+(?:\.\d+)?/g) || []).map(Number);
     return Array.from({ length: values.length / 2 }, (_, i) => values.slice(i * 2, i * 2 + 2));
@@ -18,13 +19,23 @@ const SocialMEIReportMotion = (() => {
   }
   function reset() {
     cancelAnimationFrame(frame);
+    frame = 0;
+    deferredUpdate = false;
     geometries.forEach(({ path }) =>
       path.getAnimations().forEach((animation) => animation.cancel()),
     );
     geometries.clear();
   }
   function update() {
+    // Opening details reuses the same SVG. Let its active morph finish before
+    // discovering newly visible charts; a new render can still interrupt it.
+    if (frame && document.querySelector('#reportsView [data-motion-state="updating"]')) {
+      deferredUpdate = true;
+      return;
+    }
     cancelAnimationFrame(frame);
+    frame = 0;
+    deferredUpdate = false;
     const jobs = [];
     document.querySelectorAll("#reportsView .rv2-trend").forEach((chart) => {
       chart.dataset.motionState = "settled";
@@ -69,7 +80,7 @@ const SocialMEIReportMotion = (() => {
         path.setAttribute("d", draw(entry.points));
         if (index === 0)
           chart.querySelectorAll(".rv2-point").forEach((point, i) => {
-            point.querySelectorAll("circle").forEach((circle) => {
+            point.querySelectorAll("circle, ellipse").forEach((circle) => {
               circle.setAttribute("cx", entry.points[i][0]);
               circle.setAttribute("cy", entry.points[i][1]);
             });
@@ -77,6 +88,10 @@ const SocialMEIReportMotion = (() => {
         if (t === 1) chart.dataset.motionState = "settled";
       });
       if (t < 1) frame = requestAnimationFrame(tick);
+      else {
+        frame = 0;
+        if (deferredUpdate) update();
+      }
     };
     frame = requestAnimationFrame(tick);
   }

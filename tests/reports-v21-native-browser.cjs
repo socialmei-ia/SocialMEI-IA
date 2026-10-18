@@ -137,7 +137,7 @@ module.exports = async function reportsNative(browser, origin) {
     );
     await page.screenshot({
       path: path.join(output, `${name}-${width}-${theme}.png`),
-      fullPage: true,
+      fullPage: !["generate", "ready"].includes(name),
       animations: "disabled",
     });
   };
@@ -172,6 +172,28 @@ module.exports = async function reportsNative(browser, origin) {
     );
     assert.equal(await page.evaluate(() => window.REPORTS_PREVIEW), undefined);
     assert(!(await page.content()).includes("experimental/reports-v21/sandbox.js"));
+    await page.locator('[data-report-quick="7 dias"]').click();
+    await page.evaluate(() => SocialMEIReportMotion.update());
+    await settle();
+    assert(
+      await page.evaluate(() => {
+        const chart = document.querySelector("#resultChapter .rv2-trend");
+        const expected = new DOMParser()
+          .parseFromString(SocialMEIReportUI.trend(JSON.parse(chart.dataset.series)), "text/html")
+          .querySelector(".rv2-line")
+          .getAttribute("d");
+        const numbers = (value) => value.match(/-?\d+(?:\.\d+)?/g).map(Number);
+        const target = numbers(expected),
+          actual = numbers(chart.querySelector(".rv2-line").getAttribute("d"));
+        return (
+          target.length === actual.length &&
+          target.every((value, i) => Math.abs(value - actual[i]) < 0.11)
+        );
+      }),
+      "Atualização repetida não pode congelar o gráfico no período anterior",
+    );
+    await page.locator('[data-report-quick="30 dias"]').click();
+    await settle();
     for (const width of [1440, 768, 390, 320])
       for (const theme of ["light", "dark"]) {
         await capture("dashboard", width, theme);
