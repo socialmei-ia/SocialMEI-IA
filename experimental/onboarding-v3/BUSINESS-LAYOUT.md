@@ -1,5 +1,7 @@
 # Negócio — composição vertical para aprovação
 
+> Registro da avaliação do protótipo. A composição foi posteriormente aprovada; a integração nativa na branch de desenvolvimento está em [ONBOARDING-BUSINESS-NATIVE.md](../../docs/ONBOARDING-BUSINESS-NATIVE.md). Merge e deploy permanecem sem autorização nesta rodada.
+
 Protótipo isolado, sem integração oficial, merge ou deploy. Base local: `989e5dd`, com a mesma árvore do merge publicado `f07892f`. Branch: `feat/socialmei-native-integration`. A PR #57 já está encerrada; esta rodada não altera sua entrega em produção.
 
 ## Abrir e avaliar

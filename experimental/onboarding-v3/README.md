@@ -1,6 +1,6 @@
 # Rodada atual — composição da etapa Negócio
 
-O protótipo foi atualizado para avaliar a composição vertical solicitada após a publicação da PR #57. **Esta nova rodada ainda não foi aprovada nem integrada ao frontend oficial.**
+A composição vertical desta rodada foi aprovada e integrada ao onboarding oficial na branch de desenvolvimento. Veja [a integração e os testes nativos](../../docs/ONBOARDING-BUSINESS-NATIVE.md). **Publicação ainda depende de autorização específica.** Esta pasta e o ZIP permanecem como registro da avaliação do protótipo.
 
 Consulte [BUSINESS-LAYOUT.md](BUSINESS-LAYOUT.md) para o diagnóstico, capturas, testes e limites desta proposta. A URL local continua `/experimental/onboarding-v3/`: use **Usar exemplo → Continuar** para chegar à etapa Negócio. Os dados ficam em memória.
 
