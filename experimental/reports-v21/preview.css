@@ -1,0 +1,710 @@
+/* Preview frame only. The official document and stylesheet remain unchanged. */
+.preview-toolbar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 18px max(24px, calc((100vw - 1260px) / 2));
+  border-bottom: 1px solid var(--ln);
+  background: var(--sf);
+}
+.preview-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--tx);
+  text-decoration: none;
+  font-size: 20px;
+  letter-spacing: -0.7px;
+}
+.preview-brand .socialmei-logo-image {
+  width: 32px;
+  height: 32px;
+}
+.preview-brand b > span {
+  color: var(--brand-primary-text);
+}
+.preview-version {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--brand-primary-text);
+  border-left: 1px solid var(--ln);
+  padding-left: 12px;
+}
+.preview-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto;
+}
+.preview-controls label {
+  font-size: 12px;
+  color: var(--mt);
+}
+.preview-controls select,
+.preview-controls button,
+.preview-controls a {
+  font: inherit;
+  font-size: 12px;
+  border: 1px solid var(--ln);
+  border-radius: 7px;
+  padding: 8px 10px;
+  min-height: 40px;
+  color: var(--tx);
+  background: var(--sf);
+  text-decoration: none;
+}
+.preview-disclosure {
+  font-size: 12px;
+  color: var(--mt);
+  margin: 0 auto 22px;
+  max-width: 1200px;
+}
+body.experience-app #app {
+  display: block;
+  height: auto;
+  min-height: 100vh;
+}
+body.experience-app #sb,
+body.experience-app #app > .ov,
+body.experience-app .mn > .hd,
+body.experience-app #businessTabs,
+body.experience-app .data-origin,
+body.experience-app .mobile-nav {
+  display: none !important;
+}
+body.experience-app .mn {
+  margin: 0;
+  width: 100%;
+  overflow: visible;
+  height: auto;
+  padding: 28px max(24px, calc((100vw - 1200px) / 2)) 64px;
+}
+body.experience-app .mn > .ct {
+  padding: 0;
+  overflow: visible;
+}
+#reportsView {
+  padding: 0;
+  width: 100%;
+}
+#reportsView > .management-stack {
+  max-width: 1200px;
+}
+.v21-source-note {
+  font-size: 12px;
+}
+.v21-source-note summary {
+  cursor: pointer;
+  min-height: 32px;
+  align-content: center;
+}
+.v21-source-note p {
+  max-width: 78ch;
+  padding-bottom: 8px;
+  line-height: 1.7;
+}
+html.reports-v21 {
+  --v21-radius: 12px;
+}
+.reports-v21 #reportsView > .management-stack {
+  gap: 24px;
+}
+.reports-v21 #reportsView .report-intro {
+  align-items: center;
+}
+.reports-v21 #reportsView .report-intro h2 {
+  font-size: clamp(30px, 3.4vw, 46px);
+  font-weight: 650;
+  letter-spacing: -0.055em;
+  line-height: 1.13;
+  margin: 12px 0 9px;
+}
+.reports-v21 #reportsView .report-intro p {
+  font-size: 14px;
+  margin: 0;
+  color: var(--mt);
+}
+.reports-v21 #reportsView .report-eyebrow {
+  font-size: 12px;
+  letter-spacing: 0.13em;
+  font-weight: 700;
+}
+.reports-v21 #reportsView #reportProfileContext {
+  font-size: 12px;
+  margin: -14px 0 0;
+}
+.reports-v21 #reportsView #reportsDataSourceStatus {
+  background: none;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  margin-top: -12px;
+}
+.reports-v21 #reportsView .management-report-period {
+  padding: 0 0 18px;
+  border: 0;
+  border-bottom: 1px solid var(--ln);
+  border-radius: 0;
+  background: transparent;
+  gap: 12px 20px;
+}
+.reports-v21 #reportsView .management-report-period > .management-card-header {
+  order: initial;
+  flex: 1 1 auto;
+  width: auto;
+  justify-content: flex-end;
+  gap: 10px 15px;
+}
+.reports-v21 #reportsView .management-report-period #reportsPeriodLabel {
+  font-size: 12px;
+  width: 100%;
+  text-align: right;
+}
+.reports-v21 #reportsView .management-report-period .management-check {
+  font-size: 12px;
+  min-height: 32px;
+}
+.reports-v21 #reportsView .report-period-options {
+  order: 4;
+  font-size: 12px;
+  flex-basis: 100%;
+}
+.reports-v21 #reportsView .rv2-quick-periods {
+  background: var(--sf);
+  gap: 2px;
+  border-radius: 8px;
+}
+.reports-v21 #reportsView .rv2-quick-periods button {
+  font-size: 12px;
+  min-height: 38px;
+  padding: 7px 15px;
+}
+.reports-v21 #reportsView #reportPeriodIndicator {
+  background: var(--brand-primary);
+  box-shadow: none;
+  border-radius: 5px;
+  transition:
+    width 240ms var(--ease-out),
+    transform 240ms var(--ease-out);
+}
+.reports-v21 #reportsView .rv2-quick-periods button[aria-pressed="true"] {
+  color: var(--on-primary);
+}
+.reports-v21 #reportsView #nvReportKpis {
+  border: 0;
+  border-bottom: 1px solid var(--ln);
+  border-radius: 0;
+  background: transparent;
+  grid-template-columns: 1.2fr 1fr 1fr 1fr;
+  padding-bottom: 22px;
+}
+.reports-v21 #reportsView #nvReportKpis .management-kpi {
+  display: block;
+  padding: 6px 22px;
+  border-right: 1px solid var(--ln);
+  border-bottom: 0;
+}
+.reports-v21 #reportsView #nvReportKpis .management-kpi > * {
+  display: block;
+}
+.reports-v21 #reportsView #nvReportKpis .management-kpi:first-child {
+  padding-left: 0;
+}
+.reports-v21 #reportsView #nvReportKpis .management-kpi:last-child {
+  border-right: 0;
+}
+.reports-v21 #reportsView #nvReportKpis .management-kpi span {
+  font-size: 12px;
+  color: var(--mt);
+}
+.reports-v21 #reportsView #nvReportKpis b {
+  font-size: clamp(24px, 2.8vw, 38px);
+  font-weight: 600;
+  letter-spacing: -0.055em;
+  margin: 10px 0 8px;
+}
+.reports-v21 #reportsView #nvReportKpis .management-kpi:first-child b {
+  color: var(--brand-primary-text);
+}
+.reports-v21 #reportsView #nvReportKpis small {
+  font-size: 12px;
+  min-height: 28px;
+  line-height: 1.6;
+}
+.reports-v21 #reportsView #nvReportTabs {
+  display: flex;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--ln);
+  border-radius: 0;
+  padding: 0;
+  gap: 26px;
+}
+.reports-v21 #reportsView #nvReportTabs button {
+  position: relative;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 0 12px;
+  border-radius: 0;
+  border: 0;
+  background: none;
+  font-size: 12px;
+  color: var(--mt);
+  flex: 0 1 auto;
+  box-shadow: none;
+}
+.reports-v21 #reportsView #nvReportTabs button[aria-selected="true"] {
+  color: var(--brand-primary-text);
+}
+.reports-v21 #reportsView #nvReportTabs button::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 -1px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--brand-primary);
+  transform: scaleX(0);
+  transition: transform 180ms var(--ease-out);
+}
+.reports-v21 #reportsView #nvReportTabs button[aria-selected="true"]::after {
+  transform: scaleX(1);
+}
+.reports-v21 #reportsView #reportsGrid {
+  gap: 20px;
+}
+.reports-v21 #reportsView .report-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 2.5fr) minmax(230px, 1fr);
+  gap: 20px;
+}
+.reports-v21 #reportsView .report-primary {
+  border-radius: var(--v21-radius);
+  padding: 26px;
+}
+.reports-v21 #reportsView .report-care {
+  border: 0;
+  border-left: 1px solid var(--ln);
+  border-radius: 0;
+  background: transparent;
+  padding: 8px 0 0 24px;
+}
+.reports-v21 #reportsView .report-section-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.reports-v21 #reportsView .report-primary h3,
+.reports-v21 #reportsView .report-care h3,
+.reports-v21 #reportsView .management-card h3 {
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: -0.025em;
+}
+.reports-v21 #reportsView .report-primary .report-eyebrow {
+  display: none;
+}
+.reports-v21 #reportsView .report-primary > .management-note {
+  font-size: 12px;
+  max-width: 65ch;
+  margin-bottom: 20px;
+}
+.v21-chart-total {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 5px;
+}
+.v21-chart-total strong {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+.v21-chart-total span {
+  font-size: 12px;
+  color: var(--mt);
+}
+.reports-v21 #reportsView .rv2-point circle:last-child {
+  r: 3px;
+}
+.reports-v21 #reportsView .rv2-point:focus-visible circle:last-child {
+  r: 6px;
+  stroke: var(--tx);
+}
+.reports-v21 #reportsView .rv2-trend svg {
+  min-height: 190px;
+}
+.reports-v21 #reportsView .rv2-chart-tooltip {
+  top: auto;
+  bottom: 36px;
+  border: 1px solid var(--ln);
+  border-radius: 8px;
+  padding: 10px 14px;
+  line-height: 1.5;
+}
+.reports-v21 #reportsView .rv2-chart-readout {
+  font-size: 12px;
+  min-height: 32px;
+  line-height: 1.6;
+}
+.reports-v21 #reportsView .rv2-stacked {
+  height: 8px;
+  margin: 24px 0;
+  gap: 3px;
+  background: transparent;
+  border-radius: 0;
+}
+.reports-v21 #reportsView .rv2-stacked > span {
+  border-radius: 2px;
+}
+.reports-v21 #reportsView .rv2-status-list {
+  gap: 0;
+}
+.reports-v21 #reportsView .rv2-status-list > div {
+  border-bottom: 1px solid var(--ln);
+  padding: 14px 0;
+  font-size: 12px;
+}
+.reports-v21 #reportsView .rv2-status-list > div:last-child {
+  border: 0;
+}
+.reports-v21 #reportsView .rv2-status-list dt {
+  color: var(--mt);
+}
+.reports-v21 #reportsView .rv2-status-list dd {
+  font-size: 15px;
+}
+.reports-v21 #reportsView .rv2-lower-grid {
+  grid-template-columns: 1.2fr 1fr;
+  gap: 32px;
+  padding: 22px 0;
+  border-top: 1px solid var(--ln);
+  border-bottom: 1px solid var(--ln);
+}
+.reports-v21 #reportsView .rv2-lower-grid > .management-card {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+}
+.reports-v21 #reportsView .rv2-lower-grid > .management-card + .management-card {
+  border-left: 1px solid var(--ln);
+  padding-left: 32px;
+}
+.reports-v21 #reportsView .rv2-product-item {
+  margin: 20px 0;
+  font-size: 12px;
+}
+.reports-v21 #reportsView .rv2-product-track {
+  height: 5px;
+}
+.reports-v21 #reportsView .rv2-product-item small {
+  font-size: 12px;
+  color: var(--mt);
+}
+.reports-v21 #reportsView .rv2-observations {
+  gap: 14px;
+}
+.reports-v21 #reportsView .rv2-observations b {
+  font-size: 12px;
+  font-weight: 600;
+}
+.reports-v21 #reportsView .rv2-observations p {
+  font-size: 12px;
+}
+.reports-v21 #reportsView .report-detail {
+  border: 0;
+  border-bottom: 1px solid var(--ln);
+  border-radius: 0;
+  background: transparent;
+}
+.reports-v21 #reportsView .report-detail summary {
+  font-size: 13px;
+  min-height: 52px;
+  padding: 14px 0;
+}
+.reports-v21 #reportsView .report-actions {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.reports-v21 #reportsView .rv2-history {
+  margin-top: 10px;
+  padding-top: 26px;
+  border-top: 1px solid var(--ln);
+}
+.reports-v21 #reportsView .rv2-history-header h3 {
+  font-size: 21px;
+  letter-spacing: -0.035em;
+  font-weight: 600;
+}
+.reports-v21 #reportsView .rv2-history-header p {
+  font-size: 12px;
+  max-width: 48ch;
+}
+.reports-v21 #reportsView #reportHistoryList {
+  border: 0;
+  border-top: 1px solid var(--ln);
+  border-radius: 0;
+  background: transparent;
+}
+.reports-v21 #reportsView .rv2-history-row {
+  padding: 20px 0;
+  gap: 10px 18px;
+}
+.reports-v21 #reportsView .rv2-history-row b {
+  font-size: 12px;
+  font-weight: 600;
+}
+.reports-v21 #reportsView .rv2-history-row small {
+  font-size: 12px;
+}
+.reports-v21 #reportsView .rv2-empty {
+  text-align: center;
+  font-size: 13px;
+  padding: 36px 20px;
+}
+.reports-v21 #reportsView .management-button {
+  font-size: 12px;
+  border-radius: 7px;
+}
+.reports-v21 #reportGenerateModal .modal {
+  border-radius: 16px;
+}
+.reports-v21 #reportGenerateModal .modal-head {
+  padding: 22px 24px;
+}
+.reports-v21 #reportGenerateModal .modal-body {
+  padding: 24px;
+}
+.reports-v21 #reportGenerateModal td:not(:first-child) {
+  white-space: nowrap;
+}
+.reports-v21 #reportsView .v21-range {
+  font-size: 12px;
+  color: var(--mt);
+}
+.reports-v21 #reportsView[data-preview-state="loading"] #reportsGrid::before {
+  content: "Carregamento demonstrativo · escolha outro cenário para continuar";
+  color: var(--mt);
+  font-size: 12px;
+  border-left: 3px solid var(--brand-primary);
+  padding: 10px 14px;
+}
+.reports-v21 #reportsView .management-card,
+.reports-v21 #reportsView .report-detail,
+.preview-toolbar {
+  transition:
+    background-color 220ms,
+    border-color 220ms,
+    color 220ms;
+}
+@media (max-width: 1024px) {
+  .reports-v21 #reportsView #nvReportKpis {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .reports-v21 #reportsView #nvReportKpis .management-kpi {
+    padding: 6px 14px;
+  }
+  .reports-v21 #reportsView #nvReportKpis b {
+    font-size: 25px;
+  }
+  .reports-v21 #reportsView .report-overview {
+    grid-template-columns: minmax(0, 1.8fr) minmax(200px, 1fr);
+  }
+  .reports-v21 #reportsView .rv2-history-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+}
+@media (max-width: 800px) {
+  .preview-toolbar {
+    padding: 14px 20px;
+  }
+  .preview-controls {
+    width: 100%;
+    margin: 0;
+  }
+  body.experience-app .mn {
+    padding: 24px 20px 50px;
+  }
+  .reports-v21 #reportsView .report-overview {
+    grid-template-columns: 1fr;
+  }
+  .reports-v21 #reportsView .report-care {
+    border-left: 0;
+    padding: 4px 0 0;
+  }
+  .reports-v21 #reportsView .rv2-status-list {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .reports-v21 #reportsView .rv2-status-list > div {
+    display: block;
+    border: 0;
+    padding: 2px 0;
+  }
+  .reports-v21 #reportsView .rv2-status-list dd {
+    margin-top: 5px;
+  }
+  .reports-v21 #reportsView .management-report-period > .management-card-header {
+    flex-basis: 100%;
+    justify-content: flex-start;
+  }
+  .reports-v21 #reportsView .management-report-period #reportsPeriodLabel {
+    width: auto;
+    text-align: left;
+  }
+}
+@media (max-width: 600px) {
+  .preview-toolbar {
+    gap: 10px;
+    padding: 12px 16px;
+  }
+  .preview-brand {
+    font-size: 17px;
+  }
+  .preview-brand .socialmei-logo-image {
+    width: 26px;
+    height: 26px;
+  }
+  .preview-controls {
+    gap: 6px;
+  }
+  .preview-controls label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .preview-controls select,
+  .preview-controls a,
+  .preview-controls button {
+    font-size: 12px;
+    padding: 7px;
+    min-height: 44px;
+  }
+  body.experience-app .mn {
+    padding: 20px 16px 40px;
+  }
+  .preview-disclosure {
+    line-height: 1.6;
+    margin-bottom: 20px;
+  }
+  .reports-v21 #reportsView > .management-stack {
+    gap: 16px;
+  }
+  .reports-v21 #reportsView .report-intro {
+    gap: 16px;
+    align-items: start;
+  }
+  .reports-v21 #reportsView .report-intro h2 {
+    font-size: 34px;
+    max-width: 13ch;
+  }
+  .reports-v21 #reportsView .report-intro p {
+    font-size: 12px;
+  }
+  .reports-v21 #reportsView #nvReportKpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding-bottom: 0;
+  }
+  .reports-v21 #reportsView #nvReportKpis .management-kpi {
+    padding: 14px 12px;
+    border-bottom: 1px solid var(--ln);
+  }
+  .reports-v21 #reportsView #nvReportKpis .management-kpi:nth-child(odd) {
+    padding-left: 0;
+  }
+  .reports-v21 #reportsView #nvReportKpis .management-kpi:nth-child(even) {
+    border-right: 0;
+  }
+  .reports-v21 #reportsView #nvReportKpis .management-kpi:nth-last-child(-n + 2) {
+    border-bottom: 0;
+  }
+  .reports-v21 #reportsView #nvReportKpis b {
+    font-size: clamp(20px, 5.7vw, 24px);
+    margin: 7px 0;
+  }
+  .reports-v21 #reportsView #nvReportTabs {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0;
+    border: 0;
+  }
+  .reports-v21 #reportsView #nvReportTabs button {
+    grid-column: span 2;
+    font-size: 12px;
+    padding: 12px 4px;
+    min-height: 44px;
+    border-bottom: 1px solid var(--ln);
+  }
+  .reports-v21 #reportsView #nvReportTabs button:nth-child(n + 4) {
+    grid-column: span 3;
+  }
+  .reports-v21 #reportsView .rv2-quick-periods button {
+    padding: 7px 4px;
+    min-height: 44px;
+    font-size: 12px;
+  }
+  .reports-v21 #reportsView .management-report-period > .management-card-header {
+    gap: 8px 12px;
+  }
+  .reports-v21 #reportsView .management-report-period #reportsPeriodLabel {
+    flex-basis: 100%;
+  }
+  .reports-v21 #reportsView .report-primary {
+    padding: 18px 14px;
+  }
+  .reports-v21 #reportsView .rv2-lower-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .reports-v21 #reportsView .rv2-lower-grid > .management-card + .management-card {
+    padding: 24px 0 0;
+    border: 0;
+    border-top: 1px solid var(--ln);
+  }
+  .reports-v21 #reportsView .rv2-history-header {
+    gap: 12px;
+  }
+  .reports-v21 #reportsView .rv2-history-tools {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .reports-v21 #reportsView .rv2-history-tools input,
+  .reports-v21 #reportsView .rv2-history-tools select {
+    min-width: 0;
+    width: 100%;
+  }
+  .reports-v21 #reportsView .rv2-history-row {
+    padding: 18px 0;
+  }
+  .reports-v21 #reportsView .rv2-history-row .rv2-actions {
+    gap: 6px;
+  }
+  .reports-v21 #reportsView .report-detail summary {
+    flex-wrap: wrap;
+  }
+  .reports-v21 #reportGenerateModal .modal-body,
+  .reports-v21 #reportGenerateModal .modal-head {
+    padding: 18px 16px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html.reports-v21 *,
+  html.reports-v21 *::before,
+  html.reports-v21 *::after {
+    transition: none !important;
+    animation: none !important;
+    scroll-behavior: auto !important;
+  }
+}
