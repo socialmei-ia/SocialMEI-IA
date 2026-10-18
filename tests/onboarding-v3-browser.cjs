@@ -106,7 +106,15 @@ async function run() {
         });
         assert(!geometry.overflow, `${label} ${width} ${color}: overflow`);
         if (!(await snapshot(page)).done) {
-          assert(geometry.nextBottom <= geometry.height + 1);
+          if ((await snapshot(page)).step === 2) {
+            // Business layout now ends in a normal-flow footer; it must be reachable.
+            await page.locator("#nextButton").scrollIntoViewIfNeeded();
+            const button = await page.locator("#nextButton").boundingBox();
+            assert(button.y >= 0 && button.y + button.height <= geometry.height + 1);
+            const footer = await page.locator(".ob3-footer").boundingBox();
+            const stage = await page.locator("#stage").boundingBox();
+            assert(footer.y >= stage.y + stage.height - 1, "business footer follows content");
+          } else assert(geometry.nextBottom <= geometry.height + 1);
           assert(geometry.nextHeight >= 44);
         }
         if (label === "05-ferramentas" && width <= 390) {
