@@ -1,5 +1,9 @@
 # Relatórios V2.1 — prévia para aprovação
 
+> Registro do protótipo aprovado. A integração na navegação oficial está descrita
+> em [Relatórios V2.1 nativos](../../docs/REPORTS-V21-NATIVE.md).
+> Os limites de memória/sandbox abaixo pertencem somente a esta prévia.
+
 Base inicial e `main` remota conferida: `a045b157b8ea65230c2f2b9e0a90b8e819a14375`.
 Branch experimental: `feat/reports-v21-prototype`. Nenhuma alteração em `frontend/`,
 autenticação, contratos, cálculos, infraestrutura ou produção.

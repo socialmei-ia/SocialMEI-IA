@@ -1,0 +1,602 @@
+{
+  "checks": [
+    "Motor nativo: totais determinísticos, financeiro separado e excluídos ignorados",
+    "10 layouts: 320/390/768/1024/1440 × claro/escuro, abas e valores sem corte",
+    "Filtros rápidos concorrentes, valor final correto e tema sem redesenho da linha",
+    "Cinco visões e tooltip por teclado com Escape",
+    "Intervalo personalizado nativo preservado",
+    "Geração por operações reais, CSV e PDF do mesmo snapshot, acentos e valores conferidos",
+    "Histórico pesquisável, cópia imutável e retorno de foco",
+    "Cancelamento impede salvar e permite nova geração",
+    "Falha de CSV identificada e relatório com erro sem exportação",
+    "Cenários vazio/erro/carregamento com fonte indisponível sem valores antigos",
+    "Movimento reduzido respeitado",
+    "Contraste de textos e ações principais ≥ 4,5:1 nos dois temas",
+    "Troca de filtros exercitada sob limitação de CPU 4×",
+    "Antes/depois com os mesmos dados; memória descartada no reload; armazenamento real intocado",
+    "HTML portátil autocontido gera relatório sem recursos adicionais; validado via HTTP local (file:// bloqueado pela política do navegador de QA)"
+  ],
+  "layouts": [
+    {
+      "width": 320,
+      "overflow": false,
+      "graphTop": 1058.046875,
+      "tabs": [
+        {
+          "label": "Resumo",
+          "width": 96,
+          "right": 112
+        },
+        {
+          "label": "Vendas",
+          "width": 96,
+          "right": 208
+        },
+        {
+          "label": "Clientes",
+          "width": 96,
+          "right": 304
+        },
+        {
+          "label": "Atendimento",
+          "width": 144,
+          "right": 160
+        },
+        {
+          "label": "Financeiro",
+          "width": 144,
+          "right": 304
+        }
+      ],
+      "kpis": [
+        {
+          "text": "R$ 3.045,00",
+          "clipped": false
+        },
+        {
+          "text": "R$ 101,50",
+          "clipped": false
+        },
+        {
+          "text": "30",
+          "clipped": false
+        },
+        {
+          "text": "R$ 1.560,00",
+          "clipped": false
+        }
+      ],
+      "theme": "light"
+    },
+    {
+      "width": 320,
+      "overflow": false,
+      "graphTop": 1058.046875,
+      "tabs": [
+        {
+          "label": "Resumo",
+          "width": 96,
+          "right": 112
+        },
+        {
+          "label": "Vendas",
+          "width": 96,
+          "right": 208
+        },
+        {
+          "label": "Clientes",
+          "width": 96,
+          "right": 304
+        },
+        {
+          "label": "Atendimento",
+          "width": 144,
+          "right": 160
+        },
+        {
+          "label": "Financeiro",
+          "width": 144,
+          "right": 304
+        }
+      ],
+      "kpis": [
+        {
+          "text": "R$ 3.045,00",
+          "clipped": false
+        },
+        {
+          "text": "R$ 101,50",
+          "clipped": false
+        },
+        {
+          "text": "30",
+          "clipped": false
+        },
+        {
+          "text": "R$ 1.560,00",
+          "clipped": false
+        }
+      ],
+      "theme": "dark"
+    },
+    {
+      "width": 390,
+      "overflow": false,
+      "graphTop": 994.203125,
+      "tabs": [
+        {
+          "label": "Resumo",
+          "width": 114.328125,
+          "right": 130.328125
+        },
+        {
+          "label": "Vendas",
+          "width": 114.328125,
+          "right": 244.65625
+        },
+        {
+          "label": "Clientes",
+          "width": 114.34375,
+          "right": 359
+        },
+        {
+          "label": "Atendimento",
+          "width": 171.5,
+          "right": 187.5
+        },
+        {
+          "label": "Financeiro",
+          "width": 171.5,
+          "right": 359
+        }
+      ],
+      "kpis": [
+        {
+          "text": "R$ 3.045,00",
+          "clipped": false
+        },
+        {
+          "text": "R$ 101,50",
+          "clipped": false
+        },
+        {
+          "text": "30",
+          "clipped": false
+        },
+        {
+          "text": "R$ 1.560,00",
+          "clipped": false
+        }
+      ],
+      "theme": "light"
+    },
+    {
+      "width": 390,
+      "overflow": false,
+      "graphTop": 994.203125,
+      "tabs": [
+        {
+          "label": "Resumo",
+          "width": 114.328125,
+          "right": 130.328125
+        },
+        {
+          "label": "Vendas",
+          "width": 114.328125,
+          "right": 244.65625
+        },
+        {
+          "label": "Clientes",
+          "width": 114.34375,
+          "right": 359
+        },
+        {
+          "label": "Atendimento",
+          "width": 171.5,
+          "right": 187.5
+        },
+        {
+          "label": "Financeiro",
+          "width": 171.5,
+          "right": 359
+        }
+      ],
+      "kpis": [
+        {
+          "text": "R$ 3.045,00",
+          "clipped": false
+        },
+        {
+          "text": "R$ 101,50",
+          "clipped": false
+        },
+        {
+          "text": "30",
+          "clipped": false
+        },
+        {
+          "text": "R$ 1.560,00",
+          "clipped": false
+        }
+      ],
+      "theme": "dark"
+    },
+    {
+      "width": 768,
+      "overflow": false,
+      "graphTop": 764.953125,
+      "tabs": [
+        {
+          "label": "Resumo",
+          "width": 45.6875,
+          "right": 65.6875
+        },
+        {
+          "label": "Vendas",
+          "width": 44,
+          "right": 135.6875
+        },
+        {
+          "label": "Clientes",
+          "width": 45.8125,
+          "right": 207.5
+        },
+        {
+          "label": "Atendimento",
+          "width": 71.796875,
+          "right": 305.296875
+        },
+        {
+          "label": "Financeiro",
+          "width": 59.1875,
+          "right": 390.484375
+        }
+      ],
+      "kpis": [
+        {
+          "text": "R$ 3.045,00",
+          "clipped": false
+        },
+        {
+          "text": "R$ 101,50",
+          "clipped": false
+        },
+        {
+          "text": "30",
+          "clipped": false
+        },
+        {
+          "text": "R$ 1.560,00",
+          "clipped": false
+        }
+      ],
+      "theme": "light"
+    },
+    {
+      "width": 768,
+      "overflow": false,
+      "graphTop": 764.953125,
+      "tabs": [
+        {
+          "label": "Resumo",
+          "width": 45.6875,
+          "right": 65.6875
+        },
+        {
+          "label": "Vendas",
+          "width": 44,
+          "right": 135.6875
+        },
+        {
+          "label": "Clientes",
+          "width": 45.8125,
+          "right": 207.5
+        },
+        {
+          "label": "Atendimento",
+          "width": 71.796875,
+          "right": 305.296875
+        },
+        {
+          "label": "Financeiro",
+          "width": 59.1875,
+          "right": 390.484375
+        }
+      ],
+      "kpis": [
+        {
+          "text": "R$ 3.045,00",
+          "clipped": false
+        },
+        {
+          "text": "R$ 101,50",
+          "clipped": false
+        },
+        {
+          "text": "30",
+          "clipped": false
+        },
+        {
+          "text": "R$ 1.560,00",
+          "clipped": false
+        }
+      ],
+      "theme": "dark"
+    },
+    {
+      "width": 1024,
+      "overflow": false,
+      "graphTop": 768.984375,
+      "tabs": [
+        {
+          "label": "Resumo",
+          "width": 45.6875,
+          "right": 69.6875
+        },
+        {
+          "label": "Vendas",
+          "width": 44,
+          "right": 139.6875
+        },
+        {
+          "label": "Clientes",
+          "width": 45.8125,
+          "right": 211.5
+        },
+        {
+          "label": "Atendimento",
+          "width": 71.796875,
+          "right": 309.296875
+        },
+        {
+          "label": "Financeiro",
+          "width": 59.1875,
+          "right": 394.484375
+        }
+      ],
+      "kpis": [
+        {
+          "text": "R$ 3.045,00",
+          "clipped": false
+        },
+        {
+          "text": "R$ 101,50",
+          "clipped": false
+        },
+        {
+          "text": "30",
+          "clipped": false
+        },
+        {
+          "text": "R$ 1.560,00",
+          "clipped": false
+        }
+      ],
+      "theme": "light"
+    },
+    {
+      "width": 1024,
+      "overflow": false,
+      "graphTop": 768.984375,
+      "tabs": [
+        {
+          "label": "Resumo",
+          "width": 45.6875,
+          "right": 69.6875
+        },
+        {
+          "label": "Vendas",
+          "width": 44,
+          "right": 139.6875
+        },
+        {
+          "label": "Clientes",
+          "width": 45.8125,
+          "right": 211.5
+        },
+        {
+          "label": "Atendimento",
+          "width": 71.796875,
+          "right": 309.296875
+        },
+        {
+          "label": "Financeiro",
+          "width": 59.1875,
+          "right": 394.484375
+        }
+      ],
+      "kpis": [
+        {
+          "text": "R$ 3.045,00",
+          "clipped": false
+        },
+        {
+          "text": "R$ 101,50",
+          "clipped": false
+        },
+        {
+          "text": "30",
+          "clipped": false
+        },
+        {
+          "text": "R$ 1.560,00",
+          "clipped": false
+        }
+      ],
+      "theme": "dark"
+    },
+    {
+      "width": 1440,
+      "overflow": false,
+      "graphTop": 797.21875,
+      "tabs": [
+        {
+          "label": "Resumo",
+          "width": 45.6875,
+          "right": 165.6875
+        },
+        {
+          "label": "Vendas",
+          "width": 44,
+          "right": 235.6875
+        },
+        {
+          "label": "Clientes",
+          "width": 45.8125,
+          "right": 307.5
+        },
+        {
+          "label": "Atendimento",
+          "width": 71.796875,
+          "right": 405.296875
+        },
+        {
+          "label": "Financeiro",
+          "width": 59.1875,
+          "right": 490.484375
+        }
+      ],
+      "kpis": [
+        {
+          "text": "R$ 3.045,00",
+          "clipped": false
+        },
+        {
+          "text": "R$ 101,50",
+          "clipped": false
+        },
+        {
+          "text": "30",
+          "clipped": false
+        },
+        {
+          "text": "R$ 1.560,00",
+          "clipped": false
+        }
+      ],
+      "theme": "light"
+    },
+    {
+      "width": 1440,
+      "overflow": false,
+      "graphTop": 797.21875,
+      "tabs": [
+        {
+          "label": "Resumo",
+          "width": 45.6875,
+          "right": 165.6875
+        },
+        {
+          "label": "Vendas",
+          "width": 44,
+          "right": 235.6875
+        },
+        {
+          "label": "Clientes",
+          "width": 45.8125,
+          "right": 307.5
+        },
+        {
+          "label": "Atendimento",
+          "width": 71.796875,
+          "right": 405.296875
+        },
+        {
+          "label": "Financeiro",
+          "width": 59.1875,
+          "right": 490.484375
+        }
+      ],
+      "kpis": [
+        {
+          "text": "R$ 3.045,00",
+          "clipped": false
+        },
+        {
+          "text": "R$ 101,50",
+          "clipped": false
+        },
+        {
+          "text": "30",
+          "clipped": false
+        },
+        {
+          "text": "R$ 1.560,00",
+          "clipped": false
+        }
+      ],
+      "theme": "dark"
+    }
+  ],
+  "contrast": [
+    {
+      "theme": "light",
+      "ratios": [
+        {
+          "selector": "#previewFeedback",
+          "ratio": 4.843208907600482
+        },
+        {
+          "selector": "[data-report-generate]",
+          "ratio": 4.667630325337278
+        },
+        {
+          "selector": "#nvReportKpis .management-kpi > span",
+          "ratio": 4.843208907600482
+        },
+        {
+          "selector": "#nvReportKpis .management-kpi > b",
+          "ratio": 4.898370931208259
+        },
+        {
+          "selector": "#nvReportTabs [aria-selected=true]",
+          "ratio": 4.898370931208259
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "ratios": [
+        {
+          "selector": "#previewFeedback",
+          "ratio": 8.514776988692379
+        },
+        {
+          "selector": "[data-report-generate]",
+          "ratio": 6.200609136486132
+        },
+        {
+          "selector": "#nvReportKpis .management-kpi > span",
+          "ratio": 8.514776988692379
+        },
+        {
+          "selector": "#nvReportKpis .management-kpi > b",
+          "ratio": 6.883912121270965
+        },
+        {
+          "selector": "#nvReportTabs [aria-selected=true]",
+          "ratio": 6.883912121270965
+        }
+      ]
+    }
+  ],
+  "performanceChecks": [
+    {
+      "period": "7 dias",
+      "cpuThrottle": 4,
+      "milliseconds": 1113
+    },
+    {
+      "period": "3 meses",
+      "cpuThrottle": 4,
+      "milliseconds": 858
+    },
+    {
+      "period": "30 dias",
+      "cpuThrottle": 4,
+      "milliseconds": 934
+    }
+  ],
+  "errors": [],
+  "blockedRequests": []
+}
