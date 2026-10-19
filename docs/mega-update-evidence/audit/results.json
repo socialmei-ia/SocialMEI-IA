@@ -1,0 +1,341 @@
+{
+  "states": [
+    {
+      "id": "home",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "height": 1017
+    },
+    {
+      "id": "inbox",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "height": 976
+    },
+    {
+      "id": "opportunities",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "height": 2406
+    },
+    {
+      "id": "business",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "height": 1115
+    },
+    {
+      "id": "sales",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "height": 742
+    },
+    {
+      "id": "clients",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "height": 824
+    },
+    {
+      "id": "products",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "height": 1015
+    },
+    {
+      "id": "finance",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "height": 1501
+    },
+    {
+      "id": "automations",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "height": 1248
+    },
+    {
+      "id": "assistant",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "height": 760
+    },
+    {
+      "id": "reports",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "height": 2449
+    },
+    {
+      "id": "settings",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "height": 1105
+    },
+    {
+      "id": "home",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "height": 1017
+    },
+    {
+      "id": "inbox",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "height": 976
+    },
+    {
+      "id": "opportunities",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "height": 2406
+    },
+    {
+      "id": "business",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "height": 1115
+    },
+    {
+      "id": "sales",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "height": 742
+    },
+    {
+      "id": "clients",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "height": 824
+    },
+    {
+      "id": "products",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "height": 1015
+    },
+    {
+      "id": "finance",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "height": 1501
+    },
+    {
+      "id": "automations",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "height": 1248
+    },
+    {
+      "id": "assistant",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "height": 760
+    },
+    {
+      "id": "reports",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "height": 2449
+    },
+    {
+      "id": "settings",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "height": 1105
+    },
+    {
+      "id": "home",
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "height": 1907
+    },
+    {
+      "id": "inbox",
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "height": 946
+    },
+    {
+      "id": "opportunities",
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "height": 3565
+    },
+    {
+      "id": "business",
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "height": 2187
+    },
+    {
+      "id": "sales",
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "height": 1605
+    },
+    {
+      "id": "clients",
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "height": 2002
+    },
+    {
+      "id": "products",
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "height": 1944
+    },
+    {
+      "id": "finance",
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "height": 2249
+    },
+    {
+      "id": "automations",
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "height": 3204
+    },
+    {
+      "id": "assistant",
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "height": 696
+    },
+    {
+      "id": "reports",
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "height": 3716
+    },
+    {
+      "id": "settings",
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "height": 1566
+    },
+    {
+      "id": "home",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "height": 1907
+    },
+    {
+      "id": "inbox",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "height": 946
+    },
+    {
+      "id": "opportunities",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "height": 3565
+    },
+    {
+      "id": "business",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "height": 2187
+    },
+    {
+      "id": "sales",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "height": 1605
+    },
+    {
+      "id": "clients",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "height": 2002
+    },
+    {
+      "id": "products",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "height": 1944
+    },
+    {
+      "id": "finance",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "height": 2249
+    },
+    {
+      "id": "automations",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "height": 3204
+    },
+    {
+      "id": "assistant",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "height": 696
+    },
+    {
+      "id": "reports",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "height": 3716
+    },
+    {
+      "id": "settings",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "height": 1566
+    }
+  ],
+  "errors": []
+}

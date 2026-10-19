@@ -62,6 +62,7 @@
     <link rel="stylesheet" href="styles/workspace-refinement.css" />
     <link rel="stylesheet" href="styles/business-profile.css" />
     <link rel="stylesheet" href="styles/opportunities.css" />
+    <link rel="stylesheet" href="styles/content-studio.css" />
     <link rel="stylesheet" href="styles/reports-v2.css" />
     <script src="scripts/storage-and-themes.js"></script>
     <script src="scripts/motion.js"></script>
@@ -2817,6 +2818,9 @@
                   <ul class="not-list" id="notList"></ul>
                 </div>
               </div>
+              <button type="button" class="btn" id="contentStudioOpen">
+                Divulgação · preparar conteúdo
+              </button>
             </div>
           </details>
           <button class="btn header-create" id="globalCreateBtn" type="button">+ Nova venda</button>
@@ -4096,6 +4100,200 @@
             </div>
           </section>
 
+          <section
+            class="page-view management-view"
+            data-view="Divulgação"
+            id="contentStudioView"
+            aria-labelledby="contentStudioTitle"
+          >
+            <div class="content-studio">
+              <header class="management-header">
+                <div>
+                  <span class="report-eyebrow">FERRAMENTAS</span>
+                  <h2 id="contentStudioTitle">Seu negócio tem o que contar.</h2>
+                  <p>
+                    Prepare o conteúdo. Confira a prévia. Publique pelos seus canais quando estiver
+                    pronto.
+                  </p>
+                </div>
+                <button type="button" class="management-button" id="contentNew">
+                  + Novo rascunho
+                </button>
+              </header>
+              <p class="content-context" id="contentBusinessContext"></p>
+              <details class="content-local-note">
+                <summary>Rascunhos locais · sem publicação conectada</summary>
+                <p>
+                  Texto e referências de mídia ficam neste navegador, separados por conta e negócio.
+                  Não sincronizam entre dispositivos. Os arquivos de imagem e vídeo não são enviados
+                  nem salvos: selecione-os novamente ao reabrir um rascunho. Apagar os dados do
+                  navegador remove os rascunhos.
+                </p>
+              </details>
+              <div id="contentStorageStatus" role="status" class="management-note"></div>
+              <div class="content-studio-layout">
+                <div class="content-editor">
+                  <div class="content-formats" role="tablist" aria-label="Formato do conteúdo">
+                    <span aria-hidden="true" class="content-format-indicator"></span>
+                    <button
+                      type="button"
+                      role="tab"
+                      data-content-format="story"
+                      id="contentFormat-story"
+                      aria-controls="contentEditorPanel"
+                      aria-selected="false"
+                      tabindex="-1"
+                    >
+                      Story <small>9:16</small>
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      data-content-format="feed"
+                      id="contentFormat-feed"
+                      aria-controls="contentEditorPanel"
+                      aria-selected="true"
+                    >
+                      Feed <small>4:5</small>
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      data-content-format="reel"
+                      id="contentFormat-reel"
+                      aria-controls="contentEditorPanel"
+                      aria-selected="false"
+                      tabindex="-1"
+                    >
+                      Reel <small>9:16</small>
+                    </button>
+                  </div>
+                  <div id="contentEditorPanel" role="tabpanel" aria-labelledby="contentFormat-feed">
+                    <form id="contentDraftForm" autocomplete="off">
+                      <label for="contentTitle"
+                        >Título do rascunho <small>Para sua organização</small></label
+                      >
+                      <input
+                        id="contentTitle"
+                        maxlength="80"
+                        required
+                        placeholder="Sobre o que você quer falar?"
+                      />
+                      <div class="content-field-heading">
+                        <label for="contentCaption">Texto ou legenda</label
+                        ><span id="contentCaptionCount">0 / 2200</span>
+                      </div>
+                      <textarea
+                        id="contentCaption"
+                        maxlength="2200"
+                        rows="5"
+                        placeholder="Conte o que seu negócio oferece, com suas próprias palavras."
+                      ></textarea>
+                      <label for="contentCta">Chamada para ação <small>Opcional</small></label>
+                      <input
+                        id="contentCta"
+                        maxlength="140"
+                        placeholder="Ex.: Fale comigo para saber mais"
+                      />
+                      <label for="contentHashtags">Hashtags <small>Opcionais</small></label
+                      ><input id="contentHashtags" maxlength="300" placeholder="#SeuNegócio" />
+                      <div class="content-media-control">
+                        <label for="contentMedia">Imagem ou vídeo local</label>
+                        <p id="contentMediaHelp">
+                          Feed: imagem JPG, PNG ou WebP, até 10 MB. Sugestão de composição: 4:5.
+                        </p>
+                        <input
+                          id="contentMedia"
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          aria-describedby="contentMediaHelp contentMediaStatus"
+                        />
+                        <p id="contentMediaStatus" role="status">
+                          Nenhuma mídia selecionada. O texto pode ser salvo sem mídia.
+                        </p>
+                        <button
+                          type="button"
+                          class="management-button"
+                          id="contentRemoveMedia"
+                          hidden
+                        >
+                          Remover mídia
+                        </button>
+                      </div>
+                      <div class="content-editor-actions">
+                        <button type="submit" class="management-button pr" id="contentSave">
+                          Salvar rascunho local</button
+                        ><button type="button" class="management-button" id="contentCopy">
+                          Copiar legenda
+                        </button>
+                      </div>
+                      <p
+                        id="contentActionStatus"
+                        role="status"
+                        aria-live="polite"
+                        class="management-note"
+                      ></p>
+                    </form>
+                  </div>
+                </div>
+                <aside class="content-preview-column" aria-label="Prévia do conteúdo">
+                  <div class="content-preview-heading">
+                    <h3>É assim que está ficando</h3>
+                    <span id="contentPreviewFormat">Feed</span>
+                  </div>
+                  <div class="content-preview-device" data-content-preview="feed">
+                    <div class="content-preview-brand">
+                      <span aria-hidden="true" id="contentBrandInitial">S</span
+                      ><strong id="contentPreviewBusiness">Seu negócio</strong
+                      ><small>Prévia local</small>
+                    </div>
+                    <div class="content-preview-stage" id="contentPreviewStage">
+                      <div class="content-preview-placeholder">
+                        <span aria-hidden="true">＋</span><b>Seu conteúdo começa aqui</b>
+                        <p>Selecione uma imagem ou vídeo para conferir o enquadramento.</p>
+                      </div>
+                    </div>
+                    <div class="content-preview-text">
+                      <strong id="contentPreviewTitle">Título do conteúdo</strong>
+                      <p id="contentPreviewCaption">O texto da sua postagem aparece aqui.</p>
+                    </div>
+                  </div>
+                  <p class="content-preview-disclosure">
+                    Prévia de composição. Não recortamos nem editamos o arquivo. Texto sobre
+                    vídeo/imagem não é incorporado à mídia.
+                  </p>
+                  <div class="content-preparation">
+                    <button type="button" class="management-button" id="contentExport">
+                      Baixar texto de preparação</button
+                    ><button
+                      type="button"
+                      class="management-button"
+                      id="contentPublish"
+                      disabled
+                      aria-describedby="contentPublishHelp"
+                    >
+                      Publicação não conectada
+                    </button>
+                    <p id="contentPublishHelp">
+                      Conexão e permissões do Instagram ainda precisam de homologação. Use o texto e
+                      o arquivo original no seu canal.
+                    </p>
+                  </div>
+                </aside>
+              </div>
+              <section class="content-library" aria-labelledby="contentLibraryTitle">
+                <div class="content-library-heading">
+                  <div>
+                    <h3 id="contentLibraryTitle">Seus rascunhos</h3>
+                    <p>Organize hoje. Continue quando quiser, neste navegador.</p>
+                  </div>
+                  <span id="contentDraftCount">0 rascunhos</span>
+                </div>
+                <div id="contentDraftList"></div>
+              </section>
+            </div>
+          </section>
+
           <!-- RELATÓRIOS -->
           <section class="page-view management-view" data-view="Relatórios" id="reportsView">
             <div class="management-stack">
@@ -4572,6 +4770,29 @@
         </div>
       </section>
     </div>
+    <div class="modal-backdrop" id="contentConfirmModal" aria-hidden="true">
+      <section class="modal" role="dialog" aria-modal="true" aria-labelledby="contentConfirmTitle">
+        <div class="modal-head">
+          <h3 id="contentConfirmTitle">Confirmar alteração</h3>
+          <button
+            type="button"
+            class="btn"
+            data-close-modal="contentConfirmModal"
+            aria-label="Fechar confirmação"
+          >
+            ×
+          </button>
+        </div>
+        <div class="modal-body"><p id="contentConfirmMessage"></p></div>
+        <div class="modal-foot">
+          <button type="button" class="management-button" data-close-modal="contentConfirmModal">
+            Voltar</button
+          ><button type="button" class="management-button pr" id="contentConfirmAction">
+            Continuar
+          </button>
+        </div>
+      </section>
+    </div>
     <script src="scripts/home.js"></script>
     <script src="scripts/finance.js"></script>
     <script src="scripts/sales.js"></script>
@@ -4600,6 +4821,8 @@
     <script src="scripts/contact-validation.js"></script>
     <script src="scripts/business-profile.js"></script>
     <script src="scripts/personalization.js"></script>
+    <script src="scripts/content-drafts.js"></script>
+    <script src="scripts/content-studio.js"></script>
     <script src="scripts/report-motion.js"></script>
     <script src="scripts/report-ui.js"></script>
     <script src="scripts/app.js"></script>

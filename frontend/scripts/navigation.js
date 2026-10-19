@@ -186,6 +186,7 @@ function renderNotifications() {
 }
 function setView(name, options = {}) {
   const changed = currentView !== name;
+  $("utilityTools").open = false;
   const openInboxAsList = name === "Caixa Unificada" && options.preserveConversation !== true;
   if (changed || openInboxAsList) {
     saveCurrentDraft();
