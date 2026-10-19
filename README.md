@@ -101,3 +101,7 @@ A rodada de manutenção separa responsabilidades de navegação, sugestões loc
 A próxima etapa operacional continua sendo conferir permissões do banco, cobertura dos backups e identidade/autorização do atendimento antes de conectar canais reais. Recuperação por e-mail, WhatsApp real, onboarding acompanhado e novas funcionalidades dependem das decisões do responsável. Esta revisão não publica serviços na AWS.
 
 [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [Deploy](DEPLOYMENT.md) · [Contribuição](CONTRIBUTING.md) · [Segurança](SECURITY.md)
+
+### Protótipo opcional de estoque por planilha
+
+A API Python pode receber mensagens do n8n e preparar pedidos sobre um XLSX fictício, separado do CRM. A funcionalidade fica desativada por padrão e ainda exige publicação/configuração no ambiente. Consulte [contratos, limites e teste local](docs/SPREADSHEET-ORDERS-API.md).
