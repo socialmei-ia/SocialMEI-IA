@@ -18,6 +18,28 @@ test("demo conversations cannot inherit drafts, notes or state of a real contact
   assert.equal(context.conversationKey(real), "whatsapp:pessoa qa");
   assert.equal(context.conversationKey(sample), "demo:whatsapp:pessoa qa");
   assert.notEqual(context.conversationKey(real), context.conversationKey(sample));
+  let reads = 0;
+  context.SocialMEIClients = {
+    conversationClient() {
+      reads++;
+      return { id: 701, nome: "Pessoa QA" };
+    },
+  };
+  context.SocialMEISales = { matchesClient: (sale, client) => sale.cliente_id === client.id };
+  context.appData = { vendas: [{ cliente_id: 701, data: "2026-10-19", valor: 100 }] };
+  vm.runInContext(
+    source.slice(
+      source.indexOf("function clientContext("),
+      source.indexOf("function renderDetails("),
+    ),
+    context,
+  );
+  assert.equal(context.clientContext(real).client.id, 701);
+  assert.equal(context.clientContext(real).purchases.length, 1);
+  const priorReads = reads;
+  assert.equal(context.clientContext(sample).client, null);
+  assert.equal(context.clientContext(sample).purchases.length, 0);
+  assert.equal(reads, priorReads, "A sample must not even query the real CRM by name");
 });
 test("feedback uses status for real success/info and alert for failures, escaping dynamic text", () => {
   const source = fs.readFileSync(path.join(__dirname, "../frontend/scripts/dialogs.js"), "utf8"),
@@ -66,4 +88,8 @@ test("feedback uses status for real success/info and alert for failures, escapin
   assert(nodes[1].innerHTML.includes("&lt;script>"));
   context.toast("Registro salvo");
   assert.equal(nodes[2].dataset.tone, "success");
+  context.toast("Backup inválido");
+  assert.equal(nodes[3].attrs.role, "alert");
+  context.toast("Item de ferro salvo");
+  assert.equal(nodes[4].dataset.tone, "success");
 });

@@ -749,7 +749,7 @@ function toggleDropdown(dd) {
 function toast(
   title,
   desc = "",
-  tone = /(?:^não|falha|erro|acesso negado|indisponível|não (?:concluído|salv|prepar|disponível))/i.test(
+  tone = /(?:^(?:não|falha|erro|acesso negado)(?:\s|:|$)|\b(?:indisponível|inválid[oa])\b|não (?:concluído|salv|prepar|disponível))/i.test(
     title,
   )
     ? "error"

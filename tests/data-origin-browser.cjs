@@ -39,7 +39,8 @@ module.exports = async function dataOriginFlows(browser, origin, errors = []) {
           : mode === "hybrid"
             ? "Fontes mistas"
             : "Dados compartilhados";
-      assert.match(await page.locator("#appDataOrigin").innerText(), new RegExp(expected));
+      // Business views use their own visible source disclosure; the global footer is omitted.
+      assert.match(await page.locator("#appDataOrigin").textContent(), new RegExp(expected));
       await page.waitForFunction(() =>
         [SocialMEIClients, SocialMEIProducts, SocialMEISales, SocialMEIFinance].every((store) =>
           ["local", "ready", "unavailable"].includes(store.connectionState),
@@ -76,9 +77,10 @@ module.exports = async function dataOriginFlows(browser, origin, errors = []) {
         );
       }
       await page.evaluate(() => setView("Automações"));
+      await page.locator("#automationsView .context-help > summary").click();
       assert.match(
-        await page.locator("#automationsView .management-demo").innerText(),
-        /Simulação local/,
+        await page.locator("#automationsView .context-help").innerText(),
+        /Salvar não agenda execuções nem envia mensagens/,
       );
       await page.evaluate(() => syncN8nMessages());
       assert.equal(
