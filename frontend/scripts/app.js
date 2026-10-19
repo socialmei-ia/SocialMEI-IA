@@ -3554,19 +3554,17 @@ function renderSettings() {
                     "text",
                     'inputmode="numeric" maxlength="18" placeholder="00.000.000/0000-00"',
                   ) +
-                  /* HTML */ `<label class="management-field full" for="nvBusinessLogo"
-                      >Logo (opcional · até 1 MB)<input
-                        class="management-input"
-                        id="nvBusinessLogo"
-                        type="file"
-                        accept="image/png,image/jpeg,image/webp" /><span class="management-note"
-                        >Imagem local salva apenas quando você confirmar o formulário.</span
-                      >${p.logo ? /* HTML */ `<img class="management-logo-preview" src="${escapeHtml(p.logo)}" alt="Logo atual do negócio" /><button class="management-button" type="button" id="nvRemoveLogo">Remover logo ao salvar</button>` : ""}<span
-                        id="nvLogoStatus"
-                        role="status"
-                        class="management-note"
-                      ></span
-                    ></label>` +
+                  /* HTML */ `<div class="management-field full">
+                      <label for="nvBusinessLogo">Logo (opcional · até 1 MB)</label>
+                      <div class="management-logo-file-choice">
+                        <input id="nvBusinessLogo" type="file" accept="image/png,image/jpeg,image/webp" hidden tabindex="-1" aria-describedby="nvLogoFileName nvLogoStatus" />
+                        <button type="button" class="management-button" id="nvChooseLogo" aria-controls="nvBusinessLogo">Escolher imagem</button>
+                        <span id="nvLogoFileName" class="management-note">Nenhuma nova imagem selecionada</span>
+                      </div>
+                      <span class="management-note">Imagem local salva apenas quando você confirmar o formulário.</span>
+                      ${p.logo ? /* HTML */ `<img class="management-logo-preview" src="${escapeHtml(p.logo)}" alt="Logo atual do negócio" /><button class="management-button" type="button" id="nvRemoveLogo">Remover logo ao salvar</button>` : ""}
+                      <span id="nvLogoStatus" role="status" class="management-note"></span>
+                    </div>` +
                   renderSettingsField("Telefone / WhatsApp", "telefone", p.telefone, "tel") +
                   renderSettingsField(
                     "Horário de atendimento",
@@ -4125,14 +4123,14 @@ document.addEventListener("change", (event) => {
   }
   if (event.target.id === "nvBusinessLogo") {
     const file = event.target.files[0];
-    if (!file) {
-      return;
-    }
+    if (!file) return;
     if (file.size > 1048576 || !["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
       $("nvLogoStatus").textContent = "Use PNG, JPG ou WebP com até 1 MB.";
+      $("nvLogoFileName").textContent = "Nenhuma nova imagem selecionada";
       event.target.value = "";
       return;
     }
+    $("nvLogoFileName").textContent = file.name;
     isBusinessLogoLoading = true;
     const reader = new FileReader();
     reader.onload = () => {
@@ -4219,6 +4217,10 @@ document.addEventListener("click", (event) => {
     selectedSettingsTab = "aparencia";
     renderSettings();
     document.querySelector('[data-settings-tab="aparencia"]')?.focus();
+    return;
+  }
+  if (event.target.closest("#nvChooseLogo")) {
+    $("nvBusinessLogo")?.click();
     return;
   }
   if (event.target.closest("#nvRemoveLogo")) {

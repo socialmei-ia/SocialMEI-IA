@@ -192,8 +192,42 @@ async function run() {
         }
       }
 
-      await page.setViewportSize({ width: 1440, height: 1000 });
+      await page.setViewportSize({ width: 390, height: 1000 });
       await page.evaluate(() => setTheme("light"));
+      await selectSection(page, "negocio");
+      const chooseLogo = page.locator("#nvChooseLogo");
+      assert.equal(await chooseLogo.innerText(), "Escolher imagem");
+      assert.equal(
+        await page.locator("#nvLogoFileName").innerText(),
+        "Nenhuma nova imagem selecionada",
+      );
+      const chooserPromise = page.waitForEvent("filechooser");
+      await chooseLogo.click();
+      const fileChooser = await chooserPromise;
+      await fileChooser.setFiles({
+        name: "incorreto.txt",
+        mimeType: "text/plain",
+        buffer: Buffer.from("conteudo de teste"),
+      });
+      assert.match(await page.locator("#nvLogoStatus").innerText(), /PNG, JPG ou WebP/);
+      assert.equal(
+        await page.locator("#nvLogoFileName").innerText(),
+        "Nenhuma nova imagem selecionada",
+      );
+      // A valid one-pixel PNG must still use the existing image validation/preview pipeline.
+      await page.locator("#nvBusinessLogo").setInputFiles({
+        name: "marca.png",
+        mimeType: "image/png",
+        buffer: Buffer.from(
+          "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jfV8AAAAASUVORK5CYII=",
+          "base64",
+        ),
+      });
+      await page.waitForFunction(
+        () => document.getElementById("nvLogoStatus")?.textContent === "Logo pronta para salvar.",
+      );
+      assert.equal(await page.locator("#nvLogoFileName").innerText(), "marca.png");
+      await page.setViewportSize({ width: 1440, height: 1000 });
       await selectSection(page, "conta");
       await page.evaluate(() => setTheme("dark"));
       assert(

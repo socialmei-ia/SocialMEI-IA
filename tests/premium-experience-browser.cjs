@@ -108,6 +108,28 @@ module.exports = async function premiumExperience(browser, origin) {
               active: await page.evaluate(() => SocialMEIDemoData.enabled()),
             }),
           );
+          if (view === "Financeiro") {
+            const axis = await page.evaluate(() => {
+              const columns = [
+                ...document.querySelectorAll("#financeView .management-chart-column"),
+              ];
+              return {
+                labels: columns.length,
+                hidden: columns.filter(
+                  (column, i) =>
+                    i % 2 === 1 &&
+                    getComputedStyle(column.querySelector("em")).visibility === "hidden",
+                ).length,
+                accessible: columns.every((column) =>
+                  column.getAttribute("aria-label")?.includes("entrou"),
+                ),
+              };
+            });
+            if (axis.labels > 3) {
+              assert.equal(axis.hidden, width <= 390 ? Math.floor(axis.labels / 2) : 0);
+              assert.equal(axis.accessible, true);
+            }
+          }
           if (view === "Oportunidades") {
             const positions = await page.evaluate(() => ({
               tab: document.getElementById("clientAnalysisTabs").getBoundingClientRect().top,
