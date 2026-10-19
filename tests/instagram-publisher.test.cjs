@@ -76,7 +76,7 @@ test("endereço externo só é aceito quando HTTPS e origem exata foram aprovado
   }
   assert.equal(publisher.inspect(config, "http://localhost:3000").available, false);
   assert.equal(
-    publisher.inspect({ mode: "disabled", ...config }, origin).available,
+    publisher.inspect({ ...config, mode: "disabled" }, origin).available,
     false,
   );
 });

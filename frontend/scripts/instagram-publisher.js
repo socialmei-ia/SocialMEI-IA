@@ -16,7 +16,7 @@ const SocialMEIInstagramPublisher = (() => {
     reel: {
       label: "Reel",
       guide:
-        "O fluxo externo precisa de um vídeo para Reel e aguarda o processamento da Meta. Confira o arquivo e a conta antes de confirmar.",
+        "O fluxo externo precisa de um vídeo (um arquivo) para Reel e aguarda o processamento da Meta. Confira o arquivo e a conta antes de confirmar.",
     },
   });
 
