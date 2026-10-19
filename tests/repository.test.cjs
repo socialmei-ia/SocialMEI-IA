@@ -34,8 +34,8 @@ test("all scripts parse, including their shared global declarations", () => {
   new vm.Script(read("tools/devhub.js"));
   assert.equal(sources.length, 41);
   assert.equal(
-    scriptPaths.indexOf("scripts/opportunities.js") + 1,
-    scriptPaths.indexOf("scripts/sales-calculator.js"),
+    scriptPaths.indexOf("scripts/client-analysis.js") + 1,
+    scriptPaths.indexOf("scripts/opportunities.js"),
   );
   assert.equal(
     scriptPaths.indexOf("scripts/report-motion.js") + 1,

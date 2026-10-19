@@ -1,93 +1,293 @@
-/* Native Opportunities uses the application's existing tokens and controls. */
+/* Customer analysis reuses native colors, typography and controls. */
 #opportunitiesView .management-stack {
-  max-width: 1200px;
+  max-width: 1100px;
   margin-inline: auto;
 }
-#opportunitiesView h3 {
-  font-size: 18px;
-  margin: 16px 0;
+#opportunitiesView .management-header h2 {
+  letter-spacing: -0.035em;
 }
-#opportunitiesView .native-opportunity-actions {
-  margin: 14px 0;
+#opportunitiesView p,
+#opportunitiesView li {
+  line-height: 1.65;
+  overflow-wrap: anywhere;
 }
 .native-opportunity-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  margin-block: 16px;
 }
 .native-opportunity-actions button {
   min-height: 44px;
 }
 .native-opportunity-empty {
-  padding: 24px;
+  padding: 24px 0;
 }
 .native-opportunity-empty p {
-  max-width: 76ch;
-  margin-bottom: 18px;
-  line-height: 1.65;
+  max-width: 70ch;
+  margin-block: 12px 20px;
 }
 .native-opportunity-empty button {
   margin: 0 10px 8px 0;
 }
-.native-opportunity-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  border: 1px solid var(--ln);
-  border-radius: 12px;
-  background: var(--sf);
-}
-.native-opportunity-list > li {
-  padding: 16px;
+.client-analysis-tabs {
+  position: relative;
+  isolation: isolate;
   display: grid;
-  grid-template-columns: minmax(180px, 0.8fr) minmax(0, 1.6fr) auto;
-  gap: 12px 20px;
-  align-items: start;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   border-bottom: 1px solid var(--ln);
-  transition: background-color var(--motion-fast);
+  padding-bottom: 3px;
 }
-.native-opportunity-list > li:focus-within {
-  background-color: var(--hover);
+.client-analysis-tabs > button {
+  font: inherit;
+  font-weight: 600;
+  color: var(--mt);
+  background: transparent;
+  border: 0;
+  min-height: 64px;
+  padding: 12px 8px;
+  cursor: pointer;
+  transition: color 180ms;
 }
-@media (hover: hover) and (pointer: fine) {
-  .native-opportunity-list > li:hover {
-    background-color: var(--hover);
+.client-analysis-tabs > button[aria-selected="true"] {
+  color: var(--br);
+}
+.client-analysis-tabs [data-analysis-count] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--hover);
+  margin-left: 5px;
+  font-variant-numeric: tabular-nums;
+}
+.client-analysis-indicator {
+  position: absolute;
+  width: 33.3333%;
+  height: 3px;
+  bottom: -1px;
+  left: 0;
+  background: var(--br);
+  transform: translateX(calc(var(--client-tab, 0) * 100%));
+  transition: transform 240ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.client-analysis-intro {
+  color: var(--mt);
+  max-width: 76ch;
+  margin-block: 8px 20px;
+}
+.client-analysis-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-block: 16px 24px;
+}
+.client-analysis-filters button {
+  min-height: 44px;
+}
+.client-analysis-filters button[aria-pressed="true"] {
+  color: var(--br);
+  background: var(--hover);
+  border-color: var(--br);
+}
+.client-analysis-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 20px;
+}
+.client-analysis-card {
+  background: var(--sf);
+  padding: 24px;
+  border-radius: 14px;
+  border: 1px solid var(--ln);
+  overflow-wrap: anywhere;
+  min-width: 0;
+  animation: client-analysis-enter 180ms ease-out;
+}
+.client-analysis-person {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.client-analysis-person > div {
+  flex: 1;
+  min-width: 0;
+}
+#opportunitiesView .client-analysis-person h3 {
+  font-size: 17px;
+  margin: 0 0 3px;
+}
+.client-analysis-avatar {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  background: var(--hover);
+  color: var(--br);
+}
+.client-analysis-badge {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 6px;
+  color: var(--mt);
+  background: var(--hover);
+}
+.client-analysis-badge.quente,
+.client-analysis-badge.critical {
+  color: var(--tx);
+  background: var(--danger-soft);
+}
+.client-analysis-badge.morno,
+.client-analysis-badge.high {
+  color: var(--tx);
+  background: var(--warning-soft);
+}
+.client-analysis-badge.frio,
+.client-analysis-badge.normal {
+  color: var(--br);
+  background: var(--hover);
+}
+.client-analysis-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-block: 20px;
+}
+#opportunitiesView .client-analysis-card h4 {
+  font-size: 14px;
+  font-weight: 650;
+  margin-block: 18px 8px;
+}
+.client-analysis-card p {
+  margin-block: 8px;
+}
+.client-analysis-card ul {
+  padding-left: 20px;
+  color: var(--mt);
+}
+.client-analysis-card blockquote {
+  border-left: 3px solid var(--ln);
+  margin: 12px 0;
+  padding: 8px 14px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+.client-analysis-card summary {
+  min-height: 44px;
+  display: list-item;
+  padding-block: 12px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.client-analysis-choice {
+  margin-top: 10px;
+}
+.client-analysis-expand {
+  border-top: 1px solid var(--ln);
+  margin-top: 16px;
+}
+.client-analysis-interest {
+  display: flex;
+  gap: 5px;
+  width: 120px;
+  margin-top: 16px;
+}
+.client-analysis-interest i {
+  height: 5px;
+  flex: 1;
+  border-radius: 3px;
+  background: var(--ln);
+}
+.client-analysis-interest i.on {
+  background: var(--br);
+}
+.client-analysis-card[data-priority="critical"] {
+  border-left: 3px solid var(--danger);
+}
+.client-analysis-card[data-priority="high"] {
+  border-left: 3px solid var(--warning);
+}
+.client-analysis-excluded {
+  border-block: 1px solid var(--ln);
+  padding-block: 16px;
+  margin-top: 24px;
+}
+.client-analysis-excluded > summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding-block: 12px;
+}
+.client-analysis-excluded .client-analysis-card {
+  margin-top: 16px;
+}
+@keyframes client-analysis-enter {
+  from {
+    opacity: 0.6;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (max-width: 1000px) {
+  .client-analysis-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 700px) {
+  .client-analysis-tabs > button {
+    font-size: 14px;
+    padding-inline: 3px;
+  }
+  .client-analysis-tabs [data-analysis-count] {
+    display: flex;
+    margin: 5px auto 0;
+  }
+  .client-analysis-card {
+    padding: 18px;
+  }
+  .client-analysis-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  .client-analysis-person {
+    flex-wrap: wrap;
+  }
+  .client-analysis-person > div {
+    flex-basis: calc(100% - 60px);
+  }
+  .client-analysis-badge {
+    margin-left: 52px;
+  }
+  #opportunitiesView .management-note {
+    font-size: 14px;
+  }
+  .native-opportunity-actions button {
+    flex: 1 1 auto;
+  }
+  .client-analysis-filters {
+    gap: 6px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .native-opportunity-list > li {
+  .client-analysis-card {
+    animation: none;
+  }
+  .client-analysis-indicator,
+  .client-analysis-tabs > button {
     transition: none;
   }
 }
-.native-opportunity-list > li:last-child {
-  border-bottom: 0;
-}
-.native-opportunity-person {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-.native-opportunity-position {
-  color: var(--mt);
-  font-variant-numeric: tabular-nums;
-}
-.native-opportunity-list > li > button {
-  grid-column: 3;
-  grid-row: 1;
-  min-height: 44px;
-}
-.native-opportunity-why {
-  grid-column: 2;
-  grid-row: 1;
-  min-width: 0;
-}
-.native-opportunity-why p {
-  margin-top: 6px;
-  line-height: 1.6;
-  font-size: 13px;
-  overflow-wrap: anywhere;
-}
+
 .native-opportunity-criteria {
   padding-block: 12px;
   border-block: 1px solid var(--ln);
@@ -179,31 +379,15 @@
   width: min(760px, calc(100vw - 24px));
 }
 @media (max-width: 700px) {
-  .native-opportunity-list > li {
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 10px;
-    padding: 14px;
-  }
-  .native-opportunity-list > li > button {
-    grid-column: 2;
-    font-size: 12px;
-    padding-inline: 10px;
-  }
-  .native-opportunity-why {
-    grid-column: 1/-1;
-    grid-row: 2;
-  }
-  .native-opportunity-empty,
   .native-opportunity-analysis {
     padding: 18px;
   }
-  .native-opportunity-person {
-    font-size: 14px;
-  }
-  .native-opportunity-actions {
-    align-items: stretch;
-  }
-  .native-opportunity-actions button {
-    flex: 1;
-  }
+}
+
+.native-opportunity-analysis > summary {
+  cursor: pointer;
+  min-height: 44px;
+  font-size: 16px;
+  font-weight: 650;
+  padding-block: 10px;
 }

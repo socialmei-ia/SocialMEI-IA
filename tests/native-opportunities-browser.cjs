@@ -34,212 +34,201 @@ module.exports = async function nativeOpportunities(browser, origin) {
       );
     };
     await navigate();
-    await page.locator("#salesCalcCount").fill("10");
-    await page.locator("#salesCalcTicket").fill("150");
-    await page.locator("#salesCalcClosed").fill("2");
-    assert.match(await page.locator("#salesCalcRevenue0").textContent(), /300,00/);
-    assert.match(await page.locator("#salesCalcRevenue1").textContent(), /600,00/);
-    assert.match(await page.locator("#salesCalcRevenue2").textContent(), /900,00/);
-    assert.match(await page.locator("#salesCalcClosedRevenue").textContent(), /300,00/);
-    await page.locator("#salesCalcClosed").fill("11");
-    assert.match(await page.locator("#salesCalcClosedError").textContent(), /até o total/);
-    await page.locator("#salesCalcReset").click();
-    assert.equal(await page.locator("#salesCalcCount").inputValue(), "");
-    assert.equal(await page.locator("#salesCalcRevenue1").textContent(), "—");
-    await page.locator("#salesCalcCount").fill("5");
-    await page.evaluate(() => setView("Clientes"));
-    await navigate();
-    assert.equal(await page.locator("#salesCalcCount").inputValue(), "");
+    assert.equal(await page.locator("#salesCalculator").count(), 0);
     assert.equal(await page.locator("[data-opportunity-open]").count(), 0);
     await page.locator("[data-opportunity-integrations]").click();
-    assert.equal(await page.evaluate(() => currentView), "Configurações");
     assert.equal(await page.evaluate(() => selectedSettingsTab), "integracoes");
     await navigate();
     let layouts = 0;
-    for (const width of [320, 390, 1440])
+    const tab = async (id) => {
+      await page.locator(`[data-analysis-tab="${id}"]`).click();
+    };
+    for (const width of [320, 390, 768, 1024, 1280, 1440])
       for (const theme of ["light", "dark"]) {
         await page.setViewportSize({ width, height: 1000 });
         await page.evaluate((value) => SocialMEIThemes.select(value), theme);
-        await page
-          .locator("[data-opportunity-stop]")
-          .isVisible()
-          .then(async (visible) => {
-            if (visible) await page.locator("[data-opportunity-stop]").click();
-          });
-        assert.equal(await page.locator("[data-opportunity-open]").count(), 0);
-        assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
-        if (width !== 320)
-          await page.screenshot({
-            path: path.join(output, `empty-${width}-${theme}.png`),
-            fullPage: true,
-          });
+        if (await page.locator("[data-opportunity-stop]").isVisible())
+          await page.locator("[data-opportunity-stop]").click();
+        await page.screenshot({
+          path: path.join(output, `empty-${width}-${theme}.png`),
+          fullPage: true,
+        });
         await page.locator("[data-opportunity-demo]").click();
-        assert.equal(await page.locator("[data-opportunity-open]").count(), 4);
-        const firstOpportunity = page.locator(".native-opportunity-list > li").first();
-        await page.mouse.move(1, 1);
-        assert.equal(
-          await firstOpportunity.evaluate((element) => element.matches(":hover")),
-          false,
-        );
-        const restingBackground = await firstOpportunity.evaluate(
-          (element) => getComputedStyle(element).backgroundColor,
-        );
-        await firstOpportunity.locator("[data-opportunity-open]").focus();
-        const focusedBackground = await firstOpportunity.evaluate(
-          (element) => getComputedStyle(element).backgroundColor,
-        );
-        assert.notEqual(
-          focusedBackground,
-          restingBackground,
-          "A linha de Oportunidades deve responder visualmente ao foco.",
-        );
-        assert(
-          (await page.locator("#opportunitySource").textContent()).includes("mensagens fictícias"),
-        );
-        assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
-        if (width !== 320)
+        for (const id of ["analysis", "chance", "attention"]) {
+          await tab(id);
+          assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+          const tabState = await page
+            .locator(`[data-analysis-tab="${id}"]`)
+            .getAttribute("aria-selected");
+          assert.equal(tabState, "true");
           await page.screenshot({
-            path: path.join(output, `queue-${width}-${theme}.png`),
+            path: path.join(output, `${id}-${width}-${theme}.png`),
             fullPage: true,
           });
-        await page.locator("#opportunityText").fill("Quero contratar a troca de tela hoje.");
-        await page.locator('#opportunityAnalyzeForm [type="submit"]').click();
-        assert.equal(
-          await page.locator("#opportunityAnalysis h4").first().textContent(),
-          "Intenção elevada",
-        );
-        assert.equal(await page.locator("#opportunityAnalysis img").count(), 0);
-        if (width !== 320)
-          await page
-            .locator(".native-opportunity-analysis")
-            .screenshot({ path: path.join(output, `analysis-${width}-${theme}.png`) });
-        await page.locator("#opportunityText").fill("Não quero comprar.");
-        assert(await page.locator("#opportunityAnalysis").isHidden());
-        await page.locator('#opportunityAnalyzeForm [type="submit"]').click();
-        assert.equal(
-          await page.locator("#opportunityAnalysis h4").first().textContent(),
-          "Recusa ou desistência",
-        );
-        const before = await page.evaluate(() =>
-          JSON.stringify({ data: appData, conversations: sessionData.conversas }),
-        );
-        await page.locator('[data-opportunity-open="demo-3"]').click();
-        assert(
-          await page.locator("#opportunityModal").evaluate((el) => el.classList.contains("open")),
-        );
-        const evidence = await page.locator("#opportunityDetail blockquote").allTextContents();
-        for (const quote of evidence)
-          assert(
-            (
-              await page.evaluate(() =>
-                opportunityDemoSnapshot
-                  .find((c) => c.id === 3)
-                  .mensagens.map((m) => m.texto)
-                  .join("\n"),
-              )
-            ).includes(quote),
-          );
-        await page.locator("#opportunityReviewGroup").selectOption("declined");
-        await page
-          .locator("#opportunityReviewReason")
-          .fill("Revisão humana de teste, sem alteração na conversa.");
-        await page.locator('#opportunityReviewForm [type="submit"]').click();
-        assert(
-          (await page.locator("#opportunityDetail").textContent()).includes(
-            "Recomendação automática: Responder consulta",
-          ),
-        );
-        assert(
-          (await page.locator("#opportunityDetail").textContent()).includes("Revisão humana:"),
-        );
-        if (width !== 320)
-          await page
-            .locator("#opportunityModal .modal")
-            .screenshot({ path: path.join(output, `review-${width}-${theme}.png`) });
-        assert.equal(
-          await page.evaluate(() =>
-            JSON.stringify({ data: appData, conversations: sessionData.conversas }),
-          ),
-          before,
-        );
-        await page.keyboard.press("Escape");
-        await page.waitForFunction(
-          () => !document.getElementById("opportunityModal").classList.contains("open"),
-        );
-        assert(
-          await page
-            .locator('[data-opportunity-open="demo-3"]')
-            .evaluate((el) => document.activeElement === el),
-        );
-        assert(
-          (await page.locator('[data-native-opportunity="demo-3"]').textContent()).includes(
-            "Respeitar desistência",
-          ),
-        );
+        }
         layouts++;
       }
-    await page.locator('[data-opportunity-open="demo-4"]').click();
-    assert((await page.locator("#opportunityDetail").textContent()).includes("Conferir pós-venda"));
-    assert(!(await page.locator("#opportunityDetail").textContent()).includes("Acolha o problema"));
+    await page.locator(".native-opportunity-analysis > summary").click();
+    for (let cycle = 0; cycle < 4; cycle++) {
+      for (let clear = 0; clear < 3; clear++)
+        await page.locator("[data-opportunity-clear]").click();
+      await tab("attention");
+      await page.locator('[data-analysis-alert="open"]').click();
+      assert.equal(await page.locator(".client-analysis-list .client-analysis-card").count(), 3);
+      await page.locator('[data-analysis-resolve="analysis-demo-critical"]').click();
+      assert.equal(await page.locator(".client-analysis-list .client-analysis-card").count(), 2);
+      await page.locator('[data-analysis-alert="resolved"]').click();
+      assert.equal(await page.locator(".client-analysis-list .client-analysis-card").count(), 1);
+      await page.locator('[data-analysis-resolve="analysis-demo-critical"]').click();
+      assert.equal(await page.locator(".client-analysis-list .client-analysis-card").count(), 0);
+      await page.locator("[data-opportunity-stop]").click();
+      await page.locator("[data-opportunity-demo]").click();
+    }
+    await page.locator(".native-opportunity-analysis > summary").click();
+    const before = await page.evaluate(() =>
+      JSON.stringify({ data: appData, conversations: sessionData.conversas }),
+    );
+    await tab("analysis");
+    const lia = page.locator('[data-native-opportunity="analysis-demo-welcome"]');
+    await lia.locator(".client-analysis-choice summary").click();
+    await lia.locator('[data-analysis-value="frio"]').click();
+    assert.equal(
+      await page.locator('[data-analysis-tab="chance"]').getAttribute("aria-selected"),
+      "true",
+    );
+    await page.locator('[data-analysis-level="frio"]').click();
+    assert.equal(await page.locator(".client-analysis-list .client-analysis-card").count(), 1);
+    await page.locator('[data-analysis-level="quente"]').click();
+    assert.equal(await page.locator(".client-analysis-list .quente").count(), 1);
+    for (const filter of ["morno", "all"])
+      await page.locator(`[data-analysis-level="${filter}"]`).click();
+    await page
+      .locator('[data-native-opportunity="analysis-demo-purchase"] .client-analysis-expand summary')
+      .click();
+    assert(
+      await page
+        .locator('[data-native-opportunity="analysis-demo-purchase"] blockquote')
+        .isVisible(),
+    );
+    await page
+      .locator('[data-native-opportunity="analysis-demo-welcome"] [data-analysis-reset]')
+      .click();
+    await page.locator('[data-analysis-level="frio"]').click();
+    assert.equal(await page.locator(".client-analysis-list .client-analysis-card").count(), 0);
+    await tab("attention");
+    await page.locator('[data-analysis-alert="open"]').click();
+    assert.deepEqual(
+      await page
+        .locator(".client-analysis-list [data-priority]")
+        .evaluateAll((els) => els.map((e) => e.dataset.priority)),
+      ["critical", "high", "normal"],
+    );
+    const ana = page.locator('[data-native-opportunity="analysis-demo-critical"]');
+    await ana.locator("summary").click();
+    await page.evaluate(() => {
+      navigator.clipboard.writeText = async (text) => {
+        window.copiedAnalysis = text;
+      };
+    });
+    await ana.locator("[data-analysis-copy]").click();
+    assert.match(await page.evaluate(() => window.copiedAnalysis), /Recebi sua mensagem/);
+    await page.evaluate(() => {
+      navigator.clipboard.writeText = async () => {
+        throw Error("denied");
+      };
+    });
+    await ana.locator("[data-analysis-copy]").click();
+    assert.match(
+      await page.locator("#clientAnalysisStatus").textContent(),
+      /Não foi possível copiar/,
+    );
+    await ana.locator("[data-analysis-resolve]").click();
+    assert.equal(await page.locator(".client-analysis-list .client-analysis-card").count(), 2);
+    await page.locator('[data-analysis-alert="resolved"]').click();
+    assert.equal(await page.locator(".client-analysis-list .client-analysis-card").count(), 1);
+    await page.locator("[data-analysis-resolve]").click();
+    await page.locator('[data-analysis-alert="open"]').click();
+    assert.equal(await page.locator(".client-analysis-list .client-analysis-card").count(), 3);
+    await tab("chance");
+    await page.locator('[data-analysis-level="all"]').click();
+    await page.locator('[data-opportunity-open="demo-3"]').click();
+    const quotes = await page.locator("#opportunityDetail blockquote").allTextContents();
+    const originals = await page.evaluate(() =>
+      opportunityDemoSnapshot
+        .find((c) => c.id === 3)
+        .mensagens.map((m) => m.texto)
+        .join("\n"),
+    );
+    quotes.forEach((q) => assert(originals.includes(q)));
+    await page.locator("#opportunityReviewGroup").selectOption("declined");
+    await page.locator("#opportunityReviewReason").fill("Recusa confirmada em revisão humana.");
+    await page.locator('#opportunityReviewForm [type="submit"]').click();
+    assert.match(await page.locator("#opportunityDetail").textContent(), /Revisão humana:/);
     await page.keyboard.press("Escape");
     await page.waitForFunction(
       () => !document.getElementById("opportunityModal").classList.contains("open"),
     );
+    assert.equal(
+      await page
+        .locator('[data-analysis-tab="chance"]')
+        .evaluate((el) => document.activeElement === el),
+      true,
+    );
+    await page.locator(".client-analysis-excluded > summary").click();
     await page.locator('[data-opportunity-open="demo-3"]').click();
+    await page.locator("[data-opportunity-restore]").click();
+    assert.equal(
+      await page.evaluate(() =>
+        JSON.stringify({ data: appData, conversations: sessionData.conversas }),
+      ),
+      before,
+    );
     await page.locator("[data-opportunity-conversation]").click();
     await page.waitForFunction(
       () => currentView === "Caixa Unificada" && activeConversationId === 3,
     );
     await navigate();
-    await page.evaluate(() =>
-      sessionData.conversas
-        .find((c) => c.id === 3)
-        .mensagens.push({
-          de: "cliente",
-          texto: "Mensagem remota sintética",
-          remoteId: "controlled-remote",
-        }),
-    );
-    await page.locator('[data-opportunity-open="demo-3"]').click();
-    assert(
-      !(await page.locator("#opportunityModal").evaluate((el) => el.classList.contains("open"))),
-    );
-    assert.equal(await page.locator('[data-opportunity-open="demo-3"]').count(), 0);
-    await page.evaluate(() => {
-      sessionData.conversas.find((c) => c.id === 3).mensagens.pop();
-      renderOpportunities();
-    });
-    // An explicit existing local CRM link opens the application's actual client drawer.
-    await page.evaluate(() => {
-      const c = sessionData.conversas.find((c) => c.id === 3);
-      c.clientId = appData.clientes[0].id;
-    });
-    await page.locator('[data-opportunity-open="demo-3"]').click();
-    await page.locator("[data-opportunity-client]").click();
-    await page.waitForFunction(() =>
-      document.getElementById("clientModal").classList.contains("open"),
-    );
+
+    await tab("analysis");
+    await page.locator('[data-analysis-tab="analysis"]').focus();
+    await page.keyboard.press("ArrowRight");
     assert.equal(
-      await page.locator("#clientModalTitle").textContent(),
-      await page.evaluate(() => appData.clientes[0].nome),
+      await page
+        .locator('[data-analysis-tab="chance"]')
+        .evaluate((el) => el === document.activeElement),
+      true,
     );
-    await page.keyboard.press("Escape");
-    await page.waitForFunction(
-      () => !document.getElementById("clientModal").classList.contains("open"),
+    await page.keyboard.press("End");
+    assert.equal(
+      await page.locator('[data-analysis-tab="attention"]').getAttribute("aria-selected"),
+      "true",
     );
+    await page.keyboard.press("Home");
+    assert.equal(
+      await page.locator('[data-analysis-tab="analysis"]').getAttribute("aria-selected"),
+      "true",
+    );
+    await page.locator(".native-opportunity-analysis > summary").click();
     await page
       .locator("#opportunityText")
-      .fill('<img src=x onerror="window.opportunityInjection=true"> Quanto custa?');
+      .fill('<img src=x onerror="window.opportunityInjection=true"> Não quero comprar.');
     await page.locator('#opportunityAnalyzeForm [type="submit"]').click();
     assert.equal(await page.locator("#opportunityAnalysis img").count(), 0);
     assert(!(await page.evaluate(() => window.opportunityInjection)));
+    assert.match(await page.locator("#opportunityAnalysis h4").first().textContent(), /Recusa/);
+    await page.locator("#opportunityText").fill("Quero contratar troca de tela.");
+    assert(await page.locator("#opportunityAnalysis").isHidden());
+    await page.evaluate(() =>
+      sessionStorage.setItem("socialmei-business-demo-identity", "other-test"),
+    );
+    await navigate();
+    assert.equal(await page.locator("[data-opportunity-open]").count(), 0);
+    assert.equal(await page.locator("#opportunityText").inputValue(), "");
     await page.reload();
     await page.evaluate(() => SocialMEIExperience.enterApp("Oportunidades"));
     assert.equal(await page.locator("[data-opportunity-open]").count(), 0);
-    assert.equal(await page.locator("#opportunityText").inputValue(), "");
     assert(
-      !requests.some((url) => url.includes("/prototypes/")),
-      "Native app must not load prototype pages or scripts",
+      !requests.some((url) => url.includes("sales-calculator") || url.includes("/prototypes/")),
     );
     const accountContext = await browser.newContext({ reducedMotion: "reduce" });
     try {
@@ -319,6 +308,7 @@ module.exports = async function nativeOpportunities(browser, origin) {
           "Texto sintético sem identidade",
         ),
       );
+      await account.locator(".native-opportunity-analysis > summary").click();
       await account.locator("#opportunityText").fill("Quero comprar.");
       await account.locator('#opportunityAnalyzeForm [type="submit"]').click();
       assert.equal(
@@ -331,7 +321,7 @@ module.exports = async function nativeOpportunities(browser, origin) {
     }
     assert.deepEqual(errors, []);
     assert.deepEqual(external, []);
-    return `Oportunidades nativa: ${layouts} layouts, menu real, vazio, análise/negação, evidências, revisão sem persistência, Caixa, cliente, foco, XSS, reset e conta remota controlada sem dados inventados passaram.`;
+    return `Análise de Clientes V2: ${layouts} layouts, três abas, filtros, classificação humana, evidências, alertas/resolução/reabertura, clipboard/falha, Caixa, foco, teclado, XSS, isolamento e conta remota vazia passaram.`;
   } finally {
     await context.close();
   }
