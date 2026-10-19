@@ -46,7 +46,8 @@ function getConversation(id = activeConversationId) {
   return sessionData.conversas.find((conversation) => conversation.id === Number(id));
 }
 function inboxActiveTags(c) {
-  const client = SocialMEIClients.conversationClient(c);
+  if (c._socialmeiDemoSample) return ["Demonstração"];
+  const client = c._socialmeiDemoSample ? null : SocialMEIClients.conversationClient(c);
   const tags = [...(client?.tags || [])];
   if (c.naoLidas >= 2 && !tags.includes("Urgente")) {
     tags.push("Urgente");
@@ -59,7 +60,7 @@ function filteredConversations() {
   const st = $("statusFilter")?.value || "all";
   const tag = $("tagFilter")?.value || inboxSelectedTag || "all";
   const sort = $("sortFilter")?.value || inboxSortOrder || "priority";
-  let list = sessionData.conversas.filter((conversation) => {
+  let list = businessViewConversations().filter((conversation) => {
     const searchable = foldText(
       [
         displayName(conversation),
@@ -119,28 +120,28 @@ function filteredConversations() {
   return list;
 }
 function conversationTags(c) {
-  const tags = inboxActiveTags(c);
+  const tags = inboxActiveTags(c).filter(
+    (tag) => !c._socialmeiDemoSample || tag !== "Demonstração",
+  );
   if (c.status === "aberto" && !tags.includes("Orçamento")) {
     tags.unshift("Pendente");
   }
   return tags.slice(0, 2);
 }
 function updateInboxCounts() {
-  const unread = sessionData.conversas.reduce((conversation, c) => conversation + c.naoLidas, 0);
-  const pending = sessionData.conversas.filter(
-    (conversation) => conversation.status === "aberto",
-  ).length;
+  const records = businessViewConversations();
+  const { unreadMessages: unread, unreadConversations, pending } = conversationCounts(records);
   if ($("totalSummary")) {
-    $("totalSummary").textContent = sessionData.conversas.length;
+    $("totalSummary").textContent = records.length;
   }
   document
     .querySelectorAll('[data-filter-count="all"]')
-    .forEach((x) => (x.textContent = sessionData.conversas.length));
+    .forEach((x) => (x.textContent = records.length));
   document
     .querySelectorAll('[data-filter-count="andamento"]')
     .forEach(
       (x) =>
-        (x.textContent = sessionData.conversas.filter(
+        (x.textContent = records.filter(
           (conversation) => conversation.status === "andamento",
         ).length),
     );
@@ -151,23 +152,23 @@ function updateInboxCounts() {
     $("unreadSummary").textContent = unread;
   }
   if ($("pendingCount")) {
-    $("pendingCount").textContent = `${unread} não lida${unread === 1 ? "" : "s"}`;
+    $("pendingCount").textContent =
+      `${unread} mensage${unread === 1 ? "m" : "ns"} não lida${unread === 1 ? "" : "s"}`;
   }
   document
     .querySelectorAll('[data-filter-count="unread"]')
-    .forEach(
-      (x) =>
-        (x.textContent = sessionData.conversas.filter(
-          (conversation) => conversation.naoLidas > 0,
-        ).length),
-    );
+    .forEach((x) => (x.textContent = unreadConversations));
+  document.querySelectorAll('[data-quick-filter="unread"]').forEach((button) => {
+    const label = `${unreadConversations} conversa${unreadConversations === 1 ? "" : "s"} com mensagens não lidas`;
+    button.setAttribute("aria-label", label);
+    button.title = label;
+  });
   document
     .querySelectorAll('[data-filter-count="aberto"]')
     .forEach(
       (x) =>
         (x.textContent =
-          sessionData.conversas.filter((conversation) => conversation.status === "aberto").length ||
-          ""),
+          records.filter((conversation) => conversation.status === "aberto").length || ""),
     );
 }
 function updateFilterBadge() {
@@ -189,17 +190,15 @@ function renderConversationList() {
     ? document.activeElement.dataset.conversation
     : null;
   const list = filteredConversations();
-  const totalUnread = sessionData.conversas.reduce(
-    (conversation, c) => conversation + c.naoLidas,
-    0,
-  );
+  const totalUnread = conversationCounts().unreadMessages;
   updateInboxCounts();
   updateFilterBadge();
   if ($("conversationCount")) {
     $("conversationCount").textContent = `${list.length} conversa${list.length === 1 ? "" : "s"}`;
   }
   if ($("pendingCount")) {
-    $("pendingCount").textContent = `${totalUnread} não lida${totalUnread === 1 ? "" : "s"}`;
+    $("pendingCount").textContent =
+      `${totalUnread} mensage${totalUnread === 1 ? "m" : "ns"} não lida${totalUnread === 1 ? "" : "s"}`;
   }
   document.querySelectorAll(".quick-filter").forEach((b) => {
     b.classList.toggle("active", b.dataset.quickFilter === inboxQuickFilter);
@@ -753,6 +752,8 @@ function enterInboxListMode({ animate = true, focusList = false } = {}) {
   });
 }
 function renderInbox() {
+  if (SocialMEIDemoData.enabled() && !sessionData.conversas.some((c) => c._socialmeiDemoSample))
+    syncLegacySessionExamples();
   hydrateLocalNotes();
   refreshTagOptions();
   if ($("searchIcon")) {
@@ -1401,7 +1402,7 @@ function refreshTagOptions() {
       "Pagamento",
       "Pós-venda",
       "Urgente",
-      ...appData.clientes.flatMap((client) => client.tags || []),
+      ...businessViewData().clientes.flatMap((client) => client.tags || []),
     ]),
   ].sort((a, b) => a.localeCompare(b, "pt-BR"));
   $("tagFilter").innerHTML =

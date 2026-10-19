@@ -107,13 +107,7 @@
       String(profile.name || "")
         .trim()
         .split(/\s+/)[0] || "";
-    const initials =
-      String(profile.name || "")
-        .trim()
-        .split(/\s+/)
-        .slice(0, 2)
-        .map((x) => x[0]?.toUpperCase() || "")
-        .join("") || "SM";
+    const initials = initialsFromName(profile.name, "SM");
     if (typeof sessionData !== "undefined" && sessionData.usuario) {
       sessionData.usuario.nome = String(profile.name || "").trim();
       sessionData.usuario.primeiro = first;
@@ -301,13 +295,7 @@
       String(profile.name || "")
         .trim()
         .split(/\s+/)[0] || "";
-    const initials =
-      String(profile.name || "")
-        .trim()
-        .split(/\s+/)
-        .slice(0, 2)
-        .map((x) => x[0]?.toUpperCase() || "")
-        .join("") || "SM";
+    const initials = initialsFromName(profile.name, "SM");
     if (typeof sessionData !== "undefined" && sessionData.usuario) {
       sessionData.usuario.nome = String(profile.name || "").trim();
       sessionData.usuario.primeiro = first;
@@ -2173,13 +2161,7 @@ ONBOARDING — JAVASCRIPT
     const business = q("#obBusiness").value.trim() || profile.business;
     q("#obPreviewBusiness").textContent = business;
     q("#obPreviewPerson").textContent = name;
-    q("#obPreviewAvatar").textContent = business
-      .trim()
-      .split(/\s+/)
-      .slice(0, 2)
-      .map((x) => x[0] || "")
-      .join("")
-      .toUpperCase();
+    q("#obPreviewAvatar").textContent = initialsFromName(business, "SM");
     q("#obPreviewChannels").textContent =
       qa('.experience-choice.is-selected[data-choice-group="channel"]')
         .map((x) => x.dataset.choice)
@@ -2725,7 +2707,7 @@ ONBOARDING — JAVASCRIPT
                   data-rule-area="${area}"
                   aria-pressed="${ruleArea === area}"
                 >
-                  ${area}<b
+                  ${area === "Todas" ? "Todas as áreas" : area}<b
                     >${area === "Todas" ? rules.length : rules.filter((rule) => ruleAreaOf(rule) === area).length}</b
                   >
                 </button>`,
@@ -2878,11 +2860,11 @@ ONBOARDING — JAVASCRIPT
         : "O pedido de exemplo não confirma Pix pendente há 2 dias.";
     } else if (r.when.includes("conversa")) {
       conversation =
-        sessionData.conversas.find(
+        businessViewConversations().find(
           (c) =>
             ["aberto", "andamento"].includes(c.status) &&
             [...c.mensagens].reverse().find((m) => m.de !== "nota")?.de === "cliente",
-        ) || sessionData.conversas[0];
+        ) || businessViewConversations()[0];
       evidence =
         "Sem data e hora completas do último evento, não é possível confirmar as 2 horas de espera.";
     } else if (r.when.includes("30 dias")) {
@@ -3091,7 +3073,7 @@ ONBOARDING — JAVASCRIPT
     follow: "Retoma o contexto sem agendar contatos.",
   };
   function getAssistantConversation() {
-    return sessionData.conversas.find(
+    return businessViewConversations().find(
       (conversation) => String(conversation.id) === q("#aiContextSelect").value,
     );
   }
@@ -3161,10 +3143,10 @@ ONBOARDING — JAVASCRIPT
   function renderAssistantConversations() {
     const query = normalizedText(q("#nvAiSearch").value);
     const selected = q("#aiContextSelect").value;
-    const rows = sessionData.conversas.filter((conversation) =>
+    const rows = businessViewConversations().filter((conversation) =>
       normalizedText(displayName(conversation) + " " + lastMessage(conversation)).includes(query),
     );
-    q("#asConversationCount").textContent = sessionData.conversas.length;
+    q("#asConversationCount").textContent = businessViewConversations().length;
     q("#asSearchStatus").textContent = plural(
       rows.length,
       "conversa encontrada",
@@ -3263,7 +3245,7 @@ ONBOARDING — JAVASCRIPT
     const selected = select.value;
     select.innerHTML =
       '<option value="">Selecione uma conversa</option>' +
-      sessionData.conversas
+      businessViewConversations()
         .map(
           (c) =>
             '<option value="' +
@@ -3474,7 +3456,9 @@ ONBOARDING — JAVASCRIPT
    * @returns {Promise<void>}
    */
   async function selectAssistantConversation(id) {
-    if (!sessionData.conversas.some((conversation) => String(conversation.id) === String(id))) {
+    if (
+      !businessViewConversations().some((conversation) => String(conversation.id) === String(id))
+    ) {
       return;
     }
     if (q("#aiContextSelect").value === String(id)) {
@@ -4096,7 +4080,9 @@ ONBOARDING — JAVASCRIPT
     ++assistantSelectionRequest;
     isAssistantSelecting = false;
     setView("Assistente");
-    if (sessionData.conversas.some((conversation) => String(conversation.id) === String(id))) {
+    if (
+      businessViewConversations().some((conversation) => String(conversation.id) === String(id))
+    ) {
       q("#aiContextSelect").value = String(id);
     }
     isAssistantMainVisibleOnMobile = true;
@@ -4250,7 +4236,7 @@ ONBOARDING — JAVASCRIPT
       if (!d) {
         return;
       }
-      q("#aiContextSelect").value = sessionData.conversas.some(
+      q("#aiContextSelect").value = businessViewConversations().some(
         (conversation) => String(conversation.id) === String(d.conversationId),
       )
         ? String(d.conversationId)
@@ -4270,7 +4256,7 @@ ONBOARDING — JAVASCRIPT
       const d = assistantDrafts[Number(b.dataset.aiInsert)];
       if (
         !d ||
-        !sessionData.conversas.some((conversation) => conversation.id === d.conversationId)
+        !businessViewConversations().some((conversation) => conversation.id === d.conversationId)
       ) {
         toast("Conversa não disponível", "O rascunho continua disponível para copiar.");
         return;
@@ -4304,10 +4290,7 @@ ONBOARDING — JAVASCRIPT
   Prioridades, sugestões de comandos e visão contextual do dia. */
   window.renderClientHome = function () {
     q("#clientHomeGreeting").textContent = humanGreeting();
-    const unread = businessViewConversations().reduce(
-      (conversation, c) => conversation + (c.naoLidas || 0),
-      0,
-    );
+    const unread = conversationCounts().unreadMessages;
     const overdue = businessViewData().financeiro.filter(
       (entry) => ledgerStatus(entry) === "atrasado",
     ).length;
@@ -4338,7 +4321,7 @@ ONBOARDING — JAVASCRIPT
           ? "Visão Geral"
           : "Clientes";
     q("#homePulseConversations").textContent = unread
-      ? `${plural(unread, "não lida", "não lidas")}`
+      ? `${plural(unread, "mensagem não lida", "mensagens não lidas")}`
       : businessViewConversations().length
         ? "Sem mensagens não lidas"
         : "Nenhum atendimento ainda";
@@ -4545,8 +4528,7 @@ ONBOARDING — JAVASCRIPT
       label: "Responder clientes",
       view: "Caixa Unificada",
       icon: "inbox",
-      hint: () =>
-        `${sessionData.conversas.reduce((conversation, c) => conversation + c.naoLidas, 0)} mensagens não lidas`,
+      hint: () => `${conversationCounts().unreadMessages} mensagens não lidas`,
     },
     {
       label: "Registrar venda",

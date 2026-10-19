@@ -690,6 +690,7 @@ const SocialMEIReportUI = (() => {
         : selectedReportTab === "Atendimento"
           ? true
           : salesReady;
+    document.getElementById("reportComparisonNote")?.remove();
     if (!needed) {
       document
         .getElementById("reportsGrid")
@@ -702,10 +703,27 @@ const SocialMEIReportUI = (() => {
         );
       return;
     }
+    const missingComparison = [];
     document.querySelectorAll("#nvReportKpis small").forEach((note) => {
       note.title = note.textContent;
-      note.textContent = note.textContent.replace("vs. período anterior", "vs. anterior");
+      if (note.textContent === "Histórico anterior insuficiente") {
+        note.hidden = true;
+        const metric = note.closest(".management-kpi");
+        metric.setAttribute("aria-describedby", "reportComparisonNote");
+        missingComparison.push(metric.querySelector("span").textContent);
+      } else note.textContent = note.textContent.replace("vs. período anterior", "vs. anterior");
     });
+    if (missingComparison.length) {
+      const note = el(
+        "p",
+        "Ainda não há histórico suficiente para comparar: " +
+          new Intl.ListFormat("pt-BR").format(missingComparison) +
+          ".",
+        "management-note",
+      );
+      note.id = "reportComparisonNote";
+      document.getElementById("nvReportKpis").after(note);
+    }
     SocialMEIReportMotion.update();
     document.querySelectorAll("#reportsView .rv2-trend").forEach((chart) => {
       const tip = chart.querySelector(".rv2-chart-tooltip"),

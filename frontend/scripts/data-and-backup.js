@@ -2,8 +2,22 @@
 function businessViewData() {
   return SocialMEIDemoData.read(appData);
 }
+function sessionViewRecords(key) {
+  const demo = SocialMEIDemoData.enabled();
+  return (sessionData[key] || []).filter((row) => !!row._socialmeiDemoSample === demo);
+}
 function businessViewConversations() {
-  return SocialMEIDemoData.enabled() ? businessViewData().conversations : sessionData.conversas;
+  return sessionViewRecords("conversas");
+}
+function conversationCounts(records = businessViewConversations()) {
+  const unread = (row) =>
+    Number.isSafeInteger(row.naoLidas) && row.naoLidas > 0 ? row.naoLidas : 0;
+  return {
+    total: records.length,
+    unreadMessages: records.reduce((sum, row) => sum + unread(row), 0),
+    unreadConversations: records.filter((row) => unread(row) > 0).length,
+    pending: records.filter((row) => row.status === "aberto").length,
+  };
 }
 function businessSourceReady(store) {
   return SocialMEIDemoData.enabled() || ["local", "ready"].includes(store.connectionState);
@@ -783,15 +797,21 @@ function renderCurrentView() {
     renderSettings();
   }
 }
-function initialsFromName(name) {
-  return (
-    String(name || "Cliente")
-      .trim()
-      .split(/\s+/)
-      .slice(0, 2)
-      .map((x) => x[0]?.toUpperCase() || "")
-      .join("") || "CL"
-  );
+function initialsFromName(name, fallback = "CL") {
+  const words =
+    String(name ?? "")
+      .normalize("NFC")
+      .replace(/\([^)]*(?:\)|$)/gu, " ")
+      .match(/\p{L}[\p{L}\p{M}'’−-]*/gu) || [];
+  const names = words.filter((word) => !/^(?:da|das|de|do|dos|e)$/iu.test(word));
+  if (!names.length) return fallback;
+  const letters =
+    names.length === 1
+      ? Array.from(names[0].replace(/[^\p{L}\p{M}]/gu, ""))
+          .slice(0, 2)
+          .join("")
+      : [names[0], names.at(-1)].map((word) => Array.from(word)[0]).join("");
+  return letters.toLocaleUpperCase("pt-BR");
 }
 function renderAll() {
   updatePeriodLabel();

@@ -134,7 +134,27 @@
       telefone: "",
       mensagens: [{ de: "cliente", texto: texts[i], data: shift(day, -i), hora: "10:00" }],
     }));
-    return freeze({ clientes, produtos, vendas, financeiro, conversations });
+    const atividade = vendas.slice(0, 3).map((sale) => ({
+      t: "sale",
+      a: `Venda #${sale.id} · exemplo`,
+      b: sale.cliente,
+      v: sale.valor,
+      w: sale.data,
+    }));
+    const notificacoes = [
+      { t: "Mensagem de exemplo", s: `${clientes[0].nome} · nenhuma mensagem enviada` },
+      { t: "Venda de exemplo", s: `${vendas[0].cliente} · pedido #${vendas[0].id}` },
+      { t: "Compromisso de exemplo", s: financeiro.at(-1).descricao },
+    ];
+    return freeze({
+      clientes,
+      produtos,
+      vendas,
+      financeiro,
+      conversations,
+      atividade,
+      notificacoes,
+    });
   }
   function preference(storage, getScope) {
     const key = (scope) => "socialmei-view-demo-v1:" + encodeURIComponent(scope);
@@ -183,6 +203,10 @@ if (typeof document !== "undefined")
       "[data-edit-profile],[data-edit-observation],[data-add-tag],[data-remove-tag],#newConversationBtn,[data-create],[data-create-sale-client],[data-record-open],[data-sale-paid],[data-sale-duplicate],[data-finance-paid],[data-stock],[data-client-note],[data-client-conversation],[data-open-client],[data-client-id],[data-catalog-add],[data-profile-suggest],[data-profile-custom],[data-row-menu],[data-review-edit],[data-review-delete],[data-review-cancel],[data-sale-register],#exportBackup,#importBackup,[data-nv-delete-account]";
     function decorate() {
       const active = demo.enabled();
+      document.getElementById("nvBusinessSteps").hidden =
+        active || Number(document.getElementById("nvBusinessBar").value) === 6;
+      document.getElementById("nvBusinessBar").hidden =
+        active || Number(document.getElementById("nvBusinessBar").value) === 6;
       // The desktop inbox intentionally hides the shell topbar. Reuse the same
       // indicator in its native heading instead of creating a second badge.
       const control = document.getElementById("viewDemoControl"),
@@ -197,7 +221,7 @@ if (typeof document !== "undefined")
       document.getElementById("viewDemoControl").hidden = !visible;
       document.getElementById("viewDemoNotice").hidden = !visible;
       document.getElementById("viewDemoDescription").textContent = active
-        ? "Amostras fictícias separadas dos seus registros. Configuração deste navegador; nenhuma conexão é ativada."
+        ? "Amostra comercial somente para leitura. Para cadastrar ou editar clientes, vendas, produtos e financeiro, desative os dados de teste. Perfil e preferências continuam disponíveis. Nenhuma conexão é ativada."
         : "Exemplos apenas na análise de clientes. Os outros módulos mantêm seus dados e configurações.";
       document.getElementById("viewDemoToggle").setAttribute("aria-checked", String(active));
       document.querySelectorAll(writes).forEach((control) => {
@@ -205,11 +229,21 @@ if (typeof document !== "undefined")
         if (active && !control.disabled) {
           control.dataset.demoDisabled = "true";
           control.disabled = true;
-          control.title = "Desative os dados de teste para editar registros reais.";
+          control.title =
+            "Indisponível na demonstração. Desative os dados de teste para editar seus registros.";
+          control.dataset.demoOriginalDescription = control.getAttribute("aria-describedby") || "";
+          control.setAttribute(
+            "aria-describedby",
+            (control.dataset.demoOriginalDescription + " viewDemoDescription").trim(),
+          );
         } else if (!active && control.dataset.demoDisabled) {
           delete control.dataset.demoDisabled;
           control.disabled = false;
           control.removeAttribute("title");
+          if (control.dataset.demoOriginalDescription)
+            control.setAttribute("aria-describedby", control.dataset.demoOriginalDescription);
+          else control.removeAttribute("aria-describedby");
+          delete control.dataset.demoOriginalDescription;
         }
       });
     }

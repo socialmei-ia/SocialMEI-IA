@@ -173,7 +173,7 @@
 }
 #reportsView #nvReportKpis {
   display: grid;
-  grid-template-columns: 1.2fr 1fr 1fr 1fr;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   background: transparent;
   border: 0;
   border-radius: 0;
@@ -573,7 +573,6 @@
 }
 #reportsView .management-report-period .management-check {
   font-size: 12px;
-  min-height: 32px;
 }
 #reportsView #nvReportKpis .management-kpi > * {
   display: block;
