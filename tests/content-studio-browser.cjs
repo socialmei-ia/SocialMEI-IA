@@ -82,7 +82,7 @@ module.exports = async function contentStudio(browser, origin) {
     assert(await page.locator("#instagramPublishStart").isDisabled());
     assert.match(
       await page.locator("#instagramPublishStatus").textContent(),
-      /não foi habilitada neste ambiente/,
+      /não está habilitado neste ambiente/,
     );
     assert.equal(await page.locator("#instagramPublishExternal").getAttribute("href"), "#");
     await page.evaluate(() => {
