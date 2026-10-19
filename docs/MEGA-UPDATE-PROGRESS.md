@@ -84,3 +84,11 @@ menu passava de aberto para fechado após resize. Corrigido em navigation.js e
 business-views.js: fechar somente na navegação explícita, não na atualização do
 cabeçalho. A regressão nova preserva o menu após resize e percorre o fluxo da
 Central. O CI do commit filho deve ser usado para a decisão final, não #276.
+
+## Integração aprovada — 18/10/2026
+
+- Responsável autorizou integrar as PRs #61 e #62, nesta ordem, após verificações.
+- PR #61 integrada à `main` pelo merge commit `180b6ddcf6b2932c496101709c0c94676bb9aac7`.
+- PR #62 redirecionada de `feat/client-analysis-v2` para `main`, sem conflitos e com diff complementar (sem duplicar os commits da #61).
+- Uma nova execução do CI da #62 é exigida no HEAD final deste checkpoint, após a alteração da base. Não considerar suficiente o CI do HEAD anterior à atualização.
+- Publicação GitHub Pages depende da execução automática após merge. Ambiente AWS team não deve ser alterado nesta rodada.
