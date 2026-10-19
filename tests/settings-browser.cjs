@@ -197,7 +197,10 @@ async function run() {
       await selectSection(page, "negocio");
       const chooseLogo = page.locator("#nvChooseLogo");
       assert.equal(await chooseLogo.innerText(), "Escolher imagem");
-      assert.equal(await page.locator("#nvLogoFileName").innerText(), "Nenhuma nova imagem selecionada");
+      assert.equal(
+        await page.locator("#nvLogoFileName").innerText(),
+        "Nenhuma nova imagem selecionada",
+      );
       const chooserPromise = page.waitForEvent("filechooser");
       await chooseLogo.click();
       const fileChooser = await chooserPromise;
@@ -207,7 +210,10 @@ async function run() {
         buffer: Buffer.from("conteudo de teste"),
       });
       assert.match(await page.locator("#nvLogoStatus").innerText(), /PNG, JPG ou WebP/);
-      assert.equal(await page.locator("#nvLogoFileName").innerText(), "Nenhuma nova imagem selecionada");
+      assert.equal(
+        await page.locator("#nvLogoFileName").innerText(),
+        "Nenhuma nova imagem selecionada",
+      );
       // A valid one-pixel PNG must still use the existing image validation/preview pipeline.
       await page.locator("#nvBusinessLogo").setInputFiles({
         name: "marca.png",
