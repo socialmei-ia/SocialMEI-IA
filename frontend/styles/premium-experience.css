@@ -543,3 +543,24 @@
     border-bottom: 0;
   }
 }
+
+/* Native file controls use browser language; the business logo picker keeps a
+   keyboard-accessible PT-BR action while the original input handles validation. */
+.management-logo-file-choice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.management-logo-file-choice .management-note {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+@media (max-width: 560px) {
+  /* Full values are available in each chart column's label and tooltip.
+     Show alternating dates on narrow screens instead of crowding the X axis. */
+  #financeView .management-chart-column:nth-child(even) > em {
+    visibility: hidden;
+  }
+}
