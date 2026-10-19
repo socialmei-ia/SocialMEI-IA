@@ -58,6 +58,43 @@ module.exports = async function visualRefinementFlows(browser, origin, errors = 
       await page.locator("#recordModal").evaluate((element) => element.classList.contains("open")),
       false,
     );
+    // The connection-state button must not be cropped by the toolbar at
+    // intermediate widths; its complete message remains available to assistive tech.
+    for (const width of [1440, 1100, 1024, 768, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.evaluate(() => {
+        setView("Caixa Unificada");
+        setIntegrationStatus("Integração de mensagens não configurada", "disabled");
+      });
+      const layout = await page.evaluate(() => {
+        const pill = document.getElementById("integrationPill");
+        const label = document.getElementById("integrationStatus");
+        const tools = document.querySelector("#inboxView .list-heading-tools");
+        const actions = [...tools.querySelectorAll("button,select")];
+        const heading = document.querySelector("#inboxView .list-heading").getBoundingClientRect();
+        return {
+          hidden: getComputedStyle(pill).display === "none",
+          label: label.textContent,
+          description: pill.getAttribute("aria-label"),
+          textFits: label.scrollWidth <= label.clientWidth + 1,
+          withinHeading: actions.every((element) => {
+            const bounds = element.getBoundingClientRect();
+            return (
+              getComputedStyle(element).display === "none" ||
+              (bounds.left >= heading.left - 1 && bounds.right <= heading.right + 1)
+            );
+          }),
+        };
+      });
+      assert.equal(layout.label, "Não conectada");
+      assert.equal(layout.description, "Integração de mensagens não configurada");
+      assert.equal(layout.withinHeading, true, "Toolbar must fit at " + width + "px");
+      if (width > 720) {
+        assert.equal(layout.hidden, false);
+        assert.equal(layout.textFits, true, "Connection button is clipped at " + width + "px");
+      }
+    }
+    await page.setViewportSize({ width: 390, height: 900 });
     // Explicit fixture for focus and inbox interaction regression.
     await page.evaluate(() => {
       sessionData.conversas.push(structuredClone(legacySessionExamples.conversas[0]));
