@@ -4,7 +4,7 @@ Base: `main` em `987cd2989bd1001f8903f10fbc56191df974888f`, já com as PRs #61 e
 
 ## Uso
 
-Em **Configurações → Usar dados de teste**, ative a amostra. Início, as cinco seções de Negócio, Oportunidades e Relatórios usam uma fonte fictícia de leitura. Um aviso permite desativar sem voltar às Configurações. Caixa Unificada, Divulgação e demais módulos mantêm suas fontes e comportamentos existentes; nenhuma conversa é inserida na Caixa.
+Em **Configurações → Usar dados de teste**, ative a amostra. Início, as cinco seções de Negócio, Oportunidades e Relatórios usam uma fonte fictícia de leitura. Um aviso permite desativar sem voltar às Configurações. A Caixa Unificada mantém conversas reais/locais e só exibe seus exemplos legados quando o modo de teste está ligado em um espaço local. Os exemplos não são enviados ou persistidos como conversas reais. Divulgação e demais módulos mantêm suas fontes e comportamentos existentes.
 
 O botão é um switch acessível por teclado. A preferência fica neste navegador, por identidade/workspace resolvidos pelo repositório de perfil existente. Sem identidade ou com armazenamento indisponível, a leitura falha fechada. Não há sincronização entre dispositivos.
 
