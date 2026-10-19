@@ -4346,11 +4346,6 @@
                   + Gerar relatório
                 </button>
               </header>
-              <p id="reportProfileContext" class="management-note"></p>
-              <details class="rv2-source-details">
-                <summary>Sobre estes dados</summary>
-                <div class="management-demo" id="reportsDataSourceStatus" role="status"></div>
-              </details>
               <div class="management-report-period management-card">
                 <div
                   id="reportQuickPeriods"
@@ -4365,8 +4360,15 @@
                   <button type="button" data-report-quick="3 meses">3 meses</button>
                 </div>
                 <span id="reportsPeriodLabel" class="rv2-range" data-current-period></span>
+                <details class="rv2-source-details">
+                  <summary>Sobre estes dados</summary>
+                  <p id="reportProfileContext" class="management-note"></p>
+                  <div class="management-demo" id="reportsDataSourceStatus" role="status"></div>
+                </details>
                 <details class="report-period-options">
-                  <summary>Ajustar período e opções</summary>
+                  <summary aria-label="Período personalizado, comparação e exibição de valores">
+                    Mais opções
+                  </summary>
                   <div
                     id="nvReportPeriods"
                     class="management-chips"

@@ -21,6 +21,7 @@ module.exports = async function stabilization(browser, origin) {
     return route.continue();
   });
   try {
+    await page.clock.setFixedTime(new Date("2026-10-19T12:00:00Z"));
     await page.goto(origin + "/frontend/socialmei-app.html");
     await page.locator('[data-xp-go="app"]').first().click();
     await page.evaluate(() => {
@@ -82,6 +83,58 @@ module.exports = async function stabilization(browser, origin) {
         if ([390, 1440].includes(width))
           await page.screenshot({ path: path.join(output, `finance-${width}-${theme}.png`) });
         measures.push({ width, theme, minimumTarget: Math.min(...boxes.map((b) => b.width)) });
+      }
+    }
+    for (const width of [320, 390, 768, 1024, 1440]) {
+      await page.setViewportSize({ width, height: 1000 });
+      for (const theme of ["light", "dark"]) {
+        await page.evaluate((theme) => {
+          SocialMEIThemes.select(theme);
+          setView("Relatórios");
+          scrollTo(0, 0);
+        }, theme);
+        const quick = page.locator("#reportQuickPeriods button");
+        await quick.first().waitFor({ state: "visible" });
+        const kpiTop = await page
+          .locator("#nvReportKpis")
+          .evaluate((node) => node.getBoundingClientRect().top);
+        assert(
+          kpiTop <= (width === 320 ? 500 : width === 390 ? 480 : 370),
+          JSON.stringify({ width, kpiTop }),
+        );
+        const heights = await quick.evaluateAll((nodes) =>
+          nodes.map((node) => node.getBoundingClientRect().height),
+        );
+        assert(heights.every((height) => height >= 44));
+        const frozen = await page.evaluate(() => JSON.stringify(SocialMEIReportUI.capture()));
+        const chart = page.locator("#resultChapter .rv2-trend");
+        await chart.locator(".rv2-chart-explore").click();
+        const first = chart.locator(".rv2-point").first();
+        assert(await first.evaluate((node) => node === document.activeElement));
+        assert(await chart.locator(".rv2-chart-tooltip").isVisible());
+        await page.keyboard.press("End");
+        assert.equal(
+          await chart.locator(".rv2-chart-tooltip").textContent(),
+          await chart.locator(".rv2-point").last().getAttribute("aria-label"),
+        );
+        const bounds = await chart.locator(".rv2-chart-tooltip").boundingBox();
+        assert(bounds.x >= 0 && bounds.x + bounds.width <= width + 0.5);
+        await page.keyboard.press("Escape");
+        assert(await chart.locator(".rv2-chart-tooltip").isHidden());
+        assert.equal(
+          await page.evaluate(() => JSON.stringify(SocialMEIReportUI.capture())),
+          frozen,
+        );
+        await page.locator(".report-period-options summary").focus();
+        await page.keyboard.press("Enter");
+        assert(await page.locator("#nvReportCompare").isVisible());
+        await page.locator(".report-period-options summary").press("Enter");
+        assert(await page.locator("#nvReportCompare").isHidden());
+        await page.evaluate(() => scrollTo(0, 0));
+        if ([390, 1440].includes(width))
+          await page.screenshot({ path: path.join(output, `reports-${width}-${theme}.png`) });
+        assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+        measures.push({ width, theme, kpiTop });
       }
     }
     assert.equal(await page.evaluate(() => JSON.stringify(appData)), original);
