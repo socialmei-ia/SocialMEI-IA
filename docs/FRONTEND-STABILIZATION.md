@@ -48,6 +48,8 @@ Revisão estática focada; não é auditoria de segurança completa nem nova col
 
 Teste novo integrado a `npm run test:browser`: alvos >=44 px, ausência de sobreposição, rolagem interna, tooltip nas extremidades, toque/teclado/Escape, cinco larguras e claro/escuro; orçamento vertical de Relatórios, descoberta por botão, snapshot intacto e zero gravações externas. Data de teste fixada para comparar snapshots sem variação de `createdAt`.
 
+O CI revelou um falso positivo no teste visual financeiro: altura da célula grid não comprova quebra de texto. A verificação agora mede as linhas reais e seus limites horizontais; controles confirmam uma linha em bloco alto e rejeitam quebra real. Nenhuma tolerância de layout foi ampliada.
+
 Gates da PR: `npm test`, `npm run format:check`, `npm run test:browser` e CI no HEAD final, incluindo suites nativas de Relatórios/CSV/PDF, local/remoto/falhas, onboarding/personalização/isolamento e matrizes gerais de temas. Resultados finais são registrados na descrição da PR/Actions, evitando um commit apenas para carimbar CI.
 
 Mapa executável da próxima adição atualizado em [PROJECT-STRUCTURE.md](PROJECT-STRUCTURE.md#como-adicionar-uma-feature): entrada, navegação/wrappers, renderização, ajuda, temas/motion, stores, identidade, rascunhos e testes. Nenhuma funcionalidade, API ou migration futura criada.
