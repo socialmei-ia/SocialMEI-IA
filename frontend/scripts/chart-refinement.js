@@ -159,6 +159,10 @@ const SocialMEIChartRefinement = (() => {
     scroller.addEventListener("scroll", position, { ...options, passive: true });
     const resize = new ResizeObserver(position);
     resize.observe(scroller);
+    if (columns.includes(document.activeElement)) {
+      focusedColumn = document.activeElement;
+      show();
+    }
     position();
     return () => {
       controller.abort();
@@ -307,6 +311,8 @@ const SocialMEIChartRefinement = (() => {
           index: [...plot.querySelectorAll(".management-chart-column")].indexOf(column),
         }
       : null;
+    // Bind immediately when keyboard focus arrives before the scheduled rendering frame.
+    if (plot && plots.get(plotKey(plot))?.plot !== plot) update();
   });
   document.addEventListener("pointerdown", (event) => {
     plots.forEach(({ plot }) => {
