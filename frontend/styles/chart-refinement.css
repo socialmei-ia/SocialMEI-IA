@@ -1,7 +1,46 @@
 /* Native business charts: quiet grid, readable scale, restrained motion. */
 .management-plot {
+  --chart-gap: clamp(5px, 1.2vw, 12px);
   isolation: isolate;
-  gap: clamp(5px, 1.2vw, 12px);
+  gap: var(--chart-gap);
+  min-width: calc(
+    var(--chart-column-count) * 44px + (var(--chart-column-count) - 1) * var(--chart-gap)
+  );
+}
+.management-chart:not(.rv2-trend) {
+  position: relative;
+  min-width: 0;
+}
+.management-chart-scroll {
+  min-width: 0;
+  overflow-x: auto;
+  padding: 4px;
+  scrollbar-width: thin;
+}
+.management-plot .management-chart-column {
+  min-width: 44px;
+  min-height: 44px;
+}
+.management-chart > .management-chart-tooltip:not([hidden]) {
+  top: 12px;
+  bottom: auto;
+  opacity: 1;
+  transform: translateX(-50%);
+  max-width: min(240px, calc(100% - 16px));
+}
+.management-chart-readout,
+.management-chart-scroll-hint {
+  grid-column: 1 / -1;
+  margin: 10px 0 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--mt);
+}
+.management-chart-readout {
+  min-height: 42px;
+}
+.management-chart-scroll-hint {
+  margin-top: 0;
 }
 .management-bars,
 #financeView .management-bars {
@@ -56,12 +95,9 @@
 .management-sparkline.out .chart-spark-curve {
   stroke: var(--chart-5);
 }
-.management-chart-column[data-chart-active="true"] .management-chart-tooltip {
-  opacity: 1;
-  transform: translate(-50%, 0);
-}
-.management-chart-column[data-chart-dismissed="true"] .management-chart-tooltip {
-  opacity: 0;
+.management-plot .management-chart-column[data-chart-active="true"] {
+  background: var(--surface-secondary);
+  box-shadow: inset 0 -3px var(--brand-primary);
 }
 .rv2-stacked > [data-report-bar] {
   flex-shrink: 0;
