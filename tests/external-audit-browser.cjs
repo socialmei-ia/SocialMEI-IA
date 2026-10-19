@@ -151,6 +151,20 @@ module.exports = async function externalAudit(browser, origin) {
             states++;
           }
         }
+      await page.evaluate(() => setView("Relatórios"));
+      const options = page.locator("#nvReportCompare").locator("xpath=ancestor::details[1]");
+      if (!(await options.evaluate((e) => e.open))) await options.locator("summary").click();
+      assert(
+        await page
+          .locator("#nvReportCompare")
+          .evaluate((e) => e.closest("label").getBoundingClientRect().height >= 44),
+      );
+      const wasCompared = await page.locator("#nvReportCompare").isChecked();
+      await page.locator("#nvReportCompare").focus();
+      await page.keyboard.press("Space");
+      assert.equal(await page.locator("#nvReportCompare").isChecked(), !wasCompared);
+      await page.keyboard.press("Space");
+      assert.equal(await page.locator("#nvReportCompare").isChecked(), wasCompared);
       await page.evaluate(() => setView("Vendas"));
       const create = page.locator('[data-create="venda"]').first();
       assert(await create.isDisabled());

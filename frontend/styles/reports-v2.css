@@ -573,7 +573,6 @@
 }
 #reportsView .management-report-period .management-check {
   font-size: 12px;
-  min-height: 32px;
 }
 #reportsView #nvReportKpis .management-kpi > * {
   display: block;
