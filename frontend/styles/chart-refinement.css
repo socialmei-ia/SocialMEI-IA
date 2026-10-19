@@ -25,6 +25,8 @@
   max-width: 22px;
   border-radius: 6px 6px 2px 2px;
   opacity: 0.85;
+  transform-origin: center bottom;
+  -webkit-tap-highlight-color: transparent;
   transition: opacity 160ms ease;
 }
 .management-chart-column:hover .management-bars i,
@@ -43,23 +45,70 @@
   outline: 2px solid var(--brand-primary);
   outline-offset: 3px;
 }
-.management-sparkline polyline {
+.management-sparkline .chart-spark-curve {
+  fill: none;
+  stroke: var(--chart-1);
+  stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
+}
+.management-sparkline.out .chart-spark-curve {
+  stroke: var(--chart-5);
+}
+.management-chart-column[data-chart-active="true"] .management-chart-tooltip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+.management-chart-column[data-chart-dismissed="true"] .management-chart-tooltip {
+  opacity: 0;
+}
+.rv2-stacked > [data-report-bar] {
+  flex-shrink: 0;
+  transform-origin: left center;
+}
+#reportsView .rv2-point {
+  -webkit-tap-highlight-color: transparent;
 }
 .rv2-trend .rv2-line {
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-.rv2-trend .rv2-point circle {
-  transition:
-    r 160ms ease,
-    fill 160ms ease;
+.rv2-trend .rv2-guide {
+  opacity: 0.5;
+  pointer-events: none;
 }
-.rv2-trend .rv2-point:is(:hover, :focus-visible) circle {
-  r: 6px;
+#reportsView .rv2-trend .rv2-point circle,
+#reportsView .rv2-trend .rv2-secondary-point {
+  transition:
+    fill 140ms ease,
+    stroke-width 140ms ease;
+}
+#reportsView .rv2-trend .rv2-point:is(:hover, :focus-visible, [data-active="true"]) circle {
+  r: 5px;
   fill: var(--brand-primary);
+  stroke-width: 3;
+}
+#reportsView .rv2-trend .rv2-point:focus-visible circle {
+  stroke: var(--tx);
+}
+#reportsView .rv2-trend .rv2-secondary-point[data-active="true"] {
+  r: 5px;
+  fill: var(--brand-accent);
+}
+#reportsView .rv2-trend .rv2-chart-tooltip {
+  z-index: 6;
+  width: max-content;
+  max-width: calc(100% - 16px);
+  margin: 0;
+  bottom: 42px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+#reportsView .rv2-trend .rv2-chart-readout {
+  min-height: 42px;
+  font-size: 13px;
 }
 .view-demo-setting,
 .view-demo-notice {
@@ -119,7 +168,8 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .management-bars i,
-  .rv2-trend .rv2-point circle {
+  #reportsView .rv2-trend .rv2-point circle,
+  #reportsView .rv2-trend .rv2-secondary-point {
     transition: none;
   }
 }
