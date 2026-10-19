@@ -20,8 +20,23 @@ function updateSyncLabels() {
     error: "Não foi possível sincronizar",
     offline: "Sem conexão",
   }[syncState];
+  // The toolbar has limited room beside "Nova conversa" and the sort control.
+  // Keep its visual label concise, while exposing the complete state to assistive tech.
+  const compactText = {
+    idle: "Não verificada",
+    disabled: "Não conectada",
+    loading: "Sincronizando…",
+    success: "Sincronizado",
+    empty: "Sem novas mensagens",
+    error: "Falha na conexão",
+    offline: "Sem internet",
+  }[syncState];
   if ($("integrationStatus")) {
-    $("integrationStatus").textContent = text;
+    $("integrationStatus").textContent = compactText || text;
+  }
+  if ($("integrationPill")) {
+    $("integrationPill").title = text;
+    $("integrationPill").setAttribute("aria-label", text);
   }
   if ($("channelConnectionText")) {
     $("channelConnectionText").textContent = text;

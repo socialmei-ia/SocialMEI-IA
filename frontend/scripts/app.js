@@ -191,9 +191,18 @@ if (SocialMEIAuth.remote) {
   sessionData.notificacoes = [];
   sessionData.conversas = [];
 }
-// Snapshot of the existing fictional conversations, before local/remote messages are restored.
+// Preserve legacy examples for explicit local demos only. A new workspace begins
+// without fictional conversations, notifications or activity in the live session.
 const opportunityDemoSnapshot = structuredClone(sessionData.conversas);
-// New spaces start empty. Synthetic records belong exclusively to demo-data.js.
+const legacySessionExamples = structuredClone({
+  conversas: sessionData.conversas,
+  atividade: sessionData.atividade,
+  notificacoes: sessionData.notificacoes,
+});
+sessionData.conversas = [];
+sessionData.atividade = [];
+sessionData.notificacoes = [];
+// New spaces start empty. Synthetic records belong exclusively to controlled demo mode.
 const DEFAULT_APP_DATA = {
   schemaVersion: SOCIALMEI_APP_SCHEMA_VERSION,
   clientes: [],
@@ -1612,6 +1621,55 @@ for (const c of sessionData.conversas) {
     });
   }
 }
+// Display the legacy inbox samples only while the user's local demo preference
+// is enabled. Never overwrite or delete local/remote conversations on a mode change.
+function syncLegacySessionExamples() {
+  const show = !SocialMEIAuth.remote && SocialMEIDemoData.enabled();
+  const previousDemoIds = new Set(
+    sessionData.conversas.filter((row) => row._socialmeiDemoSample).map((row) => row.id),
+  );
+  if (!show && previousDemoIds.has(activeConversationId)) {
+    activeConversationId = null;
+    isInboxListMode = true;
+  }
+  sessionData.conversas = sessionData.conversas.filter((row) => !row._socialmeiDemoSample || show);
+  for (const key of ["atividade", "notificacoes"]) {
+    sessionData[key] = sessionData[key].filter((row) => !row._socialmeiDemoSample || show);
+    if (show && !sessionData[key].some((row) => row._socialmeiDemoSample)) {
+      sessionData[key].push(
+        ...structuredClone(legacySessionExamples[key]).map((row) => ({
+          ...row,
+          _socialmeiDemoSample: true,
+        })),
+      );
+    }
+  }
+  if (show && !sessionData.conversas.some((row) => row._socialmeiDemoSample)) {
+    const used = new Set(sessionData.conversas.map((row) => row.id));
+    let nextId = Math.max(0, ...used);
+    for (const example of legacySessionExamples.conversas) {
+      if ((inboxLocalState.removedDemoConversations || []).includes(conversationKey(example))) {
+        continue;
+      }
+      const row = structuredClone(example);
+      if (used.has(row.id)) row.id = ++nextId;
+      used.add(row.id);
+      row._socialmeiDemoSample = true;
+      const saved = inboxLocalState[`state:${conversationKey(row)}`];
+      if (saved?.status) row.status = saved.status;
+      if (Number.isFinite(saved?.naoLidas)) row.naoLidas = saved.naoLidas;
+      row._activityOrder = ++conversationActivitySequence;
+      sessionData.conversas.push(row);
+    }
+  }
+}
+syncLegacySessionExamples();
+document.addEventListener("socialmei-demo-change", () => {
+  syncLegacySessionExamples();
+  renderNotifications();
+  updateInboxNavBadge();
+});
+document.addEventListener("socialmei-data-change", syncLegacySessionExamples);
 const THEMES = window.SocialMEIThemes;
 let themeDraft = null;
 let selectedThemePreviewTab = "dashboard";

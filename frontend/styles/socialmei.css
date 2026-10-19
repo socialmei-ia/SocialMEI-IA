@@ -13835,6 +13835,8 @@ body.inbox-active #integrationAlert button {
   justify-content: flex-end;
   gap: 8px;
   margin-left: auto;
+  min-width: 0;
+  max-width: 100%;
   flex-wrap: wrap;
 }
 #inboxView .inbox-actions-inline {
@@ -13842,15 +13844,27 @@ body.inbox-active #integrationAlert button {
   align-items: center;
   gap: 6px;
   width: auto;
+  max-width: 100%;
+  min-width: 0;
+  flex-wrap: wrap;
 }
 #inboxView .inbox-actions-inline .integration-pill {
   border: 1px solid var(--ln);
   border-radius: 999px;
   background: var(--sf);
   width: auto;
-  max-width: 220px;
+  max-width: 100%;
+  min-width: 0;
+  flex: 0 1 auto;
   min-height: 40px;
   padding: 6px 10px;
+  white-space: nowrap;
+}
+#inboxView .inbox-actions-inline #integrationStatus {
+  min-width: 0;
+  white-space: nowrap;
+}
+#inboxView .inbox-actions-inline #newConversationBtn {
   white-space: nowrap;
 }
 #inboxView .inbox-actions-inline .btn {
@@ -14452,7 +14466,7 @@ body.inbox-active #integrationAlert button {
     margin-top: 4px;
   }
   #inboxView .inbox-actions-inline .integration-pill {
-    max-width: 180px;
+    max-width: 100%;
   }
   #inboxView .thread-avatar {
     display: none;

@@ -101,9 +101,14 @@ module.exports = async function contactFlows(browser, origin, errors = []) {
           await page.evaluate(() => sessionData.conversas.some((c) => c.nome === "Contato QA")),
           false,
         );
-        // Um contato demo removido também não reaparece após recarregar.
+        // Explicitly enable demo before testing removal of a fictional thread.
+        // Ordinary sessions no longer receive these examples automatically.
         await page.evaluate(() => {
-          const c = sessionData.conversas[0];
+          SocialMEIDemoData.set(true);
+          document.dispatchEvent(new CustomEvent("socialmei-demo-change"));
+        });
+        await page.evaluate(() => {
+          const c = sessionData.conversas.find((row) => row._socialmeiDemoSample);
           window.deletedDemoName = c.nome;
           selectConversation(c.id);
         });

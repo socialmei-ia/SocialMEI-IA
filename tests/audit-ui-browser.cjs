@@ -85,7 +85,10 @@ async function auditedUiFlows(browser, origin) {
             const e = document.getElementById(id),
               rect = e.getBoundingClientRect();
             const icon = e.querySelector("svg").getBoundingClientRect();
-            const dot = e.querySelector(".notify-dot")?.getBoundingClientRect();
+            const dotElement = e.querySelector(".notify-dot");
+            const dot = dotElement?.getBoundingClientRect();
+            const dotVisible =
+              !!dot && dot.width > 0 && getComputedStyle(dotElement).display !== "none";
             const style = getComputedStyle(e);
             const contentRight =
               rect.right - parseFloat(style.paddingRight) - parseFloat(style.borderRightWidth);
@@ -94,7 +97,7 @@ async function auditedUiFlows(browser, origin) {
               width: rect.width,
               height: rect.height,
               iconWidth: icon.width,
-              indicatorAtEnd: !dot || Math.abs(dot.right - contentRight) < 1,
+              indicatorAtEnd: !dotVisible || Math.abs(dot.right - contentRight) < 1,
             };
           });
           return { available, buttons, theme: document.documentElement.dataset.theme };

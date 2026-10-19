@@ -24,6 +24,14 @@ module.exports = async function chartsDemo(browser, origin) {
   try {
     await page.goto(origin + "/frontend/socialmei-app.html");
     await page.locator('[data-xp-go="app"]').first().click();
+    assert.deepEqual(
+      await page.evaluate(() => ({
+        conversations: sessionData.conversas.length,
+        notifications: sessionData.notificacoes.length,
+        activity: sessionData.atividade.length,
+      })),
+      { conversations: 0, notifications: 0, activity: 0 },
+    );
     const before = await page.evaluate(() => ({
       state: JSON.stringify(appData),
       local: localStorage.getItem("socialmei-app-data-v2"),
@@ -35,6 +43,8 @@ module.exports = async function chartsDemo(browser, origin) {
     await page.keyboard.press("Space");
     assert.equal(await toggle.getAttribute("aria-checked"), "true");
     assert.equal(await page.evaluate(() => SocialMEIDemoData.enabled()), true);
+    assert.equal(await page.evaluate(() => sessionData.conversas.length), 4);
+    assert.equal(await page.evaluate(() => sessionData.notificacoes.length), 3);
     const sample = await page.evaluate(() => ({
       metrics: operationalMetrics({ from: "0000-01-01", to: "9999-12-31" }),
       data: businessViewData(),
@@ -153,6 +163,8 @@ module.exports = async function chartsDemo(browser, origin) {
     await page.evaluate(() => setView("Vendas"));
     assert.equal(await page.locator("[data-create]:visible").first().isDisabled(), false);
     assert.equal(await page.evaluate(() => businessViewData() === appData), true);
+    assert.equal(await page.evaluate(() => sessionData.conversas.length), 0);
+    assert.equal(await page.evaluate(() => sessionData.notificacoes.length), 0);
     for (const width of [320, 390, 768, 1024, 1440])
       for (const theme of ["light", "dark"]) {
         await page.setViewportSize({ width, height: 1000 });

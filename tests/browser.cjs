@@ -82,8 +82,16 @@ async function run() {
         activity: sessionData.atividade.length,
         notifications: sessionData.notificacoes.length,
       })),
-      { remote: false, conversations: 4, activity: 6, notifications: 3 },
+      { remote: false, conversations: 0, activity: 0, notifications: 0 },
     );
+    // Explicit test fixture: older interaction scenarios need four sample
+    // threads, but they must never be seeded into a real user's session.
+    await page.evaluate(() => {
+      sessionData.conversas.push(...structuredClone(legacySessionExamples.conversas));
+      sessionData.atividade.push(...structuredClone(legacySessionExamples.atividade));
+      sessionData.notificacoes.push(...structuredClone(legacySessionExamples.notificacoes));
+      renderInbox();
+    });
 
     const data = () => page.evaluate(() => JSON.parse(JSON.stringify(appData)));
     const initial = await data();

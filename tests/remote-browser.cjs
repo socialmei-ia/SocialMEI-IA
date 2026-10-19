@@ -162,6 +162,11 @@ module.exports = async function remoteFlows(browser, origin, errors) {
 
   await page.evaluate(() => {
     setView("Caixa Unificada");
+    // Create a test-only local thread instead of relying on seeded demo messages.
+    sessionData.conversas.push({
+      ...structuredClone(legacySessionExamples.conversas[0]),
+      localConversation: true,
+    });
     const c = sessionData.conversas[0];
     c.nome = "Local Importado";
     c.clientId = 1;

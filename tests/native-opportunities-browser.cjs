@@ -26,6 +26,11 @@ module.exports = async function nativeOpportunities(browser, origin) {
     await page.goto(origin + "/frontend/socialmei-app.html");
     await page.locator('[data-xp-go="app"]').first().click();
     await page.waitForFunction(() => document.body.classList.contains("experience-app"));
+    // Exercise the legacy inbox-linked analysis using an explicit test fixture:
+    // user sessions no longer receive four fictional conversations by default.
+    await page.evaluate(() => {
+      sessionData.conversas.push(...structuredClone(opportunityDemoSnapshot));
+    });
     const navigate = async () => {
       if (await page.evaluate(() => innerWidth <= 900)) await page.locator("#mb").click();
       await page.locator('#nav [data-nav="Oportunidades"]').click();
