@@ -85,11 +85,7 @@ const SocialMEIInstagramPublisher = (() => {
       openModal("instagramPublishModal");
     });
     external.addEventListener("click", (event) => {
-      if (
-        !connection.available ||
-        !confirmedScope ||
-        currentScope() !== confirmedScope
-      ) {
+      if (!connection.available || !confirmedScope || currentScope() !== confirmedScope) {
         event.preventDefault();
         confirmedScope = null;
         closeModal("instagramPublishModal");
@@ -100,7 +96,7 @@ const SocialMEIInstagramPublisher = (() => {
       confirmedScope = null;
       closeModal("instagramPublishModal");
       status.textContent =
-        "Formulário externo aberto. A publicação só acontece após confirmação e retorno do n8n.";
+        "Formulário externo aberto. Confira nele a confirmação da operação: abrir a página não publica conteúdo.";
     });
     document.querySelector(".content-formats")?.addEventListener("click", render);
     document.addEventListener("socialmei-view-change", () => {
