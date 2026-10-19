@@ -207,9 +207,7 @@ const SocialMEIOpportunities = (() => {
       node("h3", row.name),
       node(
         "span",
-        SocialMEIDemoData.enabled()
-          ? "Exemplo fictício · datas relativas ao dia de hoje"
-          : "Exemplo fictício · datas não disponíveis",
+        SocialMEIDemoData.enabled() ? "Conversa recente" : "Sem data confirmada",
         "management-note",
       ),
     );
@@ -238,8 +236,12 @@ const SocialMEIOpportunities = (() => {
       const right = node("div");
       right.append(node("h4", "O que falta saber"));
       const list = node("ul");
-      p.missing.forEach((text) => list.append(node("li", text)));
+      p.missing.slice(0, 1).forEach((text) => list.append(node("li", text)));
       right.append(list);
+      if (p.missing.length > 1)
+        right.append(
+          node("p", `Mais ${p.missing.length - 1} pontos em Ver conversa.`, "management-note"),
+        );
       known.append(left, right);
       card.append(
         known,
@@ -312,9 +314,7 @@ const SocialMEIOpportunities = (() => {
         card.append(
           node(
             "p",
-            resolved[row.id]
-              ? "Resolvido nesta demonstração"
-              : "Sem notificação externa ou envio de mensagem",
+            resolved[row.id] ? "Resolvido na análise" : "Aguardando sua revisão",
             "management-note",
           ),
           button(
@@ -335,6 +335,7 @@ const SocialMEIOpportunities = (() => {
   function render() {
     syncIdentity();
     refreshRows();
+    document.dispatchEvent(new CustomEvent("socialmei-opportunity-demo-change"));
     const source = byId("opportunitySource"),
       queue = byId("opportunityQueue");
     source.replaceChildren();
@@ -354,42 +355,27 @@ const SocialMEIOpportunities = (() => {
       );
       if (!remote())
         empty.append(button("Explorar demonstração fictícia", "data-opportunity-demo"));
-      source.append(empty);
-      queue.append(
-        node(
-          "p",
-          "Nenhum cliente nesta seção. Não inferimos oportunidades sem uma fonte confiável.",
-          "management-note",
-        ),
-      );
+      queue.append(empty);
       return;
     }
-    const note = node("div", undefined, "management-demo");
-    note.append(
-      node("span", "Demonstração · mensagens fictícias", "pill draft"),
-      node(
-        "span",
-        SocialMEIDemoData.enabled()
-          ? "Mesmos clientes da amostra de gestão. Revisões e alertas são apenas demonstração; nenhuma mensagem é enviada."
-          : "Exemplos da Caixa e casos sintéticos isolados. Nada é salvo no CRM ou enviado aos canais.",
-      ),
-    );
-    const actions = node("div", undefined, "native-opportunity-actions");
+    const menu = node("details", undefined, "opportunity-options");
+    menu.append(node("summary", "Opções da análise"));
+    const actions = node("div", undefined, "opportunity-options-panel");
     actions.append(
+      node(
+        "p",
+        "Recomendações heurísticas. Revise a conversa antes de decidir.",
+        "management-note",
+      ),
       button("Reanalisar exemplos", "data-opportunity-refresh"),
       button("Encerrar demonstração", "data-opportunity-stop"),
     );
-    source.append(note, actions);
+    menu.append(actions);
+    source.append(menu);
+    document.dispatchEvent(new CustomEvent("socialmei-opportunity-demo-change"));
     renderTabs();
     let items = rows.filter((row) => presentation(row).lane === activeTab);
     if (activeTab === "analysis") {
-      queue.append(
-        node(
-          "p",
-          "Entenda a necessidade → esclareça o que falta → revise a classificação.",
-          "client-analysis-intro",
-        ),
-      );
     } else if (activeTab === "chance") {
       const all = items;
       queue.append(
@@ -629,6 +615,7 @@ const SocialMEIOpportunities = (() => {
       resolved = {};
       clearAnalysis();
       render();
+      document.dispatchEvent(new CustomEvent("socialmei-opportunity-demo-change"));
     }
     if (action.hasAttribute("data-opportunity-refresh")) render();
     if (action.hasAttribute("data-opportunity-clear")) clearAnalysis();
@@ -790,7 +777,14 @@ const SocialMEIOpportunities = (() => {
     byId("opportunityAnalysisStatus").textContent =
       "Texto alterado. Analise novamente para obter uma recomendação atual.";
   });
-  return Object.freeze({ render });
+  function resetDemo() {
+    demoEnabled = false;
+    reviews = {};
+    levels = {};
+    resolved = {};
+    rows = [];
+  }
+  return Object.freeze({ render, demoActive: () => demoEnabled, resetDemo });
 })();
 function renderOpportunities() {
   SocialMEIOpportunities.render();

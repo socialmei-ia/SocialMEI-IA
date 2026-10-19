@@ -65,6 +65,7 @@
     <link rel="stylesheet" href="styles/content-studio.css" />
     <link rel="stylesheet" href="styles/reports-v2.css" />
     <link rel="stylesheet" href="styles/chart-refinement.css" />
+    <link rel="stylesheet" href="styles/premium-experience.css" />
     <script src="scripts/storage-and-themes.js"></script>
     <script src="scripts/motion.js"></script>
 
@@ -2773,8 +2774,31 @@
             <div class="mnu period-menu" id="pm" role="menu"></div>
           </div>
 
+          <details class="global-demo-control" id="viewDemoControl" hidden>
+            <summary
+              class="global-demo-indicator"
+              id="viewDemoNotice"
+              aria-label="Dados de teste: demonstração ativa"
+              aria-describedby="viewDemoDescription"
+              title="Amostras fictícias. Abrir opções de demonstração."
+            >
+              <i aria-hidden="true"></i><span class="global-demo-label">Demonstração</span
+              ><span class="global-demo-short" aria-hidden="true">Demo</span>
+            </summary>
+            <div class="global-demo-popover">
+              <b>Dados de teste</b>
+              <p id="viewDemoDescription">
+                Amostras fictícias, separadas dos seus registros. As conexões e outros módulos
+                mantêm suas configurações.
+              </p>
+              <button type="button" class="management-button" data-demo-settings>
+                Configurar demonstração
+              </button>
+              <button type="button" class="management-button" id="viewDemoExit">Desativar</button>
+            </div>
+          </details>
           <details class="utility-tools" id="utilityTools">
-            <summary>Ferramentas</summary>
+            <summary aria-label="Ferramentas" title="Ferramentas">Ferramentas</summary>
             <div aria-label="Ferramentas do negócio" class="utility-menu" role="group">
               <button
                 aria-label="Busca global"
@@ -2878,12 +2902,6 @@
             ></div>
           </div>
           <!-- HOME -->
-          <div class="view-demo-notice" id="viewDemoNotice" role="status" hidden>
-            <span
-              ><b>Dados de teste</b> · Amostra fictícia, somente para leitura. Seus dados reais não
-              foram alterados.</span
-            ><button type="button" class="management-button" id="viewDemoExit">Desativar</button>
-          </div>
           <section class="page-view client-home-view" data-view="Início" id="clientHomeView">
             <div class="home-desk client-home-inner">
               <div class="desk-opening">
@@ -2896,7 +2914,10 @@
                   ></span>
                 </h2>
                 <p id="homeProfileContext">Comece por um próximo passo.</p>
-                <p id="homeDataSource" class="management-note"></p>
+                <details class="context-help home-source-help">
+                  <summary>Sobre este espaço</summary>
+                  <p id="homeDataSource" class="management-note"></p>
+                </details>
               </div>
               <div class="desk-command client-command-wrap">
                 <label class="sr-only" for="clientCommandInput">O que você quer fazer?</label>
@@ -3010,13 +3031,13 @@
                   <button class="management-button pr" data-rule-create>+ Nova rotina</button>
                 </div>
               </header>
-              <div class="management-demo">
-                <span
-                  class="pill draft"
-                  title="Rotinas e testes são locais. Não executam workflows nem enviam mensagens aos canais."
-                  >Simulação local</span
-                ><span>Configurações locais · sem execução de workflows ou envio aos canais.</span>
-              </div>
+              <details class="context-help">
+                <summary>Como funcionam as rotinas</summary>
+                <p>
+                  As rotinas organizam tarefas e testes locais. Salvar não agenda execuções nem
+                  envia mensagens aos canais.
+                </p>
+              </details>
               <div id="nvRuleKpis" class="management-kpis management-kpis-three"></div>
               <section class="management-card management-flush" id="automationLibrary">
                 <div class="management-tools">
@@ -3632,7 +3653,9 @@
               <aside aria-label="Lista de conversas" class="conv-pane">
                 <div class="list-heading">
                   <div class="list-heading-copy">
-                    <h3 id="inboxListHeading">Caixa Unificada</h3>
+                    <div class="inbox-title-line">
+                      <h3 id="inboxListHeading">Caixa Unificada</h3>
+                    </div>
                     <p class="list-intro-copy" id="inboxListIntro">
                       Escolha uma pessoa para abrir o atendimento.
                     </p>
@@ -3997,17 +4020,10 @@
                 <div>
                   <span class="report-eyebrow">OPORTUNIDADES</span>
                   <h2 id="opportunitiesTitle">Análise de clientes</h2>
-                  <p>Entenda a necessidade, acompanhe o interesse e cuide de quem precisa.</p>
+                  <p>Veja quem acompanhar e qual pode ser o próximo passo.</p>
                 </div>
+                <div id="opportunitySource" class="opportunity-controls"></div>
               </header>
-              <div class="management-demo">
-                <span class="pill draft">Análise local experimental</span
-                ><span
-                  >Sem probabilidade de venda ou envio automático. Nenhuma revisão altera o
-                  cadastro.</span
-                >
-              </div>
-              <div id="opportunitySource"></div>
               <div
                 class="client-analysis-tabs"
                 role="tablist"
@@ -4129,7 +4145,7 @@
               </header>
               <p class="content-context" id="contentBusinessContext"></p>
               <details class="content-local-note">
-                <summary>Rascunhos locais · sem publicação conectada</summary>
+                <summary>Sobre rascunhos e publicação</summary>
                 <p>
                   Texto e referências de mídia ficam neste navegador, separados por conta e negócio.
                   Não sincronizam entre dispositivos. Os arquivos de imagem e vídeo não são enviados
@@ -4408,10 +4424,13 @@
                 </div>
                 <div class="settings-workspace-preview" id="settingsWorkspacePreview"></div>
               </header>
-              <div class="management-demo settings-status" id="accountSettingsNotice">
-                <span class="pill draft">Modo demonstração</span
-                ><span>Perfil e preferências locais. Você decide o que salvar.</span>
-              </div>
+              <details class="context-help settings-account-note">
+                <summary>Sessão e armazenamento</summary>
+                <div class="settings-status" id="accountSettingsNotice">
+                  <span class="pill draft">Modo demonstração</span
+                  ><span>Perfil e preferências locais. Você decide o que salvar.</span>
+                </div>
+              </details>
               <div class="management-card view-demo-setting">
                 <div>
                   <h3>Usar dados de teste</h3>
@@ -4466,9 +4485,12 @@
             </div>
           </section>
           <footer class="data-origin">
-            <span id="appDataOrigin">Conferindo a origem dos dados.</span
-            ><span id="topSync">Leitura de mensagens não verificada</span
-            ><button class="lk" data-go="Configurações">Sobre os dados</button>
+            <details class="workspace-data-info">
+              <summary>Origem e armazenamento</summary>
+              <span id="appDataOrigin">Conferindo a origem dos dados.</span
+              ><span id="topSync">Leitura de mensagens não verificada</span
+              ><button class="lk" data-go="Configurações">Abrir Configurações</button>
+            </details>
           </footer>
         </div>
       </main>
@@ -4865,5 +4887,6 @@
     <script id="sm-v24-context-motion" src="scripts/landing-interactions.js"></script>
     <script src="scripts/password-strength.js"></script>
     <script src="scripts/spotlight.js"></script>
+    <script src="scripts/premium-experience.js"></script>
   </body>
 </html>

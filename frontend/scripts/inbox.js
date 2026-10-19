@@ -31,7 +31,8 @@ function saveInboxLocal() {
   );
 }
 function conversationKey(conversation) {
-  return `${conversation.canal}:${conversation.nome.toLowerCase()}`;
+  const key = `${conversation.canal}:${conversation.nome.toLowerCase()}`;
+  return conversation._socialmeiDemoSample ? `demo:${key}` : key;
 }
 function isReducedMotion() {
   return window.SocialMEIMotion.reduced;
@@ -264,9 +265,9 @@ function renderConversationList() {
                   >
                   <span class="conv-tags"
                     ><span class="status-mini ${statusClass}">${statusLabel(c.status)}</span
-                    ><span class="conv-tag"
-                      >${c.mensagens.some((message) => message.remoteId) ? "n8n" : c.localConversation ? "Local" : "Demonstração"}</span
-                    >${conversationTags(c)
+                    >${c._socialmeiDemoSample && sessionData.conversas.some((row) => !row._socialmeiDemoSample) ? '<span class="conv-tag">Exemplo</span>' : ""}${conversationTags(
+                      c,
+                    )
                       .map((t) => /* HTML */ `<span class="conv-tag">${escapeHtml(t)}</span>`)
                       .join("")}</span
                   >
@@ -382,7 +383,9 @@ function renderMessages(c, { preserveScroll = false } = {}) {
   });
 }
 function clientContext(conversation) {
-  const client = SocialMEIClients.conversationClient(conversation);
+  const client = conversation._socialmeiDemoSample
+    ? null
+    : SocialMEIClients.conversationClient(conversation);
   const purchases = client
     ? appData.vendas.filter((sale) => SocialMEISales.matchesClient(sale, client))
     : [];

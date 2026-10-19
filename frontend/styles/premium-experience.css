@@ -1,0 +1,541 @@
+/* Product-wide presentation, using the native palette and motion tokens. */
+.global-demo-control {
+  position: relative;
+  flex: 0 0 auto;
+}
+.global-demo-control[hidden] {
+  display: none;
+}
+.global-demo-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 6px 10px;
+  border-radius: var(--r-sm);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 550;
+  cursor: pointer;
+  list-style: none;
+  transition:
+    background var(--motion-fast),
+    color var(--motion-fast);
+}
+.global-demo-indicator::-webkit-details-marker {
+  display: none;
+}
+.global-demo-indicator i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--brand-accent);
+}
+.global-demo-indicator:hover,
+.global-demo-control[open] > summary {
+  background: var(--surface-secondary);
+  color: var(--text-primary);
+}
+.global-demo-short {
+  display: none;
+}
+.global-demo-popover,
+.opportunity-options-panel {
+  position: absolute;
+  z-index: 80;
+  right: 0;
+  top: calc(100% + 8px);
+  width: 280px;
+  max-width: calc(100vw - 24px);
+  padding: 16px;
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-md);
+  animation: premiumPopoverIn 160ms var(--ease-out);
+}
+.global-demo-popover p,
+.opportunity-options-panel p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+.global-demo-popover .management-button {
+  width: 100%;
+  justify-content: flex-start;
+  min-height: 44px;
+}
+.context-help,
+.workspace-data-info {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.context-help > summary,
+.workspace-data-info > summary {
+  width: fit-content;
+  cursor: pointer;
+  padding: 6px 0;
+  color: var(--text-secondary);
+}
+.context-help p {
+  margin: 8px 0 4px;
+  max-width: 80ch;
+  font-size: 14px;
+}
+.home-source-help {
+  margin-top: 12px;
+}
+.workspace-data-info {
+  width: 100%;
+}
+.workspace-data-info[open] {
+  display: grid;
+  gap: 8px;
+}
+.workspace-data-info > span {
+  display: block;
+  font-size: 13px;
+}
+.data-origin {
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+#opportunitiesView .management-stack {
+  gap: 20px;
+}
+#opportunitiesView .management-header {
+  align-items: center;
+  margin: 0;
+  gap: 16px;
+}
+#opportunitiesView .management-header h2 {
+  font-size: clamp(26px, 2.7vw, 38px);
+  margin-top: 6px;
+}
+#opportunitiesView .management-header p {
+  margin-top: 8px;
+  max-width: 55ch;
+}
+.opportunity-controls {
+  flex: 0 0 auto;
+}
+.opportunity-options {
+  position: relative;
+}
+.opportunity-options > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  font-size: 13px;
+  color: var(--text-secondary);
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+}
+.opportunity-options > summary::after {
+  content: "⋯";
+  font-size: 20px;
+  line-height: 1;
+}
+.opportunity-options > summary::-webkit-details-marker {
+  display: none;
+}
+.opportunity-options-panel .management-button {
+  min-height: 44px;
+  text-align: left;
+}
+#opportunityQueue:empty {
+  display: none;
+}
+#opportunitiesView .client-analysis-intro {
+  font-size: 13px;
+  margin-bottom: 16px;
+  color: var(--text-muted);
+}
+#opportunitiesView .client-analysis-card {
+  padding: 20px;
+  animation: none;
+  transition:
+    border-color var(--motion-base),
+    background var(--motion-base);
+}
+#opportunitiesView .client-analysis-card:focus-within {
+  border-color: var(--brand-primary);
+}
+#opportunitiesView .client-analysis-card h3 {
+  font-size: 17px;
+}
+#opportunitiesView .client-analysis-person .management-note {
+  font-size: 12px;
+}
+#opportunitiesView .client-analysis-card > .native-opportunity-actions {
+  padding-top: 14px;
+  margin-top: 4px;
+  border-top: 1px solid var(--border);
+}
+#opportunitiesView .client-analysis-card > details {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+#opportunitiesView .client-analysis-card > details > summary {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+}
+#opportunitiesView .client-analysis-tabs {
+  margin-top: 0;
+}
+.experience-app #nvShell.workspace-shell {
+  padding: 20px 0 16px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+.experience-app #nvShell .workspace-title-block h2 {
+  font-size: clamp(28px, 3vw, 40px);
+}
+.experience-app .management-card {
+  transition:
+    border-color var(--motion-base),
+    background-color var(--motion-base);
+}
+.experience-app .management-input:focus,
+.experience-app input:focus-visible,
+.experience-app textarea:focus-visible,
+.experience-app select:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+.experience-app :is(button, summary, a):focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 3px;
+}
+.experience-app :is(.btn, .management-button, .home-priority-row, .radar-primary) {
+  transition:
+    background-color var(--motion-fast),
+    border-color var(--motion-fast),
+    color var(--motion-fast),
+    transform 120ms var(--ease-out);
+}
+.experience-app :is(.btn, .management-button):active:not(:disabled) {
+  transform: translateY(1px);
+}
+.experience-app :is(.home-priority-row, .home-sale-row, .conv-item):hover {
+  background: var(--surface-secondary);
+}
+.experience-app :is(.home-priority-row, .home-sale-row, .conv-item):focus-visible {
+  outline-offset: -2px;
+}
+.experience-app .management-button:disabled,
+.experience-app button[aria-busy="true"] {
+  cursor: default;
+}
+.experience-app .mnu,
+.experience-app .utility-menu {
+  animation: premiumPopoverIn 160ms var(--ease-out);
+}
+#nav {
+  position: relative;
+}
+.nav-active-motion {
+  position: absolute;
+  pointer-events: none;
+  background: var(--brand-primary-soft);
+  border-radius: var(--r-sm);
+  z-index: 0;
+  transition:
+    transform 230ms var(--ease-out),
+    width 230ms var(--ease-out);
+}
+#nav.nav-motion-ready .nl {
+  position: relative;
+  z-index: 1;
+}
+#nav.nav-motion-ready .nl.active {
+  background: transparent;
+}
+.toast[data-tone="info"] svg {
+  color: var(--brand-primary);
+}
+.toast[data-tone="error"] {
+  border-color: var(--danger);
+}
+.toast[data-tone="error"] svg {
+  color: var(--danger);
+}
+.toast {
+  max-width: min(380px, calc(100vw - 24px));
+}
+.premium-counting {
+  position: relative;
+  -webkit-text-fill-color: transparent;
+}
+.premium-counting::after {
+  content: attr(data-display);
+  position: absolute;
+  inset: 0;
+  -webkit-text-fill-color: currentColor;
+  pointer-events: none;
+}
+#clientHomeView .desk-opening {
+  padding-bottom: 22px;
+}
+#clientHomeView .desk-conversation {
+  border-left: 3px solid var(--brand-accent);
+}
+#clientHomeView .home-operation-header {
+  padding-bottom: 14px;
+}
+#clientHomeView .home-operation-panel {
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+}
+#contentStudioView .content-context:empty,
+#contentStorageStatus:empty {
+  display: none;
+}
+#contentStudioView .content-formats {
+  margin-top: 0;
+}
+#contentStudioView .content-editor {
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+#contentStudioView .content-preview-panel {
+  border-radius: var(--r-md);
+}
+#settingsView .settings-intro {
+  margin-bottom: 0;
+}
+#settingsView .settings-account-note {
+  margin: 0;
+}
+#settingsView .view-demo-setting {
+  box-shadow: none;
+  border-color: var(--border);
+}
+#settingsView .view-demo-setting p {
+  max-width: 64ch;
+}
+#automationsView .management-header {
+  margin-bottom: 0;
+}
+#automationsView .context-help {
+  margin-top: -6px;
+}
+@keyframes premiumPopoverIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (max-width: 720px) {
+  .experience-app #nvShell.workspace-shell {
+    padding: 8px 0 12px;
+    margin-bottom: 18px;
+  }
+  #opportunitiesView .management-header {
+    align-items: flex-start;
+  }
+  #opportunitiesView .management-header p {
+    font-size: 14px;
+  }
+  .opportunity-options > summary {
+    font-size: 0;
+    padding: 8px 12px;
+  }
+  .opportunity-options > summary::after {
+    font-size: 22px;
+  }
+  #opportunitiesView .client-analysis-card {
+    padding: 16px;
+  }
+  .experience-app .hd {
+    gap: 6px;
+    padding-inline: 10px;
+  }
+  .global-demo-label {
+    display: none;
+  }
+  .global-demo-short {
+    display: inline;
+  }
+  .global-demo-indicator {
+    min-height: 44px;
+    padding: 6px 4px;
+    gap: 4px;
+    font-size: 11px;
+  }
+  .global-demo-popover {
+    position: fixed;
+    top: 64px;
+    right: 12px;
+  }
+  .experience-app #utilityTools > summary {
+    width: 44px;
+    min-height: 44px;
+    display: grid;
+    place-items: center;
+    font-size: 0;
+    padding: 4px;
+  }
+  .experience-app #utilityTools > summary::after {
+    content: "⋯";
+    font-size: 24px;
+  }
+  .experience-app #profileBtn {
+    width: 44px;
+    min-width: 44px;
+    padding: 4px;
+    justify-content: center;
+  }
+  .experience-app #profileBtn > :not(.av) {
+    display: none;
+  }
+  .experience-app .hd-title {
+    min-width: 0;
+  }
+  #clientHomeView .desk-opening {
+    padding-bottom: 16px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .global-demo-indicator,
+  .nav-active-motion,
+  .experience-app .management-card,
+  .experience-app :is(.btn, .management-button, .home-priority-row, .radar-primary) {
+    transition: none;
+  }
+  .global-demo-popover,
+  .opportunity-options-panel,
+  .experience-app .mnu,
+  .experience-app .utility-menu {
+    animation: none;
+  }
+}
+
+#viewDemoNotice::after {
+  content: none;
+}
+#opportunitiesView .client-analysis-grid {
+  margin-block: 12px;
+  gap: 16px;
+}
+#opportunitiesView .client-analysis-card h4 {
+  margin-block: 12px 6px;
+}
+#opportunitiesView .client-analysis-card blockquote {
+  margin-block: 8px;
+}
+@media (max-width: 720px) {
+  #opportunitiesView .management-header {
+    position: relative;
+    padding-right: 48px;
+  }
+  #opportunitiesView .opportunity-controls {
+    position: absolute;
+    right: 0;
+    top: 4px;
+  }
+  #opportunitiesView .client-analysis-tabs > button {
+    padding: 8px 4px;
+    min-height: 68px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-size: 13px;
+    line-height: 1.25;
+  }
+  #opportunitiesView .client-analysis-tabs [data-analysis-count] {
+    display: inline-flex;
+    width: auto;
+    min-width: 22px;
+    justify-content: center;
+    padding: 1px 5px;
+    font-size: 12px;
+    line-height: 1.3;
+  }
+  #opportunitiesView .client-analysis-card h4 {
+    font-size: 13px;
+  }
+  #opportunitiesView .client-analysis-grid {
+    gap: 8px;
+  }
+}
+/* Public flows keep their composition; interactions share the same response rhythm. */
+.experience-screen
+  :is(
+    .landing-cta,
+    .landing-button,
+    .landing-nav-cta,
+    .experience-submit,
+    .business-family-card,
+    .business-specialty-choice,
+    .experience-choice
+  ) {
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 160ms ease;
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .onboarding-screen .business-family-card:hover,
+  .onboarding-screen .business-specialty-choice:hover {
+    transform: translateY(-2px);
+  }
+}
+.onboarding-screen .business-specialty-choice:has(input:checked) {
+  box-shadow: inset 3px 0 var(--brand-primary);
+}
+.experience-screen :is(.landing-cta, .landing-button, .experience-submit):active {
+  transform: translateY(1px);
+}
+.onboarding-screen :is(input, button, select, textarea):focus-visible {
+  outline-offset: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .experience-screen
+    :is(
+      .landing-cta,
+      .landing-button,
+      .landing-nav-cta,
+      .experience-submit,
+      .business-family-card,
+      .business-specialty-choice,
+      .experience-choice
+    ) {
+    transition: none;
+    transform: none;
+  }
+}
+
+#inboxView .inbox-title-line:has(.global-demo-control:not([hidden])) {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+#inboxView .inbox-title-line .global-demo-indicator {
+  font-size: 11px;
+  font-weight: 500;
+  min-height: 32px;
+}

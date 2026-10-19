@@ -62,14 +62,12 @@ const SocialMEIPersonalization = (() => {
       .slice(0, 6)
       .forEach((tool) => host.append(button(tool.label + " →", "profileRoute", tool.id, "")));
     host.append(button("Configurar atalhos", "profileConfigure", "", ""));
-    limits.append(
-      node("span", "Atalhos do seu perfil local. Todas as abas continuam acessíveis pelo menu."),
-    );
+
     if (tools.future.length)
       limits.append(
         node(
           "span",
-          `${tools.future.map((tool) => tool.label).join(", ")}: ainda sem módulo operacional. Essas escolhas ficam no perfil para uma próxima etapa.`,
+          `${tools.future.map((tool) => tool.label).join(", ")}: ainda sem módulo operacional. Configure seus atalhos para escolher ferramentas disponíveis.`,
         ),
       );
     if (!sessionData.conversas.length) {

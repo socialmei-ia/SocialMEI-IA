@@ -3,6 +3,7 @@
 window.SocialMEIMotion = (() => {
   const preference = matchMedia("(prefers-reduced-motion: reduce)");
   const running = new Set();
+  const activeByElement = new WeakMap();
 
   // Mantém em cache os tokens de duração e curva.
   // Esses tokens não dependem do tema; o cache evita recalcular estilos a cada interação.
@@ -29,6 +30,8 @@ window.SocialMEIMotion = (() => {
     if (!element || preference.matches || document.hidden || !element.animate) {
       return Promise.resolve();
     }
+    const previous = activeByElement.get(element);
+    previous?.animation.cancel();
     const props = new Set();
     (frames || []).forEach((frame) =>
       Object.keys(frame || {}).forEach((key) => {
@@ -37,7 +40,7 @@ window.SocialMEIMotion = (() => {
         }
       }),
     );
-    const previousWillChange = element.style.willChange;
+    const previousWillChange = previous?.willChange ?? element.style.willChange;
     if (props.size) {
       element.style.willChange = [...props].join(", ");
     }
@@ -47,13 +50,17 @@ window.SocialMEIMotion = (() => {
       delay,
       fill: "both",
     });
+    activeByElement.set(element, { animation: a, willChange: previousWillChange });
     running.add(a);
     return a.finished
       .catch(() => {})
       .finally(() => {
         running.delete(a);
         a.cancel();
-        element.style.willChange = previousWillChange;
+        if (activeByElement.get(element)?.animation === a) {
+          activeByElement.delete(element);
+          element.style.willChange = previousWillChange;
+        }
       });
   };
   function sync() {
@@ -146,12 +153,12 @@ window.SocialMEIMotion = (() => {
     const first = !seenViews.has(view);
     seenViews.add(view);
     drawCharts(view);
-    if (!["clientHomeView", "inboxView"].includes(view.id)) {
+    if (view.id !== "settingsView") {
       animate(
         view,
         [
           {
-            opacity: 0.72,
+            opacity: 0.84,
             transform: "translate3d(0,6px,0)",
           },
           {
@@ -170,12 +177,10 @@ window.SocialMEIMotion = (() => {
           [
             {
               opacity: 0,
-              filter: "blur(3px)",
               transform: "translate3d(0,8px,0)",
             },
             {
               opacity: 1,
-              filter: "blur(0)",
               transform: "none",
             },
           ],
@@ -187,7 +192,7 @@ window.SocialMEIMotion = (() => {
         view.id === "inboxView"
           ? view.querySelectorAll(".conv-item")
           : view.querySelectorAll(
-              ".journal-entry,.order-entry,.relationship-entry,.inventory-entry,.routine-row",
+              ".journal-entry,.order-entry,.relationship-entry,.inventory-entry,.routine-row,.home-operation-panel,.desk-conversation,.content-editor,.content-preview-panel",
             );
       [...(first ? groups : [])].slice(0, 6).forEach((element, i) =>
         animate(

@@ -44,6 +44,12 @@ module.exports = async function nativeOpportunities(browser, origin) {
     await page.locator("[data-opportunity-integrations]").click();
     assert.equal(await page.evaluate(() => selectedSettingsTab), "integracoes");
     await navigate();
+    async function stopDemo() {
+      const menu = page.locator(".opportunity-options");
+      if ((await menu.count()) && !(await menu.evaluate((el) => el.open)))
+        await menu.locator("summary").click();
+      await page.locator("[data-opportunity-stop]").click();
+    }
     let layouts = 0;
     const tab = async (id) => {
       await page.locator(`[data-analysis-tab="${id}"]`).click();
@@ -52,8 +58,7 @@ module.exports = async function nativeOpportunities(browser, origin) {
       for (const theme of ["light", "dark"]) {
         await page.setViewportSize({ width, height: 1000 });
         await page.evaluate((value) => SocialMEIThemes.select(value), theme);
-        if (await page.locator("[data-opportunity-stop]").isVisible())
-          await page.locator("[data-opportunity-stop]").click();
+        if (await page.locator("[data-opportunity-stop]").count()) await stopDemo();
         await page.screenshot({
           path: path.join(output, `empty-${width}-${theme}.png`),
           fullPage: true,
@@ -86,7 +91,7 @@ module.exports = async function nativeOpportunities(browser, origin) {
       assert.equal(await page.locator(".client-analysis-list .client-analysis-card").count(), 1);
       await page.locator('[data-analysis-resolve="analysis-demo-critical"]').click();
       assert.equal(await page.locator(".client-analysis-list .client-analysis-card").count(), 0);
-      await page.locator("[data-opportunity-stop]").click();
+      await stopDemo();
       await page.locator("[data-opportunity-demo]").click();
     }
     await page.locator(".native-opportunity-analysis > summary").click();

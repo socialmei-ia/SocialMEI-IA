@@ -746,11 +746,20 @@ function toggleDropdown(dd) {
   dd.classList.toggle("open", willOpen);
   dd.querySelector(":scope > button")?.setAttribute("aria-expanded", String(willOpen));
 }
-function toast(title, desc = "") {
+function toast(
+  title,
+  desc = "",
+  tone = /(?:^não|falha|erro|acesso negado|indisponível|não (?:concluído|salv|prepar|disponível))/i.test(
+    title,
+  )
+    ? "error"
+    : "success",
+) {
   const node = document.createElement("div");
   node.className = "toast";
-  node.setAttribute("role", "status");
-  node.innerHTML = /* HTML */ `${renderIcon("success")}
+  node.setAttribute("role", tone === "error" ? "alert" : "status");
+  node.dataset.tone = tone;
+  node.innerHTML = /* HTML */ `${renderIcon(tone === "success" ? "success" : "info")}
           <div>
             <b>${escapeHtml(title)}</b>${desc ? /* HTML */ `<span>${escapeHtml(desc)}</span>` : ""}
           </div>`;

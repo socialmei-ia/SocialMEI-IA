@@ -2589,7 +2589,7 @@ const readStoredJson = (key, fallback) => {
   }
 };
 const renderLocalDemoNotice = () =>
-  '<div class="management-demo"><span class="pill draft" title="Rascunhos, simulações e preferências são locais. Este recurso não envia mensagens aos canais.">Recursos locais</span><span>Rascunhos e preferências neste navegador.</span></div>';
+  '<details class="context-help"><summary>Sobre este recurso</summary><p>Rascunhos e preferências ficam neste navegador. Preparar conteúdo não envia mensagens aos canais.</p></details>';
 const renderManagementMetric = (label, value, note) => /* HTML */ `<article class="management-kpi">
           <span>${escapeHtml(label)}</span><b>${value}</b><small>${escapeHtml(note)}</small>
         </article>`;
