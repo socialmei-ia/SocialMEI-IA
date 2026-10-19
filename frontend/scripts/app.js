@@ -193,229 +193,15 @@ if (SocialMEIAuth.remote) {
 }
 // Snapshot of the existing fictional conversations, before local/remote messages are restored.
 const opportunityDemoSnapshot = structuredClone(sessionData.conversas);
+// New spaces start empty. Synthetic records belong exclusively to demo-data.js.
 const DEFAULT_APP_DATA = {
   schemaVersion: SOCIALMEI_APP_SCHEMA_VERSION,
-  financeiro: [
-    {
-      id: 1,
-      descricao: "Venda #1042",
-      pessoa: "Maria Helena Costa",
-      tipo: "receita",
-      valor: 380,
-      vencimento: "2026-10-06",
-      status: "pago",
-    },
-    {
-      id: 2,
-      descricao: "Ótica Bom Olhar",
-      pessoa: "Boleto",
-      tipo: "receita",
-      valor: 1150,
-      vencimento: "2026-10-06",
-      status: "pago",
-    },
-    {
-      id: 3,
-      descricao: "Studio Flor de Lis",
-      pessoa: "Cobrança",
-      tipo: "receita",
-      valor: 420,
-      vencimento: "2026-09-28",
-      status: "atrasado",
-    },
-    {
-      id: 4,
-      descricao: "Tecidos Aurora",
-      pessoa: "Fornecedor",
-      tipo: "despesa",
-      valor: 960,
-      vencimento: "2026-10-08",
-      status: "aberto",
-    },
-    {
-      id: 5,
-      descricao: "DAS-MEI",
-      pessoa: "Imposto",
-      tipo: "despesa",
-      valor: 82.05,
-      vencimento: "2026-10-20",
-      status: "aberto",
-    },
-    {
-      id: 6,
-      descricao: "Internet comercial",
-      pessoa: "Operadora",
-      tipo: "despesa",
-      valor: 129.9,
-      vencimento: "2026-10-10",
-      status: "aberto",
-    },
-  ],
-  vendas: [
-    {
-      id: 1042,
-      item: "Conjunto Essentials",
-      quantidade: 2,
-      cliente: "Maria Helena Costa",
-      data: "2026-10-06",
-      valor: 380,
-      pagamento: "Pix",
-      status: "Pago",
-    },
-    {
-      id: 1041,
-      item: "Camisa Tech SocialMEI",
-      quantidade: 7,
-      cliente: "Padaria Pão de Mel",
-      data: "2026-10-05",
-      valor: 640,
-      pagamento: "Cartão",
-      status: "Pago",
-    },
-    {
-      id: 1040,
-      item: "Ajuste personalizado",
-      quantidade: 6,
-      cliente: "Juliana Prado",
-      data: "2026-10-04",
-      valor: 220,
-      pagamento: "Pix",
-      status: "Pendente",
-    },
-    {
-      id: 1039,
-      item: "Boné SocialMEI",
-      quantidade: 3,
-      cliente: "Rafael Nogueira",
-      data: "2026-10-03",
-      valor: 189.9,
-      pagamento: "Boleto",
-      status: "Rascunho",
-    },
-  ],
-  clientes: [
-    {
-      id: 1,
-      nome: "Maria Silva",
-      telefone: "(81) 99981-2040",
-      instagram: "@maria.silva",
-      status: "Ativo",
-      ultima: "Hoje",
-      total: 1840,
-      pendente: 0,
-      observacao: "Prefere atendimento pelo WhatsApp.",
-      tags: ["Cliente recorrente"],
-    },
-    {
-      id: 2,
-      nome: "Juliana Prado",
-      telefone: "(81) 98820-1137",
-      instagram: "@julianaprado",
-      status: "Ativo",
-      ultima: "Hoje",
-      total: 930,
-      pendente: 220,
-      observacao: "Entrega preferencial na sexta-feira.",
-      tags: ["Orçamento"],
-    },
-    {
-      id: 3,
-      nome: "Rafael Nogueira",
-      telefone: "—",
-      instagram: "@rafa.nogueira",
-      status: "Novo",
-      ultima: "Hoje",
-      total: 189.9,
-      pendente: 189.9,
-      observacao: "Chegou pelo Instagram.",
-      tags: ["Novo cliente"],
-    },
-    {
-      id: 4,
-      nome: "Carla Menezes",
-      telefone: "—",
-      instagram: "@carlamenezes",
-      status: "Ativo",
-      ultima: "Ontem",
-      total: 720,
-      pendente: 0,
-      observacao: "Última compra concluída sem pendências.",
-      tags: ["Pós-venda"],
-    },
-    {
-      id: 5,
-      nome: "Carlos Eduardo Lins",
-      telefone: "(81) 98771-2210",
-      instagram: "—",
-      status: "Ativo",
-      ultima: "Ontem",
-      total: 1210,
-      pendente: 0,
-      observacao: "",
-      tags: [],
-    },
-  ],
-  produtos: [
-    {
-      id: 1,
-      nome: "Camisa Tech SocialMEI",
-      tipo: "Produto",
-      preco: 89.9,
-      custo: 46,
-      estoque: 3,
-      minimo: 5,
-      status: "Ativo",
-    },
-    {
-      id: 2,
-      nome: "Conjunto Essentials",
-      tipo: "Produto",
-      preco: 149.9,
-      custo: 82,
-      estoque: 12,
-      minimo: 4,
-      status: "Ativo",
-    },
-    {
-      id: 3,
-      nome: "Boné SocialMEI",
-      tipo: "Produto",
-      preco: 54.9,
-      custo: 28,
-      estoque: 2,
-      minimo: 3,
-      status: "Ativo",
-    },
-    {
-      id: 4,
-      nome: "Ajuste personalizado",
-      tipo: "Serviço",
-      preco: 35,
-      custo: 8,
-      estoque: null,
-      minimo: null,
-      status: "Ativo",
-    },
-    {
-      id: 5,
-      nome: "Entrega local",
-      tipo: "Serviço",
-      preco: 15,
-      custo: 7,
-      estoque: null,
-      minimo: null,
-      status: "Ativo",
-    },
-  ],
-  prefs: {
-    notificacoes: true,
-  },
+  clientes: [],
+  produtos: [],
+  vendas: [],
+  financeiro: [],
+  prefs: { notificacoes: true },
 };
-// Authenticated accounts start empty; persisted account data is loaded normally below.
-if (SocialMEIAuth.remote) {
-  for (const collection of ["clientes", "produtos", "vendas", "financeiro"])
-    DEFAULT_APP_DATA[collection] = [];
-}
 let appData = loadAppData();
 SocialMEIClients.attach(appData);
 SocialMEIProducts.attach(appData);
@@ -2961,6 +2747,7 @@ const getCustomerRegistrationDate = (c) => {
 };
 function renderReportVariation(a, b, available = true, source = "sales") {
   if (
+    !SocialMEIDemoData.enabled() &&
     !["local", "ready"].includes(
       (source === "finance" ? SocialMEIFinance : SocialMEISales).connectionState,
     )
@@ -2975,7 +2762,7 @@ function renderReportVariation(a, b, available = true, source = "sales") {
   if (areMoneyValuesHidden) {
     return "Comparação oculta";
   }
-  const rows = source === "finance" ? appData.financeiro : appData.vendas;
+  const rows = source === "finance" ? businessViewData().financeiro : businessViewData().vendas;
   if (
     !SocialMEIReportData.hasHistory(
       rows,
@@ -3006,7 +2793,7 @@ function renderReportChart(source) {
     return emptyMarkup("Valores ocultos", "Exiba os valores para consultar o gráfico e a tabela.");
   }
   const store = sales ? SocialMEISales : SocialMEIFinance;
-  if (!["local", "ready"].includes(store.connectionState)) {
+  if (!businessSourceReady(store)) {
     return emptyMarkup(
       "Leitura do gráfico não disponível",
       "Confira a conexão no módulo antes de interpretar os valores.",
@@ -3028,8 +2815,9 @@ function renderReportChart(source) {
 }
 function getReportSummaryText() {
   const metrics = operationalMetrics();
-  const source =
-    SocialMEISales.remote && SocialMEIFinance.remote
+  const source = SocialMEIDemoData.enabled()
+    ? "Amostra fictícia somente para testes."
+    : SocialMEISales.remote && SocialMEIFinance.remote
       ? "Vendas e financeiro: dados compartilhados."
       : SocialMEISales.remote || SocialMEIFinance.remote
         ? "Vendas e financeiro: fontes locais e compartilhadas."
@@ -3048,6 +2836,12 @@ function getManagementDataSources() {
   ];
 }
 function getManagementDataOrigin() {
+  if (SocialMEIDemoData.enabled())
+    return {
+      label: "Dados de teste",
+      description:
+        "Amostra fictícia, somente para leitura. Não representa seu negócio nem é enviada à API.",
+    };
   const sources = getManagementDataSources();
   const remote = sources.filter(([, shared]) => shared).map(([name]) => name);
   const local = sources.filter(([, shared]) => !shared).map(([name]) => name);
@@ -3095,16 +2889,20 @@ function renderReports() {
   );
   const dateRange = periodRange();
   const metrics = operationalMetrics(dateRange);
-  const salesReady = ["local", "ready"].includes(SocialMEISales.connectionState);
-  const financeReady = ["local", "ready"].includes(SocialMEIFinance.connectionState);
-  const clientsReady = ["local", "ready"].includes(SocialMEIClients.connectionState);
+  const salesReady = businessSourceReady(SocialMEISales);
+  const financeReady = businessSourceReady(SocialMEIFinance);
+  const clientsReady = businessSourceReady(SocialMEIClients);
   const prevRange = getPreviousReportRange(dateRange);
   const prev = operationalMetrics(prevRange);
-  const newKnown = appData.clientes.filter((client) => getCustomerRegistrationDate(client));
+  const newKnown = businessViewData().clientes.filter((client) =>
+    getCustomerRegistrationDate(client),
+  );
   const newCount = newKnown.filter((c) =>
     inRange(getCustomerRegistrationDate(c), dateRange),
   ).length;
-  const datesComplete = newKnown.length === appData.clientes.length && appData.clientes.length > 0;
+  const datesComplete =
+    newKnown.length === businessViewData().clientes.length &&
+    businessViewData().clientes.length > 0;
   const origin = getManagementDataOrigin();
   $("reportsDataSourceStatus").innerHTML =
     `<span class="pill info">${escapeHtml(origin.label)}</span><span>${escapeHtml(origin.description)}</span>`;
@@ -3203,7 +3001,7 @@ function renderReports() {
     if (v.canal) {
       return getChannelName(v.canal);
     }
-    const cs = sessionData.conversas.filter((conversation) =>
+    const cs = businessViewConversations().filter((conversation) =>
       reportSaleMatchesConversation(v, conversation),
     );
     const channels = [...new Set(cs.map((c) => c.canal))];
@@ -3305,7 +3103,7 @@ function renderReports() {
             ${
               !clientsReady
                 ? "A leitura de clientes da API não está disponível. Recarregue Clientes antes de consultar estes números."
-                : !appData.clientes.length
+                : !businessViewData().clientes.length
                   ? "Nenhum cliente cadastrado na fonte atual."
                   : datesComplete
                     ? `${newCount} novos cadastros no período.`
@@ -3315,7 +3113,7 @@ function renderReports() {
             }
           </p>
         </section>`;
-  const conversations = sessionData.conversas.filter((conversation) =>
+  const conversations = businessViewConversations().filter((conversation) =>
     conversation.mensagens.some((msg) => inRange(msg.data, dateRange)),
   );
   const linked = conversations.filter((conversation) =>
@@ -3407,9 +3205,9 @@ function renderReports() {
       "Abrir financeiro",
     ]);
   }
-  const stale = appData.clientes.filter((client) => {
-    const paid = appData.vendas
-      .filter(
+  const stale = businessViewData().clientes.filter((client) => {
+    const paid = businessViewData()
+      .vendas.filter(
         (sale) =>
           !sale.excluida && sale.status === "Pago" && SocialMEISales.matchesClient(sale, client),
       )

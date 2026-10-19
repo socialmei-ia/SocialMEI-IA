@@ -60,6 +60,7 @@ const source = fs.readFileSync(
 function metrics(range) {
   const context = vm.createContext({
     appData: { vendas: sales, financeiro: ledger },
+    businessViewData: () => ({ vendas: sales, financeiro: ledger }),
     inRange: (date, period) => date >= period.from && date <= period.to,
   });
   vm.runInContext(
@@ -233,6 +234,7 @@ test("comparison preference is frozen and exports do not silently re-enable prev
 test("native chart series exclude the same removed records as the operational totals", () => {
   const context = vm.createContext({
     appData: { vendas: sales, financeiro: ledger },
+    businessViewData: () => ({ vendas: sales, financeiro: ledger }),
     inRange: (day, period) => day >= period.from && day <= period.to,
     dateShift: (date, days) =>
       new Date(Date.parse(date + "T12:00:00Z") + days * 864e5).toISOString().slice(0, 10),

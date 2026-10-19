@@ -516,8 +516,8 @@ function renderAttention() {
   const today = todayISO();
   const L = [];
   const tg = (c, x) => /* HTML */ `<span class="pill ${c}">${x}</span>`;
-  const od = appData.financeiro
-    .filter((entry) => ledgerStatus(entry) === "atrasado")
+  const od = businessViewData()
+    .financeiro.filter((entry) => ledgerStatus(entry) === "atrasado")
     .sort((entry, otherEntry) => entry.vencimento.localeCompare(otherEntry.vencimento));
   od.slice(0, 3).forEach((x) =>
     L.push([
@@ -537,8 +537,8 @@ function renderAttention() {
       '<button class="management-button sm" data-go="Financeiro">Abrir</button>',
     ]);
   }
-  appData.financeiro
-    .filter((entry) => entry.status !== "pago" && entry.vencimento === today)
+  businessViewData()
+    .financeiro.filter((entry) => entry.status !== "pago" && entry.vencimento === today)
     .forEach((entry) =>
       L.push([
         tg("amber", "Vence hoje"),
@@ -553,8 +553,8 @@ function renderAttention() {
               </button>`,
       ]),
     );
-  appData.vendas
-    .filter((sale) => sale.status === "Pendente")
+  businessViewData()
+    .vendas.filter((sale) => sale.status === "Pendente")
     .slice(0, 3)
     .forEach((sale) =>
       L.push([
@@ -570,7 +570,7 @@ function renderAttention() {
               </button>`,
       ]),
     );
-  sessionData.conversas
+  businessViewConversations()
     .filter(
       (conversation) =>
         ["aberto", "andamento"].includes(conversation.status) &&
@@ -643,7 +643,7 @@ function renderBusinessHub() {
   if (!host) {
     return;
   }
-  const sales = [...appData.vendas].sort((a, b) => b.data.localeCompare(a.data));
+  const sales = [...businessViewData().vendas].sort((a, b) => b.data.localeCompare(a.data));
   const c =
     sales.find((sale) => sale.id === focusedSaleId) ||
     sales.find((sale) => sale.status === "Pendente") ||
@@ -656,8 +656,8 @@ function renderBusinessHub() {
     );
     return;
   }
-  const cl = appData.clientes.find((client) => SocialMEISales.matchesClient(c, client));
-  const cv = sessionData.conversas.find(
+  const cl = businessViewData().clientes.find((client) => SocialMEISales.matchesClient(c, client));
+  const cv = businessViewConversations().find(
     (conversation) =>
       conversation.clientId === cl?.id ||
       normalizedText(displayName(conversation)) === normalizedText(c.cliente),
@@ -665,8 +665,10 @@ function renderBusinessHub() {
   const led =
     SocialMEISales.remote || SocialMEIFinance.remote
       ? []
-      : appData.financeiro.filter((entry) => entry.descricao === `Venda #${c.id}`);
-  const pr = appData.produtos.find((product) => SocialMEISales.matchesProduct(c, product));
+      : businessViewData().financeiro.filter((entry) => entry.descricao === `Venda #${c.id}`);
+  const pr = businessViewData().produtos.find((product) =>
+    SocialMEISales.matchesProduct(c, product),
+  );
   const S = (n, k, t, a) => /* HTML */ `<li>
             <i>${n}</i>
             <div><small>${k}</small><b>${t}</b></div>
@@ -756,7 +758,13 @@ function renderSales() {
   const searchQuery = normalizedText($("salesSearch").value.trim());
   const st = $("salesStatusFilter").value;
   const ps = $("salesPaymentFilter");
-  const pays = [...new Set(appData.vendas.map((sale) => sale.pagamento).filter(Boolean))];
+  const pays = [
+    ...new Set(
+      businessViewData()
+        .vendas.map((sale) => sale.pagamento)
+        .filter(Boolean),
+    ),
+  ];
   const keep = ps.value;
   if (JSON.stringify([...ps.options].slice(1).map((o) => o.value)) !== JSON.stringify(pays)) {
     ps.innerHTML =
@@ -864,15 +872,15 @@ function renderSales() {
   syncManagementSelect("salesPaymentFilter");
 }
 function renderSaleDrawer(id) {
-  const v = appData.vendas.find((sale) => sale.id === id);
+  const v = businessViewData().vendas.find((sale) => sale.id === id);
   if (!v) {
     return;
   }
-  const cl = appData.clientes.find((client) => SocialMEISales.matchesClient(v, client));
+  const cl = businessViewData().clientes.find((client) => SocialMEISales.matchesClient(v, client));
   const led =
     SocialMEISales.remote || SocialMEIFinance.remote
       ? []
-      : appData.financeiro.filter((entry) => entry.descricao === `Venda #${v.id}`);
+      : businessViewData().financeiro.filter((entry) => entry.descricao === `Venda #${v.id}`);
   const pay =
     v.status === "Pendente" || v.status === "Rascunho"
       ? /* HTML */ `<p class="management-note" style="font-size:14px">
@@ -944,10 +952,11 @@ function renderClients() {
   const st = $("clientsStatusFilter").value;
   const cs = $("clientsTypeFilter");
   const ts = $("clientsTagFilter");
-  const all = appData.clientes;
-  const rel = (c) => appData.vendas.filter((sale) => SocialMEISales.matchesClient(sale, c));
+  const all = businessViewData().clientes;
+  const rel = (c) =>
+    businessViewData().vendas.filter((sale) => SocialMEISales.matchesClient(sale, c));
   const cvs = (c) =>
-    sessionData.conversas.filter(
+    businessViewConversations().filter(
       (conversation) =>
         conversation.clientId === c.id ||
         normalizedText(displayName(conversation)) === normalizedText(c.nome),
@@ -1086,19 +1095,19 @@ function renderClients() {
   ["clientsTypeFilter", "clientsTagFilter", "clientsStatusFilter"].forEach(syncManagementSelect);
 }
 function renderClientPanel() {
-  const c = appData.clientes.find((client) => client.id === drawerClientId);
+  const c = businessViewData().clientes.find((client) => client.id === drawerClientId);
   if (!c) {
     return;
   }
-  const rel = appData.vendas.filter((sale) => SocialMEISales.matchesClient(sale, c));
-  const fin = appData.financeiro.filter(
+  const rel = businessViewData().vendas.filter((sale) => SocialMEISales.matchesClient(sale, c));
+  const fin = businessViewData().financeiro.filter(
     (entry) =>
       SocialMEIFinance.matchesClient(entry, c) ||
       (!SocialMEIFinance.remote &&
         !SocialMEISales.remote &&
         rel.some((v) => entry.descricao === `Venda #${v.id}`)),
   );
-  const cv = sessionData.conversas.filter((conversation) =>
+  const cv = businessViewConversations().filter((conversation) =>
     SocialMEIClients.remote
       ? SocialMEIClients.conversationClient(conversation)?.id === c.id
       : conversation.clientId === c.id ||
@@ -1269,7 +1278,7 @@ ${escapeHtml(c.observacao || "")}</textarea>
           </section>`;
 }
 function getProductUnitsSold(product) {
-  return appData.vendas.filter(
+  return businessViewData().vendas.filter(
     (sale) =>
       !["Cancelado", "Rascunho"].includes(sale.status) &&
       sale.item &&
@@ -1280,7 +1289,7 @@ function renderProducts() {
   SocialMEIPersonalization.renderCatalog();
   const searchQuery = normalizedText($("productsSearch").value.trim());
   const type = $("productsTypeFilter").value;
-  const all = appData.produtos;
+  const all = businessViewData().produtos;
   const isLow = (p) => p.tipo === "Produto" && p.estoque <= p.minimo;
   const low = all.filter(isLow);
   const best = Math.max(0, ...all.map(getProductUnitsSold));
@@ -1465,7 +1474,7 @@ function renderFinance() {
   const searchQuery = normalizedText($("financeSearch").value.trim());
   const ty = $("financeTypeFilter").value;
   const st = $("financeStatusFilter").value;
-  const rows = appData.financeiro.filter(
+  const rows = businessViewData().financeiro.filter(
     (entry) =>
       (entry.status !== "pago" || inRange(entry.vencimento)) &&
       (!searchQuery ||

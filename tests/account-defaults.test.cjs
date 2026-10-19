@@ -29,10 +29,10 @@ test("fresh authenticated accounts never inherit demo commercial records, includ
   for (const key of ["clientes", "produtos", "vendas", "financeiro"])
     assert.deepEqual(state[key], [], key);
 });
-test("the explicit public demonstration preserves its existing examples", () => {
+test("new local spaces also start empty until demonstration is explicitly enabled", () => {
   const state = initialize(false);
   for (const key of ["clientes", "produtos", "vendas", "financeiro"])
-    assert(state[key].length > 0, key);
+    assert.deepEqual(state[key], [], key);
 });
 test("authenticated startup preserves business records already saved in that account scope", () => {
   const saved = {

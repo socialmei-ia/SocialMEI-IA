@@ -56,6 +56,10 @@ async function run() {
     await page.route("**/*", (route) =>
       new URL(route.request().url()).origin === origin ? route.continue() : route.abort(),
     );
+    await page.addInitScript((fixture) => {
+      if (!localStorage.getItem("socialmei-app-data-v2"))
+        localStorage.setItem("socialmei-app-data-v2", JSON.stringify(fixture));
+    }, require("./fixtures/legacy-local-business.json"));
     await page.goto(origin + "/frontend/socialmei-app.html");
     await page.evaluate(() => document.fonts.ready);
     await page.evaluate(() => SocialMEIExperience.enterApp("Início"));

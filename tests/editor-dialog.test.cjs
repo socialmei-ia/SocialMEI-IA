@@ -54,6 +54,7 @@ function setup(type) {
     cloneData: structuredClone,
     validateRequiredFormText: () => true,
     findBusinessRecord: () => ({ id: 1, versao: 1, tipo: "receita" }),
+    SocialMEIDemoData: { enabled: () => false },
     SocialMEIClients: store,
     SocialMEIProducts: store,
     SocialMEISales: store,
@@ -118,5 +119,21 @@ test("completed remote creations close their own form and retain feedback", asyn
     await request;
     assert.deepEqual(fixture.closed, ["createModal"], type);
     assert.equal(fixture.notifications.length, 1, type);
+  }
+});
+
+test("demo presentation refuses pending editor saves before invoking remote stores", async () => {
+  for (const type of ["clients", "products", "sales", "finance"]) {
+    const fixture = setup(type);
+    let writes = 0;
+    fixture.context.SocialMEIDemoData.enabled = () => true;
+    fixture.context.SocialMEIClients.update = () => {
+      writes++;
+      return Promise.resolve({ id: 1 });
+    };
+    await fixture.context.saveRecordEdit({});
+    assert.equal(writes, 0);
+    assert.equal(fixture.context.activeRecordEdit.type, type);
+    assert.deepEqual(fixture.closed, []);
   }
 });

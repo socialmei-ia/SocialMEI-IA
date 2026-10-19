@@ -8,7 +8,7 @@ const SocialMEIReportUI = (() => {
     if (!identity) return null;
     return (
       identity +
-      "|reports-v1|" +
+      (SocialMEIDemoData.enabled() ? "|reports-demo-v1|" : "|reports-v1|") +
       JSON.stringify(
         sourceKeys.map((key) => {
           const config = SOCIALMEI_CONFIG[key] || { mode: "local" };
@@ -46,7 +46,7 @@ const SocialMEIReportUI = (() => {
     if (className) node.className = className;
     return node;
   };
-  const ready = (store) => ["local", "ready"].includes(store.connectionState);
+  const ready = (store) => businessSourceReady(store);
   function sync() {
     const current = scope();
     if (current !== state.scope) {
@@ -81,14 +81,16 @@ const SocialMEIReportUI = (() => {
       previousRange,
       current: operationalMetrics(range),
       previous: operationalMetrics(previousRange),
-      sales: appData.vendas,
-      ledger: appData.financeiro,
+      sales: businessViewData().vendas,
+      ledger: businessViewData().financeiro,
       ready: { sales: ready(SocialMEISales), finance: ready(SocialMEIFinance) },
       business: getBusinessLabel(),
       source:
-        (SocialMEIAuth.remote
-          ? "Conta autenticada. "
-          : "Demonstração local: pode incluir exemplos fictícios. ") +
+        (SocialMEIDemoData.enabled()
+          ? "DADOS DE TESTE FICTÍCIOS. "
+          : SocialMEIAuth.remote
+            ? "Conta autenticada. "
+            : "Demonstração local: pode incluir exemplos fictícios. ") +
         getManagementDataOrigin().description,
       comparisonEnabled: isReportComparisonEnabled,
       createdAt: new Date().toISOString(),
@@ -653,9 +655,11 @@ const SocialMEIReportUI = (() => {
       .append(
         el(
           "span",
-          SocialMEIAuth.remote
-            ? "Conta autenticada · sem amostra sintética V2."
-            : "Demonstração local: pode conter exemplos existentes; não são dados sincronizados.",
+          SocialMEIDemoData.enabled()
+            ? "Dados de teste fictícios · exportações e histórico separados do negócio."
+            : SocialMEIAuth.remote
+              ? "Conta autenticada · sem amostra sintética V2."
+              : "Demonstração local: pode conter exemplos existentes; não são dados sincronizados.",
         ),
       );
     const sourceDetails = document.querySelector("#reportsView .rv2-source-details");
@@ -785,7 +789,10 @@ const SocialMEIReportUI = (() => {
       )}</div><dl class="rv2-status-list">${["Pago", "Pendente", "Cancelado", "Rascunho"].map((status) => `<div><dt>${status}</dt><dd>${metrics.sales.filter((sale) => sale.status === status).length}</dd></div>`).join("")}</dl>`;
   }
   function linkedItems(metrics) {
-    if (!ready(SocialMEIProducts) || SocialMEIProducts.remote !== SocialMEISales.remote)
+    if (
+      !ready(SocialMEIProducts) ||
+      (!SocialMEIDemoData.enabled() && SocialMEIProducts.remote !== SocialMEISales.remote)
+    )
       return "<p>O ranking por tipo requer catálogo disponível na mesma fonte das vendas.</p>";
     const rows = new Map();
     metrics.paidSales.forEach((sale) => {
@@ -795,7 +802,7 @@ const SocialMEIReportUI = (() => {
         sale.quantidade <= 0
       )
         return;
-      const product = appData.produtos.find((item) => item.id === sale.produto_id);
+      const product = businessViewData().produtos.find((item) => item.id === sale.produto_id);
       if (!product) return;
       const prior = rows.get(product.id) || {
         name: sale.item || product.nome,
