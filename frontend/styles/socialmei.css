@@ -18173,7 +18173,7 @@ body.management-active #per {
     display: none;
   }
   .experience-app :is(#salesView, #clientsView) .management-stack {
-    gap: 16px;
+    gap: 8px;
   }
   .experience-app :is(#salesView, #clientsView) .management-tools {
     flex-wrap: nowrap;

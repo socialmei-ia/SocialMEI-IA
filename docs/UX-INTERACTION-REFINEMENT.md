@@ -10,6 +10,7 @@ Branch: `feat/ux-interaction-refinement`.
 - A Home repetia espaços entre abertura, atalhos, conversa e seções inferiores. Foram reduzidos os intervalos e paddings, mantidos os dados, os atalhos e a hierarquia existente.
 - Explicações gerais foram reunidas em Ajuda, disponível nas 13 telas nativas, inclusive na Caixa desktop. Os elementos originais de orientação foram movidos, preservando IDs e atualizações; avisos críticos de ações, fonte indisponível e permissões continuam junto da decisão.
 - No celular estreito, o título do cabeçalho tem uma linha própria, preservando a leitura, a indicação de demonstração e os alvos de toque, sem aumentar o cabeçalho além de 90 px.
+- Em Vendas e Clientes mobile, os intervalos entre resumo, filtros e lista foram reduzidos para manter os primeiros registros acessíveis cedo, inclusive com o cabeçalho legível. O limite de posição do teste existente foi preservado.
 - Recolhíveis agora têm separação entre texto e indicador e alvo de pelo menos 44 px. A expansão de altura usa melhoria progressiva CSS e respeita movimento reduzido. O ciclo de foco, Escape, backdrop e animação continua sendo o modal nativo.
 - Reanalisar exemplos confirma a conclusão por toast; iniciar/encerrar a demonstração devolve o foco à aba. Não foram criados estados artificiais de processamento.
 
