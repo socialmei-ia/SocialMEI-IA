@@ -200,6 +200,8 @@ async function run() {
         (await page.locator("#settingsWorkspacePreview").innerText()).includes("SocialMEI Escuro"),
       );
       await page.evaluate(() => setTheme("light"));
+      await page.locator(".settings-account-note > summary").click();
+      assert(await page.locator("#accountSettingsNotice").isVisible());
       assert.equal(await page.locator("#accountSettingsNotice").count(), 1);
       assert.equal(await page.locator("#settingsView #accountSettingsNotice").count(), 1);
       assert(

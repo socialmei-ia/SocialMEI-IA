@@ -1179,6 +1179,17 @@ $("inboxModalForm").addEventListener("submit", async (event) => {
   const d = Object.fromEntries(new FormData(form));
   const mode = $("inboxModal").dataset.mode;
   const conversation = getConversation(modalConversationId);
+  if (
+    (SocialMEIDemoData.enabled() || conversation?._socialmeiDemoSample) &&
+    ["conversation", "profile", "observation"].includes(mode)
+  ) {
+    toast(
+      "Demonstração somente para leitura",
+      "Desative os dados de teste para editar o cadastro comercial.",
+      "info",
+    );
+    return;
+  }
   if (mode === "delete-conversation") {
     if (!removeLocalConversation(conversation)) return;
     closeModal("inboxModal");
@@ -1648,13 +1659,15 @@ function syncLegacySessionExamples() {
     const used = new Set(sessionData.conversas.map((row) => row.id));
     let nextId = Math.max(0, ...used);
     for (const example of legacySessionExamples.conversas) {
-      if ((inboxLocalState.removedDemoConversations || []).includes(conversationKey(example))) {
+      const row = { ...structuredClone(example), _socialmeiDemoSample: true };
+      const removed = inboxLocalState.removedDemoConversations || [];
+      // Honor both new namespaced removals and legacy sample-only tombstones.
+      // Drafts/state deliberately do not fall back to the old shared key.
+      if (removed.includes(conversationKey(row)) || removed.includes(conversationKey(example))) {
         continue;
       }
-      const row = structuredClone(example);
       if (used.has(row.id)) row.id = ++nextId;
       used.add(row.id);
-      row._socialmeiDemoSample = true;
       const saved = inboxLocalState[`state:${conversationKey(row)}`];
       if (saved?.status) row.status = saved.status;
       if (Number.isFinite(saved?.naoLidas)) row.naoLidas = saved.naoLidas;
@@ -2589,7 +2602,7 @@ const readStoredJson = (key, fallback) => {
   }
 };
 const renderLocalDemoNotice = () =>
-  '<div class="management-demo"><span class="pill draft" title="Rascunhos, simulações e preferências são locais. Este recurso não envia mensagens aos canais.">Recursos locais</span><span>Rascunhos e preferências neste navegador.</span></div>';
+  '<details class="context-help"><summary>Sobre este recurso</summary><p>Rascunhos e preferências ficam neste navegador. Preparar conteúdo não envia mensagens aos canais.</p></details>';
 const renderManagementMetric = (label, value, note) => /* HTML */ `<article class="management-kpi">
           <span>${escapeHtml(label)}</span><b>${value}</b><small>${escapeHtml(note)}</small>
         </article>`;

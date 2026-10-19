@@ -658,8 +658,8 @@ const SocialMEIReportUI = (() => {
           SocialMEIDemoData.enabled()
             ? "Dados de teste fictícios · exportações e histórico separados do negócio."
             : SocialMEIAuth.remote
-              ? "Conta autenticada · sem amostra sintética V2."
-              : "Demonstração local: pode conter exemplos existentes; não são dados sincronizados.",
+              ? "Registros da conta conectada."
+              : "Registros deste navegador.",
         ),
       );
     const sourceDetails = document.querySelector("#reportsView .rv2-source-details");
@@ -672,9 +672,7 @@ const SocialMEIReportUI = (() => {
     sourceDetails.classList.toggle("has-warning", sourceProblem);
     sourceDetails.querySelector("summary").textContent = sourceProblem
       ? "Confira a disponibilidade dos dados"
-      : SocialMEIAuth.remote
-        ? "Sobre estes dados"
-        : "Demonstração local · sobre estes dados";
+      : "Origem e definições dos indicadores";
     if (sourceProblem) {
       if (!sourceDetails.open) state.sourceAutoOpened = true;
       sourceDetails.open = true;
@@ -711,40 +709,121 @@ const SocialMEIReportUI = (() => {
     SocialMEIReportMotion.update();
     document.querySelectorAll("#reportsView .rv2-trend").forEach((chart) => {
       const tip = chart.querySelector(".rv2-chart-tooltip"),
-        readout = chart.querySelector(".rv2-chart-readout");
-      chart.querySelectorAll(".rv2-point").forEach((point) => {
-        const show = () => {
-          const text = point.getAttribute("aria-label");
-          tip.textContent = text;
-          readout.textContent = text;
-          tip.hidden = false;
-        };
-        point.addEventListener("pointerenter", show);
-        point.addEventListener("focus", show);
-        point.addEventListener("click", show);
+        readout = chart.querySelector(".rv2-chart-readout"),
+        guide = chart.querySelector(".rv2-guide"),
+        points = [...chart.querySelectorAll(".rv2-point")];
+      tip.id =
+        (chart.closest("[id]")?.id || "report") + "-" + chart.dataset.source + "-chart-tooltip";
+      points.forEach((point) => point.setAttribute("aria-controls", tip.id));
+      let hovered = null,
+        focused = null,
+        pinned = null;
+      const show = (point) => {
+        points.forEach((item) => {
+          item.dataset.active = String(item === point);
+          item.setAttribute("aria-expanded", String(item === point));
+        });
+        chart.querySelectorAll(".rv2-secondary-point").forEach((item, index) => {
+          item.dataset.active = String(points[index] === point);
+        });
+        tip.hidden = !point;
+        guide.hidden = !point;
+        guide.style.visibility = point ? "visible" : "hidden";
+        if (!point) return;
+        const text = point.getAttribute("aria-label"),
+          circle = point.querySelector("circle"),
+          svg = chart.querySelector("svg"),
+          box = svg.viewBox.baseVal,
+          x = Number(circle.getAttribute("cx"));
+        tip.textContent = text;
+        if (readout.textContent !== text) readout.textContent = text;
+        guide.setAttribute("x1", x);
+        guide.setAttribute("x2", x);
+        const center = Math.max(
+          tip.offsetWidth / 2 + 8,
+          Math.min(
+            chart.clientWidth - tip.offsetWidth / 2 - 8,
+            (x / box.width) * chart.clientWidth,
+          ),
+        );
+        tip.style.left = center + "px";
+      };
+      const refresh = () => show(pinned || focused || hovered);
+      points.forEach((point, index) => {
+        point.addEventListener("pointerenter", (event) => {
+          if (event.pointerType !== "touch") {
+            hovered = point;
+            refresh();
+          }
+        });
+        point.addEventListener("pointerleave", () => {
+          hovered = null;
+          refresh();
+        });
+        point.addEventListener("focus", () => {
+          focused = point;
+          refresh();
+        });
+        point.addEventListener("blur", () => {
+          focused = null;
+          refresh();
+        });
+        point.addEventListener("click", () => {
+          if (pinned === point) {
+            pinned = hovered = focused = null;
+            show(null);
+          } else {
+            pinned = point;
+            refresh();
+          }
+        });
         point.addEventListener("keydown", (event) => {
           if (["Enter", " "].includes(event.key)) {
             event.preventDefault();
-            show();
+            pinned = pinned === point ? null : point;
+            refresh();
           }
-          if (event.key === "Escape") tip.hidden = true;
-        });
-        point.addEventListener("blur", () => {
-          tip.hidden = true;
-        });
-        point.addEventListener("pointerleave", () => {
-          tip.hidden = true;
+          if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) {
+            event.preventDefault();
+            pinned = null;
+            const next =
+              event.key === "Home"
+                ? 0
+                : event.key === "End"
+                  ? points.length - 1
+                  : Math.max(
+                      0,
+                      Math.min(points.length - 1, index + (event.key === "ArrowRight" ? 1 : -1)),
+                    );
+            points[next].focus();
+          }
+          if (event.key === "Escape") {
+            event.preventDefault();
+            pinned = hovered = focused = null;
+            show(null);
+          }
         });
       });
+      if (points.includes(document.activeElement)) {
+        focused = document.activeElement;
+        refresh();
+      }
+      chart.addEventListener("focusout", (event) => {
+        if (!chart.contains(event.relatedTarget)) {
+          pinned = null;
+          show(null);
+        }
+      });
+      const dismiss = () => {
+        pinned = hovered = focused = null;
+        show(null);
+      };
+      chart.addEventListener("socialmei-chart-dismiss", dismiss);
+      chart.addEventListener("pointerdown", (event) => {
+        if (!event.target.closest(".rv2-point")) dismiss();
+      });
     });
-    document.querySelectorAll("#reportsView [data-report-bar]").forEach((bar) => {
-      const key = bar.dataset.reportBar,
-        end = Number(bar.dataset.value),
-        start = state.bars.get(key) ?? 0;
-      state.bars.set(key, end);
-      if (start !== end && !SocialMEIMotion.reduced)
-        SocialMEIMotion.animate(bar, [{ width: start + "%" }, { width: end + "%" }], 690);
-    });
+    SocialMEIReportMotion.updateBars();
   }
   function trend(series) {
     const mobile = innerWidth <= 600;
@@ -758,18 +837,21 @@ const SocialMEIReportUI = (() => {
     const max = Math.max(1, ...series.r, ...series.d);
     const x = (i) => L + (n === 1 ? 0 : (i * (w - L - R)) / (n - 1));
     const y = (v) => T + (1 - v / max) * (h - T - B);
-    const path = (values) =>
-      values.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+    const coordinates = (values) => values.map((value, i) => [x(i), y(value)]);
+    const line = (values, color) => {
+      const points = coordinates(values);
+      return `<path class="rv2-line" data-points="${escapeHtml(JSON.stringify(points))}" d="${SocialMEIReportMotion.draw(points)}" fill="none" stroke="var(${color})" stroke-width="2.5" vector-effect="non-scaling-stroke"/>`;
+    };
     const sales = series.source === "sales",
-      labelStep = Math.ceil(n / (mobile ? 5 : 7));
-    const hitRadius = n > 1 ? Math.min(22, (w - L - R) / (n - 1) / 2 - 1) : 22;
+      labelStep = Math.max(1, Math.ceil(n / (mobile ? 5 : 7)));
+    const hitRadius = n > 1 ? Math.max(1, Math.min(22, (w - L - R) / (n - 1) / 2)) : 22;
     const ticks = [0, 0.5, 1]
       .map(
         (value) =>
           `<line x1="${L}" x2="${w - R}" y1="${y(max * value)}" y2="${y(max * value)}" stroke="var(--ln)"/><text x="${L - 6}" y="${y(max * value) + 4}" text-anchor="end" fill="var(--mt)" font-size="${mobile ? 12 : 14}">${(max * value).toLocaleString("pt-BR", { notation: "compact", maximumFractionDigits: 1 })}</text>`,
       )
       .join("");
-    return `<div class="management-chart rv2-trend" data-source="${series.source}" data-series="${escapeHtml(JSON.stringify(series))}"><svg viewBox="0 0 ${w} ${h}" role="group" aria-label="${sales ? "Faturamento das vendas pagas" : "Receitas e despesas pagas"}, em reais. Percorra os pontos com Tab.">${ticks}<path class="rv2-line" d="${path(series.r)}" fill="none" stroke="var(--brand-primary)" stroke-width="2.5" vector-effect="non-scaling-stroke"/>${sales ? "" : `<path class="rv2-line" d="${path(series.d)}" fill="none" stroke="var(--brand-accent)" stroke-width="2.5" vector-effect="non-scaling-stroke"/>`}${series.labels.map((label, i) => `<g class="rv2-point management-chart-column" role="button" tabindex="0" aria-label="${escapeHtml(label + ": " + (sales ? "faturamento " : "entrou ") + money(series.r[i]) + (sales ? "" : "; saiu " + money(series.d[i])))}"><ellipse cx="${x(i)}" cy="${y(series.r[i])}" rx="${hitRadius}" ry="22" fill="transparent"/><circle cx="${x(i)}" cy="${y(series.r[i])}" r="${mobile ? 5 : 4}" fill="var(--sf)" stroke="var(--brand-primary)" stroke-width="2" vector-effect="non-scaling-stroke"/></g>${i % labelStep === 0 || i === n - 1 ? `<text x="${x(i)}" y="${h - 12}" text-anchor="middle" fill="var(--mt)" font-size="${mobile ? 12 : 16}">${escapeHtml(label)}</text>` : ""}`).join("")}</svg><p class="rv2-chart-tooltip" hidden></p><p class="rv2-chart-readout management-note" role="status">Passe o mouse ou use Tab nos pontos para conferir valores.</p></div>`;
+    return `<div class="management-chart rv2-trend" data-source="${series.source}" data-series="${escapeHtml(JSON.stringify(series))}"><svg viewBox="0 0 ${w} ${h}" role="group" aria-label="${sales ? "Faturamento das vendas pagas" : "Receitas e despesas pagas"}, em reais. Use Tab ou as setas para percorrer os pontos.">${ticks}<line class="rv2-guide" x1="${L}" x2="${L}" y1="${T}" y2="${h - B}" stroke="var(--mt)" stroke-dasharray="3 5" vector-effect="non-scaling-stroke" style="visibility:hidden" aria-hidden="true"/>${line(series.r, "--brand-primary")}${sales ? "" : line(series.d, "--brand-accent")}${sales ? "" : series.labels.map((_, i) => `<circle class="rv2-secondary-point" cx="${x(i)}" cy="${y(series.d[i])}" r="3" fill="var(--sf)" stroke="var(--brand-accent)" stroke-width="2" vector-effect="non-scaling-stroke" aria-hidden="true"/>`).join("")}${series.labels.map((label, i) => `<g class="rv2-point management-chart-column" data-index="${i}" role="button" tabindex="0" aria-expanded="false" aria-label="${escapeHtml(label + ": " + (sales ? "faturamento " : "entrou ") + money(series.r[i]) + (sales ? "" : "; saiu " + money(series.d[i])))}"><rect x="${x(i) - hitRadius}" y="${T}" width="${hitRadius * 2}" height="${h - T - B}" fill="transparent"/><circle cx="${x(i)}" cy="${y(series.r[i])}" r="${mobile ? 5 : 4}" fill="var(--sf)" stroke="var(--brand-primary)" stroke-width="2" vector-effect="non-scaling-stroke"/></g>${i % labelStep === 0 || i === n - 1 ? `<text x="${x(i)}" y="${h - 12}" text-anchor="middle" fill="var(--mt)" font-size="${mobile ? 12 : 16}">${escapeHtml(label)}</text>` : ""}`).join("")}</svg><p class="rv2-chart-tooltip" role="tooltip" hidden></p><p class="rv2-chart-readout management-note" role="status" aria-live="polite" aria-atomic="true">Passe o mouse, toque ou use Tab nos pontos para conferir valores.</p></div>`;
   }
   function statusPanel(metrics) {
     const total = metrics.sales.length;

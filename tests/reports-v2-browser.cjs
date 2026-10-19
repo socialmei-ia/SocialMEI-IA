@@ -501,7 +501,7 @@ module.exports = async function reportsV2(browser, origin) {
   } finally {
     await context.close();
   }
-  // The public local mode keeps its explicitly labelled examples, but never preloads report history.
+  // Local records are distinct from the optional sample; report history is never preloaded.
   const local = await browser.newContext({ reducedMotion: "reduce" });
   try {
     const localPage = await local.newPage();
@@ -515,8 +515,9 @@ module.exports = async function reportsV2(browser, origin) {
     assert.equal(await localPage.locator("#reportHistoryList .rv2-history-row").count(), 0);
     assert.match(
       await localPage.locator("#reportsDataSourceStatus").textContent(),
-      /Demonstração local/,
+      /Registros deste navegador/,
     );
+    assert.equal(await localPage.locator("#viewDemoNotice").isVisible(), false);
     await localPage.locator("[data-report-generate]").click();
     await localPage.locator("#reportGenerateForm [type=submit]").click();
     await localPage.waitForFunction(

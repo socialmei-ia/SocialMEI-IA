@@ -153,7 +153,7 @@ const SocialMEIContentStudio = (() => {
         ? "Não foi possível ler os rascunhos. Nenhum conteúdo foi substituído."
         : !scope
           ? "Entre em uma sessão válida para usar rascunhos neste negócio."
-          : "Texto e referências salvos somente neste navegador. Mídia e publicação não são sincronizadas.";
+          : "";
     for (const id of ["contentSave", "contentNew", "contentMedia"]) byId(id).disabled = !usable;
     byId("contentDraftCount").textContent =
       state.items.length + " de " + model.LIMIT + " rascunhos";

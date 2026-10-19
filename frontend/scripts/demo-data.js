@@ -180,22 +180,25 @@ if (typeof document !== "undefined")
   document.addEventListener("DOMContentLoaded", () => {
     const demo = SocialMEIDemoData;
     const writes =
-      "[data-create],[data-create-sale-client],[data-record-open],[data-sale-paid],[data-sale-duplicate],[data-finance-paid],[data-stock],[data-client-note],[data-client-conversation],[data-open-client],[data-client-id],[data-catalog-add],[data-profile-suggest],[data-profile-custom],[data-row-menu],[data-review-edit],[data-review-delete],[data-review-cancel],[data-sale-register],#exportBackup,#importBackup,[data-nv-delete-account]";
+      "[data-edit-profile],[data-edit-observation],[data-add-tag],[data-remove-tag],#newConversationBtn,[data-create],[data-create-sale-client],[data-record-open],[data-sale-paid],[data-sale-duplicate],[data-finance-paid],[data-stock],[data-client-note],[data-client-conversation],[data-open-client],[data-client-id],[data-catalog-add],[data-profile-suggest],[data-profile-custom],[data-row-menu],[data-review-edit],[data-review-delete],[data-review-cancel],[data-sale-register],#exportBackup,#importBackup,[data-nv-delete-account]";
     function decorate() {
       const active = demo.enabled();
+      // The desktop inbox intentionally hides the shell topbar. Reuse the same
+      // indicator in its native heading instead of creating a second badge.
+      const control = document.getElementById("viewDemoControl"),
+        inboxHeading = document.querySelector(".inbox-title-line"),
+        tools = document.getElementById("utilityTools");
+      if (currentView === "Caixa Unificada" && window.innerWidth > 900) {
+        if (control.parentElement !== inboxHeading) inboxHeading.append(control);
+      } else if (control.parentElement !== tools.parentElement) tools.before(control);
       document.body.classList.toggle("view-demo-active", active);
-      const shown = [
-        "Início",
-        "Visão Geral",
-        "Meu negócio",
-        "Vendas",
-        "Clientes",
-        "Produtos e Serviços",
-        "Financeiro",
-        "Relatórios",
-        "Oportunidades",
-      ].includes(currentView);
-      document.getElementById("viewDemoNotice").hidden = !active || !shown;
+      const isolated = currentView === "Oportunidades" && SocialMEIOpportunities.demoActive();
+      const visible = active || isolated;
+      document.getElementById("viewDemoControl").hidden = !visible;
+      document.getElementById("viewDemoNotice").hidden = !visible;
+      document.getElementById("viewDemoDescription").textContent = active
+        ? "Amostras fictícias separadas dos seus registros. Configuração deste navegador; nenhuma conexão é ativada."
+        : "Exemplos apenas na análise de clientes. Os outros módulos mantêm seus dados e configurações.";
       document.getElementById("viewDemoToggle").setAttribute("aria-checked", String(active));
       document.querySelectorAll(writes).forEach((control) => {
         if (!(control instanceof HTMLButtonElement)) return;
@@ -230,13 +233,29 @@ if (typeof document !== "undefined")
       (event) => {
         if (event.target.closest("#viewDemoToggle,#viewDemoExit")) {
           try {
-            demo.set(event.target.closest("#viewDemoExit") ? false : !demo.enabled());
+            const leaving = !!event.target.closest("#viewDemoExit");
+            const next = leaving ? false : !demo.enabled();
+            demo.set(next);
+            if (!next) SocialMEIOpportunities.resetDemo();
+            document.getElementById("viewDemoControl").open = false;
             document.dispatchEvent(new CustomEvent("socialmei-demo-change"));
+            toast(next ? "Dados de teste ativados" : "Dados de teste desativados", "", "info");
             if (event.target.closest("#viewDemoExit"))
               document.getElementById("mainContent").focus({ preventScroll: true });
           } catch (error) {
             toast("Preferência não salva", error.message);
           }
+          return;
+        }
+        if (event.target.closest("[data-demo-settings]")) {
+          document.getElementById("viewDemoControl").open = false;
+          selectedSettingsTab = "dados";
+          setView("Configurações");
+          document.getElementById("viewDemoToggle").focus({ preventScroll: true });
+          document.getElementById("viewDemoToggle").scrollIntoView({
+            block: "center",
+            behavior: SocialMEIMotion.reduced ? "instant" : "smooth",
+          });
           return;
         }
         if (demo.enabled() && event.target.closest("[data-home-conversation]")) {
@@ -295,6 +314,8 @@ if (typeof document !== "undefined")
       } else decorate();
     });
     document.addEventListener("socialmei-view-change", decorate);
+    window.addEventListener("resize", decorate, { passive: true });
+    document.addEventListener("socialmei-opportunity-demo-change", decorate);
     document.addEventListener("socialmei-demo-change", refresh);
     window.addEventListener("storage", (event) => {
       if (event.key === null || event.key.startsWith("socialmei-view-demo-v1:")) refresh();

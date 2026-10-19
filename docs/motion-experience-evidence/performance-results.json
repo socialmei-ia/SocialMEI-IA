@@ -1,0 +1,34 @@
+{
+  "videoRecorded": false,
+  "environment": "Chromium 151.0.7922.173; headless Linux; 1440x1000; no CPU throttling; one run, same synthetic source/date/actions; local lab evidence, not a physical-device benchmark",
+  "results": [
+    {
+      "phase": "before",
+      "durationMs": 5972,
+      "frames": 364,
+      "frameMedianMs": 16,
+      "frameP95Ms": 18,
+      "framesOver33Ms": 6,
+      "longTasks": 0,
+      "longTaskMaxMs": 0,
+      "layoutShiftTotal": 0.044420972011236494,
+      "unexpectedLayoutShift": 0.02199517029562114,
+      "reducedAnimations": 0,
+      "errors": []
+    },
+    {
+      "phase": "after",
+      "durationMs": 6013,
+      "frames": 367,
+      "frameMedianMs": 16,
+      "frameP95Ms": 18,
+      "framesOver33Ms": 5,
+      "longTasks": 0,
+      "longTaskMaxMs": 0,
+      "layoutShiftTotal": 0.0004703099380304784,
+      "unexpectedLayoutShift": 0,
+      "reducedAnimations": 0,
+      "errors": []
+    }
+  ]
+}
