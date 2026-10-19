@@ -30,21 +30,21 @@ Não foi identificado um arquivo versionado seguramente descartável nesta rodad
 
 ## Onde alterar cada funcionalidade
 
-| Área                         | UI e comportamento                                                          | Estado / API / testes                                                                             |
-| ---------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| Home                         | `home.js`, `experience.js`, `personalization.js`; shell em `app.js`         | Estado atual dos stores; `visual-browser.cjs` e `visual-refinement-browser.cjs`                   |
-| Caixa Unificada              | `inbox.js`, `record-editor.js`, `dialogs.js`                                | `inbox-sync.js`, estado local; `inbox-sync.test.cjs`, navegador                                   |
-| Clientes                     | `customers.js`, `business-views.js`, `record-editor.js`                     | `client-store.js`, `shared_data.py`, `client_import.py`; suites client/remote/transfer            |
-| Produtos                     | `products.js`, `business-views.js`, `personalization.js`                    | `product-store.js`, `catalog_data.py`, `product_import.py`; suites catalog                        |
-| Vendas                       | `sales.js`, `business-views.js`                                             | `sale-store.js`, `sales_data.py`, `sale_import.py`; suites sales/replay/estoque                   |
-| Financeiro                   | `finance.js`, `business-views.js`                                           | `finance-store.js`, `finance_data.py`, `finance_import.py`; suites finance                        |
-| Relatórios                   | `reports.js`, `app.js` e componentes existentes                             | Estado de gestão e período; `reports-browser.cjs`                                                 |
-| Assistente / Automações      | Seções nomeadas em `experience.js`                                          | Rascunhos/regras locais; sem executor externo confirmado; browser                                 |
-| Configurações / tema         | `appearance.js`, `app.js`, `storage-and-themes.js`                          | Preferências e perfil; `settings-browser.cjs`, `themes.test.cjs`                                  |
-| Onboarding adaptativo        | `business-profile.js`, `experience.js`; perfil em Configurações de `app.js` | Preferências locais explícitas por usuário/workspace; suites business-profile/adaptive-onboarding |
-| Login / convite              | `experience.js`, `auth-store.js`, `admin-accounts.js`                       | `account_auth.py`, `account_admin.py`; suites account/team                                        |
-| Navegação / período          | `navigation.js`, renderers do shell                                         | `app.js`; `navigation.test.cjs` e browser                                                         |
-| Transferência / backup local | `data-and-backup.js`, `workspace-transfer.js`, `transferencia.html`         | `workspace_transfer.py`; suites export/transfer                                                   |
+| Área                         | UI e comportamento                                                            | Estado / API / testes                                                                             |
+| ---------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Home                         | `home.js`, `experience.js`, `personalization.js`; shell em `app.js`           | Estado atual dos stores; `visual-browser.cjs` e `visual-refinement-browser.cjs`                   |
+| Caixa Unificada              | `inbox.js`, `record-editor.js`, `dialogs.js`                                  | `inbox-sync.js`, estado local; `inbox-sync.test.cjs`, navegador                                   |
+| Clientes                     | `customers.js`, `business-views.js`, `record-editor.js`                       | `client-store.js`, `shared_data.py`, `client_import.py`; suites client/remote/transfer            |
+| Produtos                     | `products.js`, `business-views.js`, `personalization.js`                      | `product-store.js`, `catalog_data.py`, `product_import.py`; suites catalog                        |
+| Vendas                       | `sales.js`, `business-views.js`                                               | `sale-store.js`, `sales_data.py`, `sale_import.py`; suites sales/replay/estoque                   |
+| Financeiro                   | `finance.js`, `business-views.js`                                             | `finance-store.js`, `finance_data.py`, `finance_import.py`; suites finance                        |
+| Relatórios                   | `reports.js`, `report-ui.js`, `report-motion.js`, `report-data.js` e `app.js` | Estado de gestão e período; `reports-browser.cjs`                                                 |
+| Assistente / Automações      | Seções nomeadas em `experience.js`                                            | Rascunhos/regras locais; sem executor externo confirmado; browser                                 |
+| Configurações / tema         | `appearance.js`, `app.js`, `storage-and-themes.js`                            | Preferências e perfil; `settings-browser.cjs`, `themes.test.cjs`                                  |
+| Onboarding adaptativo        | `business-profile.js`, `experience.js`; perfil em Configurações de `app.js`   | Preferências locais explícitas por usuário/workspace; suites business-profile/adaptive-onboarding |
+| Login / convite              | `experience.js`, `auth-store.js`, `admin-accounts.js`                         | `account_auth.py`, `account_admin.py`; suites account/team                                        |
+| Navegação / período          | `navigation.js`, renderers do shell                                           | `app.js`; `navigation.test.cjs` e browser                                                         |
+| Transferência / backup local | `data-and-backup.js`, `workspace-transfer.js`, `transferencia.html`           | `workspace_transfer.py`; suites export/transfer                                                   |
 
 Os caminhos JS da tabela são relativos a `frontend/scripts/`; os Python são relativos a `python-service/`. Buscar pelos nomes das seções antes de extrair um novo arquivo. `business-views.js`, `app.js` e `experience.js` ainda são grandes; não são componentes independentes.
 
@@ -100,17 +100,24 @@ Os [55 endpoints](API-ENDPOINTS.md) e seus modelos são os contratos oficiais de
 
 ## Como adicionar uma feature
 
-Exemplo conceitual: **Customer Score**, ainda sem requisitos de cálculo.
+A próxima funcionalidade ainda não foi especificada. Não criar tela, rota, botão, tabela ou chave de armazenamento antes de definir entrada/saída, fonte, permissões, estados de erro e aceite com o responsável.
 
-1. Definir com o responsável entrada, saída, permissão, campos e critérios de aceite. Não inventar pesos ou fórmula.
-2. Se precisar de persistência, criar a próxima migration incremental após conferir a numeração no Git. Nunca editar 001–011 já aplicadas. Incluir workspace nas relações e plano de compatibilidade/rollback.
-3. Criar modelo/validação/router da regra em `python-service/`; registrar o router em `app.py`. Calcular no backend quando a fonte for compartilhada, sem duplicar a regra no n8n e na UI.
-4. Consumir pelo store da área ou por módulo específico se o limite for claro. Manter timeout, autenticação, falha explícita e recuperação de operação conforme o contrato.
-5. Renderizar no contexto de Clientes usando IDs/data attributes estáveis; criar uma view nova somente se houver necessidade. Nesse caso registrar navegação, renderização, metadados/títulos e testes de cada resolução.
-6. Testar regra, isolamento entre negócios, HTTP/validação e UI. Fixtures vão em testes; não criar registros no piloto.
-7. Atualizar contrato/documentação, abrir PR e aguardar CI/revisão. Publicação exige alvo, backup e imagem anterior definidos.
+| Ponto de extensão           | Arquivo / contrato a preservar                                                                                                                                                                                                                                                                                         |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Entrada e carregamento      | `frontend/socialmei-app.html`: seção `.page-view`, ID estável e `data-view`; scripts clássicos na ordem existente, sem `async/defer` em lote. Preferir ampliar uma tela existente quando fizer sentido.                                                                                                                |
+| Navegação e retomada        | `navigation.js:setView` seleciona a view, salva rascunho da Caixa, fecha popovers e emite `socialmei-view-change`. Usar o `setView` final, preservando wrappers de `business-views.js`, `app.js` e `experience.js`. Não apenas trocar classes no renderer.                                                             |
+| Sidebar e topbar            | `business-views.js:renderNavigation/updateHeaderContext`; se for módulo operacional, conferir `MANAGEMENT_TABS`, `MANAGEMENT_VIEW_CONFIG` e mapeamento de IDs. `app.js:MANAGEMENT_AUXILIARY_VIEWS/syncBusinessIdentity` contextualiza as telas auxiliares.                                                             |
+| Inicialização e atualização | `app.js:renderCurrentView` e wrappers existentes; inicializar eventos uma vez, atualizar o renderer com dados atuais. Consumir eventos de view/perfil/demo somente quando necessário; cancelar observers/requests/animações obsoletos.                                                                                 |
+| Ajuda e componentes         | `context-help.js:topics` registra o contexto. Reutilizar `dialogs.js:openModal/closeModal` para foco/retorno, componentes de formulário e estados vazios já existentes. Não inventar um segundo shell.                                                                                                                 |
+| Identidade visual           | `DESIGN-SYSTEM.md`, tokens semânticos em `socialmei.css`, temas em `storage-and-themes.js`, infraestrutura `motion.js`. Foco/seleção não dependem só de cor; reduced motion preserva a informação.                                                                                                                     |
+| Perfil e demonstração       | `business-profile.js` é a fonte do perfil; `personalization.js` aplica capacidades. `businessViewData()` e helpers de apresentação separam a amostra opt-in dos dados originais. Não usar fixtures como fallback de erro.                                                                                              |
+| Dados locais/remotos        | Stores da área escolhem modo/configuração por `SOCIALMEI_CONFIG`; renderer recebe dados, não URLs hardcoded. Não gravar localmente como substituto de escrita remota falha. Preservar timeout, validação, versões e replay quando aplicáveis.                                                                          |
+| Conta/workspace             | `auth-store.js` e repositórios existentes delimitam estado local por identidade. Se houver API futura, o servidor resolve o workspace pela sessão/associação; não confiar no workspace livre enviado pelo browser. Perfil local não sincroniza entre dispositivos.                                                     |
+| Estado e rascunhos          | UI transitória fica em memória; preferências/rascunhos usam os repositórios existentes. Preservar chaves legadas, sessão expirada, troca de conta, cancelamento sem salvar e conteúdo ao navegar. Persistência nova exige requisito e contrato próprios.                                                               |
+| API/banco futuros           | Somente se aprovados: contrato da área, modelos/router e store; migration incremental após conferir a numeração, sem editar migrations aplicadas. Não duplicar regras no renderer e no n8n.                                                                                                                            |
+| Testes e entrega            | Adicionar cenário a `tests/browser.cjs`; testes unitários da regra e contratos de store quando existirem. Cobrir zero/um/vários, local/remoto/falha, duas identidades, demo on/off, rascunhos, teclado/foco/Escape, 320/390/768/1024/1440 e temas/movimento reduzido. Rodar Node, format, navegador e CI no SHA final. |
 
-Nenhum campo, endpoint, tabela, peso ou algoritmo de score foi criado. O histórico de vendas e clientes já tem contratos; interações de canal estão apenas estruturalmente preparadas e não podem ser tratadas como eventos confiáveis de compra sem homologação.
+Acoplamentos principais: globais/ordem dos scripts, cadeia de wrappers de `setView/renderCurrentView`, nomes de rotas salvos e chaves de persistência. Não introduzir um registro genérico de módulos antes de haver necessidade. A [estabilização de 19/10/2026](FRONTEND-STABILIZATION.md) registra as pendências operacionais separadas dos pontos de extensão.
 
 ## Alterações visuais e integrações
 
