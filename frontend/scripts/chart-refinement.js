@@ -23,6 +23,148 @@ const SocialMEIChartRefinement = (() => {
       (host.id || "chart") + "|" + [...host.querySelectorAll(".management-plot")].indexOf(plot)
     );
   };
+  function bindPlot(plot, key) {
+    const chart = plot.closest(".management-chart"),
+      scroller = plot.parentElement,
+      columns = [...plot.querySelectorAll(".management-chart-column")],
+      tip = chart.querySelector(":scope > .management-chart-tooltip"),
+      readout = chart.querySelector(".management-chart-readout"),
+      hint = chart.querySelector(".management-chart-scroll-hint"),
+      controller = new AbortController(),
+      options = { signal: controller.signal };
+    let pinned = null,
+      hovered = null,
+      focusedColumn = null,
+      active = null;
+    tip.id = key.replace(/[^a-zA-Z0-9_-]/g, "-") + "-tooltip";
+    const position = () => {
+      hint.hidden = scroller.scrollWidth <= scroller.clientWidth + 1;
+      if (!active) return;
+      const box = active.getBoundingClientRect(),
+        viewport = scroller.getBoundingClientRect();
+      if (box.right <= viewport.left || box.left >= viewport.right) {
+        tip.hidden = true;
+        return;
+      }
+      tip.hidden = false;
+      const bounds = chart.getBoundingClientRect(),
+        half = tip.offsetWidth / 2 + 8;
+      tip.style.left =
+        Math.max(half, Math.min(bounds.width - half, box.left + box.width / 2 - bounds.left)) +
+        "px";
+    };
+    const show = () => {
+      active = pinned || focusedColumn || hovered;
+      columns.forEach((column) => {
+        column.dataset.chartActive = String(column === active);
+        column.setAttribute("aria-expanded", String(column === active));
+        column.setAttribute("aria-pressed", String(column === pinned));
+      });
+      tip.hidden = !active;
+      if (!active) return;
+      tip.textContent = active.getAttribute("aria-label");
+      if (readout.textContent !== tip.textContent) readout.textContent = tip.textContent;
+      position();
+    };
+    const dismiss = () => {
+      pinned = hovered = focusedColumn = null;
+      show();
+    };
+    columns.forEach((column, index) => {
+      column.setAttribute("aria-controls", tip.id);
+      column.setAttribute("aria-expanded", "false");
+      column.setAttribute("aria-pressed", "false");
+      column.addEventListener(
+        "pointerenter",
+        (event) => {
+          if (event.pointerType !== "touch") {
+            hovered = column;
+            show();
+          }
+        },
+        options,
+      );
+      column.addEventListener(
+        "pointerleave",
+        () => {
+          hovered = null;
+          show();
+        },
+        options,
+      );
+      column.addEventListener(
+        "click",
+        () => {
+          if (pinned === column) dismiss();
+          else {
+            pinned = column;
+            show();
+          }
+        },
+        options,
+      );
+      column.addEventListener(
+        "focus",
+        () => {
+          const box = column.getBoundingClientRect(),
+            viewport = scroller.getBoundingClientRect();
+          if (box.left < viewport.left + 4) scroller.scrollLeft -= viewport.left + 4 - box.left;
+          if (box.right > viewport.right - 4) scroller.scrollLeft += box.right - viewport.right + 4;
+          focusedColumn = column;
+          show();
+        },
+        options,
+      );
+      column.addEventListener(
+        "blur",
+        () => {
+          focusedColumn = null;
+          show();
+        },
+        options,
+      );
+      column.addEventListener(
+        "keydown",
+        (event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            dismiss();
+          }
+          if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) {
+            event.preventDefault();
+            pinned = null;
+            const next =
+              event.key === "Home"
+                ? 0
+                : event.key === "End"
+                  ? columns.length - 1
+                  : Math.max(
+                      0,
+                      Math.min(columns.length - 1, index + (event.key === "ArrowRight" ? 1 : -1)),
+                    );
+            columns[next].focus();
+          }
+        },
+        options,
+      );
+    });
+    chart.addEventListener(
+      "focusout",
+      (event) => {
+        if (!chart.contains(event.relatedTarget)) dismiss();
+      },
+      options,
+    );
+    chart.addEventListener("socialmei-chart-dismiss", dismiss, options);
+    scroller.addEventListener("scroll", position, { ...options, passive: true });
+    const resize = new ResizeObserver(position);
+    resize.observe(scroller);
+    position();
+    return () => {
+      controller.abort();
+      resize.disconnect();
+    };
+  }
   function settle(entry) {
     entry.current = entry.end;
     entry.bar.style.height = entry.height;
@@ -52,7 +194,10 @@ const SocialMEIChartRefinement = (() => {
   function reset() {
     cancelAnimationFrame(frame);
     frame = 0;
-    plots.forEach(({ entries }) => entries.forEach(settle));
+    plots.forEach(({ entries, dispose }) => {
+      entries.forEach(settle);
+      dispose();
+    });
     plots.clear();
     sparks.clear();
     focused = null;
@@ -124,7 +269,9 @@ const SocialMEIChartRefinement = (() => {
         bar.style.transform = `scaleY(${start / entry.base})`;
         return entry;
       });
-      plots.set(key, { plot, entries, signature });
+      previous?.dispose();
+      const dispose = bindPlot(plot, key);
+      plots.set(key, { plot, entries, signature, dispose });
       if (entries.some((entry) => entry.active) && !frame) frame = requestAnimationFrame(tick);
       if (
         focused?.key === key &&
@@ -134,27 +281,14 @@ const SocialMEIChartRefinement = (() => {
         plot
           .querySelectorAll(".management-chart-column")
           [focused.index]?.focus({ preventScroll: true });
-      plot.querySelectorAll(".management-chart-column").forEach((column) => {
-        column.addEventListener("click", () => {
-          const active = column.dataset.chartActive !== "true";
-          plot.querySelectorAll(".management-chart-column").forEach((other) => {
-            other.dataset.chartActive = String(active && other === column);
-          });
-        });
-        column.addEventListener("keydown", (event) => {
-          if (event.key === "Escape") {
-            column.dataset.chartActive = "false";
-            column.dataset.chartDismissed = "true";
-          }
-        });
-        column.addEventListener("blur", () => {
-          column.dataset.chartActive = "false";
-          column.dataset.chartDismissed = "false";
-        });
-        column.addEventListener("pointerenter", () => {
-          column.dataset.chartDismissed = "false";
-        });
-      });
+    });
+    plots.forEach((entry, key) => {
+      if (!entry.plot.isConnected) {
+        entry.dispose();
+        entry.entries.forEach(settle);
+        plots.delete(key);
+        if (focused?.key === key) focused = null;
+      }
     });
   }
   const queue = () => {
@@ -174,9 +308,19 @@ const SocialMEIChartRefinement = (() => {
         }
       : null;
   });
+  document.addEventListener("pointerdown", (event) => {
+    plots.forEach(({ plot }) => {
+      const chart = plot.closest(".management-chart");
+      if (!chart.contains(event.target)) chart.dispatchEvent(new Event("socialmei-chart-dismiss"));
+    });
+  });
   document.addEventListener("DOMContentLoaded", () => {
     new MutationObserver((records) => {
-      if (records.some((record) => [...record.addedNodes].some((node) => node.nodeType === 1)))
+      if (
+        records.some((record) =>
+          [...record.addedNodes, ...record.removedNodes].some((node) => node.nodeType === 1),
+        )
+      )
         queue();
     }).observe(document.getElementById("mainContent") || document.body, {
       childList: true,

@@ -1,5 +1,7 @@
 # Revalidação da auditoria externa
 
+Registro histórico da PR #68. As PRs #67/#68 estão integradas na baseline `4336181`; a [rodada de estabilização](FRONTEND-STABILIZATION.md) acompanha os alvos financeiros e controles de Relatórios que ficaram pendentes.
+
 Auditoria recebida integralmente em texto pelo usuário, referente a `3876085`.
 Comparação: main `a55f302`, PR #66 e PR #67 em `18ab31a`.
 PR #67 ainda não integrada: esta rodada depende de `feat/ux-interaction-refinement`.
