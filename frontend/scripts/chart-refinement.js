@@ -282,6 +282,14 @@ const SocialMEIChartRefinement = (() => {
           .querySelectorAll(".management-chart-column")
           [focused.index]?.focus({ preventScroll: true });
     });
+    plots.forEach((entry, key) => {
+      if (!entry.plot.isConnected) {
+        entry.dispose();
+        entry.entries.forEach(settle);
+        plots.delete(key);
+        if (focused?.key === key) focused = null;
+      }
+    });
   }
   const queue = () => {
     if (!pending) {
@@ -308,7 +316,11 @@ const SocialMEIChartRefinement = (() => {
   });
   document.addEventListener("DOMContentLoaded", () => {
     new MutationObserver((records) => {
-      if (records.some((record) => [...record.addedNodes].some((node) => node.nodeType === 1)))
+      if (
+        records.some((record) =>
+          [...record.addedNodes, ...record.removedNodes].some((node) => node.nodeType === 1),
+        )
+      )
         queue();
     }).observe(document.getElementById("mainContent") || document.body, {
       childList: true,

@@ -21,6 +21,28 @@ module.exports = async function stabilization(browser, origin) {
     return route.continue();
   });
   try {
+    await page.addInitScript(() => {
+      const NativeObserver = window.ResizeObserver;
+      window.stabilizationObservedTargets = new Set();
+      window.ResizeObserver = class extends NativeObserver {
+        constructor(callback) {
+          super(callback);
+          this.chartTargets = new Set();
+        }
+        observe(target, options) {
+          if (target.matches(".management-chart-scroll")) {
+            this.chartTargets.add(target);
+            window.stabilizationObservedTargets.add(target);
+          }
+          super.observe(target, options);
+        }
+        disconnect() {
+          this.chartTargets.forEach((target) => window.stabilizationObservedTargets.delete(target));
+          this.chartTargets.clear();
+          super.disconnect();
+        }
+      };
+    });
     await page.clock.setFixedTime(new Date("2026-10-19T12:00:00Z"));
     await page.goto(origin + "/frontend/socialmei-app.html");
     await page.locator('[data-xp-go="app"]').first().click();
@@ -85,6 +107,20 @@ module.exports = async function stabilization(browser, origin) {
         measures.push({ width, theme, minimumTarget: Math.min(...boxes.map((b) => b.width)) });
       }
     }
+    await page.setViewportSize({ width: 390, height: 1000 });
+    await page.evaluate(() => setView("Financeiro"));
+    const lastColumn = page.locator("#financeMiniChart .management-chart-column").last();
+    await lastColumn.tap();
+    await page.setViewportSize({ width: 320, height: 1000 });
+    await page.waitForTimeout(100);
+    const resizedTip = page.locator("#financeMiniChart .management-chart-tooltip");
+    if (await resizedTip.isVisible()) {
+      const bounds = await resizedTip.boundingBox();
+      assert(bounds.x >= 0 && bounds.x + bounds.width <= 320.5);
+    }
+    await lastColumn.focus();
+    await page.keyboard.press("End");
+    assert(await resizedTip.isVisible());
     for (const width of [320, 390, 768, 1024, 1440]) {
       await page.setViewportSize({ width, height: 1000 });
       for (const theme of ["light", "dark"]) {
@@ -137,6 +173,22 @@ module.exports = async function stabilization(browser, origin) {
         measures.push({ width, theme, kpiTop });
       }
     }
+    await page.evaluate(() => {
+      setView("Financeiro");
+      areMoneyValuesHidden = true;
+      renderFinance();
+    });
+    await page.waitForTimeout(50);
+    assert(
+      await page.evaluate(() =>
+        [...window.stabilizationObservedTargets].every((node) => node.isConnected),
+      ),
+      "Removed plots must release their resize observers",
+    );
+    await page.evaluate(() => {
+      areMoneyValuesHidden = false;
+      renderFinance();
+    });
     assert.equal(await page.evaluate(() => JSON.stringify(appData)), original);
     assert.deepEqual(errors, []);
     assert.deepEqual(writes, []);
