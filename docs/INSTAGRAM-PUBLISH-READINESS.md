@@ -46,3 +46,19 @@ Até esse contrato ser implementado e homologado, o frontend deve limitar-se a r
 ## Verificação desta rodada
 
 Foram lidos os dois exports experimentais, o template estrutural e os documentos citados; conferidos tipos/versões de nós, conexões, métodos HTTP, nomes dos campos de entrada e ausência dos contratos de publicação nos JSONs atuais. Revisão documental, sem testes externos ou alteração de execução. Nenhum segredo foi copiado para este relatório.
+
+## Preparação do piloto nativo — 19/10/2026
+
+A página pública `/form/instagram-post` foi observada **somente em leitura**; a etapa inicial do formulário declara formatos Feed, Story e Reel, escolha de momento e, para Feed, fotos múltiplas com opção de carrossel ou posts separados. Não houve submissão nem autenticação no editor n8n; o workflow de publicação real **continua sem export versionado**.
+
+A nova seção **Divulgação → Instagram · Piloto** usa a identidade visual do app e explica o caminho editor → conferência → formulário da equipe. O fluxo é um **handoff externo**, não upload nativo: o usuário copia a legenda pelo controle existente e seleciona a mídia novamente no n8n. Não há endpoint de publicação nem confirmação de sucesso a partir do SocialMEI.
+
+A ativação depende de configuração pública do ambiente em `SOCIALMEI_CONFIG.instagramPublisher`:
+
+```js
+instagramPublisher: { mode: "external-pilot", formPath: "/form/instagram-post" }
+```
+
+O padrão no repositório é `mode: "disabled"`. Mesmo quando habilitado, o cliente só aceita caminho `/form/...` na **mesma origem HTTPS** e sessão de negócio disponível, abre uma confirmação e então uma nova aba. Isso **não é autorização de servidor**: só habilitar em ambiente restrito de equipe e com conta Instagram de teste/empresa explicitamente permitida. Não habilitar no Pages, nem para vários MEIs, nem em produção pública sem autenticação e isolamento verificáveis.
+
+Próximo gate: com permissão de acesso ao editor n8n, coletar export sanitizado do workflow `Publicar post no Instagram`, mapear os campos de cada etapa, conta autorizada, mídia, scheduling, resposta, credenciais de publicação, erros, autenticação e idempotência. Implementar depois um **backend autenticado e isolado por workspace**, em vez de transformar um formulário público em API do navegador. Não usar exports de Direct como publicação.
