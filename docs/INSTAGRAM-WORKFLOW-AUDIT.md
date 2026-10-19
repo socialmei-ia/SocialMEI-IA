@@ -11,14 +11,14 @@
 
 ## Contrato observado no formulário (não é API)
 
-| Campo | Entrada | Observação |
-| --- | --- | --- |
-| `tipo_publicacao` | `Post no Feed`, `Reels`, `Story` | Escolha da modalidade |
-| `quando_publicar` | `Agora (usar hora atual)` ou `Agendar` | Opção de horário |
-| `media` | JPG/JPEG/PNG/MP4/MOV | Um arquivo para Reels/Story; múltiplos no Feed |
-| `modo_varias` | `Carrossel (um único post)` ou `Posts separados (um por foto)` | Só para Feed |
-| `legenda` | Texto | Legenda não aplicada ao Story na rota Meta |
-| `data_agendamento`, `hora_agendamento` | Data/hora | Só agendamento; interpretado em `America/Sao_Paulo` |
+**Campos de entrada observados:**
+
+- `tipo_publicacao`: `Post no Feed`, `Reels` ou `Story`.
+- `quando_publicar`: `Agora (usar hora atual)` ou `Agendar`.
+- `media`: JPG, JPEG, PNG, MP4 ou MOV. Um arquivo para Reels/Story, múltiplos no Feed.
+- `modo_varias`: `Carrossel (um único post)` ou `Posts separados (um por foto)`, apenas no Feed.
+- `legenda`: texto livre. A rota de Story não transmite legenda para a Meta.
+- `data_agendamento` e `hora_agendamento`: data/hora, interpretada em `America/Sao_Paulo`.
 
 O n8n recebe arquivo binário no **Form Trigger**, não em webhook autenticado de API do SocialMEI. O resultado é exibido pela etapa de conclusão do próprio formulário (`status`, `mensagem` e eventual `instagram_media_id`); não há contrato HTTP com `publication_id` consultável pelo app.
 
@@ -26,18 +26,24 @@ Fluxo declarado: formulário em duas etapas → normalização → divisão dos 
 
 ## Achados e prioridade
 
-| Prioridade | Achado | Efeito / ação |
-| --- | --- | --- |
-| **P0** | Destino de publicação preso a um ID de conta Instagram nos URLs da Graph API. | Publicaria na **mesma conta**, sem autorização por negócio/usuário. Substituir por conta vinculada e autorizada **no backend**, nunca aceitar ID arbitrário do navegador. |
-| **P0** | Trigger de formulário sem autenticação, autorização por workspace nem prova de permissão de publicação neste export. | Não reutilizar como API multi-tenant. Avaliar controles externos de acesso separadamente. |
-| **P0** | Sem idempotência, estado persistido consultável, callbacks autenticados ou reconciliação após timeout. | Cliques repetidos podem duplicar posts; aceite/sucesso do formulário não fornece rastreio seguro ao SocialMEI. |
-| **P1** | Vídeo único de Feed é aceito pelo campo de arquivo, mas `Feed - Criar container` sempre envia `image_url`. | Vídeo de Feed **não homologado**; validar mídia por modalidade e corrigir ramo antes de anunciá-lo. |
-| **P1** | O seletor de Reels aceita imagem; o ramo Reels envia `video_url` sem verificar que é vídeo. | Falha previsível na Meta. Validar extensão, MIME, assinatura e limites no backend. |
-| **P1** | Hora inválida é limitada com `Math.min` em vez de gerar erro e não há rejeição explícita de data passada. | O agendamento pode ocorrer em momento diferente do escolhido. Validar janela, timezone, formato e passado. |
-| **P1** | Agendamento usa Wait dentro do mesmo fluxo de formulário; não existe acompanhamento assíncrono no app. | Não afirmar “agendado” ou “publicado” sem recibo durável e confirmação Meta. |
-| **P1** | Hospedagem externa de mídia e credenciais próprias de outra instância. | Rever privacidade, URLs públicas, retenção e armazenamento da mídia; configurar secrets no n8n/backend, nunca no JS. |
-| **P2** | Link “Voltar” usa endereço absoluto da instância n8n.cloud. | Se importar para AWS, o link aponta para instância errada; tornar dinâmico. |
-| **P2** | Carrossel limitado a 10 fotos e Reels com espera/consulta de processamento. | Manter validações e tratar estados `FINISHED`/erro/timeout antes de publicar. |
+**P0 — Bloqueadores de segurança e publicação**
+
+- **Conta fixa na Meta:** o destino `/media` e `/media_publish` usa um mesmo ID de conta. Não há seleção autorizada por MEI. Resolver no backend, nunca com ID arbitrário recebido do navegador.
+- **Sem autorização por negócio:** o Form Trigger não demonstra autenticação por usuário ou workspace; eventuais controles externos precisam ser conferidos.
+- **Sem idempotência:** não há registro persistido consultável, callbacks autenticados ou reconciliação após timeout. Reenvios podem duplicar posts.
+
+**P1 — Consistência funcional**
+
+- **Vídeo de Feed:** o formulário aceita vídeo único, mas o nó `Feed - Criar container` envia sempre `image_url`. Corrigir/validar antes de homologar.
+- **Reels:** o campo aceita imagens mesmo que a rota da Meta exija `video_url`. Restringir mídia conforme a modalidade.
+- **Agendamento:** `Math.min` limita hora inválida silenciosamente e não rejeita explicitamente datas passadas. Validar horário de Brasília e janela permitida.
+- **Estado do agendamento:** o Wait ocorre dentro do formulário, sem consulta assíncrona pelo app. Mostrar estado real do backend, não prometer postagem concluída.
+- **Hospedagem externa:** revisar privacidade, URLs públicas, retenção, tratamento de mídias e credenciais próprias da instância. Segredos nunca no frontend.
+
+**P2 — Usabilidade e limites**
+
+- **Link de retorno:** endereço absoluto n8n.cloud, que ficaria incorreto se o fluxo fosse importado para AWS.
+- **Carrossel e vídeo:** carrossel limitado a 10 fotos; Reels espera e consulta o processamento da Meta. Preservar validações, expiração e timeout.
 
 ## Encaminhamento no SocialMEI.IA
 

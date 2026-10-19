@@ -75,10 +75,7 @@ test("endereço externo só é aceito quando HTTPS e origem exata foram aprovado
     assert.equal(publisher.inspect({ ...config, ...change }, origin).available, false);
   }
   assert.equal(publisher.inspect(config, "http://localhost:3000").available, false);
-  assert.equal(
-    publisher.inspect({ ...config, mode: "disabled" }, origin).available,
-    false,
-  );
+  assert.equal(publisher.inspect({ ...config, mode: "disabled" }, origin).available, false);
 });
 
 test("orientações refletem limites do export do workflow", () => {
