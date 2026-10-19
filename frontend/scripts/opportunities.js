@@ -194,6 +194,7 @@ const SocialMEIOpportunities = (() => {
   function customerCard(row, p) {
     const card = node("article", undefined, "client-analysis-card");
     card.dataset.nativeOpportunity = row.id;
+    card.dataset.lane = p.lane;
     const head = node("div", undefined, "client-analysis-person");
     const initials = row.name
       .split(/\s+/)
@@ -243,12 +244,13 @@ const SocialMEIOpportunities = (() => {
           node("p", `Mais ${p.missing.length - 1} pontos em Ver conversa.`, "management-note"),
         );
       known.append(left, right);
-      card.append(
-        known,
+      const next = node("section", undefined, "client-analysis-next");
+      next.append(
         node("h4", "Pergunta sugerida"),
         node("blockquote", p.question),
         button("Copiar pergunta", "data-analysis-copy", row.id),
       );
+      card.append(known, next);
       const choice = node("details", undefined, "client-analysis-choice");
       choice.append(node("summary", "Já sei o que ele quer"));
       const actions = node("div", undefined, "native-opportunity-actions");
@@ -375,8 +377,7 @@ const SocialMEIOpportunities = (() => {
     document.dispatchEvent(new CustomEvent("socialmei-opportunity-demo-change"));
     renderTabs();
     let items = rows.filter((row) => presentation(row).lane === activeTab);
-    if (activeTab === "analysis") {
-    } else if (activeTab === "chance") {
+    if (activeTab === "chance") {
       const all = items;
       queue.append(
         node(
@@ -405,7 +406,7 @@ const SocialMEIOpportunities = (() => {
           ["quente", "morno", "frio"].indexOf(presentation(a).level) -
           ["quente", "morno", "frio"].indexOf(presentation(b).level),
       );
-    } else {
+    } else if (activeTab === "attention") {
       const all = items;
       queue.append(
         node(
@@ -430,6 +431,7 @@ const SocialMEIOpportunities = (() => {
       );
     }
     const list = node("div", undefined, "client-analysis-list");
+    list.dataset.count = String(items.length);
     items.forEach((row) => list.append(customerCard(row, presentation(row))));
     if (!items.length)
       list.append(node("p", "Nenhum cliente neste filtro.", "native-opportunity-empty"));
@@ -603,6 +605,7 @@ const SocialMEIOpportunities = (() => {
       if (remote()) return;
       demoEnabled = true;
       render();
+      byId("clientTab-" + activeTab).focus();
     }
     if (action.hasAttribute("data-opportunity-stop")) {
       demoEnabled = false;
@@ -615,9 +618,14 @@ const SocialMEIOpportunities = (() => {
       resolved = {};
       clearAnalysis();
       render();
+      byId("clientTab-" + activeTab).focus();
       document.dispatchEvent(new CustomEvent("socialmei-opportunity-demo-change"));
     }
-    if (action.hasAttribute("data-opportunity-refresh")) render();
+    if (action.hasAttribute("data-opportunity-refresh")) {
+      render();
+      document.querySelector(".opportunity-options > summary")?.focus();
+      toast("Análise atualizada", "Exemplos reanalisados com as regras locais.", "info");
+    }
     if (action.hasAttribute("data-opportunity-clear")) clearAnalysis();
     if (action.hasAttribute("data-opportunity-integrations")) {
       selectedSettingsTab = "integracoes";

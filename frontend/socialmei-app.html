@@ -2704,13 +2704,18 @@
       <!-- SIDEBAR -->
       <aside class="sb" id="sb">
         <div class="sb-head">
-          <div aria-label="SocialMEI.IA" class="logo">
+          <button
+            type="button"
+            aria-label="SocialMEI.IA — ir para o Início"
+            class="logo"
+            data-nav="Início"
+          >
             <span class="logo-mark socialmei-logo-image" aria-hidden="true"></span>
             <span class="logo-text"
               ><span class="logo-social">Social</span><span class="logo-mei">MEI</span
               ><span class="logo-ia">.IA</span></span
             >
-          </div>
+          </button>
           <button
             aria-label="Recolher menu"
             class="sb-collapse"
@@ -2797,6 +2802,17 @@
               <button type="button" class="management-button" id="viewDemoExit">Desativar</button>
             </div>
           </details>
+          <button
+            type="button"
+            class="btn context-help-trigger"
+            id="contextHelpButton"
+            aria-label="Ajuda desta tela"
+            aria-haspopup="dialog"
+            aria-controls="contextHelpModal"
+            title="Ajuda desta tela"
+          >
+            <span aria-hidden="true">?</span><span class="context-help-label">Ajuda</span>
+          </button>
           <details class="utility-tools" id="utilityTools">
             <summary aria-label="Ferramentas" title="Ferramentas">Ferramentas</summary>
             <div aria-label="Ferramentas do negócio" class="utility-menu" role="group">
@@ -4666,6 +4682,35 @@
         <div class="modal-body" id="opportunityDetail"></div>
       </section>
     </div>
+    <div aria-hidden="true" class="modal-backdrop context-help-backdrop" id="contextHelpModal">
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="contextHelpTitle"
+        aria-describedby="contextHelpIntro"
+        class="modal context-help-panel"
+      >
+        <div class="modal-head">
+          <h3 id="contextHelpTitle">Ajuda</h3>
+          <button
+            class="btn ib"
+            type="button"
+            data-close-modal="contextHelpModal"
+            aria-label="Fechar ajuda"
+          >
+            ×
+          </button>
+        </div>
+        <div class="modal-body">
+          <p id="contextHelpIntro"></p>
+          <div id="contextHelpSections"></div>
+          <div id="contextHelpSources"></div>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn" data-close-modal="contextHelpModal">Entendi</button>
+        </div>
+      </section>
+    </div>
     <div aria-hidden="true" class="modal-backdrop" id="reportGenerateModal">
       <section class="modal" role="dialog" aria-modal="true" aria-labelledby="reportGenerateTitle">
         <div class="modal-head">
@@ -4888,5 +4933,6 @@
     <script src="scripts/password-strength.js"></script>
     <script src="scripts/spotlight.js"></script>
     <script src="scripts/premium-experience.js"></script>
+    <script src="scripts/context-help.js"></script>
   </body>
 </html>

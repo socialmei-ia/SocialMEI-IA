@@ -177,3 +177,231 @@
     transition: none;
   }
 }
+
+/* Native contextual help: one entry point, existing modal lifecycle. */
+.sb-head .logo {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  min-height: 44px;
+  padding: 2px 0;
+  transition: background-color var(--motion-fast);
+}
+.sb-head .logo:hover {
+  background: var(--surface-secondary);
+}
+.sb-head .logo:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 4px;
+}
+.context-help-trigger {
+  flex: 0 0 auto;
+  gap: 6px;
+  min-height: 44px;
+  padding: 6px 10px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.context-help-trigger > span:first-child {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1;
+}
+.context-help-panel {
+  width: min(600px, 100%);
+}
+.context-help-panel .modal-body {
+  display: grid;
+  gap: 18px;
+  overflow-y: auto;
+}
+#contextHelpIntro {
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1.6;
+}
+#contextHelpSources > [hidden] {
+  display: none;
+}
+#contextHelpSources:has(> [hidden]:only-child),
+#contextHelpSources:empty {
+  display: none;
+}
+.context-help-panel details {
+  margin: 0;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  padding: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+.context-help-panel details p {
+  margin: 0;
+  padding-bottom: 16px;
+  line-height: 1.7;
+  font-size: 14px;
+}
+/* Predictable disclosure targets; keep specialized menus and date controls intact. */
+:is(
+    .native-opportunity-criteria,
+    .native-opportunity-analysis,
+    .client-analysis-choice,
+    .client-analysis-expand,
+    .client-analysis-excluded,
+    .context-help,
+    .content-local-note,
+    .workspace-data-info,
+    .help-topic
+  )
+  > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  min-height: 44px;
+  padding-block: 12px;
+  line-height: 1.5;
+  border-radius: 4px;
+}
+:is(
+    .native-opportunity-criteria,
+    .native-opportunity-analysis,
+    .client-analysis-choice,
+    .client-analysis-expand,
+    .client-analysis-excluded,
+    .context-help,
+    .content-local-note,
+    .workspace-data-info,
+    .help-topic
+  )
+  > summary::after {
+  flex: 0 0 20px;
+  text-align: center;
+  line-height: 1;
+  margin-left: auto;
+}
+:is(
+    .native-opportunity-criteria,
+    .native-opportunity-analysis,
+    .client-analysis-choice,
+    .client-analysis-expand,
+    .client-analysis-excluded,
+    .context-help,
+    .content-local-note,
+    .workspace-data-info,
+    .help-topic
+  )
+  > summary:hover {
+  color: var(--text-primary);
+  background: var(--hover);
+}
+@supports (interpolate-size: allow-keywords) {
+  :is(
+    .native-opportunity-analysis,
+    .client-analysis-choice,
+    .client-analysis-expand,
+    .client-analysis-excluded,
+    .help-topic
+  )::details-content {
+    interpolate-size: allow-keywords;
+    block-size: 0;
+    overflow: clip;
+    transition:
+      block-size 210ms var(--ease-out),
+      content-visibility 210ms allow-discrete;
+  }
+  :is(
+      .native-opportunity-analysis,
+      .client-analysis-choice,
+      .client-analysis-expand,
+      .client-analysis-excluded,
+      .help-topic
+    )[open]::details-content {
+    block-size: auto;
+  }
+}
+#inboxView .inbox-title-line:has(.context-help-trigger) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+#inboxView .context-help-trigger {
+  min-width: 36px;
+  min-height: 36px;
+  padding: 4px;
+}
+#inboxView .context-help-label,
+#inboxView .global-demo-label {
+  display: none;
+}
+#inboxView .global-demo-short {
+  display: inline;
+}
+@media (max-width: 720px) {
+  .context-help-label {
+    display: none;
+  }
+  .context-help-trigger {
+    width: 44px;
+    min-width: 44px;
+    padding: 4px;
+    justify-content: center;
+  }
+  .experience-app .hd-title {
+    min-width: 0;
+  }
+  .experience-app .hd-title h1 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sb-head .logo {
+    transition: none;
+  }
+  :is(
+    .native-opportunity-analysis,
+    .client-analysis-choice,
+    .client-analysis-expand,
+    .client-analysis-excluded,
+    .help-topic
+  )::details-content {
+    transition: none;
+  }
+}
+@media (max-width: 480px) {
+  .experience-app .hd {
+    flex-wrap: wrap;
+    row-gap: 2px;
+    padding-block: 6px;
+  }
+  .experience-app .hd-title {
+    order: 1;
+    flex: 0 0 100%;
+    max-width: none;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .experience-app .hd-title h1 {
+    flex: 0 0 auto;
+  }
+  .experience-app .hd-title .context-description {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
