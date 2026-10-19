@@ -1,0 +1,261 @@
+{
+  "errors": [],
+  "metrics": [
+    {
+      "view": "Oportunidades",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "tabsTop": 516.875,
+      "firstClient": 667.265625
+    },
+    {
+      "view": "Início",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "tabsTop": 0,
+      "firstClient": 0
+    },
+    {
+      "view": "Caixa Unificada",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "tabsTop": 0,
+      "firstClient": 0
+    },
+    {
+      "view": "Visão Geral",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "tabsTop": 0,
+      "firstClient": 0
+    },
+    {
+      "view": "Financeiro",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "tabsTop": 0,
+      "firstClient": 0
+    },
+    {
+      "view": "Relatórios",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "tabsTop": 0,
+      "firstClient": 0
+    },
+    {
+      "view": "Divulgação",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "tabsTop": 0,
+      "firstClient": 0
+    },
+    {
+      "view": "Configurações",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "tabsTop": 0,
+      "firstClient": 0
+    },
+    {
+      "view": "Oportunidades",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "tabsTop": 516.875,
+      "firstClient": 667.265625
+    },
+    {
+      "view": "Início",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "tabsTop": 0,
+      "firstClient": 0
+    },
+    {
+      "view": "Caixa Unificada",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "tabsTop": 0,
+      "firstClient": 0
+    },
+    {
+      "view": "Visão Geral",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "tabsTop": 0,
+      "firstClient": 0
+    },
+    {
+      "view": "Financeiro",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "tabsTop": 0,
+      "firstClient": 0
+    },
+    {
+      "view": "Relatórios",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "tabsTop": 0,
+      "firstClient": 0
+    },
+    {
+      "view": "Divulgação",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "tabsTop": 0,
+      "firstClient": 0
+    },
+    {
+      "view": "Configurações",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "tabsTop": 0,
+      "firstClient": 0
+    },
+    {
+      "view": "Oportunidades",
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "tabsTop": 748.21875,
+      "firstClient": 950.09375
+    },
+    {
+      "view": "Início",
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "tabsTop": 0,
+      "firstClient": 0
+    },
+    {
+      "view": "Caixa Unificada",
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "tabsTop": 0,
+      "firstClient": 0
+    },
+    {
+      "view": "Visão Geral",
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "tabsTop": 0,
+      "firstClient": 0
+    },
+    {
+      "view": "Financeiro",
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "tabsTop": 0,
+      "firstClient": 0
+    },
+    {
+      "view": "Relatórios",
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "tabsTop": 0,
+      "firstClient": 0
+    },
+    {
+      "view": "Divulgação",
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "tabsTop": 0,
+      "firstClient": 0
+    },
+    {
+      "view": "Configurações",
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "tabsTop": 0,
+      "firstClient": 0
+    },
+    {
+      "view": "Oportunidades",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "tabsTop": 748.21875,
+      "firstClient": 950.09375
+    },
+    {
+      "view": "Início",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "tabsTop": 0,
+      "firstClient": 0
+    },
+    {
+      "view": "Caixa Unificada",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "tabsTop": 0,
+      "firstClient": 0
+    },
+    {
+      "view": "Visão Geral",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "tabsTop": 0,
+      "firstClient": 0
+    },
+    {
+      "view": "Financeiro",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "tabsTop": 0,
+      "firstClient": 0
+    },
+    {
+      "view": "Relatórios",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "tabsTop": 0,
+      "firstClient": 0
+    },
+    {
+      "view": "Divulgação",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "tabsTop": 0,
+      "firstClient": 0
+    },
+    {
+      "view": "Configurações",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "tabsTop": 0,
+      "firstClient": 0
+    }
+  ]
+}

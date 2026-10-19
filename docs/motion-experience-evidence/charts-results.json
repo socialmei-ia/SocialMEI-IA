@@ -1,0 +1,15 @@
+{
+  "chromium": "151.0.7922.173",
+  "monotone": true,
+  "rapidMorphError": 0,
+  "rapidBarError": 0,
+  "rapidSegmentError": 0,
+  "keyboardFocus": true,
+  "touchDismiss": true,
+  "secondaryFinancePoints": true,
+  "isolatedSourceGeometry": true,
+  "reducedMotion": true,
+  "sourceAndCsvUnchanged": true,
+  "errors": [],
+  "writes": []
+}

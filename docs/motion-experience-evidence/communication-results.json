@@ -1,0 +1,2658 @@
+{
+  "layouts": [
+    {
+      "view": "Início",
+      "width": 320,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Caixa Unificada",
+      "width": 320,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 54,
+      "badges": 1
+    },
+    {
+      "view": "Oportunidades",
+      "width": 320,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Visão Geral",
+      "width": 320,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Vendas",
+      "width": 320,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Clientes",
+      "width": 320,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Produtos e Serviços",
+      "width": 320,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Financeiro",
+      "width": 320,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Relatórios",
+      "width": 320,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Automações",
+      "width": 320,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Assistente",
+      "width": 320,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Divulgação",
+      "width": 320,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Configurações",
+      "width": 320,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Início",
+      "width": 320,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Caixa Unificada",
+      "width": 320,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 54,
+      "badges": 1
+    },
+    {
+      "view": "Oportunidades",
+      "width": 320,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Visão Geral",
+      "width": 320,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Vendas",
+      "width": 320,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Clientes",
+      "width": 320,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Produtos e Serviços",
+      "width": 320,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Financeiro",
+      "width": 320,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Relatórios",
+      "width": 320,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Automações",
+      "width": 320,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Assistente",
+      "width": 320,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Divulgação",
+      "width": 320,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Configurações",
+      "width": 320,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Início",
+      "width": 390,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Caixa Unificada",
+      "width": 390,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 54,
+      "badges": 1
+    },
+    {
+      "view": "Oportunidades",
+      "width": 390,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Visão Geral",
+      "width": 390,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Vendas",
+      "width": 390,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Clientes",
+      "width": 390,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Produtos e Serviços",
+      "width": 390,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Financeiro",
+      "width": 390,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Relatórios",
+      "width": 390,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Automações",
+      "width": 390,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Assistente",
+      "width": 390,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Divulgação",
+      "width": 390,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Configurações",
+      "width": 390,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Início",
+      "width": 390,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Caixa Unificada",
+      "width": 390,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 54,
+      "badges": 1
+    },
+    {
+      "view": "Oportunidades",
+      "width": 390,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Visão Geral",
+      "width": 390,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Vendas",
+      "width": 390,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Clientes",
+      "width": 390,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Produtos e Serviços",
+      "width": 390,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Financeiro",
+      "width": 390,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Relatórios",
+      "width": 390,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Automações",
+      "width": 390,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Assistente",
+      "width": 390,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Divulgação",
+      "width": 390,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Configurações",
+      "width": 390,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 48.9375,
+      "badgeHeight": 44,
+      "headerHeight": 74.1875,
+      "badges": 1
+    },
+    {
+      "view": "Início",
+      "width": 768,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Caixa Unificada",
+      "width": 768,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 54,
+      "badges": 1
+    },
+    {
+      "view": "Oportunidades",
+      "width": 768,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Visão Geral",
+      "width": 768,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Vendas",
+      "width": 768,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Clientes",
+      "width": 768,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Produtos e Serviços",
+      "width": 768,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Financeiro",
+      "width": 768,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Relatórios",
+      "width": 768,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Automações",
+      "width": 768,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Assistente",
+      "width": 768,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Divulgação",
+      "width": 768,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Configurações",
+      "width": 768,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Início",
+      "width": 768,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Caixa Unificada",
+      "width": 768,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 54,
+      "badges": 1
+    },
+    {
+      "view": "Oportunidades",
+      "width": 768,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Visão Geral",
+      "width": 768,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Vendas",
+      "width": 768,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Clientes",
+      "width": 768,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Produtos e Serviços",
+      "width": 768,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Financeiro",
+      "width": 768,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Relatórios",
+      "width": 768,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Automações",
+      "width": 768,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Assistente",
+      "width": 768,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Divulgação",
+      "width": 768,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Configurações",
+      "width": 768,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Início",
+      "width": 1024,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Caixa Unificada",
+      "width": 1024,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 109.90625,
+      "badgeHeight": 32,
+      "headerHeight": 0,
+      "badges": 1
+    },
+    {
+      "view": "Oportunidades",
+      "width": 1024,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Visão Geral",
+      "width": 1024,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Vendas",
+      "width": 1024,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Clientes",
+      "width": 1024,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Produtos e Serviços",
+      "width": 1024,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Financeiro",
+      "width": 1024,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Relatórios",
+      "width": 1024,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Automações",
+      "width": 1024,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Assistente",
+      "width": 1024,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Divulgação",
+      "width": 1024,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Configurações",
+      "width": 1024,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Início",
+      "width": 1024,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Caixa Unificada",
+      "width": 1024,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 109.90625,
+      "badgeHeight": 32,
+      "headerHeight": 0,
+      "badges": 1
+    },
+    {
+      "view": "Oportunidades",
+      "width": 1024,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Visão Geral",
+      "width": 1024,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Vendas",
+      "width": 1024,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Clientes",
+      "width": 1024,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Produtos e Serviços",
+      "width": 1024,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Financeiro",
+      "width": 1024,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Relatórios",
+      "width": 1024,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Automações",
+      "width": 1024,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Assistente",
+      "width": 1024,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Divulgação",
+      "width": 1024,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Configurações",
+      "width": 1024,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Início",
+      "width": 1280,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Caixa Unificada",
+      "width": 1280,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 109.90625,
+      "badgeHeight": 32,
+      "headerHeight": 0,
+      "badges": 1
+    },
+    {
+      "view": "Oportunidades",
+      "width": 1280,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Visão Geral",
+      "width": 1280,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Vendas",
+      "width": 1280,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Clientes",
+      "width": 1280,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Produtos e Serviços",
+      "width": 1280,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Financeiro",
+      "width": 1280,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Relatórios",
+      "width": 1280,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Automações",
+      "width": 1280,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Assistente",
+      "width": 1280,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Divulgação",
+      "width": 1280,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Configurações",
+      "width": 1280,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Início",
+      "width": 1280,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Caixa Unificada",
+      "width": 1280,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 109.90625,
+      "badgeHeight": 32,
+      "headerHeight": 0,
+      "badges": 1
+    },
+    {
+      "view": "Oportunidades",
+      "width": 1280,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Visão Geral",
+      "width": 1280,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Vendas",
+      "width": 1280,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Clientes",
+      "width": 1280,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Produtos e Serviços",
+      "width": 1280,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Financeiro",
+      "width": 1280,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Relatórios",
+      "width": 1280,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Automações",
+      "width": 1280,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Assistente",
+      "width": 1280,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Divulgação",
+      "width": 1280,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Configurações",
+      "width": 1280,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Início",
+      "width": 1440,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Caixa Unificada",
+      "width": 1440,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 109.90625,
+      "badgeHeight": 32,
+      "headerHeight": 0,
+      "badges": 1
+    },
+    {
+      "view": "Oportunidades",
+      "width": 1440,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Visão Geral",
+      "width": 1440,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Vendas",
+      "width": 1440,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Clientes",
+      "width": 1440,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Produtos e Serviços",
+      "width": 1440,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Financeiro",
+      "width": 1440,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Relatórios",
+      "width": 1440,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Automações",
+      "width": 1440,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Assistente",
+      "width": 1440,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Divulgação",
+      "width": 1440,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Configurações",
+      "width": 1440,
+      "theme": "light",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Início",
+      "width": 1440,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Caixa Unificada",
+      "width": 1440,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 109.90625,
+      "badgeHeight": 32,
+      "headerHeight": 0,
+      "badges": 1
+    },
+    {
+      "view": "Oportunidades",
+      "width": 1440,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Visão Geral",
+      "width": 1440,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Vendas",
+      "width": 1440,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Clientes",
+      "width": 1440,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Produtos e Serviços",
+      "width": 1440,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Financeiro",
+      "width": 1440,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Relatórios",
+      "width": 1440,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Automações",
+      "width": 1440,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Assistente",
+      "width": 1440,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Divulgação",
+      "width": 1440,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Configurações",
+      "width": 1440,
+      "theme": "dark",
+      "mode": "on",
+      "overflow": false,
+      "badgeWidth": 117.390625,
+      "badgeHeight": 36,
+      "headerHeight": 75,
+      "badges": 1
+    },
+    {
+      "view": "Início",
+      "width": 320,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Caixa Unificada",
+      "width": 320,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Oportunidades",
+      "width": 320,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Visão Geral",
+      "width": 320,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Vendas",
+      "width": 320,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Clientes",
+      "width": 320,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Produtos e Serviços",
+      "width": 320,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Financeiro",
+      "width": 320,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Relatórios",
+      "width": 320,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Automações",
+      "width": 320,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Assistente",
+      "width": 320,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Divulgação",
+      "width": 320,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Configurações",
+      "width": 320,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Início",
+      "width": 320,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Caixa Unificada",
+      "width": 320,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Oportunidades",
+      "width": 320,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Visão Geral",
+      "width": 320,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Vendas",
+      "width": 320,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Clientes",
+      "width": 320,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Produtos e Serviços",
+      "width": 320,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Financeiro",
+      "width": 320,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Relatórios",
+      "width": 320,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Automações",
+      "width": 320,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Assistente",
+      "width": 320,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Divulgação",
+      "width": 320,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Configurações",
+      "width": 320,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Início",
+      "width": 390,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Caixa Unificada",
+      "width": 390,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Oportunidades",
+      "width": 390,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Visão Geral",
+      "width": 390,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Vendas",
+      "width": 390,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Clientes",
+      "width": 390,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Produtos e Serviços",
+      "width": 390,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Financeiro",
+      "width": 390,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Relatórios",
+      "width": 390,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Automações",
+      "width": 390,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Assistente",
+      "width": 390,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Divulgação",
+      "width": 390,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Configurações",
+      "width": 390,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Início",
+      "width": 390,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Caixa Unificada",
+      "width": 390,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Oportunidades",
+      "width": 390,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Visão Geral",
+      "width": 390,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Vendas",
+      "width": 390,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Clientes",
+      "width": 390,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Produtos e Serviços",
+      "width": 390,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Financeiro",
+      "width": 390,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Relatórios",
+      "width": 390,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Automações",
+      "width": 390,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Assistente",
+      "width": 390,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Divulgação",
+      "width": 390,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Configurações",
+      "width": 390,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Início",
+      "width": 768,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Caixa Unificada",
+      "width": 768,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Oportunidades",
+      "width": 768,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Visão Geral",
+      "width": 768,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Vendas",
+      "width": 768,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Clientes",
+      "width": 768,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Produtos e Serviços",
+      "width": 768,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Financeiro",
+      "width": 768,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Relatórios",
+      "width": 768,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Automações",
+      "width": 768,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Assistente",
+      "width": 768,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Divulgação",
+      "width": 768,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Configurações",
+      "width": 768,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Início",
+      "width": 768,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Caixa Unificada",
+      "width": 768,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Oportunidades",
+      "width": 768,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Visão Geral",
+      "width": 768,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Vendas",
+      "width": 768,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Clientes",
+      "width": 768,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Produtos e Serviços",
+      "width": 768,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Financeiro",
+      "width": 768,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Relatórios",
+      "width": 768,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Automações",
+      "width": 768,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Assistente",
+      "width": 768,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Divulgação",
+      "width": 768,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Configurações",
+      "width": 768,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Início",
+      "width": 1024,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Caixa Unificada",
+      "width": 1024,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Oportunidades",
+      "width": 1024,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Visão Geral",
+      "width": 1024,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Vendas",
+      "width": 1024,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Clientes",
+      "width": 1024,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Produtos e Serviços",
+      "width": 1024,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Financeiro",
+      "width": 1024,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Relatórios",
+      "width": 1024,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Automações",
+      "width": 1024,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Assistente",
+      "width": 1024,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Divulgação",
+      "width": 1024,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Configurações",
+      "width": 1024,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Início",
+      "width": 1024,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Caixa Unificada",
+      "width": 1024,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Oportunidades",
+      "width": 1024,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Visão Geral",
+      "width": 1024,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Vendas",
+      "width": 1024,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Clientes",
+      "width": 1024,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Produtos e Serviços",
+      "width": 1024,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Financeiro",
+      "width": 1024,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Relatórios",
+      "width": 1024,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Automações",
+      "width": 1024,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Assistente",
+      "width": 1024,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Divulgação",
+      "width": 1024,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Configurações",
+      "width": 1024,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Início",
+      "width": 1280,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Caixa Unificada",
+      "width": 1280,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Oportunidades",
+      "width": 1280,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Visão Geral",
+      "width": 1280,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Vendas",
+      "width": 1280,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Clientes",
+      "width": 1280,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Produtos e Serviços",
+      "width": 1280,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Financeiro",
+      "width": 1280,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Relatórios",
+      "width": 1280,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Automações",
+      "width": 1280,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Assistente",
+      "width": 1280,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Divulgação",
+      "width": 1280,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Configurações",
+      "width": 1280,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Início",
+      "width": 1280,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Caixa Unificada",
+      "width": 1280,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Oportunidades",
+      "width": 1280,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Visão Geral",
+      "width": 1280,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Vendas",
+      "width": 1280,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Clientes",
+      "width": 1280,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Produtos e Serviços",
+      "width": 1280,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Financeiro",
+      "width": 1280,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Relatórios",
+      "width": 1280,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Automações",
+      "width": 1280,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Assistente",
+      "width": 1280,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Divulgação",
+      "width": 1280,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Configurações",
+      "width": 1280,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Início",
+      "width": 1440,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Caixa Unificada",
+      "width": 1440,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Oportunidades",
+      "width": 1440,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Visão Geral",
+      "width": 1440,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Vendas",
+      "width": 1440,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Clientes",
+      "width": 1440,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Produtos e Serviços",
+      "width": 1440,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Financeiro",
+      "width": 1440,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Relatórios",
+      "width": 1440,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Automações",
+      "width": 1440,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Assistente",
+      "width": 1440,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Divulgação",
+      "width": 1440,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Configurações",
+      "width": 1440,
+      "theme": "light",
+      "mode": "off"
+    },
+    {
+      "view": "Início",
+      "width": 1440,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Caixa Unificada",
+      "width": 1440,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Oportunidades",
+      "width": 1440,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Visão Geral",
+      "width": 1440,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Vendas",
+      "width": 1440,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Clientes",
+      "width": 1440,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Produtos e Serviços",
+      "width": 1440,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Financeiro",
+      "width": 1440,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Relatórios",
+      "width": 1440,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Automações",
+      "width": 1440,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Assistente",
+      "width": 1440,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Divulgação",
+      "width": 1440,
+      "theme": "dark",
+      "mode": "off"
+    },
+    {
+      "view": "Configurações",
+      "width": 1440,
+      "theme": "dark",
+      "mode": "off"
+    }
+  ],
+  "errors": [],
+  "writes": []
+}
