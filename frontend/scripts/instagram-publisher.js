@@ -120,5 +120,4 @@ const SocialMEIInstagramPublisher = (() => {
   if (typeof document !== "undefined") init();
   return Object.freeze({ inspect, guide });
 })();
-if (typeof module !== "undefined" && module.exports)
-  module.exports = SocialMEIInstagramPublisher;
+if (typeof module !== "undefined" && module.exports) module.exports = SocialMEIInstagramPublisher;
