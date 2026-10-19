@@ -9,7 +9,8 @@ test("temporary format diagnostic", async () => {
   for (const file of ["frontend/scripts/instagram-publisher.js", "frontend/socialmei-app.html"]) {
     const source = path.resolve(__dirname, "..", file);
     const original = fs.readFileSync(source, "utf8");
-    const formatted = await prettier.format(original, { filepath: source });
+    const options = await prettier.resolveConfig(source);
+    const formatted = await prettier.format(original, { ...options, filepath: source });
     if (original === formatted) continue;
     const output = path.join(os.tmpdir(), "socialmei-format-diagnostic");
     fs.writeFileSync(output, formatted);
