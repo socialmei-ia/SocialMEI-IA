@@ -1664,7 +1664,11 @@ function syncLegacySessionExamples() {
   }
 }
 syncLegacySessionExamples();
-document.addEventListener("socialmei-demo-change", syncLegacySessionExamples);
+document.addEventListener("socialmei-demo-change", () => {
+  syncLegacySessionExamples();
+  renderNotifications();
+  updateInboxNavBadge();
+});
 document.addEventListener("socialmei-data-change", syncLegacySessionExamples);
 const THEMES = window.SocialMEIThemes;
 let themeDraft = null;
