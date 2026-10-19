@@ -1437,7 +1437,7 @@ function renderFinance() {
   const wk = dateShift(today, 6);
   const late = all.receivables.concat(all.payables).filter((x) => ledgerStatus(x) === "atrasado");
   $("financeSummary").innerHTML = /* HTML */ `<article class="management-kpi">
-            <span>Saldo dos lançamentos pagos</span
+            <span>Saldo acumulado até hoje</span
             ><b class="${bal < 0 ? "neg" : ""}">${money(bal)}</b
             ><small class="management-note">Não representa o saldo bancário.</small>
           </article>
