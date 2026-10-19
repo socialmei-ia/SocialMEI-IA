@@ -375,7 +375,7 @@
     const missingInformation = [];
     if (!signals.some((s) => ["specific_item", "item"].includes(s.id)))
       missingInformation.push(
-        "Produto ou serviço não identificado pelas regras; referências indiretas podem ter sido perdidas.",
+        "Ainda não ficou claro qual produto ou serviço a pessoa procura. Confirme na conversa.",
       );
     if (!signals.some((s) => s.id === "purchase" && s.polarity === "positive"))
       missingInformation.push("Não há confirmação de compra reconhecida no texto.");

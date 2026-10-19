@@ -36,13 +36,7 @@ const MANAGEMENT_VIEW_CONFIG = {
 };
 let productDisplayMode = "grid";
 const isManagementViewActive = () => document.body.classList.contains("management-active");
-const getContactInitials = (n) =>
-  String(n || "?")
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((x) => x[0].toUpperCase())
-    .join("");
+const getContactInitials = (name) => initialsFromName(name);
 function renderManagementSelect(id, options, val, prefix = "") {
   const cur = options.find((o) => String(o[0]) === String(val)) || options[0] || ["", ""];
   return /* HTML */ `<div class="management-select" data-id="${id}">
@@ -315,7 +309,7 @@ function updateHeaderContext() {
   });
   const T = {
     Início: "Seu espaço",
-    "Caixa Unificada": "SocialMEI.IA",
+    "Caixa Unificada": "Caixa Unificada",
     Automações: "Automações",
     Assistente: "Assistente",
     Relatórios: "Relatórios",
@@ -324,7 +318,11 @@ function updateHeaderContext() {
   document.querySelector(".hd-title h1").textContent = nv
     ? "Negócio"
     : T[currentView] || currentView;
-  $("gr").textContent = "Seu espaço";
+  $("gr").textContent = nv
+    ? "› " + (currentView === "Visão Geral" ? "Resumo" : currentView)
+    : currentView === "Relatórios"
+      ? "Análise por período"
+      : "Seu espaço";
   $("globalCreateBtn").style.display = "none";
   updatePeriodCaptions();
   positionSidebarIndicator();
@@ -346,7 +344,7 @@ function renderNavigation() {
           >`;
   $("nav").innerHTML = /* HTML */ `<span class="nav-indicator" aria-hidden="true"></span
           ><span class="nav-group-label">Dia a dia</span
-          >${L("Início", "Início", "user")}${L("Caixa Unificada", "Caixa Unificada", "inbox")}${L("Oportunidades", "Oportunidades", "star")}<span
+          >${L("Início", "Início", "home")}${L("Caixa Unificada", "Caixa Unificada", "inbox")}${L("Oportunidades", "Oportunidades", "star")}<span
             class="nav-group-label"
             >Negócio</span
           >${L("Visão Geral", "Negócio", "bag", "Negócio")}<span class="nav-group-label"

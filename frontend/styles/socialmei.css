@@ -8012,7 +8012,7 @@ body.experience-app #experienceRoot {
   margin-bottom: 12px;
 }
 .home-operation-header .chapter-label {
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.08em;
   color: var(--text-muted);
 }
@@ -8471,7 +8471,7 @@ body.experience-app #experienceRoot {
   white-space: nowrap;
   border-color: var(--internal-line);
 
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.055em;
   padding: 14px 20px;
@@ -9723,7 +9723,7 @@ body.experience-app #experienceRoot {
 }
 #automationsView .management-demo .pill {
   min-height: 20px;
-  font-size: 11px;
+  font-size: 12px;
 }
 #automationsView #nvRuleKpis {
   display: flex;
@@ -10078,7 +10078,7 @@ body.experience-app #experienceRoot {
   min-height: 20px;
   margin-top: 2px;
   padding-inline: 0;
-  font-size: 11px;
+  font-size: 12px;
 }
 #automationsView .management-model .management-button {
   grid-area: action;
@@ -10637,7 +10637,7 @@ body.experience-app #experienceRoot {
 .report-eyebrow {
   display: block;
   color: var(--mt);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.12em;
   margin-bottom: 12px;
@@ -11084,7 +11084,7 @@ body.experience-app #experienceRoot {
 .settings-eyebrow {
   display: block;
   margin-bottom: 16px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.12em;
   color: var(--brand-primary-text);
@@ -11139,7 +11139,7 @@ body.experience-app #experienceRoot {
   overflow-wrap: anywhere;
 }
 .settings-preview-caption small {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-secondary);
 }
 .settings-preview-action {
@@ -11205,7 +11205,7 @@ body.experience-app #experienceRoot {
 }
 .settings-nav-group {
   padding: 18px 14px 8px;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.1em;
   color: var(--text-muted);
@@ -11346,7 +11346,7 @@ body.experience-app #experienceRoot {
   color: var(--text-secondary);
 }
 #settingsPanel .account-eyebrow {
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.1em;
   color: var(--brand-primary-text);
   margin-bottom: 9px;
@@ -11569,7 +11569,7 @@ body.experience-app #experienceRoot {
   font-size: 12px;
 }
 #settingsPanel .theme-official {
-  font-size: 10px;
+  font-size: 12px;
   padding: 4px 8px;
   border-radius: 6px;
 }
@@ -11604,7 +11604,7 @@ body.experience-app #experienceRoot {
 }
 .settings-data-source span {
   color: var(--text-secondary);
-  font-size: 11px;
+  font-size: 12px;
 }
 #settingsPanel .settings-danger-zone {
   margin-top: 28px;
@@ -11762,7 +11762,7 @@ body.experience-app #experienceRoot {
   }
   #settingsPanel .account-overview > .account-badge {
     grid-column: 2;
-    font-size: 10px;
+    font-size: 12px;
   }
   #settingsPanel .account-overview-info b {
     font-size: 17px;
@@ -13989,7 +13989,7 @@ body.inbox-active #integrationAlert button {
   display: none;
 }
 #inboxView .quick-filter {
-  min-height: 36px;
+  min-height: 44px;
   padding: 6px 10px;
   border: 1px solid transparent;
   border-radius: 999px;
@@ -14048,7 +14048,7 @@ body.inbox-active #integrationAlert button {
   margin-top: 8px;
 }
 #inboxView .conv-tag {
-  font-size: 10px;
+  font-size: 12px;
   border-radius: 6px;
 }
 #inboxView.inbox-list-mode .conv-list {
@@ -14739,7 +14739,7 @@ body.inbox-active #integrationAlert button {
 
   color: var(--mt);
 
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 650;
   letter-spacing: 0.075em;
   padding: 18px 12px 6px;
@@ -17751,7 +17751,7 @@ body.management-active #per {
   letter-spacing: -0.04em;
 }
 :is(#salesView, #clientsView) .internal-summary .internal-metric > small {
-  font-size: 11px;
+  font-size: 12px;
 }
 .business-filter-trigger,
 .business-filter-heading,
@@ -18261,7 +18261,7 @@ body.management-active #per {
     display: block;
     width: auto;
     margin-bottom: 4px;
-    font-size: 10px;
+    font-size: 12px;
     color: var(--mt);
   }
   .experience-app :is(#clientsView, #salesView) .management-table td.act {

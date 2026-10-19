@@ -196,11 +196,7 @@ const SocialMEIOpportunities = (() => {
     card.dataset.nativeOpportunity = row.id;
     card.dataset.lane = p.lane;
     const head = node("div", undefined, "client-analysis-person");
-    const initials = row.name
-      .split(/\s+/)
-      .slice(0, 2)
-      .map((s) => s[0])
-      .join("");
+    const initials = initialsFromName(row.name);
     const avatar = node("span", initials, "client-analysis-avatar");
     avatar.setAttribute("aria-hidden", "true");
     const title = node("div");

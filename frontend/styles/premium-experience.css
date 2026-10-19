@@ -10,7 +10,7 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  min-height: 36px;
+  min-height: 44px;
   padding: 6px 10px;
   border-radius: var(--r-sm);
   color: var(--text-secondary);
@@ -38,6 +38,11 @@
 }
 .global-demo-short {
   display: none;
+}
+.global-demo-indicator small {
+  display: block;
+  font: inherit;
+  line-height: 1.3;
 }
 .global-demo-popover,
 .opportunity-options-panel {
@@ -373,7 +378,7 @@
     min-height: 44px;
     padding: 6px 4px;
     gap: 4px;
-    font-size: 11px;
+    font-size: 12px;
   }
   .global-demo-popover {
     position: fixed;
@@ -531,9 +536,9 @@
   gap: 8px;
 }
 #inboxView .inbox-title-line .global-demo-indicator {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
-  min-height: 32px;
+  min-height: 44px;
 }
 
 @media (max-width: 760px) {

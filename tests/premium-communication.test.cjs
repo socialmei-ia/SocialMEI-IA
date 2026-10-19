@@ -115,6 +115,13 @@ test("sample refresh honors new and legacy removals without importing real conta
     activeConversationId: null,
     conversationActivitySequence: 0,
   });
+  context.businessViewData = () => ({
+    conversations: context.legacySessionExamples.conversas,
+    atividade: context.legacySessionExamples.atividade,
+    notificacoes: context.legacySessionExamples.notificacoes,
+  });
+  context.initialsFromName = () => "PQ";
+  context.getConversation = () => null;
   vm.runInContext(
     inbox.slice(
       inbox.indexOf("function conversationKey("),

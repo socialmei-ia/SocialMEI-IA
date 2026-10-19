@@ -96,8 +96,8 @@ module.exports = async function premiumExperience(browser, origin) {
           });
           assert.equal(layout.overflow, false, view + " " + width);
           assert.equal(layout.badges, 1);
-          assert(layout.badgeWidth <= 150);
-          assert(layout.headerHeight <= 90);
+          assert(layout.badgeWidth <= 150, JSON.stringify({ view, width, theme, ...layout }));
+          assert(layout.headerHeight <= 90, JSON.stringify({ view, width, theme, ...layout }));
           assert(
             await page.locator("#viewDemoNotice").isVisible(),
             JSON.stringify({

@@ -125,18 +125,44 @@
   margin-top: 6px;
 }
 #viewDemoToggle {
-  min-width: 144px;
+  position: relative;
+  min-width: 168px;
   min-height: 44px;
-}
-#viewDemoToggle[aria-checked="true"] {
-  background: var(--brand-primary);
-  color: white;
+  padding-left: 62px;
 }
 #viewDemoToggle::before {
-  content: "Desligado · ";
+  content: "";
+  position: absolute;
+  left: 14px;
+  top: calc(50% - 11px);
+  width: 38px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--text-muted);
+  transition: background-color var(--motion-fast);
+}
+#viewDemoToggle::after {
+  content: "";
+  position: absolute;
+  left: 17px;
+  top: calc(50% - 8px);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--surface);
+  transition: transform var(--motion-fast);
 }
 #viewDemoToggle[aria-checked="true"]::before {
-  content: "Ligado · ";
+  background: var(--brand-primary);
+}
+#viewDemoToggle[aria-checked="true"]::after {
+  transform: translateX(16px);
+}
+@media (prefers-reduced-motion: reduce) {
+  #viewDemoToggle::before,
+  #viewDemoToggle::after {
+    transition: none;
+  }
 }
 .view-demo-notice {
   padding: 12px 16px;

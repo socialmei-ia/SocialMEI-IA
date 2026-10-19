@@ -220,6 +220,7 @@ appData.prefs = appData.prefs || {
   notificacoes: true,
 };
 const ICON_PATHS = {
+  home: '<path d="m3 10 9-7 9 7v10H3z"/><path d="M9 20v-7h6v7"/>',
   dash: '<rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>',
   inbox: '<path d="M4 4h16v14H4z"/><path d="M4 13h4l2 3h4l2-3h4"/>',
   search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
@@ -1004,7 +1005,9 @@ document.addEventListener("change", async (event) => {
   }
 });
 $("markRead").addEventListener("click", () => {
-  sessionData.notificacoes.length = 0;
+  sessionData.notificacoes = sessionData.notificacoes.filter(
+    (row) => !!row._socialmeiDemoSample !== SocialMEIDemoData.enabled(),
+  );
   renderNotifications();
   closeDropdowns();
   toast("Notificações marcadas como lidas");
@@ -1632,14 +1635,19 @@ for (const c of sessionData.conversas) {
     });
   }
 }
-// Display the legacy inbox samples only while the user's local demo preference
-// is enabled. Never overwrite or delete local/remote conversations on a mode change.
+// Display cloned shared samples only during the workspace demo preference.
+// Keep local/remote conversations intact and outside the demo presentation.
 function syncLegacySessionExamples() {
-  const show = !SocialMEIAuth.remote && SocialMEIDemoData.enabled();
+  const show = SocialMEIDemoData.enabled();
+  const sample = show ? businessViewData() : null;
   const previousDemoIds = new Set(
     sessionData.conversas.filter((row) => row._socialmeiDemoSample).map((row) => row.id),
   );
-  if (!show && previousDemoIds.has(activeConversationId)) {
+  if (
+    (!show && previousDemoIds.has(activeConversationId)) ||
+    (show && getConversation() && !getConversation()._socialmeiDemoSample)
+  ) {
+    saveCurrentDraft();
     activeConversationId = null;
     isInboxListMode = true;
   }
@@ -1648,7 +1656,7 @@ function syncLegacySessionExamples() {
     sessionData[key] = sessionData[key].filter((row) => !row._socialmeiDemoSample || show);
     if (show && !sessionData[key].some((row) => row._socialmeiDemoSample)) {
       sessionData[key].push(
-        ...structuredClone(legacySessionExamples[key]).map((row) => ({
+        ...structuredClone(sample[key]).map((row) => ({
           ...row,
           _socialmeiDemoSample: true,
         })),
@@ -1658,8 +1666,14 @@ function syncLegacySessionExamples() {
   if (show && !sessionData.conversas.some((row) => row._socialmeiDemoSample)) {
     const used = new Set(sessionData.conversas.map((row) => row.id));
     let nextId = Math.max(0, ...used);
-    for (const example of legacySessionExamples.conversas) {
-      const row = { ...structuredClone(example), _socialmeiDemoSample: true };
+    conversationActivitySequence += sample.conversations.length;
+    for (const [sampleIndex, example] of sample.conversations.entries()) {
+      const row = {
+        ...structuredClone(example),
+        iniciais: initialsFromName(example.nome),
+        status: example.status === "resolvido" ? "concluido" : example.status,
+        _socialmeiDemoSample: true,
+      };
       const removed = inboxLocalState.removedDemoConversations || [];
       // Honor both new namespaced removals and legacy sample-only tombstones.
       // Drafts/state deliberately do not fall back to the old shared key.
@@ -1671,7 +1685,7 @@ function syncLegacySessionExamples() {
       const saved = inboxLocalState[`state:${conversationKey(row)}`];
       if (saved?.status) row.status = saved.status;
       if (Number.isFinite(saved?.naoLidas)) row.naoLidas = saved.naoLidas;
-      row._activityOrder = ++conversationActivitySequence;
+      row._activityOrder = conversationActivitySequence - sampleIndex;
       sessionData.conversas.push(row);
     }
   }
@@ -2758,13 +2772,15 @@ function syncBusinessIdentity() {
   }
   if ($("nvBusinessSteps")) {
     $("nvBusinessSteps").textContent = `${done} de 6 passos`;
+    $("nvBusinessSteps").hidden = done === 6 || SocialMEIDemoData.enabled();
   }
   if ($("nvBusinessBar")) {
     $("nvBusinessBar").value = done;
+    $("nvBusinessBar").hidden = done === 6 || SocialMEIDemoData.enabled();
     $("nvBusinessBar").setAttribute("aria-label", `Configuração: ${done} de 6 passos`);
   }
   if (MANAGEMENT_AUXILIARY_VIEWS.includes(currentView)) {
-    $("gr").textContent = name;
+    $("gr").textContent = currentView === "Relatórios" ? "Análise por período" : name;
   }
   if (appData.prefs.conta?.nome) {
     sessionData.usuario.nome = a.nome;

@@ -162,7 +162,7 @@ function notificationMeta(n) {
   };
 }
 function renderNotifications() {
-  const list = sessionData.notificacoes;
+  const list = sessionViewRecords("notificacoes");
   if (!list.length) {
     $("notList").innerHTML =
       '<li style="display:block"><div class="empty" style="padding:14px"><b>Sem notificações</b><span>Você está em dia.</span></div></li>';
@@ -268,10 +268,7 @@ function setView(name, options = {}) {
 }
 function updateInboxNavBadge() {
   document.dispatchEvent(new CustomEvent("socialmei-data-change"));
-  const totalUnread = sessionData.conversas.reduce(
-    (conversation, c) => conversation + c.naoLidas,
-    0,
-  );
+  const totalUnread = conversationCounts().unreadMessages;
   const nav = document.querySelector('#nav [data-nav="Caixa Unificada"]');
   if (!nav) {
     return;
@@ -282,6 +279,7 @@ function updateInboxNavBadge() {
     nav.appendChild(badge);
   }
   badge.textContent = String(totalUnread);
+  badge.setAttribute("aria-label", `${totalUnread} mensagens não lidas`);
   badge.style.display = totalUnread ? "" : "none";
   updateInboxCounts();
 }

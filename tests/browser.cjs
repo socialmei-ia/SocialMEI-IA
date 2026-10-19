@@ -43,6 +43,7 @@ async function run() {
     checks.push(await require("./charts-demo-browser.cjs")(browser, origin));
     checks.push(await require("./premium-experience-browser.cjs")(browser, origin));
     checks.push(await require("./ux-interaction-browser.cjs")(browser, origin));
+    checks.push(await require("./external-audit-browser.cjs")(browser, origin));
     checks.push(await require("./premium-charts-browser.cjs")(browser, origin));
     checks.push(await require("./adaptive-onboarding-browser.cjs")(browser, origin));
     checks.push(await require("./personalization-browser.cjs")(browser, origin));

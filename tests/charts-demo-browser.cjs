@@ -43,7 +43,10 @@ module.exports = async function chartsDemo(browser, origin) {
     await page.keyboard.press("Space");
     assert.equal(await toggle.getAttribute("aria-checked"), "true");
     assert.equal(await page.evaluate(() => SocialMEIDemoData.enabled()), true);
-    assert.equal(await page.evaluate(() => sessionData.conversas.length), 4);
+    assert.equal(
+      await page.evaluate(() => businessViewConversations().length),
+      await page.evaluate(() => businessViewData().conversations.length),
+    );
     assert.equal(await page.evaluate(() => sessionData.notificacoes.length), 3);
     const sample = await page.evaluate(() => ({
       metrics: operationalMetrics({ from: "0000-01-01", to: "9999-12-31" }),
