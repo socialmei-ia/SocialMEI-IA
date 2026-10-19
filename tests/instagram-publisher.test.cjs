@@ -47,3 +47,43 @@ test("os formatos dão instruções específicas sem prometer publicação", () 
   assert.match(publisher.guide("reel").guide, /um arquivo/);
   assert.equal(publisher.guide("desconhecido").label, "Feed");
 });
+
+test("endereço externo só é aceito quando HTTPS e origem exata foram aprovados", () => {
+  const config = {
+    mode: "external-pilot",
+    formUrl: "https://instancia-exemplo.app.n8n.cloud/form/instagram-post",
+    approvedOrigin: "https://instancia-exemplo.app.n8n.cloud",
+  };
+  assert.deepEqual(publisher.inspect(config, origin), {
+    available: true,
+    href: config.formUrl,
+  });
+  for (const change of [
+    { approvedOrigin: "https://outra.app.n8n.cloud" },
+    { approvedOrigin: "http://instancia-exemplo.app.n8n.cloud" },
+    { approvedOrigin: "https://instancia-exemplo.app.n8n.cloud/login" },
+    { formUrl: "http://instancia-exemplo.app.n8n.cloud/form/instagram-post" },
+    { formUrl: "https://evil.example/form/instagram-post" },
+    { formUrl: "https://instancia-exemplo.app.n8n.cloud/webhook/instagram-post" },
+    { formUrl: "https://instancia-exemplo.app.n8n.cloud/form/instagram-post?token=x" },
+    { formUrl: "https://instancia-exemplo.app.n8n.cloud/form/instagram-post#hash" },
+    { formUrl: "https://someone@instancia-exemplo.app.n8n.cloud/form/instagram-post" },
+    { formUrl: "//instancia-exemplo.app.n8n.cloud/form/instagram-post" },
+    { formUrl: "" },
+    { approvedOrigin: "" },
+  ]) {
+    assert.equal(publisher.inspect({ ...config, ...change }, origin).available, false);
+  }
+  assert.equal(publisher.inspect(config, "http://localhost:3000").available, false);
+  assert.equal(
+    publisher.inspect({ mode: "disabled", ...config }, origin).available,
+    false,
+  );
+});
+
+test("orientações refletem limites do export do workflow", () => {
+  assert.match(publisher.guide("feed").guide, /10 fotos/);
+  assert.match(publisher.guide("feed").guide, /não foi homologado/);
+  assert.match(publisher.guide("story").guide, /não publica a legenda/);
+  assert.match(publisher.guide("reel").guide, /vídeo/);
+});

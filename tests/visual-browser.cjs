@@ -128,6 +128,19 @@ async function run() {
         );
         geometryStates++;
         await page.evaluate(() => setView("Financeiro"));
+        // Route transitions may briefly hide the finance panel. Check geometry
+        // only after the real text fragments are rendered and visible.
+        await page.waitForFunction(() => {
+          const elements = [...document.querySelectorAll("#financeSummary .management-kpi > b")];
+          return (
+            elements.length === 5 &&
+            elements.every((element) => {
+              const range = document.createRange();
+              range.selectNodeContents(element);
+              return range.getClientRects().length > 0;
+            })
+          );
+        });
         const amounts = await page
           .locator("#financeSummary .management-kpi > b")
           .evaluateAll((elements) =>

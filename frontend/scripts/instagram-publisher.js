@@ -6,31 +6,51 @@ const SocialMEIInstagramPublisher = (() => {
     feed: {
       label: "Feed",
       guide:
-        "O formulário externo permite selecionar várias fotos e escolher entre carrossel ou publicações separadas. Confira essa opção nele.",
+        "O fluxo externo declara até 10 fotos para carrossel ou posts separados. Vídeo no Feed não foi homologado; selecione as mídias novamente no n8n.",
     },
     story: {
       label: "Story",
       guide:
-        "O formulário externo aceita um arquivo para Story. Confira o formato e o destino antes de confirmar.",
+        "O fluxo externo aceita um arquivo (imagem ou vídeo) para Story. Ele não publica a legenda do Story; confira a conta antes de confirmar.",
     },
     reel: {
       label: "Reel",
       guide:
-        "O formulário externo aceita um arquivo para Reel. Verifique o vídeo e as opções disponíveis antes de confirmar.",
+        "O fluxo externo precisa de um vídeo para Reel e aguarda o processamento da Meta. Confira o arquivo e a conta antes de confirmar.",
     },
   });
 
   function inspect(config, origin) {
     if (config?.mode !== "external-pilot")
       return { available: false, reason: "Integração não habilitada neste ambiente." };
-    if (
-      typeof config.formPath !== "string" ||
-      !/^\/form\/[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(config.formPath)
-    )
-      return { available: false, reason: "Caminho do formulário não validado." };
+    const validPath = /^\/form\/[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/;
     try {
-      const target = new URL(config.formPath, origin);
-      if (target.protocol !== "https:" || target.origin !== new URL(origin).origin)
+      const site = new URL(origin);
+      if (site.protocol !== "https:" || site.username || site.password)
+        return { available: false, reason: "O piloto exige uma origem HTTPS." };
+      if (config.formUrl != null) {
+        if (typeof config.formUrl !== "string" || typeof config.approvedOrigin !== "string")
+          return { available: false, reason: "Origem externa não aprovada." };
+        const target = new URL(config.formUrl);
+        const approved = new URL(config.approvedOrigin);
+        if (
+          target.protocol !== "https:" ||
+          approved.protocol !== "https:" ||
+          approved.href !== approved.origin + "/" ||
+          target.origin !== approved.origin ||
+          !validPath.test(target.pathname) ||
+          target.search ||
+          target.hash ||
+          target.username ||
+          target.password
+        )
+          return { available: false, reason: "Formulário externo não autorizado." };
+        return { available: true, href: target.href };
+      }
+      if (typeof config.formPath !== "string" || !validPath.test(config.formPath))
+        return { available: false, reason: "Caminho do formulário não validado." };
+      const target = new URL(config.formPath, site);
+      if (target.origin !== site.origin)
         return { available: false, reason: "Formulário fora da origem HTTPS autorizada." };
       return { available: true, href: target.href };
     } catch {
