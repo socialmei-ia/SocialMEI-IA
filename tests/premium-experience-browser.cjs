@@ -126,6 +126,21 @@ module.exports = async function premiumExperience(browser, origin) {
     await page.locator("#conversationList [data-conversation]").first().click();
     assert(await page.locator("#viewDemoNotice").isVisible());
     assert.equal(await page.locator("#viewDemoControl").count(), 1);
+    await page.waitForFunction(() => document.querySelector("[data-edit-profile]")?.disabled);
+    assert(await page.locator("[data-edit-profile]").isDisabled());
+    assert.equal(
+      await page.evaluate(async () => await ensureContextClient(getConversation())),
+      null,
+    );
+    await page.evaluate(() => openProfileEditor());
+    // A direct form submission must also stop before creating/updating a real record.
+    await page.evaluate(() =>
+      document
+        .getElementById("inboxModalForm")
+        .dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })),
+    );
+    assert.equal(await page.evaluate(() => JSON.stringify(appData)), before.data);
+    await page.keyboard.press("Escape");
     await page.setViewportSize({ width: 390, height: 1000 });
     await page.waitForTimeout(30);
     assert(await page.locator(".hd #viewDemoNotice").isVisible());

@@ -1295,6 +1295,14 @@ function setConversationStatus(c, status) {
   persistConversationState(c);
 }
 async function ensureContextClient(c, changes = {}) {
+  if (c?._socialmeiDemoSample || SocialMEIDemoData.enabled()) {
+    toast(
+      "Demonstração somente para leitura",
+      "Desative os dados de teste para editar o cadastro comercial.",
+      "info",
+    );
+    return null;
+  }
   let client = clientContext(c).client;
   if (SocialMEIClients.remote) {
     const saved = client

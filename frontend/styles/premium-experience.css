@@ -202,9 +202,6 @@
   margin-bottom: 24px;
   border-bottom: 1px solid var(--border);
 }
-.experience-app #nvShell .workspace-title-block h2 {
-  font-size: clamp(28px, 3vw, 40px);
-}
 .experience-app .management-card {
   transition:
     border-color var(--motion-base),
@@ -346,10 +343,6 @@
   }
 }
 @media (max-width: 720px) {
-  .experience-app #nvShell.workspace-shell {
-    padding: 8px 0 12px;
-    margin-bottom: 18px;
-  }
   #opportunitiesView .management-header {
     align-items: flex-start;
   }
@@ -390,14 +383,17 @@
   .experience-app #utilityTools > summary {
     width: 44px;
     min-height: 44px;
-    display: grid;
-    place-items: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
     font-size: 0;
     padding: 4px;
   }
   .experience-app #utilityTools > summary::after {
     content: "⋯";
     font-size: 24px;
+    line-height: 1;
   }
   .experience-app #profileBtn {
     width: 44px;
@@ -538,4 +534,12 @@
   font-size: 11px;
   font-weight: 500;
   min-height: 32px;
+}
+
+@media (max-width: 760px) {
+  .experience-app #nvShell.workspace-shell {
+    padding: 0;
+    margin-bottom: 12px;
+    border-bottom: 0;
+  }
 }

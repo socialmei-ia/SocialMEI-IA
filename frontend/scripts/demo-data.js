@@ -180,7 +180,7 @@ if (typeof document !== "undefined")
   document.addEventListener("DOMContentLoaded", () => {
     const demo = SocialMEIDemoData;
     const writes =
-      "[data-create],[data-create-sale-client],[data-record-open],[data-sale-paid],[data-sale-duplicate],[data-finance-paid],[data-stock],[data-client-note],[data-client-conversation],[data-open-client],[data-client-id],[data-catalog-add],[data-profile-suggest],[data-profile-custom],[data-row-menu],[data-review-edit],[data-review-delete],[data-review-cancel],[data-sale-register],#exportBackup,#importBackup,[data-nv-delete-account]";
+      "[data-edit-profile],[data-edit-observation],[data-add-tag],[data-remove-tag],#newConversationBtn,[data-create],[data-create-sale-client],[data-record-open],[data-sale-paid],[data-sale-duplicate],[data-finance-paid],[data-stock],[data-client-note],[data-client-conversation],[data-open-client],[data-client-id],[data-catalog-add],[data-profile-suggest],[data-profile-custom],[data-row-menu],[data-review-edit],[data-review-delete],[data-review-cancel],[data-sale-register],#exportBackup,#importBackup,[data-nv-delete-account]";
     function decorate() {
       const active = demo.enabled();
       // The desktop inbox intentionally hides the shell topbar. Reuse the same
