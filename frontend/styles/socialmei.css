@@ -7994,13 +7994,14 @@ body.experience-app #experienceRoot {
 .home-operations {
   grid-area: operations;
   display: grid;
+  align-items: start;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 28px;
-  margin-top: 12px;
+  gap: 24px;
+  margin-top: 0;
 }
 .home-operation-panel {
   min-width: 0;
-  padding: 24px 0;
+  padding: 16px 0;
   border-top: 1px solid var(--border);
 }
 .home-operation-header {
@@ -8008,7 +8009,7 @@ body.experience-app #experienceRoot {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 18px;
+  margin-bottom: 12px;
 }
 .home-operation-header .chapter-label {
   font-size: 10px;
@@ -8171,8 +8172,8 @@ body.experience-app #experienceRoot {
 
   grid-template-columns: minmax(0, 1fr) 280px;
   grid-template-areas: "opening opening" "command margin" "conversation margin" "operations operations" "footer footer";
-  gap: 28px;
-  margin: 36px auto 0;
+  gap: 20px;
+  margin: 20px auto 0;
   max-width: 1120px;
 }
 .desk-opening {
@@ -8221,9 +8222,14 @@ body.experience-app #experienceRoot {
 .desk-command {
   grid-area: command;
   position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 8px;
+  align-content: start;
 }
 .client-command {
   position: relative;
+  flex: 0 0 100%;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -8325,8 +8331,8 @@ body.experience-app #experienceRoot {
 
   border-left: 1px solid var(--ln);
 
-  align-self: stretch;
-  padding: 24px;
+  align-self: start;
+  padding: 20px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 20px;
@@ -8374,10 +8380,10 @@ body.experience-app #experienceRoot {
   border-bottom: 1px solid var(--ln);
 
   background: var(--surface);
-  padding: 28px;
+  padding: 20px;
   border: 1px solid var(--border);
   border-radius: 20px;
-  gap: 20px;
+  gap: 12px;
   margin-top: 0;
   grid-template-columns: minmax(0, 1fr) auto;
 }

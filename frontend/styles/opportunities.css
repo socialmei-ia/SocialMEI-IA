@@ -94,7 +94,7 @@
 }
 .client-analysis-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
   align-items: start;
   gap: 20px;
 }
@@ -182,7 +182,10 @@
 }
 .client-analysis-card summary {
   min-height: 44px;
-  display: list-item;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   padding-block: 12px;
   cursor: pointer;
   font-weight: 600;
@@ -390,4 +393,56 @@
   font-size: 16px;
   font-weight: 650;
   padding-block: 10px;
+}
+
+/* One record uses an intentional detail layout; multiple records keep a readable grid. */
+.client-analysis-list[data-count="1"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 1001px) {
+  .client-analysis-list[data-count="1"] > .client-analysis-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 32px;
+    align-items: start;
+  }
+  .client-analysis-list[data-count="1"] .client-analysis-person,
+  .client-analysis-list[data-count="1"] .client-analysis-card > .native-opportunity-actions {
+    grid-column: 1 / -1;
+  }
+  #opportunitiesView .client-analysis-list[data-count="1"] .client-analysis-grid {
+    grid-column: 1;
+    grid-row: 2 / 4;
+    grid-template-columns: minmax(0, 1fr);
+    margin-block: 0;
+  }
+  .client-analysis-list[data-count="1"] .client-analysis-next {
+    grid-column: 2;
+    grid-row: 2;
+    padding-left: 24px;
+    border-left: 1px solid var(--border);
+  }
+  .client-analysis-list[data-count="1"] .client-analysis-choice {
+    grid-column: 2;
+    grid-row: 3;
+  }
+  .client-analysis-list[data-count="1"]
+    .client-analysis-card:not([data-lane="analysis"])
+    .client-analysis-person {
+    grid-column: 1;
+  }
+  .client-analysis-list[data-count="1"]
+    .client-analysis-card:not([data-lane="analysis"])
+    > .client-analysis-reason {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .client-analysis-list[data-count="1"] .client-analysis-expand {
+    grid-column: 2;
+    grid-row: 2 / 5;
+  }
+  .client-analysis-list[data-count="1"] .client-analysis-card > .management-note,
+  .client-analysis-list[data-count="1"] .client-analysis-interest {
+    grid-column: 1;
+  }
 }

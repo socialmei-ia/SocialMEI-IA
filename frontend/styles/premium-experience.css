@@ -287,17 +287,17 @@
   pointer-events: none;
 }
 #clientHomeView .desk-opening {
-  padding-bottom: 22px;
+  padding-bottom: 0;
 }
 #clientHomeView .desk-conversation {
   border-left: 3px solid var(--brand-accent);
 }
 #clientHomeView .home-operation-header {
-  padding-bottom: 14px;
+  padding-bottom: 0;
 }
 #clientHomeView .home-operation-panel {
   border-top: 1px solid var(--border);
-  padding-top: 20px;
+  padding-top: 16px;
 }
 #contentStudioView .content-context:empty,
 #contentStorageStatus:empty {
@@ -408,7 +408,7 @@
     min-width: 0;
   }
   #clientHomeView .desk-opening {
-    padding-bottom: 16px;
+    padding-bottom: 0;
   }
 }
 @media (prefers-reduced-motion: reduce) {

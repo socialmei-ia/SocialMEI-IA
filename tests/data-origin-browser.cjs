@@ -77,10 +77,15 @@ module.exports = async function dataOriginFlows(browser, origin, errors = []) {
         );
       }
       await page.evaluate(() => setView("Automações"));
-      await page.locator("#automationsView .context-help > summary").click();
+      await page.locator("#contextHelpButton").click();
+      await page.locator("#contextHelpSources .context-help > summary").click();
       assert.match(
-        await page.locator("#automationsView .context-help").innerText(),
+        await page.locator("#contextHelpSources .context-help").innerText(),
         /Salvar não agenda execuções nem envia mensagens/,
+      );
+      await page.keyboard.press("Escape");
+      await page.waitForFunction(
+        () => !document.getElementById("contextHelpModal").classList.contains("open"),
       );
       await page.evaluate(() => syncN8nMessages());
       assert.equal(
