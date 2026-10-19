@@ -147,12 +147,14 @@ renderClientPanel = function () {
 };
 const openCreateWithManagementStyle = openCreate;
 openCreate = function (type = "venda", preset = {}) {
+  if (SocialMEIDemoData.enabled()) return;
   activeRecordEdit = null;
   $("createType").disabled = false;
   $("createType").closest(".form-group").hidden = false;
   openCreateWithManagementStyle(type, preset);
 };
 async function openRecordEditor(type, id) {
+  if (SocialMEIDemoData.enabled()) return;
   const record = findBusinessRecord(type, id);
   if (!record) return;
   if (
@@ -267,6 +269,7 @@ async function openRecordEditor(type, id) {
   requestAnimationFrame(() => $("createFields").querySelector("input,select,textarea")?.focus());
 }
 async function saveRecordEdit(form) {
+  if (SocialMEIDemoData.enabled()) return;
   if (!validateRequiredFormText(form) || !activeRecordEdit) {
     return;
   }
@@ -537,6 +540,7 @@ function openRecordConfirmation(type, id, cancel = false) {
   openModal("reviewConfirm");
 }
 async function confirmRecordChange() {
+  if (SocialMEIDemoData.enabled()) return;
   const pending = reviewPending;
   if (!pending) {
     return;

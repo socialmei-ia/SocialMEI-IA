@@ -18,6 +18,10 @@ module.exports = async function visualRefinementFlows(browser, origin, errors = 
   });
   await page.clock.setFixedTime(new Date("2026-10-13T12:00:00Z"));
   try {
+    await page.addInitScript((fixture) => {
+      if (!localStorage.getItem("socialmei-app-data-v2"))
+        localStorage.setItem("socialmei-app-data-v2", JSON.stringify(fixture));
+    }, require("./fixtures/legacy-local-business.json"));
     await page.goto(origin + "/frontend/socialmei-app.html");
     await page.evaluate(() => SocialMEIExperience.enterApp("Visão Geral"));
     for (const width of [1440, 390]) {

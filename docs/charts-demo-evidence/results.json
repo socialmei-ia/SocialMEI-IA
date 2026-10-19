@@ -1,0 +1,546 @@
+{
+  "layouts": [
+    {
+      "width": 320,
+      "theme": "light",
+      "view": "Início",
+      "demo": true
+    },
+    {
+      "width": 320,
+      "theme": "light",
+      "view": "Visão Geral",
+      "demo": true
+    },
+    {
+      "width": 320,
+      "theme": "light",
+      "view": "Vendas",
+      "demo": true
+    },
+    {
+      "width": 320,
+      "theme": "light",
+      "view": "Clientes",
+      "demo": true
+    },
+    {
+      "width": 320,
+      "theme": "light",
+      "view": "Financeiro",
+      "demo": true
+    },
+    {
+      "width": 320,
+      "theme": "light",
+      "view": "Relatórios",
+      "demo": true
+    },
+    {
+      "width": 320,
+      "theme": "light",
+      "view": "Oportunidades",
+      "demo": true
+    },
+    {
+      "width": 320,
+      "theme": "dark",
+      "view": "Início",
+      "demo": true
+    },
+    {
+      "width": 320,
+      "theme": "dark",
+      "view": "Visão Geral",
+      "demo": true
+    },
+    {
+      "width": 320,
+      "theme": "dark",
+      "view": "Vendas",
+      "demo": true
+    },
+    {
+      "width": 320,
+      "theme": "dark",
+      "view": "Clientes",
+      "demo": true
+    },
+    {
+      "width": 320,
+      "theme": "dark",
+      "view": "Financeiro",
+      "demo": true
+    },
+    {
+      "width": 320,
+      "theme": "dark",
+      "view": "Relatórios",
+      "demo": true
+    },
+    {
+      "width": 320,
+      "theme": "dark",
+      "view": "Oportunidades",
+      "demo": true
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "view": "Início",
+      "demo": true
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "view": "Visão Geral",
+      "demo": true
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "view": "Vendas",
+      "demo": true
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "view": "Clientes",
+      "demo": true
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "view": "Financeiro",
+      "demo": true
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "view": "Relatórios",
+      "demo": true
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "view": "Oportunidades",
+      "demo": true
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "view": "Início",
+      "demo": true
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "view": "Visão Geral",
+      "demo": true
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "view": "Vendas",
+      "demo": true
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "view": "Clientes",
+      "demo": true
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "view": "Financeiro",
+      "demo": true
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "view": "Relatórios",
+      "demo": true
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "view": "Oportunidades",
+      "demo": true
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "view": "Início",
+      "demo": true
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "view": "Visão Geral",
+      "demo": true
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "view": "Vendas",
+      "demo": true
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "view": "Clientes",
+      "demo": true
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "view": "Financeiro",
+      "demo": true
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "view": "Relatórios",
+      "demo": true
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "view": "Oportunidades",
+      "demo": true
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "view": "Início",
+      "demo": true
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "view": "Visão Geral",
+      "demo": true
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "view": "Vendas",
+      "demo": true
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "view": "Clientes",
+      "demo": true
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "view": "Financeiro",
+      "demo": true
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "view": "Relatórios",
+      "demo": true
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "view": "Oportunidades",
+      "demo": true
+    },
+    {
+      "width": 1024,
+      "theme": "light",
+      "view": "Início",
+      "demo": true
+    },
+    {
+      "width": 1024,
+      "theme": "light",
+      "view": "Visão Geral",
+      "demo": true
+    },
+    {
+      "width": 1024,
+      "theme": "light",
+      "view": "Vendas",
+      "demo": true
+    },
+    {
+      "width": 1024,
+      "theme": "light",
+      "view": "Clientes",
+      "demo": true
+    },
+    {
+      "width": 1024,
+      "theme": "light",
+      "view": "Financeiro",
+      "demo": true
+    },
+    {
+      "width": 1024,
+      "theme": "light",
+      "view": "Relatórios",
+      "demo": true
+    },
+    {
+      "width": 1024,
+      "theme": "light",
+      "view": "Oportunidades",
+      "demo": true
+    },
+    {
+      "width": 1024,
+      "theme": "dark",
+      "view": "Início",
+      "demo": true
+    },
+    {
+      "width": 1024,
+      "theme": "dark",
+      "view": "Visão Geral",
+      "demo": true
+    },
+    {
+      "width": 1024,
+      "theme": "dark",
+      "view": "Vendas",
+      "demo": true
+    },
+    {
+      "width": 1024,
+      "theme": "dark",
+      "view": "Clientes",
+      "demo": true
+    },
+    {
+      "width": 1024,
+      "theme": "dark",
+      "view": "Financeiro",
+      "demo": true
+    },
+    {
+      "width": 1024,
+      "theme": "dark",
+      "view": "Relatórios",
+      "demo": true
+    },
+    {
+      "width": 1024,
+      "theme": "dark",
+      "view": "Oportunidades",
+      "demo": true
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "view": "Início",
+      "demo": true
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "view": "Visão Geral",
+      "demo": true
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "view": "Vendas",
+      "demo": true
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "view": "Clientes",
+      "demo": true
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "view": "Financeiro",
+      "demo": true
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "view": "Relatórios",
+      "demo": true
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "view": "Oportunidades",
+      "demo": true
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "view": "Início",
+      "demo": true
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "view": "Visão Geral",
+      "demo": true
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "view": "Vendas",
+      "demo": true
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "view": "Clientes",
+      "demo": true
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "view": "Financeiro",
+      "demo": true
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "view": "Relatórios",
+      "demo": true
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "view": "Oportunidades",
+      "demo": true
+    },
+    {
+      "width": 320,
+      "theme": "light",
+      "view": "Financeiro",
+      "demo": false
+    },
+    {
+      "width": 320,
+      "theme": "light",
+      "view": "Relatórios",
+      "demo": false
+    },
+    {
+      "width": 320,
+      "theme": "dark",
+      "view": "Financeiro",
+      "demo": false
+    },
+    {
+      "width": 320,
+      "theme": "dark",
+      "view": "Relatórios",
+      "demo": false
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "view": "Financeiro",
+      "demo": false
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "view": "Relatórios",
+      "demo": false
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "view": "Financeiro",
+      "demo": false
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "view": "Relatórios",
+      "demo": false
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "view": "Financeiro",
+      "demo": false
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "view": "Relatórios",
+      "demo": false
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "view": "Financeiro",
+      "demo": false
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "view": "Relatórios",
+      "demo": false
+    },
+    {
+      "width": 1024,
+      "theme": "light",
+      "view": "Financeiro",
+      "demo": false
+    },
+    {
+      "width": 1024,
+      "theme": "light",
+      "view": "Relatórios",
+      "demo": false
+    },
+    {
+      "width": 1024,
+      "theme": "dark",
+      "view": "Financeiro",
+      "demo": false
+    },
+    {
+      "width": 1024,
+      "theme": "dark",
+      "view": "Relatórios",
+      "demo": false
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "view": "Financeiro",
+      "demo": false
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "view": "Relatórios",
+      "demo": false
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "view": "Financeiro",
+      "demo": false
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "view": "Relatórios",
+      "demo": false
+    }
+  ],
+  "errors": [],
+  "writes": []
+}

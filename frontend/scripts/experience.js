@@ -4304,20 +4304,25 @@ ONBOARDING — JAVASCRIPT
   Prioridades, sugestões de comandos e visão contextual do dia. */
   window.renderClientHome = function () {
     q("#clientHomeGreeting").textContent = humanGreeting();
-    const unread = sessionData.conversas.reduce(
+    const unread = businessViewConversations().reduce(
       (conversation, c) => conversation + (c.naoLidas || 0),
       0,
     );
-    const overdue = appData.financeiro.filter((entry) => ledgerStatus(entry) === "atrasado").length;
+    const overdue = businessViewData().financeiro.filter(
+      (entry) => ledgerStatus(entry) === "atrasado",
+    ).length;
     const balance = operationalMetrics({
       from: "0000-01-01",
       to: todayISO(),
     }).balance;
     const context = q("#homeContext");
-    const ledger = appData.financeiro.filter((entry) => !entry.excluida);
+    const ledger = businessViewData().financeiro.filter((entry) => !entry.excluida);
     const pendingLedger = ledger.filter((entry) => entry.status !== "pago");
     const hasBusinessRecords =
-      appData.clientes.length || appData.produtos.length || appData.vendas.length || ledger.length;
+      businessViewData().clientes.length ||
+      businessViewData().produtos.length ||
+      businessViewData().vendas.length ||
+      ledger.length;
     context.textContent = unread
       ? `${plural(unread, "mensagem espera", "mensagens esperam")} por você →`
       : overdue
@@ -4334,7 +4339,7 @@ ONBOARDING — JAVASCRIPT
           : "Clientes";
     q("#homePulseConversations").textContent = unread
       ? `${plural(unread, "não lida", "não lidas")}`
-      : sessionData.conversas.length
+      : businessViewConversations().length
         ? "Sem mensagens não lidas"
         : "Nenhum atendimento ainda";
     q("#homePulseFinance").textContent = ledger.length ? money(balance) : "Ainda sem lançamentos";
@@ -4351,8 +4356,8 @@ ONBOARDING — JAVASCRIPT
       : "Ver compromissos";
     q("#homeActionRules").textContent = rules.length;
     const c =
-      sessionData.conversas.find((conversation) => conversation.naoLidas) ||
-      sessionData.conversas[0];
+      businessViewConversations().find((conversation) => conversation.naoLidas) ||
+      businessViewConversations()[0];
     q("#homeNow").innerHTML = c
       ? /* HTML */ `<div class="desk-conversation-person">
                   <span class="av">${escapeHtml(initialsFromName(displayName(c)))}</span>
@@ -4363,7 +4368,7 @@ ONBOARDING — JAVASCRIPT
                   </div>
                 </div>
                 <blockquote>“${escapeHtml(lastMessage(c))}”</blockquote>
-                <button class="btn" data-home-conversation="${c.id}">Continuar conversa →</button>`
+                <button class="btn" data-home-conversation="${c.id}">${SocialMEIDemoData.enabled() ? "Ver análise de exemplo →" : "Continuar conversa →"}</button>`
       : /* HTML */ `
           <span class="chapter-label">UM NOVO COMEÇO</span>
           <h3>O próximo capítulo começa com seus clientes.</h3>
@@ -4379,7 +4384,7 @@ ONBOARDING — JAVASCRIPT
   function renderHomeOperations() {
     const routes = {
       overdue: "Financeiro",
-      reply: "Caixa Unificada",
+      reply: SocialMEIDemoData.enabled() ? "Oportunidades" : "Caixa Unificada",
       stock: "Produtos e Serviços",
       today: "Financeiro",
     };
@@ -4400,8 +4405,8 @@ ONBOARDING — JAVASCRIPT
           <b>Nenhuma prioridade pendente</b>
           <p>Atrasos, respostas e estoque baixo aparecem aqui quando houver registros.</p>
         </li>`;
-    const recent = appData.vendas
-      .filter((sale) => !sale.excluida)
+    const recent = businessViewData()
+      .vendas.filter((sale) => !sale.excluida)
       .toSorted((first, second) => second.data.localeCompare(first.data))
       .slice(0, 3);
     q("#homeRecentSales").innerHTML = recent.length
@@ -4556,7 +4561,7 @@ ONBOARDING — JAVASCRIPT
       view: "Financeiro",
       icon: "wallet",
       hint: () =>
-        `${appData.financeiro.filter((entry) => ledgerStatus(entry) === "atrasado").length} em atraso`,
+        `${businessViewData().financeiro.filter((entry) => ledgerStatus(entry) === "atrasado").length} em atraso`,
     },
     {
       label: "Adicionar cliente",

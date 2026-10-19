@@ -16,8 +16,10 @@ const SocialMEIOpportunities = (() => {
     element.setAttribute(attribute, value);
     return element;
   };
-  const remote = () => SocialMEIAuth.remote || SocialMEIClients.remote;
+  const remote = () =>
+    !SocialMEIDemoData.enabled() && (SocialMEIAuth.remote || SocialMEIClients.remote);
   function findConversation(row) {
+    if (SocialMEIDemoData.enabled()) return null;
     const source = opportunityDemoSnapshot.find(
       (conversation) => `demo-${conversation.id}` === row.id,
     );
@@ -33,6 +35,7 @@ const SocialMEIOpportunities = (() => {
     );
   }
   function linkedClient(row) {
+    if (SocialMEIDemoData.enabled()) return null;
     return SocialMEIOpportunityData.linkedClient(
       findConversation(row),
       appData.clientes,
@@ -81,6 +84,23 @@ const SocialMEIOpportunities = (() => {
     return row.reasons[0];
   }
   function refreshRows() {
+    if (SocialMEIDemoData.enabled()) {
+      rows = SocialMEIPriority.prioritizeCustomers(
+        businessViewConversations().map((conversation) => ({
+          id: `test-${conversation.id}`,
+          name: conversation.nome,
+          conversationId: null,
+          messages: conversation.mensagens.map((message, index) => ({
+            id: `test-message-${index}`,
+            author: "customer",
+            text: message.texto,
+            at: message.data + "T00:00:00-03:00",
+          })),
+        })),
+        { referenceTime: new Date().toISOString(), reviews },
+      );
+      return;
+    }
     const customers = SocialMEIOpportunityData.read({
       enabled: demoEnabled,
       remote: remote(),
@@ -185,7 +205,13 @@ const SocialMEIOpportunities = (() => {
     const title = node("div");
     title.append(
       node("h3", row.name),
-      node("span", "Exemplo fictício · datas não disponíveis", "management-note"),
+      node(
+        "span",
+        SocialMEIDemoData.enabled()
+          ? "Exemplo fictício · datas relativas ao dia de hoje"
+          : "Exemplo fictício · datas não disponíveis",
+        "management-note",
+      ),
     );
     head.append(avatar, title);
     const label =
@@ -313,7 +339,7 @@ const SocialMEIOpportunities = (() => {
       queue = byId("opportunityQueue");
     source.replaceChildren();
     queue.replaceChildren();
-    if (!demoEnabled || remote()) {
+    if ((!demoEnabled && !SocialMEIDemoData.enabled()) || remote()) {
       rows = [];
       renderTabs();
       const empty = node("div", undefined, "native-opportunity-empty");
@@ -343,7 +369,9 @@ const SocialMEIOpportunities = (() => {
       node("span", "Demonstração · mensagens fictícias", "pill draft"),
       node(
         "span",
-        "Exemplos da Caixa e casos sintéticos isolados. Nada é salvo no CRM ou enviado aos canais.",
+        SocialMEIDemoData.enabled()
+          ? "Mesmos clientes da amostra de gestão. Revisões e alertas são apenas demonstração; nenhuma mensagem é enviada."
+          : "Exemplos da Caixa e casos sintéticos isolados. Nada é salvo no CRM ou enviado aos canais.",
       ),
     );
     const actions = node("div", undefined, "native-opportunity-actions");
@@ -592,6 +620,10 @@ const SocialMEIOpportunities = (() => {
     }
     if (action.hasAttribute("data-opportunity-stop")) {
       demoEnabled = false;
+      if (SocialMEIDemoData.enabled()) {
+        SocialMEIDemoData.set(false);
+        document.dispatchEvent(new CustomEvent("socialmei-demo-change"));
+      }
       reviews = {};
       levels = {};
       resolved = {};
@@ -695,7 +727,7 @@ const SocialMEIOpportunities = (() => {
       action.dataset.analysisResolve ||
       action.dataset.analysisReset;
     const row = rows.find((r) => r.id === id);
-    if (!row || remote() || !demoEnabled) return;
+    if (!row || remote() || (!demoEnabled && !SocialMEIDemoData.enabled())) return;
     const p = presentation(row);
     if (
       action.hasAttribute("data-analysis-classify") &&

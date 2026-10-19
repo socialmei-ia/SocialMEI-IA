@@ -47,16 +47,18 @@ function humanGreeting() {
     : "Olá.";
 }
 function priorityItems() {
-  const overdue = appData.financeiro.filter((entry) => ledgerStatus(entry) === "atrasado");
-  const pending = sessionData.conversas.filter(
+  const overdue = businessViewData().financeiro.filter(
+    (entry) => ledgerStatus(entry) === "atrasado",
+  );
+  const pending = businessViewConversations().filter(
     (conversation) =>
       ["aberto", "andamento"].includes(conversation.status) &&
       [...conversation.mensagens].reverse().find((m) => m.de !== "nota")?.de === "cliente",
   );
-  const low = appData.produtos.filter(
+  const low = businessViewData().produtos.filter(
     (product) => product.tipo === "Produto" && product.estoque <= product.minimo,
   );
-  const due = appData.financeiro.filter(
+  const due = businessViewData().financeiro.filter(
     (entry) => entry.status !== "pago" && entry.vencimento === todayISO(),
   );
   const items = [];

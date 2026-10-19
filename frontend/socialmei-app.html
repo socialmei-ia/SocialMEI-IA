@@ -64,6 +64,7 @@
     <link rel="stylesheet" href="styles/opportunities.css" />
     <link rel="stylesheet" href="styles/content-studio.css" />
     <link rel="stylesheet" href="styles/reports-v2.css" />
+    <link rel="stylesheet" href="styles/chart-refinement.css" />
     <script src="scripts/storage-and-themes.js"></script>
     <script src="scripts/motion.js"></script>
 
@@ -2877,6 +2878,12 @@
             ></div>
           </div>
           <!-- HOME -->
+          <div class="view-demo-notice" id="viewDemoNotice" role="status" hidden>
+            <span
+              ><b>Dados de teste</b> · Amostra fictícia, somente para leitura. Seus dados reais não
+              foram alterados.</span
+            ><button type="button" class="management-button" id="viewDemoExit">Desativar</button>
+          </div>
           <section class="page-view client-home-view" data-view="Início" id="clientHomeView">
             <div class="home-desk client-home-inner">
               <div class="desk-opening">
@@ -4405,6 +4412,26 @@
                 <span class="pill draft">Modo demonstração</span
                 ><span>Perfil e preferências locais. Você decide o que salvar.</span>
               </div>
+              <div class="management-card view-demo-setting">
+                <div>
+                  <h3>Usar dados de teste</h3>
+                  <p id="viewDemoHelp">
+                    Explore Início, Negócio, Oportunidades e Relatórios com uma pequena amostra
+                    fictícia, somente para leitura. Seus registros continuam intactos. Preferência
+                    deste navegador e espaço; não sincroniza entre dispositivos.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  class="management-button"
+                  id="viewDemoToggle"
+                  role="switch"
+                  aria-checked="false"
+                  aria-describedby="viewDemoHelp"
+                >
+                  Dados de teste
+                </button>
+              </div>
               <div class="management-settings-layout">
                 <aside class="management-card settings-index">
                   <div class="management-contact" id="settingsIdentity"></div>
@@ -4823,6 +4850,8 @@
     <script src="scripts/personalization.js"></script>
     <script src="scripts/content-drafts.js"></script>
     <script src="scripts/content-studio.js"></script>
+    <script src="scripts/demo-data.js"></script>
+    <script src="scripts/chart-refinement.js"></script>
     <script src="scripts/report-motion.js"></script>
     <script src="scripts/report-ui.js"></script>
     <script src="scripts/app.js"></script>

@@ -1,3 +1,13 @@
+/* Read-only presentation source; persistence and stores always retain appData. */
+function businessViewData() {
+  return SocialMEIDemoData.read(appData);
+}
+function businessViewConversations() {
+  return SocialMEIDemoData.enabled() ? businessViewData().conversations : sessionData.conversas;
+}
+function businessSourceReady(store) {
+  return SocialMEIDemoData.enabled() || ["local", "ready"].includes(store.connectionState);
+}
 /* DATA AND BACKUP */
 /* Estado de apresentação; mantém os contratos de dados e operações persistentes. */
 let focusedSaleId = null;
@@ -528,10 +538,12 @@ function rangeCaption(range = periodRange()) {
   return `${formatDate(range.from)} — ${formatDate(range.to)}`;
 }
 function operationalMetrics(range = periodRange()) {
-  const sales = appData.vendas.filter((sale) => !sale.excluida && inRange(sale.data, range));
+  const sales = businessViewData().vendas.filter(
+    (sale) => !sale.excluida && inRange(sale.data, range),
+  );
   const valid = sales.filter((sale) => !["Cancelado", "Rascunho"].includes(sale.status));
   const paidSales = sales.filter((sale) => sale.status === "Pago");
-  const ledger = appData.financeiro.filter(
+  const ledger = businessViewData().financeiro.filter(
     (entry) => !entry.excluida && inRange(entry.vencimento, range),
   );
   const sum = (items, key) => items.reduce((s, x) => s + (Number(x[key]) || 0), 0);
@@ -544,10 +556,10 @@ function operationalMetrics(range = periodRange()) {
     "valor",
   );
   const revenue = sum(paidSales, "valor");
-  const receivables = appData.financeiro.filter(
+  const receivables = businessViewData().financeiro.filter(
     (entry) => entry.tipo === "receita" && entry.status !== "pago",
   );
-  const payables = appData.financeiro.filter(
+  const payables = businessViewData().financeiro.filter(
     (entry) => entry.tipo === "despesa" && entry.status !== "pago",
   );
   return {
@@ -637,7 +649,7 @@ function tableMeta(module, count) {
       finance: SocialMEIFinance.remote,
     }[module];
     host.innerHTML = /* HTML */ `<span
-              >${plural(count, "registro")} · ${remote ? "dados compartilhados" : "armazenamento local"}</span
+              >${plural(count, "registro")} · ${SocialMEIDemoData.enabled() ? "dados de teste" : remote ? "dados compartilhados" : "armazenamento local"}</span
             ><span
               >Atualizado
               ${localUpdatedAt.toLocaleTimeString("pt-BR", {
@@ -687,14 +699,16 @@ function chartSeries(range, source = "finance") {
     }
   }
   if (source === "sales") {
-    for (const v of appData.vendas.filter((sale) => !sale.excluida && sale.status === "Pago")) {
+    for (const v of businessViewData().vendas.filter(
+      (sale) => !sale.excluida && sale.status === "Pago",
+    )) {
       const b = buckets.find((b) => inRange(v.data, b));
       if (b) {
         b.r += Number(v.valor) || 0;
       }
     }
   } else {
-    for (const x of appData.financeiro.filter(
+    for (const x of businessViewData().financeiro.filter(
       (entry) => !entry.excluida && entry.status === "pago",
     )) {
       const b = buckets.find((b) => inRange(x.vencimento, b));
