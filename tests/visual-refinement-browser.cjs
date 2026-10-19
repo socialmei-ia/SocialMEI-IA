@@ -58,6 +58,10 @@ module.exports = async function visualRefinementFlows(browser, origin, errors = 
       await page.locator("#recordModal").evaluate((element) => element.classList.contains("open")),
       false,
     );
+    // Explicit fixture for focus and inbox interaction regression.
+    await page.evaluate(() => {
+      sessionData.conversas.push(structuredClone(legacySessionExamples.conversas[0]));
+    });
     await page.evaluate(() => setView("Caixa Unificada"));
     const conversation = page.locator("#conversationList [data-conversation]").first();
     await conversation.click();
