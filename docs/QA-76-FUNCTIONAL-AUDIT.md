@@ -16,7 +16,7 @@ Esta é uma candidata para revisão/testes controlados. Nenhum merge, deploy ou 
 
 | F05 | P1 | O autofocus adiado do modal podia substituir o foco já escolhido pelo usuário entre Tab e Shift+Tab. O CI reproduziu a falha; teste com frame controlado falhou antes da correção. | O callback verifica abertura, época do modal, fechamento e foco já dentro do diálogo antes de aplicar autofocus. Três repetições da regressão e matriz de 160 estados passaram. |
 
-| F06 | P2 | Na simulação opt-in, segurar uma leitura de contas/histórico, registrar a segunda simulação e liberar a leitura antiga: o histórico volta de duas entradas para uma e a confirmação some. Regressão controlada falhou antes da correção. | Invalidar gerações de leitura ao iniciar e concluir uma mutação; leituras antigas não substituem resultados novos. Contas, chave de idempotência e contratos permanecem os mesmos. |
+| F06 | P2 | Na simulação opt-in, segurar uma leitura de contas/histórico, registrar a segunda simulação e liberar a leitura antiga: o histórico volta de duas entradas para uma e a confirmação some. Regressão controlada falhou antes da correção. | Invalidar gerações de leitura ao iniciar uma mutação; leituras antigas não substituem resultados novos. Contas, chave de idempotência e contratos permanecem os mesmos. |
 
 **P0:** nenhum defeito P0 confirmado dentro do escopo testado. Isso não equivale a homologação de segurança ou de produção.
 

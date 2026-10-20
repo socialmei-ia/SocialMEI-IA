@@ -106,7 +106,6 @@ const SocialMEIInstagramSimulation = (() => {
       } catch (error) {
         message(error.message);
       } finally {
-        version++;
         working = false;
         renderAccounts();
       }
@@ -149,7 +148,6 @@ const SocialMEIInstagramSimulation = (() => {
       } catch (error) {
         message(error.message + " Se houver dúvida, repetir usa a mesma chave.");
       } finally {
-        version++;
         working = false;
         renderAccounts();
       }
