@@ -326,8 +326,12 @@ const SocialMEIChartRefinement = (() => {
         records.some((record) =>
           [...record.addedNodes, ...record.removedNodes].some((node) => node.nodeType === 1),
         )
-      )
-        queue();
+      ) {
+        // Restore a replaced focused column before the next keyboard event, not at paint.
+        if (focused && !focused.node.isConnected && document.activeElement === document.body)
+          update();
+        else queue();
+      }
     }).observe(document.getElementById("mainContent") || document.body, {
       childList: true,
       subtree: true,
