@@ -49,6 +49,7 @@ async function run() {
     checks.push(await require("./chart-focus-browser.cjs")(browser, origin));
     checks.push(await require("./sale-payment-dialog-browser.cjs")(browser, origin));
     checks.push(await require("./functional-audit-browser.cjs")(browser, origin));
+    checks.push(await require("./automation-labels-browser.cjs")(browser, origin));
     checks.push(await require("./premium-charts-browser.cjs")(browser, origin));
     checks.push(await require("./adaptive-onboarding-browser.cjs")(browser, origin));
     checks.push(await require("./personalization-browser.cjs")(browser, origin));
