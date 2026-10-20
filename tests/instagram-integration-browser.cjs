@@ -180,6 +180,29 @@ module.exports = async function instagramIntegration(browser, origin) {
     );
     assert.equal(publications.length, 2);
     assert.notEqual(publications[0].idempotency_key, publications[1].idempotency_key);
+    await page.locator("#instagramSimulationAccount").selectOption(accounts[0].id);
+    await page.locator("#instagramSimulationSubmit").click();
+    await page.waitForFunction(
+      () => document.querySelectorAll("#instagramSimulationHistory p").length === 3,
+    );
+    assert.equal(publications[2].account_id, accounts[0].id);
+    assert.notEqual(publications[1].idempotency_key, publications[2].idempotency_key);
+    identity.papel = "viewer";
+    await page.reload();
+    await page.waitForFunction(() => !!window.SocialMEIAuth?.current);
+    await page.evaluate(() => SocialMEIExperience.enterApp("Divulgação"));
+    await page.waitForFunction(
+      () => document.getElementById("instagramSimulationAccount").options.length === 2,
+    );
+    assert(await page.locator("#instagramSimulationCreate").isDisabled());
+    assert(
+      await page.locator("#instagramSimulationSubmit").isDisabled(),
+      "A viewer must not be offered a write action",
+    );
+    assert.match(await page.locator("#instagramSimulationStatus").textContent(), /somente leitura/);
+    await page
+      .locator("#instagramSimulationPanel")
+      .screenshot({ path: path.join(output, "instagram-readonly.png") });
     assert.deepEqual(external, []);
     assert.deepEqual(errors, []);
     return "Instagram integrado: opt-in fictício, teclado, metadados, falha/repetição idempotente, histórico e desktop/mobile claro/escuro; sem transporte real";

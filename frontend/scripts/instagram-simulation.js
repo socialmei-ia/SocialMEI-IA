@@ -50,7 +50,8 @@ const SocialMEIInstagramSimulation = (() => {
         account.append(option);
       }
       if (accounts.some((item) => item.id === selected)) account.value = selected;
-      submit.disabled = working || !accounts.length;
+      const canSimulate = ["owner", "admin", "member"].includes(SocialMEIAuth.current?.papel);
+      submit.disabled = working || !accounts.length || !canSimulate;
       create.disabled = working || !["owner", "admin"].includes(SocialMEIAuth.current?.papel);
     }
     function showHistory(items) {
@@ -80,7 +81,9 @@ const SocialMEIInstagramSimulation = (() => {
         accounts = a.items;
         renderAccounts();
         showHistory(p.items);
-        message("Simulação habilitada. Nenhum dado é transmitido ao Instagram.");
+        message(SocialMEIAuth.current.papel === "viewer"
+          ? "Histórico disponível. Esta conta possui acesso somente leitura."
+          : "Simulação habilitada. Nenhum dado é transmitido ao Instagram.");
       } catch (error) {
         if (seq !== version) return;
         accounts = [];
