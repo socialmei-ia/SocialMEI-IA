@@ -671,10 +671,19 @@ document.addEventListener("click", async (event) => {
     const v = appData.vendas.find((sale) => sale.id === Number(salePaid.dataset.salePaid));
     if (v && v.status !== "Cancelado") {
       if (SocialMEISales.remote) {
+        const fromDrawer = !!salePaid.closest("#recordModal");
+        const requestView = currentView;
         SocialMEISales.transition(v, "pagar").then((saved) => {
           if (saved) {
             renderSales();
-            openRecord("sales", saved.id);
+            const modal = $("recordModal");
+            const sameDrawer =
+              modal.classList.contains("open") &&
+              !modal._closing &&
+              recordContext?.type === "sales" &&
+              recordContext.id === saved.id;
+            if (fromDrawer ? sameDrawer : currentView === requestView && !activeModalDialog())
+              openRecord("sales", saved.id);
             toast("Venda marcada como paga", "Salva na API. O financeiro permanece separado.");
           }
         });
@@ -696,10 +705,19 @@ document.addEventListener("click", async (event) => {
     const v = appData.vendas.find((sale) => sale.id === Number(dup.dataset.saleDuplicate));
     if (v) {
       if (SocialMEISales.remote) {
+        const fromDrawer = !!dup.closest("#recordModal");
+        const requestView = currentView;
         SocialMEISales.duplicate(v).then((saved) => {
           if (saved) {
             renderSales();
-            openRecord("sales", saved.id);
+            const modal = $("recordModal");
+            const sameDrawer =
+              modal.classList.contains("open") &&
+              !modal._closing &&
+              recordContext?.type === "sales" &&
+              recordContext.id === v.id;
+            if (fromDrawer ? sameDrawer : currentView === requestView && !activeModalDialog())
+              openRecord("sales", saved.id);
             toast("Rascunho criado", "Estoque preservado até registrar a venda.");
           }
         });
@@ -2563,7 +2581,11 @@ document.addEventListener(
     }
     if (event.target.closest("[data-finance-paid],[data-sale-paid],[data-sale-duplicate]")) {
       requestAnimationFrame(() => {
-        if ($("recordModal").classList.contains("open") && recordContext) {
+        if (
+          $("recordModal").classList.contains("open") &&
+          !$("recordModal")._closing &&
+          recordContext
+        ) {
           openRecord(recordContext.type, recordContext.id);
         }
       });
@@ -3044,9 +3066,11 @@ function renderReports() {
     );
   const tabs = ["Resumo", "Vendas", "Clientes", "Atendimento", "Financeiro"];
   $("reportsGrid").setAttribute("aria-labelledby", `reportTab${tabs.indexOf(selectedReportTab)}`);
-  $("nvReportTabs").innerHTML = tabs
-    .map(
-      (t, index) => /* HTML */ `<button
+  // Keep tab nodes mounted: source refreshes and reflows must not discard keyboard focus.
+  if (!$("nvReportTabs").childElementCount)
+    $("nvReportTabs").innerHTML = tabs
+      .map(
+        (t, index) => /* HTML */ `<button
                 class="management-chip"
                 id="reportTab${index}"
                 role="tab"
@@ -3058,8 +3082,16 @@ function renderReports() {
               >
                 ${t}
               </button>`,
-    )
-    .join("");
+      )
+      .join("");
+  $("nvReportTabs")
+    .querySelectorAll("[data-nv-report-tab]")
+    .forEach((tab) => {
+      const selected = tab.dataset.nvReportTab === selectedReportTab;
+      tab.setAttribute("aria-selected", String(selected));
+      tab.setAttribute("aria-pressed", String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+    });
   const grouped = (rows, label, key = label) => {
     const o = new Map();
     rows.forEach((x) => {

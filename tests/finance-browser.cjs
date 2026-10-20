@@ -1,5 +1,8 @@
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 module.exports = async function financeFlows(browser, origin, errors) {
+  const trace = [];
   const clients = [11, 12].map((id) => ({ id, versao: 1, nome: "Mesmo nome", tags: [] }));
   const rows = [],
     operations = new Map(),
@@ -32,6 +35,26 @@ module.exports = async function financeFlows(browser, origin, errors) {
         if (!localStorage.getItem("socialmei-app-data-v2"))
           localStorage.setItem("socialmei-app-data-v2", JSON.stringify(data));
       }, seed);
+    page.on("request", (request) => {
+      const url = new URL(request.url());
+      if (url.origin === origin && url.pathname.startsWith("/api/v1/financeiro"))
+        trace.push({
+          event: "request",
+          method: request.method(),
+          path: url.pathname,
+          body: request.postDataJSON(),
+        });
+    });
+    page.on("response", async (response) => {
+      const url = new URL(response.url());
+      if (url.origin === origin && url.pathname.startsWith("/api/v1/financeiro"))
+        trace.push({
+          event: "response",
+          status: response.status(),
+          path: url.pathname,
+          body: await response.json().catch(() => null),
+        });
+    });
     await page.route("**/*", async (route) => {
       const req = route.request(),
         url = new URL(req.url());
@@ -175,11 +198,45 @@ module.exports = async function financeFlows(browser, origin, errors) {
   await page.evaluate((id) => openRecordEditor("finance", id), id);
   await page.locator("#f_valor").fill("15.25");
   await page.locator("#createSubmit").click();
-  await page.waitForFunction(
-    () =>
-      appData.financeiro[0].valor === 15.25 &&
-      !document.getElementById("createModal").classList.contains("open"),
-  );
+  try {
+    await page.waitForFunction(
+      () =>
+        appData.financeiro[0].valor === 15.25 &&
+        !document.getElementById("createModal").classList.contains("open"),
+    );
+  } catch (error) {
+    // Only this suite's synthetic records and same-origin mock traffic are captured.
+    const diagnostic = {
+      trace,
+      rows,
+      ui: await page.evaluate(() => ({
+        modal: document.getElementById("createModal").outerHTML,
+        source: document.getElementById("financeSourceStatus").textContent,
+        data: appData.financeiro,
+        edit: activeRecordEdit && {
+          type: activeRecordEdit.type,
+          id: activeRecordEdit.id,
+          versao: activeRecordEdit.versao,
+        },
+        fields: [...document.querySelectorAll("#createForm input, #createForm select")].map(
+          (input) => ({
+            name: input.name,
+            value: input.value,
+            disabled: input.disabled,
+            error: input.validationMessage,
+          }),
+        ),
+      })),
+    };
+    const directory = path.join(__dirname, "../test-results");
+    fs.mkdirSync(directory, { recursive: true });
+    fs.writeFileSync(
+      path.join(directory, "finance-edit-diagnostic.json"),
+      JSON.stringify(diagnostic, null, 2),
+    );
+    console.error("Finance edit diagnostic", JSON.stringify(diagnostic));
+    throw error;
+  }
   await second.evaluate((id) => openRecordEditor("finance", id), id);
   await second.locator("#f_valor").fill("99");
   await second.locator("#createSubmit").click();

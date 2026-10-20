@@ -10154,6 +10154,21 @@ body.experience-app #experienceRoot {
   }
 }
 @media (max-width: 720px) {
+  #automationsView .management-table tr {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #automationsView .management-table td,
+  #automationsView .management-table td:first-child {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+  #automationsView .management-table td::before {
+    white-space: nowrap;
+  }
+  #automationsView .management-table .management-inline-actions {
+    display: inline-flex;
+    vertical-align: middle;
+  }
   #automationsView #automationFeature {
     padding: 24px 18px 26px;
   }
