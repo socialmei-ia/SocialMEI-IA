@@ -77,6 +77,39 @@ class N8nProtocolTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             serialize(job)
 
+
+    def test_serializer_rejects_nested_secret_injection_and_invalid_types(self):
+        """A caller bypassing build_job must not smuggle arbitrary wire data."""
+        job = self.job()
+        media = job["media"][0]
+        invalid = [
+            {**job, "media": [{**media, "access_token": "never-on-wire"}]},
+            {**job, "media": [{**media, "mime": {"token": "never-on-wire"}}]},
+            {**job, "caption": {"access_token": "never-on-wire"}},
+            {**job, "scheduled_for": {"access_token": "never-on-wire"}},
+            {**job, "linked_account_id": {"access_token": "never-on-wire"}},
+            {**job, "format": ["feed"]},
+            {**job, "workspace_id": "42"},
+            {**job, "scheduled_for": "not-a-date"},
+        ]
+        for i, payload in enumerate(invalid):
+            with self.subTest(case=i):
+                with self.assertRaises(ValueError):
+                    serialize(payload)
+
+    def test_builder_rejects_unhashable_format_or_mime(self):
+        job = self.job()
+        kwargs = dict(
+            publication_id=job["publication_id"], operation_id=job["operation_id"],
+            workspace_id=42, linked_account_id=job["linked_account_id"],
+            kind="feed", feed_mode="single", caption="",
+            media=job["media"],
+        )
+        with self.assertRaises(ValueError):
+            build_job(**{**kwargs, "kind": ["feed"]})
+        with self.assertRaises(ValueError):
+            build_job(**{**kwargs, "media": [{**job["media"][0], "mime": ["image/png"]}]})
+
     def test_hmac_covers_body_and_timestamp(self):
         secret = b"test-only-key-" + b"x" * 36
         body = serialize(self.job())
