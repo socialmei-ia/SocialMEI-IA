@@ -69,6 +69,14 @@ class N8nProtocolTests(unittest.TestCase):
                 media=sample["media"],
             )
 
+    def test_serializer_rejects_any_extra_or_removed_field(self):
+        job = self.job()
+        with self.assertRaises(ValueError):
+            serialize({**job, "access_token": "secret"})
+        del job["linked_account_id"]
+        with self.assertRaises(ValueError):
+            serialize(job)
+
     def test_hmac_covers_body_and_timestamp(self):
         secret = b"test-only-key-" + b"x" * 36
         body = serialize(self.job())

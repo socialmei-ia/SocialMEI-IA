@@ -13,6 +13,10 @@ from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 SCHEMA = "socialmei.instagram.publish.v1"
+JOB_FIELDS = frozenset({
+    "schema", "publication_id", "operation_id", "workspace_id",
+    "linked_account_id", "format", "feed_mode", "caption", "media", "scheduled_for",
+})
 SAFE_MIME = {
     "feed": {"image/jpeg", "image/png"},
     "story": {"image/jpeg", "image/png", "video/mp4"},
@@ -92,8 +96,8 @@ def build_job(*, publication_id, operation_id, workspace_id, linked_account_id,
 
 def serialize(job):
     """Stable wire encoding so both parties sign identical UTF-8 bytes."""
-    if not isinstance(job, dict) or job.get("schema") != SCHEMA:
-        raise ValueError("Esquema incompatível.")
+    if not isinstance(job, dict) or set(job) != JOB_FIELDS or job.get("schema") != SCHEMA:
+        raise ValueError("Esquema incompatível ou campos não permitidos.")
     return json.dumps(
         job, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False,
     ).encode("utf-8")

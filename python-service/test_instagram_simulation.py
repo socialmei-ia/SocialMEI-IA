@@ -43,6 +43,24 @@ class ContractTests(unittest.TestCase):
             with self.subTest(change=str(change)), self.assertRaises(ValueError):
                 PublicationInput.model_validate({**base, **change})
 
+    def test_invalid_payload_never_echoes_caption_or_asset_metadata(self):
+        marker = "confidencial-nao-exibir-123"
+        with patch.dict(os.environ, ENV):
+            client = TestClient(app, base_url=ORIGIN)
+            client.cookies.set(COOKIE, TOKEN)
+            with patch("account_auth.session_identity", return_value={
+                "id": 1, "workspace_id": 1, "role": "owner",
+                "administrador_plataforma": False,
+            }):
+                response = client.post(
+                    "/api/v1/instagram/simulation/publications",
+                    headers={"Origin": ORIGIN, "X-SocialMEI-CSRF": csrf(TOKEN)},
+                    json={"caption": marker, "media": [{"name": marker}]},
+                )
+                self.assertEqual(response.status_code, 422, response.text)
+                self.assertNotIn(marker, response.text)
+                self.assertEqual(response.json()["detail"], "Confira os campos informados.")
+
     def test_feature_flag_fails_closed_without_db(self):
         with patch.dict(os.environ, {**ENV, "SOCIALMEI_INSTAGRAM_MODE": "disabled"}):
             client = TestClient(app, base_url=ORIGIN)

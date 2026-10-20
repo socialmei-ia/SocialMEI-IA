@@ -49,7 +49,7 @@ app.include_router(instagram_simulation_router)
 @app.exception_handler(RequestValidationError)
 async def private_validation_error(request, error):
     # FastAPI's default validation response includes submitted values, including passwords.
-    if request.url.path.startswith(("/api/v1/auth/", "/api/v1/admin/")):
+    if request.url.path.startswith(("/api/v1/auth/", "/api/v1/admin/", "/api/v1/instagram/")):
         return JSONResponse(
             {"detail": "Confira os campos informados."},
             status_code=422,

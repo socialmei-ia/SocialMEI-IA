@@ -2,72 +2,43 @@
 
 ## Origem desta especificação
 
-Esta interface foi mapeada a partir do export recebido **Publicar post no Instagram**,
-com 40 nós: `Form Trigger` em duas etapas; normalização dos campos
-`tipo_publicacao`, `legenda`, `modo_varias`, `quando_publicar`,
-`data_agendamento` e `hora_agendamento` em `America/Sao_Paulo`; upload
-ImgBB/Cloudinary; Wait; rotas Feed/Carrossel/Reels/Story e respostas finais.
-O export indica uma instância diferente (`facepe2027.app.n8n.cloud`).
-O arquivo original não foi commitado, nem há confirmação de execução ativa.
+Esta especificação foi mapeada do export recebido **Publicar post no Instagram**, com 40 nós. O fluxo contém Form Trigger em duas etapas, `tipo_publicacao`, `legenda`, `modo_varias`, `quando_publicar`, `data_agendamento`, `hora_agendamento` em `America/Sao_Paulo`, ImgBB/Cloudinary, Wait e rotas Feed/Carrossel/Reels/Story. O export referencia uma instância diferente (`facepe2027.app.n8n.cloud`). Não há confirmação de ativação atual ou de permissões de conta Meta.
 
-**Não confundir formulário público com webhook autenticado.** O export usa
-uma conta Meta fixa e não atende vários MEIs sem adaptar as rotas Meta.
+**O Form Trigger público não substitui um webhook autenticado.** O export também usa um ID de conta Meta fixo, incompatível com múltiplos MEIs sem adaptar as rotas de publicação. O JSON original não foi commitado.
 
-## Disponível agora
+## Biblioteca disponível
 
-`python-service/instagram_n8n_protocol.py` é **biblioteca pura offline**.
-Ela constrói o corpo de um futuro pedido de trabalho, serializa JSON
-deterministicamente e cria/verifica HMAC-SHA256 com timestamp (janela de
-5 minutos). Não há chamada HTTP, endpoint, worker ou credencial configurada.
+`python-service/instagram_n8n_protocol.py` é uma **biblioteca offline** para preparar um eventual job, serializar JSON estável, assinar o corpo UTF-8 usando HMAC-SHA256 e validar a assinatura com timestamp dentro de cinco minutos. **Ela não cria endpoints, solicitações HTTP, workers, credenciais ou publicações.**
 
-Formato: `socialmei.instagram.publish.v1`, com os campos:
+O esquema `socialmei.instagram.publish.v1` contém somente estes campos:
 
-- `publication_id` / `operation_id`: UUIDs do registro e do comando idempotente.
-- `workspace_id`: definido no backend pela sessão, nunca pelo navegador.
-- `linked_account_id`: UUID interno da **conta vinculada e autorizada**, nunca
-  ID da conta Meta ou endereço escolhido pelo cliente.
+- `publication_id` e `operation_id`: UUIDs do registro e do comando idempotente.
+- `workspace_id`: número do negócio, resolvido pelo servidor a partir da sessão, nunca recebido livremente do navegador.
+- `linked_account_id`: UUID interno de uma conta vinculada e autorizada; não é ID público da conta Meta.
 - `format`: `feed`, `story` ou `reel`.
-- `feed_mode`: `single`, `carousel` ou `separate` somente para Feed.
-- `caption`: até 2.200 caracteres. Story pode desconsiderar a legenda.
-- `media`: lista de 1 a 10 identificadores UUID internos `asset_id` e `mime`,
-  não URLs públicas, bytes binários ou caminhos externos.
-- `scheduled_for`: ISO 8601 UTC ou `null`; validação futura mínima de
-  1 minuto e máxima de 60 dias na preparação.
+- `feed_mode`: `single`, `carousel` ou `separate` no Feed; `null` para Story/Reel.
+- `caption`: texto com até 2.200 caracteres.
+- `media`: 1 a 10 registros `{asset_id, mime}` com UUIDs internos, sem bytes ou URLs externas.
+- `scheduled_for`: ISO 8601 em UTC ou `null`; o contrato preparado aceita intervalo futuro de 1 minuto a 60 dias.
 
-**Limites deliberadamente conservadores deste contrato futuro:** JPEG/PNG
-para Feed; JPEG/PNG/MP4 para Story; MP4 para Reels. Não significa que todo
-arquivo desse tipo será aceito pela API Meta: formatos, duração, codec,
-resoluções, assinatura binária e limites devem ser homologados posteriormente.
-Isso não altera os formatos aceitos pelo *simulador* já existente.
+Os formatos provisórios são JPG/PNG para Feed, JPG/PNG/MP4 para Story e MP4 para Reel. Eles precisam de homologação de codec, duração, tamanho, assinatura binária e regras atuais da Meta antes de qualquer envio. O simulador existente mantém suas próprias validações.
 
-## N8n: evolução necessária
+## Mudanças necessárias no n8n
 
-1. Criar um **novo webhook interno**, separado do Form Trigger original, com
-   autenticação de serviço, payload limitado e verificação HMAC do **corpo bruto**
-   antes de processar qualquer dado. O template e o endpoint ainda não existem.
-2. Deduplicar `operation_id` no banco persistente e rejeitar replays;
-   timestamp sozinho **não** oferece proteção de replay. Não deixar uma
-   execução duplicada publicar pela segunda vez.
-3. Receber o `linked_account_id` mas resolver a titularidade no backend
-   confiável, com credenciais armazenadas somente em secret store.
-   **Nunca** usar o ID de Meta fixo presente no export.
-4. Resolver `asset_id` com acesso temporário autorizado à mídia, validar MIME,
-   assinatura e limites reais. Não permitir URL arbitrária/SSRF.
-5. Implementar estados `queued`, `processing`, `published`, `failed`,
-   `uncertain` com callback autenticado, recuperação após timeout e
-   reconciliação pela Meta. Agendamento precisa ser durável após reinício.
-6. Manter o workflow antigo isolado até haver testes de cada ramo com
-   conta fictícia/conta Meta de teste devidamente autorizada.
+1. Criar um **webhook interno novo** e privado, separado do Form Trigger, com autenticação de serviço, limite de tamanho e conferência da assinatura HMAC do corpo bruto antes de executar outros nós.
+2. Resolver `linked_account_id` no backend seguro, garantindo autorização e permissão do negócio; **não** continuar usando o destino Meta fixo do workflow original.
+3. Resolver `asset_id` via armazenamento privado e acesso temporário limitado; nunca buscar URLs arbitrárias de mídia enviadas pelo navegador.
+4. Persistir e deduplicar `operation_id`; além do timestamp, exigir controle de replay e idempotência durável antes do primeiro envio Meta.
+5. Implementar recibo com estados `queued`, `processing`, `published`, `failed` e `uncertain`; o callback precisa ser autenticado e falhas de timeout exigem reconciliação com a Meta.
+6. Agendar de forma recuperável após reinício, com timezone explícito, validação de data passada e limites reais da Meta.
+7. Homologar Feed simples, carrossel de 2 e 10 imagens, posts separados, Story e Reel com conta Meta de testes autorizada, incluindo mídia inválida, reenvio e falhas de processamento.
 
-## Gates de segurança antes de habilitar
+## Portões de ativação
 
-- Confirmar local do workflow, titular da instância e permissão da conta Meta.
-- Criar vínculo de conta verificado por workspace e revogável, sem token no JS.
-- Criar armazenamento privado, registros de job e workers idempotentes.
-- Testar Feed único, carrossel (2 e 10 fotos), Feed separado, Story,
-  Reel, rejeições de mídia, timezone, erros Meta e reexecuções.
-- Configurar allowlist de URL e TLS no servidor, rotação de segredo HMAC,
-  resposta de recibo assinado e limite de tamanho/taxa.
+- Confirmar quem controla o n8n Cloud da FACEPE e a instância AWS do SocialMEI, onde o fluxo ficará e qual conta será usada no teste.
+- Criar vínculo de conta verificado por workspace e revogável, sem segredos no frontend.
+- Implementar armazenamento privado, registro de job, worker autenticado e mecanismo antirreplay.
+- Configurar URL interna permitida, HTTPS, segredo de serviço protegido, observabilidade sem tokens e limites de taxa.
+- Revisar e testar o workflow modificado antes de ativar ou executar publicações reais.
 
-**Estado atual:** apenas proposta de protocolo com testes offline,
-em PR de desenvolvimento. **Nenhum envio externo foi habilitado.**
+**Estado:** apenas protocolo e testes offline em uma PR de desenvolvimento. Nenhum upload, webhook, n8n, Meta, merge ou deploy foi executado.
