@@ -69,10 +69,12 @@ const SocialMEIInstagramPublisher = (() => {
       badge = byId("instagramPublishState"),
       format = byId("instagramPublishFormat"),
       details = byId("instagramPublishGuide"),
-      external = byId("instagramPublishExternal");
-    if (!start || !status || !external) return;
+      external = byId("instagramPublishExternal"),
+      panel = byId("instagramPublishPanel");
+    if (!start || !status || !external || !panel) return;
 
     const connection = inspect(SOCIALMEI_CONFIG.instagramPublisher, location.origin);
+    panel.hidden = !connection.available;
     let confirmedScope = null;
     function currentScope() {
       return SocialMEIBusinessProfile.browserRepository().scope();

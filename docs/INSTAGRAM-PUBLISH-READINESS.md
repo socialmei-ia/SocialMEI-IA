@@ -64,3 +64,7 @@ O padrão no repositório é `mode: "disabled"`. Mesmo quando habilitado, o clie
 **Atualização de 19/10/2026:** recebemos um export do formulário de publicação (40 nós, fluxo de Feed, Reels, Story e agendamento). A análise está em [Auditoria do workflow Instagram](INSTAGRAM-WORKFLOW-AUDIT.md). Isso substitui a afirmação anterior de que não tínhamos export para análise, mas **não comprova versão ativa, credenciais funcionais ou conta autorizada no n8n da AWS**. O arquivo recebido declara outro ID e referencia outro domínio n8n, portanto não é equivalente ao workflow inventariado na AWS.
 
 O piloto também aceita, **somente com opt-in explícito**, URL externa HTTPS de formulário e `approvedOrigin` exatamente correspondente; nenhum domínio externo foi ativado por padrão. A autorização da origem no cliente evita redirecionamento acidental, mas não autentica nem isola a conta Instagram. Não ativar até conferir proprietário da instância e a conta conectada.
+
+## Fechamento visual para a integração na `main`
+
+O painel de piloto usa o atributo `hidden` até existir configuração explícita de URL HTTPS validada e `mode: "external-pilot"`. Sem essa ativação, o público continua com a área de Divulgação, edição, prévia e rascunhos, **sem ver controles de publicação indisponíveis**. O texto do piloto não afirma isolamento de contas no n8n; conferir o titular da conta externa continua obrigatório.

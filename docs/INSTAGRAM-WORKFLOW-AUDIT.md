@@ -47,7 +47,7 @@ Fluxo declarado: formulário em duas etapas → normalização → divisão dos 
 
 ## Encaminhamento no SocialMEI.IA
 
-1. **Agora:** manter Divulgação, prévia, cópia de legenda e rascunhos; o piloto de **handoff externo** não transfere mídia/texto, não publica e começa `disabled`.
+1. **Agora:** manter Divulgação, prévia, cópia de legenda e rascunhos; o piloto de **handoff externo** não transfere mídia/texto, não publica e começa `disabled`, com o painel oculto na interface pública.
 2. **Antes de qualquer teste real:** verificar instância, titular da conta Meta, credenciais, permissões e fluxo efetivamente publicado; usar conta de testes isolada. A configuração externa exige `mode: "external-pilot"`, `formUrl` e `approvedOrigin` idêntica à origem. **Não configurar URL de terceiro sem consentimento.**
 3. **Integração nativa:** app autenticado → API FastAPI autenticada por sessão/workspace → armazenamento privado temporário de mídia e registro persistido idempotente → execução interna n8n por credencial de serviço → status consultável e confirmação Meta por conta autorizada.
 4. Criar testes com imagens e vídeos sintéticos, carrossel (2 e 10 arquivos), duas contas isoladas, agendamento futuro/passado, duplicidade, erro Meta, vídeo aguardando processamento, revogação de permissão e timeout com resultado incerto.
