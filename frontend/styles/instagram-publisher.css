@@ -133,3 +133,22 @@
     padding: 18px 0 0;
   }
 }
+
+.instagram-simulation-panel[hidden] { display: none !important; }
+.instagram-simulation-panel {
+  margin-top: 24px; padding: clamp(18px, 3vw, 28px); border: 1px solid var(--ln);
+  border-radius: 18px; background: var(--sf);
+}
+.instagram-simulation-panel h3 { margin: 8px 0; font-size: clamp(20px, 2vw, 26px); }
+.instagram-simulation-panel p { color: var(--mt); line-height: 1.6; }
+.instagram-simulation-fields { display: grid; gap: 10px; max-width: 520px; }
+.instagram-simulation-fields label { color: var(--tx); font-size: 13px; font-weight: 650; }
+.instagram-simulation-fields input, .instagram-simulation-fields select {
+  width: 100%; min-height: 44px; border: 1px solid var(--ln); border-radius: 10px;
+  color: var(--tx); background: var(--sf); padding: 10px 12px; font: inherit;
+}
+.instagram-simulation-fields button { min-height: 44px; }
+.instagram-simulation-create { display: grid; gap: 8px; }
+#instagramSimulationStatus { min-height: 24px; }
+#instagramSimulationHistory { display: grid; gap: 8px; font-size: 13px; }
+#instagramSimulationHistory > p { margin: 0; }

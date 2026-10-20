@@ -4373,6 +4373,27 @@
                   </div>
                 </div>
               </section>
+              <section class="instagram-simulation-panel" id="instagramSimulationPanel" hidden aria-labelledby="instagramSimulationTitle">
+                <header>
+                  <span class="instagram-publish-kicker">AMBIENTE DE TESTE · SEM PUBLICAÇÃO</span>
+                  <h3 id="instagramSimulationTitle">Teste o fluxo do Instagram com segurança.</h3>
+                  <p>A simulação registra somente os dados da publicação no banco de testes. Imagens e vídeos não são enviados; nenhuma conta real é conectada.</p>
+                </header>
+                <div class="instagram-simulation-fields">
+                  <label for="instagramSimulationAccount">Conta fictícia para o teste</label>
+                  <select id="instagramSimulationAccount"></select>
+                  <div class="instagram-simulation-create">
+                    <label for="instagramSimulationName">Nome da conta de teste</label>
+                    <input id="instagramSimulationName" type="text" maxlength="80" placeholder="Ex.: Minha loja (teste)" autocomplete="off" />
+                    <button type="button" class="management-button" id="instagramSimulationCreate">Criar conta fictícia</button>
+                  </div>
+                  <label for="instagramSimulationSchedule">Agendar simulação (opcional, horário do dispositivo)</label>
+                  <input id="instagramSimulationSchedule" type="datetime-local" />
+                  <button type="button" class="management-button pr" id="instagramSimulationSubmit">Simular com o conteúdo selecionado</button>
+                </div>
+                <p id="instagramSimulationStatus" role="status" aria-live="polite">Este recurso não publica no Instagram.</p>
+                <div id="instagramSimulationHistory" aria-label="Simulações recentes"></div>
+              </section>
               <section class="content-library" aria-labelledby="contentLibraryTitle">
                 <div class="content-library-heading">
                   <div>
@@ -5014,6 +5035,7 @@
     <script src="scripts/content-drafts.js"></script>
     <script src="scripts/content-studio.js"></script>
     <script src="scripts/instagram-publisher.js"></script>
+    <script src="scripts/instagram-simulation.js"></script>
     <script src="scripts/demo-data.js"></script>
     <script src="scripts/chart-refinement.js"></script>
     <script src="scripts/report-motion.js"></script>
