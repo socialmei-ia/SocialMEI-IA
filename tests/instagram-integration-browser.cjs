@@ -109,13 +109,11 @@ module.exports = async function instagramIntegration(browser, origin) {
       ctx.fillRect(0, 0, 640, 800);
       return canvas.toDataURL("image/png").split(",")[1];
     });
-    await page
-      .locator("#contentMedia")
-      .setInputFiles({
-        name: "ficticio.png",
-        mimeType: "image/png",
-        buffer: Buffer.from(png, "base64"),
-      });
+    await page.locator("#contentMedia").setInputFiles({
+      name: "ficticio.png",
+      mimeType: "image/png",
+      buffer: Buffer.from(png, "base64"),
+    });
     await page.locator("#contentPreviewStage img").waitFor();
     await page.locator("#instagramSimulationSubmit").click();
     await page.waitForFunction(() =>
@@ -124,6 +122,13 @@ module.exports = async function instagramIntegration(browser, origin) {
         .textContent.includes("Falha simulada de teste"),
     );
     assert.equal(publications.length, 0);
+    // An unrelated store refresh must not replace a pending retry's idempotency key.
+    await page.evaluate(() => document.dispatchEvent(new CustomEvent("socialmei-data-change")));
+    await page.waitForFunction(() =>
+      document
+        .getElementById("instagramSimulationStatus")
+        .textContent.includes("Simulação habilitada"),
+    );
     await page.locator("#instagramSimulationSubmit").focus();
     await page.keyboard.press("Enter");
     await page.waitForFunction(() =>
@@ -138,6 +143,9 @@ module.exports = async function instagramIntegration(browser, origin) {
     assert.equal(attempts.length, 2);
     assert.equal(attempts[0].body.idempotency_key, attempts[1].body.idempotency_key);
     assert.deepEqual(Object.keys(attempts[1].body.media[0]).sort(), ["mime", "name", "size"]);
+    await page.waitForFunction(
+      () => document.querySelectorAll("#instagramSimulationHistory p").length === 1,
+    );
     assert.equal(await page.locator("#instagramSimulationHistory p").count(), 1);
     assert.match(await page.locator("#instagramSimulationHistory").textContent(), /SIMULADO/);
     const output = path.resolve(__dirname, "../test-results/integration");
@@ -154,6 +162,13 @@ module.exports = async function instagramIntegration(browser, origin) {
           .locator("#instagramSimulationPanel")
           .screenshot({ path: path.join(output, `instagram-simulation-${width}-${theme}.png`) });
       }
+    await page.locator("#contentCaption").fill("Outro conteúdo sintético.");
+    await page.locator("#instagramSimulationSubmit").click();
+    await page.waitForFunction(
+      () => document.querySelectorAll("#instagramSimulationHistory p").length === 2,
+    );
+    assert.equal(publications.length, 2);
+    assert.notEqual(publications[0].idempotency_key, publications[1].idempotency_key);
     assert.deepEqual(external, []);
     assert.deepEqual(errors, []);
     return "Instagram integrado: opt-in fictício, teclado, metadados, falha/repetição idempotente, histórico e desktop/mobile claro/escuro; sem transporte real";

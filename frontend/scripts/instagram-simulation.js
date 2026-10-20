@@ -146,7 +146,8 @@ const SocialMEIInstagramSimulation = (() => {
       else version++;
     });
     document.addEventListener("socialmei-data-change", () => {
-      intent = null;
+      // The submission fingerprint includes identity, content, account and schedule.
+      // Unrelated refreshes must preserve the key for an uncertain retry.
       version++;
       if (currentView === "Divulgação") load();
     });

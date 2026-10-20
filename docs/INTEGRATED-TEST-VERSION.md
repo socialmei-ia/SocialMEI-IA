@@ -49,6 +49,10 @@ python3 -m http.server 5500 --bind 127.0.0.1
 
 Open `http://127.0.0.1:5500/frontend/socialmei-app.html`, enter the local demonstration and use Settings to enable the explicitly fictitious sample if desired. This is the official HTML/navigation, not a separate application. Remote account features require the documented isolated backend; never point a local review at production. Automated simulation evidence uses in-memory API fixtures, not a connected account.
 
+## Confirmed integration fix
+
+The new simulation browser test exposed an idempotency bug: a generic `socialmei-data-change` refresh cleared the pending request key even when identity, content, account and schedule were unchanged. A controlled refresh reproduced the key change before the fix. Keep the intent across unrelated refreshes; the existing fingerprint still generates a new key when the actual request changes. No API/authentication contract was changed. Three focused browser iterations then passed, including the same-key retry and a changed-caption/new-key assertion. History checks wait for the separate history GET to complete while preserving the exact count assertions.
+
 ## Human gates
 
 - Review this integrated Draft PR before any merge. Existing PRs are not merged/closed by this task.
