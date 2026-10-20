@@ -47,7 +47,7 @@ def _media(items, kind, mode):
         if not isinstance(item, dict) or set(item) != {"asset_id", "mime"}:
             raise ValueError("Manifesto de mídia inválido.")
         asset = _uuid(item["asset_id"], "asset_id")
-        if asset in seen or item["mime"] not in SAFE_MIME[kind]:
+        if asset in seen or not isinstance(item["mime"], str) or item["mime"] not in SAFE_MIME[kind]:
             raise ValueError("Mídia duplicada ou incompatível.")
         seen.add(asset)
         result.append({"asset_id": asset, "mime": item["mime"]})
@@ -62,8 +62,10 @@ def build_job(*, publication_id, operation_id, workspace_id, linked_account_id,
     It must be resolved in a server-side trusted account binding, never from
     user-supplied IDs. This function does not prove such binding exists.
     """
-    if kind not in SAFE_MIME:
+    if not isinstance(kind, str) or kind not in SAFE_MIME:
         raise ValueError("Tipo de publicação não suportado.")
+    if feed_mode is not None and not isinstance(feed_mode, str):
+        raise ValueError("Modo do Feed inválido.")
     if kind != "feed" and feed_mode is not None:
         raise ValueError("Somente Feed possui modo de múltiplas mídias.")
     if not isinstance(workspace_id, int) or isinstance(workspace_id, bool) or workspace_id < 1:
@@ -95,9 +97,38 @@ def build_job(*, publication_id, operation_id, workspace_id, linked_account_id,
 
 
 def serialize(job):
-    """Stable wire encoding so both parties sign identical UTF-8 bytes."""
+    """Validate even externally assembled jobs before producing signed wire bytes."""
     if not isinstance(job, dict) or set(job) != JOB_FIELDS or job.get("schema") != SCHEMA:
         raise ValueError("Esquema incompatível ou campos não permitidos.")
+    kind = job["format"]
+    mode = job["feed_mode"]
+    if not isinstance(kind, str) or kind not in SAFE_MIME:
+        raise ValueError("Tipo de publicação não suportado.")
+    if mode is not None and not isinstance(mode, str):
+        raise ValueError("Modo do Feed inválido.")
+    if kind != "feed" and mode is not None:
+        raise ValueError("Somente Feed possui modo de múltiplas mídias.")
+    workspace = job["workspace_id"]
+    if not isinstance(workspace, int) or isinstance(workspace, bool) or workspace < 1:
+        raise ValueError("Workspace inválido.")
+    if not isinstance(job["caption"], str) or len(job["caption"]) > 2200:
+        raise ValueError("Legenda inválida.")
+    for key in ("publication_id", "operation_id", "linked_account_id"):
+        if not isinstance(job[key], str) or _uuid(job[key], key) != job[key]:
+            raise ValueError(f"{key} precisa ser um UUID canônico.")
+    media = _media(job["media"], kind, mode)
+    if media != job["media"]:
+        raise ValueError("Manifesto de mídia inválido.")
+    when = job["scheduled_for"]
+    if when is not None:
+        if not isinstance(when, str) or not when.endswith("Z"):
+            raise ValueError("Agendamento deve estar em UTC.")
+        try:
+            parsed = datetime.fromisoformat(when[:-1] + "+00:00")
+        except ValueError:
+            raise ValueError("Agendamento inválido.") from None
+        if parsed.isoformat().replace("+00:00", "Z") != when:
+            raise ValueError("Agendamento deve estar em UTC canônico.")
     return json.dumps(
         job, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False,
     ).encode("utf-8")
