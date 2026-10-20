@@ -51,7 +51,7 @@ module.exports = async function instagramIntegration(browser, origin) {
     if (url.pathname === prefix + "/accounts") {
       if (request.method() === "POST")
         accounts.push({
-          id: "00000000-0000-4000-8000-000000000001",
+          id: "00000000-0000-4000-8000-" + String(accounts.length + 1).padStart(12, "0"),
           label: request.postDataJSON().label,
         });
       return route.fulfill({
@@ -99,6 +99,14 @@ module.exports = async function instagramIntegration(browser, origin) {
     await page.waitForFunction(
       () => document.getElementById("instagramSimulationAccount").options.length === 1,
     );
+    // With multiple accounts, the selected account must survive request and refresh.
+    await page.locator("#instagramSimulationName").fill("Segundo negócio fictício");
+    await page.locator("#instagramSimulationCreate").click();
+    await page.waitForFunction(
+      () => document.getElementById("instagramSimulationAccount").options.length === 2,
+    );
+    const secondAccountId = accounts[1].id;
+    await page.locator("#instagramSimulationAccount").selectOption(secondAccountId);
     await page.locator("#contentCaption").fill("Conteúdo sintético, sem publicação.");
     const png = await page.evaluate(() => {
       const canvas = document.createElement("canvas");
@@ -122,6 +130,7 @@ module.exports = async function instagramIntegration(browser, origin) {
         .textContent.includes("Falha simulada de teste"),
     );
     assert.equal(publications.length, 0);
+    assert.equal(await page.locator("#instagramSimulationAccount").inputValue(), secondAccountId);
     // An unrelated store refresh must not replace a pending retry's idempotency key.
     await page.evaluate(() => document.dispatchEvent(new CustomEvent("socialmei-data-change")));
     await page.waitForFunction(() =>
@@ -129,6 +138,7 @@ module.exports = async function instagramIntegration(browser, origin) {
         .getElementById("instagramSimulationStatus")
         .textContent.includes("Simulação habilitada"),
     );
+    assert.equal(await page.locator("#instagramSimulationAccount").inputValue(), secondAccountId);
     await page.locator("#instagramSimulationSubmit").focus();
     await page.keyboard.press("Enter");
     await page.waitForFunction(() =>
@@ -138,6 +148,7 @@ module.exports = async function instagramIntegration(browser, origin) {
     );
     assert.equal(publications.length, 1);
     assert.equal(publications[0].published, false);
+    assert.equal(publications[0].account_id, secondAccountId);
     assert.equal(publications[0].caption, "Conteúdo sintético, sem publicação.");
     const attempts = writes.filter((w) => w.path.endsWith("/publications"));
     assert.equal(attempts.length, 2);
