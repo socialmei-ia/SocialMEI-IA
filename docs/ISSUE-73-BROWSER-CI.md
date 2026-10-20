@@ -1,0 +1,25 @@
+# Issue #73 — browser CI investigation
+
+Baseline: `main` at `4336181fc9156d386cc46158ced708b6efda7be5`.
+This independent branch does not modify PRs #69–#72 or any deployment configuration.
+
+## Evidence and scope
+
+| Failure                      | Evidence                                                                                                                                                                                                 | Change / remaining uncertainty                                                                                                                                                                                                                                                                                                                           |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Reports keyboard focus       | Run `39445378330`, attempt 1, `reports-browser.cjs:124`. A focused tab loses focus when `renderReports()` replaces the tab list. Reproduced locally by rendering again and by a business-profile update. | Keep the five tab nodes mounted, updating selection/roving tabindex in place. Regression checks actual focus and node identity through source/profile events, mobile reflow and rendering, retaining the existing ArrowRight/Home checks. The exact original CI event ordering is not confirmed.                                                         |
+| Remote Finance edit          | Same run, attempt 2, `finance-browser.cjs:178`, waiting for value `15.25` and modal closure.                                                                                                             | No financial-store or editor behavior changed without a reproduced cause. Added failure diagnostics: synthetic modal DOM, validation state, source message, appData, mock rows and same-origin mock requests/responses, saved as `test-results/finance-edit-diagnostic.json` and in the job log. The original timeout's cause remains **not confirmed**. |
+| Local HTTPS first navigation | Run `39445054071`, attempt 1, `team-browser.cjs:132`: Chromium `ERR_NETWORK_CHANGED` on the first document GET after disposable Docker network startup.                                                  | Only this initial GET may retry the exact Chromium error, at most three attempts. HTTP statuses, certificate/connection/timeout errors and unrelated errors never retry. Existing authentication, source and write assertions remain intact. Live intermittent error not reproduced; controlled error-injection tests cover the retry boundary.          |
+
+The Finance, Reports and HTTPS test files, Finance store, editor, dialogs and navigation have no differences between baseline main and PR #72's `b6ee2ac` head (which also contains PR #71's changes). The inherited report-UI changes add a chart exploration control and shorten a source label; they do not change tab mounting. This evidence does not establish those branches as the cause.
+
+## Local execution
+
+- Baseline Finance and Reports flows passed five consecutive iterations before changes; the added focused-tab regression then failed against the original tab renderer.
+- HTTPS helper: eleven controlled cases, including retry exhaustion and no retry for HTTP 401/403/500, invalid certificates and connection failures.
+- Disposable Docker HTTPS test passed twice consecutively with a discarded diagnostic copy that excluded only loopback and the two internal Docker aliases from the environment-injected proxy. No proxy configuration was committed. Unmodified local Docker execution encountered HTTP 403 `Domain forbidden`; this is an environment limitation, not a passing result.
+- Full-suite outcomes and the final SHA's remote `validate` / `browser` results are recorded on the Draft PR. A green run is evidence for that SHA, not proof that an intermittent Finance timeout is eliminated.
+
+## Review / follow-up
+
+No backend, authentication contract, financial write semantics, infrastructure, production data or public environment was changed. No timeout was increased and no business write was retried. Keep the Issue open until the Finance cause is established or a reviewer explicitly accepts the documented monitoring gap. If the timeout recurs, use the uploaded diagnostic to distinguish native validation, stale version/409, source availability, mock response order and modal state before changing behavior.
