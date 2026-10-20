@@ -9,7 +9,9 @@ module.exports = async function instagramIntegration(browser, origin) {
     writes = [],
     accounts = [],
     publications = [];
-  let refuseNext = true;
+  let refuseNext = true,
+    holdRefresh = false;
+  const delayedRefresh = [];
   const identity = {
     usuario: { id: 101, nome: "MEI fictício", email: "sandbox@example.test" },
     negocio: { id: 201, slug: "instagram-sandbox", nome: "Negócio fictício", configuracao: {} },
@@ -48,6 +50,23 @@ module.exports = async function instagramIntegration(browser, origin) {
     if (url.pathname === "/api/v1/auth/registration")
       return route.fulfill({ json: { mode: "open" } });
     const prefix = "/api/v1/instagram/simulation";
+    if (
+      holdRefresh &&
+      request.method() === "GET" &&
+      [prefix + "/accounts", prefix + "/publications"].includes(url.pathname)
+    ) {
+      const items = JSON.parse(
+        JSON.stringify(url.pathname.endsWith("/accounts") ? accounts : publications),
+      );
+      await new Promise((resolve) =>
+        delayedRefresh.push(async () => {
+          await route.fulfill({ json: { items } });
+          resolve();
+        }),
+      );
+      return;
+    }
+
     if (url.pathname === prefix + "/accounts") {
       if (request.method() === "POST")
         accounts.push({
@@ -178,11 +197,36 @@ module.exports = async function instagramIntegration(browser, origin) {
           .locator("#instagramSimulationPanel")
           .screenshot({ path: path.join(output, `instagram-simulation-${width}-${theme}.png`) });
       }
+    // A read started before the next submission must not roll back its result/history.
+    holdRefresh = true;
+    await page.evaluate(() => document.dispatchEvent(new CustomEvent("socialmei-data-change")));
+    await page.waitForFunction(
+      () => !document.getElementById("instagramSimulationSubmit").disabled,
+    );
+    const refreshDeadline = Date.now() + 5000;
+    while (delayedRefresh.length < 2 && Date.now() < refreshDeadline)
+      await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(delayedRefresh.length, 2, "The background refresh must be in flight");
+    holdRefresh = false;
     await page.locator("#contentCaption").fill("Outro conteúdo sintético.");
     await page.locator("#instagramSimulationSubmit").click();
+    // Only the background GETs are held; the POST and its subsequent history read run normally.
     await page.waitForFunction(
       () => document.querySelectorAll("#instagramSimulationHistory p").length === 2,
     );
+    holdRefresh = false;
+    await Promise.all(delayedRefresh.splice(0).map((release) => release()));
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)));
+    assert.equal(
+      await page.locator("#instagramSimulationHistory p").count(),
+      2,
+      "Late background reads must not overwrite the submitted history",
+    );
+    assert.match(
+      await page.locator("#instagramSimulationStatus").textContent(),
+      /nada foi publicado/,
+    );
+
     assert.equal(publications.length, 2);
     assert.notEqual(publications[0].idempotency_key, publications[1].idempotency_key);
     await page.locator("#instagramSimulationAccount").selectOption(accounts[0].id);

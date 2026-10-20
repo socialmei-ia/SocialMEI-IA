@@ -16,6 +16,8 @@ Esta é uma candidata para revisão/testes controlados. Nenhum merge, deploy ou 
 
 | F05 | P1 | O autofocus adiado do modal podia substituir o foco já escolhido pelo usuário entre Tab e Shift+Tab. O CI reproduziu a falha; teste com frame controlado falhou antes da correção. | O callback verifica abertura, época do modal, fechamento e foco já dentro do diálogo antes de aplicar autofocus. Três repetições da regressão e matriz de 160 estados passaram. |
 
+| F06 | P2 | Na simulação opt-in, segurar uma leitura de contas/histórico, registrar a segunda simulação e liberar a leitura antiga: o histórico volta de duas entradas para uma e a confirmação some. Regressão controlada falhou antes da correção. | Invalidar gerações de leitura ao iniciar e concluir uma mutação; leituras antigas não substituem resultados novos. Contas, chave de idempotência e contratos permanecem os mesmos. |
+
 **P0:** nenhum defeito P0 confirmado dentro do escopo testado. Isso não equivale a homologação de segurança ou de produção.
 
 Não houve redesign; apenas a grade mobile de Automações foi ajustada pontualmente. Sem mudança de autenticação, contratos de API, persistência, cálculos, esquema/migration ou flags padrão.
@@ -49,6 +51,8 @@ Não houve redesign; apenas a grade mobile de Automações foi ajustada pontualm
 - Logs sanitizados e dados exclusivamente fictícios: `test-results/functional-audit/`, `test-results/functional-api/`, `test-results/integration/`; os resultados da regressão completa e artefato do CI estão na PR.
 
 A medição de geometria e as verificações de foco da suíte de estabilização consultam e avaliam o DOM na mesma execução de JavaScript. Assim não retêm handles de colunas removidas pelo refresh inicial entre a consulta e a leitura. Os limites de 44 px, a ordem das colunas e as assertivas de teclado foram preservados; nenhum timeout foi aumentado. A falha de foco modal do CI foi corrigida no produto, não contornada no teste.
+
+O CI também apresentou timeout ao aguardar a confirmação de uma repetição Instagram por teclado. Foram adicionados diagnósticos sem dados privados e uma assertiva explícita de foco. A leitura atrasada que sobrescreve a confirmação foi reproduzida separadamente (F06); a sequência exata do incidente remoto não foi capturada. Os resultados do HEAD final constam na PR, sem atribuir aprovação aos runs anteriores que falharam.
 
 O ensaio inicial da API teve ajustes **de fixture/roteiro**, não bugs do produto: faltava `auth.mode=remote` na configuração temporária; a autenticação remota abre diretamente a tela de login; o nome do workspace remoto é intencionalmente desabilitado no contrato atual. Esses incidentes não foram classificados como falhas do sistema. O ensaio foi reiniciado em contexto novo após corrigir o ambiente/roteiro.
 

@@ -93,6 +93,8 @@ const SocialMEIInstagramSimulation = (() => {
     }
     create.addEventListener("click", async () => {
       if (working || !name.value.trim()) return message("Informe um nome fictício.");
+      // Fence background reads that predate this mutation.
+      version++;
       working = true;
       renderAccounts();
       try {
@@ -104,6 +106,7 @@ const SocialMEIInstagramSimulation = (() => {
       } catch (error) {
         message(error.message);
       } finally {
+        version++;
         working = false;
         renderAccounts();
       }
@@ -128,6 +131,8 @@ const SocialMEIInstagramSimulation = (() => {
       } catch (error) {
         return message(error.message);
       }
+      // Fence background reads that predate this mutation.
+      version++;
       working = true;
       renderAccounts();
       try {
@@ -144,6 +149,7 @@ const SocialMEIInstagramSimulation = (() => {
       } catch (error) {
         message(error.message + " Se houver dúvida, repetir usa a mesma chave.");
       } finally {
+        version++;
         working = false;
         renderAccounts();
       }
