@@ -6,6 +6,7 @@ const path = require("node:path");
 const { execFileSync } = require("node:child_process");
 const { chromium } = require("playwright");
 const { randomUUID } = require("node:crypto");
+const { navigateInitialPage } = require("./team-navigation.cjs");
 const root = path.resolve(__dirname, "..");
 const directory = fs.mkdtempSync(path.join(os.tmpdir(), "socialmei-auth-"));
 const name = "socialmei-auth-" + randomUUID().slice(0, 8);
@@ -129,7 +130,7 @@ HTTPServer(('0.0.0.0',8000),Handler).serve_forever()
       response?.ok(),
       `HTTPS authenticated gateway must start (HTTP ${response?.status() ?? "unavailable"})`,
     );
-    const document = await page.goto(origin + "/");
+    const document = await navigateInitialPage(page, origin + "/");
     assert.equal(document.status(), 200);
     assert.equal(page.url(), origin + "/", "Short URL must remain in the address bar");
     await page.evaluate(() => SocialMEIExperience.enterApp("Clientes"));
