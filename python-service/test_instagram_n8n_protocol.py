@@ -110,6 +110,19 @@ class N8nProtocolTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             build_job(**{**kwargs, "media": [{**job["media"][0], "mime": ["image/png"]}]})
 
+    def test_signature_verification_accepts_lowercase_http_headers(self):
+        secret = b"test-only-key-" + b"x" * 36
+        body = serialize(self.job())
+        headers = sign(secret, body, timestamp=1_780_000_000)
+        lowercase = {key.lower(): value for key, value in headers.items()}
+        self.assertTrue(verify(secret, body, lowercase, now=1_780_000_001))
+        mixed = {"x-socialmei-timestamp": headers["X-SocialMEI-Timestamp"],
+                 "X-SocialMEI-Signature": headers["X-SocialMEI-Signature"]}
+        self.assertTrue(verify(secret, body, mixed, now=1_780_000_001))
+        self.assertFalse(verify(secret, body, {
+            **headers, "x-socialmei-timestamp": headers["X-SocialMEI-Timestamp"],
+        }, now=1_780_000_001))
+
     def test_hmac_covers_body_and_timestamp(self):
         secret = b"test-only-key-" + b"x" * 36
         body = serialize(self.job())
