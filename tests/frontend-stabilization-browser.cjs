@@ -81,7 +81,20 @@ module.exports = async function stabilization(browser, origin) {
         );
         assert(await tip.isVisible());
         assert.equal(await tip.textContent(), await columns.last().getAttribute("aria-label"));
-        const bounds = await tip.boundingBox();
+        // Chart re-render may replace a visible tooltip between Playwright calls.
+        await page.waitForFunction(() => {
+          const tip = document.querySelector(
+            "#financeMiniChart > .management-chart > .management-chart-tooltip",
+          );
+          return tip && !tip.hidden && tip.getClientRects().length > 0;
+        });
+        let bounds = await tip.boundingBox();
+        if (!bounds) {
+          await columns.last().focus();
+          await tip.waitFor({ state: "visible" });
+          bounds = await tip.boundingBox();
+        }
+        assert(bounds, "Tooltip disappeared during chart render");
         assert(bounds.x >= 0 && bounds.x + bounds.width <= width + 0.5);
         await page.keyboard.press("Home");
         assert(await columns.first().evaluate((node) => node === document.activeElement));
@@ -98,6 +111,16 @@ module.exports = async function stabilization(browser, origin) {
         await page.locator("#financeSummary").tap();
         assert(await tip.isHidden());
         const scroll = page.locator("#financeMiniChart .management-chart-scroll");
+        // ResizeObserver updates the hint in the next rendering cycle.
+        await page.waitForFunction(() => {
+          const wrapper = document.querySelector("#financeMiniChart .management-chart-scroll");
+          const hint = document.querySelector("#financeMiniChart .management-chart-scroll-hint");
+          return (
+            wrapper &&
+            hint &&
+            !hint.hidden === (wrapper.scrollWidth > wrapper.clientWidth + 1)
+          );
+        });
         assert.equal(
           await page.locator("#financeMiniChart .management-chart-scroll-hint").isVisible(),
           await scroll.evaluate((node) => node.scrollWidth > node.clientWidth + 1),
