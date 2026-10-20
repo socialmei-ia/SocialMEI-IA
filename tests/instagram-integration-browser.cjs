@@ -140,6 +140,11 @@ module.exports = async function instagramIntegration(browser, origin) {
     );
     assert.equal(await page.locator("#instagramSimulationAccount").inputValue(), secondAccountId);
     await page.locator("#instagramSimulationSubmit").focus();
+    assert.equal(
+      await page.evaluate(() => document.activeElement.id),
+      "instagramSimulationSubmit",
+      "Retry must retain keyboard focus before Enter",
+    );
     await page.keyboard.press("Enter");
     await page.waitForFunction(() =>
       document
@@ -206,6 +211,26 @@ module.exports = async function instagramIntegration(browser, origin) {
     assert.deepEqual(external, []);
     assert.deepEqual(errors, []);
     return "Instagram integrado: opt-in fictício, teclado, metadados, falha/repetição idempotente, histórico e desktop/mobile claro/escuro; sem transporte real";
+  } catch (error) {
+    const diagnostic = await page.evaluate(() => ({
+      view: currentView,
+      body: document.body.className,
+      selectedAccount: document.getElementById("instagramSimulationAccount").value,
+      active: document.activeElement.id || document.activeElement.tagName,
+      status: document.getElementById("instagramSimulationStatus").textContent,
+      disabled: document.getElementById("instagramSimulationSubmit").disabled,
+      snapshot: !!SocialMEIContentStudio.simulationSnapshot(),
+    }));
+    console.error(
+      "Instagram simulation diagnostic",
+      JSON.stringify({
+        ...diagnostic,
+        writes: writes.map((w) => w.path),
+        publications: publications.length,
+        errors,
+      }),
+    );
+    throw error;
   } finally {
     await page.close();
   }
