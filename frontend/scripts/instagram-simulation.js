@@ -1,4 +1,5 @@
 /* Instagram simulation uses only authenticated same-origin API; never uploads media. */
+// prettier-ignore -- keep the sandbox controller readable as a single audited unit.
 const SocialMEIInstagramSimulation = (() => {
   "use strict";
   const enabled = (config) => config?.mode === "simulation";
