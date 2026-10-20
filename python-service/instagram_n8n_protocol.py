@@ -149,8 +149,20 @@ def verify(secret, body, headers, *, now=None, tolerance=300):
     """Offline verification helper; real worker also needs replay/idempotency store."""
     if not isinstance(headers, dict) or not isinstance(body, bytes):
         return False
-    supplied_time = headers.get("X-SocialMEI-Timestamp", "")
-    supplied_sig = headers.get("X-SocialMEI-Signature", "")
+    # HTTP field names are case-insensitive; Node/n8n commonly uses lowercase.
+    # Reject duplicates with different casing rather than choosing one silently.
+    expected_names = {"x-socialmei-timestamp", "x-socialmei-signature"}
+    normalized = {}
+    for name, value in headers.items():
+        if not isinstance(name, str):
+            return False
+        key = name.lower()
+        if key in expected_names:
+            if key in normalized:
+                return False
+            normalized[key] = value
+    supplied_time = normalized.get("x-socialmei-timestamp", "")
+    supplied_sig = normalized.get("x-socialmei-signature", "")
     if not isinstance(supplied_time, str) or not re.fullmatch(r"[0-9]{10,11}", supplied_time):
         return False
     if not isinstance(supplied_sig, str) or not re.fullmatch(r"sha256=[a-f0-9]{64}", supplied_sig):
