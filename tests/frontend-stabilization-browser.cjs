@@ -82,6 +82,7 @@ module.exports = async function stabilization(browser, origin) {
         assert(await tip.isVisible());
         assert.equal(await tip.textContent(), await columns.last().getAttribute("aria-label"));
         // Chart re-render may replace a visible tooltip between Playwright calls.
+        // prettier-ignore
         await page.waitForFunction(() => {
           const tip = document.querySelector(
             "#financeMiniChart > .management-chart > .management-chart-tooltip",
@@ -112,6 +113,7 @@ module.exports = async function stabilization(browser, origin) {
         assert(await tip.isHidden());
         const scroll = page.locator("#financeMiniChart .management-chart-scroll");
         // ResizeObserver updates the hint in the next rendering cycle.
+        // prettier-ignore
         await page.waitForFunction(() => {
           const wrapper = document.querySelector("#financeMiniChart .management-chart-scroll");
           const hint = document.querySelector("#financeMiniChart .management-chart-scroll-hint");
