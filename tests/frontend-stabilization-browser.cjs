@@ -88,7 +88,7 @@ module.exports = async function stabilization(browser, origin) {
             "#financeMiniChart > .management-chart > .management-chart-tooltip",
           );
           return tip && !tip.hidden && tip.getClientRects().length > 0;
-        });
+        }, null, { timeout: 5000 });
         let bounds = await tip.boundingBox();
         if (!bounds) {
           await columns.last().focus();
@@ -112,6 +112,8 @@ module.exports = async function stabilization(browser, origin) {
         await page.locator("#financeSummary").tap();
         assert(await tip.isHidden());
         const scroll = page.locator("#financeMiniChart .management-chart-scroll");
+        // A scroll event refreshes the hint even when ResizeObserver is delayed.
+        await scroll.evaluate((node) => node.dispatchEvent(new Event("scroll")));
         // ResizeObserver updates the hint in the next rendering cycle.
         // prettier-ignore
         await page.waitForFunction(() => {
@@ -122,7 +124,7 @@ module.exports = async function stabilization(browser, origin) {
             hint &&
             !hint.hidden === (wrapper.scrollWidth > wrapper.clientWidth + 1)
           );
-        });
+        }, null, { timeout: 5000 });
         assert.equal(
           await page.locator("#financeMiniChart .management-chart-scroll-hint").isVisible(),
           await scroll.evaluate((node) => node.scrollWidth > node.clientWidth + 1),
