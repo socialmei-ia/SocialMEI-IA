@@ -39,6 +39,9 @@ const SocialMEIInstagramSimulation = (() => {
     const request = (path, method = "GET", data) =>
       SocialMEIAuth.request("/instagram/simulation" + path, method, data);
     function renderAccounts() {
+      // Rebuilding <option>s otherwise silently selects the first account.
+      // Keep the user's existing choice across loading/working states and retries.
+      const selected = account.value;
       account.replaceChildren();
       for (const item of accounts) {
         const option = document.createElement("option");
@@ -46,6 +49,7 @@ const SocialMEIInstagramSimulation = (() => {
         option.textContent = item.label + " · fictícia";
         account.append(option);
       }
+      if (accounts.some((item) => item.id === selected)) account.value = selected;
       submit.disabled = working || !accounts.length;
       create.disabled = working || !["owner", "admin"].includes(SocialMEIAuth.current?.papel);
     }
