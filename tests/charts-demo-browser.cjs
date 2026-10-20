@@ -146,10 +146,10 @@ module.exports = async function chartsDemo(browser, origin) {
     await page.keyboard.press("Tab");
     await chartPoint.focus();
     assert.equal(await chartPoint.evaluate((e) => e.matches(":focus")), true);
-    const tip = chartPoint.locator(".management-chart-tooltip");
+    const tip = page.locator("#financeMiniChart .management-chart-tooltip");
     await page.waitForFunction(() => {
       const tip = document.querySelector(
-        "#financeMiniChart .management-chart-column:focus-visible .management-chart-tooltip",
+        "#financeMiniChart .management-chart-tooltip:not([hidden])",
       );
       return tip && getComputedStyle(tip).opacity === "1";
     });

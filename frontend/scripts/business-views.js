@@ -390,7 +390,7 @@ function renderManagementChart(series) {
           <div class="management-axis" aria-hidden="true">
             ${[1, 0.5, 0].map((t) => /* HTML */ `<span style="--y:${100 - t * 100}%">${f(top * t)}</span>`).join("")}
           </div>
-          <div class="management-plot" style="--chart-column-count:${Math.max(1, series.labels.length)}">
+          <div class="management-chart-scroll"><div class="management-plot" style="--chart-column-count:${Math.max(1, series.labels.length)}">
             ${series.labels
               .map(
                 (l, i) => /* HTML */ `<button
@@ -411,13 +411,14 @@ function renderManagementChart(series) {
                         style="height:${series.d[i] ? Math.max((series.d[i] / top) * 100, 2) : 0}%"
                       ></i>`
                       }</span
-                    ><span class="management-chart-tooltip" aria-hidden="true"
-                      >${escapeHtml(l)}<br />${sales ? "Faturamento" : "Entrou"} ${money(series.r[i])}${sales ? "" : `<br />Saiu ${money(series.d[i])}`}</span
                     ><em>${escapeHtml(l)}</em>
                   </button>`,
               )
               .join("")}
-          </div>
+          </div></div>
+          <span class="management-chart-tooltip" role="tooltip" hidden></span>
+          <p class="management-chart-readout" role="status" aria-live="polite">Selecione uma coluna para conferir os valores.</p>
+          <p class="management-chart-scroll-hint" hidden>Deslize para ver os outros períodos ou use as setas nas colunas.</p>
         </div>`;
 }
 function renderManagementChartMarkup() {
