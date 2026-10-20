@@ -40,10 +40,12 @@ async function run() {
     checks.push(await require("./account-browser.cjs")(browser, origin));
     checks.push(await require("./native-opportunities-browser.cjs")(browser, origin));
     checks.push(await require("./content-studio-browser.cjs")(browser, origin));
+    checks.push(await require("./instagram-integration-browser.cjs")(browser, origin));
     checks.push(await require("./charts-demo-browser.cjs")(browser, origin));
     checks.push(await require("./premium-experience-browser.cjs")(browser, origin));
     checks.push(await require("./ux-interaction-browser.cjs")(browser, origin));
     checks.push(await require("./external-audit-browser.cjs")(browser, origin));
+    checks.push(await require("./frontend-stabilization-browser.cjs")(browser, origin));
     checks.push(await require("./premium-charts-browser.cjs")(browser, origin));
     checks.push(await require("./adaptive-onboarding-browser.cjs")(browser, origin));
     checks.push(await require("./personalization-browser.cjs")(browser, origin));

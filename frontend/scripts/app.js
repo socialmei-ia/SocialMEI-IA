@@ -3044,9 +3044,11 @@ function renderReports() {
     );
   const tabs = ["Resumo", "Vendas", "Clientes", "Atendimento", "Financeiro"];
   $("reportsGrid").setAttribute("aria-labelledby", `reportTab${tabs.indexOf(selectedReportTab)}`);
-  $("nvReportTabs").innerHTML = tabs
-    .map(
-      (t, index) => /* HTML */ `<button
+  // Keep tab nodes mounted: source refreshes and reflows must not discard keyboard focus.
+  if (!$("nvReportTabs").childElementCount)
+    $("nvReportTabs").innerHTML = tabs
+      .map(
+        (t, index) => /* HTML */ `<button
                 class="management-chip"
                 id="reportTab${index}"
                 role="tab"
@@ -3058,8 +3060,16 @@ function renderReports() {
               >
                 ${t}
               </button>`,
-    )
-    .join("");
+      )
+      .join("");
+  $("nvReportTabs")
+    .querySelectorAll("[data-nv-report-tab]")
+    .forEach((tab) => {
+      const selected = tab.dataset.nvReportTab === selectedReportTab;
+      tab.setAttribute("aria-selected", String(selected));
+      tab.setAttribute("aria-pressed", String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+    });
   const grouped = (rows, label, key = label) => {
     const o = new Map();
     rows.forEach((x) => {
