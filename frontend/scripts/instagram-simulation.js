@@ -1,4 +1,4 @@
-/* Instagram simulation uses the authenticated same-origin API only; never uploads media. */
+/* Instagram simulation uses only authenticated same-origin API; never uploads media. */
 const SocialMEIInstagramSimulation = (() => {
   "use strict";
   const enabled = (config) => config?.mode === "simulation";
@@ -27,8 +27,13 @@ const SocialMEIInstagramSimulation = (() => {
       submit = byId("instagramSimulationSubmit"),
       status = byId("instagramSimulationStatus"),
       history = byId("instagramSimulationHistory");
-    let accounts = [], intent = null, working = false, version = 0;
-    const message = (text) => { status.textContent = text; };
+    let accounts = [],
+      intent = null,
+      working = false,
+      version = 0;
+    const message = (text) => {
+      status.textContent = text;
+    };
     const request = (path, method = "GET", data) =>
       SocialMEIAuth.request("/instagram/simulation" + path, method, data);
     function renderAccounts() {
@@ -46,10 +51,13 @@ const SocialMEIInstagramSimulation = (() => {
       history.replaceChildren();
       for (const item of items) {
         const p = document.createElement("p");
-        p.textContent = item.format.toUpperCase() + " · SIMULADO · " +
+        p.textContent =
+          item.format.toUpperCase() +
+          " · SIMULADO · " +
           new Date(item.created_at).toLocaleString("pt-BR") +
-          (item.scheduled_for ? " · horário escolhido: " +
-            new Date(item.scheduled_for).toLocaleString("pt-BR") : "");
+          (item.scheduled_for
+            ? " · horário escolhido: " + new Date(item.scheduled_for).toLocaleString("pt-BR")
+            : "");
         history.append(p);
       }
     }
@@ -84,8 +92,12 @@ const SocialMEIInstagramSimulation = (() => {
         account.value = added.id;
         name.value = "";
         message("Conta fictícia criada. Nenhuma conta Instagram foi conectada.");
-      } catch (error) { message(error.message); }
-      finally { working = false; renderAccounts(); }
+      } catch (error) {
+        message(error.message);
+      } finally {
+        working = false;
+        renderAccounts();
+      }
     });
     submit.addEventListener("click", async () => {
       if (working || !accounts.some((item) => item.id === account.value)) return;
@@ -102,25 +114,39 @@ const SocialMEIInstagramSimulation = (() => {
       if (!intent || intent.fingerprint !== fingerprint)
         intent = { fingerprint, key: crypto.randomUUID() };
       let body;
-      try { body = payloadOf(snapshot, account.value, intent.key, when); }
-      catch (error) { return message(error.message); }
-      working = true; renderAccounts();
+      try {
+        body = payloadOf(snapshot, account.value, intent.key, when);
+      } catch (error) {
+        return message(error.message);
+      }
+      working = true;
+      renderAccounts();
       try {
         const result = await request("/publications", "POST", body);
         if (SocialMEIBusinessProfile.browserRepository().scope() !== snapshot.scope)
           return message("A sessão mudou. Confira as simulações na conta atual.");
-        message("Simulação " + result.id + " registrada. Nenhum arquivo foi enviado e nada foi publicado.");
+        message(
+          "Simulação " +
+            result.id +
+            " registrada. Nenhum arquivo foi enviado e nada foi publicado.",
+        );
         const items = await request("/publications");
         showHistory(items.items);
-      } catch (error) { message(error.message + " Se houver dúvida, repetir usa a mesma chave."); }
-      finally { working = false; renderAccounts(); }
+      } catch (error) {
+        message(error.message + " Se houver dúvida, repetir usa a mesma chave.");
+      } finally {
+        working = false;
+        renderAccounts();
+      }
     });
     document.addEventListener("socialmei-view-change", () => {
       if (currentView === "Divulgação") load();
       else version++;
     });
     document.addEventListener("socialmei-data-change", () => {
-      intent = null; version++; if (currentView === "Divulgação") load();
+      intent = null;
+      version++;
+      if (currentView === "Divulgação") load();
     });
     load();
   }

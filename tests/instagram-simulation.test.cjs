@@ -7,6 +7,7 @@ test("simulation mode is explicit", () => {
   assert.equal(simulation.enabled({ mode: "disabled" }), false);
   assert.equal(simulation.enabled({ mode: "simulation" }), true);
 });
+
 test("front-end sends only metadata; no file binary, token or Meta identity", () => {
   const media = { name: "test.png", mime: "image/png", size: 1024 };
   const payload = simulation.payloadOf(
@@ -15,8 +16,12 @@ test("front-end sends only metadata; no file binary, token or Meta identity", ()
     "test-idempotency-key",
   );
   assert.deepEqual(payload, {
-    account_id: "test-account-id", idempotency_key: "test-idempotency-key",
-    format: "feed", caption: "test", media: [media], scheduled_for: null,
+    account_id: "test-account-id",
+    idempotency_key: "test-idempotency-key",
+    format: "feed",
+    caption: "test",
+    media: [media],
+    scheduled_for: null,
   });
   assert(!JSON.stringify(payload).includes("workspace:"));
   assert.throws(() => simulation.payloadOf({ format: "feed" }, "a", "b"), /mídia/);

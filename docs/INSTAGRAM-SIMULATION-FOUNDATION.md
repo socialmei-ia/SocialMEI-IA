@@ -1,41 +1,52 @@
-# Instagram — simulação isolada (PR em desenvolvimento)
+# Instagram — simulação isolada
 
-## Escopo
+## O que foi implementado
 
-Foi implementado um primeiro percurso **end-to-end em ambiente de testes**, sem publicar: editor Divulgação → snapshot da mídia local → API FastAPI autenticada → tabelas de simulação no PostgreSQL → consulta do resultado `simulated`. Nenhum arquivo binário deixa o navegador: só nome, tipo e tamanho são gravados. A interface deixa explícito que a simulação não é uma publicação real.
+O fluxo de testes funciona sem serviços externos: editor Divulgação, mídia local,
+API autenticada, registro no PostgreSQL e leitura do estado `simulated`.
 
-**Não é integração Meta/n8n ativa.** O workflow original tem destino Instagram fixo, referências à instância n8n Cloud FACEPE e não possui autorização multi-MEI nem recibo durável. Não expor esse fluxo a consumidores da plataforma.
+Não é publicação real. Não há token Meta, upload, chamada ao n8n ou conta Instagram
+real. A mídia é registrada somente por nome, tipo MIME e tamanho.
 
-## Ativação opcional em ambiente de teste
+## Ativação restrita
 
-Requisitos: autenticação remota habilitada, HTTPS same-origin, banco migrado por processo autorizado, conta real do SocialMEI com permissões e uma cópia de ambiente sem dados sensíveis.
+Exigir staging HTTPS, autenticação remota e um banco de testes migrado.
+A ativação é manual e independente em ambas as camadas:
 
-- Backend: `SOCIALMEI_INSTAGRAM_MODE=simulation`. Padrão `disabled`.
-- `frontend/config.js` da instalação de **teste**: `instagramSimulation: { mode: "simulation" }`. Padrão no repositório `disabled`.
-- Nada precisa de webhook, Meta token, ImgBB key, Cloudinary preset ou n8n API key. Não ativar em produção pública.
-- Os testes de CI usam banco isolado. **Não aplicar migration ou reiniciar serviço AWS nesta etapa.**
+- Backend: `SOCIALMEI_INSTAGRAM_MODE=simulation` (padrão: `disabled`).
+- Frontend: `instagramSimulation: { mode: "simulation" }` (padrão: `disabled`).
 
-## API do simulador
+Nenhuma configuração ou infraestrutura de produção foi alterada.
 
-| Operação | Rota | Resultado |
-| --- | --- | --- |
-| Estado | `GET /api/v1/instagram/simulation/status` | transport `none` |
-| Contas fictícias | `GET /api/v1/instagram/simulation/accounts` | apenas contas do workspace autenticado |
-| Criar conta fictícia | `POST /api/v1/instagram/simulation/accounts` | `{label}`, somente owner/admin |
-| Registrar simulação | `POST /api/v1/instagram/simulation/publications` | `account_id`, `idempotency_key`, `format`, `caption`, `media`, `scheduled_for` opcional |
-| Consultar lista | `GET /api/v1/instagram/simulation/publications` | até 30 do workspace |
-| Consultar ID | `GET /api/v1/instagram/simulation/publications/{id}` | 404 para outro workspace |
+## Contrato dos endpoints
 
-Todo POST usa sessão HttpOnly, validação Origin e header CSRF existentes. O workspace e o usuário vêm do servidor, nunca do corpo. A chave UUID impede repetição do mesmo pedido e rejeita conteúdos divergentes com HTTP 409. A consulta retorna `published: false` sempre. Datas de agendamento são apenas armazenadas; **não existe worker de publicação nem fila de envio**.
+Todas as rotas abaixo estão sob `/api/v1/instagram/simulation`.
 
-O contrato da API aceita até 10 imagens para Feed, imagem/vídeo únicos em Story, vídeo único em Reel. O editor atual só permite selecionar um arquivo; suporte visual a carrossel continua pendente. MIME/quantidades são validados no backend, mas não há verificação binária remota porque arquivos não são enviados.
+- `GET /status`: indica `transport: "none"` e `published: false`.
+- `GET /accounts`: retorna contas fictícias do workspace autenticado.
+- `POST /accounts`: cria conta fictícia a partir de `{label}`; apenas owner/admin.
+- `POST /publications`: simula um pedido com conta, chave idempotente UUID,
+  tipo, legenda, metadados das mídias e data opcional com timezone.
+- `GET /publications`: consulta até 30 simulações do workspace.
+- `GET /publications/{id}`: consulta somente registro do mesmo workspace.
 
-## Próxima fase real — aguardando dados e homologação
+Os endpoints reutilizam sessão HttpOnly, Origin, CSRF e papéis. O workspace é
+obtido da identidade no servidor, não do JSON enviado.
 
-1. Confirmar proprietário da instância n8n/Meta e conta de teste e obter export autorizado sanitizado; não utilizar IDs fixos do JSON original.
-2. Criar fluxo server-to-server autenticado com autorização de conta por workspace e tokens só no backend, nunca no Git/JS.
-3. Adicionar upload privado real e verificação de conteúdo, limites e retenção; depois carrossel e agendamento durável.
-4. Persistir estados `queued/processing/published/failed/uncertain`, autorização, idempotência do comando, callbacks assinados, reconciliação Meta, revogação, retentativas seguras e trilha de auditoria.
-5. Homologar com conta e ambientes de teste antes de permitir qualquer postagem real.
+Chaves idempotentes repetidas com conteúdo igual devolvem o registro original.
+Usar a mesma chave com conteúdo diferente retorna HTTP 409.
+Nenhum registro pode ter `published: true`.
 
-**Sem merge, deployment AWS, upload de mídia, ativação do n8n ou contato com a API da Meta.**
+A API aceita até dez imagens no Feed, uma imagem/vídeo para Story e vídeo único
+para Reels. O editor ainda seleciona uma mídia. Nenhum agendamento dispara envio.
+
+## Próximas etapas para publicar de verdade
+
+1. Confirmar a instância n8n, o titular da conta Meta e autorização de testes.
+2. Implementar conta Instagram vinculada ao workspace com segredos no backend.
+3. Acrescentar upload privado, inspeção de bytes, acesso temporário e retenção.
+4. Criar disparo autenticado n8n, callback, status durável e reconciliação segura.
+5. Homologar mídia, carrossel, agendamento e erros usando uma conta de teste.
+
+O fluxo original possui ID de conta fixo e não deve ser utilizado para vários
+MEIs sem essa adaptação. Não ocorreu merge, deploy, migração AWS ou publicação.
