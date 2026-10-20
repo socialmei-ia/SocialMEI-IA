@@ -60,12 +60,35 @@ module.exports = async function stabilization(browser, origin) {
         }, theme);
         const columns = page.locator("#financeMiniChart .management-chart-column");
         await columns.first().waitFor({ state: "visible" });
-        const boxes = await columns.evaluateAll((nodes) =>
-          nodes.map((node) => {
-            const r = node.getBoundingClientRect();
-            return { x: r.x, width: r.width, height: r.height };
-          }),
+        // Query and measure in one JS turn: evaluateAll can retain detached nodes
+        // between its query and evaluation when the initial loading refresh lands.
+        const boxes = await page.evaluate(() =>
+          [...document.querySelectorAll("#financeMiniChart .management-chart-column")].map(
+            (node) => {
+              const r = node.getBoundingClientRect();
+              return { x: r.x, width: r.width, height: r.height };
+            },
+          ),
         );
+        if (boxes.some((box) => box.width === 0)) {
+          console.error(
+            "Chart geometry diagnostic",
+            JSON.stringify(
+              await page.evaluate(() => ({
+                view: currentView,
+                loading,
+                active: document.activeElement.outerHTML.slice(0, 500),
+                current: [
+                  ...document.querySelectorAll("#financeMiniChart .management-chart-column"),
+                ].map((e) => ({
+                  connected: e.isConnected,
+                  width: e.getBoundingClientRect().width,
+                  height: e.getBoundingClientRect().height,
+                })),
+              })),
+            ),
+          );
+        }
         assert(boxes.length > 1);
         assert(
           boxes.every((box) => box.width >= 44 && box.height >= 44),
@@ -79,6 +102,30 @@ module.exports = async function stabilization(browser, origin) {
         const tip = page.locator(
           "#financeMiniChart > .management-chart > .management-chart-tooltip",
         );
+        if (!(await tip.isVisible())) {
+          const diagnostic = await page.evaluate(() => ({
+            currentView,
+            loading,
+            body: document.body.className,
+            active: document.activeElement.outerHTML.slice(0, 1000),
+            tip: document.querySelector(
+              "#financeMiniChart > .management-chart > .management-chart-tooltip",
+            )?.outerHTML,
+            points: [
+              ...document.querySelectorAll("#financeMiniChart .management-chart-column"),
+            ].map((e) => ({
+              active: e === document.activeElement,
+              pressed: e.getAttribute("aria-pressed"),
+              expanded: e.getAttribute("aria-expanded"),
+              width: e.getBoundingClientRect().width,
+            })),
+          }));
+          fs.writeFileSync(
+            path.join(output, "failure-state.json"),
+            JSON.stringify(diagnostic, null, 2),
+          );
+          console.error("Tooltip diagnostic", JSON.stringify(diagnostic));
+        }
         assert(await tip.isVisible());
         assert.equal(await tip.textContent(), await columns.last().getAttribute("aria-label"));
         // Chart re-render may replace a visible tooltip between Playwright calls.
@@ -98,9 +145,21 @@ module.exports = async function stabilization(browser, origin) {
         assert(bounds, "Tooltip disappeared during chart render");
         assert(bounds.x >= 0 && bounds.x + bounds.width <= width + 0.5);
         await page.keyboard.press("Home");
-        assert(await columns.first().evaluate((node) => node === document.activeElement));
+        assert(
+          await page.evaluate(
+            () =>
+              document.querySelector("#financeMiniChart .management-chart-column") ===
+              document.activeElement,
+          ),
+        );
         await page.keyboard.press("ArrowRight");
-        assert(await columns.nth(1).evaluate((node) => node === document.activeElement));
+        assert(
+          await page.evaluate(
+            () =>
+              document.querySelectorAll("#financeMiniChart .management-chart-column")[1] ===
+              document.activeElement,
+          ),
+        );
         await page.keyboard.press("Escape");
         assert(await tip.isHidden());
         await columns.first().tap();

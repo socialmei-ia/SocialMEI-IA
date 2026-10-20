@@ -48,6 +48,8 @@ Não houve redesign; apenas a grade mobile de Automações foi ajustada pontualm
 - `functional-api-browser.cjs`: ensaio adicional **sem mock de API**, com HTTPS/Basic, FastAPI e PostgreSQL reais descartáveis. Cadastro/onboarding, cliente/produto/venda, estoque7→5, pagamento, financeiro12.35→15.25, reload, relatório60/CSV e logout/login passaram, sem erros JS ou requests externos. Instagram default503 foi verificado. Não prova publicação real.
 - Logs sanitizados e dados exclusivamente fictícios: `test-results/functional-audit/`, `test-results/functional-api/`, `test-results/integration/`; os resultados da regressão completa e artefato do CI estão na PR.
 
+A medição de geometria e as verificações de foco da suíte de estabilização consultam e avaliam o DOM na mesma execução de JavaScript. Assim não retêm handles de colunas removidas pelo refresh inicial entre a consulta e a leitura. Os limites de 44 px, a ordem das colunas e as assertivas de teclado foram preservados; nenhum timeout foi aumentado. A falha de foco modal do CI foi corrigida no produto, não contornada no teste.
+
 O ensaio inicial da API teve ajustes **de fixture/roteiro**, não bugs do produto: faltava `auth.mode=remote` na configuração temporária; a autenticação remota abre diretamente a tela de login; o nome do workspace remoto é intencionalmente desabilitado no contrato atual. Esses incidentes não foram classificados como falhas do sistema. O ensaio foi reiniciado em contexto novo após corrigir o ambiente/roteiro.
 
 O stack descartável foi removido depois do ensaio. Configurações padrão do repositório não foram habilitadas. Os registros/credenciais fictícios não pertencem a um ambiente publicado.
