@@ -63,6 +63,25 @@ async function run() {
     await page.goto(origin + "/frontend/socialmei-app.html");
     await page.evaluate(() => document.fonts.ready);
     await page.evaluate(() => SocialMEIExperience.enterApp("Início"));
+    // A grid cell may stretch without wrapping its text. Verify the detector
+    // accepts extra box height and still detects an actual currency line break.
+    const detector = await page.evaluate(() => {
+      const probe = document.createElement("b");
+      probe.setAttribute("aria-hidden", "true");
+      probe.style.cssText =
+        "position:fixed;left:-10000px;top:0;width:200px;height:120px;font:24px/1.2 sans-serif;overflow-wrap:anywhere";
+      probe.textContent = "R$\u00a01.530,00";
+      document.body.append(probe);
+      const range = document.createRange();
+      range.selectNodeContents(probe);
+      const single = range.getClientRects().length;
+      probe.style.width = "20px";
+      const wrapped = range.getClientRects().length;
+      probe.remove();
+      return { single, wrapped };
+    });
+    assert.equal(detector.single, 1);
+    assert(detector.wrapped > 1, "Currency detector must reject real line breaks");
 
     for (const width of [1920, 1600, 1440, 1366, 1280, 1024, 900, 768, 430, 390, 360]) {
       await page.setViewportSize({ width, height: 900 });
@@ -109,20 +128,41 @@ async function run() {
         );
         geometryStates++;
         await page.evaluate(() => setView("Financeiro"));
+        // Route transitions may briefly hide the finance panel. Check geometry
+        // only after the real text fragments are rendered and visible.
+        await page.waitForFunction(() => {
+          const elements = [...document.querySelectorAll("#financeSummary .management-kpi > b")];
+          return (
+            elements.length === 5 &&
+            elements.every((element) => {
+              const range = document.createRange();
+              range.selectNodeContents(element);
+              return range.getClientRects().length > 0;
+            })
+          );
+        });
         const amounts = await page
           .locator("#financeSummary .management-kpi > b")
           .evaluateAll((elements) =>
-            elements.map((element) => ({
-              text: element.textContent,
-              height: element.getBoundingClientRect().height,
-              lineHeight: parseFloat(getComputedStyle(element).lineHeight),
-            })),
+            elements.map((element) => {
+              const range = document.createRange();
+              range.selectNodeContents(element);
+              const box = element.getBoundingClientRect();
+              const rects = [...range.getClientRects()];
+              return {
+                text: element.textContent,
+                lines: rects.length,
+                fits: rects.every(
+                  (rect) => rect.left >= box.left - 1 && rect.right <= box.right + 1,
+                ),
+              };
+            }),
           );
         assert.equal(amounts.length, 5);
         for (const amount of amounts) {
           assert(
-            amount.height <= amount.lineHeight + 1,
-            `Finance amount split across lines at ${width}/${theme}: ${amount.text}`,
+            amount.lines === 1 && amount.fits,
+            `Finance amount wraps or escapes its container at ${width}/${theme}: ${JSON.stringify(amount)}`,
           );
         }
         financeStates++;
