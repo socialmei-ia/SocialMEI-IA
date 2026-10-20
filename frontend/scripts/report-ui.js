@@ -672,7 +672,7 @@ const SocialMEIReportUI = (() => {
     sourceDetails.classList.toggle("has-warning", sourceProblem);
     sourceDetails.querySelector("summary").textContent = sourceProblem
       ? "Confira a disponibilidade dos dados"
-      : "Origem e definições dos indicadores";
+      : "Sobre os dados";
     if (sourceProblem) {
       if (!sourceDetails.open) state.sourceAutoOpened = true;
       sourceDetails.open = true;
@@ -733,6 +733,9 @@ const SocialMEIReportUI = (() => {
       tip.id =
         (chart.closest("[id]")?.id || "report") + "-" + chart.dataset.source + "-chart-tooltip";
       points.forEach((point) => point.setAttribute("aria-controls", tip.id));
+      chart.querySelector(".rv2-chart-explore").addEventListener("click", () => {
+        points[0]?.focus();
+      });
       let hovered = null,
         focused = null,
         pinned = null;
@@ -869,7 +872,7 @@ const SocialMEIReportUI = (() => {
           `<line x1="${L}" x2="${w - R}" y1="${y(max * value)}" y2="${y(max * value)}" stroke="var(--ln)"/><text x="${L - 6}" y="${y(max * value) + 4}" text-anchor="end" fill="var(--mt)" font-size="${mobile ? 12 : 14}">${(max * value).toLocaleString("pt-BR", { notation: "compact", maximumFractionDigits: 1 })}</text>`,
       )
       .join("");
-    return `<div class="management-chart rv2-trend" data-source="${series.source}" data-series="${escapeHtml(JSON.stringify(series))}"><svg viewBox="0 0 ${w} ${h}" role="group" aria-label="${sales ? "Faturamento das vendas pagas" : "Receitas e despesas pagas"}, em reais. Use Tab ou as setas para percorrer os pontos.">${ticks}<line class="rv2-guide" x1="${L}" x2="${L}" y1="${T}" y2="${h - B}" stroke="var(--mt)" stroke-dasharray="3 5" vector-effect="non-scaling-stroke" style="visibility:hidden" aria-hidden="true"/>${line(series.r, "--brand-primary")}${sales ? "" : line(series.d, "--brand-accent")}${sales ? "" : series.labels.map((_, i) => `<circle class="rv2-secondary-point" cx="${x(i)}" cy="${y(series.d[i])}" r="3" fill="var(--sf)" stroke="var(--brand-accent)" stroke-width="2" vector-effect="non-scaling-stroke" aria-hidden="true"/>`).join("")}${series.labels.map((label, i) => `<g class="rv2-point management-chart-column" data-index="${i}" role="button" tabindex="0" aria-expanded="false" aria-label="${escapeHtml(label + ": " + (sales ? "faturamento " : "entrou ") + money(series.r[i]) + (sales ? "" : "; saiu " + money(series.d[i])))}"><rect x="${x(i) - hitRadius}" y="${T}" width="${hitRadius * 2}" height="${h - T - B}" fill="transparent"/><circle cx="${x(i)}" cy="${y(series.r[i])}" r="${mobile ? 5 : 4}" fill="var(--sf)" stroke="var(--brand-primary)" stroke-width="2" vector-effect="non-scaling-stroke"/></g>${i % labelStep === 0 || i === n - 1 ? `<text x="${x(i)}" y="${h - 12}" text-anchor="middle" fill="var(--mt)" font-size="${mobile ? 12 : 16}">${escapeHtml(label)}</text>` : ""}`).join("")}</svg><p class="rv2-chart-tooltip" role="tooltip" hidden></p><p class="rv2-chart-readout management-note" role="status" aria-live="polite" aria-atomic="true">Passe o mouse, toque ou use Tab nos pontos para conferir valores.</p></div>`;
+    return `<div class="management-chart rv2-trend" data-source="${series.source}" data-series="${escapeHtml(JSON.stringify(series))}"><button type="button" class="management-button sm rv2-chart-explore" aria-label="Explorar valores do gráfico. Use as setas para mudar de ponto.">Explorar valores</button><svg viewBox="0 0 ${w} ${h}" role="group" aria-label="${sales ? "Faturamento das vendas pagas" : "Receitas e despesas pagas"}, em reais. Use Tab ou as setas para percorrer os pontos.">${ticks}<line class="rv2-guide" x1="${L}" x2="${L}" y1="${T}" y2="${h - B}" stroke="var(--mt)" stroke-dasharray="3 5" vector-effect="non-scaling-stroke" style="visibility:hidden" aria-hidden="true"/>${line(series.r, "--brand-primary")}${sales ? "" : line(series.d, "--brand-accent")}${sales ? "" : series.labels.map((_, i) => `<circle class="rv2-secondary-point" cx="${x(i)}" cy="${y(series.d[i])}" r="3" fill="var(--sf)" stroke="var(--brand-accent)" stroke-width="2" vector-effect="non-scaling-stroke" aria-hidden="true"/>`).join("")}${series.labels.map((label, i) => `<g class="rv2-point management-chart-column" data-index="${i}" role="button" tabindex="0" aria-expanded="false" aria-label="${escapeHtml(label + ": " + (sales ? "faturamento " : "entrou ") + money(series.r[i]) + (sales ? "" : "; saiu " + money(series.d[i])))}"><rect x="${x(i) - hitRadius}" y="${T}" width="${hitRadius * 2}" height="${h - T - B}" fill="transparent"/><circle cx="${x(i)}" cy="${y(series.r[i])}" r="${mobile ? 5 : 4}" fill="var(--sf)" stroke="var(--brand-primary)" stroke-width="2" vector-effect="non-scaling-stroke"/></g>${i % labelStep === 0 || i === n - 1 ? `<text x="${x(i)}" y="${h - 12}" text-anchor="middle" fill="var(--mt)" font-size="${mobile ? 12 : 16}">${escapeHtml(label)}</text>` : ""}`).join("")}</svg><p class="rv2-chart-tooltip" role="tooltip" hidden></p><p class="rv2-chart-readout management-note" role="status" aria-live="polite" aria-atomic="true">Passe o mouse, toque ou use Tab nos pontos para conferir valores.</p></div>`;
   }
   function statusPanel(metrics) {
     const total = metrics.sales.length;

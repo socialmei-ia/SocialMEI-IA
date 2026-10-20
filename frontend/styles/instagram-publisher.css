@@ -1,0 +1,193 @@
+/* Instagram handoff pilot: native visual treatment, no remote upload. */
+.instagram-publish-panel {
+  border: 1px solid var(--ln);
+  border-radius: 18px;
+  padding: clamp(20px, 3vw, 32px);
+  margin-top: 28px;
+  background: var(--sf);
+}
+.instagram-publish-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.instagram-publish-header h3 {
+  margin: 8px 0;
+  font-size: clamp(20px, 2.4vw, 26px);
+  color: var(--tx);
+}
+.instagram-publish-header p,
+.instagram-publish-guide,
+.instagram-publish-status,
+.instagram-publish-modal-text {
+  color: var(--mt);
+  line-height: 1.6;
+}
+.instagram-publish-header p {
+  max-width: 62ch;
+}
+.instagram-publish-kicker {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--br);
+  letter-spacing: 0.07em;
+}
+.instagram-publish-state {
+  font-size: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--ln);
+  border-radius: 100px;
+  color: var(--mt);
+}
+.instagram-publish-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
+  gap: clamp(16px, 3vw, 32px);
+  align-items: start;
+}
+.instagram-publish-steps {
+  list-style: none;
+  counter-reset: publish-step;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 16px;
+}
+.instagram-publish-steps li {
+  counter-increment: publish-step;
+  position: relative;
+  padding-left: 48px;
+  min-height: 36px;
+  display: grid;
+  gap: 4px;
+}
+.instagram-publish-steps li::before {
+  content: counter(publish-step);
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--hover);
+  color: var(--tx);
+  font-weight: 700;
+}
+.instagram-publish-steps strong {
+  color: var(--tx);
+  font-size: 14px;
+}
+.instagram-publish-steps span {
+  color: var(--mt);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.instagram-publish-next {
+  min-width: 0;
+  border-left: 1px solid var(--ln);
+  padding-left: clamp(16px, 3vw, 32px);
+}
+.instagram-publish-next > strong {
+  color: var(--tx);
+}
+.instagram-publish-guide {
+  font-size: 14px;
+  margin: 8px 0 18px;
+}
+.instagram-publish-next .management-button {
+  width: 100%;
+  min-height: 44px;
+}
+.instagram-publish-status {
+  font-size: 13px;
+  margin-top: 12px;
+}
+.instagram-publish-modal-text {
+  font-size: 14px;
+}
+.instagram-publish-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.instagram-publish-modal-actions a {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+}
+@media (max-width: 720px) {
+  .instagram-publish-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .instagram-publish-next {
+    border-left: 0;
+    border-top: 1px solid var(--ln);
+    padding: 18px 0 0;
+  }
+}
+
+.instagram-simulation-panel[hidden] {
+  display: none !important;
+}
+.instagram-simulation-panel {
+  margin-top: 24px;
+  padding: clamp(18px, 3vw, 28px);
+  border: 1px solid var(--ln);
+  border-radius: 18px;
+  background: var(--sf);
+}
+.instagram-simulation-panel h3 {
+  margin: 8px 0;
+  font-size: clamp(20px, 2vw, 26px);
+}
+.instagram-simulation-panel p {
+  color: var(--mt);
+  line-height: 1.6;
+}
+.instagram-simulation-fields {
+  display: grid;
+  gap: 10px;
+  max-width: 520px;
+}
+.instagram-simulation-fields label {
+  color: var(--tx);
+  font-size: 13px;
+  font-weight: 650;
+}
+.instagram-simulation-fields input,
+.instagram-simulation-fields select {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--ln);
+  border-radius: 10px;
+  color: var(--tx);
+  background: var(--sf);
+  padding: 10px 12px;
+  font: inherit;
+}
+.instagram-simulation-fields button {
+  min-height: 44px;
+}
+.instagram-simulation-create {
+  display: grid;
+  gap: 8px;
+}
+#instagramSimulationStatus {
+  min-height: 24px;
+}
+#instagramSimulationHistory {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+}
+#instagramSimulationHistory > p {
+  margin: 0;
+}
