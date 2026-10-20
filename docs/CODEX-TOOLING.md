@@ -12,15 +12,13 @@ Este guia complementa [AGENTS.md](../AGENTS.md), [ambientes](ENVIRONMENTS.md) e 
 
 ## Ferramentas opcionais
 
-| Ferramenta | Uso sugerido | Observação |
-| --- | --- | --- |
-| GitHub | Código, branches, PRs, diffs e CI | Uma PR aprovada não significa deploy. |
-| Superpowers | Planejamento, debugging, TDD e revisão | Aplicar somente às tarefas relevantes. |
-| Product Design | Pesquisa de UX, auditoria visual, protótipos | Preservar design e contratos existentes. |
-| Context7 | Consultar documentação atualizada de bibliotecas | Validar a resposta contra a versão usada no projeto. |
-| Figma | Referências editáveis, componentes e design system | Não sincronizar ou sobrescrever telas sem escopo aprovado. |
-| PostHog | Analytics, flags e erros de produto | Só após instrumentação e avaliação de privacidade; não enviar dados sensíveis. |
-| Trello | Tarefas, responsáveis e documentação operacional | O Git continua sendo a fonte de verdade do código. |
+- **GitHub:** código, branches, PRs, diffs e CI; PR aprovada não significa deploy.
+- **Superpowers:** planejamento, debugging, TDD e revisão; aplicar às tarefas relevantes.
+- **Product Design:** pesquisa de UX, auditoria visual e protótipos; preservar os contratos existentes.
+- **Context7:** documentação atualizada; conferir a versão usada no projeto.
+- **Figma:** referências e componentes editáveis; não sobrescrever telas sem escopo aprovado.
+- **PostHog:** analytics, flags e erros; requer instrumentação e avaliação de privacidade.
+- **Trello:** tarefas e documentação; o Git permanece a fonte de verdade do código.
 
 **Importante:** uma ferramenta conectada no ChatGPT não fica automaticamente disponível em cada tarefa do Codex. Confirmar disponibilidade e permissões no contexto correto antes de usar. A instalação de um plugin não altera por si só o código, a AWS ou o n8n.
 
