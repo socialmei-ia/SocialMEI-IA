@@ -33,7 +33,7 @@ def guard(*, write=False, manage=False):
 
 
 class Strict(BaseModel):
-    model_config = ConfigDict(extra="forbid", strict=True)
+    model_config = ConfigDict(extra="forbid")
 
 
 class AccountInput(Strict):
