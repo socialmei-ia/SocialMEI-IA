@@ -64,6 +64,7 @@
     <link rel="stylesheet" href="styles/opportunities.css" />
     <link rel="stylesheet" href="styles/content-studio.css" />
     <link rel="stylesheet" href="styles/content-preparation.css" />
+    <link rel="stylesheet" href="styles/content-workspace.css" />
     <link rel="stylesheet" href="styles/instagram-publisher.css" />
     <link rel="stylesheet" href="styles/reports-v2.css" />
     <link rel="stylesheet" href="styles/chart-refinement.css" />
@@ -2874,9 +2875,6 @@
                   <ul class="not-list" id="notList"></ul>
                 </div>
               </div>
-              <button type="button" class="btn" id="contentStudioOpen">
-                Divulgação · preparar conteúdo
-              </button>
             </div>
           </details>
           <button class="btn header-create" id="globalCreateBtn" type="button">+ Nova venda</button>
@@ -4266,211 +4264,273 @@
                 </p>
               </details>
               <div id="contentStorageStatus" role="status" class="management-note"></div>
-              <div class="content-studio-layout">
-                <div class="content-editor">
-                  <div class="content-formats" role="tablist" aria-label="Formato do conteúdo">
-                    <span aria-hidden="true" class="content-format-indicator"></span>
-                    <button
-                      type="button"
-                      role="tab"
-                      data-content-format="story"
-                      id="contentFormat-story"
-                      aria-controls="contentEditorPanel"
-                      aria-selected="false"
-                      tabindex="-1"
-                    >
-                      Story <small>9:16</small>
-                    </button>
-                    <button
-                      type="button"
-                      role="tab"
-                      data-content-format="feed"
-                      id="contentFormat-feed"
-                      aria-controls="contentEditorPanel"
-                      aria-selected="true"
-                    >
-                      Feed <small>4:5</small>
-                    </button>
-                    <button
-                      type="button"
-                      role="tab"
-                      data-content-format="reel"
-                      id="contentFormat-reel"
-                      aria-controls="contentEditorPanel"
-                      aria-selected="false"
-                      tabindex="-1"
-                    >
-                      Reel <small>9:16</small>
-                    </button>
-                  </div>
-                  <div id="contentEditorPanel" role="tabpanel" aria-labelledby="contentFormat-feed">
-                    <form id="contentDraftForm" autocomplete="off">
-                      <label for="contentTitle"
-                        >Título do rascunho <small>Para sua organização</small></label
-                      >
-                      <input
-                        id="contentTitle"
-                        maxlength="80"
-                        required
-                        placeholder="Sobre o que você quer falar?"
-                      />
-                      <div class="content-field-heading">
-                        <label for="contentCaption">Texto ou legenda</label
-                        ><span id="contentCaptionCount">0 / 2200</span>
-                      </div>
-                      <textarea
-                        id="contentCaption"
-                        maxlength="2200"
-                        rows="5"
-                        placeholder="Conte o que seu negócio oferece, com suas próprias palavras."
-                      ></textarea>
-                      <label for="contentCta">Chamada para ação <small>Opcional</small></label>
-                      <input
-                        id="contentCta"
-                        maxlength="140"
-                        placeholder="Ex.: Fale comigo para saber mais"
-                      />
-                      <label for="contentHashtags">Hashtags <small>Opcionais</small></label
-                      ><input id="contentHashtags" maxlength="300" placeholder="#SeuNegócio" />
-                      <div class="content-media-control">
-                        <label for="contentMedia">Imagem ou vídeo local</label>
-                        <p id="contentMediaHelp">
-                          Feed: imagem JPG, PNG ou WebP, até 10 MB. Sugestão de composição: 4:5.
-                        </p>
-                        <input
-                          id="contentMedia"
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp"
-                          aria-describedby="contentMediaHelp contentMediaStatus"
-                        />
-                        <p id="contentMediaStatus" role="status">
-                          Nenhuma mídia selecionada. O texto pode ser salvo sem mídia.
-                        </p>
-                        <button
-                          type="button"
-                          class="management-button"
-                          id="contentRemoveMedia"
-                          hidden
-                        >
-                          Remover mídia
-                        </button>
-                      </div>
-                      <div class="content-editor-actions">
-                        <button type="submit" class="management-button pr" id="contentSave">
-                          Salvar rascunho local</button
-                        ><button type="button" class="management-button" id="contentCopy">
-                          Copiar legenda
-                        </button>
-                      </div>
-                      <p
-                        id="contentActionStatus"
-                        role="status"
-                        aria-live="polite"
-                        class="management-note"
-                      ></p>
-                    </form>
-                  </div>
-                </div>
-                <aside class="content-preview-column" aria-label="Prévia do conteúdo">
-                  <div class="content-preview-heading">
-                    <h3>É assim que está ficando</h3>
-                    <span id="contentPreviewFormat">Feed</span>
-                  </div>
-                  <div class="content-preview-device" data-content-preview="feed">
-                    <div class="content-preview-brand">
-                      <span aria-hidden="true" id="contentBrandInitial">S</span
-                      ><strong id="contentPreviewBusiness">Seu negócio</strong
-                      ><small>Prévia local</small>
-                    </div>
-                    <div class="content-preview-stage" id="contentPreviewStage">
-                      <div class="content-preview-placeholder">
-                        <span aria-hidden="true">＋</span><b>Seu conteúdo começa aqui</b>
-                        <p>Selecione uma imagem ou vídeo para conferir o enquadramento.</p>
-                      </div>
-                    </div>
-                    <div class="content-preview-text">
-                      <strong id="contentPreviewTitle">Título do conteúdo</strong>
-                      <p id="contentPreviewCaption">O texto da sua postagem aparece aqui.</p>
-                    </div>
-                  </div>
-                  <p class="content-preview-disclosure">
-                    Prévia de composição. Não recortamos nem editamos o arquivo. Texto sobre
-                    vídeo/imagem não é incorporado à mídia.
-                  </p>
-                  <div class="content-preparation">
-                    <button type="button" class="management-button" id="contentExport">
-                      Baixar texto de preparação</button
-                    ><button
-                      type="button"
-                      class="management-button"
-                      id="contentPublish"
-                      disabled
-                      aria-describedby="contentPublishHelp"
-                    >
-                      Publicação não conectada
-                    </button>
-                    <p id="contentPublishHelp">
-                      Conexão e permissões do Instagram ainda precisam de homologação. Use o texto e
-                      o arquivo original no seu canal.
-                    </p>
-                  </div>
-                </aside>
-              </div>
-              <section
-                class="instagram-publish-panel"
-                id="instagramPublishPanel"
-                aria-labelledby="instagramPublishTitle"
-                hidden
+              <div
+                class="management-chips content-workspace-tabs"
+                role="tablist"
+                aria-label="Divulgação"
               >
-                <header class="instagram-publish-header">
-                  <div>
-                    <span class="instagram-publish-kicker">INSTAGRAM · PILOTO</span>
-                    <h3 id="instagramPublishTitle">Seu conteúdo, pronto para sair do rascunho.</h3>
-                    <p>
-                      Prepare aqui e continue no formulário externo somente após a liberação do
-                      piloto. Confira quem controla a conta do Instagram antes de publicar.
-                    </p>
-                  </div>
-                  <span class="instagram-publish-state" id="instagramPublishState">
-                    Integração pendente
-                  </span>
-                </header>
-                <div class="instagram-publish-grid">
-                  <ol class="instagram-publish-steps">
-                    <li>
-                      <strong>Prepare o conteúdo</strong>
-                      <span>Escreva a legenda, confira a prévia e guarde seu rascunho.</span>
-                    </li>
-                    <li>
-                      <strong>Confira o destino</strong>
-                      <span>Verifique a conta do Instagram, o formato e a mídia original.</span>
-                    </li>
-                    <li>
-                      <strong>Finalize no n8n</strong>
-                      <span>O formulário externo solicita os arquivos e a confirmação final.</span>
-                    </li>
-                  </ol>
-                  <div class="instagram-publish-next">
-                    <strong>Próximo passo: <span id="instagramPublishFormat">Feed</span></strong>
-                    <p class="instagram-publish-guide" id="instagramPublishGuide"></p>
-                    <button
-                      type="button"
-                      class="management-button pr"
-                      id="instagramPublishStart"
-                      aria-describedby="instagramPublishStatus"
-                      disabled
+                <button
+                  type="button"
+                  role="tab"
+                  id="contentWorkspace-create"
+                  data-content-workspace-tab="create"
+                  aria-controls="contentCreatePanel"
+                  aria-selected="true"
+                >
+                  Criar conteúdo
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  id="contentWorkspace-drafts"
+                  data-content-workspace-tab="drafts"
+                  aria-controls="contentDraftsPanel"
+                  aria-selected="false"
+                  tabindex="-1"
+                >
+                  Rascunhos
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  id="contentWorkspace-agenda"
+                  data-content-workspace-tab="agenda"
+                  aria-controls="contentAgendaPanel"
+                  aria-selected="false"
+                  tabindex="-1"
+                >
+                  Agenda
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  id="contentWorkspace-connections"
+                  data-content-workspace-tab="connections"
+                  aria-controls="contentConnectionsPanel"
+                  aria-selected="false"
+                  tabindex="-1"
+                >
+                  Conexões
+                </button>
+              </div>
+              <div
+                id="contentCreatePanel"
+                role="tabpanel"
+                aria-labelledby="contentWorkspace-create"
+              >
+                <div class="content-studio-layout">
+                  <div class="content-editor">
+                    <div class="content-formats" role="tablist" aria-label="Formato do conteúdo">
+                      <span aria-hidden="true" class="content-format-indicator"></span>
+                      <button
+                        type="button"
+                        role="tab"
+                        data-content-format="story"
+                        id="contentFormat-story"
+                        aria-controls="contentEditorPanel"
+                        aria-selected="false"
+                        tabindex="-1"
+                      >
+                        Story <small>9:16</small>
+                      </button>
+                      <button
+                        type="button"
+                        role="tab"
+                        data-content-format="feed"
+                        id="contentFormat-feed"
+                        aria-controls="contentEditorPanel"
+                        aria-selected="true"
+                      >
+                        Feed <small>4:5</small>
+                      </button>
+                      <button
+                        type="button"
+                        role="tab"
+                        data-content-format="reel"
+                        id="contentFormat-reel"
+                        aria-controls="contentEditorPanel"
+                        aria-selected="false"
+                        tabindex="-1"
+                      >
+                        Reel <small>9:16</small>
+                      </button>
+                    </div>
+                    <div
+                      id="contentEditorPanel"
+                      role="tabpanel"
+                      aria-labelledby="contentFormat-feed"
                     >
-                      Publicação em configuração
-                    </button>
-                    <p class="instagram-publish-status" id="instagramPublishStatus" role="status">
-                      A conexão de publicação ainda não foi habilitada neste ambiente.
-                    </p>
+                      <form id="contentDraftForm" autocomplete="off">
+                        <label for="contentTitle"
+                          >Título do rascunho <small>Para sua organização</small></label
+                        >
+                        <input
+                          id="contentTitle"
+                          maxlength="80"
+                          required
+                          placeholder="Sobre o que você quer falar?"
+                        />
+                        <div class="content-field-heading">
+                          <label for="contentCaption">Texto ou legenda</label
+                          ><span id="contentCaptionCount">0 / 2200</span>
+                        </div>
+                        <textarea
+                          id="contentCaption"
+                          maxlength="2200"
+                          rows="5"
+                          placeholder="Conte o que seu negócio oferece, com suas próprias palavras."
+                        ></textarea>
+                        <label for="contentCta">Chamada para ação <small>Opcional</small></label>
+                        <input
+                          id="contentCta"
+                          maxlength="140"
+                          placeholder="Ex.: Fale comigo para saber mais"
+                        />
+                        <label for="contentHashtags">Hashtags <small>Opcionais</small></label
+                        ><input id="contentHashtags" maxlength="300" placeholder="#SeuNegócio" />
+                        <div class="content-media-control">
+                          <label for="contentMedia">Imagem ou vídeo local</label>
+                          <p id="contentMediaHelp">
+                            Feed: imagem JPG, PNG ou WebP, até 10 MB. Sugestão de composição: 4:5.
+                          </p>
+                          <input
+                            id="contentMedia"
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            aria-describedby="contentMediaHelp contentMediaStatus"
+                          />
+                          <p id="contentMediaStatus" role="status">
+                            Nenhuma mídia selecionada. O texto pode ser salvo sem mídia.
+                          </p>
+                          <button
+                            type="button"
+                            class="management-button"
+                            id="contentRemoveMedia"
+                            hidden
+                          >
+                            Remover mídia
+                          </button>
+                        </div>
+                        <div class="content-editor-actions">
+                          <button type="submit" class="management-button pr" id="contentSave">
+                            Salvar rascunho local</button
+                          ><button type="button" class="management-button" id="contentCopy">
+                            Copiar legenda
+                          </button>
+                        </div>
+                        <p
+                          id="contentActionStatus"
+                          role="status"
+                          aria-live="polite"
+                          class="management-note"
+                        ></p>
+                      </form>
+                    </div>
                   </div>
+                  <aside class="content-preview-column" aria-label="Prévia do conteúdo">
+                    <div class="content-preview-heading">
+                      <h3>É assim que está ficando</h3>
+                      <span id="contentPreviewFormat">Feed</span>
+                    </div>
+                    <div class="content-preview-device" data-content-preview="feed">
+                      <div class="content-preview-brand">
+                        <span aria-hidden="true" id="contentBrandInitial">S</span
+                        ><strong id="contentPreviewBusiness">Seu negócio</strong
+                        ><small>Prévia local</small>
+                      </div>
+                      <div class="content-preview-stage" id="contentPreviewStage">
+                        <div class="content-preview-placeholder">
+                          <span aria-hidden="true">＋</span><b>Seu conteúdo começa aqui</b>
+                          <p>Selecione uma imagem ou vídeo para conferir o enquadramento.</p>
+                        </div>
+                      </div>
+                      <div class="content-preview-text">
+                        <strong id="contentPreviewTitle">Título do conteúdo</strong>
+                        <p id="contentPreviewCaption">O texto da sua postagem aparece aqui.</p>
+                      </div>
+                    </div>
+                    <p class="content-preview-disclosure">
+                      Prévia de composição. Não recortamos nem editamos o arquivo. Texto sobre
+                      vídeo/imagem não é incorporado à mídia.
+                    </p>
+                    <div class="content-preparation">
+                      <button type="button" class="management-button" id="contentExport">
+                        Baixar texto de preparação</button
+                      ><button
+                        type="button"
+                        class="management-button"
+                        id="contentPublish"
+                        disabled
+                        aria-describedby="contentPublishHelp"
+                      >
+                        Publicação não conectada
+                      </button>
+                      <p id="contentPublishHelp">
+                        Conexão e permissões do Instagram ainda precisam de homologação. Use o texto
+                        e o arquivo original no seu canal.
+                      </p>
+                    </div>
+                  </aside>
                 </div>
-              </section>
-              <!-- The staged test section is an intentionally isolated component. -->
-              <!-- prettier-ignore -->
-              <section
+                <section
+                  class="instagram-publish-panel"
+                  id="instagramPublishPanel"
+                  aria-labelledby="instagramPublishTitle"
+                  hidden
+                >
+                  <header class="instagram-publish-header">
+                    <div>
+                      <span class="instagram-publish-kicker">INSTAGRAM · PILOTO</span>
+                      <h3 id="instagramPublishTitle">
+                        Seu conteúdo, pronto para sair do rascunho.
+                      </h3>
+                      <p>
+                        Prepare aqui e continue no formulário externo somente após a liberação do
+                        piloto. Confira quem controla a conta do Instagram antes de publicar.
+                      </p>
+                    </div>
+                    <span class="instagram-publish-state" id="instagramPublishState">
+                      Integração pendente
+                    </span>
+                  </header>
+                  <div class="instagram-publish-grid">
+                    <ol class="instagram-publish-steps">
+                      <li>
+                        <strong>Prepare o conteúdo</strong>
+                        <span>Escreva a legenda, confira a prévia e guarde seu rascunho.</span>
+                      </li>
+                      <li>
+                        <strong>Confira o destino</strong>
+                        <span>Verifique a conta do Instagram, o formato e a mídia original.</span>
+                      </li>
+                      <li>
+                        <strong>Finalize no n8n</strong>
+                        <span
+                          >O formulário externo solicita os arquivos e a confirmação final.</span
+                        >
+                      </li>
+                    </ol>
+                    <div class="instagram-publish-next">
+                      <strong>Próximo passo: <span id="instagramPublishFormat">Feed</span></strong>
+                      <p class="instagram-publish-guide" id="instagramPublishGuide"></p>
+                      <button
+                        type="button"
+                        class="management-button pr"
+                        id="instagramPublishStart"
+                        aria-describedby="instagramPublishStatus"
+                        disabled
+                      >
+                        Publicação em configuração
+                      </button>
+                      <p class="instagram-publish-status" id="instagramPublishStatus" role="status">
+                        A conexão de publicação ainda não foi habilitada neste ambiente.
+                      </p>
+                    </div>
+                  </div>
+                </section>
+                <!-- The staged test section is an intentionally isolated component. -->
+                <!-- prettier-ignore -->
+                <section
                 class="instagram-simulation-panel"
                 id="instagramSimulationPanel"
                 hidden
@@ -4521,7 +4581,14 @@
                 </p>
                 <div id="instagramSimulationHistory" aria-label="Simulações recentes"></div>
               </section>
-              <section class="content-library" aria-labelledby="contentLibraryTitle">
+              </div>
+              <section
+                class="content-library"
+                id="contentDraftsPanel"
+                role="tabpanel"
+                aria-labelledby="contentWorkspace-drafts"
+                hidden
+              >
                 <div class="content-library-heading">
                   <div>
                     <h3 id="contentLibraryTitle">Seus rascunhos</h3>
@@ -4530,6 +4597,46 @@
                   <span id="contentDraftCount">0 rascunhos</span>
                 </div>
                 <div id="contentDraftList"></div>
+              </section>
+              <section
+                id="contentAgendaPanel"
+                role="tabpanel"
+                aria-labelledby="contentWorkspace-agenda"
+                hidden
+              >
+                <h3>Agenda de testes</h3>
+                <p>
+                  Preparações salvas no negócio. Agendamentos são simulados; nada é publicado. Para
+                  agendar, revise o conteúdo na aba Criar conteúdo.
+                </p>
+                <div class="content-preparation-fields">
+                  <label
+                    >Situação
+                    <select id="contentAgendaStatus">
+                      <option value="all">Todas</option>
+                      <option value="draft">Rascunho compartilhado</option>
+                      <option value="pending_review">Aguardando revisão</option>
+                      <option value="scheduled">Agendado · teste</option>
+                      <option value="processing">Processando · teste</option>
+                      <option value="simulated">Simulação concluída</option>
+                      <option value="failed">Falhou</option>
+                      <option value="uncertain">Resultado incerto</option>
+                      <option value="cancelled">Cancelado</option>
+                    </select></label
+                  >
+                  <label
+                    >Dia no fuso do agendamento <input type="date" id="contentAgendaDay"
+                  /></label>
+                </div>
+                <p id="contentAgendaCount" role="status"></p>
+              </section>
+              <section
+                id="contentConnectionsPanel"
+                role="tabpanel"
+                aria-labelledby="contentWorkspace-connections"
+                hidden
+              >
+                <div id="integrationSetupPanel" class="content-preparation-workflow"></div>
               </section>
             </div>
           </section>
@@ -5141,6 +5248,8 @@
     <script src="scripts/opportunity-data.js"></script>
     <script src="scripts/client-analysis.js"></script>
     <script src="scripts/opportunities.js"></script>
+    <script src="scripts/opportunity-lifecycle-store.js"></script>
+    <script src="scripts/opportunity-lifecycle.js"></script>
     <script src="scripts/inbox.js"></script>
     <script src="scripts/reports.js"></script>
     <script src="scripts/report-data.js"></script>
@@ -5171,6 +5280,8 @@
     <script src="scripts/report-ui.js"></script>
     <script src="scripts/app.js"></script>
     <script src="scripts/experience.js"></script>
+    <script src="scripts/content-workspace.js"></script>
+    <script src="scripts/integration-setup.js"></script>
     <script src="scripts/message-enrichment-store.js"></script>
     <script src="scripts/message-enrichment.js"></script>
     <script id="landingEnhancementsV2" src="scripts/landing-accessibility.js"></script>

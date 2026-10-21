@@ -236,6 +236,7 @@ module.exports = async function contentPreparation(browser, origin) {
       document.getElementById("preparationStatus").textContent.includes("Preparação mudou"),
     );
     assert.equal(jobs[0].status, "scheduled");
+    await remote.locator("#contentWorkspace-agenda").click();
     await remote.locator('[data-preparation-action="cancel"]').click();
     await remote.waitForFunction(() =>
       document.getElementById("preparationHistory").textContent.includes("Cancelado"),

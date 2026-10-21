@@ -85,6 +85,11 @@ const SocialMEIContentPreparation = (() => {
     uncertain: "Resultado incerto · revisar",
     cancelled: "Cancelado",
   };
+  let publishedJobs = [];
+  function publishJobs(items) {
+    publishedJobs = items;
+    document.dispatchEvent(new Event("socialmei-preparations-change"));
+  }
   function init() {
     const parent = document.getElementById("contentEditorPanel");
     if (!parent) return;
@@ -113,6 +118,7 @@ const SocialMEIContentPreparation = (() => {
         <label>Data e horário do teste <input type="datetime-local" id="preparationWhen"></label>
         <label>Fuso horário <select id="preparationZone"><option value="America/Fortaleza">Fortaleza · America/Fortaleza</option><option value="America/Sao_Paulo">São Paulo · America/Sao_Paulo</option><option value="America/Manaus">Manaus · America/Manaus</option></select></label>
       </div>
+      <p id="preparationReviewSummary" aria-live="polite"></p>
       <label class="content-preparation-review"><input type="checkbox" id="preparationReviewed">Revisei a legenda, a mídia e a conta fictícia. Quero somente simular.</label>
       <div class="content-preparation-actions">
         <button type="button" class="management-button" id="preparationSave">Salvar preparação compartilhada</button>
@@ -192,6 +198,7 @@ const SocialMEIContentPreparation = (() => {
         available = false;
         accounts = [];
         jobs = [];
+        publishJobs([]);
         active = null;
         intent = null;
         byId("preparationAlternatives").replaceChildren();
@@ -232,6 +239,7 @@ const SocialMEIContentPreparation = (() => {
               job.timezone
             : "") +
           (job.last_error_code ? " · confira os detalhes antes de repetir" : "");
+        li.dataset.preparationRow = job.id;
         li.append(text);
         actions.className = "content-preparation-actions";
         for (const [action, label] of [
@@ -254,12 +262,14 @@ const SocialMEIContentPreparation = (() => {
         li.append(actions);
         list.append(li);
       }
+      publishJobs(jobs);
       controls();
     }
     async function refresh() {
       resetIdentity();
       if (!configured()) {
         available = false;
+        publishJobs([]);
         controls();
         return;
       }
@@ -299,6 +309,7 @@ const SocialMEIContentPreparation = (() => {
         available = false;
         accounts = [];
         jobs = [];
+        publishJobs([]);
         byId("preparationAccount").replaceChildren();
         byId("preparationHistory").replaceChildren();
         say(error.message);
@@ -498,9 +509,36 @@ const SocialMEIContentPreparation = (() => {
       const changed = resetIdentity();
       if (changed && currentView === "Divulgação" && !working) refresh();
     });
+    function reviewSummary() {
+      const format =
+        document.querySelector('[data-content-format][aria-selected="true"]')?.textContent.trim() ||
+        "Feed";
+      const account =
+        byId("preparationAccount").selectedOptions[0]?.textContent ||
+        "Selecione uma conta fictícia";
+      byId("preparationReviewSummary").textContent =
+        "Revisão: " +
+        format +
+        " · " +
+        account +
+        " · " +
+        (byId("preparationWhen").value || "horário não escolhido") +
+        " · " +
+        byId("preparationZone").value +
+        ". Somente simulação.";
+    }
+    parent.addEventListener("input", reviewSummary);
+    parent.addEventListener("change", reviewSummary);
+    parent.addEventListener("click", reviewSummary);
+    reviewSummary();
     controls();
   }
-  const api = Object.freeze({ enabled, captionAlternatives, zonedInstant });
+  const api = Object.freeze({
+    enabled,
+    captionAlternatives,
+    zonedInstant,
+    jobs: () => publishedJobs.slice(),
+  });
   if (typeof document !== "undefined") init();
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   return api;

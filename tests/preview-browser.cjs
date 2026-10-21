@@ -8,7 +8,9 @@ const origin = "https://127.0.0.1:8443";
 const output = path.resolve(__dirname, "../test-results/preview");
 
 async function run() {
-  const browser = await chromium.launch();
+  const browser = await chromium.launch(
+    process.env.CHROMIUM_EXECUTABLE ? { executablePath: process.env.CHROMIUM_EXECUTABLE } : {},
+  );
   const contexts = [];
   const errors = [];
   try {
@@ -114,7 +116,142 @@ async function run() {
       await page.waitForFunction(() =>
         appData.clientes.some((c) => c.nome === "Cliente fictício do preview"),
       );
+      if (width === 1440) {
+        await page.evaluate(() => setView("Oportunidades"));
+        await page.waitForFunction(() => !document.getElementById("opportunityTitle").disabled);
+        await page.locator("#opportunityClient").selectOption(String(client.id));
+        await page.locator("#opportunityTitle").fill("Interesse fictício do preview");
+        await page.locator("#opportunityInterest").selectOption("hot");
+        const creation = page.waitForResponse(
+          (response) =>
+            response.url() === origin + "/api/v1/opportunities" &&
+            response.request().method() === "POST",
+        );
+        await page.locator('#opportunityCreateForm button[type="submit"]').click();
+        const createdResponse = await creation;
+        assert.equal(createdResponse.status(), 201, await createdResponse.text());
+        const opportunity = await createdResponse.json();
+        const card = page.locator('[data-commercial-opportunity="' + opportunity.id + '"]');
+        await card.waitFor();
+        const lifecycle = page.locator("#opportunityLifecycle");
+        assert.equal(
+          await lifecycle.getByRole("button", { name: "Quente (1)", exact: true }).count(),
+          1,
+        );
+        await card.getByText("Atualizar acompanhamento", { exact: true }).click();
+        await card.getByLabel("Motivo de não avançar").selectOption("other_supplier");
+        await card.getByRole("button", { name: "Não avançou", exact: true }).click();
+        await page.waitForFunction(() =>
+          document
+            .querySelector("#opportunityLifecycle .opportunity-controls")
+            .textContent.includes("Quente (0)"),
+        );
+        await lifecycle.getByRole("button", { name: "Não avançou (1)", exact: true }).click();
+        assert.match(await card.textContent(), /Comprou em outro lugar/);
+        await card.getByText("Atualizar acompanhamento", { exact: true }).click();
+        await card.getByRole("button", { name: "Reabrir oportunidade", exact: true }).click();
+        assert.match(
+          await lifecycle.locator('[role="status"]').first().textContent(),
+          /Informe por que/,
+        );
+        await card.getByLabel("Motivo para reabrir").fill("Cliente voltou a conversar no teste");
+        await card.getByRole("button", { name: "Reabrir oportunidade", exact: true }).click();
+        await page.waitForFunction(() =>
+          document
+            .querySelector("#opportunityLifecycle .opportunity-controls")
+            .textContent.includes("Quente (1)"),
+        );
+        await lifecycle.getByRole("button", { name: "Em andamento (1)", exact: true }).click();
+        await card.getByText("Atualizar acompanhamento", { exact: true }).click();
+        await card.getByRole("button", { name: "Venda realizada", exact: true }).click();
+        await lifecycle.getByRole("button", { name: "Venda realizada (1)", exact: true }).click();
+        await card.waitFor();
+        assert.equal(
+          await lifecycle.getByRole("button", { name: "Quente (0)", exact: true }).count(),
+          1,
+        );
+        await card.getByRole("button", { name: "Ver histórico", exact: true }).click();
+        await page.waitForFunction(
+          (id) =>
+            document
+              .querySelector('[data-commercial-opportunity="' + id + '"] [role="status"]')
+              .textContent.trim().length > 0,
+          opportunity.id,
+        );
+        const historyResponse = await first.request.get(
+          origin + "/api/v1/opportunities/" + opportunity.id + "/history",
+        );
+        assert.equal(historyResponse.status(), 200);
+        const history = (await historyResponse.json()).items;
+        assert.deepEqual(
+          history.map((event) => event.action),
+          ["close", "reopen", "close", "create"],
+        );
+        assert.equal(history[1].reason, "Cliente voltou a conversar no teste");
+        assert.equal(history[2].reason, "other_supplier");
+        assert.equal(
+          (
+            await contexts[1].request.get(
+              origin + "/api/v1/opportunities/" + opportunity.id + "/history",
+            )
+          ).status(),
+          404,
+        );
+        await page.reload();
+        await page.waitForFunction(() => !!window.SocialMEIAuth?.current);
+        await page.evaluate(() => SocialMEIExperience.enterApp("Oportunidades"));
+        await page
+          .locator("#opportunityLifecycle")
+          .getByRole("button", { name: "Venda realizada (1)", exact: true })
+          .click();
+        await card.waitFor();
+        assert.match(await card.textContent(), /Venda realizada/);
+        await page.evaluate(() => setView("Divulgação"));
+        await page.locator("#contentWorkspace-connections").click();
+        await page.waitForFunction(() => !document.getElementById("integrationSetupSave").disabled);
+        await page.locator("#integrationUsername").fill("preview.negocio");
+        await page.locator("#integrationAccountType").selectOption("business");
+        await page.locator("#integrationMetaStatus").selectOption("exists");
+        await page.locator("#integrationParticipants").fill("participante.teste");
+        await page.locator("#integrationSetupSave").click();
+        await page.waitForFunction(() =>
+          document
+            .getElementById("integrationSetupStatus")
+            .textContent.includes("Preparação salva"),
+        );
+        const setupUrl = origin + "/api/v1/integrations/setup";
+        const setup = await (await first.request.get(setupUrl)).json();
+        assert.equal(setup.instagram.username, "preview.negocio");
+        assert.equal(setup.connected, false);
+        assert.equal(setup.transport, "none");
+        const update = await first.request.put(setupUrl, {
+          headers,
+          data: {
+            expected_revision: setup.revision,
+            instagram: { ...setup.instagram, username: "preview.atualizado" },
+          },
+        });
+        assert.equal(update.status(), 200, await update.text());
+        await page.locator("#integrationUsername").fill("edicao.preservada");
+        await page.locator("#integrationSetupSave").click();
+        await page.waitForFunction(() =>
+          document.getElementById("integrationSetupStatus").textContent.includes("outra sessão"),
+        );
+        assert.equal(await page.locator("#integrationUsername").inputValue(), "edicao.preservada");
+        const foreignSetup = await (await contexts[1].request.get(setupUrl)).json();
+        assert.equal(foreignSetup.instagram.username, "");
+        assert.equal(foreignSetup.revision, 0);
+        await page.reload();
+        await page.waitForFunction(() => !!window.SocialMEIAuth?.current);
+        await page.evaluate(() => SocialMEIExperience.enterApp("Divulgação"));
+        await page.locator("#contentWorkspace-connections").click();
+        await page.waitForFunction(
+          () => document.getElementById("integrationUsername").value === "preview.atualizado",
+        );
+        assert.match(await page.locator("#integrationSetupStatus").textContent(), /Não conectado/);
+      }
       await page.evaluate(() => SocialMEIExperience.enterApp("Divulgação"));
+      await page.locator("#contentWorkspace-agenda").click();
       await page.waitForFunction(() =>
         document.getElementById("preparationHistory").textContent.includes("Agendamento fictício"),
       );
@@ -138,6 +275,8 @@ async function run() {
           auth: true,
           csrf: true,
           persistentClient: true,
+          opportunityLifecyclePersistent: true,
+          integrationSetupPersistentCAS: true,
           scheduledReplayCancelled: true,
           externalTransport: "none",
           viewports: [1440, 390],

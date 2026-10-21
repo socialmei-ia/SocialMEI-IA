@@ -76,6 +76,7 @@ module.exports = async function contentStudio(browser, origin) {
       true,
       "Header resize must preserve the tools menu opened by the user",
     );
+    await page.locator("#mb").click();
     await page.locator("#contentStudioOpen").click();
     assert.equal(await page.evaluate(() => currentView), "Divulgação");
     assert(await page.locator("#contentPublish").isDisabled());
@@ -189,17 +190,21 @@ module.exports = async function contentStudio(browser, origin) {
       () => !document.querySelector("#contentConfirmModal").classList.contains("open"),
     );
     assert.equal(await page.locator("#contentTitle").inputValue(), "");
+    await page.locator("#contentWorkspace-drafts").click();
     await page.locator('[data-content-action="edit"]').first().click();
     assert.match(await page.locator("#contentMediaStatus").textContent(), /Selecione novamente/);
     assert.equal(await page.locator("#contentPreviewStage img").count(), 0);
+    await page.locator("#contentWorkspace-drafts").click();
     await page.locator('[data-content-action="duplicate"]').first().click();
     assert.equal(await page.locator(".content-draft-row").count(), 2);
+    await page.locator("#contentWorkspace-drafts").click();
     await page.locator('[data-content-action="delete"]').first().click();
     await page.locator("#contentConfirmAction").click();
     await page.waitForFunction(
       () => !document.querySelector("#contentConfirmModal").classList.contains("open"),
     );
     assert.equal(await page.locator(".content-draft-row").count(), 1);
+    await page.locator("#contentWorkspace-drafts").click();
     await page.locator('[data-content-action="edit"]').click();
     await page.locator("#contentCaption").fill('<img src=x onerror="window.contentXss=true">');
     await page.locator("#contentSave").click();

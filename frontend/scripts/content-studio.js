@@ -237,7 +237,6 @@ const SocialMEIContentStudio = (() => {
       );
     else action();
   }
-  byId("contentStudioOpen").addEventListener("click", () => setView("Divulgação"));
   byId("contentNew").addEventListener("click", () => {
     synchronize();
     replaceEditor(() => {
