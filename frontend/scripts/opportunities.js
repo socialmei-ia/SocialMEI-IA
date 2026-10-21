@@ -251,8 +251,8 @@ const SocialMEIOpportunities = (() => {
       const choice = node("details", undefined, "client-analysis-choice");
       choice.append(node("summary", "Já sei o que ele quer"));
       const actions = node("div", undefined, "native-opportunity-actions");
-      for (const [level, text] of Object.entries(levelsLabel)) {
-        const control = button(text, "data-analysis-classify", row.id);
+      for (const level of levelOrder) {
+        const control = button(levelsLabel[level], "data-analysis-classify", row.id);
         control.dataset.analysisValue = level;
         actions.append(control);
       }
