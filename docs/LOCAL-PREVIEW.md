@@ -15,7 +15,7 @@ npm run preview -- up
 
 Abra **https://127.0.0.1:8443**. O certificado é da autoridade local deste preview: aceite a exceção somente para esse endereço local, ou instale a autoridade local conforme a política da sua máquina. Nenhuma autoridade é instalada automaticamente. Cadastre uma conta exclusiva de teste com nome/e-mail fictícios e senha de pelo menos 12 caracteres; não reutilize credenciais reais. O cadastro está aberto apenas na porta vinculada a 127.0.0.1. Outra conta cria outro negócio isolado.
 
-Não abra o HTML por arquivo ou use HTTP: a autenticação exige HTTPS e cookie Secure. A primeira inicialização baixa imagens e constrói a API. A porta 8443 precisa estar livre. A API e o banco não publicam portas. Redes internas impedem transporte externo pelos serviços em execução; builds ainda precisam baixar dependências.
+Não abra o HTML por arquivo ou use HTTP: a autenticação exige HTTPS e cookie Secure. A primeira inicialização baixa imagens e constrói a API. A porta 8443 precisa estar livre. A API e o banco não publicam portas. API e banco usam redes internas sem saída externa. Somente o gateway tem uma rede de entrada para publicar a porta de loopback; não possui conectores de envio. Builds precisam baixar dependências.
 
 ```sh
 npm run preview -- status
