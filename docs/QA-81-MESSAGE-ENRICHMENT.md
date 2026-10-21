@@ -13,7 +13,7 @@ O laboratório está dentro da Caixa Unificada oficial. Reutiliza lista, convers
 - Revisão humana com CAS: aprovar/descartar uma única vez; outra decisão requer nova análise. Sem envio.
 - Duas sessões, conflito, falha offline e recarga explícita sem perda silenciosa do rascunho. Sem sincronização em tempo real.
 - Viewer lê; member opera mensagens/revisões; owner/admin gerencia documentos. Backend decide identidade e papéis.
-- Adaptador interno stub com assinatura, replay persistido, expiração, tentativa limitada, quota e rejeição de resultados fora de ordem. Nenhum cliente de rede, endpoint público de callback ou workflow instalado.
+- Adaptador interno stub com assinatura, replay persistido, expiração, tentativa limitada, quota e rejeição de resultados fora de ordem. Callback HTTP interno de teste com corpo limitado e assinatura verificada antes do banco; nenhum cliente de rede, endpoint público de callback ou workflow instalado.
 
 Contratos e limites: [MESSAGE-ENRICHMENT-CONTRACT.md](MESSAGE-ENRICHMENT-CONTRACT.md) e [MESSAGE-ENRICHMENT-ADAPTER.md](MESSAGE-ENRICHMENT-ADAPTER.md).
 
@@ -42,6 +42,6 @@ Resultados finais, SHA, checks e evidências constam na PR Draft. Testes Node e 
 
 **P0 operacional:** nenhuma publicação/integração real está liberada. Identidade e topologia dos workflows Alana/REVIEW são não confirmadas; só há evidência histórica, sem nova consulta viva. Autorização, credenciais, canais, destinos e contratos de callback/envio precisam de etapa própria. Não foi alterada AWS/n8n/Meta, main ou banco real.
 
-**P1 antes de produção:** extração segura de PDF, armazenamento privado/embeddings com isolamento, contrato autenticado de conector e webhook interno de rede, scheduler de retenção, revisão de capacidade/observabilidade e homologação com dados autorizados. Hoje a retenção é aplicada em leitura/processamento; não existe serviço agendado. RAG é lexical, e sentimento é heurístico experimental; não representa compreensão contextual homologada.
+**P1 antes de produção:** extração segura de PDF, armazenamento privado/embeddings com isolamento, contrato autenticado de conector e ligação autorizada do callback interno ao n8n, scheduler de retenção, revisão de capacidade/observabilidade e homologação com dados autorizados. Hoje a retenção é aplicada em leitura/processamento; não existe serviço agendado. RAG é lexical, e sentimento é heurístico experimental; não representa compreensão contextual homologada.
 
 **P2:** homologação física de celular e leitor de tela, avaliação linguística ampliada, política operacional de retenção para mensagens/jobs/metadados e paginação além dos limites da consulta. Rascunhos não confirmados ficam apenas em memória na página aberta; fechar/recarregar pode descartá-los. A revisão desta PR não substitui autorização de merge ou deploy.

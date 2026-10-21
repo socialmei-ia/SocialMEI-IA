@@ -20,7 +20,7 @@ from n8n_read import router as n8n_read_router
 from account_auth import AccountMiddleware, router as account_auth_router
 from instagram_simulation import router as instagram_simulation_router
 from workspace_profile import router as workspace_profile_router
-from message_enrichment import router as message_enrichment_router
+from message_enrichment import router as message_enrichment_router, internal_router as enrichment_internal_router
 from settings import cors_origins as configured_cors_origins
 
 app = FastAPI(title="SocialME Python Service")
@@ -48,13 +48,22 @@ app.include_router(account_auth_router)
 app.include_router(instagram_simulation_router)
 app.include_router(workspace_profile_router)
 app.include_router(message_enrichment_router)
+app.include_router(enrichment_internal_router)
+
+
+@app.middleware("http")
+async def internal_response_privacy(request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/internal/message-enrichment"):
+        response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @app.exception_handler(RequestValidationError)
 async def private_validation_error(request, error):
     # FastAPI's default validation response includes submitted values, including passwords.
     if request.url.path.startswith(
-        ("/api/v1/auth/", "/api/v1/admin/", "/api/v1/instagram/", "/api/v1/workspace-profile", "/api/v1/message-enrichment")
+        ("/api/v1/auth/", "/api/v1/admin/", "/api/v1/instagram/", "/api/v1/workspace-profile", "/api/v1/message-enrichment", "/internal/message-enrichment")
     ):
         return JSONResponse(
             {"detail": "Confira os campos informados."},

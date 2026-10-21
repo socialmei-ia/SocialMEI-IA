@@ -358,3 +358,85 @@ class EnrichmentDatabaseTests(unittest.TestCase):
             self.assertEqual(replay['status'], 'expired')
             self.assertEqual(replay['suggested_reply'], '')
             self.assertEqual(replay['citations'], [])
+
+
+class InternalCallbackGuards(unittest.TestCase):
+    def test_internal_method_disabled_and_invalid_events_do_not_connect(self):
+        client = TestClient(app)
+        path = '/internal/message-enrichment/results'
+        with patch('message_enrichment.connect', side_effect=AssertionError('unexpected database')):
+            response = client.get(path)
+            self.assertEqual(response.status_code, 405)
+            self.assertEqual(response.headers['cache-control'], 'no-store')
+            for config in ({'SOCIALMEI_MESSAGE_ENRICHMENT_MODE': 'disabled'}, {**MODE, 'SOCIALMEI_MESSAGE_ENRICHMENT_TEST_KEY': ''}):
+                with patch.dict(os.environ, config):
+                    self.assertEqual(client.post(path, json={}).status_code, 503)
+            with patch.dict(os.environ, MODE):
+                event = sign_event(uuid4(), 1, {'sentiment': 'neutral', 'confidence': 'low', 'explanation': 'stub', 'suggested_reply': 'private-marker', 'citations': []})
+                self.assertEqual(client.post(path + '?workspace_id=99', json=event).status_code, 422)
+                tampered = copy.deepcopy(event); tampered['payload']['suggested_reply'] = 'tampered'
+                missing = {k: v for k, v in event.items() if k != 'signature'}
+                expired = sign_event(uuid4(), 1, event['payload'], timestamp=int(time.time())-121)
+                for body, status in ((tampered, 403), (missing, 422), (expired, 409), ({**event, 'workspace_id': 9}, 422)):
+                    response = client.post(path, json=body)
+                    self.assertEqual(response.status_code, status, response.text)
+                    self.assertEqual(response.headers['cache-control'], 'no-store')
+                    self.assertNotIn('private-marker', response.text)
+                for raw in (b' ' * 32769, b'{"schema_version":1,"schema_version":1}', b'{', b'\xff'):
+                    response = client.post(path, content=raw, headers={'Content-Type': 'application/json'})
+                    self.assertEqual(response.status_code, 422)
+                    self.assertEqual(response.headers['cache-control'], 'no-store')
+
+
+@unittest.skipUnless(DB, 'TEST_DATABASE_URL not configured')
+class InternalCallbackDatabaseTests(unittest.TestCase):
+    setUpClass = classmethod(EnrichmentDatabaseTests.setUpClass.__func__)
+    setUp = EnrichmentDatabaseTests.setUp
+    login = EnrichmentDatabaseTests.login
+    invited = EnrichmentDatabaseTests.invited
+    register = EnrichmentDatabaseTests.register
+    post = EnrichmentDatabaseTests.post
+    doc = EnrichmentDatabaseTests.doc
+    incoming = EnrichmentDatabaseTests.incoming
+    pending = EnrichmentDatabaseTests.pending
+    def callback(self, event):
+        return TestClient(app).post('/internal/message-enrichment/results', json=event)
+
+    def test_http_callback_scope_replay_rate_late_and_out_of_order(self):
+        foreign = self.register('callback-foreign@example.com')
+        other_doc = self.doc(foreign)
+        job = self.pending()
+        result = {'sentiment': 'neutral', 'confidence': 'low', 'explanation': ' stub ', 'suggested_reply': ' draft ', 'citations': []}
+        event = sign_event(job['id'], 1, result)
+        with psycopg.connect(DB) as conn:
+            conn.execute('UPDATE socialmei.me_limits SET count=60 WHERE workspace_id=%s', (job['workspace_id'],))
+        self.assertEqual(self.callback(event).status_code, 429)
+        with psycopg.connect(DB) as conn:
+            conn.execute('UPDATE socialmei.me_limits SET count=1 WHERE workspace_id=%s', (job['workspace_id'],))
+        cross = sign_event(job['id'], 1, {**result, 'citations': [other_doc['id']]})
+        self.assertEqual(self.callback(cross).status_code, 409)
+        response = self.callback(event)
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()['suggested_reply'], 'draft')
+        self.assertEqual(response.headers['cache-control'], 'no-store')
+        self.assertEqual(self.callback(event).json(), response.json())
+        review = self.admin_client.patch(BASE + '/jobs/%s/review' % job['id'], json={'schema_version': 1, 'expected_revision': response.json()['revision'], 'decision': 'approved', 'suggested_reply': 'human draft'})
+        self.assertEqual(review.status_code, 200, review.text)
+        self.assertEqual(self.callback(sign_event(job['id'], 1, result)).status_code, 409)
+        self.assertEqual(self.callback(event).json(), review.json())
+        retry = self.pending()
+        with psycopg.connect(DB, row_factory=dict_row) as conn:
+            retry_job(conn, retry['id'], 1)
+        self.assertEqual(self.callback(sign_event(retry['id'], 1, result)).status_code, 409)
+        self.assertEqual(self.callback(sign_event(retry['id'], 2, result)).status_code, 200)
+        self.assertEqual(foreign.get(BASE + '/conversations').json()['items'], [])
+        other_message, _ = self.incoming(client=foreign)
+        with psycopg.connect(DB, row_factory=dict_row) as conn:
+            other_job = conn.execute('INSERT INTO socialmei.me_jobs(id,workspace_id,message_id,message_revision) VALUES(%s,%s,%s,1) RETURNING *', (uuid4(), foreign.identity['negocio']['id'], other_message['message_id'])).fetchone()
+        other_event = sign_event(other_job['id'], 1, {**result, 'citations': [other_doc['id']]})
+        # An authenticated browser cookie does not select machine callback tenancy.
+        response = self.admin_client.post('/internal/message-enrichment/results', json=other_event)
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()['message_id'], other_message['message_id'])
+        self.assertEqual([item['id'] for item in response.json()['citations']], [other_doc['id']])
+        self.assertEqual(foreign.get(BASE + '/conversations').json()['items'][0]['messages'][0]['enrichment']['id'], str(other_job['id']))

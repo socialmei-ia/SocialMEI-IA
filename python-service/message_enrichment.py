@@ -14,6 +14,7 @@ import psycopg
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
+from starlette.concurrency import run_in_threadpool
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StrictInt, StringConstraints, model_validator
 
 import settings
@@ -21,6 +22,7 @@ from account_auth import current, require_enabled
 from database import connect
 
 router = APIRouter(prefix='/api/v1/message-enrichment', tags=['synthetic enrichment'])
+internal_router = APIRouter(prefix='/internal/message-enrichment', tags=['internal synthetic enrichment'])
 SAFE_MAX = 9007199254740991
 
 
@@ -240,8 +242,8 @@ def process_event(conn, raw):
         return _process_event(conn, raw)
 
 
-def _process_event(conn, raw):
-    """Internal adapter only. Job identity is the sole source of workspace scope."""
+def verify_event(raw):
+    """Authenticate the bounded envelope before any database access."""
     try:
         event = SignedEvent.model_validate(raw).model_dump()
     except ValueError:
@@ -249,11 +251,17 @@ def _process_event(conn, raw):
     key = settings.message_enrichment_signing_key()
     if settings.message_enrichment_mode() != 'stub' or len(key) < 32:
         raise HTTPException(503, 'Adaptador não configurado.')
-    signature = hmac.new(key.encode(), json.dumps(signing_data(event), sort_keys=True, separators=(',', ':')).encode(), hashlib.sha256).hexdigest()
+    signature = hmac.new(key.encode(), json.dumps(signing_data(raw), sort_keys=True, separators=(',', ':')).encode(), hashlib.sha256).hexdigest()
     if not hmac.compare_digest(signature, event['signature']):
         raise HTTPException(403, 'Assinatura inválida.')
     if abs(int(time.time()) - event['timestamp']) > 120:
         raise HTTPException(409, 'Evento expirado.')
+    return event
+
+
+def _process_event(conn, raw):
+    """Internal adapter only. Job identity is the sole source of workspace scope."""
+    event = verify_event(raw)
     found = conn.execute('SELECT workspace_id FROM socialmei.me_jobs WHERE id=%s', (event['job_id'],)).fetchone()
     if not found:
         raise HTTPException(404, 'Análise não encontrada.')
@@ -271,6 +279,7 @@ def _process_event(conn, raw):
     message = conn.execute('SELECT revision FROM socialmei.me_messages WHERE workspace_id=%s AND id=%s', (workspace, job['message_id'])).fetchone()
     if message['revision'] != job['message_revision']:
         raise HTTPException(409, 'Uma análise mais recente substituiu este resultado.')
+    rate_limit(conn, workspace)
     citations = []
     for document_id in dict.fromkeys(event['payload']['citations']):
         document = conn.execute('SELECT id,title,revision FROM socialmei.me_documents WHERE workspace_id=%s AND id=%s AND deleted_at IS NULL AND expires_at>NOW()', (workspace, document_id)).fetchone()
@@ -474,3 +483,39 @@ def delete_document(document_id: Id, request: Request, response: Response, expec
         conn.execute("UPDATE socialmei.me_documents SET content='',deleted_at=NOW(),revision=revision+1 WHERE workspace_id=%s AND id=%s", (workspace, document_id))
         invalidate_expired(conn, workspace)
         return {'id': document_id, 'revision': row['revision']+1, 'deleted': True}
+
+
+def unique_json_fields(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError('Duplicate JSON field')
+        result[key] = value
+    return result
+
+
+@internal_router.post('/results')
+async def internal_result(request: Request, response: Response):
+    response.headers['Cache-Control'] = 'no-store'
+    if settings.message_enrichment_mode() != 'stub' or len(settings.message_enrichment_signing_key()) < 32:
+        raise HTTPException(503, 'Adaptador não configurado.')
+    if request.query_params or request.headers.get('content-type', '').split(';', 1)[0].lower() != 'application/json':
+        raise HTTPException(422, 'Evento inválido.')
+    content = bytearray()
+    async for chunk in request.stream():
+        if len(content) + len(chunk) > 32768:
+            raise HTTPException(422, 'Evento muito grande.')
+        content.extend(chunk)
+    try:
+        raw = json.loads(content, object_pairs_hook=unique_json_fields)
+    except (ValueError, UnicodeError, RecursionError):
+        raise HTTPException(422, 'Evento inválido.') from None
+    verify_event(raw)
+    # Signature, schema, size and time have all passed before opening PostgreSQL.
+    return await run_in_threadpool(receive_internal_event, raw)
+
+
+def receive_internal_event(raw):
+    verify_event(raw)
+    with db() as conn:
+        return process_event(conn, raw)
