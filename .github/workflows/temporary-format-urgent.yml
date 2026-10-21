@@ -1,0 +1,36 @@
+name: Temporary formatting for urgent draft
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  format-this-draft:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'feat/urgent-n8n-visual-planning'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/urgent-n8n-visual-planning
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - name: Format only the six changed files
+        run: |
+          npx prettier --write frontend/scripts/publication-planning.js frontend/socialmei-app.html frontend/styles/opportunities.css frontend/styles/publication-planning.css tests/publication-planning.test.cjs docs/N8N-INTEGRATION-STATUS-2026-10-21.md
+      - name: Commit formatting to this same draft branch
+        run: |
+          if git diff --quiet -- frontend/scripts/publication-planning.js frontend/socialmei-app.html frontend/styles/opportunities.css frontend/styles/publication-planning.css tests/publication-planning.test.cjs docs/N8N-INTEGRATION-STATUS-2026-10-21.md; then
+            echo "Already formatted."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- frontend/scripts/publication-planning.js frontend/socialmei-app.html frontend/styles/opportunities.css frontend/styles/publication-planning.css tests/publication-planning.test.cjs docs/N8N-INTEGRATION-STATUS-2026-10-21.md
+          git commit -m "style: format urgent presentation changes"
+          git push origin HEAD:refs/heads/feat/urgent-n8n-visual-planning
