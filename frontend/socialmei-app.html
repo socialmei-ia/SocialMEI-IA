@@ -64,6 +64,7 @@
     <link rel="stylesheet" href="styles/opportunities.css" />
     <link rel="stylesheet" href="styles/content-studio.css" />
     <link rel="stylesheet" href="styles/instagram-publisher.css" />
+    <link rel="stylesheet" href="styles/publication-planning.css" />
     <link rel="stylesheet" href="styles/reports-v2.css" />
     <link rel="stylesheet" href="styles/chart-refinement.css" />
     <link rel="stylesheet" href="styles/premium-experience.css" />
@@ -4415,6 +4416,26 @@
                   </div>
                 </aside>
               </div>
+              <section class="management-card publication-planning" id="publicationPlanning" aria-labelledby="publicationPlanningTitle">
+                <header>
+                  <span class="report-eyebrow">PLANEJAMENTO DE CONTEÚDO</span>
+                  <h3 id="publicationPlanningTitle">Escolha o dia e a hora da sua postagem.</h3>
+                  <p class="management-note">Use o Feed, Story ou Reel e a legenda preparados acima. O planejamento fica apenas neste navegador: não publica, não agenda no n8n e não envia arquivos.</p>
+                </header>
+                <form id="publicationPlanningForm" autocomplete="off">
+                  <label for="publicationPlanningWhen">Data e horário desejados (horário do seu dispositivo)</label>
+                  <div class="publication-planning-actions">
+                    <input type="datetime-local" id="publicationPlanningWhen" required aria-describedby="publicationPlanningStatus"/>
+                    <button type="submit" class="management-button pr">Adicionar ao planejamento</button>
+                  </div>
+                </form>
+                <p id="publicationPlanningStatus" role="status" aria-live="polite"></p>
+                <div class="publication-planning-heading">
+                  <h4>Próximas publicações planejadas</h4>
+                  <span id="publicationPlanningCount">0 de 30 planejamentos locais</span>
+                </div>
+                <ul id="publicationPlanningList" class="publication-planning-list" aria-label="Publicações planejadas"></ul>
+              </section>
               <section
                 class="instagram-publish-panel"
                 id="instagramPublishPanel"
@@ -5161,6 +5182,7 @@
     <script src="scripts/personalization.js"></script>
     <script src="scripts/content-drafts.js"></script>
     <script src="scripts/content-studio.js"></script>
+    <script src="scripts/publication-planning.js"></script>
     <script src="scripts/instagram-publisher.js"></script>
     <script src="scripts/instagram-simulation.js"></script>
     <script src="scripts/demo-data.js"></script>
