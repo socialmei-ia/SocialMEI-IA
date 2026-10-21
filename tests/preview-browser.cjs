@@ -24,7 +24,7 @@ async function run() {
       const anonymous = await context.request.get(origin + "/api/v1/clientes");
       assert.equal(anonymous.status(), 401);
       const register = await context.request.post(origin + "/api/v1/auth/register", {
-        headers: { Origin: origin },
+        headers: { Origin: origin, "X-SocialMEI-Client": "browser" },
         data: {
           nome: "Pessoa fictícia " + i,
           email: `preview-${randomUUID()}@example.test`,
