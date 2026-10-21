@@ -31,6 +31,7 @@ function saveInboxLocal() {
   );
 }
 function conversationKey(conversation) {
+  if (conversation._enrichmentSynthetic) return "enrichment:" + conversation._enrichmentKey;
   const key = `${conversation.canal}:${conversation.nome.toLowerCase()}`;
   return conversation._socialmeiDemoSample ? `demo:${key}` : key;
 }
@@ -264,7 +265,7 @@ function renderConversationList() {
                   >
                   <span class="conv-tags"
                     ><span class="status-mini ${statusClass}">${statusLabel(c.status)}</span
-                    >${c._socialmeiDemoSample && sessionData.conversas.some((row) => !row._socialmeiDemoSample) ? '<span class="conv-tag">Exemplo</span>' : ""}${conversationTags(
+                    >${c._enrichmentSynthetic ? `<span class="conv-tag">${escapeHtml(c._enrichmentLabel)}</span>` : ""}${c._socialmeiDemoSample && sessionData.conversas.some((row) => !row._socialmeiDemoSample) ? '<span class="conv-tag">Exemplo</span>' : ""}${conversationTags(
                       c,
                     )
                       .map((t) => /* HTML */ `<span class="conv-tag">${escapeHtml(t)}</span>`)
@@ -398,6 +399,10 @@ function clientContext(conversation) {
 function renderDetails(c) {
   const host = $("detailsPane");
   if (!host || !c) {
+    return;
+  }
+  if (c._enrichmentSynthetic) {
+    host.innerHTML = `<div class="context-body"><section class="context-card"><h4>Contato fictício</h4><p>${escapeHtml(c._enrichmentLabel || "Identidade de teste")}</p><p>Conversa isolada deste negócio. Não há cadastro de cliente vinculado por nome, canal conectado ou envio externo.</p></section></div>`;
     return;
   }
   const missingFieldsExpanded = !!host.querySelector(".context-missing-fields[open]");
@@ -641,13 +646,15 @@ function renderThread({ animate = false, preserveScroll = false, refreshList = t
   }
   $("threadAvatar").innerHTML = avatarContents(conversation);
   $("threadName").textContent = displayName(conversation);
-  const threadSource = conversation.mensagens.some((message) => message.remoteId)
-    ? "Recebido via n8n"
-    : conversation.localConversation
-      ? "Conversa local"
-      : "Demonstração";
+  const threadSource = conversation._enrichmentSynthetic
+    ? "Mensagem fictícia · laboratório isolado"
+    : conversation.mensagens.some((message) => message.remoteId)
+      ? "Recebido via n8n"
+      : conversation.localConversation
+        ? "Conversa local"
+        : "Demonstração";
   $("threadMeta").innerHTML = /* HTML */ `<span class="pill info" title="${threadSource}"
-            >${channelIcon(conversation.canal)} ${channelLabel(conversation.canal)}</span
+            >${channelIcon(conversation.canal)} ${channelLabel(conversation.canal)}${conversation._enrichmentSynthetic ? " · Fictício" : ""}</span
           ><span class="thread-recency" title="${threadSource}"
             >${escapeHtml(conversation.atualizado)}</span
           >`;
@@ -662,6 +669,10 @@ function renderThread({ animate = false, preserveScroll = false, refreshList = t
     renderConversationList();
   }
   updateInboxNavBadge();
+  $("composerZone").hidden = !!conversation._enrichmentSynthetic;
+  for (const id of ["threadStatus", "favoriteBtn", "threadMoreBtn"])
+    if ($(id)) $(id).disabled = !!conversation._enrichmentSynthetic;
+  window.SocialMEIMessageEnrichment?.render(conversation);
 }
 function hydrateLocalNotes() {
   for (const c of sessionData.conversas) {
@@ -989,6 +1000,10 @@ function persistLocalNote(c, note) {
 }
 function sendCurrentMessage(text) {
   const conversation = getConversation();
+  if (conversation?._enrichmentSynthetic) {
+    toast("Sem envio externo", "Revise o rascunho no laboratório. Nenhuma resposta é enviada.");
+    return;
+  }
   if (isInboxListMode || isConversationSwitching || !conversation || !text.trim()) {
     return;
   }
@@ -1097,7 +1112,11 @@ function updateComposerState() {
     return;
   }
   send.disabled =
-    isInboxListMode || isConversationSwitching || !getConversation() || !input.value.trim();
+    isInboxListMode ||
+    isConversationSwitching ||
+    !getConversation() ||
+    !!getConversation()?._enrichmentSynthetic ||
+    !input.value.trim();
   autoResizeComposer();
   $("noteModeBtn")?.classList.toggle("active", isComposerNoteMode);
   if ($("noteModeLabel")) {
@@ -1266,7 +1285,7 @@ function updateFavoriteButton(c) {
   b.title = isFavorite(c) ? "Remover dos favoritos" : "Favoritar atendimento";
 }
 function persistConversationState(c) {
-  if (!c) {
+  if (!c || c._enrichmentSynthetic) {
     return;
   }
   inboxLocalState[`state:${conversationKey(c)}`] = {
@@ -1278,6 +1297,7 @@ function persistConversationState(c) {
   saveInboxLocal();
 }
 function recordEvent(c, label) {
+  if (c._enrichmentSynthetic) return;
   const key = `events:${conversationKey(c)}`;
   const events = inboxLocalState[key] || [];
   events.push({
@@ -1510,6 +1530,7 @@ function closeInboxPopovers() {
 }
 function saveCurrentDraft() {
   const conversation = getConversation();
+  if (conversation?._enrichmentSynthetic) return;
   if (conversation) {
     conversationDrafts.set(conversation.id, {
       text: $("messageInput").value,
@@ -1622,11 +1643,13 @@ function sizeInbox() {
     toggle.setAttribute("aria-expanded", String(open));
   }
 }
+let contextDrawerEpoch = 0;
 function openContextDrawer() {
   const pane = $("detailsPane");
   if (!getConversation()) {
     return;
   }
+  contextDrawerEpoch += 1;
   contextReturnFocusElement = document.activeElement;
   pane.classList.add("mobile-open");
   pane.setAttribute("role", "dialog");
@@ -1640,6 +1663,7 @@ function openContextDrawer() {
 function closeContextDrawer() {
   const pane = $("detailsPane");
   const was = pane.classList.contains("mobile-open");
+  if (was) contextDrawerEpoch += 1;
   pane.classList.remove("mobile-open");
   pane.removeAttribute("role");
   pane.removeAttribute("aria-modal");

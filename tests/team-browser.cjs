@@ -6,6 +6,7 @@ const path = require("node:path");
 const { execFileSync } = require("node:child_process");
 const { chromium } = require("playwright");
 const { randomUUID } = require("node:crypto");
+const { navigateInitialPage } = require("./team-navigation.cjs");
 const root = path.resolve(__dirname, "..");
 const directory = fs.mkdtempSync(path.join(os.tmpdir(), "socialmei-auth-"));
 const name = "socialmei-auth-" + randomUUID().slice(0, 8);
@@ -113,7 +114,20 @@ HTTPServer(('0.0.0.0',8000),Handler).serve_forever()
     });
     const page = await context.newPage();
     const errors = [];
+    const assetFailures = [];
     page.on("pageerror", (e) => errors.push(e.message));
+    page.on("requestfailed", (request) => {
+      if (["document", "script", "stylesheet"].includes(request.resourceType()))
+        assetFailures.push({
+          path: new URL(request.url()).pathname,
+          error: request.failure()?.errorText,
+        });
+    });
+    page.on("response", (response) => {
+      const request = response.request();
+      if (!response.ok() && ["document", "script", "stylesheet"].includes(request.resourceType()))
+        assetFailures.push({ path: new URL(response.url()).pathname, status: response.status() });
+    });
     await page.route("**/*", (route) =>
       new URL(route.request().url()).origin === origin ? route.continue() : route.abort(),
     );
@@ -129,9 +143,28 @@ HTTPServer(('0.0.0.0',8000),Handler).serve_forever()
       response?.ok(),
       `HTTPS authenticated gateway must start (HTTP ${response?.status() ?? "unavailable"})`,
     );
-    const document = await page.goto(origin + "/");
+    const document = await navigateInitialPage(page, origin + "/", {
+      onStartupRetry: ({ attempt, failures }) => {
+        console.warn("HTTPS startup transport recovery: " + JSON.stringify({ attempt, failures }));
+        errors.length = 0;
+        assetFailures.length = 0;
+      },
+    });
     assert.equal(document.status(), 200);
+    assert.deepEqual(assetFailures, [], "Final HTTPS document must load every critical asset");
     assert.equal(page.url(), origin + "/", "Short URL must remain in the address bar");
+    const boot = await page.evaluate(() => ({
+      ready: typeof window.SocialMEIExperience?.enterApp === "function",
+      documentState: document.readyState,
+      experienceRoot: !!document.getElementById("experienceRoot"),
+      businessProfile: !!window.SocialMEIBusinessProfile,
+      auth: !!window.SocialMEIAuth,
+    }));
+    assert.equal(
+      boot.ready,
+      true,
+      "HTTPS application boot failed: " + JSON.stringify({ boot, assetFailures, errors }),
+    );
     await page.evaluate(() => SocialMEIExperience.enterApp("Clientes"));
     await page.waitForFunction(() =>
       [

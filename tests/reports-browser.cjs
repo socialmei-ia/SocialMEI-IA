@@ -127,6 +127,34 @@ module.exports = async function reportsFlows(browser, origin, errors) {
         .evaluate((element) => element === document.activeElement),
       true,
     );
+    // Reflow and background refreshes must preserve the roving tab's actual focus.
+    await page.evaluate(() => {
+      window.reportFocusedTab = document.activeElement;
+      document.dispatchEvent(new CustomEvent("socialmei-source-status"));
+      document.dispatchEvent(new CustomEvent("socialmei-business-profile-change"));
+    });
+    assert.equal(
+      await page.evaluate(
+        () => reportFocusedTab === document.activeElement && reportFocusedTab.isConnected,
+      ),
+      true,
+    );
+    await page.setViewportSize({ width: 590, height: 900 });
+    await page.evaluate(() => window.dispatchEvent(new Event("resize")));
+    assert.equal(
+      await page
+        .getByRole("tab", { name: "Vendas", exact: true })
+        .evaluate((element) => element === document.activeElement),
+      true,
+    );
+    await page.setViewportSize({ width: 1366, height: 900 });
+    await page.evaluate(() => renderReports());
+    assert.equal(
+      await page
+        .getByRole("tab", { name: "Vendas", exact: true })
+        .evaluate((element) => element === document.activeElement),
+      true,
+    );
     await page.keyboard.press("Home");
     assert.equal(
       await page.getByRole("tab", { name: "Resumo", exact: true }).getAttribute("aria-selected"),

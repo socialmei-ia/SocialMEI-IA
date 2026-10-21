@@ -288,6 +288,8 @@ module.exports = async function nativeOpportunities(browser, origin) {
       await account.waitForFunction(
         () => typeof SocialMEIAuth !== "undefined" && SocialMEIAuth.current,
       );
+      // Wait for authenticated bootstrap before navigating; it now loads the scoped profile.
+      await account.waitForFunction(() => document.body?.classList.contains("experience-app"));
       await account.evaluate(() => SocialMEIExperience.enterApp("Oportunidades"));
       assert.equal(await account.evaluate(() => sessionData.conversas.length), 0);
       assert.equal(await account.locator("[data-opportunity-demo]").count(), 0);

@@ -5,6 +5,7 @@ const http = require("node:http");
 const { chromium } = require("playwright");
 const root = path.resolve(__dirname, "..");
 module.exports = async function reportsNative(browser, origin) {
+  const profileAPI = require("./profile-sync-fixture.cjs")();
   const output = path.join(root, "test-results/reports-v21-native");
   fs.mkdirSync(output, { recursive: true });
   const context = await browser.newContext({
@@ -14,6 +15,7 @@ module.exports = async function reportsNative(browser, origin) {
   const errors = [],
     layouts = [],
     writes = [],
+    profileWrites = [],
     external = [];
   const clients = ["Ana Lima", "Bruno Alves", "Carla Reis", "Davi Melo"].map((nome, i) => ({
     id: i + 1,
@@ -107,6 +109,18 @@ module.exports = async function reportsNative(browser, origin) {
       });
     if (url.pathname === "/api/v1/auth/registration")
       return route.fulfill({ json: { mode: "open" } });
+    if (["/api/v1/workspace-profile", "/api/v1/auth/preferences"].includes(url.pathname)) {
+      if (url.pathname === "/api/v1/auth/preferences") assert.equal(request.method(), "GET");
+      else if (request.method() !== "GET") {
+        assert.equal(request.method(), "PATCH");
+        profileWrites.push(url.pathname);
+      }
+      return profileAPI(route, {
+        usuario: { id: 1 },
+        negocio: { id: 1, nome: "Ateliê Aurora · fictício" },
+        papel: "owner",
+      });
+    }
     if (url.pathname.startsWith("/api/v1/")) {
       if (request.method() !== "GET") writes.push(request.method() + " " + url.pathname);
       const data = { clientes: clients, produtos: products, vendas: sales, financeiro: finance }[
@@ -337,6 +351,7 @@ module.exports = async function reportsNative(browser, origin) {
     );
     assert.deepEqual(errors, []);
     assert.deepEqual(external, []);
+    assert.deepEqual(profileWrites, ["/api/v1/workspace-profile"]);
     assert.deepEqual(writes, []);
     fs.writeFileSync(
       path.join(output, "results.json"),

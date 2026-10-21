@@ -43,7 +43,7 @@ const SocialMEIPersonalization = (() => {
     limits.hidden = !profile;
     const source = document.getElementById("homeDataSource");
     source.textContent = SocialMEIAuth.remote
-      ? "Perfil adaptativo local neste navegador. Os registros seguem a fonte configurada de cada módulo."
+      ? "Perfil adaptativo da conta quando disponível. Os registros seguem a fonte configurada de cada módulo."
       : "Demonstração local: há exemplos fictícios e cadastros deste navegador. Não são dados sincronizados.";
     if (!profile) {
       intro.textContent =
@@ -107,7 +107,9 @@ const SocialMEIPersonalization = (() => {
         node(
           "p",
           state.status === "unavailable"
-            ? "Seu perfil local não está disponível. Confira a sessão ou cadastre um item pelo formulário existente."
+            ? SocialMEIAuth.remote
+              ? "Não foi possível carregar o perfil da conta. Confira a conexão em Configurações ou use o formulário de cadastro."
+              : "Seu perfil local não está disponível. Confira a sessão ou cadastre um item pelo formulário existente."
             : "Prepare seu perfil para ver sugestões pertinentes. Você também pode cadastrar qualquer produto ou serviço.",
           "management-note",
         ),
@@ -118,7 +120,7 @@ const SocialMEIPersonalization = (() => {
     host.append(
       node(
         "p",
-        "Sugestões do perfil local, não são itens cadastrados. Você define o nome do produto, preço e demais dados no formulário.",
+        "Sugestões do perfil do negócio, não são itens cadastrados. Você define o nome do produto, preço e demais dados no formulário.",
         "management-note",
       ),
     );
@@ -177,7 +179,7 @@ const SocialMEIPersonalization = (() => {
       if (input && !input.disabled) input.value = "";
     }
   }
-  document.addEventListener("click", (event) => {
+  document.addEventListener("click", async (event) => {
     const control = event.target.closest(
       "[data-profile-route],[data-profile-configure],[data-profile-catalog],[data-profile-suggest],[data-profile-ignore],[data-profile-restore],[data-profile-custom]",
     );
@@ -214,8 +216,16 @@ const SocialMEIPersonalization = (() => {
     )
       profile.ignoredSuggestions.push(control.dataset.profileIgnore);
     else return;
-    if (!store.save(profile, control.dataset.profileScope)) {
-      toast("Não foi possível salvar", "Confira a sessão e o armazenamento deste navegador.");
+    try {
+      if (!(await store.save(profile, control.dataset.profileScope)))
+        throw Error("Confira o armazenamento deste navegador.");
+    } catch (error) {
+      toast(
+        "Sugestões não alteradas",
+        window.SocialMEIProfileSync?.remote
+          ? "Não foi possível salvar na conta. Suas sugestões anteriores foram mantidas. Confira a conexão ou atualize o perfil em Configurações."
+          : error.message,
+      );
       return;
     }
     renderCatalog();
