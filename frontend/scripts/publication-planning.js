@@ -9,8 +9,7 @@
   const LIMIT = 30;
   const FORMATS = ["feed", "story", "reel"];
   function validPlan(value, now = Date.now()) {
-    if (!value || !FORMATS.includes(value.format))
-      throw new Error("Escolha Feed, Story ou Reel.");
+    if (!value || !FORMATS.includes(value.format)) throw new Error("Escolha Feed, Story ou Reel.");
     if (typeof value.title !== "string" || !value.title.trim() || value.title.length > 80)
       throw new Error("Informe um título com até 80 caracteres.");
     if (typeof value.caption !== "string" || value.caption.length > 2200)
@@ -20,8 +19,7 @@
     const stamp = new Date(value.when).getTime();
     if (!Number.isFinite(stamp) || stamp <= now + 60000)
       throw new Error("Escolha um horário futuro com pelo menos 1 minuto de antecedência.");
-    if (stamp > now + 60 * 86400000)
-      throw new Error("Planeje datas dentro dos próximos 60 dias.");
+    if (stamp > now + 60 * 86400000) throw new Error("Planeje datas dentro dos próximos 60 dias.");
     return {
       format: value.format,
       title: value.title.trim(),
@@ -45,9 +43,18 @@
       } catch (_) {
         throw new Error("Não foi possível ler o planejamento. Nenhum dado foi substituído.");
       }
-      if (!Array.isArray(items) || items.length > LIMIT || items.some((item) =>
-        !item || typeof item.id !== "string" || typeof item.title !== "string" ||
-        typeof item.when !== "string" || !FORMATS.includes(item.format)))
+      if (
+        !Array.isArray(items) ||
+        items.length > LIMIT ||
+        items.some(
+          (item) =>
+            !item ||
+            typeof item.id !== "string" ||
+            typeof item.title !== "string" ||
+            typeof item.when !== "string" ||
+            !FORMATS.includes(item.format),
+        )
+      )
         throw new Error("Planejamento incompatível. Nenhum dado foi substituído.");
       return items;
     }
@@ -58,7 +65,11 @@
       const plan = validPlan(input, clock());
       const items = read();
       if (items.length >= LIMIT) throw new Error("Limite de 30 planejamentos neste navegador.");
-      const result = { ...plan, id: "plan-" + crypto.randomUUID(), createdAt: new Date(clock()).toISOString() };
+      const result = {
+        ...plan,
+        id: "plan-" + crypto.randomUUID(),
+        createdAt: new Date(clock()).toISOString(),
+      };
       write([...items, result]);
       return result;
     }
@@ -107,7 +118,11 @@
         const detail = document.createElement("span");
         const format = { feed: "Feed", story: "Story", reel: "Reel" }[item.format];
         const date = new Date(item.when);
-        detail.textContent = item.title + " · " + format + " · " +
+        detail.textContent =
+          item.title +
+          " · " +
+          format +
+          " · " +
           (Number.isNaN(date.getTime()) ? item.when : date.toLocaleString("pt-BR")) +
           " · Somente planejamento";
         const control = document.createElement("button");
@@ -139,9 +154,13 @@
           caption: byId("contentCaption").value,
           cta: byId("contentCta").value,
           hashtags: byId("contentHashtags").value,
-          format: document.querySelector('[data-content-format][aria-selected="true"]')?.dataset.contentFormat || "feed",
+          format:
+            document.querySelector('[data-content-format][aria-selected="true"]')?.dataset
+              .contentFormat || "feed",
         });
-        const format = document.querySelector('[data-content-format][aria-selected="true"]')?.dataset.contentFormat || "feed";
+        const format =
+          document.querySelector('[data-content-format][aria-selected="true"]')?.dataset
+            .contentFormat || "feed";
         repository.add({
           title,
           caption,

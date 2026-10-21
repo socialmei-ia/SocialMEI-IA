@@ -1,6 +1,10 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { validPlan, createRepository, LIMIT } = require("../frontend/scripts/publication-planning.js");
+const {
+  validPlan,
+  createRepository,
+  LIMIT,
+} = require("../frontend/scripts/publication-planning.js");
 
 const now = new Date("2026-10-21T12:00:00").getTime();
 const fixture = () => ({
@@ -32,7 +36,11 @@ test("local plan validates formats, required title and future time without trans
 test("plans stay isolated by verified browser scope and can be removed", () => {
   const storage = fakeStorage();
   let scope = "account:3:workspace:20";
-  const repository = createRepository(storage, () => scope, () => now);
+  const repository = createRepository(
+    storage,
+    () => scope,
+    () => now,
+  );
   const item = repository.add(fixture());
   assert.equal(repository.read().length, 1);
   assert.equal(repository.read()[0].id, item.id);
@@ -49,16 +57,23 @@ test("plans stay isolated by verified browser scope and can be removed", () => {
 });
 test("corrupted storage is rejected without overwriting original data", () => {
   const storage = fakeStorage();
-  const repository = createRepository(storage, () => "test", () => now);
+  const repository = createRepository(
+    storage,
+    () => "test",
+    () => now,
+  );
   storage.setItem("socialmei-publication-plans-v1:test", "{broken");
   assert.throws(() => repository.add(fixture()), /não foi possível ler/i);
   assert.equal(storage.getItem("socialmei-publication-plans-v1:test"), "{broken");
 });
 test("local planner enforces bounded rows, no external publishing path", () => {
   const storage = fakeStorage();
-  const repository = createRepository(storage, () => "test", () => now);
-  for (let i = 0; i < LIMIT; i++)
-    repository.add({ ...fixture(), title: "Plano " + i });
+  const repository = createRepository(
+    storage,
+    () => "test",
+    () => now,
+  );
+  for (let i = 0; i < LIMIT; i++) repository.add({ ...fixture(), title: "Plano " + i });
   assert.equal(repository.read().length, LIMIT);
   assert.throws(() => repository.add(fixture()), /Limite/);
   assert.deepEqual(Object.keys(repository).sort(), ["add", "read", "remove"]);
