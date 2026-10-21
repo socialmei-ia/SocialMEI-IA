@@ -164,6 +164,7 @@
       FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
       OTHER DEALINGS IN THE FONT SOFTWARE.
     </script>
+    <link rel="stylesheet" href="styles/message-enrichment.css" />
   </head>
   <body class="experience-public">
     <!-- LANDING, AUTENTICAÇÃO E ONBOARDING -->
@@ -3678,6 +3679,87 @@
               <span id="integrationAlertText">Não foi possível sincronizar as mensagens.</span>
               <button id="integrationRetry" type="button">Tentar novamente</button>
             </div>
+            <details id="enrichmentLab" class="enrichment-lab">
+              <summary>Análise de mensagens · laboratório seguro</summary>
+              <p id="enrichmentLabStatus" role="status" aria-live="polite"></p>
+              <button id="enrichmentRefresh" type="button" class="management-button">
+                Atualizar análise deste negócio
+              </button>
+              <div id="enrichmentLabForms" hidden>
+                <form id="enrichmentSyntheticForm" class="enrichment-form">
+                  <h3>Adicionar mensagem fictícia</h3>
+                  <p>
+                    Usada somente neste laboratório. Não recebe nem envia pelo WhatsApp ou
+                    Instagram.
+                  </p>
+                  <label
+                    >Nome demonstrativo<input
+                      name="name"
+                      value="Cliente fictício"
+                      maxlength="120"
+                      required
+                  /></label>
+                  <label
+                    >Canal ilustrativo<select name="channel">
+                      <option value="whatsapp">WhatsApp</option>
+                      <option value="instagram">Instagram</option>
+                    </select></label
+                  >
+                  <label
+                    >Conta fictícia<select name="account">
+                      <option value="synthetic:conta-a">Conta A</option>
+                      <option value="synthetic:conta-b">Conta B</option>
+                    </select></label
+                  >
+                  <label
+                    >Contato fictício<select name="contact">
+                      <option value="synthetic:contato-a">Contato A</option>
+                      <option value="synthetic:contato-b">Contato B</option>
+                    </select></label
+                  >
+                  <label class="enrichment-wide"
+                    >Mensagem<textarea
+                      id="enrichmentText"
+                      name="text"
+                      maxlength="4000"
+                      rows="3"
+                      required
+                      placeholder="Ex.: Não gostei do atendimento e preciso de ajuda."
+                    ></textarea>
+                  </label>
+                  <button type="submit" class="management-button pr">
+                    Adicionar mensagem fictícia
+                  </button>
+                </form>
+                <details class="enrichment-documents">
+                  <summary>Conhecimento fictício deste negócio</summary>
+                  <p>
+                    Apenas texto simples. Limite de 32 KiB, retenção de 30 dias. Não inclua dados
+                    privados. A consulta é lexical e não utiliza IA paga.
+                  </p>
+                  <form id="enrichmentDocumentForm" class="enrichment-form">
+                    <label
+                      >Título<input
+                        name="title"
+                        maxlength="120"
+                        required
+                        placeholder="Orientação fictícia de atendimento"
+                    /></label>
+                    <label class="enrichment-wide"
+                      >Conteúdo fictício<textarea
+                        name="content"
+                        maxlength="32000"
+                        rows="3"
+                        required
+                        placeholder="Preços e prazos precisam ser confirmados após avaliação."
+                      ></textarea>
+                    </label>
+                    <button type="submit" class="management-button">Salvar texto fictício</button>
+                  </form>
+                  <ul id="enrichmentDocumentList"></ul>
+                </details>
+              </div>
+            </details>
             <section class="inbox-shell" id="inboxShell">
               <aside aria-label="Lista de conversas" class="conv-pane">
                 <div class="list-heading">
@@ -5087,6 +5169,8 @@
     <script src="scripts/report-ui.js"></script>
     <script src="scripts/app.js"></script>
     <script src="scripts/experience.js"></script>
+    <script src="scripts/message-enrichment-store.js"></script>
+    <script src="scripts/message-enrichment.js"></script>
     <script id="landingEnhancementsV2" src="scripts/landing-accessibility.js"></script>
     <script id="siteReviewBehavior" src="scripts/record-editor.js"></script>
     <script src="scripts/landing-demos.js"></script>

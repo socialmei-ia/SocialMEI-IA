@@ -1,0 +1,131 @@
+/* Scoped native Inbox laboratory; existing shell and local conversations retain their styles. */
+.enrichment-lab {
+  margin-block: 12px 20px;
+  padding: 14px 0;
+  border-block: 1px solid var(--ln);
+}
+.enrichment-lab summary {
+  cursor: pointer;
+  font-weight: 600;
+  min-height: 44px;
+  align-content: center;
+}
+.enrichment-lab p,
+.enrichment-review p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--mt);
+}
+.enrichment-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-block: 20px;
+}
+.enrichment-form h3,
+.enrichment-form > p,
+.enrichment-wide {
+  grid-column: 1 / -1;
+}
+.enrichment-form label,
+.enrichment-review label {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  font-size: 14px;
+}
+.enrichment-form input,
+.enrichment-form select,
+.enrichment-form textarea,
+.enrichment-review select,
+.enrichment-review textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid var(--ln);
+  background: var(--sf);
+  color: var(--tx);
+  border-radius: 8px;
+  padding: 10px;
+  font: inherit;
+}
+.enrichment-lab button,
+.enrichment-review button {
+  min-height: 44px;
+  white-space: normal;
+}
+.enrichment-documents {
+  margin-top: 18px;
+}
+#enrichmentDocumentList {
+  list-style: none;
+  padding: 0;
+}
+#enrichmentDocumentList li {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding-block: 10px;
+  overflow-wrap: anywhere;
+}
+.enrichment-review {
+  border-top: 1px solid var(--ln);
+  padding-block: 20px;
+  margin-top: 20px;
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.enrichment-review .management-inline-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.enrichment-review h3 {
+  font-size: 18px;
+}
+.enrichment-lab :focus-visible,
+.enrichment-review :focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 3px;
+}
+@media (max-width: 560px) {
+  .enrichment-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #enrichmentDocumentList li {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .enrichment-review .management-inline-actions button {
+    width: 100%;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .enrichment-review {
+    animation: enrichment-enter 140ms ease-out;
+  }
+  @keyframes enrichment-enter {
+    from {
+      opacity: 0.5;
+      transform: translateY(3px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+#inboxView .enrichment-lab {
+  flex: 0 0 auto;
+  max-height: 40dvh;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+#enrichmentLab > summary {
+  padding-inline: 12px;
+}

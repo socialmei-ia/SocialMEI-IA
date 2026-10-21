@@ -39,6 +39,7 @@ async function run() {
     );
     checks.push(await require("./account-browser.cjs")(browser, origin));
     checks.push(await require("./profile-sync-browser.cjs")(browser, origin));
+    checks.push(await require("./message-enrichment-browser.cjs")(browser, origin));
     checks.push(await require("./native-opportunities-browser.cjs")(browser, origin));
     checks.push(await require("./content-studio-browser.cjs")(browser, origin));
     checks.push(await require("./instagram-integration-browser.cjs")(browser, origin));

@@ -31,6 +31,7 @@ function saveInboxLocal() {
   );
 }
 function conversationKey(conversation) {
+  if (conversation._enrichmentSynthetic) return "enrichment:" + conversation._enrichmentKey;
   const key = `${conversation.canal}:${conversation.nome.toLowerCase()}`;
   return conversation._socialmeiDemoSample ? `demo:${key}` : key;
 }
@@ -400,6 +401,11 @@ function renderDetails(c) {
   if (!host || !c) {
     return;
   }
+  if (c._enrichmentSynthetic) {
+    host.innerHTML =
+      '<div class="context-body"><h3>Contato fictício</h3><p>Conversa isolada deste negócio. Não há cadastro de cliente vinculado por nome, canal conectado ou envio externo.</p></div>';
+    return;
+  }
   const missingFieldsExpanded = !!host.querySelector(".context-missing-fields[open]");
   const restoreFieldsFocus =
     host.querySelector(".context-missing-fields summary") === document.activeElement;
@@ -641,13 +647,15 @@ function renderThread({ animate = false, preserveScroll = false, refreshList = t
   }
   $("threadAvatar").innerHTML = avatarContents(conversation);
   $("threadName").textContent = displayName(conversation);
-  const threadSource = conversation.mensagens.some((message) => message.remoteId)
-    ? "Recebido via n8n"
-    : conversation.localConversation
-      ? "Conversa local"
-      : "Demonstração";
+  const threadSource = conversation._enrichmentSynthetic
+    ? "Mensagem fictícia · laboratório isolado"
+    : conversation.mensagens.some((message) => message.remoteId)
+      ? "Recebido via n8n"
+      : conversation.localConversation
+        ? "Conversa local"
+        : "Demonstração";
   $("threadMeta").innerHTML = /* HTML */ `<span class="pill info" title="${threadSource}"
-            >${channelIcon(conversation.canal)} ${channelLabel(conversation.canal)}</span
+            >${channelIcon(conversation.canal)} ${channelLabel(conversation.canal)}${conversation._enrichmentSynthetic ? " · Fictício" : ""}</span
           ><span class="thread-recency" title="${threadSource}"
             >${escapeHtml(conversation.atualizado)}</span
           >`;
@@ -662,6 +670,10 @@ function renderThread({ animate = false, preserveScroll = false, refreshList = t
     renderConversationList();
   }
   updateInboxNavBadge();
+  $("composerZone").hidden = !!conversation._enrichmentSynthetic;
+  for (const id of ["threadStatus", "favoriteBtn", "threadMoreBtn"])
+    if ($(id)) $(id).disabled = !!conversation._enrichmentSynthetic;
+  window.SocialMEIMessageEnrichment?.render(conversation);
 }
 function hydrateLocalNotes() {
   for (const c of sessionData.conversas) {
@@ -989,6 +1001,10 @@ function persistLocalNote(c, note) {
 }
 function sendCurrentMessage(text) {
   const conversation = getConversation();
+  if (conversation?._enrichmentSynthetic) {
+    toast("Sem envio externo", "Revise o rascunho no laboratório. Nenhuma resposta é enviada.");
+    return;
+  }
   if (isInboxListMode || isConversationSwitching || !conversation || !text.trim()) {
     return;
   }
@@ -1097,7 +1113,11 @@ function updateComposerState() {
     return;
   }
   send.disabled =
-    isInboxListMode || isConversationSwitching || !getConversation() || !input.value.trim();
+    isInboxListMode ||
+    isConversationSwitching ||
+    !getConversation() ||
+    !!getConversation()?._enrichmentSynthetic ||
+    !input.value.trim();
   autoResizeComposer();
   $("noteModeBtn")?.classList.toggle("active", isComposerNoteMode);
   if ($("noteModeLabel")) {
@@ -1266,7 +1286,7 @@ function updateFavoriteButton(c) {
   b.title = isFavorite(c) ? "Remover dos favoritos" : "Favoritar atendimento";
 }
 function persistConversationState(c) {
-  if (!c) {
+  if (!c || c._enrichmentSynthetic) {
     return;
   }
   inboxLocalState[`state:${conversationKey(c)}`] = {
@@ -1278,6 +1298,7 @@ function persistConversationState(c) {
   saveInboxLocal();
 }
 function recordEvent(c, label) {
+  if (c._enrichmentSynthetic) return;
   const key = `events:${conversationKey(c)}`;
   const events = inboxLocalState[key] || [];
   events.push({
@@ -1510,6 +1531,7 @@ function closeInboxPopovers() {
 }
 function saveCurrentDraft() {
   const conversation = getConversation();
+  if (conversation?._enrichmentSynthetic) return;
   if (conversation) {
     conversationDrafts.set(conversation.id, {
       text: $("messageInput").value,

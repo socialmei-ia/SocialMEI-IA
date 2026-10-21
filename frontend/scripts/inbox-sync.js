@@ -143,6 +143,8 @@ function setIntegrationStatus(text, state = "wait") {
 // Dados do webhook são normalizados ao entrar e escapados com esc() em todo HTML renderizado.
 // Fotos remotas só são aceitas quando usam http(s).
 function mergeRemoteMessage(item) {
+  // The legacy feed has no authenticated workspace/account/contact identity.
+  if (typeof SocialMEIAuth !== "undefined" && SocialMEIAuth.remote) return null;
   if (!item || !item.id || REMOTE_MESSAGE_IDS.has(String(item.id))) {
     return null;
   }
