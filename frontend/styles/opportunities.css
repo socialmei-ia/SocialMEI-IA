@@ -467,5 +467,3 @@
 #clientTab-analysis [data-analysis-count] {
   border: 1px solid var(--br);
 }
-#clientTab-analysis { font-weight: 750; }
-#clientTab-analysis [data-analysis-count] { background: var(--hover); border: 1px solid var(--br); }
