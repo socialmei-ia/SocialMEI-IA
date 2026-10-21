@@ -82,6 +82,8 @@ Node: **284 testes aprovados**; backend: **194 testes aprovados sem skips**, em 
 
 A primeira comparação textual de DDL detectou casts de arrays reescritos pelo PostgreSQL no restore, com dados e metadados preservados. O comparador usa o planner para canonicalizar somente expressões, mantendo igualdade dos demais atributos. Controles negativos distinguem restrições diferentes e a semântica de `NULL` em índices parciais (somente `TRUE`) e CHECKs (`NULL` permitido). O controle de índice falhou antes da correção do comparador e passou depois; nenhuma migration ou restrição do produto foi alterada para acomodar o teste.
 
+O primeiro CI também reproduziu uma corrida no novo ensaio: `pg_isready` por socket aceitava o servidor temporário de initdb antes da abertura TCP. A espera agora verifica TCP explicitamente, com o mesmo limite de tempo e sem repetir ou enfraquecer assertions de migrations/restore. É correção do harness, não causa confirmada do timeout histórico #73.
+
 ## Plano de implantação team — apenas após aprovação
 
 1. **Identificar o alvo:** staging próprio primeiro, host/banco/domínio/config isolados confirmados. Depois, caso autorizado, piloto `/home/ubuntu/socialmei-team`. Nunca usar a pilha legada `/home/ubuntu/socialmei`, seus volumes ou workflow genérico.

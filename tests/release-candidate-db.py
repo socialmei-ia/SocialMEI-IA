@@ -76,7 +76,8 @@ class Rehearsal:
                                      '--label', LABEL+'='+self.token, '-e', 'POSTGRES_USER=rc80',
                                      '-e', 'POSTGRES_PASSWORD='+self.password, '-e', 'POSTGRES_DB=rc80_upgrade', IMAGE).stdout.strip()
         for _ in range(120):
-            ready = self.docker('exec', self.container, 'pg_isready', '-U', 'rc80', '-d', 'rc80_upgrade', check=False)
+            # The entrypoint's temporary init server accepts Unix sockets before TCP.
+            ready = self.docker('exec', self.container, 'pg_isready', '-h', '127.0.0.1', '-U', 'rc80', '-d', 'rc80_upgrade', check=False)
             if ready.returncode == 0:
                 break
             time.sleep(.25)
