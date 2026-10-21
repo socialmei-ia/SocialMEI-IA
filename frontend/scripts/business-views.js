@@ -337,6 +337,7 @@ function renderNavigation() {
             class="nav-chapter"
             href="#${normalizedText(n).replaceAll(" ", "-")}"
             data-nav="${n}"
+            ${n === "Divulgação" ? 'id="contentStudioOpen"' : ""}
             ${n === "Visão Geral" ? 'data-nav-group="negocio"' : ""}
             aria-label="${x || l}"
             title="${x || l}"
@@ -344,7 +345,7 @@ function renderNavigation() {
           >`;
   $("nav").innerHTML = /* HTML */ `<span class="nav-indicator" aria-hidden="true"></span
           ><span class="nav-group-label">Dia a dia</span
-          >${L("Início", "Início", "home")}${L("Caixa Unificada", "Caixa Unificada", "inbox")}${L("Oportunidades", "Oportunidades", "star")}<span
+          >${L("Início", "Início", "home")}${L("Caixa Unificada", "Caixa Unificada", "inbox")}${L("Oportunidades", "Oportunidades", "star")}${L("Divulgação", "Divulgação", "ig")}<span
             class="nav-group-label"
             >Negócio</span
           >${L("Visão Geral", "Negócio", "bag", "Negócio")}<span class="nav-group-label"
