@@ -834,6 +834,17 @@ document.addEventListener("click", async (event) => {
     return;
   }
   if (event.target.closest("#settingsNotifications")) {
+    if (window.SocialMEIProfileSync?.remote) {
+      try {
+        await SocialMEIProfileSync.updatePreferences({
+          notificationsEnabled: !(appData.prefs.notificacoes !== false),
+        });
+        renderSettings();
+      } catch (error) {
+        toast("Preferências não salvas", SocialMEIProfileSync.state().problem || error.message);
+      }
+      return;
+    }
     appData.prefs.notificacoes = !(appData.prefs.notificacoes !== false);
     saveAppData();
     renderSettings();
@@ -3429,7 +3440,7 @@ function renderSettingsField(label, name, value, type = "text", extra = "") {
         /></label>`;
 }
 function renderSettingsForm(tab, fields) {
-  return /* HTML */ `<form id="nvSettingsForm" data-tab="${tab}">
+  return /* HTML */ `<form id="nvSettingsForm" data-tab="${tab}" ${tab === "notificacoes" && window.SocialMEIProfileSync?.remote ? `data-preferences-revision="${SocialMEIProfileSync.state().preferencesRevision ?? ""}" data-preferences-scope="${SocialMEIProfileSync.state().scope || ""}"` : ""}>
           <div class="management-form-grid">${fields}</div>
           <p
             id="nvSettingsFeedback"
@@ -3506,7 +3517,7 @@ function renderSettings() {
           </div>`;
   if (SocialMEIAuth.remote && SocialMEIAuth.current) {
     $("accountSettingsNotice").innerHTML =
-      '<span class="account-badge account-badge-active">Conta conectada</span><span>Seus dados de conta estão salvos no servidor. O perfil adaptativo é uma preferência deste navegador; canais e automações têm configuração própria.</span>';
+      '<span class="account-badge account-badge-active">Conta conectada</span><span>Seus dados de conta estão salvos no servidor. O perfil adaptativo e as preferências essenciais sincronizam com a conta quando a API está disponível; canais e automações têm configuração própria.</span>';
   } else {
     $("accountSettingsNotice").innerHTML =
       '<span class="account-badge">Demonstração local</span><span>Perfil e preferências neste navegador. Você decide o que salvar.</span>';
@@ -3578,10 +3589,11 @@ function renderSettings() {
           ],
         ]
       : [];
-    host.innerHTML = `<h3>Perfil e ferramentas</h3><p class="management-note">Preferências apenas neste navegador${SocialMEIAuth.remote ? ", separadas por usuário e negócio" : " · demonstração local, sem conta no servidor"}. Não sincronizam entre dispositivos.</p>
+    host.innerHTML = `<h3>Perfil e ferramentas</h3><p class="management-note">${SocialMEIAuth.remote ? "Perfil do negócio salvo na conta, com revisão para proteger alterações de outras sessões." : "Preferências apenas neste navegador · demonstração local, sem conta no servidor. Não sincronizam entre dispositivos."}</p>
       <div class="business-profile-summary">${rows.map(([label, value]) => `<div><small>${escapeHtml(label)}</small><b>${escapeHtml(value)}</b></div>`).join("")}</div>
       <p class="management-note">${businessProfile ? "Suas escolhas priorizam atalhos na Home e sugestões em Produtos e Serviços. Não criam registros nem ocultam abas. Agenda, Encomendas, Entregas e gestão operacional de equipe ainda dependem de desenvolvimento." : state.status === "unavailable" ? "Não foi possível recuperar o perfil. Confira a sessão e as permissões de armazenamento." : state.status === "invalid" ? "O perfil local está incompatível. Prepare-o novamente; nenhum cadastro comercial será alterado." : "Conte como seu negócio funciona para preparar sugestões pertinentes. Nenhum produto, serviço ou agendamento será criado."}</p>
-      <button type="button" class="management-button pr" data-business-profile-edit>${businessProfile ? "Editar perfil e ferramentas" : "Preparar meu perfil"}</button>`;
+      <button type="button" class="management-button pr" data-business-profile-edit>${businessProfile ? "Editar perfil e ferramentas" : "Preparar meu perfil"}</button>
+      ${window.SocialMEIProfileSync?.remote && SocialMEIProfileSync.legacyProfile() ? '<details class="context-help"><summary>Perfil anterior deste navegador</summary><p>Revise antes de importar. Só a confirmação final envia os dados para este negócio. Se já houver um perfil na conta, ele será substituído após a revisão. A cópia local será preservada.</p><button type="button" class="management-button" data-sync-import-profile>Revisar importação do perfil local</button></details>' : ""}`;
   } else if (selectedSettingsTab === "negocio") {
     host.innerHTML = /* HTML */ `<h3>Negócio</h3>
             <p class="management-note">Identidade e informações que ajudam seu atendimento.</p>
@@ -3848,7 +3860,7 @@ function renderSettings() {
             </div>`;
   } else {
     host.innerHTML = /* HTML */ `<h3>Dados</h3>
-            <p>Veja onde cada módulo guarda seus registros. As preferências visuais e de rotina continuam neste navegador.</p>
+            <p>Veja onde cada módulo guarda seus registros. ${SocialMEIAuth.remote ? "Perfil adaptativo, tema oficial e avisos sincronizam com a conta quando disponíveis. Temas personalizados e configurações dos demais recursos continuam neste navegador." : "As preferências visuais e de rotina continuam neste navegador."}</p>
             <div class="settings-data-sources">
               ${[
                 ["Clientes", SocialMEIClients.remote],
@@ -3878,6 +3890,7 @@ function renderSettings() {
   updateSettingsIdentity();
   finishSettingsPanel();
   syncBusinessIdentity();
+  window.SocialMEIProfileSync?.decorate();
 }
 
 function updateSettingsIdentity() {
@@ -4045,6 +4058,32 @@ document.addEventListener("submit", async (event) => {
   }
   if (tab === "notificacoes" && !!data.quietFrom !== !!data.quietTo) {
     feedback.textContent = "Informe início e fim do horário silencioso, ou deixe ambos vazios.";
+    return;
+  }
+  if (tab === "notificacoes" && window.SocialMEIProfileSync?.remote) {
+    const controls = [...f.querySelectorAll("input,select,button")].map((control) => [
+      control,
+      control.disabled,
+    ]);
+    controls.forEach(([control]) => (control.disabled = true));
+    feedback.textContent = "Salvando preferências na conta…";
+    try {
+      await SocialMEIProfileSync.updatePreferences(
+        {
+          notifications: { ...pendingNotificationPreferences, ...data },
+        },
+        f.dataset.preferencesRevision === "" ? null : Number(f.dataset.preferencesRevision),
+        f.dataset.preferencesScope,
+      );
+      f.dataset.preferencesRevision = String(SocialMEIProfileSync.state().preferencesRevision);
+      pendingNotificationPreferences = { ...appData.prefs.notifications };
+      feedback.textContent =
+        "Preferências salvas na conta. Outros dispositivos verão após recarregar.";
+    } catch (error) {
+      feedback.textContent = SocialMEIProfileSync.state().problem || error.message;
+    } finally {
+      controls.forEach(([control, disabled]) => (control.disabled = disabled));
+    }
     return;
   }
   const old = JSON.stringify(appData.prefs);

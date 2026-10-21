@@ -211,6 +211,7 @@ module.exports = async function chartsDemo(browser, origin) {
   }
   const remoteContext = await browser.newContext({ viewport: { width: 390, height: 1000 } });
   try {
+    const profileAPI = require("./profile-sync-fixture.cjs")();
     let identity = { user: 1, workspace: 1 };
     const page = await remoteContext.newPage();
     page.on("pageerror", (error) => errors.push(error.message));
@@ -244,6 +245,12 @@ module.exports = async function chartsDemo(browser, origin) {
         });
       if (url.pathname === "/api/v1/auth/registration")
         return route.fulfill({ json: { mode: "open" } });
+      const profileReply = profileAPI(route, {
+        usuario: { id: identity.user },
+        negocio: { id: identity.workspace, nome: "Negócio fictício" },
+        papel: "owner",
+      });
+      if (profileReply) return profileReply;
       if (url.pathname.startsWith("/api/v1/")) {
         if (req.method() !== "GET") writes.push(req.method() + " " + url.pathname);
         const collection = url.pathname.slice(8);

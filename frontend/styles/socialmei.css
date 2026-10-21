@@ -25053,3 +25053,25 @@ body.management-view-active .toast-zone .toast {
     animation: none;
   }
 }
+
+/* Authenticated profile synchronization reuses native settings and onboarding controls. */
+#businessConflictSummary {
+  white-space: pre-line;
+}
+
+.profile-sync-panel {
+  overflow-wrap: anywhere;
+  padding: 16px;
+  margin-block: 12px 20px;
+  min-width: 0;
+}
+.profile-sync-panel button,
+#businessProfileConflict button {
+  min-height: 44px;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.profile-sync-panel .management-inline-actions {
+  flex-wrap: wrap;
+}

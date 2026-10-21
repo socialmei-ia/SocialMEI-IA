@@ -2639,6 +2639,18 @@
                     <span>Seu perfil será salvo somente após a confirmação.</span>
                   </div>
                 </div>
+                <section
+                  id="businessProfileConflict"
+                  class="management-card profile-sync-panel"
+                  hidden
+                  aria-label="Conflito no perfil"
+                  tabindex="-1"
+                >
+                  <p id="businessConflictSummary"></p>
+                  <button type="button" class="management-button" data-business-reload>
+                    Carregar perfil salvo e descartar estas alterações
+                  </button>
+                </section>
                 <h3 class="experience-review-section-title">O que você escolheu</h3>
                 <nav class="business-review-jump" aria-label="Corrigir escolhas">
                   <button type="button" data-review-edit-step="1">Editar seus dados</button
@@ -2657,7 +2669,7 @@
                 </div>
                 <div class="experience-review-next">
                   <strong>Próximo passo</strong>
-                  <p>
+                  <p id="businessProfileNextNotice">
                     Confirme para salvar o perfil neste navegador e entrar no seu espaço. Isso não
                     cadastra produtos, vendas ou conexões.
                   </p>
@@ -5063,6 +5075,7 @@
     <script src="scripts/finance-store.js"></script>
     <script src="scripts/contact-validation.js"></script>
     <script src="scripts/business-profile.js"></script>
+    <script src="scripts/profile-sync.js"></script>
     <script src="scripts/personalization.js"></script>
     <script src="scripts/content-drafts.js"></script>
     <script src="scripts/content-studio.js"></script>

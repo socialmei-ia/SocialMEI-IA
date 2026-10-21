@@ -38,6 +38,7 @@ async function run() {
       process.env.CHROMIUM_EXECUTABLE ? { executablePath: process.env.CHROMIUM_EXECUTABLE } : {},
     );
     checks.push(await require("./account-browser.cjs")(browser, origin));
+    checks.push(await require("./profile-sync-browser.cjs")(browser, origin));
     checks.push(await require("./native-opportunities-browser.cjs")(browser, origin));
     checks.push(await require("./content-studio-browser.cjs")(browser, origin));
     checks.push(await require("./instagram-integration-browser.cjs")(browser, origin));

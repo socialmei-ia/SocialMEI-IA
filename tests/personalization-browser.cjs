@@ -257,6 +257,7 @@ module.exports = async function personalization(browser, origin) {
   const remote = await browser.newContext({ reducedMotion: "reduce" });
   try {
     const page = await remote.newPage();
+    const profileAPI = require("./profile-sync-fixture.cjs")();
     let rejectWrite = true;
     const writes = [];
     page.on("pageerror", (error) => errors.push(error.message));
@@ -281,6 +282,12 @@ module.exports = async function personalization(browser, origin) {
             papel: "owner",
           },
         });
+      const profileReply = profileAPI(route, {
+        usuario: { id: 1 },
+        negocio: { id: 1, nome: "Negócio sintético" },
+        papel: "owner",
+      });
+      if (profileReply) return profileReply;
       if (url.pathname === "/api/v1/produtos") return route.fulfill({ json: [] });
       if (url.pathname === "/api/v1/produtos/importacoes/confirmar") {
         writes.push(request.postDataJSON());
@@ -310,8 +317,8 @@ module.exports = async function personalization(browser, origin) {
     assert.equal(await page.locator(".home-sale-row").count(), 0);
     assert.equal(await page.evaluate(() => sessionData.conversas.length), 0);
     await capture(page, "remote-empty");
-    await page.evaluate((profile) => {
-      SocialMEIBusinessProfile.browserRepository().save({
+    await page.evaluate(async (profile) => {
+      await SocialMEIBusinessProfile.browserRepository().save({
         ...profile,
         businessName: "Negócio sintético",
         completed: true,

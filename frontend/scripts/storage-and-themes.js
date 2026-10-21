@@ -466,13 +466,13 @@ function socialmeiStorageSet(key, value, context = "os dados") {
     storageError = !(okCustom && okActive && okLegacy);
     return !storageError;
   }
-  function selectTheme(id) {
+  function selectTheme(id, { persist = true } = {}) {
     if (!["light", "dark", "auto"].includes(id) && !themes.some((t) => t.id === id)) {
       return false;
     }
     active = id;
     applyTheme();
-    return persistThemePreferences();
+    return persist ? persistThemePreferences() : true;
   }
   function saveCustomTheme(theme) {
     const clean = validateTheme(theme, {
