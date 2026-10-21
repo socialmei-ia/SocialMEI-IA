@@ -187,9 +187,7 @@ const SocialMEIContentStudio = (() => {
             " · " +
             new Date(item.updatedAt).toLocaleString("pt-BR", { timeZone: APP_TIMEZONE }) +
             (item.scheduledAt
-              ? " · Planejado: " +
-                item.scheduledAt.replace("T", " às ") +
-                " (não agendado)"
+              ? " · Planejado: " + item.scheduledAt.replace("T", " às ") + " (não agendado)"
               : "") +
             (item.media ? " · mídia precisa ser selecionada novamente" : ""),
         ),

@@ -400,8 +400,7 @@ const SocialMEIOpportunities = (() => {
       );
       items.sort(
         (a, b) =>
-          levelOrder.indexOf(presentation(a).level) -
-          levelOrder.indexOf(presentation(b).level),
+          levelOrder.indexOf(presentation(a).level) - levelOrder.indexOf(presentation(b).level),
       );
     } else if (activeTab === "attention") {
       const all = items;

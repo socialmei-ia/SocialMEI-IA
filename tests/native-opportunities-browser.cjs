@@ -111,9 +111,9 @@ module.exports = async function nativeOpportunities(browser, origin) {
       "true",
     );
     assert.deepEqual(
-      await page.locator("[data-analysis-level]").evaluateAll((elements) =>
-        elements.map((el) => el.dataset.analysisLevel),
-      ),
+      await page
+        .locator("[data-analysis-level]")
+        .evaluateAll((elements) => elements.map((el) => el.dataset.analysisLevel)),
       ["all", "frio", "morno", "quente"],
     );
     await page.locator('[data-analysis-level="frio"]').click();
