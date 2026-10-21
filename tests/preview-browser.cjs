@@ -4,8 +4,7 @@ const { randomUUID } = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 const { chromium } = require("playwright");
-require("node:dns").setDefaultResultOrder("ipv4first");
-const origin = "https://localhost:8443";
+const origin = "https://127.0.0.1:8443";
 const output = path.resolve(__dirname, "../test-results/preview");
 
 async function run() {

@@ -13,7 +13,7 @@ npm ci
 npm run preview -- up
 ```
 
-Abra **https://localhost:8443**. O certificado é da autoridade local deste preview: aceite a exceção somente para esse endereço local, ou instale a autoridade local conforme a política da sua máquina. Nenhuma autoridade é instalada automaticamente. Cadastre uma conta exclusiva de teste com nome/e-mail fictícios e senha de pelo menos 12 caracteres; não reutilize credenciais reais. O cadastro está aberto apenas na porta vinculada a 127.0.0.1. Outra conta cria outro negócio isolado.
+Abra **https://127.0.0.1:8443**. O certificado é da autoridade local deste preview: aceite a exceção somente para esse endereço local, ou instale a autoridade local conforme a política da sua máquina. Nenhuma autoridade é instalada automaticamente. Cadastre uma conta exclusiva de teste com nome/e-mail fictícios e senha de pelo menos 12 caracteres; não reutilize credenciais reais. O cadastro está aberto apenas na porta vinculada a 127.0.0.1. Outra conta cria outro negócio isolado.
 
 Não abra o HTML por arquivo ou use HTTP: a autenticação exige HTTPS e cookie Secure. A primeira inicialização baixa imagens e constrói a API. A porta 8443 precisa estar livre. A API e o banco não publicam portas. Redes internas impedem transporte externo pelos serviços em execução; builds ainda precisam baixar dependências.
 

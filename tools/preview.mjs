@@ -125,7 +125,7 @@ export function main(command = process.argv[2] || "up") {
   );
   if (command === "up") {
     console.log(
-      "Abra https://localhost:8443 — certificado local: o navegador pode solicitar confiança.",
+      "Abra https://127.0.0.1:8443 — certificado local: o navegador pode solicitar confiança.",
     );
     console.log(
       "Use somente dados fictícios. Autenticação individual habilitada; cadastre uma conta de teste.",

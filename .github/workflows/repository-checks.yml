@@ -187,6 +187,28 @@ jobs:
         run: node tests/settings-browser.cjs
       - name: HTTPS authentication regression
         run: node tests/team-browser.cjs
+      - name: Save browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-regression
+          path: test-results/
+          if-no-files-found: ignore
+
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install tools and Chromium
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
       - name: Real isolated preview API and browser
         run: |
           npm run preview -- up
@@ -195,10 +217,10 @@ jobs:
         if: always()
         run: |
           if test -f .preview/.env; then npm run preview -- down; fi
-      - name: Save browser evidence
+      - name: Save real preview evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: frontend-regression
-          path: test-results/
+          name: isolated-preview
+          path: test-results/preview/
           if-no-files-found: ignore

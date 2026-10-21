@@ -40,7 +40,7 @@ services:
       SOCIALMEI_WORKSPACE_SLUG: preview
       SOCIALMEI_WORKSPACE_NAME: Teste fictício local
       SOCIALMEI_AUTH_ENABLED: "true"
-      SOCIALMEI_AUTH_ORIGIN: https://localhost:8443
+      SOCIALMEI_AUTH_ORIGIN: https://127.0.0.1:8443
       SOCIALMEI_REGISTRATION_MODE: open
       SOCIALMEI_CORS_ORIGINS: ""
       SOCIALMEI_INSTAGRAM_MODE: simulation
