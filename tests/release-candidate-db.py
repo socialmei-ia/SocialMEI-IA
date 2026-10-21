@@ -41,6 +41,7 @@ class Rehearsal:
         self.name = 'socialmei-rc80-' + self.token[:12]
         self.password = secrets.token_hex(24)
         self.container = self.network = None
+        self.volumes = []
         self.dsn = None
         self.env = dict(os.environ)
         for name in ('DOCKER_HOST', 'DOCKER_CONTEXT', 'DOCKER_TLS', 'DOCKER_TLS_VERIFY', 'DOCKER_CERT_PATH'):
@@ -85,6 +86,7 @@ class Rehearsal:
             raise RuntimeError('Owned PostgreSQL did not become ready')
         details = json.loads(self.docker('inspect', self.container).stdout)[0]
         self.check(details['Config']['Labels'].get(LABEL) == self.token and not details['HostConfig'].get('PortBindings'), 'own isolated PostgreSQL container; no published ports')
+        self.volumes = [mount['Name'] for mount in details['Mounts'] if mount['Type'] == 'volume']
         ip = next(iter(details['NetworkSettings']['Networks'].values()))['IPAddress']
         self.dsn = f'postgresql://rc80:{self.password}@{ip}:5432/rc80_upgrade'
 
@@ -340,10 +342,14 @@ class Rehearsal:
             labels = details['Config']['Labels'] if kind == 'container' else details['Labels']
             if labels.get(LABEL) != self.token:
                 raise RuntimeError('Refusing cleanup: resource ownership label mismatch')
-            self.docker('rm', '-f', resource) if kind == 'container' else self.docker('network','rm',resource)
+            self.docker('rm', '-f', '-v', resource) if kind == 'container' else self.docker('network','rm',resource)
             if resource in self.docker(*listing).stdout.split():
                 raise RuntimeError('Owned resource remains after cleanup')
             log.append(kind+': removed owned resource; absence confirmed')
+        remaining_volumes = set(self.docker('volume', 'ls', '-q').stdout.split())
+        if remaining_volumes.intersection(self.volumes):
+            raise RuntimeError('Owned anonymous test volume remains after cleanup')
+        self.report['anonymous_volumes_removed'] = len(self.volumes)
         self.report['cleanup'] = True
         (self.output/'cleanup.log').write_text('\n'.join(log)+'\n')
 
