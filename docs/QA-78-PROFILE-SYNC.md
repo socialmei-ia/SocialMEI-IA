@@ -22,6 +22,8 @@ Base: `5d542e2fa675519d99bfcfea5bc899a7225ed885`, HEAD da #77, que já inclui #7
 
 Os ajustes de fixtures representam os novos recursos de API e o perfil compartilhado; as verificações de autorização e de ausência de escritas comerciais permanecem. O teste de Oportunidades agora espera a inicialização autenticada concluir antes de navegar, evitando concorrência com a navegação inicial.
 
+A primeira execução de CI revelou uma concorrência na simulação Instagram: uma leitura de fundo iniciada durante a gravação podia substituir o histórico e a confirmação por uma resposta anterior. O caso foi reproduzido deterministicamente (teste vermelho) e corrigido impedindo essas leituras durante a operação; o teste ficou verde, preservando idempotência, teclado e ausência de transporte real. A correção limita-se ao controlador de simulação, sem habilitar publicação ou alterar contratos externos.
+
 ## Rollout e rollback — documentação, sem execução
 
 1. Revisar #77 e esta PR, obter CI verde no HEAD final e autorização específica para publicação. Fazer o backup documentado do ambiente e registrar imagens/checkout anteriores.

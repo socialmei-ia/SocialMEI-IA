@@ -152,15 +152,16 @@ const SocialMEIInstagramSimulation = (() => {
         renderAccounts();
       }
     });
+    // A background read started during a mutation can outlive it and replace its result.
     document.addEventListener("socialmei-view-change", () => {
-      if (currentView === "Divulgação") load();
+      if (currentView === "Divulgação" && !working) load();
       else version++;
     });
     document.addEventListener("socialmei-data-change", () => {
       // The submission fingerprint includes identity, content, account and schedule.
       // Unrelated refreshes must preserve the key for an uncertain retry.
       version++;
-      if (currentView === "Divulgação") load();
+      if (currentView === "Divulgação" && !working) load();
     });
     load();
   }

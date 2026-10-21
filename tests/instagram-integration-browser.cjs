@@ -4,13 +4,16 @@ const fs = require("node:fs");
 const path = require("node:path");
 module.exports = async function instagramIntegration(browser, origin) {
   const page = await browser.newPage({ reducedMotion: "reduce" });
+  const profileAPI = require("./profile-sync-fixture.cjs")();
   const errors = [],
     external = [],
     writes = [],
     accounts = [],
     publications = [];
   let refuseNext = true,
-    holdRefresh = false;
+    holdRefresh = false,
+    releaseSubmit = null,
+    holdSubmit = false;
   const delayedRefresh = [];
   const identity = {
     usuario: { id: 101, nome: "MEI fictício", email: "sandbox@example.test" },
@@ -49,6 +52,10 @@ module.exports = async function instagramIntegration(browser, origin) {
     if (url.pathname === "/api/v1/auth/session") return route.fulfill({ json: identity });
     if (url.pathname === "/api/v1/auth/registration")
       return route.fulfill({ json: { mode: "open" } });
+    if (["/api/v1/workspace-profile", "/api/v1/auth/preferences"].includes(url.pathname)) {
+      assert.equal(request.method(), "GET");
+      return profileAPI(route, identity);
+    }
     const prefix = "/api/v1/instagram/simulation";
     if (
       holdRefresh &&
@@ -84,6 +91,7 @@ module.exports = async function instagramIntegration(browser, origin) {
         refuseNext = false;
         return route.fulfill({ status: 503, json: { detail: "Falha simulada de teste" } });
       }
+      if (holdSubmit) await new Promise((resolve) => (releaseSubmit = resolve));
       const body = request.postDataJSON();
       const prior = publications.find((p) => p.idempotency_key === body.idempotency_key);
       if (!prior)
@@ -101,7 +109,9 @@ module.exports = async function instagramIntegration(browser, origin) {
   });
   try {
     await page.goto(origin + "/frontend/socialmei-app.html");
-    await page.waitForFunction(() => !!window.SocialMEIAuth?.current);
+    await page.waitForFunction(
+      () => !!window.SocialMEIAuth?.current && document.body?.classList.contains("experience-app"),
+    );
     await page.evaluate(() => SocialMEIExperience.enterApp("Divulgação"));
     await page.waitForFunction(() =>
       document
@@ -164,12 +174,36 @@ module.exports = async function instagramIntegration(browser, origin) {
       "instagramSimulationSubmit",
       "Retry must retain keyboard focus before Enter",
     );
+    holdSubmit = true;
     await page.keyboard.press("Enter");
+    const submitDeadline = Date.now() + 5000;
+    while (!releaseSubmit && Date.now() < submitDeadline)
+      await new Promise((resolve) => setImmediate(resolve));
+    assert(releaseSubmit, "The retry POST must be in flight");
+    holdRefresh = true;
+    await page.evaluate(async () => {
+      document.dispatchEvent(new CustomEvent("socialmei-data-change"));
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    });
+    holdRefresh = false;
+    holdSubmit = false;
+    releaseSubmit();
     await page.waitForFunction(() =>
       document
         .getElementById("instagramSimulationStatus")
         .textContent.includes("nada foi publicado"),
     );
+    await page.waitForFunction(
+      () => document.querySelectorAll("#instagramSimulationHistory p").length === 1,
+    );
+    await Promise.all(delayedRefresh.splice(0).map((release) => release()));
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)));
+    assert.match(
+      await page.locator("#instagramSimulationStatus").textContent(),
+      /nada foi publicado/,
+    );
+    assert.equal(await page.locator("#instagramSimulationHistory p").count(), 1);
+
     assert.equal(publications.length, 1);
     assert.equal(publications[0].published, false);
     assert.equal(publications[0].account_id, secondAccountId);
@@ -238,7 +272,9 @@ module.exports = async function instagramIntegration(browser, origin) {
     assert.notEqual(publications[1].idempotency_key, publications[2].idempotency_key);
     identity.papel = "viewer";
     await page.reload();
-    await page.waitForFunction(() => !!window.SocialMEIAuth?.current);
+    await page.waitForFunction(
+      () => !!window.SocialMEIAuth?.current && document.body?.classList.contains("experience-app"),
+    );
     await page.evaluate(() => SocialMEIExperience.enterApp("Divulgação"));
     await page.waitForFunction(
       () => document.getElementById("instagramSimulationAccount").options.length === 2,
