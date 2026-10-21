@@ -4,7 +4,13 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main, feat/ux-interaction-refinement, release/integration-candidate-80]
+    branches:
+      [
+        main,
+        feat/ux-interaction-refinement,
+        release/integration-candidate-80,
+        feat/priority-integrations,
+      ]
 
 permissions:
   contents: read
@@ -181,6 +187,14 @@ jobs:
         run: node tests/settings-browser.cjs
       - name: HTTPS authentication regression
         run: node tests/team-browser.cjs
+      - name: Real isolated preview API and browser
+        run: |
+          npm run preview -- up
+          npm run test:preview
+      - name: Stop local preview
+        if: always()
+        run: |
+          if test -f .preview/.env; then npm run preview -- down; fi
       - name: Save browser evidence
         if: always()
         uses: actions/upload-artifact@v4
