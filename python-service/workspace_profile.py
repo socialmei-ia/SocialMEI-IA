@@ -241,7 +241,12 @@ def patch_profile(payload: ProfilePatch, request: Request, response: Response):
     user = identity(request, response)
     if user["role"] not in {"owner", "admin"}:
         raise HTTPException(403, "Somente responsáveis pelo negócio podem alterar o perfil.")
-    profile = payload.profile.normalized(user["nome_negocio"])
+    try:
+        profile = BusinessProfile.model_validate(
+            payload.profile.normalized(user["nome_negocio"])
+        ).model_dump()
+    except ValueError:
+        raise HTTPException(422, "Confira os campos informados.") from None
     row = storage("workspace_profiles", user, "profile", profile, payload.expected_revision)
     return {"schema_version": 1, "revision": row[0], "profile": row[1]}
 

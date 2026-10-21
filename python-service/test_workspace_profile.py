@@ -167,6 +167,32 @@ class ProfileDatabaseTests(unittest.TestCase):
             self.assertEqual(self.admin_client.patch(PROFILE_PATH, json=body).status_code, 422)
             self.assertEqual(self.admin_client.get(PROFILE_PATH).json(), saved.json())
 
+    def test_profile_size_is_checked_after_canonical_name_normalization(self):
+        profile = copy.deepcopy(PROFILE)
+        profile.update({
+            'businessName': '', 'activity': '', 'offers': ['products', 'services'], 'modules': [],
+            'services': [str(i).zfill(2) + 'x' * 118 for i in range(30)],
+            'productCategories': [str(i).zfill(2) + 'y' * 118 for i in range(30)],
+            'ignoredSuggestions': [str(i).zfill(2) + 'z' * 158 for i in range(60)],
+        })
+        size = lambda value: len(json.dumps(value, ensure_ascii=False).encode())
+        remaining = 32768 - size(profile)
+        for field in ('ignoredSuggestions', 'services', 'productCategories'):
+            for i, text in enumerate(profile[field]):
+                count = min(remaining, len(text) - 2)
+                profile[field][i] = text[:2] + 'é' * count + text[2 + count:]
+                remaining -= count
+        self.assertEqual(size(profile), 32768)
+        response = self.admin_client.patch(PROFILE_PATH, json=payload(profile))
+        self.assertEqual(response.status_code, 422, response.text)
+        self.assertIsNone(self.admin_client.get(PROFILE_PATH).json()['profile'])
+        # Removing exactly the canonical name's byte length permits a stable round trip.
+        profile['ignoredSuggestions'][0] = profile['ignoredSuggestions'][0].replace('é', 'a', len('Existing team'))
+        response = self.admin_client.patch(PROFILE_PATH, json=payload(profile))
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(size(response.json()['profile']), 32768)
+        self.assertEqual(self.admin_client.get(PROFILE_PATH).json(), response.json())
+
     def test_missing_migration_and_database_configuration_are_safe(self):
         with patch('workspace_profile.connect', side_effect=psycopg.errors.UndefinedTable('private database text')):
             response = self.admin_client.get(PROFILE_PATH)
