@@ -11,6 +11,24 @@
       throw new Error("O conteúdo excede os limites do rascunho.");
     return value;
   }
+  function schedule(value) {
+    if (value === undefined || value === null || value === "") return "";
+    if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value))
+      throw new Error("Informe data e horário válidos para o planejamento.");
+    const [year, month, day, hour, minute] = value.match(/\d+/g).map(Number);
+    const date = new Date(year, month - 1, day, hour, minute);
+    if (
+      year < 2024 ||
+      year > 2100 ||
+      date.getFullYear() !== year ||
+      date.getMonth() !== month - 1 ||
+      date.getDate() !== day ||
+      date.getHours() !== hour ||
+      date.getMinutes() !== minute
+    )
+      throw new Error("Informe data e horário válidos para o planejamento.");
+    return value;
+  }
   function draft(value) {
     if (!value || !Object.hasOwn(FORMATS, value.format))
       throw new Error("Escolha Story, Feed ou Reel.");
@@ -38,6 +56,7 @@
       caption: text(value.caption || "", 2200),
       cta: text(value.cta || "", 140),
       hashtags: text(value.hashtags || "", 300),
+      scheduledAt: schedule(value.scheduledAt),
       media,
     };
   }

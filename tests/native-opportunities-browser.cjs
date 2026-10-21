@@ -99,12 +99,22 @@ module.exports = async function nativeOpportunities(browser, origin) {
       JSON.stringify({ data: appData, conversations: sessionData.conversas }),
     );
     await tab("analysis");
+    const analysisTab = page.locator('[data-analysis-tab="analysis"]');
     const lia = page.locator('[data-native-opportunity="analysis-demo-welcome"]');
+    const weight = await analysisTab.evaluate((el) => Number(getComputedStyle(el).fontWeight));
+    assert(weight >= 700);
+    assert.equal(await lia.evaluate((el) => getComputedStyle(el).borderLeftWidth), "3px");
     await lia.locator(".client-analysis-choice summary").click();
     await lia.locator('[data-analysis-value="frio"]').click();
     assert.equal(
       await page.locator('[data-analysis-tab="chance"]').getAttribute("aria-selected"),
       "true",
+    );
+    assert.deepEqual(
+      await page
+        .locator("[data-analysis-level]")
+        .evaluateAll((elements) => elements.map((el) => el.dataset.analysisLevel)),
+      ["all", "frio", "morno", "quente"],
     );
     await page.locator('[data-analysis-level="frio"]').click();
     assert.equal(await page.locator(".client-analysis-list .client-analysis-card").count(), 1);
@@ -288,6 +298,8 @@ module.exports = async function nativeOpportunities(browser, origin) {
       await account.waitForFunction(
         () => typeof SocialMEIAuth !== "undefined" && SocialMEIAuth.current,
       );
+      // Wait for authenticated bootstrap before navigating; it now loads the scoped profile.
+      await account.waitForFunction(() => document.body?.classList.contains("experience-app"));
       await account.evaluate(() => SocialMEIExperience.enterApp("Oportunidades"));
       assert.equal(await account.evaluate(() => sessionData.conversas.length), 0);
       assert.equal(await account.locator("[data-opportunity-demo]").count(), 0);

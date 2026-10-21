@@ -115,6 +115,24 @@
   color: var(--mt);
   font-variant-numeric: tabular-nums;
 }
+.content-plan-control {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  border: 1px solid var(--ln);
+  border-radius: 12px;
+  padding: 16px;
+  background: var(--sf);
+}
+#contentStudioView .content-plan-control label {
+  margin-top: 0;
+}
+#contentStudioView .content-plan-control p {
+  color: var(--mt);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
+}
 .content-media-control {
   margin-top: 12px;
   padding: 18px;

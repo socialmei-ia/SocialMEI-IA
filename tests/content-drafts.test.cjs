@@ -96,3 +96,19 @@ test("local media requires compatible MIME, size and header before preview", asy
   );
   await assert.rejects(model.validateMedia(file("image/png", [137, 80, 78, 71]), "reel"), /vídeo/);
 });
+
+test("optional planned time survives local draft CRUD without scheduling publication", () => {
+  const f = fixture();
+  const scheduledAt = "2026-11-12T09:45";
+  const item = f.repo.save({ ...input, scheduledAt }, "a");
+  assert.equal(item.scheduledAt, scheduledAt);
+  assert.equal(f.repo.read().items[0].scheduledAt, scheduledAt);
+  assert.equal(f.repo.duplicate(item.id, "a").scheduledAt, scheduledAt);
+  assert.equal(f.repo.save({ ...item, scheduledAt: "" }, "a").scheduledAt, "");
+  assert.equal(model.draft(input).scheduledAt, "");
+  assert.throws(() => model.draft({ ...input, scheduledAt: "2026-02-30T10:00" }), /horário/);
+  assert.throws(() => model.draft({ ...input, scheduledAt: "2026-11-12T25:00" }), /horário/);
+  assert.throws(() => model.draft({ ...input, scheduledAt: "2026-11-12T10:00Z" }), /horário/);
+  assert.throws(() => model.draft({ ...input, scheduledAt: { token: "unsafe" } }), /horário/);
+  assert.equal("published" in item, false);
+});

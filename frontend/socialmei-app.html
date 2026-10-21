@@ -63,6 +63,7 @@
     <link rel="stylesheet" href="styles/business-profile.css" />
     <link rel="stylesheet" href="styles/opportunities.css" />
     <link rel="stylesheet" href="styles/content-studio.css" />
+    <link rel="stylesheet" href="styles/instagram-publisher.css" />
     <link rel="stylesheet" href="styles/reports-v2.css" />
     <link rel="stylesheet" href="styles/chart-refinement.css" />
     <link rel="stylesheet" href="styles/premium-experience.css" />
@@ -163,6 +164,7 @@
       FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
       OTHER DEALINGS IN THE FONT SOFTWARE.
     </script>
+    <link rel="stylesheet" href="styles/message-enrichment.css" />
   </head>
   <body class="experience-public">
     <!-- LANDING, AUTENTICAÇÃO E ONBOARDING -->
@@ -2638,6 +2640,18 @@
                     <span>Seu perfil será salvo somente após a confirmação.</span>
                   </div>
                 </div>
+                <section
+                  id="businessProfileConflict"
+                  class="management-card profile-sync-panel"
+                  hidden
+                  aria-label="Conflito no perfil"
+                  tabindex="-1"
+                >
+                  <p id="businessConflictSummary"></p>
+                  <button type="button" class="management-button" data-business-reload>
+                    Carregar perfil salvo e descartar estas alterações
+                  </button>
+                </section>
                 <h3 class="experience-review-section-title">O que você escolheu</h3>
                 <nav class="business-review-jump" aria-label="Corrigir escolhas">
                   <button type="button" data-review-edit-step="1">Editar seus dados</button
@@ -2656,7 +2670,7 @@
                 </div>
                 <div class="experience-review-next">
                   <strong>Próximo passo</strong>
-                  <p>
+                  <p id="businessProfileNextNotice">
                     Confirme para salvar o perfil neste navegador e entrar no seu espaço. Isso não
                     cadastra produtos, vendas ou conexões.
                   </p>
@@ -3665,6 +3679,87 @@
               <span id="integrationAlertText">Não foi possível sincronizar as mensagens.</span>
               <button id="integrationRetry" type="button">Tentar novamente</button>
             </div>
+            <details id="enrichmentLab" class="enrichment-lab">
+              <summary>Análise de mensagens · laboratório seguro</summary>
+              <p id="enrichmentLabStatus" role="status" aria-live="polite"></p>
+              <button id="enrichmentRefresh" type="button" class="management-button">
+                Atualizar análise deste negócio
+              </button>
+              <div id="enrichmentLabForms" hidden>
+                <form id="enrichmentSyntheticForm" class="enrichment-form">
+                  <h3>Adicionar mensagem fictícia</h3>
+                  <p>
+                    Usada somente neste laboratório. Não recebe nem envia pelo WhatsApp ou
+                    Instagram.
+                  </p>
+                  <label
+                    >Nome demonstrativo<input
+                      name="name"
+                      value="Cliente fictício"
+                      maxlength="120"
+                      required
+                  /></label>
+                  <label
+                    >Canal ilustrativo<select name="channel">
+                      <option value="whatsapp">WhatsApp</option>
+                      <option value="instagram">Instagram</option>
+                    </select></label
+                  >
+                  <label
+                    >Conta fictícia<select name="account">
+                      <option value="synthetic:conta-a">Conta A</option>
+                      <option value="synthetic:conta-b">Conta B</option>
+                    </select></label
+                  >
+                  <label
+                    >Contato fictício<select name="contact">
+                      <option value="synthetic:contato-a">Contato A</option>
+                      <option value="synthetic:contato-b">Contato B</option>
+                    </select></label
+                  >
+                  <label class="enrichment-wide"
+                    >Mensagem<textarea
+                      id="enrichmentText"
+                      name="text"
+                      maxlength="4000"
+                      rows="3"
+                      required
+                      placeholder="Ex.: Não gostei do atendimento e preciso de ajuda."
+                    ></textarea>
+                  </label>
+                  <button type="submit" class="management-button pr">
+                    Adicionar mensagem fictícia
+                  </button>
+                </form>
+                <details class="enrichment-documents">
+                  <summary>Conhecimento fictício deste negócio</summary>
+                  <p>
+                    Apenas texto simples. Limite de 32 KiB, retenção de 30 dias. Não inclua dados
+                    privados. A consulta é lexical e não utiliza IA paga.
+                  </p>
+                  <form id="enrichmentDocumentForm" class="enrichment-form">
+                    <label
+                      >Título<input
+                        name="title"
+                        maxlength="120"
+                        required
+                        placeholder="Orientação fictícia de atendimento"
+                    /></label>
+                    <label class="enrichment-wide"
+                      >Conteúdo fictício<textarea
+                        name="content"
+                        maxlength="32000"
+                        rows="3"
+                        required
+                        placeholder="Preços e prazos precisam ser confirmados após avaliação."
+                      ></textarea>
+                    </label>
+                    <button type="submit" class="management-button">Salvar texto fictício</button>
+                  </form>
+                  <ul id="enrichmentDocumentList"></ul>
+                </details>
+              </div>
+            </details>
             <section class="inbox-shell" id="inboxShell">
               <aside aria-label="Lista de conversas" class="conv-pane">
                 <div class="list-heading">
@@ -4236,6 +4331,20 @@
                       />
                       <label for="contentHashtags">Hashtags <small>Opcionais</small></label
                       ><input id="contentHashtags" maxlength="300" placeholder="#SeuNegócio" />
+                      <div class="content-plan-control">
+                        <label for="contentScheduledAt"
+                          >Dia e horário planejados <small>Opcional</small></label
+                        >
+                        <input
+                          id="contentScheduledAt"
+                          type="datetime-local"
+                          aria-describedby="contentScheduleStatus"
+                        />
+                        <p id="contentScheduleStatus" class="management-note" role="status">
+                          Planejamento salvo apenas no navegador. Não agenda nem publica no
+                          Instagram.
+                        </p>
+                      </div>
                       <div class="content-media-control">
                         <label for="contentMedia">Imagem ou vídeo local</label>
                         <p id="contentMediaHelp">
@@ -4320,6 +4429,111 @@
                   </div>
                 </aside>
               </div>
+              <section
+                class="instagram-publish-panel"
+                id="instagramPublishPanel"
+                aria-labelledby="instagramPublishTitle"
+                hidden
+              >
+                <header class="instagram-publish-header">
+                  <div>
+                    <span class="instagram-publish-kicker">INSTAGRAM · PILOTO</span>
+                    <h3 id="instagramPublishTitle">Seu conteúdo, pronto para sair do rascunho.</h3>
+                    <p>
+                      Prepare aqui e continue no formulário externo somente após a liberação do
+                      piloto. Confira quem controla a conta do Instagram antes de publicar.
+                    </p>
+                  </div>
+                  <span class="instagram-publish-state" id="instagramPublishState">
+                    Integração pendente
+                  </span>
+                </header>
+                <div class="instagram-publish-grid">
+                  <ol class="instagram-publish-steps">
+                    <li>
+                      <strong>Prepare o conteúdo</strong>
+                      <span>Escreva a legenda, confira a prévia e guarde seu rascunho.</span>
+                    </li>
+                    <li>
+                      <strong>Confira o destino</strong>
+                      <span>Verifique a conta do Instagram, o formato e a mídia original.</span>
+                    </li>
+                    <li>
+                      <strong>Finalize no n8n</strong>
+                      <span>O formulário externo solicita os arquivos e a confirmação final.</span>
+                    </li>
+                  </ol>
+                  <div class="instagram-publish-next">
+                    <strong>Próximo passo: <span id="instagramPublishFormat">Feed</span></strong>
+                    <p class="instagram-publish-guide" id="instagramPublishGuide"></p>
+                    <button
+                      type="button"
+                      class="management-button pr"
+                      id="instagramPublishStart"
+                      aria-describedby="instagramPublishStatus"
+                      disabled
+                    >
+                      Publicação em configuração
+                    </button>
+                    <p class="instagram-publish-status" id="instagramPublishStatus" role="status">
+                      A conexão de publicação ainda não foi habilitada neste ambiente.
+                    </p>
+                  </div>
+                </div>
+              </section>
+              <!-- The staged test section is an intentionally isolated component. -->
+              <!-- prettier-ignore -->
+              <section
+                class="instagram-simulation-panel"
+                id="instagramSimulationPanel"
+                hidden
+                aria-labelledby="instagramSimulationTitle"
+              >
+                <header>
+                  <span class="instagram-publish-kicker">AMBIENTE DE TESTE · SEM PUBLICAÇÃO</span>
+                  <h3 id="instagramSimulationTitle">Teste o fluxo do Instagram com segurança.</h3>
+                  <p>
+                    A simulação registra somente os dados da publicação no banco de testes.
+                    Imagens e vídeos não são enviados; nenhuma conta real é conectada.
+                  </p>
+                </header>
+                <div class="instagram-simulation-fields">
+                  <label for="instagramSimulationAccount">Conta fictícia para o teste</label>
+                  <select id="instagramSimulationAccount"></select>
+                  <div class="instagram-simulation-create">
+                    <label for="instagramSimulationName">Nome da conta de teste</label>
+                    <input
+                      id="instagramSimulationName"
+                      type="text"
+                      maxlength="80"
+                      placeholder="Ex.: Minha loja (teste)"
+                      autocomplete="off"
+                    />
+                    <button
+                      type="button"
+                      class="management-button"
+                      id="instagramSimulationCreate"
+                    >
+                      Criar conta fictícia
+                    </button>
+                  </div>
+                  <label for="instagramSimulationSchedule">
+                    Agendar simulação (opcional, horário do dispositivo)
+                  </label>
+                  <input id="instagramSimulationSchedule" type="datetime-local" />
+                  <button
+                    type="button"
+                    class="management-button pr"
+                    id="instagramSimulationSubmit"
+                  >
+                    Simular com o conteúdo selecionado
+                  </button>
+                </div>
+                <p id="instagramSimulationStatus" role="status" aria-live="polite">
+                  Este recurso não publica no Instagram.
+                </p>
+                <div id="instagramSimulationHistory" aria-label="Simulações recentes"></div>
+              </section>
               <section class="content-library" aria-labelledby="contentLibraryTitle">
                 <div class="content-library-heading">
                   <div>
@@ -4346,11 +4560,6 @@
                   + Gerar relatório
                 </button>
               </header>
-              <p id="reportProfileContext" class="management-note"></p>
-              <details class="rv2-source-details">
-                <summary>Sobre estes dados</summary>
-                <div class="management-demo" id="reportsDataSourceStatus" role="status"></div>
-              </details>
               <div class="management-report-period management-card">
                 <div
                   id="reportQuickPeriods"
@@ -4365,8 +4574,15 @@
                   <button type="button" data-report-quick="3 meses">3 meses</button>
                 </div>
                 <span id="reportsPeriodLabel" class="rv2-range" data-current-period></span>
+                <details class="rv2-source-details">
+                  <summary>Sobre estes dados</summary>
+                  <p id="reportProfileContext" class="management-note"></p>
+                  <div class="management-demo" id="reportsDataSourceStatus" role="status"></div>
+                </details>
                 <details class="report-period-options">
-                  <summary>Ajustar período e opções</summary>
+                  <summary aria-label="Período personalizado, comparação e exibição de valores">
+                    Mais opções
+                  </summary>
                   <div
                     id="nvReportPeriods"
                     class="management-chips"
@@ -4864,6 +5080,47 @@
         </div>
       </section>
     </div>
+    <div class="modal-backdrop" id="instagramPublishModal" aria-hidden="true">
+      <section
+        class="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="instagramPublishModalTitle"
+      >
+        <div class="modal-head">
+          <h3 id="instagramPublishModalTitle">Continuar no formulário de publicação?</h3>
+          <button
+            type="button"
+            class="btn"
+            data-close-modal="instagramPublishModal"
+            aria-label="Fechar"
+          >
+            ×
+          </button>
+        </div>
+        <div class="modal-body">
+          <p class="instagram-publish-modal-text">
+            Você vai abrir o formulário externo do n8n em outra aba. Sua legenda, os arquivos e o
+            rascunho não serão enviados automaticamente. Confira qual conta do Instagram está
+            conectada antes de confirmar qualquer postagem ou agendamento.
+          </p>
+        </div>
+        <div class="modal-foot instagram-publish-modal-actions">
+          <button type="button" class="management-button" data-close-modal="instagramPublishModal">
+            Voltar
+          </button>
+          <a
+            class="management-button pr"
+            id="instagramPublishExternal"
+            href="#"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Abrir formulário do n8n
+          </a>
+        </div>
+      </section>
+    </div>
     <div class="modal-backdrop" id="contentConfirmModal" aria-hidden="true">
       <section class="modal" role="dialog" aria-modal="true" aria-labelledby="contentConfirmTitle">
         <div class="modal-head">
@@ -4914,15 +5171,20 @@
     <script src="scripts/finance-store.js"></script>
     <script src="scripts/contact-validation.js"></script>
     <script src="scripts/business-profile.js"></script>
+    <script src="scripts/profile-sync.js"></script>
     <script src="scripts/personalization.js"></script>
     <script src="scripts/content-drafts.js"></script>
     <script src="scripts/content-studio.js"></script>
+    <script src="scripts/instagram-publisher.js"></script>
+    <script src="scripts/instagram-simulation.js"></script>
     <script src="scripts/demo-data.js"></script>
     <script src="scripts/chart-refinement.js"></script>
     <script src="scripts/report-motion.js"></script>
     <script src="scripts/report-ui.js"></script>
     <script src="scripts/app.js"></script>
     <script src="scripts/experience.js"></script>
+    <script src="scripts/message-enrichment-store.js"></script>
+    <script src="scripts/message-enrichment.js"></script>
     <script id="landingEnhancementsV2" src="scripts/landing-accessibility.js"></script>
     <script id="siteReviewBehavior" src="scripts/record-editor.js"></script>
     <script src="scripts/landing-demos.js"></script>

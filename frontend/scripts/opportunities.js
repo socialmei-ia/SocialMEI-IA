@@ -121,6 +121,7 @@ const SocialMEIOpportunities = (() => {
     levels = {},
     resolved = {};
   const levelsLabel = SocialMEIClientAnalysis.LEVELS;
+  const levelOrder = ["frio", "morno", "quente"];
   const status = (text) => {
     byId("clientAnalysisStatus").textContent = text;
   };
@@ -250,8 +251,8 @@ const SocialMEIOpportunities = (() => {
       const choice = node("details", undefined, "client-analysis-choice");
       choice.append(node("summary", "Já sei o que ele quer"));
       const actions = node("div", undefined, "native-opportunity-actions");
-      for (const [level, text] of Object.entries(levelsLabel)) {
-        const control = button(text, "data-analysis-classify", row.id);
+      for (const level of levelOrder) {
+        const control = button(levelsLabel[level], "data-analysis-classify", row.id);
         control.dataset.analysisValue = level;
         actions.append(control);
       }
@@ -378,15 +379,15 @@ const SocialMEIOpportunities = (() => {
       queue.append(
         node(
           "p",
-          "Níveis de interesse por regras locais, não probabilidades de compra. Expanda um cliente para conferir os motivos.",
+          "Níveis em ordem de acompanhamento: Frio, Morno e Quente. São classificações qualitativas, não probabilidades de compra; confira cada conversa.",
           "client-analysis-intro",
         ),
         filters(
           [
             ["all", "Todos", all.length],
-            ...Object.entries(levelsLabel).map(([key, label]) => [
+            ...levelOrder.map((key) => [
               key,
-              label,
+              levelsLabel[key],
               all.filter((r) => presentation(r).level === key).length,
             ]),
           ],
@@ -399,8 +400,7 @@ const SocialMEIOpportunities = (() => {
       );
       items.sort(
         (a, b) =>
-          ["quente", "morno", "frio"].indexOf(presentation(a).level) -
-          ["quente", "morno", "frio"].indexOf(presentation(b).level),
+          levelOrder.indexOf(presentation(a).level) - levelOrder.indexOf(presentation(b).level),
       );
     } else if (activeTab === "attention") {
       const all = items;

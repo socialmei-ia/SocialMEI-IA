@@ -272,6 +272,7 @@ const SocialMEIClients = (() => {
     });
   }
   function conversationClient(c) {
+    if (c?._enrichmentSynthetic) return null;
     if (!remote)
       return (
         appData.clientes.find((x) => x.id === c.clientId) ||
