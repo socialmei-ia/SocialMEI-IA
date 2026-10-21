@@ -32,6 +32,7 @@ const SocialMEIContentStudio = (() => {
     id: draftId,
     format,
     ...Object.fromEntries(Object.entries(fields).map(([key, id]) => [key, byId(id).value])),
+    scheduledAt: byId("contentScheduledAt").value,
     media,
   });
   const dirty = () => JSON.stringify(value()) !== baseline;
@@ -60,6 +61,7 @@ const SocialMEIContentStudio = (() => {
     format = item?.format || "feed";
     media = item?.media || null;
     for (const [key, id] of Object.entries(fields)) byId(id).value = item?.[key] || "";
+    byId("contentScheduledAt").value = item?.scheduledAt || "";
     baseline = JSON.stringify(value());
     message(item ? "Rascunho aberto neste navegador." : "");
     preview();
@@ -94,6 +96,10 @@ const SocialMEIContentStudio = (() => {
     byId("contentPreviewCaption").textContent =
       model.caption(current) || "O texto da sua postagem aparece aqui.";
     byId("contentCaptionCount").textContent = current.caption.length + " / 2200";
+    byId("contentScheduleStatus").textContent = current.scheduledAt
+      ? "Planejado para " + current.scheduledAt.replace("T", " às ") +
+        " (horário local informado). Salvar não agenda nem publica nada."
+      : "Escolha uma data se quiser planejar. Não agenda nem publica no Instagram.";
     byId("contentMedia").accept =
       format === "reel"
         ? "video/mp4,video/webm"
@@ -179,6 +185,9 @@ const SocialMEIContentStudio = (() => {
           model.FORMATS[item.format] +
             " · " +
             new Date(item.updatedAt).toLocaleString("pt-BR", { timeZone: APP_TIMEZONE }) +
+            (item.scheduledAt
+              ? " · Planejado: " + item.scheduledAt.replace("T", " às ") + " (não agendado)"
+              : "") +
             (item.media ? " · mídia precisa ser selecionada novamente" : ""),
         ),
       );
@@ -404,7 +413,7 @@ const SocialMEIContentStudio = (() => {
     if (synchronize()) return;
     try {
       const current = model.draft(value());
-      const text = `${current.title}\nFormato: ${model.FORMATS[format]}\n\n${model.caption(current)}\n\nMídia: ${media?.name || "não selecionada"}\nUse o arquivo original separadamente. Preparação local; nenhuma publicação foi realizada.\n`;
+      const text = `${current.title}\nFormato: ${model.FORMATS[format]}\nData planejada: ${current.scheduledAt ? current.scheduledAt.replace("T", " às ") : "não definida"} (sem agendamento automático)\n\n${model.caption(current)}\n\nMídia: ${media?.name || "não selecionada"}\nUse o arquivo original separadamente. Preparação local; nenhuma publicação foi realizada.\n`;
       const blob = new Blob([text], { type: "text/plain;charset=utf-8" }),
         url = URL.createObjectURL(blob),
         link = node("a");
