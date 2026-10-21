@@ -4258,8 +4258,9 @@
               <details class="content-local-note">
                 <summary>Sobre rascunhos e publicação</summary>
                 <p>
-                  Texto e referências de mídia ficam neste navegador, separados por conta e negócio.
-                  Não sincronizam entre dispositivos. Os arquivos de imagem e vídeo não são enviados
+                  Texto, data planejada e referências de mídia ficam neste navegador, separados por conta e negócio.
+                  A data serve apenas para organização: não agenda uma publicação real. Não sincronizam
+                  entre dispositivos. Os arquivos de imagem e vídeo não são enviados
                   nem salvos: selecione-os novamente ao reabrir um rascunho. Apagar os dados do
                   navegador remove os rascunhos.
                 </p>
@@ -4331,6 +4332,19 @@
                       />
                       <label for="contentHashtags">Hashtags <small>Opcionais</small></label
                       ><input id="contentHashtags" maxlength="300" placeholder="#SeuNegócio" />
+                      <div class="content-schedule-control">
+                        <label for="contentScheduleAt"
+                          >Dia e hora pretendidos <small>Planejamento local</small></label
+                        >
+                        <input
+                          id="contentScheduleAt"
+                          type="datetime-local"
+                          aria-describedby="contentScheduleStatus"
+                        />
+                        <p id="contentScheduleStatus" role="status">
+                          Defina dia e hora para organizar o conteúdo. Nenhuma publicação automática está ativa.
+                        </p>
+                      </div>
                       <div class="content-media-control">
                         <label for="contentMedia">Imagem ou vídeo local</label>
                         <p id="contentMediaHelp">
@@ -4390,6 +4404,9 @@
                     <div class="content-preview-text">
                       <strong id="contentPreviewTitle">Título do conteúdo</strong>
                       <p id="contentPreviewCaption">O texto da sua postagem aparece aqui.</p>
+                      <p id="contentPreviewSchedule" class="content-preview-schedule">
+                        Publicação ainda não agendada
+                      </p>
                     </div>
                   </div>
                   <p class="content-preview-disclosure">
