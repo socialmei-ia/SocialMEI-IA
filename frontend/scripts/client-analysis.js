@@ -4,7 +4,7 @@
   else root.SocialMEIClientAnalysis = api;
 })(globalThis, function () {
   "use strict";
-  const LEVELS = Object.freeze({ quente: "Quente", morno: "Morno", frio: "Frio" });
+  const LEVELS = Object.freeze({ frio: "Frio", morno: "Morno", quente: "Quente" });
   // Additional examples stay in the opt-in demonstration, never in the CRM or Inbox.
   function demoCustomers() {
     return [
