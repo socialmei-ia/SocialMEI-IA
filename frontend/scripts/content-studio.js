@@ -97,7 +97,8 @@ const SocialMEIContentStudio = (() => {
       model.caption(current) || "O texto da sua postagem aparece aqui.";
     byId("contentCaptionCount").textContent = current.caption.length + " / 2200";
     byId("contentScheduleStatus").textContent = current.scheduledAt
-      ? "Planejado para " + current.scheduledAt.replace("T", " às ") +
+      ? "Planejado para " +
+        current.scheduledAt.replace("T", " às ") +
         " (horário local informado). Salvar não agenda nem publica nada."
       : "Escolha uma data se quiser planejar. Não agenda nem publica no Instagram.";
     byId("contentMedia").accept =
@@ -186,7 +187,9 @@ const SocialMEIContentStudio = (() => {
             " · " +
             new Date(item.updatedAt).toLocaleString("pt-BR", { timeZone: APP_TIMEZONE }) +
             (item.scheduledAt
-              ? " · Planejado: " + item.scheduledAt.replace("T", " às ") + " (não agendado)"
+              ? " · Planejado: " +
+                item.scheduledAt.replace("T", " às ") +
+                " (não agendado)"
               : "") +
             (item.media ? " · mídia precisa ser selecionada novamente" : ""),
         ),
