@@ -265,7 +265,7 @@ function renderConversationList() {
                   >
                   <span class="conv-tags"
                     ><span class="status-mini ${statusClass}">${statusLabel(c.status)}</span
-                    >${c._socialmeiDemoSample && sessionData.conversas.some((row) => !row._socialmeiDemoSample) ? '<span class="conv-tag">Exemplo</span>' : ""}${conversationTags(
+                    >${c._enrichmentSynthetic ? `<span class="conv-tag">${escapeHtml(c._enrichmentLabel)}</span>` : ""}${c._socialmeiDemoSample && sessionData.conversas.some((row) => !row._socialmeiDemoSample) ? '<span class="conv-tag">Exemplo</span>' : ""}${conversationTags(
                       c,
                     )
                       .map((t) => /* HTML */ `<span class="conv-tag">${escapeHtml(t)}</span>`)
@@ -402,8 +402,7 @@ function renderDetails(c) {
     return;
   }
   if (c._enrichmentSynthetic) {
-    host.innerHTML =
-      '<div class="context-body"><h3>Contato fictício</h3><p>Conversa isolada deste negócio. Não há cadastro de cliente vinculado por nome, canal conectado ou envio externo.</p></div>';
+    host.innerHTML = `<div class="context-body"><section class="context-card"><h4>Contato fictício</h4><p>${escapeHtml(c._enrichmentLabel || "Identidade de teste")}</p><p>Conversa isolada deste negócio. Não há cadastro de cliente vinculado por nome, canal conectado ou envio externo.</p></section></div>`;
     return;
   }
   const missingFieldsExpanded = !!host.querySelector(".context-missing-fields[open]");

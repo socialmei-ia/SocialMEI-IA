@@ -27,6 +27,7 @@
         _enrichmentSynthetic: true,
         _enrichmentId: row.id,
         _enrichmentScope: state.scope,
+        _enrichmentLabel: `${row.account_ref.replace("synthetic:", "").replaceAll("-", " ")} · ${row.contact_ref.replace("synthetic:", "").replaceAll("-", " ")}`,
         _enrichmentKey: [state.scope, row.channel, row.account_ref, row.contact_ref].join(":"),
         nome: row.contact_name,
         iniciais: initialsFromName(row.contact_name),
