@@ -99,19 +99,11 @@ module.exports = async function nativeOpportunities(browser, origin) {
       JSON.stringify({ data: appData, conversations: sessionData.conversas }),
     );
     await tab("analysis");
-    assert.equal(
-      await page.locator('[data-analysis-tab="analysis"]').evaluate(
-        (el) => Number.parseInt(getComputedStyle(el).fontWeight, 10) >= 700,
-      ),
-      true,
-    );
-    assert.equal(
-      await page.locator('[data-native-opportunity="analysis-demo-welcome"]').evaluate(
-        (el) => getComputedStyle(el).borderLeftWidth,
-      ),
-      "3px",
-    );
+    const analysisTab = page.locator('[data-analysis-tab="analysis"]');
     const lia = page.locator('[data-native-opportunity="analysis-demo-welcome"]');
+    const weight = await analysisTab.evaluate((el) => Number(getComputedStyle(el).fontWeight));
+    assert(weight >= 700);
+    assert.equal(await lia.evaluate((el) => getComputedStyle(el).borderLeftWidth), "3px");
     await lia.locator(".client-analysis-choice summary").click();
     await lia.locator('[data-analysis-value="frio"]').click();
     assert.equal(
