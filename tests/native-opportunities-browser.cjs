@@ -97,16 +97,16 @@ module.exports = async function nativeOpportunities(browser, origin) {
     await page.locator(".native-opportunity-analysis > summary").click();
     await tab("chance");
     assert.deepEqual(
-      await page.locator("[data-analysis-level]").evaluateAll((els) =>
-        els.map((el) => el.dataset.analysisLevel),
-      ),
+      await page
+        .locator("[data-analysis-level]")
+        .evaluateAll((els) => els.map((el) => el.dataset.analysisLevel)),
       ["all", "frio", "morno", "quente"],
     );
     await tab("analysis");
     assert.equal(
-      await page.locator('[data-analysis-tab="analysis"]').evaluate((el) =>
-        getComputedStyle(el).backgroundColor === "rgba(0, 0, 0, 0)",
-      ),
+      await page
+        .locator('[data-analysis-tab="analysis"]')
+        .evaluate((el) => getComputedStyle(el).backgroundColor === "rgba(0, 0, 0, 0)"),
       false,
     );
     const before = await page.evaluate(() =>

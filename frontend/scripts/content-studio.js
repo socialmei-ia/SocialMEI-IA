@@ -42,12 +42,9 @@ const SocialMEIContentStudio = (() => {
   const asLocalInput = (iso) => {
     if (!iso) return "";
     const date = new Date(iso);
-    return new Date(date.getTime() - date.getTimezoneOffset() * 60000)
-      .toISOString()
-      .slice(0, 16);
+    return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
   };
-  const plannedLabel = (iso) =>
-    iso ? new Date(iso).toLocaleString("pt-BR") : "Sem data definida";
+  const plannedLabel = (iso) => (iso ? new Date(iso).toLocaleString("pt-BR") : "Sem data definida");
   const dirty = () => JSON.stringify(value()) !== baseline;
   function release() {
     const video = byId("contentPreviewStage").querySelector("video");
@@ -110,7 +107,9 @@ const SocialMEIContentStudio = (() => {
       model.caption(current) || "O texto da sua postagem aparece aqui.";
     byId("contentCaptionCount").textContent = current.caption.length + " / 2200";
     byId("contentScheduleStatus").textContent = current.scheduledFor
-      ? "Publicação planejada para " + plannedLabel(current.scheduledFor) + ". Não será publicada automaticamente."
+      ? "Publicação planejada para " +
+        plannedLabel(current.scheduledFor) +
+        ". Não será publicada automaticamente."
       : "Defina dia e hora para organizar o conteúdo. Nenhuma publicação automática está ativa.";
     byId("contentPreviewSchedule").textContent = current.scheduledFor
       ? "Planejado para " + plannedLabel(current.scheduledFor) + " · não enviado"
