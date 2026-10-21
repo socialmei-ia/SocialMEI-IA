@@ -143,8 +143,15 @@ HTTPServer(('0.0.0.0',8000),Handler).serve_forever()
       response?.ok(),
       `HTTPS authenticated gateway must start (HTTP ${response?.status() ?? "unavailable"})`,
     );
-    const document = await navigateInitialPage(page, origin + "/");
+    const document = await navigateInitialPage(page, origin + "/", {
+      onStartupRetry: ({ attempt, failures }) => {
+        console.warn("HTTPS startup transport recovery: " + JSON.stringify({ attempt, failures }));
+        errors.length = 0;
+        assetFailures.length = 0;
+      },
+    });
     assert.equal(document.status(), 200);
+    assert.deepEqual(assetFailures, [], "Final HTTPS document must load every critical asset");
     assert.equal(page.url(), origin + "/", "Short URL must remain in the address bar");
     const boot = await page.evaluate(() => ({
       ready: typeof window.SocialMEIExperience?.enterApp === "function",
