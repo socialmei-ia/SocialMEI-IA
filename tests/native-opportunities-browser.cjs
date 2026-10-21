@@ -99,15 +99,68 @@ module.exports = async function nativeOpportunities(browser, origin) {
       JSON.stringify({ data: appData, conversations: sessionData.conversas }),
     );
     await tab("analysis");
+    const pendingCount = Number(
+      await page.locator('[data-analysis-count="analysis"]').textContent(),
+    );
+    assert(pendingCount > 0);
+    assert.equal(await page.locator("#clientTab-analysis").getAttribute("data-pending"), "true");
+    assert.match(
+      await page.locator(".client-analysis-pending h3").textContent(),
+      new RegExp(`^${pendingCount} clientes? aguardando classificação$`),
+    );
     const lia = page.locator('[data-native-opportunity="analysis-demo-welcome"]');
     await lia.locator(".client-analysis-choice summary").click();
+    assert.deepEqual(
+      await lia
+        .locator("[data-analysis-value]")
+        .evaluateAll((els) => els.map((el) => el.dataset.analysisValue)),
+      ["frio", "morno", "quente"],
+    );
     await lia.locator('[data-analysis-value="frio"]').click();
     assert.equal(
       await page.locator('[data-analysis-tab="chance"]').getAttribute("aria-selected"),
       "true",
     );
+    assert.equal(await lia.locator("h3").evaluate((el) => el === document.activeElement), true);
+    assert.equal(
+      Number(await page.locator('[data-analysis-count="analysis"]').textContent()),
+      pendingCount - 1,
+    );
+    assert.match(
+      await page.locator("#clientAnalysisStatus").textContent(),
+      /Lia Andrade: Frio.*só nesta sessão.*sem sincronização/,
+    );
+    assert.deepEqual(
+      await page
+        .locator("[data-analysis-level]")
+        .evaluateAll((els) => els.map((el) => el.dataset.analysisLevel)),
+      ["all", "frio", "morno", "quente"],
+    );
+    const levelsByPriority = await page
+      .locator(".client-analysis-list .client-analysis-badge")
+      .allTextContents();
+    assert.equal(
+      levelsByPriority[0],
+      "Quente",
+      "Commercial queue still puts stronger evidence first",
+    );
+    assert.equal(
+      levelsByPriority.at(-1),
+      "Frio",
+      "Visual filter order must not reverse business priority",
+    );
     await page.locator('[data-analysis-level="frio"]').click();
     assert.equal(await page.locator(".client-analysis-list .client-analysis-card").count(), 1);
+    await lia.locator(".client-analysis-choice summary").click();
+    await lia.locator('[data-analysis-value="morno"]').click();
+    assert.equal(await lia.locator(".client-analysis-badge").textContent(), "Morno");
+    assert.equal(await lia.locator("h3").evaluate((el) => el === document.activeElement), true);
+    assert.equal(
+      Number(await page.locator('[data-analysis-count="analysis"]').textContent()),
+      pendingCount - 1,
+    );
+    await page.locator('[data-analysis-level="frio"]').click();
+    assert.equal(await page.locator(".client-analysis-list .client-analysis-card").count(), 0);
     await page.locator('[data-analysis-level="quente"]').click();
     assert.equal(await page.locator(".client-analysis-list .quente").count(), 1);
     for (const filter of ["morno", "all"])
@@ -123,6 +176,16 @@ module.exports = async function nativeOpportunities(browser, origin) {
     await page
       .locator('[data-native-opportunity="analysis-demo-welcome"] [data-analysis-reset]')
       .click();
+    assert.equal(
+      await page.locator('[data-analysis-tab="analysis"]').getAttribute("aria-selected"),
+      "true",
+    );
+    assert.equal(await lia.locator("h3").evaluate((el) => el === document.activeElement), true);
+    assert.equal(
+      Number(await page.locator('[data-analysis-count="analysis"]').textContent()),
+      pendingCount,
+    );
+    await tab("chance");
     await page.locator('[data-analysis-level="frio"]').click();
     assert.equal(await page.locator(".client-analysis-list .client-analysis-card").count(), 0);
     await tab("attention");
@@ -134,6 +197,11 @@ module.exports = async function nativeOpportunities(browser, origin) {
       ["critical", "high", "normal"],
     );
     const ana = page.locator('[data-native-opportunity="analysis-demo-critical"]');
+    assert.equal(
+      await ana.locator("[data-analysis-classify]").count(),
+      0,
+      "Support must not expose commercial level actions",
+    );
     await ana.locator("summary").click();
     await page.evaluate(() => {
       navigator.clipboard.writeText = async (text) => {

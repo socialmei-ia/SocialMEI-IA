@@ -175,6 +175,10 @@ const SocialMEIOpportunities = (() => {
       tab.setAttribute("aria-selected", String(selected));
       tab.tabIndex = selected ? 0 : -1;
       tab.querySelector("[data-analysis-count]").textContent = counts[tab.dataset.analysisTab];
+      if (tab.dataset.analysisTab === "analysis") {
+        tab.dataset.pending = String(counts.analysis > 0);
+        tab.setAttribute("aria-label", `Em análise · ${counts.analysis} aguardando classificação`);
+      }
     });
     byId("clientAnalysisTabs").style.setProperty(
       "--client-tab",
@@ -200,8 +204,10 @@ const SocialMEIOpportunities = (() => {
     const avatar = node("span", initials, "client-analysis-avatar");
     avatar.setAttribute("aria-hidden", "true");
     const title = node("div");
+    const heading = node("h3", row.name);
+    heading.tabIndex = -1;
     title.append(
-      node("h3", row.name),
+      heading,
       node(
         "span",
         SocialMEIDemoData.enabled() ? "Conversa recente" : "Sem data confirmada",
@@ -211,7 +217,7 @@ const SocialMEIOpportunities = (() => {
     head.append(avatar, title);
     const label =
       p.lane === "analysis"
-        ? "Em análise"
+        ? "Aguardando classificação"
         : p.lane === "chance"
           ? levelsLabel[p.level]
           : p.lane === "excluded"
@@ -247,23 +253,6 @@ const SocialMEIOpportunities = (() => {
         button("Copiar pergunta", "data-analysis-copy", row.id),
       );
       card.append(known, next);
-      const choice = node("details", undefined, "client-analysis-choice");
-      choice.append(node("summary", "Já sei o que ele quer"));
-      const actions = node("div", undefined, "native-opportunity-actions");
-      for (const [level, text] of Object.entries(levelsLabel)) {
-        const control = button(text, "data-analysis-classify", row.id);
-        control.dataset.analysisValue = level;
-        actions.append(control);
-      }
-      choice.append(
-        node(
-          "p",
-          "Sua classificação vale só nesta sessão; confirme o contexto antes de agir.",
-          "management-note",
-        ),
-        actions,
-      );
-      card.append(choice);
     } else {
       card.append(node("p", briefReason(row), "client-analysis-reason"));
       if (p.lane === "chance") {
@@ -325,6 +314,36 @@ const SocialMEIOpportunities = (() => {
       if (p.manual)
         card.append(button("Restaurar análise automática", "data-analysis-reset", row.id));
     }
+    if (["analysis", "chance"].includes(p.lane)) {
+      const choice = node("details", undefined, "client-analysis-choice");
+      choice.append(
+        node(
+          "summary",
+          p.lane === "analysis" ? "Já sei o que ele quer" : "Revisar nível de interesse",
+        ),
+        node(
+          "p",
+          "Frio: interesse inicial. Morno: interesse concreto a confirmar. Quente: sinais claros de compra ou contratação. Não são certezas de venda.",
+          "management-note",
+        ),
+      );
+      const actions = node("div", undefined, "native-opportunity-actions");
+      for (const [level, text] of Object.entries(levelsLabel)) {
+        const control = button(text, "data-analysis-classify", row.id);
+        control.dataset.analysisValue = level;
+        control.setAttribute("aria-pressed", String(p.lane === "chance" && p.level === level));
+        actions.append(control);
+      }
+      choice.append(
+        actions,
+        node(
+          "p",
+          "Sua revisão vale só nesta sessão; não sincroniza entre dispositivos.",
+          "management-note",
+        ),
+      );
+      card.append(choice);
+    }
     const actions = node("div", undefined, "native-opportunity-actions");
     actions.append(button("Ver conversa e revisar", "data-opportunity-open", row.id));
     card.append(actions);
@@ -373,12 +392,29 @@ const SocialMEIOpportunities = (() => {
     document.dispatchEvent(new CustomEvent("socialmei-opportunity-demo-change"));
     renderTabs();
     let items = rows.filter((row) => presentation(row).lane === activeTab);
-    if (activeTab === "chance") {
+    if (activeTab === "analysis") {
+      const pending = node("section", undefined, "client-analysis-pending");
+      pending.setAttribute("aria-labelledby", "clientAnalysisPendingTitle");
+      const title = node(
+        "h3",
+        `${items.length} ${items.length === 1 ? "cliente aguardando" : "clientes aguardando"} classificação`,
+      );
+      title.id = "clientAnalysisPendingTitle";
+      pending.append(
+        title,
+        node(
+          "p",
+          "Ainda não há sinais suficientes para definir o interesse. Confira o que falta saber ou classifique quando conhecer o contexto.",
+          "management-note",
+        ),
+      );
+      queue.append(pending);
+    } else if (activeTab === "chance") {
       const all = items;
       queue.append(
         node(
           "p",
-          "Níveis de interesse por regras locais, não probabilidades de compra. Expanda um cliente para conferir os motivos.",
+          "Frio → Morno → Quente são níveis de interesse, não probabilidades. Na fila, os sinais mais fortes aparecem primeiro; confira os motivos antes de agir.",
           "client-analysis-intro",
         ),
         filters(
@@ -722,19 +758,30 @@ const SocialMEIOpportunities = (() => {
     const p = presentation(row);
     if (
       action.hasAttribute("data-analysis-classify") &&
-      p.lane === "analysis" &&
+      ["analysis", "chance"].includes(p.lane) &&
       Object.hasOwn(levelsLabel, action.dataset.analysisValue)
     ) {
       levels[id] = action.dataset.analysisValue;
       activeTab = "chance";
       chanceFilter = "all";
-      focus('[data-analysis-tab="chance"]');
-      status(row.name + ": classificação manual aplicada só nesta sessão.");
+      focus(`[data-native-opportunity="${CSS.escape(id)}"] h3`);
+      status(
+        row.name +
+          ": " +
+          levelsLabel[levels[id]] +
+          ". Classificação manual aplicada só nesta sessão, sem sincronização entre dispositivos.",
+      );
     }
     if (action.hasAttribute("data-analysis-reset")) {
       delete levels[id];
-      focus('[data-analysis-tab="chance"]');
-      status("Classificação automática restaurada.");
+      activeTab = presentation(row).lane;
+      chanceFilter = "all";
+      focus(`[data-native-opportunity="${CSS.escape(id)}"] h3`);
+      status(
+        row.name +
+          ": classificação automática restaurada." +
+          (activeTab === "analysis" ? " Aguardando classificação." : ""),
+      );
     }
     if (action.hasAttribute("data-analysis-resolve") && p.lane === "attention") {
       resolved[id] = !resolved[id];
