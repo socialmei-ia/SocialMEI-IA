@@ -28,12 +28,26 @@ const SocialMEIContentStudio = (() => {
   const message = (text) => {
     byId("contentActionStatus").textContent = text;
   };
-  const value = () => ({
-    id: draftId,
-    format,
-    ...Object.fromEntries(Object.entries(fields).map(([key, id]) => [key, byId(id).value])),
-    media,
-  });
+  const value = () => {
+    const planned = byId("contentScheduleAt").value;
+    const date = planned ? new Date(planned) : null;
+    return {
+      id: draftId,
+      format,
+      ...Object.fromEntries(Object.entries(fields).map(([key, id]) => [key, byId(id).value])),
+      scheduledFor: date && Number.isFinite(date.getTime()) ? date.toISOString() : null,
+      media,
+    };
+  };
+  const asLocalInput = (iso) => {
+    if (!iso) return "";
+    const date = new Date(iso);
+    return new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+      .toISOString()
+      .slice(0, 16);
+  };
+  const plannedLabel = (iso) =>
+    iso ? new Date(iso).toLocaleString("pt-BR") : "Sem data definida";
   const dirty = () => JSON.stringify(value()) !== baseline;
   function release() {
     const video = byId("contentPreviewStage").querySelector("video");
@@ -60,6 +74,7 @@ const SocialMEIContentStudio = (() => {
     format = item?.format || "feed";
     media = item?.media || null;
     for (const [key, id] of Object.entries(fields)) byId(id).value = item?.[key] || "";
+    byId("contentScheduleAt").value = asLocalInput(item?.scheduledFor);
     baseline = JSON.stringify(value());
     message(item ? "Rascunho aberto neste navegador." : "");
     preview();
@@ -94,6 +109,12 @@ const SocialMEIContentStudio = (() => {
     byId("contentPreviewCaption").textContent =
       model.caption(current) || "O texto da sua postagem aparece aqui.";
     byId("contentCaptionCount").textContent = current.caption.length + " / 2200";
+    byId("contentScheduleStatus").textContent = current.scheduledFor
+      ? "Publicação planejada para " + plannedLabel(current.scheduledFor) + ". Não será publicada automaticamente."
+      : "Defina dia e hora para organizar o conteúdo. Nenhuma publicação automática está ativa.";
+    byId("contentPreviewSchedule").textContent = current.scheduledFor
+      ? "Planejado para " + plannedLabel(current.scheduledFor) + " · não enviado"
+      : "Publicação ainda não agendada";
     byId("contentMedia").accept =
       format === "reel"
         ? "video/mp4,video/webm"
@@ -179,7 +200,8 @@ const SocialMEIContentStudio = (() => {
           model.FORMATS[item.format] +
             " · " +
             new Date(item.updatedAt).toLocaleString("pt-BR", { timeZone: APP_TIMEZONE }) +
-            (item.media ? " · mídia precisa ser selecionada novamente" : ""),
+            (item.media ? " · mídia precisa ser selecionada novamente" : "") +
+            (item.scheduledFor ? " · planejado " + plannedLabel(item.scheduledFor) : ""),
         ),
       );
       const actions = node("div");
@@ -261,7 +283,11 @@ const SocialMEIContentStudio = (() => {
       draftId = saved.id;
       baseline = JSON.stringify(value());
       library();
-      message("Rascunho salvo neste navegador. Nenhuma publicação foi feita.");
+      message(
+        saved.scheduledFor
+          ? "Rascunho salvo neste navegador com data planejada. Nenhum envio automático foi agendado."
+          : "Rascunho salvo neste navegador. Nenhuma publicação foi feita.",
+      );
     } catch (error) {
       message(error.message);
     }
@@ -404,7 +430,7 @@ const SocialMEIContentStudio = (() => {
     if (synchronize()) return;
     try {
       const current = model.draft(value());
-      const text = `${current.title}\nFormato: ${model.FORMATS[format]}\n\n${model.caption(current)}\n\nMídia: ${media?.name || "não selecionada"}\nUse o arquivo original separadamente. Preparação local; nenhuma publicação foi realizada.\n`;
+      const text = `${current.title}\nFormato: ${model.FORMATS[format]}\nData pretendida: ${plannedLabel(current.scheduledFor)}\n\n${model.caption(current)}\n\nMídia: ${media?.name || "não selecionada"}\nUse o arquivo original separadamente. Preparação local; nenhuma publicação foi realizada.\n`;
       const blob = new Blob([text], { type: "text/plain;charset=utf-8" }),
         url = URL.createObjectURL(blob),
         link = node("a");
