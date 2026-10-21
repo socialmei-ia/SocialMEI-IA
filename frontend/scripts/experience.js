@@ -12,6 +12,7 @@
   let businessDraft = businessModel.normalize();
   let businessEditing = false;
   let businessScope = null;
+  let businessRevision = null;
   let businessToolsChosen = false;
   let businessSegmentChosen = false;
   let businessOffersChosen = false;
@@ -788,14 +789,25 @@ ONBOARDING — JAVASCRIPT
       "finance",
     ].filter((id) => eligible.includes(id));
   }
-  function startBusinessOnboarding(editing = false) {
+  function startBusinessOnboarding(editing = false, importedProfile = null) {
+    const sync = window.SocialMEIProfileSync;
+    if (sync?.remote && (!sync.state().canEdit || sync.state().profileRevision === null)) {
+      toast(
+        "Perfil indisponível",
+        "Carregue os dados da conta. Somente o responsável ou administrador pode editar o negócio.",
+      );
+      return;
+    }
     onboardingTransition++;
     onboardingBusy = false;
     onboardingReviewReturn = false;
     businessEditing = editing;
     businessScope = businessStore.scope();
-    const saved = businessStore.read();
-    businessDraft = saved.profile || businessModel.normalize();
+    const saved = importedProfile ? { profile: importedProfile } : businessStore.read();
+    businessRevision = sync?.remote ? sync.state().profileRevision : null;
+    businessDraft = businessModel.normalize(saved.profile || {});
+    if (sync?.remote) businessDraft.businessName = SocialMEIAuth.current.negocio.nome;
+    q("#businessProfileConflict").hidden = true;
     businessToolsChosen = !!saved.profile;
     businessSegmentChosen = !!saved.profile;
     businessOffersChosen = !!saved.profile;
@@ -805,7 +817,7 @@ ONBOARDING — JAVASCRIPT
     q("#businessSegmentAlternative").open = false;
     q(".onboarding-optional").open = false;
     q("#businessSegmentSearch").value = "";
-    onboardingStep = editing ? 2 : 1;
+    onboardingStep = importedProfile ? 6 : editing ? 2 : 1;
     if (editing) refreshExperienceProfile();
     showScreen("onboarding");
     q("#obSegment").value = businessDraft.segment;
@@ -815,8 +827,13 @@ ONBOARDING — JAVASCRIPT
     q("#obBusiness").disabled = SocialMEIAuth.remote;
     for (const id of ["obName", "obEmail", "obPhone"]) q("#" + id).readOnly = SocialMEIAuth.remote;
     q("#businessProfileStorageNotice").textContent = SocialMEIAuth.remote
-      ? "Preferências deste usuário e negócio, apenas neste navegador. Ainda não sincronizam com o servidor ou outros dispositivos."
+      ? importedProfile
+        ? "Importação em revisão. Só será enviada ao confirmar. O nome seguirá o cadastro oficial; a cópia local será preservada."
+        : "Perfil compartilhado com este negócio. Será salvo na conta somente ao confirmar; outras sessões verão as mudanças após recarregar."
       : "Demonstração local · preferências apenas neste navegador. Nenhuma conta é criada no servidor.";
+    q("#businessProfileNextNotice").textContent = SocialMEIAuth.remote
+      ? "Confirme para salvar o perfil na conta e entrar no seu espaço. Isso não cadastra produtos, vendas ou conexões."
+      : "Confirme para salvar o perfil neste navegador e entrar no seu espaço. Isso não cadastra produtos, vendas ou conexões.";
     q("[data-business-cancel]").hidden = !editing;
     q('[data-review-edit-step="1"]').hidden = editing || SocialMEIAuth.remote;
     renderBusinessFields();
@@ -930,9 +947,53 @@ ONBOARDING — JAVASCRIPT
       host.append(row);
     });
   }
-  function finishBusinessOnboarding() {
+  async function finishBusinessOnboarding() {
     businessDraft.completed = true;
-    if (!businessStore.save(businessDraft, businessScope)) {
+    let saved;
+    onboardingBusy = true;
+    const actions = qa("[data-onboard-next],[data-onboard-back]");
+    actions.forEach((button) => (button.disabled = true));
+    try {
+      saved = await businessStore.save(businessDraft, businessScope, businessRevision);
+    } catch (error) {
+      q("#obValidation").textContent =
+        error.status === 409
+          ? "Outra sessão alterou o perfil. Suas respostas continuam nesta tela. Confira a versão salva antes de decidir."
+          : "Não foi possível salvar na conta. Suas respostas continuam nesta tela. Confira a conexão e tente novamente.";
+      if (error.status === 409) {
+        await window.SocialMEIProfileSync.refresh("profile");
+        const latest = businessStore.read().profile;
+        q("#businessConflictSummary").textContent = latest
+          ? [
+              "Negócio: " + latest.businessName,
+              "Atividade: " + (latest.activity || businessModel.segments[latest.segment].label),
+              "Ofertas: " +
+                latest.offers
+                  .map((id) => (id === "services" ? "Serviços" : "Produtos"))
+                  .join(" e "),
+              "Serviços: " + (latest.services.join(", ") || "Nenhum escolhido"),
+              "Categorias: " + (latest.productCategories.join(", ") || "Nenhuma escolhida"),
+              "Rotina: " +
+                (Object.keys(latest.capabilities)
+                  .filter((id) => latest.capabilities[id])
+                  .map((id) => businessModel.capabilities[id])
+                  .join(", ") || "Nenhuma necessidade adicional"),
+              "Ferramentas: " +
+                (latest.modules.map((id) => businessModel.modules[id]).join(", ") ||
+                  "Escolher depois"),
+              "Sugestões ignoradas: " + latest.ignoredSuggestions.length,
+            ].join("\n")
+          : "Não foi possível conferir o perfil salvo. Tente atualizar os dados da conta.";
+        q("#businessProfileConflict").hidden = false;
+        q("#businessProfileConflict").focus();
+        q("#businessProfileConflict").scrollIntoView({ block: "start", behavior: "instant" });
+      }
+      return false;
+    } finally {
+      onboardingBusy = false;
+      actions.forEach((button) => (button.disabled = false));
+    }
+    if (!saved) {
       q("#obValidation").textContent =
         "Não foi possível salvar neste navegador. Confira a sessão e a permissão de armazenamento e tente novamente. Suas respostas continuam nesta tela.";
       return false;
@@ -958,6 +1019,12 @@ ONBOARDING — JAVASCRIPT
   }
   document.addEventListener("click", (event) => {
     if (event.target.closest("[data-business-profile-edit]")) startBusinessOnboarding(true);
+    if (event.target.closest("[data-sync-import-profile]")) {
+      const local = window.SocialMEIProfileSync.legacyProfile();
+      if (local) startBusinessOnboarding(true, local);
+    }
+    if (event.target.closest("[data-business-reload]") && !onboardingBusy)
+      startBusinessOnboarding(true);
     if (event.target.closest("[data-business-cancel]")) {
       if (onboardingBusy) return;
       onboardingTransition++;
@@ -1079,7 +1146,7 @@ ONBOARDING — JAVASCRIPT
         )[0] || "Atendimento";
     }
   }
-  experienceRoot.addEventListener("click", (event) => {
+  experienceRoot.addEventListener("click", async (event) => {
     const completedStep = event.target.closest("button[data-onboard-step]");
     if (completedStep) {
       const target = Number(completedStep.dataset.onboardStep);
@@ -1168,7 +1235,7 @@ ONBOARDING — JAVASCRIPT
       if (!collectBusinessStep()) return;
       if (onboardingStep < 6) {
         navigateOnboardingForward();
-      } else if (finishBusinessOnboarding()) {
+      } else if (await finishBusinessOnboarding()) {
         enterApp(businessEditing ? "Configurações" : "Início");
       }
       return;
@@ -4820,6 +4887,7 @@ ONBOARDING — JAVASCRIPT
   }
   if (SocialMEIAuth.remote) {
     SocialMEIAuth.ready.then(async (identity) => {
+      await window.SocialMEIProfileSync.ready;
       if (identity) {
         refreshExperienceProfile();
         const requested = sessionStorage.getItem(registrationOnboardingKey);

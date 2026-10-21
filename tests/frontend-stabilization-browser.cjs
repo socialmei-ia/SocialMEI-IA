@@ -1,0 +1,303 @@
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+module.exports = async function stabilization(browser, origin) {
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 1000 },
+    hasTouch: true,
+    reducedMotion: "reduce",
+  });
+  const page = await context.newPage(),
+    errors = [],
+    writes = [],
+    measures = [];
+  const output = path.resolve(__dirname, "../test-results/stabilization");
+  fs.mkdirSync(output, { recursive: true });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.route("**/*", (route) => {
+    const request = route.request();
+    if (new URL(request.url()).origin !== origin) return route.abort();
+    if (request.method() !== "GET") writes.push(request.method() + " " + request.url());
+    return route.continue();
+  });
+  try {
+    await page.addInitScript(() => {
+      const NativeObserver = window.ResizeObserver;
+      window.stabilizationObservedTargets = new Set();
+      window.ResizeObserver = class extends NativeObserver {
+        constructor(callback) {
+          super(callback);
+          this.chartTargets = new Set();
+        }
+        observe(target, options) {
+          if (target.matches(".management-chart-scroll")) {
+            this.chartTargets.add(target);
+            window.stabilizationObservedTargets.add(target);
+          }
+          super.observe(target, options);
+        }
+        disconnect() {
+          this.chartTargets.forEach((target) => window.stabilizationObservedTargets.delete(target));
+          this.chartTargets.clear();
+          super.disconnect();
+        }
+      };
+    });
+    await page.clock.setFixedTime(new Date("2026-10-19T12:00:00Z"));
+    await page.goto(origin + "/frontend/socialmei-app.html");
+    await page.locator('[data-xp-go="app"]').first().click();
+    await page.evaluate(() => {
+      SocialMEIDemoData.set(true);
+      setView("Financeiro");
+    });
+    const original = await page.evaluate(() => JSON.stringify(appData));
+    for (const width of [320, 390, 768, 1024, 1440]) {
+      await page.setViewportSize({ width, height: 1000 });
+      for (const theme of ["light", "dark"]) {
+        await page.evaluate((theme) => {
+          SocialMEIThemes.select(theme);
+          setView("Financeiro");
+        }, theme);
+        const columns = page.locator("#financeMiniChart .management-chart-column");
+        await columns.first().waitFor({ state: "visible" });
+        // Query and measure in one JS turn: evaluateAll can retain detached nodes
+        // between its query and evaluation when the initial loading refresh lands.
+        const boxes = await page.evaluate(() =>
+          [...document.querySelectorAll("#financeMiniChart .management-chart-column")].map(
+            (node) => {
+              const r = node.getBoundingClientRect();
+              return { x: r.x, width: r.width, height: r.height };
+            },
+          ),
+        );
+        if (boxes.some((box) => box.width === 0)) {
+          console.error(
+            "Chart geometry diagnostic",
+            JSON.stringify(
+              await page.evaluate(() => ({
+                view: currentView,
+                loading,
+                active: document.activeElement.outerHTML.slice(0, 500),
+                current: [
+                  ...document.querySelectorAll("#financeMiniChart .management-chart-column"),
+                ].map((e) => ({
+                  connected: e.isConnected,
+                  width: e.getBoundingClientRect().width,
+                  height: e.getBoundingClientRect().height,
+                })),
+              })),
+            ),
+          );
+        }
+        assert(boxes.length > 1);
+        assert(
+          boxes.every((box) => box.width >= 44 && box.height >= 44),
+          JSON.stringify({ width, boxes }),
+        );
+        for (let i = 1; i < boxes.length; i++)
+          assert(boxes[i].x >= boxes[i - 1].x + boxes[i - 1].width - 0.5);
+        assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+        await columns.first().focus();
+        await page.keyboard.press("End");
+        const tip = page.locator(
+          "#financeMiniChart > .management-chart > .management-chart-tooltip",
+        );
+        if (!(await tip.isVisible())) {
+          const diagnostic = await page.evaluate(() => ({
+            currentView,
+            loading,
+            body: document.body.className,
+            active: document.activeElement.outerHTML.slice(0, 1000),
+            tip: document.querySelector(
+              "#financeMiniChart > .management-chart > .management-chart-tooltip",
+            )?.outerHTML,
+            points: [
+              ...document.querySelectorAll("#financeMiniChart .management-chart-column"),
+            ].map((e) => ({
+              active: e === document.activeElement,
+              pressed: e.getAttribute("aria-pressed"),
+              expanded: e.getAttribute("aria-expanded"),
+              width: e.getBoundingClientRect().width,
+            })),
+          }));
+          fs.writeFileSync(
+            path.join(output, "failure-state.json"),
+            JSON.stringify(diagnostic, null, 2),
+          );
+          console.error("Tooltip diagnostic", JSON.stringify(diagnostic));
+        }
+        assert(await tip.isVisible());
+        assert.equal(await tip.textContent(), await columns.last().getAttribute("aria-label"));
+        // Chart re-render may replace a visible tooltip between Playwright calls.
+        // prettier-ignore
+        await page.waitForFunction(() => {
+          const tip = document.querySelector(
+            "#financeMiniChart > .management-chart > .management-chart-tooltip",
+          );
+          return tip && !tip.hidden && tip.getClientRects().length > 0;
+        }, null, { timeout: 5000 });
+        let bounds = await tip.boundingBox();
+        if (!bounds) {
+          await columns.last().focus();
+          await tip.waitFor({ state: "visible" });
+          bounds = await tip.boundingBox();
+        }
+        assert(bounds, "Tooltip disappeared during chart render");
+        assert(bounds.x >= 0 && bounds.x + bounds.width <= width + 0.5);
+        await page.keyboard.press("Home");
+        assert(
+          await page.evaluate(
+            () =>
+              document.querySelector("#financeMiniChart .management-chart-column") ===
+              document.activeElement,
+          ),
+        );
+        await page.keyboard.press("ArrowRight");
+        assert(
+          await page.evaluate(
+            () =>
+              document.querySelectorAll("#financeMiniChart .management-chart-column")[1] ===
+              document.activeElement,
+          ),
+        );
+        await page.keyboard.press("Escape");
+        assert(await tip.isHidden());
+        await columns.first().tap();
+        assert.equal(await columns.first().getAttribute("aria-pressed"), "true");
+        assert(await tip.isVisible());
+        await columns.first().tap();
+        assert(await tip.isHidden());
+        await columns.last().tap();
+        await page.locator("#financeSummary").tap();
+        assert(await tip.isHidden());
+        const scroll = page.locator("#financeMiniChart .management-chart-scroll");
+        // A scroll event refreshes the hint even when ResizeObserver is delayed.
+        await scroll.evaluate((node) => node.dispatchEvent(new Event("scroll")));
+        // ResizeObserver updates the hint in the next rendering cycle.
+        // prettier-ignore
+        await page.waitForFunction(() => {
+          const wrapper = document.querySelector("#financeMiniChart .management-chart-scroll");
+          const hint = document.querySelector("#financeMiniChart .management-chart-scroll-hint");
+          return (
+            wrapper &&
+            hint &&
+            !hint.hidden === (wrapper.scrollWidth > wrapper.clientWidth + 1)
+          );
+        }, null, { timeout: 5000 });
+        assert.equal(
+          await page.locator("#financeMiniChart .management-chart-scroll-hint").isVisible(),
+          await scroll.evaluate((node) => node.scrollWidth > node.clientWidth + 1),
+        );
+        if ([390, 1440].includes(width))
+          await page.screenshot({ path: path.join(output, `finance-${width}-${theme}.png`) });
+        measures.push({ width, theme, minimumTarget: Math.min(...boxes.map((b) => b.width)) });
+      }
+    }
+    await page.setViewportSize({ width: 390, height: 1000 });
+    await page.evaluate(() => setView("Financeiro"));
+    const lastColumn = page.locator("#financeMiniChart .management-chart-column").last();
+    await lastColumn.tap();
+    await page.setViewportSize({ width: 320, height: 1000 });
+    await page.waitForTimeout(100);
+    const resizedTip = page.locator("#financeMiniChart .management-chart-tooltip");
+    if (await resizedTip.isVisible()) {
+      const bounds = await resizedTip.boundingBox();
+      assert(bounds.x >= 0 && bounds.x + bounds.width <= 320.5);
+    }
+    await lastColumn.focus();
+    await page.keyboard.press("End");
+    assert(await resizedTip.isVisible());
+    for (const width of [320, 390, 768, 1024, 1440]) {
+      await page.setViewportSize({ width, height: 1000 });
+      for (const theme of ["light", "dark"]) {
+        await page.evaluate((theme) => {
+          SocialMEIThemes.select(theme);
+          setView("Relatórios");
+          scrollTo(0, 0);
+        }, theme);
+        const quick = page.locator("#reportQuickPeriods button");
+        await quick.first().waitFor({ state: "visible" });
+        const kpiTop = await page
+          .locator("#nvReportKpis")
+          .evaluate((node) => node.getBoundingClientRect().top);
+        assert(
+          kpiTop <= (width === 320 ? 500 : width === 390 ? 480 : 370),
+          JSON.stringify({ width, kpiTop }),
+        );
+        const heights = await quick.evaluateAll((nodes) =>
+          nodes.map((node) => node.getBoundingClientRect().height),
+        );
+        assert(heights.every((height) => height >= 44));
+        const frozen = await page.evaluate(() => JSON.stringify(SocialMEIReportUI.capture()));
+        const chart = page.locator("#resultChapter .rv2-trend");
+        await chart.locator(".rv2-chart-explore").click();
+        const first = chart.locator(".rv2-point").first();
+        assert(await first.evaluate((node) => node === document.activeElement));
+        assert(await chart.locator(".rv2-chart-tooltip").isVisible());
+        await page.keyboard.press("End");
+        assert.equal(
+          await chart.locator(".rv2-chart-tooltip").textContent(),
+          await chart.locator(".rv2-point").last().getAttribute("aria-label"),
+        );
+        const bounds = await chart.locator(".rv2-chart-tooltip").boundingBox();
+        assert(bounds.x >= 0 && bounds.x + bounds.width <= width + 0.5);
+        await page.keyboard.press("Escape");
+        assert(await chart.locator(".rv2-chart-tooltip").isHidden());
+        assert.equal(
+          await page.evaluate(() => JSON.stringify(SocialMEIReportUI.capture())),
+          frozen,
+        );
+        await page.locator(".report-period-options summary").focus();
+        await page.keyboard.press("Enter");
+        assert(await page.locator("#nvReportCompare").isVisible());
+        await page.locator(".report-period-options summary").press("Enter");
+        assert(await page.locator("#nvReportCompare").isHidden());
+        await page.evaluate(() => scrollTo(0, 0));
+        if ([390, 1440].includes(width))
+          await page.screenshot({ path: path.join(output, `reports-${width}-${theme}.png`) });
+        assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+        measures.push({ width, theme, kpiTop });
+      }
+    }
+    await page.evaluate(() => {
+      setView("Financeiro");
+      areMoneyValuesHidden = true;
+      renderFinance();
+    });
+    await page.waitForTimeout(50);
+    assert(
+      await page.evaluate(() =>
+        [...window.stabilizationObservedTargets].every((node) => node.isConnected),
+      ),
+      "Removed plots must release their resize observers",
+    );
+    await page.evaluate(() => {
+      areMoneyValuesHidden = false;
+      renderFinance();
+    });
+    assert.equal(await page.evaluate(() => JSON.stringify(appData)), original);
+    assert.deepEqual(errors, []);
+    assert.deepEqual(writes, []);
+    fs.writeFileSync(path.join(output, "results.json"), JSON.stringify(measures, null, 2));
+  } finally {
+    await context.close();
+  }
+  return "Estabilização: gráficos financeiros e controles de Relatórios em cinco larguras/claro-escuro";
+};
+if (require.main === module)
+  (async () => {
+    const { chromium } = require("playwright");
+    const browser = await chromium.launch({
+      executablePath: process.env.CHROMIUM_EXECUTABLE || "/usr/bin/chromium",
+    });
+    try {
+      console.log(
+        await module.exports(browser, process.env.TEST_ORIGIN || "http://127.0.0.1:5506"),
+      );
+    } finally {
+      await browser.close();
+    }
+  })().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });

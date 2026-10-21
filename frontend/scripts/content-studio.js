@@ -436,5 +436,15 @@ const SocialMEIContentStudio = (() => {
     uploadEpoch++;
     removeMedia();
   });
-  return Object.freeze({ render });
+  function simulationSnapshot() {
+    synchronize();
+    if (!scope || !file || !media) return null;
+    return {
+      scope,
+      format,
+      caption: model.caption(value()),
+      media: { name: media.name, mime: media.type, size: media.size },
+    };
+  }
+  return Object.freeze({ render, simulationSnapshot });
 })();

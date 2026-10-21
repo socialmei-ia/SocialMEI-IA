@@ -52,6 +52,7 @@ module.exports = async function accountFlow(browser, origin) {
     );
     assert.equal(overflow, false, "Account screen overflowed the viewport");
   }
+  const profileAPI = require("./profile-sync-fixture.cjs")();
   const identity = (id) => ({
     usuario: {
       id,
@@ -92,6 +93,8 @@ module.exports = async function accountFlow(browser, origin) {
     }
     if (!url.pathname.startsWith("/api/v1/")) return route.continue();
     requests.push({ path: url.pathname, method: request.method(), headers: request.headers() });
+    const profileReply = profileAPI(route, session ? identity(session) : null);
+    if (profileReply) return profileReply;
     let status = 200,
       data = [];
     const body = request.postDataJSON();
