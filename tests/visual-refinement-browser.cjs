@@ -1,5 +1,27 @@
 const assert = require("node:assert/strict");
 
+async function capturePendingInboxResize(page) {
+  return page.evaluateHandle(() => {
+    const nativeSetTimeout = window.setTimeout;
+    let pendingResize;
+    // Hold only this resize debounce so its completion can cross a user action.
+    window.setTimeout = function (callback, delay, ...args) {
+      if (delay === 120) {
+        pendingResize = () => callback(...args);
+        return nativeSetTimeout(() => {}, 0);
+      }
+      return nativeSetTimeout(callback, delay, ...args);
+    };
+    try {
+      dispatchEvent(new Event("resize"));
+    } finally {
+      window.setTimeout = nativeSetTimeout;
+    }
+    if (!pendingResize) throw new Error("Inbox resize debounce was not captured");
+    return pendingResize;
+  });
+}
+
 module.exports = async function visualRefinementFlows(browser, origin, errors = []) {
   const page = await browser.newPage({
     viewport: { width: 1440, height: 900 },
@@ -103,6 +125,7 @@ module.exports = async function visualRefinementFlows(browser, origin, errors = 
     const conversation = page.locator("#conversationList [data-conversation]").first();
     await conversation.click();
     await page.locator("#messageInput").fill("Rascunho preservado na navegação");
+    const previousResize = await capturePendingInboxResize(page);
     await page.locator("#toggleDetailsBtn").click();
     assert.equal(await page.locator("#detailsPane").getAttribute("aria-modal"), "true");
     const missing = page.locator(".context-missing-fields summary");
@@ -111,13 +134,53 @@ module.exports = async function visualRefinementFlows(browser, origin, errors = 
     assert.equal(await page.locator(".context-missing-fields").getAttribute("open"), "");
     await page.evaluate(() => renderThread({ preserveScroll: true, refreshList: false }));
     assert.equal(await page.locator(".context-missing-fields").getAttribute("open"), "");
+    const contextFocus = await page
+      .locator(".context-missing-fields summary")
+      .evaluate((element) => ({
+        preserved: element === document.activeElement,
+        activeTag: document.activeElement?.tagName,
+        activeId: document.activeElement?.id,
+        drawerOpen: document.getElementById("detailsPane").classList.contains("mobile-open"),
+        inert: !!element.closest("[inert]"),
+        documentState: document.readyState,
+      }));
+    assert.equal(
+      contextFocus.preserved,
+      true,
+      "Inbox context focus: " + JSON.stringify(contextFocus),
+    );
+    await previousResize.evaluate((complete) => complete());
+    await previousResize.dispose();
     assert.equal(
       await page
-        .locator(".context-missing-fields summary")
+        .locator("#detailsPane")
+        .evaluate((element) => element.classList.contains("mobile-open")),
+      true,
+      "A pending resize must not close a newly opened client drawer",
+    );
+    assert.equal(
+      await missing.evaluate((element) => element === document.activeElement),
+      true,
+      "A pending resize must preserve focus in the newly opened client drawer",
+    );
+    await page.keyboard.press("Escape");
+    assert.equal(
+      await page
+        .locator("#toggleDetailsBtn")
         .evaluate((element) => element === document.activeElement),
       true,
     );
-    await page.keyboard.press("Escape");
+    await page.locator("#toggleDetailsBtn").click();
+    const currentResize = await capturePendingInboxResize(page);
+    await currentResize.evaluate((complete) => complete());
+    await currentResize.dispose();
+    assert.equal(
+      await page
+        .locator("#detailsPane")
+        .evaluate((element) => element.classList.contains("mobile-open")),
+      false,
+      "Resizing an already open client drawer must still close it",
+    );
     assert.equal(
       await page
         .locator("#toggleDetailsBtn")

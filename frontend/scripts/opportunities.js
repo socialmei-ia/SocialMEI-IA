@@ -384,9 +384,9 @@ const SocialMEIOpportunities = (() => {
         filters(
           [
             ["all", "Todos", all.length],
-            ...Object.entries(levelsLabel).map(([key, label]) => [
+            ...["frio", "morno", "quente"].map((key) => [
               key,
-              label,
+              levelsLabel[key],
               all.filter((r) => presentation(r).level === key).length,
             ]),
           ],

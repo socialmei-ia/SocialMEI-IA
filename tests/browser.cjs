@@ -38,12 +38,22 @@ async function run() {
       process.env.CHROMIUM_EXECUTABLE ? { executablePath: process.env.CHROMIUM_EXECUTABLE } : {},
     );
     checks.push(await require("./account-browser.cjs")(browser, origin));
+    checks.push(await require("./profile-sync-browser.cjs")(browser, origin));
+    checks.push(await require("./message-enrichment-browser.cjs")(browser, origin));
     checks.push(await require("./native-opportunities-browser.cjs")(browser, origin));
     checks.push(await require("./content-studio-browser.cjs")(browser, origin));
+    checks.push(await require("./instagram-integration-browser.cjs")(browser, origin));
     checks.push(await require("./charts-demo-browser.cjs")(browser, origin));
     checks.push(await require("./premium-experience-browser.cjs")(browser, origin));
     checks.push(await require("./ux-interaction-browser.cjs")(browser, origin));
+    checks.push(await require("./demo-readonly-browser.cjs")(browser, origin));
     checks.push(await require("./external-audit-browser.cjs")(browser, origin));
+    checks.push(await require("./frontend-stabilization-browser.cjs")(browser, origin));
+    checks.push(await require("./chart-focus-browser.cjs")(browser, origin));
+    checks.push(await require("./modal-focus-browser.cjs")(browser, origin));
+    checks.push(await require("./sale-payment-dialog-browser.cjs")(browser, origin));
+    checks.push(await require("./functional-audit-browser.cjs")(browser, origin));
+    checks.push(await require("./automation-labels-browser.cjs")(browser, origin));
     checks.push(await require("./premium-charts-browser.cjs")(browser, origin));
     checks.push(await require("./adaptive-onboarding-browser.cjs")(browser, origin));
     checks.push(await require("./personalization-browser.cjs")(browser, origin));

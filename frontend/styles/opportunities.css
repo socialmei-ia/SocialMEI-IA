@@ -446,3 +446,23 @@
     grid-column: 1;
   }
 }
+
+/* Visibilidade sem aumentar a altura da seção compacta de oportunidades. */
+#clientTab-analysis {
+  position: relative;
+  font-weight: 750;
+  background: var(--hover);
+  border-radius: 10px 10px 0 0;
+}
+#clientTab-analysis::after {
+  content: "COMECE AQUI";
+  position: absolute;
+  top: 3px;
+  right: 6px;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  color: var(--br);
+}
+#clientTab-analysis [data-analysis-count] {
+  border: 1px solid var(--br);
+}
