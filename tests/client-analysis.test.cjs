@@ -7,6 +7,32 @@ const analyze = (text) =>
     [{ id: "test", name: "Teste", messages: [{ id: "m", author: "customer", text, at: null }] }],
     { referenceTime: "2026-10-18T12:00:00Z" },
   )[0];
+test("interest controls progress cold to warm to hot without changing commercial priority", () => {
+  assert.deepEqual(Object.entries(model.LEVELS), [
+    ["frio", "Frio"],
+    ["morno", "Morno"],
+    ["quente", "Quente"],
+  ]);
+  const ordered = engine.prioritizeCustomers(
+    [
+      {
+        id: "inquiry",
+        name: "Consulta",
+        messages: [{ id: "a", author: "customer", text: "Quanto custa?", at: null }],
+      },
+      {
+        id: "purchase",
+        name: "Compra",
+        messages: [
+          { id: "b", author: "customer", text: "Quero contratar a troca de tela.", at: null },
+        ],
+      },
+    ],
+    { referenceTime: "2026-10-18T12:00:00Z" },
+  );
+  assert.equal(ordered[0].id, "purchase");
+  assert.equal(model.present(ordered[0]).level, "quente");
+});
 test("greetings and doubts remain in analysis, purchase and inquiry have qualitative interest", () => {
   for (const text of ["Oi!", "Talvez compre, ainda não decidi."])
     assert.equal(model.present(analyze(text)).lane, "analysis");

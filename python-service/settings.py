@@ -85,3 +85,15 @@ def message_enrichment_mode() -> str:
 def message_enrichment_signing_key() -> str:
     # This isolated adapter never reuses a connector or n8n credential.
     return os.getenv("SOCIALMEI_MESSAGE_ENRICHMENT_TEST_KEY", "")
+
+
+def channel_ingress_mode() -> str:
+    return os.getenv("SOCIALMEI_CHANNEL_INGRESS_MODE", "disabled").strip().lower()
+
+
+def channel_ingress_signing_key() -> str:
+    return os.getenv("SOCIALMEI_CHANNEL_INGRESS_TEST_KEY", "")
+
+
+def content_preparation_mode() -> str:
+    return os.getenv("SOCIALMEI_CONTENT_PREPARATION_MODE", "disabled").strip().lower()

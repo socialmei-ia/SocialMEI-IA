@@ -348,27 +348,32 @@ def capabilities(request: Request, response: Response):
 def incoming(payload: Incoming, request: Request, response: Response):
     user = guard(request, response, write=True); workspace = user['workspace_id']
     with db() as conn:
-        lock_workspace(conn, workspace)
-        prior = operation(conn, workspace, 'message', payload)
-        if prior:
-            return {**prior, 'replayed': True}
-        external_fingerprint = fingerprint({k: v for k, v in payload.model_dump().items() if k != 'operation_id'})
-        existing = conn.execute('SELECT m.* FROM socialmei.me_external_messages e JOIN socialmei.me_messages m ON m.workspace_id=e.workspace_id AND m.id=e.message_id WHERE e.workspace_id=%s AND e.channel=%s AND e.account_ref=%s AND e.external_message_id=%s', (workspace, payload.channel, payload.account_ref, payload.external_message_id)).fetchone()
-        if existing:
-            if existing['fingerprint'] != external_fingerprint:
-                raise HTTPException(409, 'Mensagem externa já usada com outros dados.')
-            # A new operation alias consumes quota because it persists a new row.
-            rate_limit(conn, workspace)
-            result = {'conversation_id': existing['conversation_id'], 'message_id': existing['id'], 'revision': existing['conversation_revision'], 'replayed': True}
-        else:
-            rate_limit(conn, workspace)
-            conv = conn.execute('INSERT INTO socialmei.me_conversations(workspace_id,channel,account_ref,contact_ref,contact_name) VALUES(%s,%s,%s,%s,%s) ON CONFLICT(workspace_id,channel,account_ref,contact_ref) DO UPDATE SET contact_name=me_conversations.contact_name RETURNING *', (workspace, payload.channel, payload.account_ref, payload.contact_ref, payload.contact_name)).fetchone()
-            revision = conn.execute('UPDATE socialmei.me_conversations SET revision=revision+1 WHERE id=%s RETURNING revision', (conv['id'],)).fetchone()['revision']
-            message = conn.execute('INSERT INTO socialmei.me_messages(workspace_id,conversation_id,external_message_id,text,fingerprint,conversation_revision) VALUES(%s,%s,%s,%s,%s,%s) RETURNING id', (workspace, conv['id'], payload.external_message_id, payload.text, external_fingerprint, revision)).fetchone()
-            conn.execute('INSERT INTO socialmei.me_external_messages(workspace_id,channel,account_ref,external_message_id,message_id) VALUES(%s,%s,%s,%s,%s)', (workspace, payload.channel, payload.account_ref, payload.external_message_id, message['id']))
-            result = {'conversation_id': conv['id'], 'message_id': message['id'], 'revision': revision, 'replayed': False}
-        remember(conn, workspace, 'message', payload, result)
-        return result
+        return persist_incoming(conn, workspace, payload)
+
+
+def persist_incoming(conn, workspace, payload):
+    lock_workspace(conn, workspace)
+    prior = operation(conn, workspace, 'message', payload)
+    if prior:
+        return {**prior, 'replayed': True}
+    external_fingerprint = fingerprint({k: v for k, v in payload.model_dump().items() if k != 'operation_id'})
+    existing = conn.execute('SELECT m.* FROM socialmei.me_external_messages e JOIN socialmei.me_messages m ON m.workspace_id=e.workspace_id AND m.id=e.message_id WHERE e.workspace_id=%s AND e.channel=%s AND e.account_ref=%s AND e.external_message_id=%s', (workspace, payload.channel, payload.account_ref, payload.external_message_id)).fetchone()
+    if existing:
+        if existing['fingerprint'] != external_fingerprint:
+            raise HTTPException(409, 'Mensagem externa já usada com outros dados.')
+        # A new operation alias consumes quota because it persists a new row.
+        rate_limit(conn, workspace)
+        result = {'conversation_id': existing['conversation_id'], 'message_id': existing['id'], 'revision': existing['conversation_revision'], 'replayed': True}
+    else:
+        rate_limit(conn, workspace)
+        conv = conn.execute('INSERT INTO socialmei.me_conversations(workspace_id,channel,account_ref,contact_ref,contact_name) VALUES(%s,%s,%s,%s,%s) ON CONFLICT(workspace_id,channel,account_ref,contact_ref) DO UPDATE SET contact_name=me_conversations.contact_name RETURNING *', (workspace, payload.channel, payload.account_ref, payload.contact_ref, payload.contact_name)).fetchone()
+        revision = conn.execute('UPDATE socialmei.me_conversations SET revision=revision+1 WHERE id=%s RETURNING revision', (conv['id'],)).fetchone()['revision']
+        message = conn.execute('INSERT INTO socialmei.me_messages(workspace_id,conversation_id,external_message_id,text,fingerprint,conversation_revision) VALUES(%s,%s,%s,%s,%s,%s) RETURNING id', (workspace, conv['id'], payload.external_message_id, payload.text, external_fingerprint, revision)).fetchone()
+        conn.execute('INSERT INTO socialmei.me_external_messages(workspace_id,channel,account_ref,external_message_id,message_id) VALUES(%s,%s,%s,%s,%s)', (workspace, payload.channel, payload.account_ref, payload.external_message_id, message['id']))
+        result = {'conversation_id': conv['id'], 'message_id': message['id'], 'revision': revision, 'replayed': False}
+    remember(conn, workspace, 'message', payload, result)
+    return result
+
 
 
 @router.get('/conversations')

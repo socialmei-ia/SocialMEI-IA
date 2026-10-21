@@ -52,6 +52,16 @@
 .client-analysis-tabs > button[aria-selected="true"] {
   color: var(--br);
 }
+.client-analysis-tabs > [data-analysis-tab="analysis"][data-pending="true"] {
+  color: var(--tx);
+  background: var(--hover);
+  border-radius: 8px 8px 0 0;
+}
+.client-analysis-tabs [data-pending="true"] [data-analysis-count] {
+  background: var(--br);
+  color: var(--sf);
+  font-weight: 750;
+}
 .client-analysis-tabs [data-analysis-count] {
   display: inline-flex;
   align-items: center;
@@ -77,6 +87,26 @@
   color: var(--mt);
   max-width: 76ch;
   margin-block: 8px 20px;
+}
+.client-analysis-pending {
+  border-left: 3px solid var(--br);
+  padding-left: 12px;
+  margin-block: 8px;
+}
+#opportunitiesView .client-analysis-pending h3 {
+  margin: 0 0 2px;
+  font-size: 16px;
+  line-height: 1.35;
+}
+#opportunitiesView .client-analysis-pending p {
+  margin: 0;
+  max-width: 72ch;
+  font-size: 14px;
+  line-height: 1.35;
+}
+.client-analysis-person h3:focus-visible {
+  outline: 2px solid var(--br);
+  outline-offset: 4px;
 }
 .client-analysis-filters {
   display: flex;
@@ -422,9 +452,12 @@
     padding-left: 24px;
     border-left: 1px solid var(--border);
   }
-  .client-analysis-list[data-count="1"] .client-analysis-choice {
+  .client-analysis-list[data-count="1"] [data-lane="analysis"] .client-analysis-choice {
     grid-column: 2;
     grid-row: 3;
+  }
+  .client-analysis-list[data-count="1"] [data-lane="chance"] .client-analysis-choice {
+    grid-column: 1;
   }
   .client-analysis-list[data-count="1"]
     .client-analysis-card:not([data-lane="analysis"])

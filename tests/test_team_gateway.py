@@ -47,6 +47,8 @@ class TeamGatewayTests(unittest.TestCase):
             """from http.server import BaseHTTPRequestHandler, HTTPServer
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
+        if self.path.startswith('/internal/'):
+            self.send_response(200); self.end_headers(); self.wfile.write(b'must-never-be-served'); return
         if self.path.startswith('/api/v1/integracoes/'):
             allowed = self.headers.get('Authorization') == 'Bearer gateway-read-test-key'
             self.send_response(200 if allowed else 401); self.end_headers()
@@ -188,6 +190,8 @@ HTTPServer(('0.0.0.0', 8000), Handler).serve_forever()
             "/frontend/../.env",
             "/api/v1/../../.env",
             "/docs/openapi.json",
+            "/internal/channel-ingress/waha",
+            "/internal/message-enrichment/results",
         ]:
             code, body = self.request(path, True)
             self.assertNotEqual(code, 200, path)
