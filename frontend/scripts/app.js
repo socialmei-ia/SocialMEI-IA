@@ -3468,6 +3468,12 @@ function renderSettings() {
   if (!host) {
     return;
   }
+  const profileImportReview = host.querySelector("[data-sync-import-profile]")?.closest("details");
+  const profileImportFocus = profileImportReview?.contains(document.activeElement)
+    ? document.activeElement.matches("summary")
+      ? "summary"
+      : "[data-sync-import-profile]"
+    : null;
   document.querySelectorAll("[data-settings-tab]").forEach((b) => {
     const on = b.dataset.settingsTab === selectedSettingsTab;
     b.classList.toggle("active", on);
@@ -3893,6 +3899,12 @@ function renderSettings() {
   finishSettingsPanel();
   syncBusinessIdentity();
   window.SocialMEIProfileSync?.decorate();
+  const updatedImportReview = host.querySelector("[data-sync-import-profile]")?.closest("details");
+  if (profileImportReview && updatedImportReview) {
+    updatedImportReview.open = profileImportReview.open;
+    if (profileImportFocus)
+      updatedImportReview.querySelector(profileImportFocus)?.focus({ preventScroll: true });
+  }
 }
 
 function updateSettingsIdentity() {

@@ -94,13 +94,57 @@ module.exports = async (browser, origin) => {
     assert.equal(writes.length, 0);
     await settings(a);
     await a.locator("details:has([data-sync-import-profile]) summary").click();
+    await a.evaluate(() => renderSettings());
+    assert.equal(
+      await a
+        .locator("details:has([data-sync-import-profile])")
+        .evaluate((details) => details.open),
+      true,
+      "Refreshing settings must preserve the expanded local-profile import",
+    );
+    assert.equal(
+      await a
+        .locator("details:has([data-sync-import-profile]) summary")
+        .evaluate((summary) => summary === document.activeElement),
+      true,
+      "Refreshing settings must preserve focus on the local-profile import summary",
+    );
     await a.locator("[data-sync-import-profile]").click();
     await a.locator('[data-onboard-panel="6"].is-active').waitFor();
     assert.equal(writes.length, 0);
     await a.locator("[data-business-cancel]").click();
     await a.waitForFunction(() => document.body?.classList.contains("experience-app"));
     assert.equal(writes.length, 0);
+    assert.equal(
+      await a
+        .locator("details:has([data-sync-import-profile])")
+        .evaluate((details) => details.open),
+      true,
+      "Canceling import must return to the expanded local-profile disclosure",
+    );
     await a.locator("details:has([data-sync-import-profile]) summary").click();
+    assert.equal(
+      await a
+        .locator("details:has([data-sync-import-profile])")
+        .evaluate((details) => details.open),
+      false,
+    );
+    await a.locator("details:has([data-sync-import-profile]) summary").click();
+    assert.equal(
+      await a
+        .locator("details:has([data-sync-import-profile])")
+        .evaluate((details) => details.open),
+      true,
+    );
+    await a.locator("[data-sync-import-profile]").focus();
+    await a.evaluate(() => renderSettings());
+    assert.equal(
+      await a
+        .locator("[data-sync-import-profile]")
+        .evaluate((button) => button === document.activeElement),
+      true,
+      "Refreshing settings must preserve focus on the local-profile import action",
+    );
     await a.locator("[data-sync-import-profile]").click();
     await a.locator("[data-onboard-next]").click();
     await a.waitForFunction(() => document.body?.classList.contains("experience-app"));
@@ -130,7 +174,26 @@ module.exports = async (browser, origin) => {
     assert.equal(writes.length, 2);
     // A conflict summary belongs to the scrollable review, never the fixed action footer.
     await settings(a);
+    assert.equal(
+      await a
+        .locator("details:has([data-sync-import-profile])")
+        .evaluate((details) => details.open),
+      true,
+    );
     await a.locator("details:has([data-sync-import-profile]) summary").click();
+    assert.equal(
+      await a
+        .locator("details:has([data-sync-import-profile])")
+        .evaluate((details) => details.open),
+      false,
+    );
+    await a.locator("details:has([data-sync-import-profile]) summary").click();
+    assert.equal(
+      await a
+        .locator("details:has([data-sync-import-profile])")
+        .evaluate((details) => details.open),
+      true,
+    );
     await a.locator("[data-sync-import-profile]").click();
     await b.evaluate(async () => {
       const repo = SocialMEIBusinessProfile.browserRepository(),
