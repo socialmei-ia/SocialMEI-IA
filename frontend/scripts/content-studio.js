@@ -446,5 +446,34 @@ const SocialMEIContentStudio = (() => {
       media: { name: media.name, mime: media.type, size: media.size },
     };
   }
-  return Object.freeze({ render, simulationSnapshot });
+  function preparationSnapshot() {
+    synchronize();
+    if (!scope) return null;
+    return {
+      scope,
+      title: byId("contentTitle").value,
+      format,
+      caption: model.caption(value()),
+      media: media ? { name: media.name, mime: media.type, size: media.size } : null,
+    };
+  }
+  function loadPreparation(item, onLoaded = () => {}) {
+    synchronize();
+    replaceEditor(() => {
+      load({
+        id: null,
+        title: item.title,
+        format: item.format,
+        caption: item.caption,
+        media: item.media?.[0]
+          ? { name: item.media[0].name, type: item.media[0].mime, size: item.media[0].size }
+          : null,
+      });
+      message(
+        "Preparação compartilhada aberta. Texto não salvo localmente; mídia somente como referência.",
+      );
+      onLoaded();
+    });
+  }
+  return Object.freeze({ render, simulationSnapshot, preparationSnapshot, loadPreparation });
 })();

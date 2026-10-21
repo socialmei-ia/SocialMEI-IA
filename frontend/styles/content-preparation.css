@@ -1,0 +1,89 @@
+.content-preparation-workflow {
+  margin-top: var(--space-6, 24px);
+  padding-top: var(--space-6, 24px);
+  border-top: 1px solid var(--border, #c9d3df);
+}
+.content-preparation-workflow h3 {
+  font-size: 18px;
+  margin: 16px 0 8px;
+}
+.content-preparation-workflow p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+.content-preparation-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+.content-preparation-workflow label {
+  display: grid;
+  gap: 7px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.content-preparation-workflow input:not([type="checkbox"]),
+.content-preparation-workflow select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid var(--border, #c9d3df);
+  border-radius: var(--r-md, 10px);
+  background: var(--surface, #fff);
+  color: var(--text-primary);
+  padding: 10px;
+  font: inherit;
+}
+.content-preparation-workflow .content-preparation-review {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 18px 0;
+}
+.content-preparation-review input {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  margin: 2px 0 0;
+}
+.content-preparation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+.content-preparation-workflow .management-button {
+  min-height: 44px;
+  white-space: normal;
+}
+.content-preparation-alternatives > div {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border, #c9d3df);
+}
+.content-preparation-history {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0;
+}
+.content-preparation-history > li {
+  padding: 12px 0;
+  border-top: 1px solid var(--border, #c9d3df);
+}
+.content-preparation-workflow :focus-visible {
+  outline: 3px solid var(--primary, #1976e8);
+  outline-offset: 3px;
+}
+@media (max-width: 560px) {
+  .content-preparation-fields {
+    grid-template-columns: 1fr;
+  }
+  .content-preparation-actions {
+    align-items: stretch;
+  }
+  .content-preparation-actions > button {
+    flex: 1 1 140px;
+  }
+}

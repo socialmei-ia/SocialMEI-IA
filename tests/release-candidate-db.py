@@ -188,7 +188,7 @@ class Rehearsal:
                     profile = BusinessProfile.model_validate({'version':1,'businessName':'RC80','segment':'barber','activity':'Teste','offers':['services'],'services':['Corte fictício'],'productCategories':[],'capabilities':{name:name=='appointments' for name in Capabilities.model_fields},'modules':['clients','services','appointments'],'ignoredSuggestions':[],'completed':True}).normalized('RC80 sintético '+str(index+1))
                     conn.execute('INSERT INTO socialmei.workspace_profiles(workspace_id,profile) VALUES(%s,%s)', (workspace, Jsonb(profile)))
                     conn.execute('INSERT INTO socialmei.auth_preferences(workspace_id,user_id,preferences) VALUES(%s,%s,%s)', (workspace, user, Jsonb(default_preferences())))
-                else:
+                elif version == 14:
                     conversation = conn.execute("INSERT INTO socialmei.me_conversations(workspace_id,channel,account_ref,contact_ref,contact_name,revision) VALUES(%s,'whatsapp','synthetic:account','synthetic:contact','Mesmo nome sintético',1) RETURNING id", (workspace,)).fetchone()[0]
                     message = conn.execute("INSERT INTO socialmei.me_messages(workspace_id,conversation_id,external_message_id,fingerprint,conversation_revision,text,revision) VALUES(%s,%s,'synthetic:message',%s,1,'Preço fictício',2) RETURNING id", (workspace, conversation, 'b'*64)).fetchone()[0]
                     conn.execute("INSERT INTO socialmei.me_external_messages(workspace_id,channel,account_ref,external_message_id,message_id) VALUES(%s,'whatsapp','synthetic:account','synthetic:message',%s)", (workspace, message))
@@ -200,6 +200,12 @@ class Rehearsal:
                     conn.execute("INSERT INTO socialmei.me_operations(workspace_id,kind,operation_id,fingerprint,response) VALUES(%s,'enrich',%s,%s,%s)", (workspace, uuid4(), 'c'*64, Jsonb({'id':str(job),'message_id':message})))
                     conn.execute('INSERT INTO socialmei.me_events(event_id,job_id,attempt,fingerprint) VALUES(%s,%s,1,%s)', (uuid4(), job, 'd'*64))
                     conn.execute('INSERT INTO socialmei.me_limits(workspace_id,count) VALUES(%s,1)', (workspace,))
+
+                elif version == 15:
+                    account = conn.execute('SELECT id FROM socialmei.instagram_sim_accounts WHERE workspace_id=%s LIMIT 1',(workspace,)).fetchone()[0]
+                    job = uuid4()
+                    conn.execute("INSERT INTO socialmei.content_preparation_jobs(workspace_id,id,account_id,requested_by,idempotency_key,fingerprint,title,format,caption,media_manifest,status,scheduled_for,run_after) VALUES(%s,%s,%s,%s,%s,%s,'Ensaio fictício','feed','Sem publicação',%s,'scheduled',now()+interval '1 day',now()+interval '1 day')",(workspace,job,account,user,uuid4(),'c'*64,Jsonb([{'name':'fixture.png','mime':'image/png','size':32}])))
+                    conn.execute("INSERT INTO socialmei.content_preparation_events(workspace_id,job_id,status) VALUES(%s,%s,'scheduled')",(workspace,job))
 
     def prove_fks(self, tenants, database):
         import psycopg
@@ -222,21 +228,25 @@ class Rehearsal:
         with patch.dict(os.environ, safe):
             os.environ.pop('SOCIALMEI_INSTAGRAM_MODE', None)
             os.environ.pop('SOCIALMEI_MESSAGE_ENRICHMENT_MODE', None)
+            os.environ.pop('SOCIALMEI_CONTENT_PREPARATION_MODE', None)
+            os.environ.pop('SOCIALMEI_CHANNEL_INGRESS_MODE', None)
             from app import app
             from fastapi.testclient import TestClient
             import settings
             identity = {'id':tenants[0]['user'],'workspace_id':tenants[0]['workspace'],'role':'owner','administrador_plataforma':False}
-            with patch('account_auth.session_identity', return_value=identity), patch('instagram_simulation.connect', side_effect=AssertionError('unexpected database')), patch('message_enrichment.connect', side_effect=AssertionError('unexpected database')):
+            with patch('account_auth.session_identity', return_value=identity), patch('instagram_simulation.connect', side_effect=AssertionError('unexpected database')), patch('message_enrichment.connect', side_effect=AssertionError('unexpected database')), patch('content_preparation.connect', side_effect=AssertionError('unexpected database')):
                 client = TestClient(app, base_url=safe['SOCIALMEI_AUTH_ORIGIN'])
                 client.cookies.set('__Host-socialmei-session', 'a'*64)
                 self.check(client.get('/api/v1/instagram/simulation/accounts').status_code == 503, 'Instagram default disabled without database access')
+                self.check(client.get('/api/v1/content/preparation/status').status_code == 503, 'content preparation default disabled without database access')
+                self.check(client.get('/api/v1/channel-lab/accounts').status_code == 503, 'channel ingress default disabled without database access')
                 cap = client.get('/api/v1/message-enrichment/capabilities').json()
                 self.check(settings.message_enrichment_mode() == 'disabled' and cap['mode'] == 'disabled' and cap['transport'] == 'none' and client.get('/api/v1/message-enrichment/conversations').status_code == 503, 'enrichment default disabled without database access')
 
     def run(self, backend_tests):
         import psycopg
         files = sorted((ROOT/'database/migrations').glob('*.sql'))
-        self.check(len(files) == 14 and [p.name[:3] for p in files] == [f'{n:03}' for n in range(1,15)], 'exact incremental migrations001–014 present')
+        self.check(len(files) == 15 and [p.name[:3] for p in files] == [f'{n:03}' for n in range(1,16)], 'exact incremental migrations001–015 present')
         manifest = {}
         for path in files:
             committed = subprocess.run(['git','show','HEAD:database/migrations/'+path.name], cwd=ROOT, capture_output=True, check=True).stdout
@@ -272,12 +282,12 @@ class Rehearsal:
                 current = self.snapshot()
                 self.check(all(current['tables'][name] == rows for name,rows in legacy.items()), f'{number:03} preserves all preexisting001–011 table values')
             baseline = self.snapshot()
-            self.migrate(folder, 'ledger replay001–014')
+            self.migrate(folder, 'ledger replay001–015')
             self.check(self.snapshot() == baseline, 'team migrator ledger replay preserves rows, schema, sequences and applied_at')
             with self.connect() as conn:
                 for path in files[11:]:
                     conn.execute(path.read_text(), prepare=False)
-            self.check(self.snapshot() == baseline, 'raw012–014 reapplication is idempotent with seeded data')
+            self.check(self.snapshot() == baseline, 'raw012–015 reapplication is idempotent with seeded data')
             with tempfile.TemporaryDirectory(prefix='socialmei-rc80-failure-') as failure:
                 (Path(failure)/'999_release_probe.sql').write_text('CREATE TABLE socialmei.rc80_rollback_probe(id INT); SELECT 1/0;')
                 try:

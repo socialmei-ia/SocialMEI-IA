@@ -42,6 +42,7 @@ async function run() {
     checks.push(await require("./message-enrichment-browser.cjs")(browser, origin));
     checks.push(await require("./native-opportunities-browser.cjs")(browser, origin));
     checks.push(await require("./content-studio-browser.cjs")(browser, origin));
+    checks.push(await require("./content-preparation-browser.cjs")(browser, origin));
     checks.push(await require("./instagram-integration-browser.cjs")(browser, origin));
     checks.push(await require("./charts-demo-browser.cjs")(browser, origin));
     checks.push(await require("./premium-experience-browser.cjs")(browser, origin));
