@@ -71,6 +71,20 @@ module.exports = async function nativeOpportunities(browser, origin) {
             .locator(`[data-analysis-tab="${id}"]`)
             .getAttribute("aria-selected");
           assert.equal(tabState, "true");
+          if (id === "analysis") {
+            const positions = await page.evaluate(() => ({
+              tab: document.getElementById("clientAnalysisTabs").getBoundingClientRect().top,
+              card: document.querySelector(".client-analysis-card")?.getBoundingClientRect().top,
+            }));
+            assert(
+              positions.tab < (width <= 390 ? 330 : 300),
+              JSON.stringify({ width, theme, positions }),
+            );
+            assert(
+              positions.card < (width <= 390 ? 460 : 450),
+              JSON.stringify({ width, theme, positions }),
+            );
+          }
           await page.screenshot({
             path: path.join(output, `${id}-${width}-${theme}.png`),
             fullPage: true,
@@ -106,7 +120,7 @@ module.exports = async function nativeOpportunities(browser, origin) {
     assert.equal(await page.locator("#clientTab-analysis").getAttribute("data-pending"), "true");
     assert.match(
       await page.locator(".client-analysis-pending h3").textContent(),
-      new RegExp(`^${pendingCount} clientes? aguardando classificação$`),
+      new RegExp(`^${pendingCount} aguardando classificação$`),
     );
     const lia = page.locator('[data-native-opportunity="analysis-demo-welcome"]');
     await lia.locator(".client-analysis-choice summary").click();

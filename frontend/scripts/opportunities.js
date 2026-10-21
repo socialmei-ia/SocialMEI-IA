@@ -395,19 +395,9 @@ const SocialMEIOpportunities = (() => {
     if (activeTab === "analysis") {
       const pending = node("section", undefined, "client-analysis-pending");
       pending.setAttribute("aria-labelledby", "clientAnalysisPendingTitle");
-      const title = node(
-        "h3",
-        `${items.length} ${items.length === 1 ? "cliente aguardando" : "clientes aguardando"} classificação`,
-      );
+      const title = node("h3", `${items.length} aguardando classificação`);
       title.id = "clientAnalysisPendingTitle";
-      pending.append(
-        title,
-        node(
-          "p",
-          "Ainda não há sinais suficientes para definir o interesse. Confira o que falta saber ou classifique quando conhecer o contexto.",
-          "management-note",
-        ),
-      );
+      pending.append(title, node("p", "Confira a conversa para classificar.", "management-note"));
       queue.append(pending);
     } else if (activeTab === "chance") {
       const all = items;

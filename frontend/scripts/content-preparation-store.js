@@ -102,7 +102,7 @@ const SocialMEIContentPreparation = (() => {
       <button type="button" class="management-button" id="preparationCaptions">Sugerir legendas por modelo local</button>
       <div id="preparationAlternatives" class="content-preparation-alternatives"></div>
       <p>Imagem/vídeo: use o seletor de mídia do editor. Nenhuma imagem é gerada por este modelo.</p>
-      <h3>Preparação compartilhada · teste isolado</h3>
+      <h3 id="contentPreparationScheduleHeading">Preparação compartilhada · teste isolado</h3>
       <p id="preparationMode">Agendamentos exigem sessão autenticada e ativação explícita do modo de testes no servidor. Nada é publicado.</p>
       <div class="content-preparation-fields">
         <label>Conta fictícia <select id="preparationAccount" aria-describedby="preparationMode"></select></label>
@@ -124,6 +124,13 @@ const SocialMEIContentPreparation = (() => {
       <div class="content-preparation-actions"><button type="button" class="management-button" id="preparationRefresh">Atualizar histórico</button><button type="button" class="management-button" id="preparationRun">Processar testes vencidos</button></div>
       <p>O teste persiste somente texto e metadados. A mídia não é enviada ou armazenada. O processamento é manual neste laboratório; não há publicação, cron em produção ou conexão Meta/n8n.</p>
       <ul id="preparationHistory" class="content-preparation-history" aria-label="Histórico de preparações compartilhadas"></ul>`;
+    const idea = document.createElement("section");
+    idea.className = "content-preparation-workflow content-preparation-idea";
+    idea.setAttribute("aria-labelledby", "contentPreparationHeading");
+    while (panel.firstChild && panel.firstChild.id !== "contentPreparationScheduleHeading")
+      idea.append(panel.firstChild);
+    panel.setAttribute("aria-labelledby", "contentPreparationScheduleHeading");
+    parent.prepend(idea);
     parent.append(panel);
     const byId = (id) => document.getElementById(id),
       repository = SocialMEIBusinessProfile.browserRepository(),
@@ -479,9 +486,10 @@ const SocialMEIContentPreparation = (() => {
     byId("contentDraftForm").addEventListener("input", () => {
       byId("preparationReviewed").checked = false;
     });
-    panel.addEventListener("change", (event) => {
-      if (event.target.id !== "preparationReviewed") byId("preparationReviewed").checked = false;
-    });
+    for (const section of [idea, panel])
+      section.addEventListener("change", (event) => {
+        if (event.target.id !== "preparationReviewed") byId("preparationReviewed").checked = false;
+      });
     document.addEventListener("socialmei-view-change", () => {
       if (currentView === "Divulgação" && !working) refresh();
       else epoch++;

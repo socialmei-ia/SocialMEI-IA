@@ -3,6 +3,13 @@
   padding-top: var(--space-6, 24px);
   border-top: 1px solid var(--border, #c9d3df);
 }
+.content-preparation-idea {
+  margin-top: 0;
+  padding-top: 0;
+  padding-bottom: var(--space-6, 24px);
+  border-top: 0;
+  border-bottom: 1px solid var(--border);
+}
 .content-preparation-workflow h3 {
   font-size: 18px;
   margin: 16px 0 8px;

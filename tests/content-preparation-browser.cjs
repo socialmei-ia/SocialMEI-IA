@@ -45,6 +45,31 @@ module.exports = async function contentPreparation(browser, origin) {
     await local.locator('[data-xp-go="app"]').first().click();
     await local.evaluate(() => setView("Divulgação"));
     assert(await local.locator("#preparationSchedule").isDisabled());
+    const flowOrder = await local.evaluate(() => {
+      const ids = [
+        "preparationTopic",
+        "preparationCaptions",
+        "contentTitle",
+        "contentCaption",
+        "contentMedia",
+        "preparationReviewed",
+        "preparationSchedule",
+      ];
+      return ids.every(
+        (id, i) =>
+          !i ||
+          !!(
+            document
+              .getElementById(ids[i - 1])
+              .compareDocumentPosition(document.getElementById(id)) &
+            Node.DOCUMENT_POSITION_FOLLOWING
+          ),
+      );
+    });
+    assert(
+      flowOrder,
+      "Native flow must keep idea → caption → media → review → schedule in DOM/keyboard order",
+    );
     await local.locator("#preparationTopic").fill("Corte masculino");
     await local.locator("#preparationCaptions").focus();
     await local.keyboard.press("Enter");
