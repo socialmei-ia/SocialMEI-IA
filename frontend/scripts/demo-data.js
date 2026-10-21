@@ -322,16 +322,11 @@ if (typeof document !== "undefined")
       },
       true,
     );
-    let scheduled = false;
     const observer = new MutationObserver((records) => {
       if (!records.some((record) => [...record.addedNodes].some((node) => node.nodeType === 1)))
         return;
-      if (scheduled) return;
-      scheduled = true;
-      requestAnimationFrame(() => {
-        scheduled = false;
-        decorate();
-      });
+      // New controls must expose read-only state before the next interaction.
+      decorate();
     });
     observer.observe(
       document.getElementById("appShell") ||
