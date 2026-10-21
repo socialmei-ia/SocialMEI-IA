@@ -79,6 +79,14 @@ module.exports = async function contentStudio(browser, origin) {
     await page.locator("#contentStudioOpen").click();
     assert.equal(await page.evaluate(() => currentView), "Divulgação");
     assert(await page.locator("#contentPublish").isDisabled());
+    assert(await page.locator("#instagramPublishStart").isDisabled());
+    assert(await page.locator("#instagramPublishPanel").isHidden());
+    assert(await page.locator("#instagramSimulationPanel").isHidden());
+    assert.match(
+      await page.locator("#instagramPublishStatus").textContent(),
+      /não está habilitado neste ambiente/,
+    );
+    assert.equal(await page.locator("#instagramPublishExternal").getAttribute("href"), "#");
     await page.evaluate(() => {
       SocialMEIBusinessProfile.browserRepository().save({
         completed: true,
@@ -101,6 +109,11 @@ module.exports = async function contentStudio(browser, origin) {
       .fill("Conheça o trabalho do nosso ateliê. Conteúdo fictício para teste.");
     await page.locator("#contentCta").fill("Converse com a gente para saber mais.");
     await page.locator("#contentHashtags").fill("#ExemploFictício");
+    await page.locator("#contentScheduleAt").fill("2026-11-03T10:30");
+    assert.match(
+      await page.locator("#contentScheduleStatus").textContent(),
+      /Não será publicada automaticamente/,
+    );
     await page.locator("#contentMedia").setInputFiles({
       name: "invalido.svg",
       mimeType: "image/svg+xml",
@@ -141,6 +154,11 @@ module.exports = async function contentStudio(browser, origin) {
       ),
     );
     assert.equal(saved.length, 1);
+    assert.equal(
+      JSON.parse(saved[0][1]).items[0].scheduledFor,
+      await page.locator("#contentScheduleAt").evaluate((el) => new Date(el.value).toISOString()),
+    );
+    assert.match(await page.locator("#contentPreviewSchedule").textContent(), /não enviado/);
     assert(!saved[0][1].includes("blob:"));
     assert(!saved[0][1].includes("data:image"));
     await page.evaluate(() => {
@@ -165,6 +183,7 @@ module.exports = async function contentStudio(browser, origin) {
     await exported.saveAs(filename);
     assert.match(fs.readFileSync(filename, "utf8"), /nenhuma publicação foi realizada/);
     assert.match(fs.readFileSync(filename, "utf8"), /Novidades do ateliê/);
+    assert.match(fs.readFileSync(filename, "utf8"), /Data pretendida:/);
     await page.locator("#contentTitle").fill("Alteração não salva");
     await page.locator("#contentNew").click();
     assert(
@@ -183,6 +202,7 @@ module.exports = async function contentStudio(browser, origin) {
     assert.equal(await page.locator("#contentTitle").inputValue(), "");
     await page.locator('[data-content-action="edit"]').first().click();
     assert.match(await page.locator("#contentMediaStatus").textContent(), /Selecione novamente/);
+    assert.equal(await page.locator("#contentScheduleAt").inputValue(), "2026-11-03T10:30");
     assert.equal(await page.locator("#contentPreviewStage img").count(), 0);
     await page.locator('[data-content-action="duplicate"]').first().click();
     assert.equal(await page.locator(".content-draft-row").count(), 2);
@@ -220,6 +240,10 @@ module.exports = async function contentStudio(browser, origin) {
           assert.equal(
             await page.locator(`[data-content-format="${format}"]`).getAttribute("aria-selected"),
             "true",
+          );
+          assert.equal(
+            await page.locator("#instagramPublishFormat").textContent(),
+            { feed: "Feed", story: "Story", reel: "Reel" }[format],
           );
           if ([390, 1440].includes(width))
             await page.screenshot({

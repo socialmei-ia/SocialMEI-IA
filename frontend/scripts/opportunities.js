@@ -399,8 +399,8 @@ const SocialMEIOpportunities = (() => {
       );
       items.sort(
         (a, b) =>
-          ["quente", "morno", "frio"].indexOf(presentation(a).level) -
-          ["quente", "morno", "frio"].indexOf(presentation(b).level),
+          ["frio", "morno", "quente"].indexOf(presentation(a).level) -
+          ["frio", "morno", "quente"].indexOf(presentation(b).level),
       );
     } else if (activeTab === "attention") {
       const all = items;

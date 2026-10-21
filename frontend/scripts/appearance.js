@@ -192,23 +192,43 @@ function renderThemeMenu() {
     renderIcon("cfg") +
     "Configurar aparência</button>";
 }
-function applyAppTheme(id) {
+async function applyAppTheme(id) {
+  if (
+    window.SocialMEIProfileSync?.remote &&
+    SocialMEIProfileSync.state().preferencesState === "saving"
+  ) {
+    toast("Aguarde o salvamento", "Depois você poderá escolher outro tema.");
+    return;
+  }
   const t = THEMES.themes.find((x) => x.id === id);
   if (t && THEMES.checks(t).some((x) => !x.pass)) {
     openThemeStudio(t);
     toast("Revise o contraste", "Corrija as combinações indicadas antes de aplicar este tema.");
     return;
   }
-  const saved = THEMES.select(id);
+  const sync = window.SocialMEIProfileSync;
+  const accountTheme = sync?.remote && ["light", "dark", "auto"].includes(id);
+  const saved = THEMES.select(id, { persist: !accountTheme });
   updateThemeButton();
   renderThemeMenu();
   requestAnimationFrame(renderDashboardChart);
   if (currentView === "Configurações" && selectedSettingsTab === "aparencia") {
     renderAppearance();
+    sync?.decorate();
   } else if (currentView === "Configurações") {
     updateSettingsWorkspacePreview();
   }
   if (!document.body.classList.contains("experience-app")) {
+    return;
+  }
+  if (accountTheme) {
+    try {
+      await sync.updatePreferences({ theme: id });
+      toast("Tema salvo na conta", THEMES.current().name);
+    } catch (error) {
+      toast("Tema ainda não salvo", sync.state().problem || error.message);
+    }
+    sync.decorate();
     return;
   }
   if (!saved) {

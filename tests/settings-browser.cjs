@@ -84,6 +84,7 @@ async function run() {
           missingResources.push(new URL(response.url()).pathname);
         }
       });
+      const profileAPI = require("./profile-sync-fixture.cjs")();
       await page.route("**/*", async (route) => {
         const request = route.request();
         const url = new URL(request.url());
@@ -105,6 +106,8 @@ async function run() {
               ";",
           });
         }
+        const profileReply = profileAPI(route, identity);
+        if (profileReply) return profileReply;
         if (url.pathname === "/api/v1/auth/profile") {
           assert.equal(request.method(), "PATCH");
           assert.equal(request.headers()["x-socialmei-csrf"], identity.csrf_token);
@@ -362,7 +365,10 @@ async function run() {
       assert.notEqual(await notification.getAttribute("aria-checked"), oldValue);
       await page.locator("#nvSettingsPrimary").click();
       await page.waitForFunction(
-        () => document.getElementById("nvSettingsFeedback")?.textContent === "Salvo",
+        (expected) => document.getElementById("nvSettingsFeedback")?.textContent === expected,
+        mode === "remote"
+          ? "Preferências salvas na conta. Outros dispositivos verão após recarregar."
+          : "Salvo",
       );
       await page.evaluate(() => {
         setView("Automações");

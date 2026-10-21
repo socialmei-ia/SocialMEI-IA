@@ -1,14 +1,14 @@
 # Roadmap
 
-Atualizado em 14/10/2026. Prioridades baseadas no código e nas evidências disponíveis; publicação na AWS é uma etapa separada. A [revisão de preparação](FUTURE-READINESS-REVIEW.md) e o [mapa de ambientes](docs/ENVIRONMENTS.md) substituem afirmações antigas sobre ausência de API, migrations e isolamento de negócio.
+Atualizado em 19/10/2026. Prioridades baseadas no código e nas evidências disponíveis; publicação na AWS é uma etapa separada. A [revisão de preparação](FUTURE-READINESS-REVIEW.md) e o [mapa de ambientes](docs/ENVIRONMENTS.md) substituem afirmações antigas sobre ausência de API, migrations e isolamento de negócio.
 
 ## Próxima etapa
 
-| Prioridade     | Ação                                                                   | Evidência / conclusão esperada                                                                                                                        |
-| -------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P1             | Revisar e integrar a limpeza e preparação desta branch                 | Contratos e visual preservados; conferir CI do SHA final. A publicação terá alvo/imagens próprios, sem usar o deploy genérico para team.              |
-| P1             | Consolidar as sugestões da equipe                                      | O responsável aguarda respostas; transformar ideias em requisitos/aceite antes de criar funcionalidades.                                              |
-| P0 condicional | Fechar identidade, autorização e idempotência do atendimento (A12/A13) | O export legado agrupa por nome/canal e não deduplica eventos externos. Exigir IDs estáveis, tenant/canal e reenvio seguro antes de atendimento real. |
+| Prioridade     | Ação                                                                   | Evidência / conclusão esperada                                                                                                                                                                                                       |
+| -------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| P1             | Revisar a estabilização frontend e preparar a próxima funcionalidade   | [Estabilização](docs/FRONTEND-STABILIZATION.md) e [mapa de extensão](docs/PROJECT-STRUCTURE.md#como-adicionar-uma-feature); conferir CI do SHA final. A publicação terá alvo/imagens próprios, sem usar o deploy genérico para team. |
+| P1             | Consolidar as sugestões da equipe                                      | O responsável aguarda respostas; transformar ideias em requisitos/aceite antes de criar funcionalidades.                                                                                                                             |
+| P0 condicional | Fechar identidade, autorização e idempotência do atendimento (A12/A13) | O export legado agrupa por nome/canal e não deduplica eventos externos. Exigir IDs estáveis, tenant/canal e reenvio seguro antes de atendimento real.                                                                                |
 
 ## Curto prazo
 

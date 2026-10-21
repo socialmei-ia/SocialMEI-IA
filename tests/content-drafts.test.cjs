@@ -80,6 +80,23 @@ test("content limits, formats and media metadata are enforced without persisting
   assert.equal("url" in d, false);
   assert.equal("url" in d.media, false);
 });
+test("planned dates stay local metadata and never imply publication", () => {
+  const f = fixture();
+  const date = "2026-11-03T13:30:00.000Z";
+  const saved = f.repo.save({ ...input, scheduledFor: date }, "a");
+  assert.equal(f.repo.read().items[0].scheduledFor, date);
+  assert.equal("published" in saved, false);
+  assert.equal("status" in saved, false);
+  assert.throws(() => f.repo.save({ ...input, scheduledFor: "tomorrow" }, "a"), /data e a hora/);
+  assert.throws(
+    () => f.repo.save({ ...input, scheduledFor: { url: "https://untrusted.example" } }, "a"),
+    /data e a hora/,
+  );
+  assert.equal(f.repo.read().items.length, 1);
+  f.repo.save({ ...saved, scheduledFor: null }, "a");
+  assert.equal(f.repo.read().items[0].scheduledFor, null);
+  assert.equal(model.draft(input).scheduledFor, null);
+});
 test("local media requires compatible MIME, size and header before preview", async () => {
   const file = (type, bytes, size = bytes.length) => ({
     name: "file",

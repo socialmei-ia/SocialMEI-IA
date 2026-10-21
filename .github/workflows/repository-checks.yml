@@ -54,6 +54,15 @@ jobs:
         run: |
           python -m pip install -r python-service/requirements.txt
           python -m unittest discover -s python-service -p 'test_*.py'
+      - name: Release candidate migrations and recovery (disposable PostgreSQL)
+        run: python tests/release-candidate-db.py --run --output test-results/release-candidate
+      - name: Save sanitized release candidate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-candidate-readiness
+          path: test-results/release-candidate/*.json
+          if-no-files-found: ignore
       - name: Backup failure and recovery scenarios
         run: python -m unittest discover -s tests -p 'test_*.py'
       - name: Protected team gateway

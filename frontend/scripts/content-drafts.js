@@ -6,6 +6,17 @@
   "use strict";
   const FORMATS = Object.freeze({ story: "Story", feed: "Feed", reel: "Reel" });
   const LIMIT = 40;
+  function plannedTime(value) {
+    if (value === undefined || value === null || value === "") return null;
+    if (
+      typeof value !== "string" ||
+      !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value) ||
+      !Number.isFinite(Date.parse(value)) ||
+      new Date(value).toISOString() !== value
+    )
+      throw new Error("Confira a data e a hora planejadas.");
+    return value;
+  }
   function text(value, max) {
     if (typeof value !== "string" || value.length > max)
       throw new Error("O conteúdo excede os limites do rascunho.");
@@ -38,6 +49,7 @@
       caption: text(value.caption || "", 2200),
       cta: text(value.cta || "", 140),
       hashtags: text(value.hashtags || "", 300),
+      scheduledFor: plannedTime(value.scheduledFor),
       media,
     };
   }
