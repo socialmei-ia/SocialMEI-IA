@@ -446,3 +446,29 @@
     grid-column: 1;
   }
 }
+
+/* The analysis queue stays identifiable even while viewing another tab. */
+.client-analysis-tabs > button[data-analysis-tab="analysis"] {
+  position: relative;
+  border-radius: 12px 12px 0 0;
+  background: var(--hover);
+  font-weight: 750;
+}
+.client-analysis-tabs > button[data-analysis-tab="analysis"]::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin: 0 7px 2px 0;
+  vertical-align: middle;
+  border-radius: 50%;
+  background: var(--br);
+}
+.client-analysis-tabs > button[data-analysis-tab="analysis"][aria-selected="true"] {
+  outline-offset: -3px;
+  box-shadow: inset 0 0 0 1px var(--br);
+}
+.client-analysis-tabs > button[data-analysis-tab="analysis"] [data-analysis-count] {
+  background: var(--sf);
+  color: var(--br);
+}
