@@ -17,10 +17,15 @@
       throw new Error("Informe data e horário válidos para o planejamento.");
     const [year, month, day, hour, minute] = value.match(/\d+/g).map(Number);
     const date = new Date(year, month - 1, day, hour, minute);
-    if (year < 2024 || year > 2100 ||
-        date.getFullYear() !== year || date.getMonth() !== month - 1 ||
-        date.getDate() !== day || date.getHours() !== hour ||
-        date.getMinutes() !== minute)
+    if (
+      year < 2024 ||
+      year > 2100 ||
+      date.getFullYear() !== year ||
+      date.getMonth() !== month - 1 ||
+      date.getDate() !== day ||
+      date.getHours() !== hour ||
+      date.getMinutes() !== minute
+    )
       throw new Error("Informe data e horário válidos para o planejamento.");
     return value;
   }
