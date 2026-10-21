@@ -446,3 +446,39 @@
     grid-column: 1;
   }
 }
+
+/* A etapa em análise fica evidente sem sugerir que o interesse é uma probabilidade. */
+.opportunity-priority-guide {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 1.1rem 0;
+  border: 1px solid var(--ln);
+  border-inline-start: 4px solid var(--br);
+  border-radius: .85rem;
+  background: var(--sf);
+  padding: 1rem 1.2rem;
+}
+.opportunity-priority-guide > div:first-child { flex: 1 1 18rem; }
+.opportunity-priority-guide strong { font-weight: 750; }
+.opportunity-priority-guide p { color: var(--mt); margin: .3rem 0 0; max-width: 65ch; }
+.opportunity-temperature-key {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem;
+}
+.opportunity-temperature-key span {
+  font-size: .85rem;
+  font-weight: 700;
+  border-radius: .65rem;
+  padding: .45rem .7rem;
+  border: 1px solid var(--ln);
+}
+.opportunity-temperature-key .frio { color: var(--br); background: var(--hover); }
+.opportunity-temperature-key .morno { color: var(--tx); background: var(--warning-soft); }
+.opportunity-temperature-key .quente { color: var(--tx); background: var(--danger-soft); }
+#clientTab-analysis { font-weight: 750; }
+#clientTab-analysis [data-analysis-count] { background: var(--hover); border: 1px solid var(--br); }
