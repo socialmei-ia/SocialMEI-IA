@@ -110,7 +110,10 @@ module.exports = async function contentStudio(browser, origin) {
     await page.locator("#contentCta").fill("Converse com a gente para saber mais.");
     await page.locator("#contentHashtags").fill("#ExemploFictício");
     await page.locator("#contentScheduledAt").fill("2026-11-12T09:45");
-    assert.match(await page.locator("#contentScheduleStatus").textContent(), /não agenda nem publica/);
+    assert.match(
+      await page.locator("#contentScheduleStatus").textContent(),
+      /não agenda nem publica/,
+    );
     await page.locator("#contentMedia").setInputFiles({
       name: "invalido.svg",
       mimeType: "image/svg+xml",
