@@ -99,12 +99,30 @@ module.exports = async function nativeOpportunities(browser, origin) {
       JSON.stringify({ data: appData, conversations: sessionData.conversas }),
     );
     await tab("analysis");
+    assert.equal(
+      await page.locator('[data-analysis-tab="analysis"]').evaluate(
+        (el) => Number.parseInt(getComputedStyle(el).fontWeight, 10) >= 700,
+      ),
+      true,
+    );
+    assert.equal(
+      await page.locator('[data-native-opportunity="analysis-demo-welcome"]').evaluate(
+        (el) => getComputedStyle(el).borderLeftWidth,
+      ),
+      "3px",
+    );
     const lia = page.locator('[data-native-opportunity="analysis-demo-welcome"]');
     await lia.locator(".client-analysis-choice summary").click();
     await lia.locator('[data-analysis-value="frio"]').click();
     assert.equal(
       await page.locator('[data-analysis-tab="chance"]').getAttribute("aria-selected"),
       "true",
+    );
+    assert.deepEqual(
+      await page.locator("[data-analysis-level]").evaluateAll((elements) =>
+        elements.map((el) => el.dataset.analysisLevel),
+      ),
+      ["all", "frio", "morno", "quente"],
     );
     await page.locator('[data-analysis-level="frio"]').click();
     assert.equal(await page.locator(".client-analysis-list .client-analysis-card").count(), 1);
