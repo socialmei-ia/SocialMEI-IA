@@ -111,11 +111,20 @@ module.exports = async function visualRefinementFlows(browser, origin, errors = 
     assert.equal(await page.locator(".context-missing-fields").getAttribute("open"), "");
     await page.evaluate(() => renderThread({ preserveScroll: true, refreshList: false }));
     assert.equal(await page.locator(".context-missing-fields").getAttribute("open"), "");
+    const contextFocus = await page
+      .locator(".context-missing-fields summary")
+      .evaluate((element) => ({
+        preserved: element === document.activeElement,
+        activeTag: document.activeElement?.tagName,
+        activeId: document.activeElement?.id,
+        drawerOpen: document.getElementById("detailsPane").classList.contains("mobile-open"),
+        inert: !!element.closest("[inert]"),
+        documentState: document.readyState,
+      }));
     assert.equal(
-      await page
-        .locator(".context-missing-fields summary")
-        .evaluate((element) => element === document.activeElement),
+      contextFocus.preserved,
       true,
+      "Inbox context focus: " + JSON.stringify(contextFocus),
     );
     await page.keyboard.press("Escape");
     assert.equal(

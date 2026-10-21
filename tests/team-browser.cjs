@@ -114,7 +114,20 @@ HTTPServer(('0.0.0.0',8000),Handler).serve_forever()
     });
     const page = await context.newPage();
     const errors = [];
+    const assetFailures = [];
     page.on("pageerror", (e) => errors.push(e.message));
+    page.on("requestfailed", (request) => {
+      if (["document", "script", "stylesheet"].includes(request.resourceType()))
+        assetFailures.push({
+          path: new URL(request.url()).pathname,
+          error: request.failure()?.errorText,
+        });
+    });
+    page.on("response", (response) => {
+      const request = response.request();
+      if (!response.ok() && ["document", "script", "stylesheet"].includes(request.resourceType()))
+        assetFailures.push({ path: new URL(response.url()).pathname, status: response.status() });
+    });
     await page.route("**/*", (route) =>
       new URL(route.request().url()).origin === origin ? route.continue() : route.abort(),
     );
@@ -133,6 +146,18 @@ HTTPServer(('0.0.0.0',8000),Handler).serve_forever()
     const document = await navigateInitialPage(page, origin + "/");
     assert.equal(document.status(), 200);
     assert.equal(page.url(), origin + "/", "Short URL must remain in the address bar");
+    const boot = await page.evaluate(() => ({
+      ready: typeof window.SocialMEIExperience?.enterApp === "function",
+      documentState: document.readyState,
+      experienceRoot: !!document.getElementById("experienceRoot"),
+      businessProfile: !!window.SocialMEIBusinessProfile,
+      auth: !!window.SocialMEIAuth,
+    }));
+    assert.equal(
+      boot.ready,
+      true,
+      "HTTPS application boot failed: " + JSON.stringify({ boot, assetFailures, errors }),
+    );
     await page.evaluate(() => SocialMEIExperience.enterApp("Clientes"));
     await page.waitForFunction(() =>
       [
