@@ -1102,6 +1102,7 @@ const TOAST_TIMERS = new Set();
 let resizeTimer;
 addEventListener("resize", () => {
   clearTimeout(resizeTimer);
+  const contextEpochAtResize = contextDrawerEpoch;
   resizeTimer = setTimeout(() => {
     applySidebarState();
     if (currentView === "Visão Geral") {
@@ -1109,7 +1110,8 @@ addEventListener("resize", () => {
     }
     updateHeaderContext();
     positionSidebarIndicator();
-    closeMobileDetails();
+    // A delayed resize must not close a context opened by a newer user action.
+    if (contextEpochAtResize === contextDrawerEpoch) closeMobileDetails();
     syncMobileInert();
     sizeInbox();
   }, 120);

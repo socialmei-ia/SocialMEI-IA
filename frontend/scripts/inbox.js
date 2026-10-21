@@ -1643,11 +1643,13 @@ function sizeInbox() {
     toggle.setAttribute("aria-expanded", String(open));
   }
 }
+let contextDrawerEpoch = 0;
 function openContextDrawer() {
   const pane = $("detailsPane");
   if (!getConversation()) {
     return;
   }
+  contextDrawerEpoch += 1;
   contextReturnFocusElement = document.activeElement;
   pane.classList.add("mobile-open");
   pane.setAttribute("role", "dialog");
@@ -1661,6 +1663,7 @@ function openContextDrawer() {
 function closeContextDrawer() {
   const pane = $("detailsPane");
   const was = pane.classList.contains("mobile-open");
+  if (was) contextDrawerEpoch += 1;
   pane.classList.remove("mobile-open");
   pane.removeAttribute("role");
   pane.removeAttribute("aria-modal");

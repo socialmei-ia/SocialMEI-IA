@@ -2,7 +2,7 @@
 
 ## Parecer e limite desta entrega
 
-Esta é uma candidata **à revisão**, não uma publicação autorizada. O HEAD final, os resultados dos checks e os artefatos ficam registrados na PR Draft de integração. Resultado pendente não significa teste aprovado. A rodada acrescenta documentação, ensaio descartável e diagnóstico das regressões de navegador; não modifica funcionalidades, autenticação, migrations aplicadas, configuração de implantação ou branches anteriores.
+Esta é uma candidata **à revisão**, não uma publicação autorizada. O HEAD final, os resultados dos checks e os artefatos ficam registrados na PR Draft de integração. Resultado pendente não significa teste aprovado. A rodada acrescenta documentação, ensaio descartável e diagnóstico das regressões de navegador; preserva funcionalidades e contratos, com uma correção pontual de foco da Caixa comprovada por teste. Não modifica autenticação, migrations aplicadas, configuração de implantação ou branches anteriores.
 
 **Publicação: NEEDS DECISION.** Staging instalado é **NÃO CONFIRMADO**. Merge, implantação, migrations reais, canais e operações externas continuam bloqueados até autorizações específicas. Nenhum SSH, AWS, n8n, WAHA, Meta ou banco real foi acessado.
 
@@ -84,7 +84,9 @@ A primeira comparação textual de DDL detectou casts de arrays reescritos pelo 
 
 O primeiro CI também reproduziu uma corrida no novo ensaio: `pg_isready` por socket aceitava o servidor temporário de initdb antes da abertura TCP. A espera agora verifica TCP explicitamente, com o mesmo limite de tempo e sem repetir ou enfraquecer assertions de migrations/restore. É correção do harness, não causa confirmada do timeout histórico #73.
 
-Duas ocorrências do navegador exigem transparência: a primeira rodada falhou na preservação de foco do contexto da Caixa; três execuções locais focadas e a regressão completa seguinte passaram, sem causa original confirmada. A segunda rodada passou os42 fluxos, temas/Configurações e falhou em HTTPS com HTML200 e `SocialMEIExperience` ausente. Os testes agora registram estado de foco/inert e erros de assets/boot, sem texto de clientes, cabeçalhos ou credenciais. Assertions e limites continuam estritos, sem retry de ações. CI verde posterior não prova a causa dessas intermitências: permanecem risco de homologação junto à investigação #73, que não é encerrada.
+A Caixa apresentou falhas remotas de foco e de abertura dos campos do cliente. A investigação reproduziu deterministicamente um defeito: o debounce120ms de resize podia fechar um contexto aberto depois do evento e devolver o foco ao botão, tornando o resumo inerte. A regressão canônica ficou vermelha antes da correção e verde depois. Uma época de abertura/fechamento impede somente o callback antigo; resize ocorrido com o painel já aberto continua fechando-o e devolvendo o foco. A sequência temporal exata dos primeiros CIs não foi capturada, portanto a ligação com cada ocorrência é inferência, não uma medição retroativa.
+
+Permanece outra ocorrência: uma rodada passou os42 fluxos, temas/Configurações e falhou em HTTPS com HTML200 e `SocialMEIExperience` ausente. Os testes agora registram estado de foco/inert e erros de assets/boot, sem texto de clientes, cabeçalhos ou credenciais. Assertions e limites continuam estritos, sem retry de ações. A causa original do boot HTTPS continua não confirmada; o teste local passou em fixture adaptada somente para aliases internos fora do proxy do ambiente, inclusive com CPU lenta. O CI usa a fixture canônica. Um CI verde posterior não prova a causa dessa intermitência; ela permanece risco de homologação junto à investigação #73, que não é encerrada.
 
 ## Plano de implantação team — apenas após aprovação
 
