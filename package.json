@@ -4,6 +4,8 @@
   "private": true,
   "description": "Ferramentas de manuten\u00e7\u00e3o do frontend est\u00e1tico SocialMEI.IA",
   "scripts": {
+    "preview": "node tools/preview.mjs",
+    "test:preview": "node tests/preview-browser.cjs",
     "test": "node --test tests/*.test.cjs",
     "test:browser": "node tests/browser.cjs",
     "format": "prettier --write frontend tools tests *.html *.json .github docs *.md compose*.yaml",

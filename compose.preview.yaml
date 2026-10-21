@@ -1,0 +1,101 @@
+# Local disposable preview. Never combine with another Compose file.
+name: socialmei-preview
+services:
+  database:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: preview
+      POSTGRES_DB: socialmei_preview
+      POSTGRES_PASSWORD: ${PREVIEW_POSTGRES_PASSWORD:?Run npm run preview -- up}
+    volumes:
+      - preview_database:/var/lib/postgresql/data
+    networks: [database]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U preview -d socialmei_preview"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  migrate:
+    build: ./python-service
+    command: python /maintenance/team_migrate.py
+    environment: &database_environment
+      POSTGRES_HOST: database
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: preview
+      POSTGRES_DB: socialmei_preview
+      POSTGRES_PASSWORD: ${PREVIEW_POSTGRES_PASSWORD:?Run npm run preview -- up}
+      PYTHONPATH: /app
+    volumes:
+      - ./tools/team_migrate.py:/maintenance/team_migrate.py:ro
+      - ./database/migrations:/migrations:ro
+    networks: [database]
+    depends_on:
+      database:
+        condition: service_healthy
+  api:
+    build: ./python-service
+    environment:
+      <<: *database_environment
+      SOCIALMEI_SHARED_DATA_ENABLED: "true"
+      SOCIALMEI_WORKSPACE_SLUG: preview
+      SOCIALMEI_WORKSPACE_NAME: Teste fictício local
+      SOCIALMEI_AUTH_ENABLED: "true"
+      SOCIALMEI_AUTH_ORIGIN: https://127.0.0.1:8443
+      SOCIALMEI_REGISTRATION_MODE: open
+      SOCIALMEI_CORS_ORIGINS: ""
+      SOCIALMEI_INSTAGRAM_MODE: simulation
+      SOCIALMEI_CONTENT_PREPARATION_MODE: simulation
+      SOCIALMEI_MESSAGE_ENRICHMENT_MODE: stub
+      SOCIALMEI_MESSAGE_ENRICHMENT_TEST_KEY: ${PREVIEW_TEST_KEY:?Run npm run preview -- up}
+      SOCIALMEI_CHANNEL_INGRESS_MODE: fixture
+      SOCIALMEI_CHANNEL_INGRESS_TEST_KEY: ${PREVIEW_TEST_KEY:?Run npm run preview -- up}
+    networks: [database, application]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/db')",
+        ]
+      interval: 3s
+      timeout: 5s
+      retries: 30
+  web:
+    image: caddy:2-alpine
+    ports: ["127.0.0.1:8443:8443"]
+    volumes:
+      - ./tools/preview/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./frontend:/srv/frontend:ro
+      - ./tools/preview/config.js:/srv/frontend/config.js:ro
+      - preview_certificates:/data
+    networks: [application, edge]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--spider",
+          "--no-check-certificate",
+          "https://127.0.0.1:8443/__preview",
+        ]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    depends_on:
+      api:
+        condition: service_healthy
+networks:
+  edge:
+    driver: bridge
+  database:
+    internal: true
+  application:
+    internal: true
+volumes:
+  preview_database:
+  preview_certificates:
