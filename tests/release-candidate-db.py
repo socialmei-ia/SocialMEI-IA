@@ -207,6 +207,17 @@ class Rehearsal:
                     conn.execute("INSERT INTO socialmei.content_preparation_jobs(workspace_id,id,account_id,requested_by,idempotency_key,fingerprint,title,format,caption,media_manifest,status,scheduled_for,run_after) VALUES(%s,%s,%s,%s,%s,%s,'Ensaio fictício','feed','Sem publicação',%s,'scheduled',now()+interval '1 day',now()+interval '1 day')",(workspace,job,account,user,uuid4(),'c'*64,Jsonb([{'name':'fixture.png','mime':'image/png','size':32}])))
                     conn.execute("INSERT INTO socialmei.content_preparation_events(workspace_id,job_id,status) VALUES(%s,%s,'scheduled')",(workspace,job))
 
+                elif version == 16:
+                    client = conn.execute('SELECT id FROM socialmei.crm_clientes WHERE workspace_id=%s LIMIT 1', (workspace,)).fetchone()[0]
+                    opportunity = uuid4()
+                    conn.execute("INSERT INTO socialmei.crm_opportunities(workspace_id,id,client_id,title,interest_level,created_by) VALUES(%s,%s,%s,'Negociação fictícia','hot',%s)", (workspace, opportunity, client, user))
+                    snapshot = {'id': str(opportunity), 'workspace_id': workspace, 'revision': 1}
+                    conn.execute("INSERT INTO socialmei.crm_opportunity_events(workspace_id,opportunity_id,actor_id,action,current) VALUES(%s,%s,%s,'create',%s)", (workspace, opportunity, user, Jsonb(snapshot)))
+                    conn.execute('INSERT INTO socialmei.crm_opportunity_operations(workspace_id,operation_id,fingerprint,response) VALUES(%s,%s,%s,%s)', (workspace, uuid4(), 'e'*64, Jsonb(snapshot)))
+                elif version == 17:
+                    preparation = {'username': 'loja.ficticia', 'account_type': 'business', 'meta_app_status': 'unknown', 'test_participants': ['equipe.teste'], 'reply_mode': 'review'}
+                    conn.execute('INSERT INTO socialmei.integration_setup(workspace_id,instagram,updated_by) VALUES(%s,%s,%s)', (workspace, Jsonb(preparation), user))
+
     def prove_fks(self, tenants, database):
         import psycopg
         with self.connect(database) as conn:
@@ -246,7 +257,7 @@ class Rehearsal:
     def run(self, backend_tests):
         import psycopg
         files = sorted((ROOT/'database/migrations').glob('*.sql'))
-        self.check(len(files) == 15 and [p.name[:3] for p in files] == [f'{n:03}' for n in range(1,16)], 'exact incremental migrations001–015 present')
+        self.check(len(files) == 17 and [p.name[:3] for p in files] == [f'{n:03}' for n in range(1,18)], 'exact incremental migrations001–017 present')
         manifest = {}
         for path in files:
             committed = subprocess.run(['git','show','HEAD:database/migrations/'+path.name], cwd=ROOT, capture_output=True, check=True).stdout
@@ -282,12 +293,12 @@ class Rehearsal:
                 current = self.snapshot()
                 self.check(all(current['tables'][name] == rows for name,rows in legacy.items()), f'{number:03} preserves all preexisting001–011 table values')
             baseline = self.snapshot()
-            self.migrate(folder, 'ledger replay001–015')
+            self.migrate(folder, 'ledger replay001–017')
             self.check(self.snapshot() == baseline, 'team migrator ledger replay preserves rows, schema, sequences and applied_at')
             with self.connect() as conn:
                 for path in files[11:]:
                     conn.execute(path.read_text(), prepare=False)
-            self.check(self.snapshot() == baseline, 'raw012–015 reapplication is idempotent with seeded data')
+            self.check(self.snapshot() == baseline, 'raw012–017 reapplication is idempotent with seeded data')
             with tempfile.TemporaryDirectory(prefix='socialmei-rc80-failure-') as failure:
                 (Path(failure)/'999_release_probe.sql').write_text('CREATE TABLE socialmei.rc80_rollback_probe(id INT); SELECT 1/0;')
                 try:

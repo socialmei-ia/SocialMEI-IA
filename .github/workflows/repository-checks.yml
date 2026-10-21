@@ -10,6 +10,7 @@ on:
         feat/ux-interaction-refinement,
         release/integration-candidate-80,
         feat/priority-integrations,
+        feat/isolated-preview,
       ]
 
 permissions:
