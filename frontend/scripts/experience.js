@@ -986,6 +986,7 @@ ONBOARDING — JAVASCRIPT
           : "Não foi possível conferir o perfil salvo. Tente atualizar os dados da conta.";
         q("#businessProfileConflict").hidden = false;
         q("#businessProfileConflict").focus();
+        q("#businessProfileConflict").scrollIntoView({ block: "start", behavior: "instant" });
       }
       return false;
     } finally {

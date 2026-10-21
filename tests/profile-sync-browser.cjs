@@ -141,6 +141,7 @@ module.exports = async (browser, origin) => {
         saved.revision,
       );
     });
+    await a.setViewportSize({ width: 390, height: 900 });
     await a.locator("[data-onboard-next]").click();
     await a.locator("#businessProfileConflict").waitFor({ state: "visible" });
     assert.equal(await a.locator(".onboarding-footer #businessProfileConflict").count(), 0);
@@ -154,6 +155,14 @@ module.exports = async (browser, origin) => {
         .evaluate((e) => e.getBoundingClientRect().height < innerHeight / 2),
     );
     assert(await a.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    assert(
+      await a.locator("[data-business-reload]").evaluate((button) => {
+        const box = button.getBoundingClientRect(),
+          footer = document.querySelector(".onboarding-footer").getBoundingClientRect();
+        return box.top >= 0 && box.bottom <= footer.top;
+      }),
+    );
+    await a.screenshot({ path: path.join(output, "conflict-390.png") });
     await a.locator("[data-business-reload]").click();
     await a.locator("[data-business-cancel]").click();
     await a.waitForFunction(() => document.body?.classList.contains("experience-app"));
