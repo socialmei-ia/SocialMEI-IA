@@ -284,6 +284,12 @@ async function run() {
       });
       await page.close();
     }
+    const multichannelReplies = await require("./reply-preparation-preview.cjs")(
+      first,
+      contexts[1],
+      origin,
+      headers,
+    );
     const visualOpportunities = await require("./visual-opportunities-preview.cjs")(
       first,
       origin,
@@ -296,6 +302,7 @@ async function run() {
       JSON.stringify(
         {
           realBackend: true,
+          multichannelReplies,
           visualOpportunities,
           origin,
           workspaces: 2,
