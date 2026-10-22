@@ -262,14 +262,33 @@ module.exports = async (context, origin, client, headers) => {
     await page.locator("#op8CreateValue").fill("590,50");
     await page.locator("#op8CreateDate").fill(today);
     await page.locator("#opportunityCreateForm button[type=submit]").click();
-    await page.waitForFunction(() =>
-      [...document.querySelectorAll(".op8-entry")].some(
-        (card) =>
-          card.textContent.includes("Novo orçamento de teste V8") &&
-          card.textContent.includes("590,50") &&
-          card.textContent.includes("Retomar:"),
-      ),
-    );
+    try {
+      await page.waitForFunction(() =>
+        [...document.querySelectorAll(".op8-entry")].some(
+          (card) =>
+            card.textContent.includes("Novo orçamento de teste V8") &&
+            card.textContent.includes("590,50") &&
+            card.textContent.includes("Retomar:"),
+        ),
+      );
+    } catch (error) {
+      const diagnostic = await page.evaluate(() => ({
+        cards: [...document.querySelectorAll(".op8-entry")].map((card) =>
+          card.textContent.slice(0, 180),
+        ),
+        status: document.querySelector("#opportunityLifecycle [role=status]")?.textContent,
+        feedback: document.querySelector("#op8Feedback")?.textContent,
+        form: {
+          title: document.querySelector("#opportunityTitle")?.value,
+          amount: document.querySelector("#op8CreateValue")?.value,
+          date: document.querySelector("#op8CreateDate")?.value,
+        },
+        scope: SocialMEIOpportunityLifecycle?.snapshot?.().scope,
+        ids: SocialMEIOpportunityLifecycle?.snapshot?.().items?.map((row) => row.id),
+      }));
+      throw new Error("V8 create preview never reached persisted-and-local metadata: " +
+        JSON.stringify(diagnostic), { cause: error });
+    }
     await page.evaluate(() => setView("Divulgação"));
     await page.locator("#contentWorkspace-create").click();
     for (const width of [390, 1440]) {
