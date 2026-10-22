@@ -263,6 +263,41 @@
       if (!updating) applyDraftFilters();
     });
     observer.observe(list, { childList: true });
+    const fileInput = node("input");
+    fileInput.type = "file";
+    fileInput.accept = "application/json,.json";
+    fileInput.hidden = true;
+    fileInput.setAttribute("aria-label", "Selecionar backup JSON de rascunhos");
+    fileInput.addEventListener("change", async () => {
+      const file = fileInput.files?.[0];
+      fileInput.value = "";
+      if (!file) return;
+      if (file.size > 256 * 1024) {
+        status.textContent = "Arquivo muito grande. O backup deve ter até 256 KB.";
+        return;
+      }
+      try {
+        const payload = JSON.parse(await file.text());
+        if (
+          payload?.app !== "socialmei-native-drafts" ||
+          payload.version !== 1 ||
+          !Array.isArray(payload.drafts)
+        )
+          throw new Error("Backup incompatível. Escolha o JSON exportado pelo SocialMEI.");
+        if (!window.confirm("Importar " + payload.drafts.length + " rascunho(s) para este negócio?"))
+          return;
+        const originalScope = scope();
+        repository.importMany(payload.drafts, originalScope);
+        SocialMEIContentStudio.render();
+        status.textContent =
+          "Backup importado para este negócio neste navegador. " +
+          "Mídias precisam ser selecionadas novamente.";
+      } catch (error) {
+        status.textContent = error.message || "Não foi possível importar o backup.";
+      }
+    });
+    const importButton = action("Importar backup JSON", () => fileInput.click());
+    root.querySelector("#contentDraftsPanel").append(importButton, fileInput);
     root.querySelector("#contentDraftsPanel").append(
       action("Exportar backup JSON dos rascunhos", () => {
         const state = repository.read();
