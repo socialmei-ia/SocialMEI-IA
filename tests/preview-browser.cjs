@@ -129,6 +129,12 @@ async function run() {
       );
       await page.goto(origin + "/");
       await page.waitForFunction(() => !!window.SocialMEIAuth?.current);
+      // Complete auth and profile startup before selecting a view; otherwise
+      // a late restore can hide the opportunity form during this preview flow.
+      await page.evaluate(async () => {
+        await SocialMEIAuth.ready;
+        await SocialMEIProfileSync.ready;
+      });
       await page.evaluate(() => SocialMEIExperience.enterApp("Clientes"));
       await page.waitForFunction(() =>
         appData.clientes.some((c) => c.nome === "Cliente fictício do preview"),
