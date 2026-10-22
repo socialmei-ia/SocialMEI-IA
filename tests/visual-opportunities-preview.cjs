@@ -286,8 +286,11 @@ module.exports = async (context, origin, client, headers) => {
         scope: SocialMEIOpportunityLifecycle?.snapshot?.().scope,
         ids: SocialMEIOpportunityLifecycle?.snapshot?.().items?.map((row) => row.id),
       }));
-      throw new Error("V8 create preview never reached persisted-and-local metadata: " +
-        JSON.stringify(diagnostic), { cause: error });
+      throw new Error(
+        "V8 create preview never reached persisted-and-local metadata: " +
+          JSON.stringify(diagnostic),
+        { cause: error },
+      );
     }
     await page.evaluate(() => setView("Divulgação"));
     await page.locator("#contentWorkspace-create").click();
