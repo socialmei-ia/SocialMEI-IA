@@ -1,0 +1,37 @@
+name: Format V8 V4 review assets
+on:
+  push:
+    branches:
+      - feat/native-opportunities-v8-content-v4
+    paths:
+      - frontend/scripts/opportunities-v8.js
+      - frontend/scripts/divulgacao-v4.js
+      - frontend/styles/opportunities-v8.css
+      - frontend/styles/divulgacao-v4.css
+      - .github/workflows/format-v8-v4-review.yml
+permissions:
+  contents: write
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Apply repository Prettier and commit if changed
+        run: |
+          npx prettier --write frontend/scripts/opportunities-v8.js frontend/scripts/divulgacao-v4.js frontend/styles/opportunities-v8.css frontend/styles/divulgacao-v4.css
+          git diff --check
+          if ! git diff --quiet -- frontend/scripts/opportunities-v8.js frontend/scripts/divulgacao-v4.js frontend/styles/opportunities-v8.css frontend/styles/divulgacao-v4.css; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add frontend/scripts/opportunities-v8.js frontend/scripts/divulgacao-v4.js frontend/styles/opportunities-v8.css frontend/styles/divulgacao-v4.css
+            git commit -m "style(frontend): format V8 V4 integration assets"
+            git push origin HEAD:refs/heads/feat/native-opportunities-v8-content-v4
+          fi
