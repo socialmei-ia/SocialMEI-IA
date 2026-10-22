@@ -1,4 +1,4 @@
-"""Controlled WAHA-shaped fixture reception; no live connector or sending path."""
+"""Controlled WAHA and Instagram fixtures; no provider webhook or sending path."""
 import hashlib
 import hmac
 import json
@@ -55,6 +55,25 @@ class Event(enrichment.Input):
         return self
 
 
+class InstagramEvent(enrichment.Input):
+    event_id: str = Field(max_length=36)
+    timestamp: StrictInt
+    account_id: str = Field(max_length=36)
+    kind: Literal['incoming_text']
+    sender_ref: FixtureRef
+    sender_name: enrichment.Label
+    message_id: enrichment.Label
+    text: enrichment.Text
+    signature: str = Field(pattern=r'^[0-9a-f]{64}$')
+
+    @field_validator('event_id', 'account_id')
+    @classmethod
+    def canonical_id(cls, value):
+        if str(UUID(value)) != value:
+            raise ValueError('Identidade de teste inválida.')
+        return value
+
+
 def enabled():
     enrichment.require_enabled()
     if (settings.channel_ingress_mode() != 'fixture' or settings.authentication_mode() != 'enabled'
@@ -88,6 +107,43 @@ def verify_fixture(raw):
     if abs(int(time.time())-event.timestamp)>120:
         raise HTTPException(409,'Evento expirado.')
     return event
+
+
+def instagram_enabled():
+    enabled()
+    if settings.instagram_mode() != 'simulation':
+        raise HTTPException(503, 'Recepção Instagram fictícia não habilitada.')
+
+
+def verify_instagram_fixture(raw):
+    instagram_enabled()
+    try:
+        event = InstagramEvent.model_validate(raw)
+    except (ValueError, TypeError, RecursionError):
+        raise HTTPException(422, 'Evento Instagram de teste inválido.') from None
+    value = event.model_dump(exclude={'signature'})
+    if not hmac.compare_digest(sign_fixture(value)['signature'], event.signature):
+        raise HTTPException(403, 'Assinatura inválida.')
+    if abs(int(time.time()) - event.timestamp) > 120:
+        raise HTTPException(409, 'Evento expirado.')
+    return event
+
+
+@router.get('/instagram/status')
+def instagram_status(request: Request, response: Response):
+    user = enrichment.guard(request, response, capability=True)
+    try:
+        instagram_enabled()
+        available = True
+    except HTTPException:
+        available = False
+    return {'workspace_id': user['workspace_id'], 'mode': 'fixture' if available else 'disabled',
+            'account_source': 'instagram_simulation', 'fixture_ingress_available': available,
+            'readiness_state': 'not_connected', 'connected': False, 'can_receive_real': False,
+            'can_send': False, 'can_publish': False, 'transport': 'none',
+            'blockers': ['Autorização Meta e permissões ainda não verificadas.',
+                         'Workflow e contrato real ainda não homologados.',
+                         'Webhook Meta, renovação e revogação de autorização ainda não implementados.']}
 
 
 def human(request,response,manage=False):
@@ -131,10 +187,25 @@ def receive(raw):
         return {**result,'mode':'fixture','transport':'none','sent':False}
 
 
-@internal_router.post('/waha')
-async def incoming(request:Request,response:Response):
-    response.headers['Cache-Control']='no-store'
-    enabled()
+def receive_instagram(raw):
+    event = verify_instagram_fixture(raw)
+    with enrichment.db() as conn:
+        # Simulation UUIDs are not Meta identities. Refuse ambiguous ownership.
+        rows = conn.execute('SELECT workspace_id FROM socialmei.instagram_sim_accounts WHERE id=%s ORDER BY workspace_id LIMIT 2', (UUID(event.account_id),)).fetchall()
+        if not rows:
+            raise HTTPException(404, 'Conta fictícia não encontrada.')
+        if len(rows) != 1:
+            raise HTTPException(409, 'Identidade fictícia ambígua. Confira a conta antes de repetir.')
+        contact = hashlib.sha256(event.sender_ref.encode()).hexdigest()
+        payload = enrichment.Incoming(schema_version=1, operation_id=event.event_id,
+                    channel='instagram', account_ref='synthetic:instagram-fixture:' + event.account_id,
+                    contact_ref='synthetic:' + contact, contact_name=event.sender_name,
+                    external_message_id=event.message_id, text=event.text)
+        result = enrichment.persist_incoming(conn, rows[0]['workspace_id'], payload)
+        return {**result, 'mode': 'fixture', 'transport': 'none', 'sent': False}
+
+
+async def read_fixture(request):
     if request.query_params or request.headers.get('content-type','').split(';',1)[0].lower()!='application/json':
         raise HTTPException(422,'Evento inválido.')
     content=bytearray()
@@ -146,5 +217,20 @@ async def incoming(request:Request,response:Response):
         raw=json.loads(content,object_pairs_hook=enrichment.unique_json_fields)
     except (ValueError,UnicodeError,RecursionError):
         raise HTTPException(422,'Evento inválido.') from None
-    verify_fixture(raw)
+    return raw
+
+
+@internal_router.post('/waha')
+async def incoming(request:Request,response:Response):
+    response.headers['Cache-Control']='no-store'
+    enabled()
+    raw = await read_fixture(request)
     return await run_in_threadpool(receive,raw)
+
+
+@internal_router.post('/instagram-fixture')
+async def instagram_incoming(request: Request, response: Response):
+    response.headers['Cache-Control'] = 'no-store'
+    instagram_enabled()
+    raw = await read_fixture(request)
+    return await run_in_threadpool(receive_instagram, raw)

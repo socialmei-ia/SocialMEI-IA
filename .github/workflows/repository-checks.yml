@@ -11,6 +11,7 @@ on:
         release/integration-candidate-80,
         feat/priority-integrations,
         feat/isolated-preview,
+        feat/dashboard-functional-readiness,
       ]
 
 permissions:
