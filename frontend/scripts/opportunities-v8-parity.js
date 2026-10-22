@@ -288,7 +288,7 @@
       for (const card of view.querySelectorAll(".op8-entry")) {
         const row = snapshot.items.find((item) => item.id === card.dataset.opportunityId);
         if (row) {
-          card.hidden = !data.includes(row);
+          card.hidden = !data.some((item) => item.id === row.id);
           extraCard(card, row);
         }
       }
