@@ -10,7 +10,7 @@
 - [Instagram Content Publishing](https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/content-publishing)
 - [Webhooks de Instagram](https://developers.facebook.com/docs/instagram-platform/webhooks)
 
-Consultar novamente os requisitos e o processo de **App Review / Advanced Access** no painel da Meta antes de solicitar permissões: capacidades e disponibilidade podem variar por produto/versão/região. Nomes de scopes abaixo são da API *with Instagram Login*; não misturá-los com Facebook Login.
+Consultar novamente os requisitos e o processo de **App Review / Advanced Access** no painel da Meta antes de solicitar permissões: capacidades e disponibilidade podem variar por produto/versão/região. Nomes de scopes abaixo são da API _with Instagram Login_; não misturá-los com Facebook Login.
 
 ## Abordagem proposta
 
@@ -18,12 +18,12 @@ Priorizar **Instagram API with Instagram Login**, sem exigir vínculo com Págin
 
 Scopes a solicitar de forma progressiva e justificada:
 
-| Recurso | Permissão |
-| --- | --- |
-| Identificar a conta profissional | `instagram_business_basic` |
+| Recurso                                                 | Permissão                            |
+| ------------------------------------------------------- | ------------------------------------ |
+| Identificar a conta profissional                        | `instagram_business_basic`           |
 | Receber e responder mensagens admitidas pela plataforma | `instagram_business_manage_messages` |
-| Publicar mídia orgânica, após aprovação humana | `instagram_business_content_publish` |
-| Gerenciar comentários, somente se produto usar | `instagram_business_manage_comments` |
+| Publicar mídia orgânica, após aprovação humana          | `instagram_business_content_publish` |
+| Gerenciar comentários, somente se produto usar          | `instagram_business_manage_comments` |
 
 Não usar os scopes antigos `business_*` (substituídos pelos `instagram_business_*` em 2025). A integração de mensagens não permite iniciar conversas arbitrárias: observar os gatilhos e a janela de atendimento vigentes, conforme a documentação Meta.
 

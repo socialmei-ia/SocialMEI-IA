@@ -72,7 +72,10 @@ module.exports = async function nativeOpportunities(browser, origin) {
               viewport: screen,
               document: document.documentElement.scrollWidth,
               candidates: [...document.querySelectorAll("body *")]
-                .filter((el) => el.getClientRects().length && getComputedStyle(el).visibility !== "hidden")
+                .filter(
+                  (el) =>
+                    el.getClientRects().length && getComputedStyle(el).visibility !== "hidden",
+                )
                 .map((el) => ({ el, box: el.getBoundingClientRect() }))
                 .filter(({ box }) => box.right > screen + 1 && box.width > 0)
                 .sort((a, b) => b.box.right - a.box.right)
@@ -86,7 +89,10 @@ module.exports = async function nativeOpportunities(browser, origin) {
                 })),
             };
           });
-          assert(overflow.document <= overflow.viewport, JSON.stringify({ width, theme, id, overflow }));
+          assert(
+            overflow.document <= overflow.viewport,
+            JSON.stringify({ width, theme, id, overflow }),
+          );
           const tabState = await page
             .locator(`[data-analysis-tab="${id}"]`)
             .getAttribute("aria-selected");
