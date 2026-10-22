@@ -23,7 +23,10 @@ module.exports = async (browser, origin) => {
     // The daily idea must not silently overwrite a user's existing draft.
     page.once("dialog", (dialog) => dialog.dismiss());
     await page.getByRole("button", { name: "Usar ideia" }).click();
-    assert.equal(await page.locator("#contentTitle").inputValue(), "Rascunho de demonstração visual");
+    assert.equal(
+      await page.locator("#contentTitle").inputValue(),
+      "Rascunho de demonstração visual",
+    );
     await page.locator("#contentSave").click();
     await page.locator("#contentWorkspace-create").focus();
     await page.keyboard.press("End");
@@ -70,9 +73,9 @@ module.exports = async (browser, origin) => {
             assert(box.height >= 44, `touch target ${width} ${tab}`);
           }
           if (width <= 390) {
-            const boxes = await page.locator(".content-workspace-tabs > button").evaluateAll(
-              (nodes) => nodes.map((node) => node.getBoundingClientRect().toJSON()),
-            );
+            const boxes = await page
+              .locator(".content-workspace-tabs > button")
+              .evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().toJSON()));
             for (let a = 0; a < boxes.length; a++) {
               for (let b = a + 1; b < boxes.length; b++) {
                 const first = boxes[a],
