@@ -18,6 +18,12 @@ module.exports = async (browser, origin) => {
     await page.locator('[data-xp-go="app"]').first().click();
     await page.locator("#contentStudioOpen").click();
     await page.locator("#contentTitle").fill("Rascunho de demonstração visual");
+    assert(await page.locator("#dv4ProgressBar").isVisible());
+    assert(Number(await page.locator("#dv4ProgressBar").getAttribute("aria-valuenow")) > 0);
+    // The daily idea must not silently overwrite a user's existing draft.
+    page.once("dialog", (dialog) => dialog.dismiss());
+    await page.getByRole("button", { name: "Usar ideia" }).click();
+    assert.equal(await page.locator("#contentTitle").inputValue(), "Rascunho de demonstração visual");
     await page.locator("#contentSave").click();
     await page.locator("#contentWorkspace-create").focus();
     await page.keyboard.press("End");
