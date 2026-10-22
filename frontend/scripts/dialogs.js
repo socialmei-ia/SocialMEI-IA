@@ -176,7 +176,15 @@ function openModal(id) {
   m.classList.add("open");
   m.setAttribute("aria-hidden", "false");
   syncShellInert();
+  const epoch = m._closeEpoch;
   requestAnimationFrame(() => {
+    if (
+      epoch !== m._closeEpoch ||
+      m._closing ||
+      !m.classList.contains("open") ||
+      m.contains(document.activeElement)
+    )
+      return;
     const dialog = m.querySelector('[role="dialog"]');
     (dialogFocusables(dialog || m)[0] || dialog)?.focus();
   });

@@ -1,0 +1,69 @@
+{
+  "base_pr": 92,
+  "base_sha": "c2a0dfcf4c4caf86df9aac54eafeab33bdbd4daa",
+  "frontend_regression": {
+    "reproduced_before_fix": true,
+    "focused_browser_pass": true,
+    "preserves_human_prefix_and_suffix": true,
+    "same_names_different_channels": true,
+    "messages_sent": 0,
+    "widths": [320, 390, 768, 1024, 1440],
+    "themes": ["light", "dark"]
+  },
+  "backend": {
+    "tests": 245,
+    "failures": 0,
+    "skipped": 0,
+    "database": "disposable PostgreSQL16",
+    "source_time_cases": [
+      "explicit offset",
+      "canonical UTC replay",
+      "out of order",
+      "equal-time ID tie break",
+      "invalid offsets",
+      "UTC range overflow returns422",
+      "legacy fingerprints",
+      "two workspaces",
+      "human review and discard"
+    ]
+  },
+  "node": {
+    "passed": 305,
+    "failures": 0
+  },
+  "format_check": "passed",
+  "real_https_preview": {
+    "channels": ["whatsapp", "instagram"],
+    "stableIdentity": true,
+    "canonicalReplay": true,
+    "sourceTimeOrder": true,
+    "humanReviewAndDiscard": true,
+    "crossWorkspaceRead": 404,
+    "transport": "none"
+  },
+  "review_findings_corrected": [
+    "reject invalid offset and UTC range overflow",
+    "preserve human suffix on repeated insertion"
+  ],
+  "unchanged": ["authentication", "CSRF", "migrations", "external transports", "PR93"],
+  "code_hashes": {
+    "frontend/scripts/experience.js": "9a39928fd66eb789f18981006e6067de6146744508017e4466551f0362ad9267",
+    "python-service/message_enrichment.py": "589571460befc1baaf236d7914459d6a9be07dae1216f618cf4a3a247be7615b",
+    "frontend/scripts/chart-refinement.js": "0034c0a7dc71060921a6cd52aaae5b5d510da7cc32cfd6aada99ec7d18e53426",
+    "frontend/scripts/instagram-simulation.js": "79753590bcadddf81e4a2acf12923ea67a0c66b53e7d92df6e08823407b1aa99"
+  },
+  "chart_regression": {
+    "reproduced_before_fix": true,
+    "same_data_refresh_preserves_pin": true,
+    "dismissed_tooltip_stays_closed": true,
+    "second_click_and_touch_dismiss": true,
+    "historical_issue_73_root_cause_confirmed": false,
+    "fresh_hover_after_keyboard_escape": true
+  },
+  "instagram_simulation_feedback": {
+    "reproduced_before_fix": true,
+    "post_success_refresh_preserves_no_publication_notice": true,
+    "transient_ui_only": true,
+    "real_transport": false
+  }
+}

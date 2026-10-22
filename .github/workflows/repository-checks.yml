@@ -4,7 +4,16 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main, feat/ux-interaction-refinement]
+    branches:
+      [
+        main,
+        feat/ux-interaction-refinement,
+        release/integration-candidate-80,
+        feat/priority-integrations,
+        feat/isolated-preview,
+        feat/dashboard-functional-readiness,
+        feat/visual-opportunities-content-91,
+      ]
 
 permissions:
   contents: read
@@ -54,6 +63,15 @@ jobs:
         run: |
           python -m pip install -r python-service/requirements.txt
           python -m unittest discover -s python-service -p 'test_*.py'
+      - name: Release candidate migrations and recovery (disposable PostgreSQL)
+        run: python tests/release-candidate-db.py --run --output test-results/release-candidate
+      - name: Save sanitized release candidate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-candidate-readiness
+          path: test-results/release-candidate/*.json
+          if-no-files-found: ignore
       - name: Backup failure and recovery scenarios
         run: python -m unittest discover -s tests -p 'test_*.py'
       - name: Protected team gateway
@@ -178,4 +196,41 @@ jobs:
         with:
           name: frontend-regression
           path: test-results/
+          if-no-files-found: ignore
+
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install tools and Chromium
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Real isolated preview API and browser
+        run: |
+          npm run preview -- up
+          npm run test:preview
+      - name: Preview startup diagnostics
+        if: failure()
+        run: |
+          if test -f .preview/.env; then
+            docker compose --project-name socialmei-preview --env-file .preview/.env -f compose.preview.yaml ps
+            docker compose --project-name socialmei-preview --env-file .preview/.env -f compose.preview.yaml logs --tail 80 web
+          fi
+      - name: Stop local preview
+        if: always()
+        run: |
+          if test -f .preview/.env; then npm run preview -- down; fi
+      - name: Save real preview evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: isolated-preview
+          path: test-results/preview/
           if-no-files-found: ignore

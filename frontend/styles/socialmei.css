@@ -10154,6 +10154,21 @@ body.experience-app #experienceRoot {
   }
 }
 @media (max-width: 720px) {
+  #automationsView .management-table tr {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #automationsView .management-table td,
+  #automationsView .management-table td:first-child {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+  #automationsView .management-table td::before {
+    white-space: nowrap;
+  }
+  #automationsView .management-table .management-inline-actions {
+    display: inline-flex;
+    vertical-align: middle;
+  }
   #automationsView #automationFeature {
     padding: 24px 18px 26px;
   }
@@ -25037,4 +25052,26 @@ body.management-view-active .toast-zone .toast {
   .contact-confirmation[open] {
     animation: none;
   }
+}
+
+/* Authenticated profile synchronization reuses native settings and onboarding controls. */
+#businessConflictSummary {
+  white-space: pre-line;
+}
+
+.profile-sync-panel {
+  overflow-wrap: anywhere;
+  padding: 16px;
+  margin-block: 12px 20px;
+  min-width: 0;
+}
+.profile-sync-panel button,
+#businessProfileConflict button {
+  min-height: 44px;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.profile-sync-panel .management-inline-actions {
+  flex-wrap: wrap;
 }

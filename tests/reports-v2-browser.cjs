@@ -6,6 +6,7 @@ const assert = require("node:assert/strict"),
   { chromium } = require("playwright");
 const root = path.resolve(__dirname, "..");
 module.exports = async function reportsV2(browser, origin) {
+  const profileAPI = require("./profile-sync-fixture.cjs")();
   const output = path.join(root, "test-results/reports-v2");
   fs.mkdirSync(output, { recursive: true });
   const context = await browser.newContext({
@@ -15,7 +16,8 @@ module.exports = async function reportsV2(browser, origin) {
   });
   const errors = [],
     external = [],
-    writes = [];
+    writes = [],
+    profileWrites = [];
   let identity = { user: 1, workspace: 1 },
     failFinance = false,
     configScope = "qa";
@@ -176,6 +178,23 @@ module.exports = async function reportsV2(browser, origin) {
         });
       if (url.pathname === "/api/v1/auth/registration")
         return route.fulfill({ json: { mode: "open" } });
+      if (["/api/v1/workspace-profile", "/api/v1/auth/preferences"].includes(url.pathname)) {
+        if (url.pathname === "/api/v1/auth/preferences") assert.equal(req.method(), "GET");
+        else if (req.method() !== "GET") {
+          assert.equal(req.method(), "PATCH");
+          profileWrites.push(url.pathname);
+        }
+        return profileAPI(
+          route,
+          identity
+            ? {
+                usuario: { id: identity.user },
+                negocio: { id: identity.workspace, nome: "Perfumaria sintética" },
+                papel: "owner",
+              }
+            : null,
+        );
+      }
       if (url.pathname.startsWith("/api/v1/")) {
         if (req.method() !== "GET") writes.push(req.method() + " " + url.pathname);
         if (url.pathname === "/api/v1/financeiro" && failFinance)
@@ -495,6 +514,7 @@ module.exports = async function reportsV2(browser, origin) {
     await page.reload();
     await page.locator("[data-xp-screen=auth].is-active").waitFor();
     assert.equal(await page.evaluate(() => SocialMEIReportUI.scope()), null);
+    assert.deepEqual(profileWrites, ["/api/v1/workspace-profile"]);
     assert.deepEqual(writes, []);
     assert.deepEqual(external, []);
     assert.deepEqual(errors, []);

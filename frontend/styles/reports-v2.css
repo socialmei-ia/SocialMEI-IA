@@ -5,7 +5,7 @@
 #reportsView .rv2-source-details {
   font-size: 13px;
   color: var(--mt);
-  margin-top: -12px;
+  margin: 0;
 }
 #reportsView .rv2-history-info {
   font-size: 13px;
@@ -17,8 +17,16 @@
   align-content: center;
   cursor: pointer;
 }
+#reportsView .rv2-source-details[open] {
+  flex-basis: 100%;
+}
 #reportsView .rv2-source-details.has-warning > summary {
   color: var(--warning);
+}
+#reportsView .rv2-chart-explore {
+  margin-bottom: 8px;
+  min-height: 44px;
+  font-size: 13px;
 }
 #reportsView .report-period-options .management-card-header {
   display: flex;
@@ -39,7 +47,7 @@
 #reportsView > .management-stack {
   max-width: 1320px;
   margin-inline: auto;
-  gap: 24px;
+  gap: 16px;
 }
 #reportsView .report-intro {
   align-items: center;
@@ -47,8 +55,8 @@
   padding: 0;
 }
 .experience-app #reportsView .report-intro h2 {
-  font-size: clamp(30px, 3.4vw, 46px);
-  margin: 12px 0 9px;
+  font-size: clamp(28px, 2.8vw, 36px);
+  margin: 6px 0;
   font-weight: 650;
   max-width: none;
   letter-spacing: -0.055em;
@@ -58,6 +66,7 @@
   display: none;
 }
 #reportsView .report-eyebrow {
+  margin-bottom: 0;
   display: flex;
   align-items: center;
   gap: 9px;
@@ -73,8 +82,8 @@
   background: var(--brand-accent);
 }
 #reportsView #reportProfileContext {
-  margin: -14px 0 0;
-  font-size: 12px;
+  margin: 0 0 8px;
+  font-size: 13px;
   line-height: 1.6;
 }
 #reportsView #reportsDataSourceStatus {
@@ -85,15 +94,14 @@
   background: none;
   border: 0;
   padding: 0;
-  margin-top: -12px;
 }
 #reportsView .management-report-period {
   position: static;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px 20px;
-  padding: 0 0 18px;
+  gap: 6px 20px;
+  padding: 0 0 12px;
   background: transparent;
   border: 0;
   border-bottom: 1px solid var(--ln);
@@ -150,12 +158,12 @@
   color: var(--on-primary);
 }
 #reportsView .report-period-options {
+  order: 0;
   margin: 0;
   min-width: 0;
   max-width: 100%;
-  order: 4;
-  font-size: 12px;
-  flex-basis: 100%;
+  font-size: 13px;
+  margin-left: auto;
 }
 #reportsView .report-period-options[open] {
   width: 100%;
@@ -567,9 +575,8 @@
   color: var(--mt);
 }
 #reportsView .management-report-period #reportsPeriodLabel {
-  font-size: 12px;
-  width: 100%;
-  text-align: right;
+  font-size: 13px;
+  flex: 1 1 auto;
 }
 #reportsView .management-report-period .management-check {
   font-size: 12px;
@@ -736,18 +743,18 @@
 }
 @media (max-width: 600px) {
   #reportsView > .management-stack {
-    gap: 16px;
+    gap: 10px;
   }
   #reportsView .report-intro {
     flex-direction: column;
     align-items: start;
-    gap: 16px;
+    gap: 8px;
   }
   #reportsView .report-intro > button {
     align-self: start;
   }
   #reportsView .management-report-period {
-    padding: 14px;
+    padding: 0 0 12px;
   }
   #reportsView .rv2-quick-periods {
     width: 100%;
@@ -786,7 +793,7 @@
     padding: 18px 14px;
   }
   #reportsView .report-care,
-  #reportsView .management-card {
+  #reportsView .management-card:not(.management-report-period) {
     padding: 17px;
   }
   #reportsView .rv2-history-row {
@@ -817,8 +824,8 @@
     overflow-wrap: anywhere;
   }
   .experience-app #reportsView .report-intro h2 {
-    font-size: 34px;
-    max-width: 13ch;
+    font-size: 28px;
+    max-width: none;
   }
   #reportsView .report-intro p {
     font-size: 14px;

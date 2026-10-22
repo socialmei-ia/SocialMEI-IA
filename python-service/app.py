@@ -18,6 +18,13 @@ from finance_import import router as finance_import_router
 from workspace_transfer import router as transfer_router
 from n8n_read import router as n8n_read_router
 from account_auth import AccountMiddleware, router as account_auth_router
+from instagram_simulation import router as instagram_simulation_router
+from workspace_profile import router as workspace_profile_router
+from message_enrichment import router as message_enrichment_router, internal_router as enrichment_internal_router
+from content_preparation import router as content_preparation_router
+from channel_ingress import router as channel_ingress_router, internal_router as channel_ingress_internal_router
+from opportunities import router as opportunities_router
+from integration_setup import router as integration_setup_router
 from settings import cors_origins as configured_cors_origins
 
 app = FastAPI(title="SocialME Python Service")
@@ -42,12 +49,31 @@ app.include_router(finance_import_router)
 app.include_router(transfer_router)
 app.include_router(n8n_read_router)
 app.include_router(account_auth_router)
+app.include_router(instagram_simulation_router)
+app.include_router(workspace_profile_router)
+app.include_router(message_enrichment_router)
+app.include_router(enrichment_internal_router)
+app.include_router(content_preparation_router)
+app.include_router(channel_ingress_router)
+app.include_router(channel_ingress_internal_router)
+app.include_router(opportunities_router)
+app.include_router(integration_setup_router)
+
+
+@app.middleware("http")
+async def internal_response_privacy(request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith(("/internal/message-enrichment", "/internal/channel-ingress", "/api/v1/content/preparation", "/api/v1/channel-lab", "/api/v1/opportunities", "/api/v1/integrations/setup")):
+        response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @app.exception_handler(RequestValidationError)
 async def private_validation_error(request, error):
     # FastAPI's default validation response includes submitted values, including passwords.
-    if request.url.path.startswith(("/api/v1/auth/", "/api/v1/admin/")):
+    if request.url.path.startswith(
+        ("/api/v1/auth/", "/api/v1/admin/", "/api/v1/instagram/", "/api/v1/workspace-profile", "/api/v1/message-enrichment", "/internal/message-enrichment", "/api/v1/channel-lab", "/internal/channel-ingress", "/api/v1/content/preparation", "/api/v1/opportunities", "/api/v1/integrations/setup")
+    ):
         return JSONResponse(
             {"detail": "Confira os campos informados."},
             status_code=422,

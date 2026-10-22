@@ -133,7 +133,12 @@ const SocialMEIContentStudio = (() => {
       const placeholder = node("div");
       placeholder.className = "content-preview-placeholder";
       placeholder.append(
-        node("span", "＋"),
+        (() => {
+          const icon = node("span");
+          icon.setAttribute("aria-hidden", "true");
+          icon.innerHTML = renderIcon("ig");
+          return icon;
+        })(),
         node("b", media ? "Selecione a mídia novamente" : "Seu conteúdo começa aqui"),
         node(
           "p",
@@ -161,7 +166,7 @@ const SocialMEIContentStudio = (() => {
       const empty = node(
         "p",
         usable
-          ? "Ainda não há rascunhos. Prepare seu primeiro conteúdo acima."
+          ? "Ainda não há rascunhos. Prepare seu primeiro conteúdo na aba Criar conteúdo."
           : "Rascunhos indisponíveis nesta sessão.",
       );
       empty.className = "content-library-empty";
@@ -237,7 +242,6 @@ const SocialMEIContentStudio = (() => {
       );
     else action();
   }
-  byId("contentStudioOpen").addEventListener("click", () => setView("Divulgação"));
   byId("contentNew").addEventListener("click", () => {
     synchronize();
     replaceEditor(() => {
@@ -436,5 +440,44 @@ const SocialMEIContentStudio = (() => {
     uploadEpoch++;
     removeMedia();
   });
-  return Object.freeze({ render });
+  function simulationSnapshot() {
+    synchronize();
+    if (!scope || !file || !media) return null;
+    return {
+      scope,
+      format,
+      caption: model.caption(value()),
+      media: { name: media.name, mime: media.type, size: media.size },
+    };
+  }
+  function preparationSnapshot() {
+    synchronize();
+    if (!scope) return null;
+    return {
+      scope,
+      title: byId("contentTitle").value,
+      format,
+      caption: model.caption(value()),
+      media: media ? { name: media.name, mime: media.type, size: media.size } : null,
+    };
+  }
+  function loadPreparation(item, onLoaded = () => {}) {
+    synchronize();
+    replaceEditor(() => {
+      load({
+        id: null,
+        title: item.title,
+        format: item.format,
+        caption: item.caption,
+        media: item.media?.[0]
+          ? { name: item.media[0].name, type: item.media[0].mime, size: item.media[0].size }
+          : null,
+      });
+      message(
+        "Preparação compartilhada aberta. Texto não salvo localmente; mídia somente como referência.",
+      );
+      onLoaded();
+    });
+  }
+  return Object.freeze({ render, simulationSnapshot, preparationSnapshot, loadPreparation });
 })();

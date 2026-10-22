@@ -1,0 +1,18 @@
+.content-workspace-tabs {
+  margin-block: 16px;
+  flex-wrap: wrap;
+}
+#contentStudioView [role="tabpanel"][hidden],
+#preparationHistory [hidden],
+#opportunityLifecycle[hidden] {
+  display: none;
+}
+#contentAgendaPanel,
+#contentConnectionsPanel {
+  min-width: 0;
+}
+#integrationSetupPanel input,
+#integrationSetupPanel select,
+#integrationSetupPanel textarea {
+  max-width: 100%;
+}

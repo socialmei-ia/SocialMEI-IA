@@ -63,9 +63,14 @@
     <link rel="stylesheet" href="styles/business-profile.css" />
     <link rel="stylesheet" href="styles/opportunities.css" />
     <link rel="stylesheet" href="styles/content-studio.css" />
+    <link rel="stylesheet" href="styles/content-preparation.css" />
+    <link rel="stylesheet" href="styles/content-workspace.css" />
+    <link rel="stylesheet" href="styles/instagram-publisher.css" />
     <link rel="stylesheet" href="styles/reports-v2.css" />
     <link rel="stylesheet" href="styles/chart-refinement.css" />
     <link rel="stylesheet" href="styles/premium-experience.css" />
+    <link rel="stylesheet" href="styles/visual-workspace-polish.css" />
+    <link rel="stylesheet" href="styles/visual-content-polish.css" />
     <script src="scripts/storage-and-themes.js"></script>
     <script src="scripts/motion.js"></script>
 
@@ -163,6 +168,7 @@
       FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
       OTHER DEALINGS IN THE FONT SOFTWARE.
     </script>
+    <link rel="stylesheet" href="styles/message-enrichment.css" />
   </head>
   <body class="experience-public">
     <!-- LANDING, AUTENTICAÇÃO E ONBOARDING -->
@@ -2638,6 +2644,18 @@
                     <span>Seu perfil será salvo somente após a confirmação.</span>
                   </div>
                 </div>
+                <section
+                  id="businessProfileConflict"
+                  class="management-card profile-sync-panel"
+                  hidden
+                  aria-label="Conflito no perfil"
+                  tabindex="-1"
+                >
+                  <p id="businessConflictSummary"></p>
+                  <button type="button" class="management-button" data-business-reload>
+                    Carregar perfil salvo e descartar estas alterações
+                  </button>
+                </section>
                 <h3 class="experience-review-section-title">O que você escolheu</h3>
                 <nav class="business-review-jump" aria-label="Corrigir escolhas">
                   <button type="button" data-review-edit-step="1">Editar seus dados</button
@@ -2656,7 +2674,7 @@
                 </div>
                 <div class="experience-review-next">
                   <strong>Próximo passo</strong>
-                  <p>
+                  <p id="businessProfileNextNotice">
                     Confirme para salvar o perfil neste navegador e entrar no seu espaço. Isso não
                     cadastra produtos, vendas ou conexões.
                   </p>
@@ -2859,9 +2877,6 @@
                   <ul class="not-list" id="notList"></ul>
                 </div>
               </div>
-              <button type="button" class="btn" id="contentStudioOpen">
-                Divulgação · preparar conteúdo
-              </button>
             </div>
           </details>
           <button class="btn header-create" id="globalCreateBtn" type="button">+ Nova venda</button>
@@ -3665,6 +3680,87 @@
               <span id="integrationAlertText">Não foi possível sincronizar as mensagens.</span>
               <button id="integrationRetry" type="button">Tentar novamente</button>
             </div>
+            <details id="enrichmentLab" class="enrichment-lab">
+              <summary>Análise de mensagens · laboratório seguro</summary>
+              <p id="enrichmentLabStatus" role="status" aria-live="polite"></p>
+              <button id="enrichmentRefresh" type="button" class="management-button">
+                Atualizar análise deste negócio
+              </button>
+              <div id="enrichmentLabForms" hidden>
+                <form id="enrichmentSyntheticForm" class="enrichment-form">
+                  <h3>Adicionar mensagem fictícia</h3>
+                  <p>
+                    Usada somente neste laboratório. Não recebe nem envia pelo WhatsApp ou
+                    Instagram.
+                  </p>
+                  <label
+                    >Nome demonstrativo<input
+                      name="name"
+                      value="Cliente fictício"
+                      maxlength="120"
+                      required
+                  /></label>
+                  <label
+                    >Canal ilustrativo<select name="channel">
+                      <option value="whatsapp">WhatsApp</option>
+                      <option value="instagram">Instagram</option>
+                    </select></label
+                  >
+                  <label
+                    >Conta fictícia<select name="account">
+                      <option value="synthetic:conta-a">Conta A</option>
+                      <option value="synthetic:conta-b">Conta B</option>
+                    </select></label
+                  >
+                  <label
+                    >Contato fictício<select name="contact">
+                      <option value="synthetic:contato-a">Contato A</option>
+                      <option value="synthetic:contato-b">Contato B</option>
+                    </select></label
+                  >
+                  <label class="enrichment-wide"
+                    >Mensagem<textarea
+                      id="enrichmentText"
+                      name="text"
+                      maxlength="4000"
+                      rows="3"
+                      required
+                      placeholder="Ex.: Não gostei do atendimento e preciso de ajuda."
+                    ></textarea>
+                  </label>
+                  <button type="submit" class="management-button pr">
+                    Adicionar mensagem fictícia
+                  </button>
+                </form>
+                <details class="enrichment-documents">
+                  <summary>Conhecimento fictício deste negócio</summary>
+                  <p>
+                    Apenas texto simples. Limite de 32 KiB, retenção de 30 dias. Não inclua dados
+                    privados. A consulta é lexical e não utiliza IA paga.
+                  </p>
+                  <form id="enrichmentDocumentForm" class="enrichment-form">
+                    <label
+                      >Título<input
+                        name="title"
+                        maxlength="120"
+                        required
+                        placeholder="Orientação fictícia de atendimento"
+                    /></label>
+                    <label class="enrichment-wide"
+                      >Conteúdo fictício<textarea
+                        name="content"
+                        maxlength="32000"
+                        rows="3"
+                        required
+                        placeholder="Preços e prazos precisam ser confirmados após avaliação."
+                      ></textarea>
+                    </label>
+                    <button type="submit" class="management-button">Salvar texto fictício</button>
+                  </form>
+                  <ul id="enrichmentDocumentList"></ul>
+                </details>
+              </div>
+            </details>
             <section class="inbox-shell" id="inboxShell">
               <aside aria-label="Lista de conversas" class="conv-pane">
                 <div class="list-heading">
@@ -4038,8 +4134,23 @@
                   <h2 id="opportunitiesTitle">Análise de clientes</h2>
                   <p>Veja quem acompanhar e qual pode ser o próximo passo.</p>
                 </div>
+                <img
+                  class="opportunity-hero-art"
+                  src="assets/workspace-hero.png"
+                  alt=""
+                  aria-hidden="true"
+                  width="480"
+                  height="320"
+                />
                 <div id="opportunitySource" class="opportunity-controls"></div>
               </header>
+              <div class="opportunity-analysis-intro">
+                <h3>Análise de mensagens</h3>
+                <p>
+                  Leitura heurística separada do acompanhamento comercial. Confira as evidências e
+                  revise antes de decidir.
+                </p>
+              </div>
               <div
                 class="client-analysis-tabs"
                 role="tablist"
@@ -4155,6 +4266,14 @@
                     pronto.
                   </p>
                 </div>
+                <img
+                  class="content-hero-art"
+                  src="assets/workspace-hero.png"
+                  alt=""
+                  aria-hidden="true"
+                  width="480"
+                  height="320"
+                />
                 <button type="button" class="management-button" id="contentNew">
                   + Novo rascunho
                 </button>
@@ -4170,157 +4289,331 @@
                 </p>
               </details>
               <div id="contentStorageStatus" role="status" class="management-note"></div>
-              <div class="content-studio-layout">
-                <div class="content-editor">
-                  <div class="content-formats" role="tablist" aria-label="Formato do conteúdo">
-                    <span aria-hidden="true" class="content-format-indicator"></span>
-                    <button
-                      type="button"
-                      role="tab"
-                      data-content-format="story"
-                      id="contentFormat-story"
-                      aria-controls="contentEditorPanel"
-                      aria-selected="false"
-                      tabindex="-1"
-                    >
-                      Story <small>9:16</small>
-                    </button>
-                    <button
-                      type="button"
-                      role="tab"
-                      data-content-format="feed"
-                      id="contentFormat-feed"
-                      aria-controls="contentEditorPanel"
-                      aria-selected="true"
-                    >
-                      Feed <small>4:5</small>
-                    </button>
-                    <button
-                      type="button"
-                      role="tab"
-                      data-content-format="reel"
-                      id="contentFormat-reel"
-                      aria-controls="contentEditorPanel"
-                      aria-selected="false"
-                      tabindex="-1"
-                    >
-                      Reel <small>9:16</small>
-                    </button>
-                  </div>
-                  <div id="contentEditorPanel" role="tabpanel" aria-labelledby="contentFormat-feed">
-                    <form id="contentDraftForm" autocomplete="off">
-                      <label for="contentTitle"
-                        >Título do rascunho <small>Para sua organização</small></label
+              <div
+                class="management-chips content-workspace-tabs"
+                role="tablist"
+                aria-label="Divulgação"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  id="contentWorkspace-create"
+                  data-content-workspace-tab="create"
+                  aria-controls="contentCreatePanel"
+                  aria-selected="true"
+                >
+                  Criar conteúdo
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  id="contentWorkspace-drafts"
+                  data-content-workspace-tab="drafts"
+                  aria-controls="contentDraftsPanel"
+                  aria-selected="false"
+                  tabindex="-1"
+                >
+                  Rascunhos
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  id="contentWorkspace-agenda"
+                  data-content-workspace-tab="agenda"
+                  aria-controls="contentAgendaPanel"
+                  aria-selected="false"
+                  tabindex="-1"
+                >
+                  Agenda
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  id="contentWorkspace-connections"
+                  data-content-workspace-tab="connections"
+                  aria-controls="contentConnectionsPanel"
+                  aria-selected="false"
+                  tabindex="-1"
+                >
+                  Conexões
+                </button>
+              </div>
+              <div
+                id="contentCreatePanel"
+                role="tabpanel"
+                aria-labelledby="contentWorkspace-create"
+              >
+                <div class="content-studio-layout">
+                  <div class="content-editor">
+                    <div class="content-formats" role="tablist" aria-label="Formato do conteúdo">
+                      <span aria-hidden="true" class="content-format-indicator"></span>
+                      <button
+                        type="button"
+                        role="tab"
+                        data-content-format="story"
+                        id="contentFormat-story"
+                        aria-controls="contentEditorPanel"
+                        aria-selected="false"
+                        tabindex="-1"
                       >
-                      <input
-                        id="contentTitle"
-                        maxlength="80"
-                        required
-                        placeholder="Sobre o que você quer falar?"
-                      />
-                      <div class="content-field-heading">
-                        <label for="contentCaption">Texto ou legenda</label
-                        ><span id="contentCaptionCount">0 / 2200</span>
-                      </div>
-                      <textarea
-                        id="contentCaption"
-                        maxlength="2200"
-                        rows="5"
-                        placeholder="Conte o que seu negócio oferece, com suas próprias palavras."
-                      ></textarea>
-                      <label for="contentCta">Chamada para ação <small>Opcional</small></label>
-                      <input
-                        id="contentCta"
-                        maxlength="140"
-                        placeholder="Ex.: Fale comigo para saber mais"
-                      />
-                      <label for="contentHashtags">Hashtags <small>Opcionais</small></label
-                      ><input id="contentHashtags" maxlength="300" placeholder="#SeuNegócio" />
-                      <div class="content-media-control">
-                        <label for="contentMedia">Imagem ou vídeo local</label>
-                        <p id="contentMediaHelp">
-                          Feed: imagem JPG, PNG ou WebP, até 10 MB. Sugestão de composição: 4:5.
-                        </p>
-                        <input
-                          id="contentMedia"
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp"
-                          aria-describedby="contentMediaHelp contentMediaStatus"
-                        />
-                        <p id="contentMediaStatus" role="status">
-                          Nenhuma mídia selecionada. O texto pode ser salvo sem mídia.
-                        </p>
-                        <button
-                          type="button"
-                          class="management-button"
-                          id="contentRemoveMedia"
-                          hidden
+                        Story <small>9:16</small>
+                      </button>
+                      <button
+                        type="button"
+                        role="tab"
+                        data-content-format="feed"
+                        id="contentFormat-feed"
+                        aria-controls="contentEditorPanel"
+                        aria-selected="true"
+                      >
+                        Feed <small>4:5</small>
+                      </button>
+                      <button
+                        type="button"
+                        role="tab"
+                        data-content-format="reel"
+                        id="contentFormat-reel"
+                        aria-controls="contentEditorPanel"
+                        aria-selected="false"
+                        tabindex="-1"
+                      >
+                        Reel <small>9:16</small>
+                      </button>
+                    </div>
+                    <div
+                      id="contentEditorPanel"
+                      role="tabpanel"
+                      aria-labelledby="contentFormat-feed"
+                    >
+                      <form id="contentDraftForm" autocomplete="off">
+                        <label for="contentTitle"
+                          >Título do rascunho <small>Para sua organização</small></label
                         >
-                          Remover mídia
-                        </button>
-                      </div>
-                      <div class="content-editor-actions">
-                        <button type="submit" class="management-button pr" id="contentSave">
-                          Salvar rascunho local</button
-                        ><button type="button" class="management-button" id="contentCopy">
-                          Copiar legenda
-                        </button>
-                      </div>
-                      <p
-                        id="contentActionStatus"
-                        role="status"
-                        aria-live="polite"
-                        class="management-note"
-                      ></p>
-                    </form>
+                        <input
+                          id="contentTitle"
+                          maxlength="80"
+                          required
+                          placeholder="Sobre o que você quer falar?"
+                        />
+                        <div class="content-field-heading">
+                          <label for="contentCaption">Texto ou legenda</label
+                          ><span id="contentCaptionCount">0 / 2200</span>
+                        </div>
+                        <textarea
+                          id="contentCaption"
+                          maxlength="2200"
+                          rows="5"
+                          placeholder="Conte o que seu negócio oferece, com suas próprias palavras."
+                        ></textarea>
+                        <label for="contentCta">Chamada para ação <small>Opcional</small></label>
+                        <input
+                          id="contentCta"
+                          maxlength="140"
+                          placeholder="Ex.: Fale comigo para saber mais"
+                        />
+                        <label for="contentHashtags">Hashtags <small>Opcionais</small></label
+                        ><input id="contentHashtags" maxlength="300" placeholder="#SeuNegócio" />
+                        <div class="content-media-control">
+                          <label for="contentMedia">Imagem ou vídeo local</label>
+                          <p id="contentMediaHelp">
+                            Feed: imagem JPG, PNG ou WebP, até 10 MB. Sugestão de composição: 4:5.
+                          </p>
+                          <input
+                            id="contentMedia"
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            aria-describedby="contentMediaHelp contentMediaStatus"
+                          />
+                          <p id="contentMediaStatus" role="status">
+                            Nenhuma mídia selecionada. O texto pode ser salvo sem mídia.
+                          </p>
+                          <button
+                            type="button"
+                            class="management-button"
+                            id="contentRemoveMedia"
+                            hidden
+                          >
+                            Remover mídia
+                          </button>
+                        </div>
+                        <div class="content-editor-actions">
+                          <button type="submit" class="management-button pr" id="contentSave">
+                            Salvar rascunho local</button
+                          ><button type="button" class="management-button" id="contentCopy">
+                            Copiar legenda
+                          </button>
+                        </div>
+                        <p
+                          id="contentActionStatus"
+                          role="status"
+                          aria-live="polite"
+                          class="management-note"
+                        ></p>
+                      </form>
+                    </div>
                   </div>
+                  <aside class="content-preview-column" aria-label="Prévia do conteúdo">
+                    <div class="content-preview-heading">
+                      <h3>É assim que está ficando</h3>
+                      <span id="contentPreviewFormat">Feed</span>
+                    </div>
+                    <div class="content-preview-device" data-content-preview="feed">
+                      <div class="content-preview-brand">
+                        <span aria-hidden="true" id="contentBrandInitial">S</span
+                        ><strong id="contentPreviewBusiness">Seu negócio</strong
+                        ><small>Prévia local</small>
+                      </div>
+                      <div class="content-preview-stage" id="contentPreviewStage">
+                        <div class="content-preview-placeholder">
+                          <span aria-hidden="true">＋</span><b>Seu conteúdo começa aqui</b>
+                          <p>Selecione uma imagem ou vídeo para conferir o enquadramento.</p>
+                        </div>
+                      </div>
+                      <div class="content-preview-text">
+                        <strong id="contentPreviewTitle">Título do conteúdo</strong>
+                        <p id="contentPreviewCaption">O texto da sua postagem aparece aqui.</p>
+                      </div>
+                    </div>
+                    <p class="content-preview-disclosure">
+                      Prévia de composição. Não recortamos nem editamos o arquivo. Texto sobre
+                      vídeo/imagem não é incorporado à mídia.
+                    </p>
+                    <div class="content-preparation">
+                      <button type="button" class="management-button" id="contentExport">
+                        Baixar texto de preparação</button
+                      ><button
+                        type="button"
+                        class="management-button"
+                        id="contentPublish"
+                        disabled
+                        aria-describedby="contentPublishHelp"
+                      >
+                        Publicação não conectada
+                      </button>
+                      <p id="contentPublishHelp">
+                        Conexão e permissões do Instagram ainda precisam de homologação. Use o texto
+                        e o arquivo original no seu canal.
+                      </p>
+                    </div>
+                  </aside>
                 </div>
-                <aside class="content-preview-column" aria-label="Prévia do conteúdo">
-                  <div class="content-preview-heading">
-                    <h3>É assim que está ficando</h3>
-                    <span id="contentPreviewFormat">Feed</span>
+                <section
+                  class="instagram-publish-panel"
+                  id="instagramPublishPanel"
+                  aria-labelledby="instagramPublishTitle"
+                  hidden
+                >
+                  <header class="instagram-publish-header">
+                    <div>
+                      <span class="instagram-publish-kicker">INSTAGRAM · PILOTO</span>
+                      <h3 id="instagramPublishTitle">
+                        Seu conteúdo, pronto para sair do rascunho.
+                      </h3>
+                      <p>
+                        Prepare aqui e continue no formulário externo somente após a liberação do
+                        piloto. Confira quem controla a conta do Instagram antes de publicar.
+                      </p>
+                    </div>
+                    <span class="instagram-publish-state" id="instagramPublishState">
+                      Integração pendente
+                    </span>
+                  </header>
+                  <div class="instagram-publish-grid">
+                    <ol class="instagram-publish-steps">
+                      <li>
+                        <strong>Prepare o conteúdo</strong>
+                        <span>Escreva a legenda, confira a prévia e guarde seu rascunho.</span>
+                      </li>
+                      <li>
+                        <strong>Confira o destino</strong>
+                        <span>Verifique a conta do Instagram, o formato e a mídia original.</span>
+                      </li>
+                      <li>
+                        <strong>Finalize no n8n</strong>
+                        <span
+                          >O formulário externo solicita os arquivos e a confirmação final.</span
+                        >
+                      </li>
+                    </ol>
+                    <div class="instagram-publish-next">
+                      <strong>Próximo passo: <span id="instagramPublishFormat">Feed</span></strong>
+                      <p class="instagram-publish-guide" id="instagramPublishGuide"></p>
+                      <button
+                        type="button"
+                        class="management-button pr"
+                        id="instagramPublishStart"
+                        aria-describedby="instagramPublishStatus"
+                        disabled
+                      >
+                        Publicação em configuração
+                      </button>
+                      <p class="instagram-publish-status" id="instagramPublishStatus" role="status">
+                        A conexão de publicação ainda não foi habilitada neste ambiente.
+                      </p>
+                    </div>
                   </div>
-                  <div class="content-preview-device" data-content-preview="feed">
-                    <div class="content-preview-brand">
-                      <span aria-hidden="true" id="contentBrandInitial">S</span
-                      ><strong id="contentPreviewBusiness">Seu negócio</strong
-                      ><small>Prévia local</small>
-                    </div>
-                    <div class="content-preview-stage" id="contentPreviewStage">
-                      <div class="content-preview-placeholder">
-                        <span aria-hidden="true">＋</span><b>Seu conteúdo começa aqui</b>
-                        <p>Selecione uma imagem ou vídeo para conferir o enquadramento.</p>
-                      </div>
-                    </div>
-                    <div class="content-preview-text">
-                      <strong id="contentPreviewTitle">Título do conteúdo</strong>
-                      <p id="contentPreviewCaption">O texto da sua postagem aparece aqui.</p>
-                    </div>
-                  </div>
-                  <p class="content-preview-disclosure">
-                    Prévia de composição. Não recortamos nem editamos o arquivo. Texto sobre
-                    vídeo/imagem não é incorporado à mídia.
+                </section>
+                <!-- The staged test section is an intentionally isolated component. -->
+                <!-- prettier-ignore -->
+                <section
+                class="instagram-simulation-panel"
+                id="instagramSimulationPanel"
+                hidden
+                aria-labelledby="instagramSimulationTitle"
+              >
+                <header>
+                  <span class="instagram-publish-kicker">AMBIENTE DE TESTE · SEM PUBLICAÇÃO</span>
+                  <h3 id="instagramSimulationTitle">Teste o fluxo do Instagram com segurança.</h3>
+                  <p>
+                    A simulação registra somente os dados da publicação no banco de testes.
+                    Imagens e vídeos não são enviados; nenhuma conta real é conectada.
                   </p>
-                  <div class="content-preparation">
-                    <button type="button" class="management-button" id="contentExport">
-                      Baixar texto de preparação</button
-                    ><button
+                </header>
+                <div class="instagram-simulation-fields">
+                  <label for="instagramSimulationAccount">Conta fictícia para o teste</label>
+                  <select id="instagramSimulationAccount"></select>
+                  <div class="instagram-simulation-create">
+                    <label for="instagramSimulationName">Nome da conta de teste</label>
+                    <input
+                      id="instagramSimulationName"
+                      type="text"
+                      maxlength="80"
+                      placeholder="Ex.: Minha loja (teste)"
+                      autocomplete="off"
+                    />
+                    <button
                       type="button"
                       class="management-button"
-                      id="contentPublish"
-                      disabled
-                      aria-describedby="contentPublishHelp"
+                      id="instagramSimulationCreate"
                     >
-                      Publicação não conectada
+                      Criar conta fictícia
                     </button>
-                    <p id="contentPublishHelp">
-                      Conexão e permissões do Instagram ainda precisam de homologação. Use o texto e
-                      o arquivo original no seu canal.
-                    </p>
                   </div>
-                </aside>
+                  <label for="instagramSimulationSchedule">
+                    Agendar simulação (opcional, horário do dispositivo)
+                  </label>
+                  <input id="instagramSimulationSchedule" type="datetime-local" />
+                  <button
+                    type="button"
+                    class="management-button pr"
+                    id="instagramSimulationSubmit"
+                  >
+                    Simular com o conteúdo selecionado
+                  </button>
+                </div>
+                <p id="instagramSimulationStatus" role="status" aria-live="polite">
+                  Este recurso não publica no Instagram.
+                </p>
+                <div id="instagramSimulationHistory" aria-label="Simulações recentes"></div>
+              </section>
               </div>
-              <section class="content-library" aria-labelledby="contentLibraryTitle">
+              <section
+                class="content-library"
+                id="contentDraftsPanel"
+                role="tabpanel"
+                aria-labelledby="contentWorkspace-drafts"
+                hidden
+              >
                 <div class="content-library-heading">
                   <div>
                     <h3 id="contentLibraryTitle">Seus rascunhos</h3>
@@ -4329,6 +4622,46 @@
                   <span id="contentDraftCount">0 rascunhos</span>
                 </div>
                 <div id="contentDraftList"></div>
+              </section>
+              <section
+                id="contentAgendaPanel"
+                role="tabpanel"
+                aria-labelledby="contentWorkspace-agenda"
+                hidden
+              >
+                <h3>Agenda de testes</h3>
+                <p>
+                  Preparações salvas no negócio. Agendamentos são simulados; nada é publicado. Para
+                  agendar, revise o conteúdo na aba Criar conteúdo.
+                </p>
+                <div class="content-preparation-fields">
+                  <label
+                    >Situação
+                    <select id="contentAgendaStatus">
+                      <option value="all">Todas</option>
+                      <option value="draft">Rascunho compartilhado</option>
+                      <option value="pending_review">Aguardando revisão</option>
+                      <option value="scheduled">Agendado · teste</option>
+                      <option value="processing">Processando · teste</option>
+                      <option value="simulated">Simulação concluída</option>
+                      <option value="failed">Falhou</option>
+                      <option value="uncertain">Resultado incerto</option>
+                      <option value="cancelled">Cancelado</option>
+                    </select></label
+                  >
+                  <label
+                    >Dia no fuso do agendamento <input type="date" id="contentAgendaDay"
+                  /></label>
+                </div>
+                <p id="contentAgendaCount" role="status"></p>
+              </section>
+              <section
+                id="contentConnectionsPanel"
+                role="tabpanel"
+                aria-labelledby="contentWorkspace-connections"
+                hidden
+              >
+                <div id="integrationSetupPanel" class="content-preparation-workflow"></div>
               </section>
             </div>
           </section>
@@ -4346,11 +4679,6 @@
                   + Gerar relatório
                 </button>
               </header>
-              <p id="reportProfileContext" class="management-note"></p>
-              <details class="rv2-source-details">
-                <summary>Sobre estes dados</summary>
-                <div class="management-demo" id="reportsDataSourceStatus" role="status"></div>
-              </details>
               <div class="management-report-period management-card">
                 <div
                   id="reportQuickPeriods"
@@ -4365,8 +4693,15 @@
                   <button type="button" data-report-quick="3 meses">3 meses</button>
                 </div>
                 <span id="reportsPeriodLabel" class="rv2-range" data-current-period></span>
+                <details class="rv2-source-details">
+                  <summary>Sobre estes dados</summary>
+                  <p id="reportProfileContext" class="management-note"></p>
+                  <div class="management-demo" id="reportsDataSourceStatus" role="status"></div>
+                </details>
                 <details class="report-period-options">
-                  <summary>Ajustar período e opções</summary>
+                  <summary aria-label="Período personalizado, comparação e exibição de valores">
+                    Mais opções
+                  </summary>
                   <div
                     id="nvReportPeriods"
                     class="management-chips"
@@ -4864,6 +5199,47 @@
         </div>
       </section>
     </div>
+    <div class="modal-backdrop" id="instagramPublishModal" aria-hidden="true">
+      <section
+        class="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="instagramPublishModalTitle"
+      >
+        <div class="modal-head">
+          <h3 id="instagramPublishModalTitle">Continuar no formulário de publicação?</h3>
+          <button
+            type="button"
+            class="btn"
+            data-close-modal="instagramPublishModal"
+            aria-label="Fechar"
+          >
+            ×
+          </button>
+        </div>
+        <div class="modal-body">
+          <p class="instagram-publish-modal-text">
+            Você vai abrir o formulário externo do n8n em outra aba. Sua legenda, os arquivos e o
+            rascunho não serão enviados automaticamente. Confira qual conta do Instagram está
+            conectada antes de confirmar qualquer postagem ou agendamento.
+          </p>
+        </div>
+        <div class="modal-foot instagram-publish-modal-actions">
+          <button type="button" class="management-button" data-close-modal="instagramPublishModal">
+            Voltar
+          </button>
+          <a
+            class="management-button pr"
+            id="instagramPublishExternal"
+            href="#"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Abrir formulário do n8n
+          </a>
+        </div>
+      </section>
+    </div>
     <div class="modal-backdrop" id="contentConfirmModal" aria-hidden="true">
       <section class="modal" role="dialog" aria-modal="true" aria-labelledby="contentConfirmTitle">
         <div class="modal-head">
@@ -4897,6 +5273,8 @@
     <script src="scripts/opportunity-data.js"></script>
     <script src="scripts/client-analysis.js"></script>
     <script src="scripts/opportunities.js"></script>
+    <script src="scripts/opportunity-lifecycle-store.js"></script>
+    <script src="scripts/opportunity-lifecycle.js"></script>
     <script src="scripts/inbox.js"></script>
     <script src="scripts/reports.js"></script>
     <script src="scripts/report-data.js"></script>
@@ -4914,15 +5292,23 @@
     <script src="scripts/finance-store.js"></script>
     <script src="scripts/contact-validation.js"></script>
     <script src="scripts/business-profile.js"></script>
+    <script src="scripts/profile-sync.js"></script>
     <script src="scripts/personalization.js"></script>
     <script src="scripts/content-drafts.js"></script>
     <script src="scripts/content-studio.js"></script>
+    <script src="scripts/instagram-publisher.js"></script>
+    <script src="scripts/instagram-simulation.js"></script>
+    <script src="scripts/content-preparation-store.js"></script>
     <script src="scripts/demo-data.js"></script>
     <script src="scripts/chart-refinement.js"></script>
     <script src="scripts/report-motion.js"></script>
     <script src="scripts/report-ui.js"></script>
     <script src="scripts/app.js"></script>
     <script src="scripts/experience.js"></script>
+    <script src="scripts/content-workspace.js"></script>
+    <script src="scripts/integration-setup.js"></script>
+    <script src="scripts/message-enrichment-store.js"></script>
+    <script src="scripts/message-enrichment.js"></script>
     <script id="landingEnhancementsV2" src="scripts/landing-accessibility.js"></script>
     <script id="siteReviewBehavior" src="scripts/record-editor.js"></script>
     <script src="scripts/landing-demos.js"></script>
