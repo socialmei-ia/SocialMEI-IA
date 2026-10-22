@@ -1,0 +1,46 @@
+name: Export temporary frontend ZIP
+on:
+  push:
+    branches: [feat/native-opportunities-v8-content-v4]
+    paths: [.github/workflows/temp-export-frontend.yml]
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the PR 100 branch
+        uses: actions/checkout@v4
+      - name: Create tracked frontend ZIP without secrets
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess, zipfile, hashlib
+          files = subprocess.check_output(['git', 'ls-files', '-z', '--', 'frontend']).split(b'\0')
+          paths = [Path(raw.decode('utf-8')) for raw in files if raw]
+          excluded = ('.env', '.pem', '.key', '.p12', '.pfx', 'id_rsa', 'credentials.json')
+          for path in paths:
+              assert path.is_file(), f"Not a regular checked out file: {path}"
+              assert not any(part.lower().endswith(excluded) for part in path.parts), f"Secret-looking file: {path}"
+          assert len(paths) >= 80, f"Unexpected frontend file count: {len(paths)}"
+          out = Path('SocialMEI-Frontend-PR100.zip')
+          with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED, compresslevel=8) as target:
+              for path in paths:
+                  target.write(path, path.as_posix())
+              target.writestr('INSTRUCOES-EDICAO.txt',
+                  'SocialMEI.IA | frontend oficial da PR #100 (branch de desenvolvimento)\n'
+                  'A pasta frontend/ contem o HTML oficial, JS, CSS, imagens e fontes.\n'
+                  'Arquivo principal: frontend/socialmei-app.html\n'
+                  'Prototipos originais: frontend/reference/\n'
+                  'Nao contem backend, banco de dados ou segredos.\n'
+                  'Funcoes autenticadas so operam com backend/API.\n'
+                  'Nao substitua manualmente arquivos em producao.\n'
+                  'Versao git: ' + subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip() + '\n')
+          print(f"Packaged {len(paths)} frontend files / {out.stat().st_size} bytes")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: socialmei-frontend-pr100-export
+          path: SocialMEI-Frontend-PR100.zip
+          retention-days: 2
