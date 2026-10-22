@@ -1,5 +1,6 @@
 """Isolated enrichment protocol and real PostgreSQL/session boundaries."""
 import copy
+from datetime import datetime, timezone
 import os
 import socket
 import time
@@ -15,7 +16,7 @@ from psycopg.rows import dict_row
 from app import app
 import test_account_auth as accounts
 from test_account_auth import DB, ENV, ORIGIN, HEADERS
-from message_enrichment import classify_sentiment, process_event, retry_job, sign_event
+from message_enrichment import Incoming, classify_sentiment, fingerprint, process_event, retry_job, sign_event
 
 BASE = '/api/v1/message-enrichment'
 MODE = {'SOCIALMEI_MESSAGE_ENRICHMENT_MODE': 'stub', 'SOCIALMEI_MESSAGE_ENRICHMENT_TEST_KEY': 'private-fictitious-signing-key-only-for-tests-81'}
@@ -40,6 +41,18 @@ class DisabledTests(unittest.TestCase):
         ]:
             with self.subTest(text=text):
                 self.assertEqual(classify_sentiment(text), expected)
+
+    def test_source_timestamp_is_optional_aware_and_normalized_without_legacy_fingerprint_drift(self):
+        from pydantic import ValidationError
+        body = message()
+        legacy = Incoming.model_validate(body)
+        self.assertEqual(legacy.model_dump(mode='json', exclude_none=True), body)
+        for raw in ('2026-10-21T10:00:00-03:00', '2026-10-21T13:00:00Z'):
+            value = Incoming.model_validate({**body, 'occurred_at': raw})
+            self.assertEqual(value.occurred_at, datetime(2026, 10, 21, 13, tzinfo=timezone.utc))
+        for raw in ('2026-10-21', '2026-10-21T13:00:00', 'yesterday', 123, True, '2026-02-30T12:00:00Z', '0001-01-01T00:00:00+01:00', '9999-12-31T23:59:59-01:00', '2026-10-21T13:00:00+00:60'):
+            with self.subTest(raw=raw), self.assertRaises(ValidationError):
+                Incoming.model_validate({**body, 'occurred_at': raw})
 
     def test_default_disabled_and_invalid_configuration_never_access_storage(self):
         with patch.dict(os.environ, {**ENV, 'SOCIALMEI_AUTH_ENABLED': 'false'}), patch('message_enrichment.connect', side_effect=AssertionError('database')):
@@ -74,6 +87,66 @@ class EnrichmentDatabaseTests(unittest.TestCase):
 
     def doc(self, client=None, content='preço exclusivo desta loja'):
         return self.post('/documents', operation(title='Tabela sintética', mime_type='text/plain', content=content), client)
+
+    def test_out_of_order_incoming_keeps_source_time_and_stable_identity(self):
+        latest, latest_input = self.incoming(occurred_at='2026-10-21T10:00:00-03:00')
+        older, _ = self.incoming(occurred_at='2026-10-21T12:00:00Z', text='Mensagem anterior recebida depois')
+        same_time, _ = self.incoming(occurred_at='2026-10-21T13:00:00Z', text='Mesmo horário, outro ID')
+        self.assertEqual(latest['conversation_id'], older['conversation_id'])
+        self.assertEqual(same_time['revision'], 3)
+        rows = self.admin_client.get(BASE + '/conversations').json()['items'][0]['messages']
+        self.assertEqual([m['id'] for m in rows], [older['message_id'], latest['message_id'], same_time['message_id']])
+        self.assertEqual(datetime.fromisoformat(rows[1]['occurred_at']), datetime(2026, 10, 21, 13, tzinfo=timezone.utc))
+        replay = self.post('/synthetic-messages', {**latest_input, 'occurred_at': '2026-10-21T13:00:00Z'})
+        self.assertEqual(replay['message_id'], latest['message_id'])
+        self.assertTrue(replay['replayed'])
+        changed = {**latest_input, 'operation_id': str(uuid4()), 'occurred_at': '2026-10-21T13:01:00Z'}
+        self.assertEqual(self.admin_client.post(BASE + '/synthetic-messages', json=changed).status_code, 409)
+        self.assertEqual(len(self.admin_client.get(BASE + '/conversations').json()['items'][0]['messages']), 3)
+
+    def test_invalid_source_offsets_and_utc_overflow_are_422_without_writes(self):
+        for timestamp in ('0001-01-01T00:00:00+01:00', '9999-12-31T23:59:59-01:00', '2026-10-21T13:00:00+00:60'):
+            with self.subTest(timestamp=timestamp):
+                response = self.admin_client.post(BASE + '/synthetic-messages', json={**message(), 'occurred_at': timestamp})
+                self.assertEqual(response.status_code, 422, response.text)
+        self.assertEqual(self.admin_client.get(BASE + '/conversations').json()['items'], [])
+
+    def test_existing_operation_and_external_fingerprints_remain_replayable(self):
+        created, body = self.incoming()
+        with psycopg.connect(DB, row_factory=dict_row) as conn:
+            receipt = conn.execute("SELECT fingerprint FROM socialmei.me_operations WHERE kind='message' AND operation_id=%s", (body['operation_id'],)).fetchone()
+            self.assertEqual(receipt['fingerprint'], fingerprint(body))
+            external = conn.execute('SELECT fingerprint FROM socialmei.me_messages WHERE id=%s', (created['message_id'],)).fetchone()
+            self.assertEqual(external['fingerprint'], fingerprint({k: v for k, v in body.items() if k != 'operation_id'}))
+        self.assertEqual(self.post('/synthetic-messages', body), {**created, 'replayed': True})
+        alias = self.post('/synthetic-messages', {**body, 'operation_id': str(uuid4())})
+        self.assertEqual(alias['message_id'], created['message_id'])
+
+    def test_multichannel_normalized_context_review_and_cancel_stay_isolated(self):
+        other = self.register('reply-other@example.test')
+        identities = set()
+        for client in (self.admin_client, other):
+            for channel in ('whatsapp', 'instagram'):
+                incoming, body = self.incoming(client, channel=channel, external_message_id='same-external-id', occurred_at='2026-10-21T13:00:00Z')
+                identities.add(incoming['conversation_id'])
+                alias = self.post('/synthetic-messages', {**body, 'operation_id': str(uuid4())}, client)
+                self.assertEqual(alias['message_id'], incoming['message_id'])
+                job = self.enrich(incoming, client)
+                draft = 'Texto revisado por uma pessoa: ' + channel
+                result = client.patch(BASE + '/jobs/%s/review' % job['id'], json={'schema_version': 1, 'expected_revision': job['revision'], 'decision': 'approved' if channel == 'whatsapp' else 'rejected', 'suggested_reply': draft})
+                self.assertEqual(result.status_code, 200, result.text)
+                self.assertEqual(result.json()['suggested_reply'], draft)
+                self.assertEqual(result.json()['transport'], 'none')
+                self.assertNotIn(result.json()['status'], ('sent', 'delivered'))
+                foreign = other if client is self.admin_client else self.admin_client
+                self.assertEqual(foreign.get(BASE + '/conversations/%s/enrichments' % incoming['conversation_id']).status_code, 404)
+                self.assertEqual(foreign.patch(BASE + '/jobs/%s/review' % job['id'], json={'schema_version': 1, 'expected_revision': result.json()['revision'], 'decision': 'approved', 'suggested_reply': 'Não autorizado'}).status_code, 404)
+        self.assertEqual(len(identities), 4)
+        for client in (self.admin_client, other):
+            rows = client.get(BASE + '/conversations').json()['items']
+            self.assertEqual(len(rows), 2)
+            self.assertEqual({row['contact_name'] for row in rows}, {'Mesmo nome'})
+        self.assertEqual(self.admin_client.post(BASE + '/synthetic-messages', json={**message(), 'workspace_id': other.identity['negocio']['id']}).status_code, 422)
 
     def test_two_sessions_dedup_and_native_conversation_identity(self):
         second = self.login('admin@example.com')

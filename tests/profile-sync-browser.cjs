@@ -295,6 +295,7 @@ module.exports = async (browser, origin) => {
     await b.reload();
     await b.waitForFunction(
       () =>
+        typeof SocialMEIAuth !== "undefined" &&
         SocialMEIAuth.current?.negocio.id === 99 &&
         document.body?.classList.contains("experience-app"),
     );

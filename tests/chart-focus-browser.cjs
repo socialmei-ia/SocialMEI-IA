@@ -42,7 +42,36 @@ module.exports = async function chartFocus(browser, origin) {
     await page.screenshot({ path: path.join(output, "chart-focus-390.png") });
     await page.keyboard.press("Escape");
     assert(await tip.isHidden());
-    return "Financeiro: foco e End preservados quando a atualização precede o próximo frame";
+    await columns.first().click();
+    await columns.first().click();
+    assert(await tip.isHidden());
+    await page.evaluate(() => {
+      renderFinance();
+      SocialMEIChartRefinement.update();
+    });
+    assert(await tip.isHidden(), "A same-data redraw must not reopen a dismissed tooltip");
+    await columns.first().click();
+    assert.equal(await columns.first().getAttribute("aria-pressed"), "true");
+    await page.evaluate(() => {
+      renderFinance();
+      SocialMEIChartRefinement.update();
+    });
+    assert.equal(
+      await columns.first().getAttribute("aria-pressed"),
+      "true",
+      "A chart refresh must preserve the pinned point before the second click",
+    );
+    await columns.first().click();
+    assert(await tip.isHidden(), "Second click must dismiss the tooltip after chart replacement");
+    await page.mouse.move(0, 0);
+    await columns.first().focus();
+    await page.keyboard.press("Escape");
+    await columns.nth(1).hover();
+    assert(
+      await tip.isVisible(),
+      "A fresh pointer movement after keyboard Escape must show the tooltip",
+    );
+    return "Financeiro: foco/End e ponto fixado preservados na substituição; segundo clique fecha tooltip";
   } finally {
     await page
       .evaluate(() => {
