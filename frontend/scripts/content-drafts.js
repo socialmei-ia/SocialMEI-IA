@@ -138,7 +138,25 @@
         expected,
       );
     }
-    return Object.freeze({ read, save, remove, duplicate });
+    function importMany(values, expected) {
+      if (!Array.isArray(values) || !values.length || values.length > LIMIT)
+        throw new Error("Backup inválido ou com mais de 40 rascunhos.");
+      // Validate every entry first, then commit the whole batch atomically.
+      // Never trust IDs, scopes, timestamps or URLs supplied by the imported JSON.
+      const entries = values.map((value) => draft(value));
+      return change(expected, (existing) => {
+        if (existing.length + entries.length > LIMIT)
+          throw new Error("O backup ultrapassa o limite de 40 rascunhos neste negócio.");
+        const imported = entries.map((value) => ({
+          ...value,
+          id: id(),
+          createdAt: now(),
+          updatedAt: now(),
+        }));
+        return [...imported, ...existing];
+      });
+    }
+    return Object.freeze({ read, save, remove, duplicate, importMany });
   }
   async function validateMedia(file, format) {
     if (!file || !Object.hasOwn(FORMATS, format))
