@@ -9,11 +9,18 @@ cadeia #83/#89/#90/#91/#92 preservada. #93 continua separada; main não foi alte
 - **P1 corrigido:** clicar novamente em Usar na conversa duplicava a mesma sugestão
   após o texto humano. Regressão vermelha reproduziu o prefixo e o fecho humanos.
   Agora uma sugestão integral já presente é preservada, sem nova inserção ou envio.
+- **P1 corrigido nos gráficos:** substituir o gráfico Financeiro com os mesmos
+  dados perdia o ponto fixado e podia reabrir um tooltip dispensado. Dois testes
+  vermelhos reproduziram os casos. A interação agora acompanha a substituição
+  apenas com assinatura igual; saída real de foco continua dispensando o tooltip.
 - **Preparação P1:** o contrato sintético não aceitava hora original. Campo opcional
   `occurred_at`, UTC canônico e leitura por horário/ID reutilizam a coluna existente.
   Hashes/operações antigos continuam reproduzíveis, sem migration ou outro motor.
 - **P2 da QA da extensão:** entradas extremas podiam exceder a conversão UTC e um
   offset com minuto60 era aceito. Testes vermelhos/verde cobrem rejeição422 sem escrita.
+- **P2 no teste de sincronização:** a espera após reload consultava um identificador
+  antes de carregar seu script. O erro foi observado na suíte completa; a espera
+  agora aguarda a definição antes de exigir o mesmo negócio autenticado.
 - Não houve redesign nem mudança cosmética de Automações, Assistente ou Caixa.
 
 ## Contrato e limites
@@ -39,10 +46,19 @@ Não se tenta deduplicar textos semanticamente parecidos.
   ausência de envio, 320/390/768/1024/1440 e claro/escuro, sem erros JS.
 - HTTPS real: dois negócios, WhatsApp/Instagram fictícios, deduplicação canônica,
   mensagens fora de ordem, revisão/descarte, persistência e leitura cruzada404.
+- Gráficos: fechamento por segundo toque/clique, preservação do ponto fixado e
+  dispensado em redesenho, teclado e matriz claro/escuro da estabilização.
 - Suítes completas e CI: resultados do HEAD final registrados na PR. Nenhuma
   assertiva removida, timeout aumentado ou teste ignorado para obter aprovação.
 
-A revisão independente identificou os dois casos-limite acima; foram reproduzidos
+O primeiro CI desta PR falhou no segundo toque do gráfico, que deveria fechar o
+tooltip. A investigação reproduziu a perda de estado durante o redesenho; a
+regressão nova força essa substituição, sem depender de temporização. A revisão
+reproduziu também o primeiro hover após Escape; um teste adicional verifica que
+movimento físico reabre a inspeção sem fazê-lo na simples restauração do DOM. Isso não
+confirma a causa do timeout histórico da Issue #73.
+
+A revisão independente identificou os casos de UTC extremo e texto humano; foram reproduzidos
 antes das correções e acrescentados às regressões. A inspeção inicial de possível
 sobrescrita na primeira inserção **não se confirmou**, portanto esse caminho não
 foi alterado.

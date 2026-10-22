@@ -48,6 +48,15 @@
   "unchanged": ["authentication", "CSRF", "migrations", "external transports", "PR93"],
   "code_hashes": {
     "frontend/scripts/experience.js": "9a39928fd66eb789f18981006e6067de6146744508017e4466551f0362ad9267",
-    "python-service/message_enrichment.py": "589571460befc1baaf236d7914459d6a9be07dae1216f618cf4a3a247be7615b"
+    "python-service/message_enrichment.py": "589571460befc1baaf236d7914459d6a9be07dae1216f618cf4a3a247be7615b",
+    "frontend/scripts/chart-refinement.js": "0034c0a7dc71060921a6cd52aaae5b5d510da7cc32cfd6aada99ec7d18e53426"
+  },
+  "chart_regression": {
+    "reproduced_before_fix": true,
+    "same_data_refresh_preserves_pin": true,
+    "dismissed_tooltip_stays_closed": true,
+    "second_click_and_touch_dismiss": true,
+    "historical_issue_73_root_cause_confirmed": false,
+    "fresh_hover_after_keyboard_escape": true
   }
 }
