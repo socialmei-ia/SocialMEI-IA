@@ -16,6 +16,11 @@ module.exports = async (browser, origin) => {
     );
     await page.goto(origin + "/frontend/socialmei-app.html");
     await page.locator('[data-xp-go="app"]').first().click();
+    // V8 is visible in the public demo, but CRM writes still require authenticated backend.
+    await page.evaluate(() => setView("Oportunidades"));
+    assert(await page.locator("#op8Summary").isVisible());
+    assert(await page.locator("#op8Create").isDisabled());
+    await page.evaluate(() => setView("Início"));
     await page.locator("#contentStudioOpen").click();
     await page.locator("#contentTitle").fill("Rascunho de demonstração visual");
     assert(await page.locator("#dv4ProgressBar").isVisible());
