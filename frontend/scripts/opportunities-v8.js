@@ -110,14 +110,24 @@
       select.disabled = !writable(snapshot);
       const save = btn(
         "Mover",
-        () => {
-          if (select.value === row.interest_level) return;
-          const didStart = bridge.changeInterest(row.id, select.value);
-          announce(
-            didStart
-              ? "Salvando alteração no negócio…"
-              : "Não foi possível iniciar a atualização. Confira suas permissões.",
+        async () => {
+          const nextLevel = select.value;
+          if (nextLevel === row.interest_level) return;
+          select.disabled = save.disabled = true;
+          announce("Salvando alteração no negócio…");
+          const saved = await bridge.changeInterest(row.id, nextLevel);
+          if (!saved) {
+            announce("Não foi possível salvar a alteração. Confira o aviso do acompanhamento.");
+            const current = bridge.snapshot();
+            select.disabled = save.disabled = !writable(current);
+            if (!save.disabled) save.focus({ preventScroll: true });
+            return;
+          }
+          announce("Interesse atualizado para " + SocialMEIOpportunityLifecycle.INTEREST[nextLevel] + ".");
+          const moved = [...$("op8Board").querySelectorAll(".op8-entry")].find(
+            (entry) => entry.dataset.opportunityId === row.id,
           );
+          moved?.querySelector("select")?.focus({ preventScroll: true });
         },
         "management-button op8-save",
       );
@@ -127,6 +137,7 @@
     }
     function boardCard(row, snapshot) {
       const card = el("article", "op8-entry");
+      card.dataset.opportunityId = row.id;
       const name = el("strong", "", row.client_name);
       const title = el("span", "op8-entry-title", row.title);
       const meta = el("small", "", "Atualizada " + dates(row.updated_at));
