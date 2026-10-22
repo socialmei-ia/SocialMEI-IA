@@ -52,6 +52,10 @@ temas, e Oportunidades com zero, uma e três oportunidades. Nenhum P0/P1/P2 rest
 identificado no escopo examinado. A inspeção de detalhes incluiu formulário,
 filtros/contadores, foco, frames e avisos; não se limitou à visão geral.
 
+5. P2: menu de opções local ficava sob as abas por causa do stacking context do hero.
+   Corrigido com camada explícita no header; a regressão premium exercitou novamente
+   abertura do menu e clique real em Reanalisar exemplos, sem force/click por script.
+
 ## Verificações e limites
 
 Prévia HTTPS: autenticação, CSRF, dois negócios, persistência, recarga, conflitos,
