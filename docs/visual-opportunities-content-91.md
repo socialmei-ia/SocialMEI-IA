@@ -58,6 +58,9 @@ Resultados finais e link do CI são registrados na PR.
   Não é uma medição de zoom da interface do navegador nem teste com leitor de tela.
 - Preview real: duas contas isoladas, CSRF, criação/encerramento/reabertura/histórico,
   recarga, conflito CAS, configuração pública Instagram e agendamento simulado.
+- A prévia aguarda autenticação e perfil/preferências antes da navegação: o CI
+  revelou uma corrida em que a restauração inicial trocava a tela durante o teste.
+  Nenhum contrato de sessão ou comportamento da aplicação foi alterado.
 - Regressores existentes mantidos; expectativas textuais de erro atualizadas sem
   remover verificações de persistência, bloqueio ou isolamento.
 

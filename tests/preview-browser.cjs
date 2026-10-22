@@ -112,6 +112,11 @@ async function run() {
       );
       await page.goto(origin + "/");
       await page.waitForFunction(() => !!window.SocialMEIAuth?.current);
+      // Startup restores the view after profile/preferences; navigate only after both have settled.
+      await page.evaluate(async () => {
+        await SocialMEIAuth.ready;
+        await SocialMEIProfileSync.ready;
+      });
       await page.evaluate(() => SocialMEIExperience.enterApp("Clientes"));
       await page.waitForFunction(() =>
         appData.clientes.some((c) => c.nome === "Cliente fictício do preview"),
@@ -199,6 +204,11 @@ async function run() {
         );
         await page.reload();
         await page.waitForFunction(() => !!window.SocialMEIAuth?.current);
+        // Startup restores the view after profile/preferences; navigate only after both have settled.
+        await page.evaluate(async () => {
+          await SocialMEIAuth.ready;
+          await SocialMEIProfileSync.ready;
+        });
         await page.evaluate(() => SocialMEIExperience.enterApp("Oportunidades"));
         await page
           .locator("#opportunityLifecycle")
@@ -243,6 +253,11 @@ async function run() {
         assert.equal(foreignSetup.revision, 0);
         await page.reload();
         await page.waitForFunction(() => !!window.SocialMEIAuth?.current);
+        // Startup restores the view after profile/preferences; navigate only after both have settled.
+        await page.evaluate(async () => {
+          await SocialMEIAuth.ready;
+          await SocialMEIProfileSync.ready;
+        });
         await page.evaluate(() => SocialMEIExperience.enterApp("Divulgação"));
         await page.locator("#contentWorkspace-connections").click();
         await page.waitForFunction(
@@ -262,6 +277,11 @@ async function run() {
       await page.screenshot({ path: path.join(output, `divulgacao-${width}.png`), fullPage: true });
       await page.reload();
       await page.waitForFunction(() => !!window.SocialMEIAuth?.current);
+      // Startup restores the view after profile/preferences; navigate only after both have settled.
+      await page.evaluate(async () => {
+        await SocialMEIAuth.ready;
+        await SocialMEIProfileSync.ready;
+      });
       await page.close();
     }
     const visualOpportunities = await require("./visual-opportunities-preview.cjs")(

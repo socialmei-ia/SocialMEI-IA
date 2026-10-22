@@ -18,6 +18,11 @@ module.exports = async (context, origin, client, headers) => {
   const enter = async () => {
     await page.goto(origin + "/");
     await page.waitForFunction(() => !!window.SocialMEIAuth?.current);
+    // Startup restores the view after profile/preferences; navigate only after both have settled.
+    await page.evaluate(async () => {
+      await SocialMEIAuth.ready;
+      await SocialMEIProfileSync.ready;
+    });
     await page.evaluate(() => SocialMEIExperience.enterApp("Oportunidades"));
     await page.waitForFunction(() => !document.getElementById("opportunityTitle").disabled);
     await page.evaluate(() => setView("Oportunidades"));
