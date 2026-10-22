@@ -154,7 +154,7 @@
         container.append(column);
       }
       if (snapshot.items.length >= 100)
-        container.after(
+        container.append(
           el(
             "p",
             "op8-notice",
