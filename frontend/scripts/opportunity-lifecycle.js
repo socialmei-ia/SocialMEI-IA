@@ -7,6 +7,9 @@ document.addEventListener("DOMContentLoaded", function () {
   host.id = "opportunityLifecycle";
   host.className = "management-stack";
   host.hidden = !auth.remote;
+  document
+    .getElementById("opportunitiesView")
+    .classList.toggle("has-commercial-followup", auth.remote);
   host.setAttribute("aria-label", "Acompanhamento comercial");
   const parent = document.querySelector("#opportunitiesView .management-stack");
   if (!parent) return;
@@ -23,7 +26,14 @@ document.addEventListener("DOMContentLoaded", function () {
     element.addEventListener("click", action);
     return element;
   };
-  const heading = node("h3", "Acompanhamento comercial");
+  const icon = (name) => {
+    const element = node("span");
+    element.className = "opportunity-icon";
+    element.setAttribute("aria-hidden", "true");
+    element.innerHTML = renderIcon(name);
+    return element;
+  };
+  const heading = node("h3", "Acompanhar oportunidades");
   heading.tabIndex = -1;
   const explanation = node(
     "p",
@@ -33,9 +43,22 @@ document.addEventListener("DOMContentLoaded", function () {
   status.setAttribute("role", "status");
   status.setAttribute("aria-live", "polite");
   const refresh = button("Atualizar oportunidades", () => run(() => store.reload()));
+  refresh.prepend(icon("refresh"));
+  explanation.className = "opportunity-commercial-explanation";
+  explanation.hidden = refresh.hidden = !auth.remote;
+  parent.querySelector("header > div").append(explanation, refresh);
   const form = node("form");
   form.className = "content-preparation-fields";
   form.id = "opportunityCreateForm";
+  const formHeader = node("div");
+  formHeader.className = "opportunity-form-header";
+  const formIntro = node("div");
+  const formTitle = node("h3", "Criar nova oportunidade");
+  formTitle.id = "opportunityCreateTitle";
+  formIntro.append(formTitle, node("p", "Registre um interesse e comece o acompanhamento."));
+  formHeader.append(icon("plus"), formIntro);
+  form.setAttribute("aria-labelledby", formTitle.id);
+  form.append(formHeader);
   const label = (text, input, target) => {
     const wrapper = node("label", text);
     wrapper.append(input);
@@ -49,6 +72,7 @@ document.addEventListener("DOMContentLoaded", function () {
   title.id = "opportunityTitle";
   title.required = true;
   title.maxLength = 160;
+  title.placeholder = "Ex.: corte de cabelo, ajuste de roupa…";
   const interest = label("Interesse", node("select"), form);
   interest.id = "opportunityInterest";
   for (const [value, text] of Object.entries(api.INTEREST)) {
@@ -56,7 +80,9 @@ document.addEventListener("DOMContentLoaded", function () {
     option.value = value;
     interest.append(option);
   }
+  form.insertBefore(interest.parentElement, title.parentElement);
   const create = node("button", "Criar oportunidade");
+  create.prepend(icon("plus"));
   create.type = "submit";
   create.className = "management-button";
   form.append(create);
@@ -68,11 +94,9 @@ document.addEventListener("DOMContentLoaded", function () {
   list.id = "commercialOpportunityList";
   list.className = "management-stack";
   host.append(
-    heading,
-    explanation,
-    status,
-    refresh,
     form,
+    heading,
+    status,
     filters,
     list,
     node(
@@ -110,7 +134,8 @@ document.addEventListener("DOMContentLoaded", function () {
     try {
       await action();
       if (success) success();
-      status.textContent = "Alterações consultadas e salvas no negócio atual.";
+      status.textContent =
+        "Dados consultados no negócio atual. Alterações são salvas após confirmação.";
       render();
       if (keepFocus) heading.focus();
     } catch (error) {
@@ -133,10 +158,29 @@ document.addEventListener("DOMContentLoaded", function () {
       won: "Venda realizada",
       lost: "Não avançou",
     })) {
-      const item = button(`${text} (${state.totals[value]})`, () => {
+      const item = button("", () => {
         selected = value;
         render();
+        filters.querySelector('[aria-pressed="true"]').focus({ preventScroll: true });
       });
+      item.dataset.commercialFilter = value;
+      item.append(
+        icon(
+          {
+            open: "refresh",
+            unknown: "search",
+            cold: "moon",
+            warm: "sun",
+            hot: "bolt",
+            won: "check",
+            lost: "logout",
+          }[value] || "filter",
+        ),
+        node("span", text + " "),
+      );
+      const count = node("span", `(${state.totals[value]})`);
+      count.className = "opportunity-filter-count";
+      item.append(count);
       item.setAttribute("aria-pressed", String(selected === value));
       filters.append(item);
     }
@@ -146,15 +190,32 @@ document.addEventListener("DOMContentLoaded", function () {
         ? row.outcome === "open" && row.interest_level === selected
         : row.outcome === selected,
     );
-    if (!rows.length) list.append(node("p", "Nenhuma oportunidade neste filtro."));
+    if (!rows.length) {
+      const empty = node("div");
+      empty.className = "commercial-opportunity-empty";
+      empty.append(
+        icon("search"),
+        node("h4", "Nenhuma oportunidade neste filtro."),
+        node("p", "Cadastre um interesse acima ou escolha outro filtro para continuar."),
+      );
+      list.append(empty);
+    }
     for (const row of rows) {
       const card = node("article");
       card.className = "management-card";
       card.dataset.commercialOpportunity = row.id;
-      card.append(
-        node("h4", row.client_name + " · " + row.title),
-        node("p", `${api.INTEREST[row.interest_level]} · ${api.OUTCOME[row.outcome]}`),
+      const cardHeader = node("div");
+      cardHeader.className = "commercial-opportunity-header";
+      const cardIntro = node("div");
+      cardIntro.append(node("h4", row.client_name), node("p", row.title));
+      const badge = node(
+        "span",
+        `${api.INTEREST[row.interest_level]} · ${api.OUTCOME[row.outcome]}`,
       );
+      badge.className = "commercial-opportunity-badge";
+      badge.dataset.interest = row.interest_level;
+      cardHeader.append(cardIntro, badge);
+      card.append(cardHeader);
       if (row.outcome_reason)
         card.append(node("p", api.REASONS[row.outcome_reason] || row.outcome_reason));
       if (row.outcome_note) card.append(node("p", row.outcome_note));

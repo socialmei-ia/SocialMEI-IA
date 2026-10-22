@@ -28,3 +28,26 @@ test("shared scheduling requires explicit simulation opt-in and authenticated re
   assert.equal(model.enabled({ mode: "simulation" }, false), false);
   assert.equal(model.enabled({ mode: "simulation" }, true), true);
 });
+test("preparation errors explain connectivity, session, permissions and conflicts without fallback", () => {
+  for (const [status, expected] of [
+    [401, /sessão/],
+    [403, /permissão/],
+    [409, /mudou|configuração/],
+    [503, /temporariamente/],
+    [404, /não está disponível/],
+  ]) {
+    const error = Object.assign(new Error("technical failure"), { status });
+    assert.match(model.errorMessage(error), expected);
+    assert.match(model.errorMessage(error), /Nenhuma publicação real/);
+    assert(!model.errorMessage(error).includes("technical failure"));
+  }
+  assert.match(model.errorMessage(new TypeError("Failed to fetch")), /conexão.*HTTPS/);
+  assert.match(
+    model.errorMessage(Object.assign(new Error("abort"), { name: "AbortError" })),
+    /demorou/,
+  );
+  assert.equal(
+    model.errorMessage(new Error("Informe o tema da publicação.")),
+    "Informe o tema da publicação.",
+  );
+});

@@ -24,6 +24,67 @@ const SocialMEIContentWorkspace = (() => {
     const host = document.getElementById("contentStudioView");
     if (!host) return;
     const tabs = [...host.querySelectorAll("[data-content-workspace-tab]")];
+    const descriptions = {
+      create: ["plus", "Criar conteúdo", "Ideias e legendas locais"],
+      drafts: ["note", "Rascunhos", "Conteúdos neste navegador"],
+      agenda: ["detail", "Agenda", "Preparações e testes"],
+      connections: ["ig", "Conexões", "Canais e permissões"],
+    };
+    tabs.forEach((tab) => {
+      const [icon, label, description] = descriptions[tab.dataset.contentWorkspaceTab];
+      tab.innerHTML = `${renderIcon(icon)}<span><strong>${label}</strong><small>${description}</small></span>`;
+    });
+    const formats = host.querySelector(".content-formats");
+    const formatHeading = document.createElement("div");
+    formatHeading.className = "content-step-heading";
+    formatHeading.innerHTML =
+      '<span aria-hidden="true">1</span><div><h3>Escolha o formato</h3><p>Defina onde o conteúdo será publicado para conferir o enquadramento.</p></div>';
+    formats.before(formatHeading);
+    const formatIcons = { story: "detail", feed: "ig", reel: "bolt" };
+    formats.querySelectorAll("[data-content-format]").forEach((button) => {
+      button.insertAdjacentHTML(
+        "afterbegin",
+        renderIcon(formatIcons[button.dataset.contentFormat]),
+      );
+    });
+    for (const [id, number] of [
+      ["contentPreparationHeading", "2"],
+      ["contentPreparationScheduleHeading", "4"],
+    ]) {
+      const heading = document.getElementById(id);
+      heading.classList.add("content-numbered-heading");
+      heading.dataset.step = number;
+    }
+    const editorHeading = document.createElement("h3");
+    editorHeading.className = "content-numbered-heading";
+    editorHeading.dataset.step = "3";
+    editorHeading.textContent = "Ajuste o conteúdo e salve";
+    document.getElementById("contentDraftForm").prepend(editorHeading);
+    host
+      .querySelector(".content-preview-heading h3")
+      .insertAdjacentHTML("afterbegin", renderIcon("ig"));
+    document.getElementById("contentNew").innerHTML = renderIcon("plus") + "Novo rascunho";
+    document
+      .getElementById("preparationCaptions")
+      .insertAdjacentHTML("afterbegin", renderIcon("bolt"));
+    const mediaInput = document.getElementById("contentMedia");
+    const mediaButton = document.createElement("button");
+    mediaButton.type = "button";
+    mediaButton.className = "management-button content-media-picker";
+    mediaButton.innerHTML = renderIcon("plus") + "Selecionar imagem ou vídeo";
+    mediaButton.setAttribute("aria-describedby", "contentMediaHelp contentMediaStatus");
+    mediaButton.addEventListener("click", () => mediaInput.click());
+    mediaInput.before(mediaButton);
+    mediaInput.classList.add("content-native-media");
+    mediaInput.tabIndex = -1;
+    const reflectMediaAccess = () => {
+      mediaButton.disabled = mediaInput.disabled;
+    };
+    new MutationObserver(reflectMediaAccess).observe(mediaInput, {
+      attributes: true,
+      attributeFilter: ["disabled"],
+    });
+    reflectMediaAccess();
     function select(name, focus = false) {
       tabs.forEach((tab) => {
         const active = tab.dataset.contentWorkspaceTab === name;
@@ -61,6 +122,11 @@ const SocialMEIContentWorkspace = (() => {
     document
       .getElementById("contentAgendaPanel")
       .append(document.getElementById("preparationRefresh").parentElement, history);
+    const agendaEmpty = document.createElement("p");
+    agendaEmpty.className = "content-library-empty";
+    agendaEmpty.textContent =
+      "Nenhuma preparação neste filtro. Crie e revise um conteúdo para preparar um teste; nenhuma publicação é automática.";
+    history.after(agendaEmpty);
     function filter() {
       const jobs = SocialMEIContentPreparation.jobs(),
         allowed = new Set(
@@ -72,6 +138,7 @@ const SocialMEIContentWorkspace = (() => {
       history
         .querySelectorAll("[data-preparation-row]")
         .forEach((row) => (row.hidden = !allowed.has(row.dataset.preparationRow)));
+      agendaEmpty.hidden = allowed.size > 0 || (!jobs.length && !!history.textContent.trim());
       document.getElementById("contentAgendaCount").textContent =
         allowed.size + " preparação(ões) na seleção · salvas no negócio; somente simulação.";
     }
@@ -125,6 +192,7 @@ const SocialMEIContentWorkspace = (() => {
       )
         select("create");
     });
+    filter();
     select("create");
   }
   if (typeof document !== "undefined") init();

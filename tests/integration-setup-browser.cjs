@@ -23,7 +23,8 @@ module.exports = async (browser, origin) => {
       transport: "none",
       readiness: { blockers: ["OAuth não configurado"] },
     },
-    fail = false;
+    fail = false,
+    offline = false;
   const profile = require("./profile-sync-fixture.cjs")();
   page.on("pageerror", (e) => errors.push(e.message));
   try {
@@ -49,6 +50,7 @@ module.exports = async (browser, origin) => {
       if (["/api/v1/workspace-profile", "/api/v1/auth/preferences"].includes(url.pathname))
         return profile(route, identity);
       if (url.pathname === "/api/v1/integrations/setup") {
+        if (offline) return route.fulfill({ status: 503, json: { detail: "Technical offline" } });
         if (req.method() === "PUT") {
           const body = req.postDataJSON();
           writes.push(body);
@@ -92,9 +94,30 @@ module.exports = async (browser, origin) => {
     await page.locator("#integrationUsername").fill("edicao.preservada");
     await page.locator("#integrationSetupSave").click();
     await page.waitForFunction(() =>
-      document.getElementById("integrationSetupStatus").textContent.includes("Preparação mudou"),
+      document.getElementById("integrationSetupStatus").textContent.includes("preparação mudou"),
     );
     assert.equal(await page.locator("#integrationUsername").inputValue(), "edicao.preservada");
+    offline = true;
+    await page.locator("#integrationSetupRefresh").click();
+    await page.waitForFunction(() =>
+      document
+        .getElementById("integrationSetupStatus")
+        .textContent.includes("temporariamente indisponível"),
+    );
+    assert.equal(await page.locator("#integrationUsername").inputValue(), "edicao.preservada");
+    assert.equal(
+      data.instagram.username,
+      "negocio.teste",
+      "Failed request must not save edited input",
+    );
+    assert.equal(data.revision, 1);
+    assert.equal(
+      await page.evaluate(() =>
+        Object.keys(localStorage).some((key) => /integration.*setup/i.test(key)),
+      ),
+      false,
+      "Remote failure must not create a local setup copy",
+    );
     await page.evaluate(() => {
       SocialMEIAuth.current.papel = "viewer";
       document.dispatchEvent(new Event("socialmei-data-change"));

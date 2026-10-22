@@ -133,7 +133,12 @@ const SocialMEIContentStudio = (() => {
       const placeholder = node("div");
       placeholder.className = "content-preview-placeholder";
       placeholder.append(
-        node("span", "＋"),
+        (() => {
+          const icon = node("span");
+          icon.setAttribute("aria-hidden", "true");
+          icon.innerHTML = renderIcon("ig");
+          return icon;
+        })(),
         node("b", media ? "Selecione a mídia novamente" : "Seu conteúdo começa aqui"),
         node(
           "p",
@@ -161,7 +166,7 @@ const SocialMEIContentStudio = (() => {
       const empty = node(
         "p",
         usable
-          ? "Ainda não há rascunhos. Prepare seu primeiro conteúdo acima."
+          ? "Ainda não há rascunhos. Prepare seu primeiro conteúdo na aba Criar conteúdo."
           : "Rascunhos indisponíveis nesta sessão.",
       );
       empty.className = "content-library-empty";

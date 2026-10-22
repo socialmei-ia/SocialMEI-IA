@@ -264,12 +264,19 @@ async function run() {
       await page.waitForFunction(() => !!window.SocialMEIAuth?.current);
       await page.close();
     }
+    const visualOpportunities = await require("./visual-opportunities-preview.cjs")(
+      first,
+      origin,
+      client,
+      headers,
+    );
     assert.deepEqual(errors, []);
     fs.writeFileSync(
       path.join(output, "result.json"),
       JSON.stringify(
         {
           realBackend: true,
+          visualOpportunities,
           origin,
           workspaces: 2,
           auth: true,

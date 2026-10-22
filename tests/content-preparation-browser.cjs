@@ -233,7 +233,7 @@ module.exports = async function contentPreparation(browser, origin) {
     await remote.locator("#contentCaption").fill("Alteração em outra sessão");
     await remote.locator("#preparationSave").click();
     await remote.waitForFunction(() =>
-      document.getElementById("preparationStatus").textContent.includes("Preparação mudou"),
+      document.getElementById("preparationStatus").textContent.includes("preparação mudou"),
     );
     assert.equal(jobs[0].status, "scheduled");
     await remote.locator("#contentWorkspace-agenda").click();
@@ -245,7 +245,9 @@ module.exports = async function contentPreparation(browser, origin) {
     offline = true;
     await remote.locator("#preparationRefresh").click();
     await remote.waitForFunction(() =>
-      document.getElementById("preparationStatus").textContent.includes("Fixture offline"),
+      document
+        .getElementById("preparationStatus")
+        .textContent.includes("temporariamente indisponível"),
     );
     assert(await remote.locator("#preparationSave").isDisabled());
     offline = false;
