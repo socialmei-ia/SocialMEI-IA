@@ -71,6 +71,28 @@ module.exports = async function nativeOpportunities(browser, origin) {
             return {
               viewport: screen,
               document: document.documentElement.scrollWidth,
+              ancestors: (() => {
+                let el = document.querySelector("#opportunitiesView .op8-overview");
+                const nodes = [];
+                while (el && nodes.length < 10) {
+                  const rect = el.getBoundingClientRect();
+                  const style = getComputedStyle(el);
+                  nodes.push({
+                    tag: el.tagName.toLowerCase(),
+                    id: el.id,
+                    class: typeof el.className === "string" ? el.className.slice(0, 80) : "",
+                    left: Math.round(rect.left),
+                    right: Math.round(rect.right),
+                    width: Math.round(rect.width),
+                    clientWidth: el.clientWidth,
+                    scrollWidth: el.scrollWidth,
+                    minWidth: style.minWidth,
+                    boxSizing: style.boxSizing,
+                  });
+                  el = el.parentElement;
+                }
+                return nodes;
+              })(),
               candidates: [...document.querySelectorAll("body *")]
                 .filter(
                   (el) =>
