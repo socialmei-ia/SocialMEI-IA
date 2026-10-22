@@ -42,7 +42,9 @@
       <div id="op8Timeline" class="op8-timeline" hidden></div>
       <p id="op8Feedback" class="op8-feedback" aria-live="polite"></p>
     `;
-    host.insertBefore(view, host.firstChild);
+    // Display the read-only V8 overview in the public demo too; native writes stay gated.
+    // The authenticated form/list remains inside its existing host and permission checks.
+    host.before(view);
     host.classList.add("op8-enabled");
     const $ = (id) => view.querySelector("#" + id);
     const state = { mode: "list", query: "", scope: null };
@@ -220,6 +222,8 @@
         state.scope = snapshot.scope;
         state.mode = "list";
       }
+      $("op8Create").disabled = !writable(snapshot);
+      $("op8Refresh").disabled = !SocialMEIAuth.remote || !SocialMEIAuth.current || snapshot.busy;
       $("op8Open").textContent = snapshot.totals.open;
       $("op8Unknown").textContent = snapshot.totals.unknown;
       $("op8Hot").textContent = snapshot.totals.hot;
