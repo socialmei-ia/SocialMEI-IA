@@ -33,6 +33,26 @@ module.exports = async (browser, origin) => {
       "Rascunho de demonstração visual",
     );
     await page.locator("#contentSave").click();
+    await page.locator("#dv4Topic").fill("Cuidados com a pele");
+    await page.locator("#dv4Offering").fill("Limpeza de pele");
+    await page.getByRole("button", { name: "Sugerir três legendas" }).click();
+    assert.equal(await page.locator("#dv4OriginalSuggestions .dv4-suggestion").count(), 3);
+    await page.getByRole("button", { name: "Usar legenda 1" }).click();
+    assert.match(await page.locator("#contentCaption").inputValue(), /Cuidados com a pele/);
+    await page.locator("#contentSave").click();
+    await page.getByRole("button", { name: "Tela cheia" }).click();
+    assert(
+      await page.locator("#contentStudioView").evaluate((root) => root.classList.contains("dv4-fullscreen")),
+    );
+    await page.keyboard.press("Escape");
+    assert(
+      await page.locator("#contentStudioView").evaluate((root) => !root.classList.contains("dv4-fullscreen")),
+    );
+    await page.locator("#contentWorkspace-drafts").click();
+    await page.locator("#dv4DraftQuery").fill("não encontrado");
+    assert.equal(await page.locator("#contentDraftList .content-draft-row:visible").count(), 0);
+    await page.locator("#dv4DraftQuery").fill("Rascunho de demonstração visual");
+    assert.equal(await page.locator("#contentDraftList .content-draft-row:visible").count(), 1);
     await page.locator("#contentWorkspace-create").focus();
     await page.keyboard.press("End");
     assert(
