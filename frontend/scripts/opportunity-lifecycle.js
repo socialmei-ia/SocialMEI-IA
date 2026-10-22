@@ -132,8 +132,8 @@ document.addEventListener("DOMContentLoaded", function () {
   async function run(action, success) {
     const keepFocus = host.contains(document.activeElement);
     try {
-      await action();
-      if (success) success();
+      const result = await action();
+      if (success) success(result);
       status.textContent =
         "Dados consultados no negócio atual. Alterações são salvas após confirmação.";
       render();
