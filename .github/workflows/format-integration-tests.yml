@@ -1,0 +1,33 @@
+name: Format integration browser regression
+on:
+  push:
+    branches: [feat/native-opportunities-v8-content-v4]
+    paths:
+      - tests/visual-content-browser.cjs
+      - .github/workflows/format-integration-tests.yml
+permissions:
+  contents: write
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - name: Apply project formatting to updated test
+        run: |
+          npx prettier --write tests/visual-content-browser.cjs
+          git diff --check
+          if ! git diff --quiet -- tests/visual-content-browser.cjs; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add tests/visual-content-browser.cjs
+            git commit -m "style(tests): format V4 mobile navigation regression"
+            git push origin HEAD:refs/heads/feat/native-opportunities-v8-content-v4
+          fi
