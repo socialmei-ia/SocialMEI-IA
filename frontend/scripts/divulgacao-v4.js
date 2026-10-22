@@ -59,12 +59,18 @@
     const hashtags = document.getElementById("contentHashtags");
     const live = document.getElementById("contentActionStatus");
     const checks = [
-      ["Escolheu o formato", () => !!host.querySelector('[data-content-format][aria-selected="true"]')],
+      [
+        "Escolheu o formato",
+        () => !!host.querySelector('[data-content-format][aria-selected="true"]'),
+      ],
       ["Escreveu o título", () => !!title.value.trim()],
       ["Preparou a legenda", () => !!caption.value.trim()],
       ["Incluiu uma chamada", () => !!cta.value.trim()],
       ["Adicionou hashtags", () => !!hashtags.value.trim()],
-      ["Selecionou uma mídia", () => !!document.querySelector("#contentPreviewStage img, #contentPreviewStage video")],
+      [
+        "Selecionou uma mídia",
+        () => !!document.querySelector("#contentPreviewStage img, #contentPreviewStage video"),
+      ],
     ];
     const update = () => {
       const current = checks.map(([label, fn]) => [label, !!fn()]);
@@ -75,7 +81,11 @@
       bar.setAttribute("aria-valuenow", String(percent));
       document.getElementById("dv4ProgressFill").style.width = percent + "%";
       document.getElementById("dv4ProgressTitle").textContent =
-        finished === checks.length ? "Pronto para revisão." : finished > 2 ? "Está ficando bom." : "Seu conteúdo começa aqui.";
+        finished === checks.length
+          ? "Pronto para revisão."
+          : finished > 2
+            ? "Está ficando bom."
+            : "Seu conteúdo começa aqui.";
       const next = current.find(([, ok]) => !ok);
       document.getElementById("dv4NextStep").textContent = next
         ? "Você pode continuar com: " + next[0].toLowerCase() + "."
@@ -90,26 +100,32 @@
       }
     };
     use.addEventListener("click", () => {
-      if ((title.value.trim() || caption.value.trim()) &&
-        !window.confirm("Substituir o título e a legenda atuais pela ideia de hoje?")) return;
+      if (
+        (title.value.trim() || caption.value.trim()) &&
+        !window.confirm("Substituir o título e a legenda atuais pela ideia de hoje?")
+      )
+        return;
       title.value = idea.slice(0, 80);
       caption.value = `${idea}. Conte um pouco sobre seu negócio e mostre ao cliente como você pode ajudar. Fale com a gente para saber mais.`;
-      for (const field of [title, caption]) field.dispatchEvent(new Event("input", { bubbles: true }));
+      for (const field of [title, caption])
+        field.dispatchEvent(new Event("input", { bubbles: true }));
       update();
       live.textContent = "Ideia aplicada ao editor. Revise antes de salvar; nada foi publicado.";
       document.getElementById("contentWorkspace-create")?.click();
       title.focus();
     });
     for (const name of ["input", "change"]) form.addEventListener(name, update);
-    host.querySelectorAll("[data-content-format]").forEach((tab) =>
-      tab.addEventListener("click", () => requestAnimationFrame(update)),
-    );
+    host
+      .querySelectorAll("[data-content-format]")
+      .forEach((tab) => tab.addEventListener("click", () => requestAnimationFrame(update)));
     document.addEventListener("socialmei-content-tab-change", () => requestAnimationFrame(update));
     const mediaStage = document.getElementById("contentPreviewStage");
-    if (mediaStage) new MutationObserver(update).observe(mediaStage, { childList: true, subtree: false });
+    if (mediaStage)
+      new MutationObserver(update).observe(mediaStage, { childList: true, subtree: false });
     const oldLabel = host.querySelector("#contentStudioTitle + p");
-    if (oldLabel) oldLabel.textContent =
-      "Crie, revise e organize seus conteúdos. Seus canais continuam desconectados até a homologação.";
+    if (oldLabel)
+      oldLabel.textContent =
+        "Crie, revise e organize seus conteúdos. Seus canais continuam desconectados até a homologação.";
     update();
   });
 })();

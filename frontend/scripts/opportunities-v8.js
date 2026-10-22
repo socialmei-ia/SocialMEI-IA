@@ -50,7 +50,11 @@
     const dates = (date) => {
       const value = Date.parse(date || "");
       return Number.isFinite(value)
-        ? new Date(value).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
+        ? new Date(value).toLocaleDateString("pt-BR", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          })
         : "Data não informada";
     };
     const el = (tag, className, content) => {
@@ -86,7 +90,9 @@
       target.querySelector("summary, button")?.focus({ preventScroll: true });
     }
     function writable(snapshot) {
-      return snapshot.ready && !snapshot.busy && ["owner", "admin", "member"].includes(snapshot.role);
+      return (
+        snapshot.ready && !snapshot.busy && ["owner", "admin", "member"].includes(snapshot.role)
+      );
     }
     function makeMove(row, snapshot) {
       const wrapper = el("div", "op8-move");
@@ -99,13 +105,19 @@
       }
       select.value = row.interest_level;
       select.disabled = !writable(snapshot);
-      const save = btn("Mover", () => {
-        if (select.value === row.interest_level) return;
-        const didStart = bridge.changeInterest(row.id, select.value);
-        announce(
-          didStart ? "Salvando alteração no negócio…" : "Não foi possível iniciar a atualização. Confira suas permissões.",
-        );
-      }, "management-button op8-save");
+      const save = btn(
+        "Mover",
+        () => {
+          if (select.value === row.interest_level) return;
+          const didStart = bridge.changeInterest(row.id, select.value);
+          announce(
+            didStart
+              ? "Salvando alteração no negócio…"
+              : "Não foi possível iniciar a atualização. Confira suas permissões.",
+          );
+        },
+        "management-button op8-save",
+      );
       save.disabled = !writable(snapshot);
       wrapper.append(select, save);
       return wrapper;
@@ -115,7 +127,13 @@
       const name = el("strong", "", row.client_name);
       const title = el("span", "op8-entry-title", row.title);
       const meta = el("small", "", "Atualizada " + dates(row.updated_at));
-      card.append(name, title, meta, makeMove(row, snapshot), btn("Abrir acompanhamento", () => navigateNative(row), "op8-textbutton"));
+      card.append(
+        name,
+        title,
+        meta,
+        makeMove(row, snapshot),
+        btn("Abrir acompanhamento", () => navigateNative(row), "op8-textbutton"),
+      );
       return card;
     }
     function renderBoard(snapshot) {
@@ -136,7 +154,13 @@
         container.append(column);
       }
       if (snapshot.items.length >= 100)
-        container.after(el("p", "op8-notice", "Exibindo até 100 registros recentes. Use a lista para conferir o contexto."));
+        container.after(
+          el(
+            "p",
+            "op8-notice",
+            "Exibindo até 100 registros recentes. Use a lista para conferir o contexto.",
+          ),
+        );
     }
     function renderTimeline(snapshot) {
       const container = $("op8Timeline");
@@ -145,7 +169,13 @@
         (a, b) => Date.parse(b.updated_at || "") - Date.parse(a.updated_at || ""),
       );
       if (!rows.length) {
-        container.append(el("p", "op8-empty", "As movimentações aparecerão aqui depois de cadastrar oportunidades."));
+        container.append(
+          el(
+            "p",
+            "op8-empty",
+            "As movimentações aparecerão aqui depois de cadastrar oportunidades.",
+          ),
+        );
         return;
       }
       const groups = new Map();
@@ -162,9 +192,10 @@
           const item = el("li");
           const content = el("div");
           content.append(el("strong", "", row.client_name), el("p", "", row.title));
-          const outcome = row.outcome === "open"
-            ? SocialMEIOpportunityLifecycle.INTEREST[row.interest_level]
-            : SocialMEIOpportunityLifecycle.OUTCOME[row.outcome];
+          const outcome =
+            row.outcome === "open"
+              ? SocialMEIOpportunityLifecycle.INTEREST[row.interest_level]
+              : SocialMEIOpportunityLifecycle.OUTCOME[row.outcome];
           const open = btn("Ver detalhes", () => navigateNative(row), "op8-textbutton");
           item.append(content, el("span", "op8-label", outcome), open);
           ul.append(item);
@@ -214,7 +245,13 @@
           );
           priority.append(element);
         }
-        priority.append(el("small", "", "Ordenado por última atualização. Não representa prazo ou compromisso agendado."));
+        priority.append(
+          el(
+            "small",
+            "",
+            "Ordenado por última atualização. Não representa prazo ou compromisso agendado.",
+          ),
+        );
       }
       renderBoard(snapshot);
       renderTimeline(snapshot);
@@ -225,7 +262,8 @@
       if (!target) return;
       state.mode = target.dataset.op8View;
       syncView();
-      if (state.mode !== "list") view.querySelector("#op8" + (state.mode === "board" ? "Board" : "Timeline"))?.focus();
+      if (state.mode !== "list")
+        view.querySelector("#op8" + (state.mode === "board" ? "Board" : "Timeline"))?.focus();
     });
     $("op8Create").addEventListener("click", () => {
       const form = document.getElementById("opportunityCreateForm");
