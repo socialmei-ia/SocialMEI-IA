@@ -95,5 +95,9 @@ def channel_ingress_signing_key() -> str:
     return os.getenv("SOCIALMEI_CHANNEL_INGRESS_TEST_KEY", "")
 
 
+def instagram_mode() -> str:
+    return os.getenv("SOCIALMEI_INSTAGRAM_MODE", "disabled").strip().lower()
+
+
 def content_preparation_mode() -> str:
     return os.getenv("SOCIALMEI_CONTENT_PREPARATION_MODE", "disabled").strip().lower()
