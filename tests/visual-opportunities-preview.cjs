@@ -256,14 +256,13 @@ module.exports = async (context, origin, client, headers) => {
     await page.locator("#op8CreateValue").fill("590,50");
     await page.locator("#op8CreateDate").fill(today);
     await page.locator("#opportunityCreateForm button[type=submit]").click();
-    await page.waitForFunction(
-      () =>
-        [...document.querySelectorAll(".op8-entry")].some(
-          (card) =>
-            card.textContent.includes("Novo orçamento de teste V8") &&
-            card.textContent.includes("590,50") &&
-            card.textContent.includes("Retomar:"),
-        ),
+    await page.waitForFunction(() =>
+      [...document.querySelectorAll(".op8-entry")].some(
+        (card) =>
+          card.textContent.includes("Novo orçamento de teste V8") &&
+          card.textContent.includes("590,50") &&
+          card.textContent.includes("Retomar:"),
+      ),
     );
     await page.evaluate(() => setView("Divulgação"));
     await page.locator("#contentWorkspace-create").click();
