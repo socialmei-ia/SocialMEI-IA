@@ -168,6 +168,8 @@ module.exports = async (context, origin, client, headers) => {
       () => document.getElementById("op8Feedback")?.textContent === "Interesse atualizado para Frio.",
     );
     assert.equal(await page.locator(".op8-column-cold .op8-entry").count(), 1);
+    assert.equal(await page.locator(".op8-column-warm .op8-entry").count(), 0);
+    assert.equal(await page.locator("#op8Open").textContent(), "3");
     assert(
       await page
         .locator(".op8-column-cold .op8-entry select")
