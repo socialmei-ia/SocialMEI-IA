@@ -339,6 +339,7 @@ document.addEventListener("DOMContentLoaded", function () {
       list.append(card);
     }
     controls();
+    document.dispatchEvent(new Event("socialmei-opportunity-v8-change"));
   }
   // Read-only snapshot and guarded native writes for the V8 presentation layer.
   // All writes still go through the existing authenticated, revisioned API store.
