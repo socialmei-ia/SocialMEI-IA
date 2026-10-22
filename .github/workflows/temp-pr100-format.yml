@@ -1,0 +1,31 @@
+name: Temporary PR100 targeted format
+on:
+  push:
+    branches: [feat/native-opportunities-v8-content-v4]
+    paths: [.github/workflows/temp-pr100-format.yml]
+permissions:
+  contents: write
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - name: Format only edited code and docs, never golden masters
+        run: |
+          npx prettier --write tests/prototype-reference-fidelity.test.cjs docs/EXACT-V8-V4-CODEX-BRIEF.md docs/INSTAGRAM-META-INTEGRATION-READINESS.md tests/visual-opportunities-preview.cjs tests/native-opportunities-browser.cjs
+      - name: Commit formatting only when needed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/prototype-reference-fidelity.test.cjs docs/EXACT-V8-V4-CODEX-BRIEF.md docs/INSTAGRAM-META-INTEGRATION-READINESS.md tests/visual-opportunities-preview.cjs tests/native-opportunities-browser.cjs
+          if ! git diff --staged --quiet; then
+            git commit -m "style(pr100): format checks without touching prototype references"
+            git push origin HEAD:feat/native-opportunities-v8-content-v4
+          fi
