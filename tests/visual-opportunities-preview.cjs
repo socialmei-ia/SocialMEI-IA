@@ -88,7 +88,13 @@ module.exports = async (context, origin, client, headers) => {
       await form
         .locator("label > :is(input,select)")
         .evaluateAll((nodes) => nodes.map((n) => n.id)),
-      ["opportunityClient", "opportunityInterest", "opportunityTitle"],
+      [
+        "opportunityClient",
+        "opportunityInterest",
+        "opportunityTitle",
+        "op8CreateValue",
+        "op8CreateDate",
+      ],
     );
     await page.locator('[data-commercial-filter="cold"]').click();
     assert(await page.locator(".commercial-opportunity-empty").isVisible());
