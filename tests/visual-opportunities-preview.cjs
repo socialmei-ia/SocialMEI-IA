@@ -177,6 +177,30 @@ module.exports = async (context, origin, client, headers) => {
         .evaluate((field) => field === document.activeElement),
       "After changing interest, keyboard focus must follow the same opportunity",
     );
+    // Prototype parity: value, follow-up and Semana use scoped browser-only metadata.
+    const localCard = page.locator(".op8-column-cold .op8-entry");
+    await localCard.locator(".op8-extra summary").click();
+    await localCard.locator('input[aria-label^="Valor estimado"]').fill("350,50");
+    const today = await page.evaluate(() => {
+      const d = new Date();
+      return [
+        d.getFullYear(),
+        String(d.getMonth() + 1).padStart(2, "0"),
+        String(d.getDate()).padStart(2, "0"),
+      ].join("-");
+    });
+    await localCard.locator('input[type="date"]').fill(today);
+    await localCard.getByRole("button", { name: "Salvar planejamento" }).click();
+    assert(await page.locator("#op8DueList").getByText("Acompanhamento fictício warm").isVisible());
+    await page.locator('[data-op8-view="week"]').click();
+    assert(await page.locator("#op8Week").isVisible());
+    assert(
+      await page.locator("#op8Week .op8-week-card").filter({ hasText: "Acompanhamento fictício warm" }).count() === 1,
+    );
+    await page.locator('[data-op8-view="board"]').click();
+    await page.locator("#op8Query").fill("Acompanhamento fictício hot");
+    assert.equal(await page.locator("#op8Board .op8-entry:visible").count(), 1);
+    await page.locator("#op8Query").fill("");
     await page.locator('[data-op8-view="timeline"]').click();
     assert(await page.locator("#op8Timeline").isVisible());
     assert.equal(await page.locator("#op8Timeline .op8-day-list li").count(), 4);
