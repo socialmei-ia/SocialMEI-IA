@@ -15,7 +15,7 @@
         <div class="op8-head">
           <div><span class="op8-eyebrow">ACOMPANHAMENTO COMERCIAL</span>
             <h3>Negociações em movimento.</h3>
-            <p class="op8-caption" id="op8Summary" role="status" aria-live="polite">Carregando informações do negócio…</p>
+            <p class="op8-caption" id="op8Summary" aria-live="polite">Carregando informações do negócio…</p>
           </div>
           <div class="op8-head-actions">
             <button class="management-button" type="button" id="op8Refresh">Atualizar dados</button>
@@ -40,7 +40,7 @@
       </div>
       <div id="op8Board" class="op8-board" hidden></div>
       <div id="op8Timeline" class="op8-timeline" hidden></div>
-      <p id="op8Feedback" class="op8-feedback" role="status" aria-live="polite"></p>
+      <p id="op8Feedback" class="op8-feedback" aria-live="polite"></p>
     `;
     host.insertBefore(view, host.firstChild);
     host.classList.add("op8-enabled");
