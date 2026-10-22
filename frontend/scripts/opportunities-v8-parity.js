@@ -242,30 +242,37 @@
     }
     function renderWeek(data) {
       const week = $("#op8Week");
+      week.tabIndex = 0;
       week.replaceChildren();
       const open = data.filter((row) => row.outcome === "open");
       const days = Array.from({ length: 7 }, (_, n) => nextDay(n));
-      days.push("");
+      days.push("later", "");
       for (const date of days) {
         const column = document.createElement("section");
         column.className = "op8-week-col";
-        const label = date || "Sem data";
-        const matches = open.filter((row) => (state.meta[row.id]?.date || "") === date);
+        column.dataset.day = date;
+        const label = date === "later" ? "Depois" : date || "Sem data";
+        const matches = open.filter((row) => {
+          const scheduled = state.meta[row.id]?.date || "";
+          return date === "later" ? scheduled > days[6] : scheduled === date;
+        });
         column.append(safeText("h4", label + " (" + matches.length + ")"));
         const select = document.createElement("div");
         select.className = "op8-week-cards";
         for (const row of matches) {
           const entry = safeText("div", row.client_name + " · " + row.title, "op8-week-card");
+          entry.draggable = true;
+          entry.dataset.opportunityId = row.id;
           entry.append(safeText("small", state.meta[row.id]?.amount ? money.format(state.meta[row.id].amount) : "Sem valor"));
           const move = document.createElement("select");
           move.setAttribute("aria-label", "Mover retorno de " + row.client_name);
-          for (const day of days) {
+          for (const day of days.filter((candidate) => candidate !== "later")) {
             const opt = document.createElement("option");
             opt.value = day;
             opt.textContent = day || "Sem data";
             move.append(opt);
           }
-          move.value = date;
+          move.value = date === "later" ? "" : date;
           move.addEventListener("change", () => {
             if (setMeta(row.id, { date: move.value, contacted: false })) update();
           });
@@ -302,6 +309,45 @@
       const weekTab = view.querySelector('[data-op8-view="week"]');
       if (weekTab?.getAttribute("aria-pressed") === "true") week.hidden = false;
     }
+    // Original V8 supports drag-and-drop; the select controls remain the keyboard alternative.
+    const board = $("#op8Board");
+    board.addEventListener("dragstart", (event) => {
+      const card = event.target.closest(".op8-entry");
+      if (!card || !event.dataTransfer) return;
+      event.dataTransfer.setData("text/plain", card.dataset.opportunityId);
+      event.dataTransfer.effectAllowed = "move";
+    });
+    board.addEventListener("dragover", (event) => {
+      if (event.target.closest(".op8-column")) event.preventDefault();
+    });
+    board.addEventListener("drop", async (event) => {
+      const column = event.target.closest(".op8-column");
+      const id = event.dataTransfer?.getData("text/plain");
+      const level = column?.className.match(/op8-column-(unknown|cold|warm|hot)/)?.[1];
+      if (!id || !level || !eligible()) return;
+      event.preventDefault();
+      const saved = await bridge.changeInterest(id, level);
+      view.querySelector("#op8Feedback").textContent = saved
+        ? "Interesse alterado após confirmação do CRM."
+        : "Não foi possível mover. Confira o aviso do acompanhamento.";
+    });
+    const week = $("#op8Week");
+    week.addEventListener("dragstart", (event) => {
+      const card = event.target.closest("[data-opportunity-id]");
+      if (!card || !event.dataTransfer) return;
+      event.dataTransfer.setData("text/plain", card.dataset.opportunityId);
+    });
+    week.addEventListener("dragover", (event) => {
+      const col = event.target.closest(".op8-week-col");
+      if (col && col.dataset.day !== "later") event.preventDefault();
+    });
+    week.addEventListener("drop", (event) => {
+      const col = event.target.closest(".op8-week-col");
+      const id = event.dataTransfer?.getData("text/plain");
+      if (!col || col.dataset.day === "later" || !id) return;
+      event.preventDefault();
+      if (setMeta(id, { date: col.dataset.day, contacted: false })) update();
+    });
     for (const input of [$("#op8Query"), $("#op8Sort")])
       input.addEventListener(input.id === "op8Query" ? "input" : "change", update);
     view.addEventListener("click", (event) => {
