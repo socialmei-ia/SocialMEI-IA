@@ -377,8 +377,10 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!client_id || !title.value.trim()) return;
     run(
       () => store.create({ client_id, title: title.value.trim(), interest_level: interest.value }),
-      () => {
+      (created) => {
         title.value = "";
+        if (created?.id)
+          document.dispatchEvent(new CustomEvent("socialmei-v8-created", { detail: { id: created.id } }));
       },
     );
   });
