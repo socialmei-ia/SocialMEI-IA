@@ -57,6 +57,24 @@ module.exports = async (browser, origin) => {
     assert.equal(await page.locator("#contentDraftList .content-draft-row:visible").count(), 0);
     await page.locator("#dv4DraftQuery").fill("Rascunho de demonstração visual");
     assert.equal(await page.locator("#contentDraftList .content-draft-row:visible").count(), 1);
+    // The standalone V4 backup is converted into the native scoped draft format.
+    page.once("dialog", (dialog) => dialog.accept());
+    await page.locator('input[aria-label="Selecionar backup JSON de rascunhos"]').setInputFiles({
+      name: "rascunhos-v4.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(
+        JSON.stringify({
+          app: "socialmei-divulgacao",
+          v: 4,
+          drafts: [{ id: "legacy", f: "feed", titulo: "Rascunho V4 importado", leg: "Teste" }],
+        }),
+      ),
+    });
+    await page.waitForFunction(() =>
+      [...document.querySelectorAll("#contentDraftList .content-draft-row")].some((row) =>
+        row.textContent.includes("Rascunho V4 importado"),
+      ),
+    );
     await page.locator("#contentWorkspace-create").focus();
     await page.keyboard.press("End");
     assert(
