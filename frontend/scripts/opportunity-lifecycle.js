@@ -138,10 +138,12 @@ document.addEventListener("DOMContentLoaded", function () {
         "Dados consultados no negócio atual. Alterações são salvas após confirmação.";
       render();
       if (keepFocus) heading.focus();
+      return true;
     } catch (error) {
       status.textContent =
         error.message + " Seus campos foram preservados. Atualize se houver conflito.";
       controls();
+      return false;
     }
   }
   function writeButton(text, action) {
@@ -345,14 +347,13 @@ document.addEventListener("DOMContentLoaded", function () {
   // All writes still go through the existing authenticated, revisioned API store.
   window.SocialMEIOpportunityV8Bridge = Object.freeze({
     snapshot: () => store.snapshot(),
-    changeInterest(id, interestLevel) {
+    async changeInterest(id, interestLevel) {
       const state = store.snapshot();
       const row = state.items.find((item) => item.id === id);
       if (!row || row.outcome !== "open" || !(interestLevel in api.INTEREST)) return false;
       if (!state.ready || state.busy || !["owner", "admin", "member"].includes(state.role))
         return false;
-      run(() => store.update(row, { interest_level: interestLevel }));
-      return true;
+      return run(() => store.update(row, { interest_level: interestLevel }));
     },
     refresh: () => run(() => store.reload()),
   });
