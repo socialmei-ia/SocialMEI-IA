@@ -21,6 +21,10 @@ cadeia #83/#89/#90/#91/#92 preservada. #93 continua separada; main não foi alte
 - **P2 no teste de sincronização:** a espera após reload consultava um identificador
   antes de carregar seu script. O erro foi observado na suíte completa; a espera
   agora aguarda a definição antes de exigir o mesmo negócio autenticado.
+- **P2 na simulação Instagram:** um refresh após sucesso apagava a confirmação
+  explícita de que nada fora publicado. Regressão determinística reproduziu isso;
+  feedback transitório da última simulação agora é preservado no mesmo escopo,
+  descartado na próxima ação ou mudança de identidade. Não é estado de transporte.
 - Não houve redesign nem mudança cosmética de Automações, Assistente ou Caixa.
 
 ## Contrato e limites
@@ -48,6 +52,8 @@ Não se tenta deduplicar textos semanticamente parecidos.
   mensagens fora de ordem, revisão/descarte, persistência e leitura cruzada404.
 - Gráficos: fechamento por segundo toque/clique, preservação do ponto fixado e
   dispensado em redesenho, teclado e matriz claro/escuro da estabilização.
+- Simulação Instagram: refresh pós-sucesso mantém a confirmação; falha/retry com
+  mesma chave, escolha de conta e histórico continuam cobertos, sem envio externo.
 - Suítes completas e CI: resultados do HEAD final registrados na PR. Nenhuma
   assertiva removida, timeout aumentado ou teste ignorado para obter aprovação.
 

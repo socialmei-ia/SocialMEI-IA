@@ -49,7 +49,8 @@
   "code_hashes": {
     "frontend/scripts/experience.js": "9a39928fd66eb789f18981006e6067de6146744508017e4466551f0362ad9267",
     "python-service/message_enrichment.py": "589571460befc1baaf236d7914459d6a9be07dae1216f618cf4a3a247be7615b",
-    "frontend/scripts/chart-refinement.js": "0034c0a7dc71060921a6cd52aaae5b5d510da7cc32cfd6aada99ec7d18e53426"
+    "frontend/scripts/chart-refinement.js": "0034c0a7dc71060921a6cd52aaae5b5d510da7cc32cfd6aada99ec7d18e53426",
+    "frontend/scripts/instagram-simulation.js": "79753590bcadddf81e4a2acf12923ea67a0c66b53e7d92df6e08823407b1aa99"
   },
   "chart_regression": {
     "reproduced_before_fix": true,
@@ -58,5 +59,11 @@
     "second_click_and_touch_dismiss": true,
     "historical_issue_73_root_cause_confirmed": false,
     "fresh_hover_after_keyboard_escape": true
+  },
+  "instagram_simulation_feedback": {
+    "reproduced_before_fix": true,
+    "post_success_refresh_preserves_no_publication_notice": true,
+    "transient_ui_only": true,
+    "real_transport": false
   }
 }
