@@ -162,6 +162,18 @@ module.exports = async (context, origin, client, headers) => {
     await page.locator('[data-op8-view="board"]').click();
     assert(await page.locator("#op8Board").isVisible());
     assert.equal(await page.locator("#op8Board .op8-entry").count(), 3);
+    await page.locator(".op8-column-warm .op8-entry select").selectOption("cold");
+    await page.locator(".op8-column-warm .op8-entry .op8-save").click();
+    await page.waitForFunction(
+      () => document.getElementById("op8Feedback")?.textContent === "Interesse atualizado para Frio.",
+    );
+    assert.equal(await page.locator(".op8-column-cold .op8-entry").count(), 1);
+    assert(
+      await page
+        .locator(".op8-column-cold .op8-entry select")
+        .evaluate((field) => field === document.activeElement),
+      "After changing interest, keyboard focus must follow the same opportunity",
+    );
     await page.locator('[data-op8-view="timeline"]').click();
     assert(await page.locator("#op8Timeline").isVisible());
     assert.equal(await page.locator("#op8Timeline .op8-day-list li").count(), 4);
