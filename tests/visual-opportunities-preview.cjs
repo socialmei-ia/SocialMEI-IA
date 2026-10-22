@@ -165,7 +165,8 @@ module.exports = async (context, origin, client, headers) => {
     await page.locator(".op8-column-warm .op8-entry select").selectOption("cold");
     await page.locator(".op8-column-warm .op8-entry .op8-save").click();
     await page.waitForFunction(
-      () => document.getElementById("op8Feedback")?.textContent === "Interesse atualizado para Frio.",
+      () =>
+        document.getElementById("op8Feedback")?.textContent === "Interesse atualizado para Frio.",
     );
     assert.equal(await page.locator(".op8-column-cold .op8-entry").count(), 1);
     assert.equal(await page.locator(".op8-column-warm .op8-entry").count(), 0);
