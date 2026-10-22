@@ -44,6 +44,7 @@ async function run() {
     checks.push(await require("./content-studio-browser.cjs")(browser, origin));
     checks.push(await require("./content-preparation-browser.cjs")(browser, origin));
     checks.push(await require("./content-workspace-browser.cjs")(browser, origin));
+    checks.push(await require("./visual-content-browser.cjs")(browser, origin));
     checks.push(await require("./integration-setup-browser.cjs")(browser, origin));
     checks.push(await require("./instagram-integration-browser.cjs")(browser, origin));
     checks.push(await require("./charts-demo-browser.cjs")(browser, origin));

@@ -75,6 +75,44 @@ const SocialMEIContentPreparation = (() => {
       .format(new Date(instant))
       .replace(" ", "T");
   }
+  function errorMessage(error) {
+    const message = String(error?.message || error || "Não foi possível concluir esta ação.");
+    const suffix = " Nenhuma publicação real foi feita.";
+    if (error?.status === 401)
+      return (
+        "Sua sessão expirou ou não está autenticada. Entre novamente antes de continuar." + suffix
+      );
+    if (error?.status === 403)
+      return (
+        "Sua conta não tem permissão para esta ação. Confira o acesso com o responsável pelo negócio." +
+        suffix
+      );
+    if (error?.status === 409)
+      return (
+        "A preparação mudou em outra sessão ou a configuração não permite esta ação. Atualize o histórico e revise antes de tentar novamente." +
+        suffix
+      );
+    if (error?.status === 503)
+      return (
+        "A preparação compartilhada está temporariamente indisponível. Tente atualizar mais tarde." +
+        suffix
+      );
+    if (error?.status === 404)
+      return (
+        "A preparação ou o recurso solicitado não está disponível neste negócio. Atualize o histórico." +
+        suffix
+      );
+    if (/Failed to fetch|NetworkError|Load failed/i.test(message))
+      return (
+        "Não foi possível conectar ao servidor de testes. Confira sua conexão e o endereço HTTPS e tente atualizar." +
+        suffix
+      );
+    if (error?.name === "AbortError")
+      return (
+        "O servidor demorou a responder. Atualize o histórico antes de repetir a ação." + suffix
+      );
+    return message;
+  }
   const labels = {
     draft: "Rascunho",
     pending_review: "Aguardando revisão",
@@ -165,7 +203,7 @@ const SocialMEIContentPreparation = (() => {
       active = null,
       intent = null;
     const say = (text) => {
-      byId("preparationStatus").textContent = text;
+      byId("preparationStatus").textContent = errorMessage(text);
     };
     const configured = () => enabled(SOCIALMEI_CONFIG.contentPreparation, SocialMEIAuth.remote);
     const writable = () =>
@@ -312,7 +350,7 @@ const SocialMEIContentPreparation = (() => {
         publishJobs([]);
         byId("preparationAccount").replaceChildren();
         byId("preparationHistory").replaceChildren();
-        say(error.message);
+        say(error);
       } finally {
         if (seq === epoch) controls();
       }
@@ -326,7 +364,13 @@ const SocialMEIContentPreparation = (() => {
       try {
         await task(expected);
       } catch (error) {
-        if (expected === scope()) say(error.message + " Nenhuma publicação real foi feita.");
+        if (expected === scope())
+          say(
+            errorMessage(error) +
+              (errorMessage(error).includes("Nenhuma publicação real")
+                ? ""
+                : " Nenhuma publicação real foi feita."),
+          );
       } finally {
         working = false;
         if (expected !== scope()) resetIdentity();
@@ -535,6 +579,7 @@ const SocialMEIContentPreparation = (() => {
   }
   const api = Object.freeze({
     enabled,
+    errorMessage,
     captionAlternatives,
     zonedInstant,
     jobs: () => publishedJobs.slice(),

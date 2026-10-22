@@ -143,7 +143,10 @@ const SocialMEIIntegrationSetup = (() => {
         );
       } catch (error) {
         if (expected === key(auth.current))
-          say(error.message + " Seus campos foram preservados; nenhuma cópia local foi criada.");
+          say(
+            SocialMEIContentPreparation.errorMessage(error) +
+              " Seus campos foram preservados; nenhuma cópia local foi criada.",
+          );
       } finally {
         busy = false;
         reset();
