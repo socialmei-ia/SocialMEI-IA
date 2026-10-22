@@ -96,3 +96,38 @@ test("local media requires compatible MIME, size and header before preview", asy
   );
   await assert.rejects(model.validateMedia(file("image/png", [137, 80, 78, 71]), "reel"), /vídeo/);
 });
+
+test("backup import is atomic, scoped, and discards untrusted IDs or extra metadata", () => {
+  const f = fixture();
+  const saved = f.repo.save(input, "a");
+  const imported = f.repo.importMany(
+    [{ ...input, id: saved.id, title: "Importado", published: true, url: "https://bad.test" }],
+    "a",
+  );
+  assert.equal(imported.length, 2);
+  assert.equal(imported[0].title, "Importado");
+  assert.notEqual(imported[0].id, saved.id);
+  assert.equal("published" in imported[0], false);
+  assert.equal("url" in imported[0], false);
+  const previous = JSON.stringify(f.repo.read().items);
+  assert.throws(
+    () => f.repo.importMany([{ ...input, title: "Válido" }, { ...input, format: "invalid" }], "a"),
+    /Escolha/,
+  );
+  assert.equal(JSON.stringify(f.repo.read().items), previous);
+  f.switch("b");
+  assert.deepEqual(f.repo.read().items, []);
+  assert.throws(() => f.repo.importMany([input], "a"), /sessão/);
+  assert.equal(f.repo.importMany([input], "b").length, 1);
+  f.switch("a");
+  assert.equal(JSON.stringify(f.repo.read().items), previous);
+});
+
+test("backup cannot overflow the 40-draft quota or modify previous entries", () => {
+  const f = fixture();
+  f.repo.save(input, "a");
+  const prior = JSON.stringify(f.repo.read().items);
+  assert.throws(() => f.repo.importMany(Array.from({ length: 40 }, () => input), "a"), /40/);
+  assert.equal(JSON.stringify(f.repo.read().items), prior);
+  assert.throws(() => f.repo.importMany([], "a"), /Backup inválido/);
+});
