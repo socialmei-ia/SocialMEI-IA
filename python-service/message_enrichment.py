@@ -15,7 +15,7 @@ from fastapi import APIRouter, HTTPException, Query, Request, Response
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 from starlette.concurrency import run_in_threadpool
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StrictInt, StringConstraints, model_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StrictInt, StringConstraints, field_validator, model_validator
 
 import settings
 from account_auth import current, require_enabled
@@ -84,6 +84,26 @@ class Incoming(Operation):
     contact_name: Label
     external_message_id: Label
     text: Text
+    occurred_at: datetime | None = None
+
+    @field_validator('occurred_at', mode='before')
+    @classmethod
+    def source_time(cls, value):
+        if value is None:
+            return None
+        if isinstance(value, str):
+            if not re.fullmatch(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})', value):
+                raise ValueError('Informe data e hora com fuso explícito.')
+            offset = re.search(r'[+-](\d{2}):(\d{2})$', value)
+            if offset and (int(offset[1]) > 23 or int(offset[2]) > 59):
+                raise ValueError('Fuso horário inválido.')
+            value = datetime.fromisoformat(value.replace('Z', '+00:00'))
+        if not isinstance(value, datetime) or value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError('Informe data e hora com fuso explícito.')
+        try:
+            return value.astimezone(timezone.utc)
+        except (ValueError, OverflowError):
+            raise ValueError('Data e hora fora do intervalo suportado.') from None
 
     @model_validator(mode='after')
     def bytes(self):
@@ -198,8 +218,13 @@ def fingerprint(value):
     return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=True).encode()).hexdigest()
 
 
+def operation_data(payload):
+    # Optional source time must not change fingerprints of already persisted messages.
+    return payload.model_dump(mode='json', exclude_none=True)
+
+
 def operation(conn, workspace, kind, payload):
-    value = payload.model_dump()
+    value = operation_data(payload)
     row = conn.execute('SELECT fingerprint,response FROM socialmei.me_operations WHERE workspace_id=%s AND kind=%s AND operation_id=%s', (workspace, kind, payload.operation_id)).fetchone()
     if row:
         if row['fingerprint'] != fingerprint(value):
@@ -209,7 +234,7 @@ def operation(conn, workspace, kind, payload):
 
 
 def remember(conn, workspace, kind, payload, response):
-    conn.execute('INSERT INTO socialmei.me_operations(workspace_id,kind,operation_id,fingerprint,response) VALUES(%s,%s,%s,%s,%s)', (workspace, kind, payload.operation_id, fingerprint(payload.model_dump()), Jsonb(response)))
+    conn.execute('INSERT INTO socialmei.me_operations(workspace_id,kind,operation_id,fingerprint,response) VALUES(%s,%s,%s,%s,%s)', (workspace, kind, payload.operation_id, fingerprint(operation_data(payload)), Jsonb(response)))
 
 
 def invalidate_expired(conn, workspace):
@@ -356,7 +381,7 @@ def persist_incoming(conn, workspace, payload):
     prior = operation(conn, workspace, 'message', payload)
     if prior:
         return {**prior, 'replayed': True}
-    external_fingerprint = fingerprint({k: v for k, v in payload.model_dump().items() if k != 'operation_id'})
+    external_fingerprint = fingerprint({k: v for k, v in operation_data(payload).items() if k != 'operation_id'})
     existing = conn.execute('SELECT m.* FROM socialmei.me_external_messages e JOIN socialmei.me_messages m ON m.workspace_id=e.workspace_id AND m.id=e.message_id WHERE e.workspace_id=%s AND e.channel=%s AND e.account_ref=%s AND e.external_message_id=%s', (workspace, payload.channel, payload.account_ref, payload.external_message_id)).fetchone()
     if existing:
         if existing['fingerprint'] != external_fingerprint:
@@ -368,7 +393,7 @@ def persist_incoming(conn, workspace, payload):
         rate_limit(conn, workspace)
         conv = conn.execute('INSERT INTO socialmei.me_conversations(workspace_id,channel,account_ref,contact_ref,contact_name) VALUES(%s,%s,%s,%s,%s) ON CONFLICT(workspace_id,channel,account_ref,contact_ref) DO UPDATE SET contact_name=me_conversations.contact_name RETURNING *', (workspace, payload.channel, payload.account_ref, payload.contact_ref, payload.contact_name)).fetchone()
         revision = conn.execute('UPDATE socialmei.me_conversations SET revision=revision+1 WHERE id=%s RETURNING revision', (conv['id'],)).fetchone()['revision']
-        message = conn.execute('INSERT INTO socialmei.me_messages(workspace_id,conversation_id,external_message_id,text,fingerprint,conversation_revision) VALUES(%s,%s,%s,%s,%s,%s) RETURNING id', (workspace, conv['id'], payload.external_message_id, payload.text, external_fingerprint, revision)).fetchone()
+        message = conn.execute('INSERT INTO socialmei.me_messages(workspace_id,conversation_id,external_message_id,text,fingerprint,conversation_revision,occurred_at) VALUES(%s,%s,%s,%s,%s,%s,COALESCE(%s,NOW())) RETURNING id', (workspace, conv['id'], payload.external_message_id, payload.text, external_fingerprint, revision, payload.occurred_at)).fetchone()
         conn.execute('INSERT INTO socialmei.me_external_messages(workspace_id,channel,account_ref,external_message_id,message_id) VALUES(%s,%s,%s,%s,%s)', (workspace, payload.channel, payload.account_ref, payload.external_message_id, message['id']))
         result = {'conversation_id': conv['id'], 'message_id': message['id'], 'revision': revision, 'replayed': False}
     remember(conn, workspace, 'message', payload, result)
@@ -383,7 +408,7 @@ def conversations(request: Request, response: Response):
         invalidate_expired(conn, workspace)
         items = conn.execute('SELECT id,channel,account_ref,contact_ref,contact_name,revision FROM socialmei.me_conversations WHERE workspace_id=%s ORDER BY id DESC LIMIT 100', (workspace,)).fetchall()
         for conversation in items:
-            messages = conn.execute('SELECT id,external_message_id,text,occurred_at,revision FROM socialmei.me_messages WHERE workspace_id=%s AND conversation_id=%s ORDER BY id DESC LIMIT 100', (workspace, conversation['id'])).fetchall()
+            messages = conn.execute('SELECT id,external_message_id,text,occurred_at,revision FROM socialmei.me_messages WHERE workspace_id=%s AND conversation_id=%s ORDER BY occurred_at DESC,id DESC LIMIT 100', (workspace, conversation['id'])).fetchall()
             for message in messages:
                 job = conn.execute('SELECT * FROM socialmei.me_jobs WHERE workspace_id=%s AND message_id=%s ORDER BY message_revision DESC,id DESC LIMIT 1', (workspace, message['id'])).fetchone()
                 message['enrichment'] = envelope(job) if job else None

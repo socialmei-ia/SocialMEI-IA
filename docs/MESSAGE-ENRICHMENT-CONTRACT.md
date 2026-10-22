@@ -35,3 +35,17 @@ The internal HTTP callback is implemented and tested locally; no n8n hook is ins
 Reuse the native Inbox, thread and design tokens. Open an explicit synthetic-analysis panel; show `Sugestão da IA — não enviada`, source/heuristic explanation, editable draft and persisted review. Synthetic messages must never become real sent messages. Viewer controls read-only; network failure, including a failed explicit reload, preserves draft and no local fallback write occurs. Authenticated data stays in memory, discarded across identity changes; legacy local keys remain intact.
 
 Tests cover two independent authenticated sessions, two workspaces/same display name, different channel/accounts/contacts, deduplication/replay/concurrency, CAS/out-of-order/expiry, HMAC tampering/retry/rate limits, RAG deletion/isolation, roles/auth/CSRF and offline UI. Run Node, Python/Postgres disposable and full browser/CI on final HEAD. Captures in native navigation, mobile/desktop, light/dark, keyboard and reduced motion. Rollout/rollback is documentation only; migration is incremental and never applied to a real database in this task.
+
+## Optional source timestamp extension
+
+`POST /synthetic-messages` accepts optional `occurred_at`, an explicit-offset ISO
+8601 timestamp normalized to UTC. Omitted/null retains server registration time
+and the original payload fingerprint. Invalid offsets, naive timestamps and UTC
+range overflow fail422 before writes. Same normalized instant replays; changed
+instant under the same key conflicts409. Conversation messages are presented by
+`occurred_at,id` (latest100, returned ascending), while revisions track arrival.
+No migration, transport or external provider authentication is added.
+
+See [multichannel reply readiness](MULTICHANNEL-REPLY-READINESS.md) for identity,
+legacy compatibility, review/cancellation, timestamp limitations and future
+adapter requirements.

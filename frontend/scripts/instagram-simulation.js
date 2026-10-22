@@ -32,6 +32,7 @@ const SocialMEIInstagramSimulation = (() => {
     let accounts = [],
       intent = null,
       working = false,
+      outcome = null,
       version = 0;
     const message = (text) => {
       status.textContent = text;
@@ -81,9 +82,11 @@ const SocialMEIInstagramSimulation = (() => {
         accounts = a.items;
         renderAccounts();
         showHistory(p.items);
+        const scope = SocialMEIBusinessProfile.browserRepository().scope();
+        if (outcome?.scope !== scope) outcome = null;
         message(SocialMEIAuth.current.papel === "viewer"
           ? "Histórico disponível. Esta conta possui acesso somente leitura."
-          : "Simulação habilitada. Nenhum dado é transmitido ao Instagram.");
+          : outcome?.text || "Simulação habilitada. Nenhum dado é transmitido ao Instagram.");
       } catch (error) {
         if (seq !== version) return;
         accounts = [];
@@ -95,6 +98,7 @@ const SocialMEIInstagramSimulation = (() => {
       if (working || !name.value.trim()) return message("Informe um nome fictício.");
       // Fence background reads that predate this mutation.
       version++;
+      outcome = null;
       working = true;
       renderAccounts();
       try {
@@ -132,17 +136,21 @@ const SocialMEIInstagramSimulation = (() => {
       }
       // Fence background reads that predate this mutation.
       version++;
+      outcome = null;
       working = true;
       renderAccounts();
       try {
         const result = await request("/publications", "POST", body);
         if (SocialMEIBusinessProfile.browserRepository().scope() !== snapshot.scope)
           return message("A sessão mudou. Confira as simulações na conta atual.");
-        message(
-          "Simulação " +
-            result.id +
+        // Passive reads may update the history, but must not erase this result.
+        // This is transient UI feedback, scoped to the current account, never transport state.
+        outcome = {
+          scope: snapshot.scope,
+          text: "Simulação " + result.id +
             " registrada. Nenhum arquivo foi enviado e nada foi publicado.",
-        );
+        };
+        message(outcome.text);
         const items = await request("/publications");
         showHistory(items.items);
       } catch (error) {

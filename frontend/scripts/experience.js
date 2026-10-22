@@ -4331,7 +4331,7 @@ ONBOARDING — JAVASCRIPT
       setView("Caixa Unificada");
       const old = conversationDrafts.get(d.conversationId)?.text || "";
       conversationDrafts.set(d.conversationId, {
-        text: old && old !== d.text ? old + "\n\n" + d.text : d.text,
+        text: old.includes(d.text) ? old : old ? old + "\n\n" + d.text : d.text,
         note: false,
       });
       await selectConversation(d.conversationId);

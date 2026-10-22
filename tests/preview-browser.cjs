@@ -103,6 +103,23 @@ async function run() {
     assert.equal(cancel.status(), 200);
     assert.equal((await cancel.json()).status, "cancelled");
     assert.equal((await first.request.get(origin + "/internal/channel-ingress")).status(), 404);
+    assert.equal(
+      (
+        await first.request.post(origin + "/internal/channel-ingress/instagram-fixture", {
+          data: {},
+        })
+      ).status(),
+      404,
+    );
+    const ingress = await first.request.get(origin + "/api/v1/channel-lab/instagram/status");
+    assert.equal(ingress.status(), 200, await ingress.text());
+    const ingressStatus = await ingress.json();
+    assert.equal(ingressStatus.workspace_id, first.previewIdentity.negocio.id);
+    assert.equal(ingressStatus.fixture_ingress_available, true);
+    assert.equal(ingressStatus.connected, false);
+    assert.equal(ingressStatus.transport, "none");
+    assert.equal(ingressStatus.can_receive_real, false);
+    assert.equal(ingressStatus.can_send, false);
     for (const width of [1440, 390]) {
       const page = await first.newPage();
       page.on("pageerror", (e) => errors.push(e.message));
@@ -284,6 +301,12 @@ async function run() {
       });
       await page.close();
     }
+    const multichannelReplies = await require("./reply-preparation-preview.cjs")(
+      first,
+      contexts[1],
+      origin,
+      headers,
+    );
     const visualOpportunities = await require("./visual-opportunities-preview.cjs")(
       first,
       origin,
@@ -296,6 +319,7 @@ async function run() {
       JSON.stringify(
         {
           realBackend: true,
+          multichannelReplies,
           visualOpportunities,
           origin,
           workspaces: 2,

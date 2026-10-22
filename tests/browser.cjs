@@ -41,6 +41,7 @@ async function run() {
     checks.push(await require("./profile-sync-browser.cjs")(browser, origin));
     checks.push(await require("./message-enrichment-browser.cjs")(browser, origin));
     checks.push(await require("./native-opportunities-browser.cjs")(browser, origin));
+    checks.push(await require("./assistant-draft-maintenance-browser.cjs")(browser, origin));
     checks.push(await require("./content-studio-browser.cjs")(browser, origin));
     checks.push(await require("./content-preparation-browser.cjs")(browser, origin));
     checks.push(await require("./content-workspace-browser.cjs")(browser, origin));
