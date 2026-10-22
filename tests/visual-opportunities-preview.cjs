@@ -9,6 +9,20 @@ module.exports = async (context, origin, client, headers) => {
   const output = path.resolve(__dirname, "../test-results/visual-opportunities");
   fs.mkdirSync(output, { recursive: true });
   const errors = [];
+  const assertButtonContrast = async (selector) => {
+    const ratio = await page.locator(selector).evaluate((button) => {
+      const hex = (color) =>
+        "#" +
+        color
+          .match(/[\d.]+/g)
+          .slice(0, 3)
+          .map((value) => Math.round(Number(value)).toString(16).padStart(2, "0"))
+          .join("");
+      const style = getComputedStyle(button);
+      return SocialMEIThemes.contrast(hex(style.color), hex(style.backgroundColor));
+    });
+    assert(ratio >= 4.5, `primary action contrast ${selector}: ${ratio}`);
+  };
   const page = await context.newPage();
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.route("**/*", (route) =>
@@ -96,6 +110,7 @@ module.exports = async (context, origin, client, headers) => {
           await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
           `overflow ${width} ${theme}`,
         );
+        await assertButtonContrast('#opportunityCreateForm button[type="submit"]');
         const filtersBox = await page
           .locator("#opportunityLifecycle > .opportunity-controls")
           .boundingBox();
@@ -193,6 +208,8 @@ module.exports = async (context, origin, client, headers) => {
           () =>
             new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
         );
+        for (const selector of ["#contentNew", "#contentSave", "#preparationCaptions"])
+          await assertButtonContrast(selector);
         await page.evaluate(() => window.scrollTo(0, 0));
         await page.screenshot({
           path: path.join(output, `content-preview-${width}-${theme}.png`),

@@ -186,12 +186,13 @@
   justify-self: end;
   min-width: 220px;
   padding: 10px 24px;
-  color: #fff;
+  color: var(--on-primary);
   background: var(--brand-primary);
   border-color: var(--brand-primary);
 }
 #opportunityCreateForm > button[type="submit"]:hover:not(:disabled) {
   background: var(--brand-primary-hover);
+  color: var(--on-primary-hover);
 }
 #opportunitiesView #opportunityLifecycle > .opportunity-controls {
   position: static;

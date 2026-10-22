@@ -257,7 +257,7 @@
 }
 #contentStudioView :is(#contentNew, #contentSave, #preparationCaptions) {
   background: var(--br);
-  color: white;
+  color: var(--on-primary);
   border-color: var(--br);
   font-weight: 650;
 }
@@ -581,4 +581,10 @@
   #contentStudioView #integrationSetupForm {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+#contentStudioView :is(#contentNew, #contentSave, #preparationCaptions):hover:not(:disabled) {
+  background: var(--brand-primary-hover);
+  border-color: var(--brand-primary-hover);
+  color: var(--on-primary-hover);
 }

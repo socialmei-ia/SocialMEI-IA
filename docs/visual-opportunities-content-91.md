@@ -52,6 +52,8 @@ Resultados finais e link do CI são registrados na PR.
 
 - Matriz Divulgação: quatro abas × cinco larguras × dois temas; teclado, mídia,
   proporções, rascunho preservado e ausência de erros JavaScript.
+- Botões principais utilizam o foreground derivado do tema, com verificação de
+  contraste de pelo menos 4,5:1 no claro e no escuro.
 - Matriz Oportunidades: 320/390/768/1024/1440, dois temas, estados 0/1/3, controles
   de 44 px, ordem do formulário, foco dos filtros e ausência de sobreposição.
 - Reflow equivalente a 200%: viewport CSS 720 × 500, densidade 2 e tela 1440 × 1000.

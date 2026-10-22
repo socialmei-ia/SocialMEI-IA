@@ -56,6 +56,10 @@ filtros/contadores, foco, frames e avisos; não se limitou à visão geral.
    Corrigido com camada explícita no header; a regressão premium exercitou novamente
    abertura do menu e clique real em Reanalisar exemplos, sem force/click por script.
 
+6. P2: texto branco fixo dos botões principais não respeitava o contraste derivado
+   do tema escuro. Substituído por `on-primary`/`on-primary-hover`; a matriz real
+   exige contraste de pelo menos 4,5:1 em ambos os temas. Evidências recapturadas.
+
 ## Verificações e limites
 
 Prévia HTTPS: autenticação, CSRF, dois negócios, persistência, recarga, conflitos,

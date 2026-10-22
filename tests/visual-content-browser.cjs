@@ -38,6 +38,18 @@ module.exports = async (browser, origin) => {
       await page.setViewportSize({ width, height: 1100 });
       for (const theme of ["light", "dark"]) {
         await page.evaluate((theme) => SocialMEIThemes.select(theme, { persist: false }), theme);
+        const contrast = await page.locator("#contentNew").evaluate((button) => {
+          const hex = (color) =>
+            "#" +
+            color
+              .match(/[\d.]+/g)
+              .slice(0, 3)
+              .map((value) => Math.round(Number(value)).toString(16).padStart(2, "0"))
+              .join("");
+          const style = getComputedStyle(button);
+          return SocialMEIThemes.contrast(hex(style.color), hex(style.backgroundColor));
+        });
+        assert(contrast >= 4.5, `primary action contrast ${theme}: ${contrast}`);
         for (const tab of ["create", "drafts", "agenda", "connections"]) {
           await page.locator("#contentWorkspace-" + tab).click();
           assert(
