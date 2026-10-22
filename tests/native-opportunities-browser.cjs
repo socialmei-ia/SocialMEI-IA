@@ -66,7 +66,27 @@ module.exports = async function nativeOpportunities(browser, origin) {
         await page.locator("[data-opportunity-demo]").click();
         for (const id of ["analysis", "chance", "attention"]) {
           await tab(id);
-          assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+          const overflow = await page.evaluate(() => {
+            const screen = innerWidth;
+            return {
+              viewport: screen,
+              document: document.documentElement.scrollWidth,
+              candidates: [...document.querySelectorAll("body *")]
+                .filter((el) => el.getClientRects().length && getComputedStyle(el).visibility !== "hidden")
+                .map((el) => ({ el, box: el.getBoundingClientRect() }))
+                .filter(({ box }) => box.right > screen + 1 && box.width > 0)
+                .sort((a, b) => b.box.right - a.box.right)
+                .slice(0, 12)
+                .map(({ el, box }) => ({
+                  tag: el.tagName.toLowerCase(),
+                  id: el.id,
+                  class: typeof el.className === "string" ? el.className.slice(0, 100) : "",
+                  right: Math.round(box.right),
+                  width: Math.round(box.width),
+                })),
+            };
+          });
+          assert(overflow.document <= overflow.viewport, JSON.stringify({ width, theme, id, overflow }));
           const tabState = await page
             .locator(`[data-analysis-tab="${id}"]`)
             .getAttribute("aria-selected");
