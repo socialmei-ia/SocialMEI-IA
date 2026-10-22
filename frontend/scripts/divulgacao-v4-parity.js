@@ -246,20 +246,23 @@
       const pos = new Map(items.map((item, index) => [item.id, index]));
       const list = $("contentDraftList");
       updating = true;
+      observer.disconnect();
       const cards = [...list.querySelectorAll("[data-content-draft]")];
       cards.sort((a, b) => (pos.get(a.dataset.contentDraft) ?? 1000) - (pos.get(b.dataset.contentDraft) ?? 1000));
       cards.forEach((card) => {
         card.hidden = !allowed.has(card.dataset.contentDraft);
         list.append(card);
       });
+      observer.observe(list, { childList: true });
       updating = false;
     };
     for (const input of [search, format, order])
       input.addEventListener(input === search ? "input" : "change", applyDraftFilters);
     const list = $("contentDraftList");
-    new MutationObserver(() => {
+    const observer = new MutationObserver(() => {
       if (!updating) applyDraftFilters();
-    }).observe(list, { childList: true });
+    });
+    observer.observe(list, { childList: true });
     root.querySelector("#contentDraftsPanel").append(
       action("Exportar backup JSON dos rascunhos", () => {
         const state = repository.read();
