@@ -136,14 +136,43 @@ module.exports = async (browser, origin) => {
         .evaluate((details) => details.open),
       true,
     );
+    // The return from onboarding may finish while remote profile status is settling.
+    // Wait for an actionable profile, then verify focus both before and after rerender.
+    await a.waitForFunction(() => {
+      const action = document.querySelector("#settingsPanel [data-sync-import-profile]");
+      const state = SocialMEIProfileSync.state();
+      return (
+        currentView === "Configurações" &&
+        selectedSettingsTab === "perfil" &&
+        state.profileRevision !== null &&
+        action &&
+        !action.disabled &&
+        action.closest("details")?.open
+      );
+    });
     await a.locator("[data-sync-import-profile]").focus();
-    await a.evaluate(() => renderSettings());
+    const initialFocus = await a.locator("[data-sync-import-profile]").evaluate((button) => ({
+      focused: button === document.activeElement,
+      disabled: button.disabled,
+      disclosureOpen: button.closest("details")?.open,
+    }));
     assert.equal(
-      await a
-        .locator("[data-sync-import-profile]")
-        .evaluate((button) => button === document.activeElement),
+      initialFocus.focused,
       true,
-      "Refreshing settings must preserve focus on the local-profile import action",
+      "Import action must receive focus before the settings refresh: " +
+        JSON.stringify(initialFocus),
+    );
+    await a.evaluate(() => renderSettings());
+    const restoredFocus = await a.locator("[data-sync-import-profile]").evaluate((button) => ({
+      focused: button === document.activeElement,
+      disabled: button.disabled,
+      disclosureOpen: button.closest("details")?.open,
+    }));
+    assert.equal(
+      restoredFocus.focused,
+      true,
+      "Refreshing settings must preserve focus on the local-profile import action: " +
+        JSON.stringify(restoredFocus),
     );
     await a.locator("[data-sync-import-profile]").click();
     await a.locator("[data-onboard-next]").click();
@@ -295,6 +324,7 @@ module.exports = async (browser, origin) => {
     await b.reload();
     await b.waitForFunction(
       () =>
+        typeof SocialMEIAuth !== "undefined" &&
         SocialMEIAuth.current?.negocio.id === 99 &&
         document.body?.classList.contains("experience-app"),
     );
