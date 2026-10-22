@@ -42,9 +42,10 @@
       <div id="op8Timeline" class="op8-timeline" hidden></div>
       <p id="op8Feedback" class="op8-feedback" aria-live="polite"></p>
     `;
-    // Display the read-only V8 overview in the public demo too; native writes stay gated.
-    // The authenticated form/list remains inside its existing host and permission checks.
-    host.before(view);
+    // Preserve the compact legacy analysis on public/mobile views; show V8 below it.
+    // Authenticated workspaces see V8 before the protected commercial form and list.
+    if (SocialMEIAuth.remote) host.before(view);
+    else host.parentElement.append(view);
     host.classList.add("op8-enabled");
     const $ = (id) => view.querySelector("#" + id);
     const state = { mode: "list", query: "", scope: null };
