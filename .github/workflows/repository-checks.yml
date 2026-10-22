@@ -179,6 +179,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends poppler-utils
           command -v pdftotext
+      - name: Native opportunities responsive regression
+        run: node tests/native-opportunities-browser.cjs
       - name: Offline application regression
         run: npm run test:browser
       - name: Human Basic login and account registration
