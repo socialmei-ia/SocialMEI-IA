@@ -48,8 +48,8 @@
         () => {
           pendingCreate = {
             scope: bridge.snapshot().scope,
-            amount: $("#op8CreateValue")?.value || "",
-            date: $("#op8CreateDate")?.value || "",
+            amount: createForm.querySelector("#op8CreateValue")?.value || "",
+            date: createForm.querySelector("#op8CreateDate")?.value || "",
           };
         },
         true,
@@ -60,8 +60,8 @@
         const value = parseMoney(pendingCreate.amount);
         if (Number.isFinite(value)) {
           setMeta(event.detail.id, { amount: value, date: pendingCreate.date });
-          $("#op8CreateValue").value = "";
-          $("#op8CreateDate").value = "";
+          createForm.querySelector("#op8CreateValue").value = "";
+          createForm.querySelector("#op8CreateDate").value = "";
         }
         pendingCreate = null;
         update();
