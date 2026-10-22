@@ -165,7 +165,12 @@ const SocialMEIContentPreparation = (() => {
       active = null,
       intent = null;
     const say = (text) => {
-      byId("preparationStatus").textContent = text;
+      const message = String(text || "");
+      byId("preparationStatus").textContent = /Failed to fetch|NetworkError|Load failed/i.test(
+        message,
+      )
+        ? "Não foi possível acessar o servidor de testes. Verifique o preview HTTPS e tente atualizar. Nenhuma publicação foi feita."
+        : message;
     };
     const configured = () => enabled(SOCIALMEI_CONFIG.contentPreparation, SocialMEIAuth.remote);
     const writable = () =>
