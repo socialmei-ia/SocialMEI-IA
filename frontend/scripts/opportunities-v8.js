@@ -123,7 +123,9 @@
             if (!save.disabled) save.focus({ preventScroll: true });
             return;
           }
-          announce("Interesse atualizado para " + SocialMEIOpportunityLifecycle.INTEREST[nextLevel] + ".");
+          announce(
+            "Interesse atualizado para " + SocialMEIOpportunityLifecycle.INTEREST[nextLevel] + ".",
+          );
           const moved = [...$("op8Board").querySelectorAll(".op8-entry")].find(
             (entry) => entry.dataset.opportunityId === row.id,
           );
