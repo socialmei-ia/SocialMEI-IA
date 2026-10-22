@@ -292,18 +292,24 @@
       }
       try {
         const payload = JSON.parse(await file.text());
-        if (
-          payload?.app !== "socialmei-native-drafts" ||
-          payload.version !== 1 ||
-          !Array.isArray(payload.drafts)
-        )
-          throw new Error("Backup incompatível. Escolha o JSON exportado pelo SocialMEI.");
-        if (
-          !window.confirm("Importar " + payload.drafts.length + " rascunho(s) para este negócio?")
-        )
+        const native = payload?.app === "socialmei-native-drafts" && payload.version === 1;
+        const original = payload?.app === "socialmei-divulgacao" && payload.v === 4;
+        if ((!native && !original) || !Array.isArray(payload.drafts))
+          throw new Error("Backup incompatível com o SocialMEI. Confira o arquivo.");
+        const entries = original
+          ? payload.drafts.map((item) => ({
+              format: item.f,
+              title: item.titulo,
+              caption: item.leg,
+              cta: item.cta,
+              hashtags: item.tags,
+              media: null,
+            }))
+          : payload.drafts;
+        if (!window.confirm("Importar " + entries.length + " rascunho(s) para este negócio?"))
           return;
         const originalScope = scope();
-        repository.importMany(payload.drafts, originalScope);
+        repository.importMany(entries, originalScope);
         SocialMEIContentStudio.render();
         status.textContent =
           "Backup importado para este negócio neste navegador. " +
