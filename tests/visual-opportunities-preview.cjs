@@ -157,6 +157,16 @@ module.exports = async (context, origin, client, headers) => {
     await page.waitForFunction(
       () => document.querySelectorAll("[data-commercial-opportunity]").length === 3,
     );
+    // Native V8 visualizations read the authenticated commercial store; no mock ledger.
+    assert.equal(await page.locator("#op8Open").textContent(), "3");
+    await page.locator('[data-op8-view="board"]').click();
+    assert(await page.locator("#op8Board").isVisible());
+    assert.equal(await page.locator("#op8Board .op8-entry").count(), 3);
+    await page.locator('[data-op8-view="timeline"]').click();
+    assert(await page.locator("#op8Timeline").isVisible());
+    assert.equal(await page.locator("#op8Timeline .op8-day-list li").count(), 4);
+    await page.locator('[data-op8-view="list"]').click();
+    assert(await page.locator("#commercialOpportunityList").isVisible());
     for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: 1000 });
       for (const theme of ["light", "dark"]) {
