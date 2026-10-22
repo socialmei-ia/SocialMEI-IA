@@ -151,22 +151,27 @@ module.exports = async (browser, origin) => {
       );
     });
     await a.locator("[data-sync-import-profile]").focus();
-    const initialFocus = await a.locator("[data-sync-import-profile]").evaluate((button) => ({
-      focused: button === document.activeElement,
-      disabled: button.disabled,
-      disclosureOpen: button.closest("details")?.open,
-    }));
+    const initialFocus = await a
+      .locator("[data-sync-import-profile]")
+      .evaluate((button) => ({
+        focused: button === document.activeElement,
+        disabled: button.disabled,
+        disclosureOpen: button.closest("details")?.open,
+      }));
     assert.equal(
       initialFocus.focused,
       true,
-      "Import action must receive focus before the settings refresh: " + JSON.stringify(initialFocus),
+      "Import action must receive focus before the settings refresh: " +
+        JSON.stringify(initialFocus),
     );
     await a.evaluate(() => renderSettings());
-    const restoredFocus = await a.locator("[data-sync-import-profile]").evaluate((button) => ({
-      focused: button === document.activeElement,
-      disabled: button.disabled,
-      disclosureOpen: button.closest("details")?.open,
-    }));
+    const restoredFocus = await a
+      .locator("[data-sync-import-profile]")
+      .evaluate((button) => ({
+        focused: button === document.activeElement,
+        disabled: button.disabled,
+        disclosureOpen: button.closest("details")?.open,
+      }));
     assert.equal(
       restoredFocus.focused,
       true,
