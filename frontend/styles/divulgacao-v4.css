@@ -277,6 +277,15 @@
   }
 }
 @media (max-width: 680px) {
+  #contentStudioView.dv4-enabled .content-workspace-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  #contentStudioView.dv4-enabled .content-workspace-tabs > button {
+    justify-content: flex-start;
+    min-width: 0;
+    gap: 6px;
+    padding: 9px 12px;
+  }
   #contentStudioView.dv4-enabled .management-header > div {
     max-width: 100%;
   }
