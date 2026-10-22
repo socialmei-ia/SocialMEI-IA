@@ -340,6 +340,21 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     controls();
   }
+  // Read-only snapshot and guarded native writes for the V8 presentation layer.
+  // All writes still go through the existing authenticated, revisioned API store.
+  window.SocialMEIOpportunityV8Bridge = Object.freeze({
+    snapshot: () => store.snapshot(),
+    changeInterest(id, interestLevel) {
+      const state = store.snapshot();
+      const row = state.items.find((item) => item.id === id);
+      if (!row || row.outcome !== "open" || !(interestLevel in api.INTEREST)) return false;
+      if (!state.ready || state.busy || !["owner", "admin", "member"].includes(state.role))
+        return false;
+      run(() => store.update(row, { interest_level: interestLevel }));
+      return true;
+    },
+    refresh: () => run(() => store.reload()),
+  });
   function syncClients() {
     const previous = clients.value;
     clients.replaceChildren();
