@@ -69,6 +69,21 @@ module.exports = async (browser, origin) => {
             const box = await control.boundingBox();
             assert(box.height >= 44, `touch target ${width} ${tab}`);
           }
+          if (width <= 390) {
+            const boxes = await page.locator(".content-workspace-tabs > button").evaluateAll(
+              (nodes) => nodes.map((node) => node.getBoundingClientRect().toJSON()),
+            );
+            for (let a = 0; a < boxes.length; a++) {
+              for (let b = a + 1; b < boxes.length; b++) {
+                const first = boxes[a],
+                  second = boxes[b];
+                const overlap =
+                  Math.min(first.right, second.right) - Math.max(first.left, second.left) > 1 &&
+                  Math.min(first.bottom, second.bottom) - Math.max(first.top, second.top) > 1;
+                assert(!overlap, `overlapping navigation tabs at ${width}px`);
+              }
+            }
+          }
           if ([390, 768, 1440].includes(width)) {
             await page.screenshot({
               path: path.join(output, `${tab}-${width}-${theme}.png`),
