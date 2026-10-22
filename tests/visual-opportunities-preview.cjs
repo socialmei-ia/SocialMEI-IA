@@ -195,7 +195,10 @@ module.exports = async (context, origin, client, headers) => {
     await page.locator('[data-op8-view="week"]').click();
     assert(await page.locator("#op8Week").isVisible());
     assert(
-      await page.locator("#op8Week .op8-week-card").filter({ hasText: "Acompanhamento fictício warm" }).count() === 1,
+      (await page
+        .locator("#op8Week .op8-week-card")
+        .filter({ hasText: "Acompanhamento fictício warm" })
+        .count()) === 1,
     );
     await page.locator('[data-op8-view="board"]').click();
     await page.locator("#op8Query").fill("Acompanhamento fictício hot");

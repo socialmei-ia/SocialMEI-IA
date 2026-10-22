@@ -38,9 +38,9 @@
       const fields = document.createElement("div");
       fields.className = "op8-create-fields";
       fields.innerHTML =
-        '<label>Valor estimado (opcional, só neste navegador)' +
+        "<label>Valor estimado (opcional, só neste navegador)" +
         '<input id="op8CreateValue" inputmode="decimal" placeholder="Ex.: 350,50"></label>' +
-        '<label>Data de retorno (opcional, só neste navegador)' +
+        "<label>Data de retorno (opcional, só neste navegador)" +
         '<input id="op8CreateDate" type="date"></label>';
       createForm.insertBefore(fields, createForm.lastElementChild);
       createForm.addEventListener(
@@ -120,16 +120,26 @@
     }
     function isoToday() {
       const d = new Date();
-      return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, "0"), String(d.getDate()).padStart(2, "0")].join("-");
+      return [
+        d.getFullYear(),
+        String(d.getMonth() + 1).padStart(2, "0"),
+        String(d.getDate()).padStart(2, "0"),
+      ].join("-");
     }
     function nextDay(days) {
       const d = new Date();
       d.setDate(d.getDate() + days);
-      return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, "0"), String(d.getDate()).padStart(2, "0")].join("-");
+      return [
+        d.getFullYear(),
+        String(d.getMonth() + 1).padStart(2, "0"),
+        String(d.getDate()).padStart(2, "0"),
+      ].join("-");
     }
     function eligible() {
       const snapshot = bridge.snapshot();
-      return snapshot.ready && !snapshot.busy && ["owner", "admin", "member"].includes(snapshot.role);
+      return (
+        snapshot.ready && !snapshot.busy && ["owner", "admin", "member"].includes(snapshot.role)
+      );
     }
     function rows() {
       const query = $("#op8Query").value.trim().toLocaleLowerCase("pt-BR");
@@ -225,11 +235,17 @@
       });
       const quick = document.createElement("div");
       quick.className = "op8-quick";
-      for (const [days, label] of [[1, "+1 dia"], [3, "+3 dias"], [7, "+1 semana"]]) {
-        quick.append(button(label, () => {
-          date.value = nextDay(days);
-          if (setMeta(row.id, { date: date.value, contacted: false })) update();
-        }));
+      for (const [days, label] of [
+        [1, "+1 dia"],
+        [3, "+3 dias"],
+        [7, "+1 semana"],
+      ]) {
+        quick.append(
+          button(label, () => {
+            date.value = nextDay(days);
+            if (setMeta(row.id, { date: date.value, contacted: false })) update();
+          }),
+        );
       }
       details.append(amount, date, note, save, quick);
       card.append(details);
@@ -237,7 +253,8 @@
       summary.className = "op8-local-meta";
       summary.textContent =
         (value.amount ? money.format(value.amount) : "Sem valor") +
-        " · " + (value.date ? "Retomar: " + value.date : "Sem retorno marcado");
+        " · " +
+        (value.date ? "Retomar: " + value.date : "Sem retorno marcado");
       card.insertBefore(summary, details);
     }
     function renderWeek(data) {
@@ -263,7 +280,12 @@
           const entry = safeText("div", row.client_name + " · " + row.title, "op8-week-card");
           entry.draggable = true;
           entry.dataset.opportunityId = row.id;
-          entry.append(safeText("small", state.meta[row.id]?.amount ? money.format(state.meta[row.id].amount) : "Sem valor"));
+          entry.append(
+            safeText(
+              "small",
+              state.meta[row.id]?.amount ? money.format(state.meta[row.id].amount) : "Sem valor",
+            ),
+          );
           const move = document.createElement("select");
           move.setAttribute("aria-label", "Mover retorno de " + row.client_name);
           for (const day of days.filter((candidate) => candidate !== "later")) {
@@ -365,7 +387,8 @@
         view.querySelector("#op8Feedback").textContent =
           "Retornos locais copiados; nenhum contato foi enviado.";
       } catch {
-        view.querySelector("#op8Feedback").textContent = "Selecione e copie os retornos manualmente.";
+        view.querySelector("#op8Feedback").textContent =
+          "Selecione e copie os retornos manualmente.";
       }
     });
     document.addEventListener("socialmei-opportunity-v8-change", update);

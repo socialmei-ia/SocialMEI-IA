@@ -51,61 +51,71 @@
     const creator = node("section", undefined, "dv4-original-tools");
     creator.innerHTML =
       '<div class="dv4-section-head"><h3>Sugestões para sua divulgação</h3>' +
-      '<p>Mesmo fluxo do HTML V4: tema, serviço, objetivo e tom. Modelo local, não IA.</p></div>';
+      "<p>Mesmo fluxo do HTML V4: tema, serviço, objetivo e tom. Modelo local, não IA.</p></div>";
     const fields = node("div", undefined, "dv4-original-fields");
     fields.append(
       formLine("Tema", text("dv4Topic", "Ex.: Meu trabalho")),
       formLine("Produto ou serviço", text("dv4Offering", "Ex.: corte de cabelo")),
-      formLine("Objetivo", options("dv4Objective", [
-        ["informar", "Informar"],
-        ["apresentar", "Apresentar serviço"],
-        ["convidar", "Convidar para conversar"],
-      ])),
-      formLine("Tom", options("dv4Tone", [
-        ["simples", "Simples"],
-        ["acolhedor", "Acolhedor"],
-        ["profissional", "Profissional"],
-      ])),
+      formLine(
+        "Objetivo",
+        options("dv4Objective", [
+          ["informar", "Informar"],
+          ["apresentar", "Apresentar serviço"],
+          ["convidar", "Convidar para conversar"],
+        ]),
+      ),
+      formLine(
+        "Tom",
+        options("dv4Tone", [
+          ["simples", "Simples"],
+          ["acolhedor", "Acolhedor"],
+          ["profissional", "Profissional"],
+        ]),
+      ),
     );
     const suggestions = node("div", undefined, "dv4-original-suggestions");
     suggestions.id = "dv4OriginalSuggestions";
     creator.append(fields);
-    creator.append(action("Sugerir três legendas", () => {
-      const topic = $("dv4Topic").value.trim();
-      if (!topic) {
-        status.textContent = "Escreva um tema para receber sugestões locais.";
-        $("dv4Topic").focus();
-        return;
-      }
-      try {
-        const res = SocialMEIContentPreparation.captionAlternatives({
-          topic,
-          offering: $("dv4Offering").value,
-          objective: $("dv4Objective").value,
-          tone: $("dv4Tone").value,
-          business: $("contentPreviewBusiness").textContent,
-        });
-        suggestions.replaceChildren();
-        res.alternatives.forEach((caption, index) => {
-          const card = node("article", undefined, "dv4-suggestion");
-          card.append(node("p", caption));
-          card.append(action("Usar legenda " + (index + 1), () => {
-            const existing = $("contentCaption").value.trim();
-            if (existing && !window.confirm("Substituir a legenda que você já escreveu?"))
-              return;
-            $("contentCaption").value = caption;
-            $("contentCaption").dispatchEvent(new Event("input", { bubbles: true }));
-            $("contentCaption").focus();
-            status.textContent = "Legenda aplicada. Revise e salve; nada foi publicado.";
-          }));
-          suggestions.append(card);
-        });
-        status.textContent =
-          "Três sugestões criadas por regras locais. Confirme informações antes de publicar.";
-      } catch (error) {
-        status.textContent = error.message;
-      }
-    }));
+    creator.append(
+      action("Sugerir três legendas", () => {
+        const topic = $("dv4Topic").value.trim();
+        if (!topic) {
+          status.textContent = "Escreva um tema para receber sugestões locais.";
+          $("dv4Topic").focus();
+          return;
+        }
+        try {
+          const res = SocialMEIContentPreparation.captionAlternatives({
+            topic,
+            offering: $("dv4Offering").value,
+            objective: $("dv4Objective").value,
+            tone: $("dv4Tone").value,
+            business: $("contentPreviewBusiness").textContent,
+          });
+          suggestions.replaceChildren();
+          res.alternatives.forEach((caption, index) => {
+            const card = node("article", undefined, "dv4-suggestion");
+            card.append(node("p", caption));
+            card.append(
+              action("Usar legenda " + (index + 1), () => {
+                const existing = $("contentCaption").value.trim();
+                if (existing && !window.confirm("Substituir a legenda que você já escreveu?"))
+                  return;
+                $("contentCaption").value = caption;
+                $("contentCaption").dispatchEvent(new Event("input", { bubbles: true }));
+                $("contentCaption").focus();
+                status.textContent = "Legenda aplicada. Revise e salve; nada foi publicado.";
+              }),
+            );
+            suggestions.append(card);
+          });
+          status.textContent =
+            "Três sugestões criadas por regras locais. Confirme informações antes de publicar.";
+        } catch (error) {
+          status.textContent = error.message;
+        }
+      }),
+    );
     creator.append(suggestions);
     root.querySelector("#contentCreatePanel .dv4-progress").after(creator);
 
@@ -144,9 +154,7 @@
     };
     for (const t of ["input", "change"]) zoom.addEventListener(t, updateMedia);
     alt.addEventListener("input", updateMedia);
-    safe.addEventListener("change", () =>
-      root.classList.toggle("dv4-safe-area", safe.checked),
-    );
+    safe.addEventListener("change", () => root.classList.toggle("dv4-safe-area", safe.checked));
     previews.append(
       fullscreen,
       light,
@@ -195,7 +203,9 @@
           $("contentCaption").value.trim(),
           $("contentCta").value.trim(),
           $("contentHashtags").value.trim(),
-        ].filter(Boolean).join("\n\n");
+        ]
+          .filter(Boolean)
+          .join("\n\n");
         if (!body) return;
         try {
           await navigator.clipboard.writeText(body);
@@ -229,11 +239,12 @@
     const applyDraftFilters = () => {
       const state = repository.read();
       if (state.status !== "ready") return;
-      const items = state.items.filter((item) =>
-        (!format.value || item.format === format.value) &&
-        (item.title + " " + item.caption + " " + item.cta)
-          .toLocaleLowerCase("pt-BR")
-          .includes(search.value.toLocaleLowerCase("pt-BR")),
+      const items = state.items.filter(
+        (item) =>
+          (!format.value || item.format === format.value) &&
+          (item.title + " " + item.caption + " " + item.cta)
+            .toLocaleLowerCase("pt-BR")
+            .includes(search.value.toLocaleLowerCase("pt-BR")),
       );
       items.sort((a, b) =>
         order.value === "az"
@@ -248,7 +259,10 @@
       updating = true;
       observer.disconnect();
       const cards = [...list.querySelectorAll("[data-content-draft]")];
-      cards.sort((a, b) => (pos.get(a.dataset.contentDraft) ?? 1000) - (pos.get(b.dataset.contentDraft) ?? 1000));
+      cards.sort(
+        (a, b) =>
+          (pos.get(a.dataset.contentDraft) ?? 1000) - (pos.get(b.dataset.contentDraft) ?? 1000),
+      );
       cards.forEach((card) => {
         card.hidden = !allowed.has(card.dataset.contentDraft);
         list.append(card);
@@ -284,7 +298,9 @@
           !Array.isArray(payload.drafts)
         )
           throw new Error("Backup incompatível. Escolha o JSON exportado pelo SocialMEI.");
-        if (!window.confirm("Importar " + payload.drafts.length + " rascunho(s) para este negócio?"))
+        if (
+          !window.confirm("Importar " + payload.drafts.length + " rascunho(s) para este negócio?")
+        )
           return;
         const originalScope = scope();
         repository.importMany(payload.drafts, originalScope);
@@ -306,7 +322,13 @@
           return;
         }
         const blob = new Blob(
-          [JSON.stringify({ app: "socialmei-native-drafts", version: 1, drafts: state.items }, null, 2)],
+          [
+            JSON.stringify(
+              { app: "socialmei-native-drafts", version: 1, drafts: state.items },
+              null,
+              2,
+            ),
+          ],
           { type: "application/json" },
         );
         const url = URL.createObjectURL(blob);

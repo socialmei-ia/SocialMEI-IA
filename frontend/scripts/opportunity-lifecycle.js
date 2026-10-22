@@ -380,7 +380,9 @@ document.addEventListener("DOMContentLoaded", function () {
       (created) => {
         title.value = "";
         if (created?.id)
-          document.dispatchEvent(new CustomEvent("socialmei-v8-created", { detail: { id: created.id } }));
+          document.dispatchEvent(
+            new CustomEvent("socialmei-v8-created", { detail: { id: created.id } }),
+          );
       },
     );
   });

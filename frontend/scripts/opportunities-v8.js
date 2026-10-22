@@ -286,7 +286,8 @@
       if (state.mode !== "list")
         view
           .querySelector(
-            "#op8" + (state.mode === "board" ? "Board" : state.mode === "week" ? "Week" : "Timeline"),
+            "#op8" +
+              (state.mode === "board" ? "Board" : state.mode === "week" ? "Week" : "Timeline"),
           )
           ?.focus();
     });

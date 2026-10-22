@@ -42,11 +42,15 @@ module.exports = async (browser, origin) => {
     await page.locator("#contentSave").click();
     await page.getByRole("button", { name: "Tela cheia" }).click();
     assert(
-      await page.locator("#contentStudioView").evaluate((root) => root.classList.contains("dv4-fullscreen")),
+      await page
+        .locator("#contentStudioView")
+        .evaluate((root) => root.classList.contains("dv4-fullscreen")),
     );
     await page.keyboard.press("Escape");
     assert(
-      await page.locator("#contentStudioView").evaluate((root) => !root.classList.contains("dv4-fullscreen")),
+      await page
+        .locator("#contentStudioView")
+        .evaluate((root) => !root.classList.contains("dv4-fullscreen")),
     );
     await page.locator("#contentWorkspace-drafts").click();
     await page.locator("#dv4DraftQuery").fill("não encontrado");

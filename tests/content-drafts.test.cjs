@@ -111,7 +111,14 @@ test("backup import is atomic, scoped, and discards untrusted IDs or extra metad
   assert.equal("url" in imported[0], false);
   const previous = JSON.stringify(f.repo.read().items);
   assert.throws(
-    () => f.repo.importMany([{ ...input, title: "Válido" }, { ...input, format: "invalid" }], "a"),
+    () =>
+      f.repo.importMany(
+        [
+          { ...input, title: "Válido" },
+          { ...input, format: "invalid" },
+        ],
+        "a",
+      ),
     /Escolha/,
   );
   assert.equal(JSON.stringify(f.repo.read().items), previous);
@@ -127,7 +134,14 @@ test("backup cannot overflow the 40-draft quota or modify previous entries", () 
   const f = fixture();
   f.repo.save(input, "a");
   const prior = JSON.stringify(f.repo.read().items);
-  assert.throws(() => f.repo.importMany(Array.from({ length: 40 }, () => input), "a"), /40/);
+  assert.throws(
+    () =>
+      f.repo.importMany(
+        Array.from({ length: 40 }, () => input),
+        "a",
+      ),
+    /40/,
+  );
   assert.equal(JSON.stringify(f.repo.read().items), prior);
   assert.throws(() => f.repo.importMany([], "a"), /Backup inválido/);
 });
