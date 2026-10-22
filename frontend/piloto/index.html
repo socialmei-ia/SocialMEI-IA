@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline' 'self'; img-src 'self' data:; script-src 'none'; connect-src 'none'; form-action 'none'; object-src 'none'; base-uri 'none'">
+  <title>Laboratório público · SocialMEI.IA</title>
+  <style>
+    :root{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color-scheme:dark;--bg:#081327;--panel:#101e35;--mut:#a9bad4;--fg:#f3f7fe;--edge:#30415e;--ac:#579bef}
+    *{box-sizing:border-box} body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 80% 3%,#153466 0,transparent 47%),var(--bg);color:var(--fg)}
+    .shell{max-width:1050px;margin:0 auto;padding:clamp(20px,5vw,64px)}header{display:flex;justify-content:space-between;gap:20px;align-items:center;border-bottom:1px solid var(--edge);padding-bottom:20px}
+    .brand{font-size:19px;font-weight:750;letter-spacing:-.02em}.brand span{color:var(--ac)}.flag{font-size:12px;border:1px solid var(--edge);border-radius:999px;padding:7px 12px;color:var(--mut)}
+    h1{font-size:clamp(32px,5vw,62px);letter-spacing:-.05em;line-height:1.05;max-width:780px;margin:56px 0 20px}p{color:var(--mut);line-height:1.7} .lead{max-width:740px;font-size:17px}
+    .notice{margin:34px 0;border-left:3px solid #f5c451;background:#162337;padding:16px 20px;border-radius:0 12px 12px 0;color:#f3e7c5;line-height:1.6}
+    .views{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:17px;margin:32px 0}
+    article{border:1px solid var(--edge);background:linear-gradient(150deg,#162944,var(--panel));border-radius:20px;padding:28px;display:flex;flex-direction:column;align-items:start}
+    .eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.14em;color:var(--ac);font-weight:750}h2{font-size:29px;letter-spacing:-.035em;margin:16px 0 5px}article p{min-height:75px;margin-bottom:20px}
+    a.button{display:inline-flex;align-items:center;justify-content:center;min-height:48px;background:var(--ac);color:#061123;border-radius:12px;padding:12px 20px;font-weight:750;text-decoration:none;transition:filter .2s}a.button:hover{filter:brightness(1.15)}a.button:focus-visible{outline:3px solid #fff;outline-offset:4px}
+    footer{border-top:1px solid var(--edge);padding-top:18px;font-size:13px;color:var(--mut)}
+    @media(max-width:650px){.views{grid-template-columns:1fr}h1{margin-top:34px}article p{min-height:0}header{align-items:start}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header><div class="brand">SocialMEI<span>.IA</span></div><span class="flag">Ambiente experimental</span></header>
+    <h1>Experimente as próximas telas do SocialMEI.IA.</h1>
+    <p class="lead">Este laboratório permite testar as interações dos protótipos de Oportunidades V8 e Divulgação V4 antes de conectá-los ao CRM e aos canais oficiais.</p>
+    <aside class="notice" role="note"><strong>Importante:</strong> use apenas dados fictícios. Clientes, oportunidades e rascunhos criados aqui ficam neste navegador e <strong>não são enviados ao PostgreSQL, Instagram, WhatsApp ou n8n</strong>. Nada é publicado de verdade. As contas reais do SocialMEI.IA não são utilizadas aqui.</aside>
+    <section class="views" aria-label="Protótipos disponíveis">
+      <article><div class="eyebrow">01 · Comercial</div><h2>Oportunidades V8</h2><p>Teste criar oportunidades fictícias, classificar interesses, navegar por Lista, Termômetro e Semana e experimentar as animações.</p><a class="button" href="oportunidades-v8.html">Testar Oportunidades <span aria-hidden="true">&nbsp;↗</span></a></article>
+      <article><div class="eyebrow">02 · Conteúdo</div><h2>Divulgação V4</h2><p>Teste Stories, Feed, Reels, rascunhos, agenda simulada e ferramentas de criação com as animações originais.</p><a class="button" href="divulgacao-v4.html">Testar Divulgação <span aria-hidden="true">&nbsp;↗</span></a></article>
+    </section>
+    <footer>Versão pública experimental · sem API e sem banco real. Os testes não ativam canais ou integrações externas.</footer>
+  </main>
+</body>
+</html>
