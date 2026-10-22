@@ -1,6 +1,6 @@
 # Teste completo local
 
-Este ambiente reúne a candidata #83 e as funcionalidades da #89, preservando seus commits. Usa o HTML oficial, FastAPI e PostgreSQL reais, exclusivamente locais, com dados fictícios. Não atualiza o site da AWS ou a main.
+Este ambiente de prévia da candidata #95 reúne a cadeia funcional até a #94, preservando os commits anteriores. Usa o HTML oficial, FastAPI e PostgreSQL reais, exclusivamente locais, com dados fictícios. Não atualiza o site da AWS ou a main. A PR #93 e seus testes de ingresso fictício seguem em revisão separada.
 
 ## Abrir o site
 
@@ -23,7 +23,7 @@ npm run preview -- check
 npm run preview -- down
 ```
 
-O encerramento preserva o banco fictício para continuar depois. Migrations 001–015 são aplicadas automaticamente somente no volume `socialmei-preview_preview_database`, pelo migrador existente. Nenhuma migration foi modificada. Nunca combine este Compose com arquivos team/dev/legados. O launcher rejeita destinos Docker remotos e variáveis de conexão externas. A configuração local gerada em `.preview/.env` é ignorada pelo Git e não deve ser compartilhada. Não remova esse arquivo enquanto conservar o volume: ele contém a senha aleatória do banco local.
+O encerramento preserva o banco fictício para continuar depois. Migrations 001–017 são aplicadas automaticamente somente no volume `socialmei-preview_preview_database`, pelo migrador existente. Nenhuma migration foi modificada. Nunca combine este Compose com arquivos team/dev/legados. O launcher rejeita destinos Docker remotos e variáveis de conexão externas. A configuração local gerada em `.preview/.env` é ignorada pelo Git e não deve ser compartilhada. Não remova esse arquivo enquanto conservar o volume: ele contém a senha aleatória do banco local.
 
 ## O que testar
 
@@ -53,6 +53,6 @@ O teste cria somente registros fictícios: dois negócios, auth/CSRF, tentativa 
 
 ## Estado e riscos da integração
 
-Conferido em 21/10/2026: main `4336181`, #83 `e81fd3e` e #89 `928b3c3`. #83 contém 73 commits sobre main; #89 acrescenta três. Não reaplicar essas branches por cherry-pick nem integrar as PRs ancestrais novamente. Esta extensão tem base na #89. A main continua separada. #72 não foi incorporada; #73 permanece aberta, com causa histórica do timeout Financeiro não confirmada.
+Conferido em 22/10/2026: `main` em `4336181`, candidata #95 em `ca81867` (98 commits à frente de `main`, zero atrás), preservando #83 → #89 → #90 → #91 → #92 → #94. Não reaplicar ancestrais individualmente nem juntar a PR #93 sem uma homologação própria. A `main` continua separada. A #72 não foi incorporada e a Issue #73 permanece aberta, com a causa histórica do timeout do Financeiro não confirmada.
 
-Os jobs validate/browser das duas PRs anteriores passaram nos respectivos HEADs (runs 39611846107 e 39654011757); isso não certifica uma implantação. A nova PR deve registrar sua própria evidência. Dispositivo físico/leitor de tela e conectores externos não foram homologados. Contratos/credenciais dos geradores da equipe, mídia privada, permissões Meta e adaptação n8n/WAHA dependem de etapa específica. Produção exige autorização própria de alvo, backup e rollback; este roteiro não a concede.
+O CI da candidata #95 no HEAD `ca81867` passou nos três jobs (`validate`, `browser` e `preview`): https://github.com/socialmei-ia/SocialMEI-IA/actions/runs/39782932891. Isso não certifica uma implantação nem substitui ensaio físico/homologação humana. Qualquer alteração no SHA exige novas verificações. Dispositivo físico/leitor de tela e conectores externos não foram homologados. Contratos/credenciais dos geradores da equipe, mídia privada, permissões Meta e adaptação n8n/WAHA dependem de etapa específica. Produção exige autorização própria de alvo, backup e rollback; este roteiro não a concede.
