@@ -7,9 +7,11 @@
 #opportunitiesView .op8-shell {
   min-width: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 22px;
 }
 #opportunitiesView .op8-overview {
+  min-width: 0;
   position: relative;
   border: 1px solid var(--op8-line);
   border-radius: 22px;
