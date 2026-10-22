@@ -12,6 +12,7 @@ on:
         feat/priority-integrations,
         feat/isolated-preview,
         feat/dashboard-functional-readiness,
+        feat/visual-opportunities-content-91,
       ]
 
 permissions:

@@ -23,7 +23,7 @@ const SocialMEIChartRefinement = (() => {
       (host.id || "chart") + "|" + [...host.querySelectorAll(".management-plot")].indexOf(plot)
     );
   };
-  function bindPlot(plot, key) {
+  function bindPlot(plot, key, initial = null) {
     const chart = plot.closest(".management-chart"),
       scroller = plot.parentElement,
       columns = [...plot.querySelectorAll(".management-chart-column")],
@@ -32,7 +32,9 @@ const SocialMEIChartRefinement = (() => {
       hint = chart.querySelector(".management-chart-scroll-hint"),
       controller = new AbortController(),
       options = { signal: controller.signal };
-    let pinned = null,
+    let pinned = columns[initial?.pinned] || null,
+      dismissed = initial?.dismissed || false,
+      restoringFocus = false,
       hovered = null,
       focusedColumn = null,
       active = null;
@@ -67,6 +69,7 @@ const SocialMEIChartRefinement = (() => {
       position();
     };
     const dismiss = () => {
+      dismissed = true;
       pinned = hovered = focusedColumn = null;
       show();
     };
@@ -77,7 +80,20 @@ const SocialMEIChartRefinement = (() => {
       column.addEventListener(
         "pointerenter",
         (event) => {
-          if (event.pointerType !== "touch") {
+          if (event.pointerType !== "touch" && !dismissed) {
+            hovered = column;
+            show();
+          }
+        },
+        options,
+      );
+      column.addEventListener(
+        "pointermove",
+        (event) => {
+          // A real pointer move starts a new inspection after Escape/dismissal.
+          // DOM replacement alone must not reopen a dismissed tooltip.
+          if (event.pointerType !== "touch" && (event.movementX || event.movementY)) {
+            dismissed = false;
             hovered = column;
             show();
           }
@@ -87,6 +103,7 @@ const SocialMEIChartRefinement = (() => {
       column.addEventListener(
         "pointerleave",
         () => {
+          if (plot.isConnected) dismissed = false;
           hovered = null;
           show();
         },
@@ -97,6 +114,7 @@ const SocialMEIChartRefinement = (() => {
         () => {
           if (pinned === column) dismiss();
           else {
+            dismissed = false;
             pinned = column;
             show();
           }
@@ -110,7 +128,8 @@ const SocialMEIChartRefinement = (() => {
             viewport = scroller.getBoundingClientRect();
           if (box.left < viewport.left + 4) scroller.scrollLeft -= viewport.left + 4 - box.left;
           if (box.right > viewport.right - 4) scroller.scrollLeft += box.right - viewport.right + 4;
-          focusedColumn = column;
+          if (!restoringFocus) dismissed = false;
+          focusedColumn = dismissed ? null : column;
           show();
         },
         options,
@@ -151,7 +170,11 @@ const SocialMEIChartRefinement = (() => {
     chart.addEventListener(
       "focusout",
       (event) => {
-        if (!chart.contains(event.relatedTarget)) dismiss();
+        if (chart.contains(event.relatedTarget)) return;
+        // Replacing focused markup emits focusout before it becomes disconnected.
+        queueMicrotask(() => {
+          if (chart.isConnected && !chart.contains(document.activeElement)) dismiss();
+        });
       },
       options,
     );
@@ -160,13 +183,21 @@ const SocialMEIChartRefinement = (() => {
     const resize = new ResizeObserver(position);
     resize.observe(scroller);
     if (columns.includes(document.activeElement)) {
-      focusedColumn = document.activeElement;
-      show();
+      focusedColumn = dismissed ? null : document.activeElement;
     }
+    show();
     position();
-    return () => {
-      controller.abort();
-      resize.disconnect();
+    return {
+      interaction: () => ({ pinned: columns.indexOf(pinned), dismissed }),
+      restoreFocus(index) {
+        restoringFocus = true;
+        columns[index]?.focus({ preventScroll: true });
+        restoringFocus = false;
+      },
+      dispose() {
+        controller.abort();
+        resize.disconnect();
+      },
     };
   }
   function settle(entry) {
@@ -273,18 +304,17 @@ const SocialMEIChartRefinement = (() => {
         bar.style.transform = `scaleY(${start / entry.base})`;
         return entry;
       });
+      const interaction = previous?.signature === signature ? previous.interaction() : null;
       previous?.dispose();
-      const dispose = bindPlot(plot, key);
-      plots.set(key, { plot, entries, signature, dispose });
+      const binding = bindPlot(plot, key, interaction);
+      plots.set(key, { plot, entries, signature, ...binding });
       if (entries.some((entry) => entry.active) && !frame) frame = requestAnimationFrame(tick);
       if (
         focused?.key === key &&
         !focused.node.isConnected &&
         document.activeElement === document.body
       )
-        plot
-          .querySelectorAll(".management-chart-column")
-          [focused.index]?.focus({ preventScroll: true });
+        binding.restoreFocus(focused.index);
     });
     plots.forEach((entry, key) => {
       if (!entry.plot.isConnected) {

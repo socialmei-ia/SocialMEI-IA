@@ -203,6 +203,24 @@ module.exports = async function instagramIntegration(browser, origin) {
       /nada foi publicado/,
     );
     assert.equal(await page.locator("#instagramSimulationHistory p").count(), 1);
+    // An ordinary read completing after success must preserve the explicit outcome.
+    await page.waitForFunction(
+      () => !document.getElementById("instagramSimulationSubmit").disabled,
+    );
+    await page.evaluate(() => {
+      window.qaSimulationRefreshDone = false;
+      const observer = new MutationObserver(() => {
+        observer.disconnect();
+        window.qaSimulationRefreshDone = true;
+      });
+      observer.observe(document.getElementById("instagramSimulationAccount"), { childList: true });
+      document.dispatchEvent(new CustomEvent("socialmei-data-change"));
+    });
+    await page.waitForFunction(() => window.qaSimulationRefreshDone);
+    assert.match(
+      await page.locator("#instagramSimulationStatus").textContent(),
+      /nada foi publicado/,
+    );
 
     assert.equal(publications.length, 1);
     assert.equal(publications[0].published, false);
