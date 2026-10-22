@@ -36,10 +36,12 @@
           <button type="button" data-op8-view="list" aria-pressed="true">Lista</button>
           <button type="button" data-op8-view="board" aria-pressed="false">Termômetro</button>
           <button type="button" data-op8-view="timeline" aria-pressed="false">Atividade</button>
+          <button type="button" data-op8-view="week" aria-pressed="false">Semana</button>
         </div>
       </div>
       <div id="op8Board" class="op8-board" hidden></div>
       <div id="op8Timeline" class="op8-timeline" hidden></div>
+      <div id="op8Week" class="op8-week" hidden></div>
       <p id="op8Feedback" class="op8-feedback" aria-live="polite"></p>
     `;
     // Preserve the compact legacy analysis on public/mobile views; show V8 below it.
@@ -229,6 +231,7 @@
       list.hidden = !nativeVisible;
       $("op8Board").hidden = state.mode !== "board";
       $("op8Timeline").hidden = state.mode !== "timeline";
+      $("op8Week").hidden = state.mode !== "week";
     }
     function refresh() {
       const snapshot = bridge.snapshot();
@@ -281,7 +284,11 @@
       state.mode = target.dataset.op8View;
       syncView();
       if (state.mode !== "list")
-        view.querySelector("#op8" + (state.mode === "board" ? "Board" : "Timeline"))?.focus();
+        view
+          .querySelector(
+            "#op8" + (state.mode === "board" ? "Board" : state.mode === "week" ? "Week" : "Timeline"),
+          )
+          ?.focus();
     });
     $("op8Create").addEventListener("click", () => {
       const form = document.getElementById("opportunityCreateForm");
