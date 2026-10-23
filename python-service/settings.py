@@ -97,3 +97,14 @@ def channel_ingress_signing_key() -> str:
 
 def content_preparation_mode() -> str:
     return os.getenv("SOCIALMEI_CONTENT_PREPARATION_MODE", "disabled").strip().lower()
+
+
+def instagram_provider_lab_enabled() -> bool:
+    return (
+        os.getenv("SOCIALMEI_INSTAGRAM_PROVIDER", "disabled").strip().lower() == "fake"
+        and os.getenv("SOCIALMEI_INSTAGRAM_LAB_ENVIRONMENT", "").strip().lower() == "isolated"
+    )
+
+
+def instagram_provider_lab_signing_key() -> str:
+    return os.getenv("SOCIALMEI_INSTAGRAM_LAB_TEST_KEY", "")
