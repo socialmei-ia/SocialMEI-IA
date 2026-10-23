@@ -118,6 +118,16 @@ async function run() {
         });
       });
       await page.goto(origin + "/frontend/socialmei-app.html");
+      // Sessões anônimas começam na landing: abrir o login pela ação humana explícita.
+      await page.waitForFunction(
+        () =>
+          window.SocialMEIAuth?.remote &&
+          !SocialMEIAuth.current &&
+          !!document.querySelector("[data-xp-screen=landing].is-active"),
+      );
+      assert.equal(await page.locator("[data-xp-screen=auth].is-active").count(), 0);
+      await page.locator("[data-start-login]").click();
+      await page.locator("[data-xp-screen=auth].is-active").waitFor();
       await page.locator("#loginEmail").fill("signup@example.com");
       await page.locator("#loginPassword").fill("Wrong-password-123!");
       await page.locator("#xpLoginForm [type=submit]").click();
