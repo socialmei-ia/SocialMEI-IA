@@ -1548,7 +1548,7 @@
   transform-origin: 0;
   transform: scaleX(0);
 }
-@media (max-width: 700px) {
+@media (max-width: 1100px) {
   /* The official tools menu already exposes theme selection on small screens.
      Avoid a duplicate control forcing a third row in the shared header. */
   #mainContent #exactV4-headerControls {

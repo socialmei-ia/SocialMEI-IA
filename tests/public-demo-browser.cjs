@@ -13,7 +13,8 @@ module.exports = async (browser, origin) => {
     writes = [];
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("request", (req) => {
-    if (!req.url().startsWith(origin + "/")) external.push(req.url().split("?")[0]);
+    if (new URL(req.url()).origin !== origin && !req.url().startsWith("data:"))
+      external.push(req.url().split("?")[0]);
     if (req.method() !== "GET") writes.push(req.method());
   });
   const base = origin + "/test-results/public-demo/";
@@ -81,9 +82,28 @@ module.exports = async (browser, origin) => {
       false,
       "Only the original hashed scripts may execute in the distributed demo",
     );
-    await page.locator("#d3 > summary").click();
+    await page.locator("#d2 > summary").click();
+    await page.locator("#tema").fill("Bastidores fictícios");
+    await page.locator("#prod").fill("Serviço demonstrativo");
+    await page.locator("#sug").click();
+    await page.waitForFunction(() => document.querySelectorAll("#sugs button").length === 3);
+    await page.locator("#sugs button").first().click();
     await page.locator("#titulo").fill("Rascunho fictício público");
     await page.locator("#leg").fill("Somente teste, sem divulgação real.");
+    const png = await page.evaluate(() => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 100;
+      canvas.height = 200;
+      canvas.getContext("2d").fillRect(0, 0, 100, 200);
+      return canvas.toDataURL("image/png").split(",")[1];
+    });
+    await page.locator("#file").setInputFiles({
+      name: "ficticio.png",
+      mimeType: "image/png",
+      buffer: Buffer.from(png, "base64"),
+    });
+    await page.locator("#media canvas,#media img").waitFor();
+    await page.locator("#zoom").fill("1.5");
     await page.locator("#d4 > summary").click();
     await page.locator("#save").click();
     await page.waitForFunction(() =>
@@ -91,6 +111,20 @@ module.exports = async (browser, origin) => {
         (d) => d.titulo === "Rascunho fictício público",
       ),
     );
+    await page.locator("#week").click();
+    await page.waitForFunction(
+      () => JSON.parse(localStorage.getItem("smei4_s") || "[]").length === 3,
+    );
+    assert.equal(await page.locator("#strip .dy").count(), 14);
+    await page.locator('#al [data-a="c"]').first().click();
+    assert(
+      await page.evaluate(() =>
+        JSON.parse(localStorage.getItem("smei4_s")).some((job) => job.st === "Cancelado"),
+      ),
+    );
+    await page.locator("#k3").click();
+    await page.locator('#cg [data-k="ig"]').click();
+    assert(await page.evaluate(() => JSON.parse(localStorage.getItem("smei4_c")).ig));
     await page.reload();
     await page.keyboard.press("2");
     await page.locator("#q").fill("Rascunho fictício público");

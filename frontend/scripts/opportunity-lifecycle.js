@@ -27,7 +27,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // Original viewport typography follows the available native canvas, excluding the sidebar.
   const sizeCanvas = () => {
     const width = root.getBoundingClientRect().width;
-    if (width) root.style.setProperty("--v8-vw", width / 100 + "px");
+    if (!width) return;
+    root.style.setProperty("--v8-vw", width / 100 + "px");
+    for (const limit of [560, 640, 860, 980])
+      root.toggleAttribute("data-v8-max" + limit, width <= limit);
   };
   new ResizeObserver(sizeCanvas).observe(root);
   sizeCanvas();

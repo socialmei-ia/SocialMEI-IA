@@ -115,3 +115,21 @@ de rascunhos e a preparação existente. Thumb JPEG limitado é local; mídia br
 é sincronizada nem incluída no backup. Agenda compartilhada depende de API habilitada;
 simular3publicações permanece desabilitado quando não há transação segura disponível.
 Não confundir estas limitações com as capacidades do protótipo público independente.
+
+### Proposta concreta de primeira hospedagem (não executada)
+
+**Cloudflare Pages, projeto novo `socialmei-lab`**, usando exclusivamente o artifact
+estático desta PR. Nome/disponibilidade e URL `*.pages.dev` ainda não confirmados;
+nenhum projeto foi criado ou conta conectada. A origem precisa ser independente
+inclusive do GitHub Pages atual. Não configurar domínio próprio nem DNS nesta fase.
+
+Após autorização de origem+SHA: criar o projeto de upload estático, conferir manifesto,
+subir somente o conteúdo de `test-results/public-demo/`, verificar os cabeçalhos e
+repetir smoke sem login em desktop/celular. Sem comandos de API, containers ou banco.
+Para atualizações futuras, pode-se configurar build GitHub com comando
+`node tools/package-public-demo.mjs` e saída `test-results/public-demo`, somente depois
+de autorizar essa vinculação. Não usar outro workflow de produção do repositório.
+
+Rollback do projeto novo: desabilitar a hospedagem se for a primeira publicação;
+nas seguintes, promover o deployment estático anterior e conferir seu manifesto.
+O CRM atual permanece no endereço existente, sem alteração de autenticação.

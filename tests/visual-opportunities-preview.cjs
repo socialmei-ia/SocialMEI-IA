@@ -47,6 +47,8 @@ module.exports = async (context, origin, client, headers) => {
         tokens: ["--bg", "--sf", "--sf2", "--bd", "--tx", "--mu", "--ac"].map((k) =>
           root.getPropertyValue(k).trim(),
         ),
+        columnCount: style(".cf").gridTemplateColumns.split(" ").length,
+        illustration: style(".ill2").display,
         title: ["fontSize", "fontWeight", "lineHeight", "letterSpacing"].map((k) => style("h1")[k]),
         form: ["padding", "borderRadius", "backgroundImage", "borderColor"].map(
           (k) => style(".panel.cr")[k],
@@ -221,6 +223,8 @@ module.exports = async (context, origin, client, headers) => {
               tokens: ["--bg", "--sf", "--sf2", "--bd", "--tx", "--mu", "--ac"].map((k) =>
                 root.getPropertyValue(k).trim(),
               ),
+              columnCount: style(".cf").gridTemplateColumns.split(" ").length,
+              illustration: style(".ill2").display,
               title: ["fontSize", "fontWeight", "lineHeight", "letterSpacing"].map(
                 (k) => style("h1")[k],
               ),
