@@ -62,7 +62,6 @@
     <link rel="stylesheet" href="styles/workspace-refinement.css" />
     <link rel="stylesheet" href="styles/business-profile.css" />
     <link rel="stylesheet" href="styles/opportunities.css" />
-    <link rel="stylesheet" href="styles/content-studio.css" />
     <link rel="stylesheet" href="styles/content-preparation.css" />
     <link rel="stylesheet" href="styles/content-workspace.css" />
     <link rel="stylesheet" href="styles/instagram-publisher.css" />
@@ -73,7 +72,6 @@
     <link rel="stylesheet" href="styles/visual-content-polish.css" />
     <link rel="stylesheet" href="styles/opportunities-v8.css" />
     <link rel="stylesheet" href="styles/divulgacao-v4.css" />
-    <link rel="stylesheet" href="styles/prototype-v8-v4-parity.css" />
     <script src="scripts/storage-and-themes.js"></script>
     <script src="scripts/motion.js"></script>
 
@@ -4259,413 +4257,824 @@
             id="contentStudioView"
             aria-labelledby="contentStudioTitle"
           >
-            <div class="content-studio">
-              <header class="management-header">
-                <div>
-                  <span class="report-eyebrow">FERRAMENTAS</span>
-                  <h2 id="contentStudioTitle">Seu negócio tem o que contar.</h2>
-                  <p>
-                    Prepare o conteúdo. Confira a prévia. Publique pelos seus canais quando estiver
-                    pronto.
-                  </p>
-                </div>
-                <img
-                  class="content-hero-art"
-                  src="assets/workspace-hero.png"
-                  alt=""
-                  aria-hidden="true"
-                  width="480"
-                  height="320"
-                />
-                <button type="button" class="management-button" id="contentNew">
-                  + Novo rascunho
+            <div class="exact-v4-root" id="exactV4-root" data-t="dark">
+              <svg width="0" height="0" style="position:absolute">
+                <defs>
+                  <symbol id="exactV4-pen" viewbox="0 0 24 24">
+                    <path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"></path>
+                  </symbol>
+                  <symbol id="exactV4-doc" viewbox="0 0 24 24">
+                    <path
+                      d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8zM14 3v5h5M9 13h6M9 17h6"
+                    ></path>
+                  </symbol>
+                  <symbol id="exactV4-cal" viewbox="0 0 24 24">
+                    <rect x="3" y="5" width="18" height="16" rx="3"></rect>
+                    <path d="M8 3v4M16 3v4M3 10h18"></path>
+                  </symbol>
+                  <symbol id="exactV4-net" viewbox="0 0 24 24">
+                    <circle cx="12" cy="6" r="3"></circle>
+                    <circle cx="6" cy="17" r="3"></circle>
+                    <circle cx="18" cy="17" r="3"></circle>
+                    <path d="M10 8.5L7.5 14.5M14 8.5l2.5 6M9 17h6"></path>
+                  </symbol>
+                  <symbol id="exactV4-story" viewbox="0 0 24 24">
+                    <rect x="7" y="3" width="10" height="18" rx="3"></rect>
+                  </symbol>
+                  <symbol id="exactV4-feed" viewbox="0 0 24 24">
+                    <rect x="4" y="3" width="16" height="18" rx="3"></rect>
+                  </symbol>
+                  <symbol id="exactV4-reel" viewbox="0 0 24 24">
+                    <rect x="4" y="3" width="16" height="18" rx="3"></rect>
+                    <path d="M10 9l5 3-5 3z"></path>
+                  </symbol>
+                  <symbol id="exactV4-img" viewbox="0 0 24 24">
+                    <rect x="3" y="4" width="18" height="16" rx="3"></rect>
+                    <circle cx="9" cy="10" r="2"></circle>
+                    <path d="M21 16l-5-5-9 9"></path>
+                  </symbol>
+                  <symbol id="exactV4-sp" viewbox="0 0 24 24">
+                    <path
+                      d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"
+                    ></path>
+                  </symbol>
+                  <symbol id="exactV4-ht" viewbox="0 0 24 24">
+                    <path
+                      d="M12 20s-8-5-8-11a4.5 4.5 0 018-2.5A4.5 4.5 0 0120 9c0 6-8 11-8 11z"
+                    ></path>
+                  </symbol>
+                  <symbol id="exactV4-up" viewbox="0 0 24 24">
+                    <path d="M12 16V4M7 9l5-5 5 5M4 20h16"></path>
+                  </symbol>
+                  <symbol id="exactV4-sun" viewbox="0 0 24 24">
+                    <circle cx="12" cy="12" r="4"></circle>
+                    <path
+                      d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"
+                    ></path>
+                  </symbol>
+                  <symbol id="exactV4-bulb" viewbox="0 0 24 24">
+                    <path
+                      d="M9 18h6M10 21h4M12 3a6 6 0 00-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0012 3z"
+                    ></path>
+                  </symbol>
+                </defs>
+              </svg>
+
+              <header class="v4-header">
+                <div><b>Divulgação</b><small id="exactV4-bh">Seu negócio</small></div>
+                <div class="sp"></div>
+                <span class="pill"
+                  ><span class="dot"></span><span>Preparação local · nada publicado</span></span
+                >
+                <button
+                  class="ic-b"
+                  id="exactV4-th"
+                  aria-label="Alternar tema claro e escuro"
+                  type="button"
+                >
+                  <svg><use href="#exactV4-sun"></use></svg>
                 </button>
+                <div id="exactV4-prog"></div>
               </header>
-              <p class="content-context" id="contentBusinessContext"></p>
-              <details class="content-local-note">
-                <summary>Sobre rascunhos e publicação</summary>
-                <p>
-                  Texto e referências de mídia ficam neste navegador, separados por conta e negócio.
-                  Não sincronizam entre dispositivos. Os arquivos de imagem e vídeo não são enviados
-                  nem salvos: selecione-os novamente ao reabrir um rascunho. Apagar os dados do
-                  navegador remove os rascunhos.
-                </p>
-              </details>
-              <div id="contentStorageStatus" role="status" class="management-note"></div>
-              <div
-                class="management-chips content-workspace-tabs"
-                role="tablist"
-                aria-label="Divulgação"
-              >
-                <button
-                  type="button"
-                  role="tab"
-                  id="contentWorkspace-create"
-                  data-content-workspace-tab="create"
-                  aria-controls="contentCreatePanel"
-                  aria-selected="true"
+
+              <div class="v4-main">
+                <section class="hero">
+                  <div>
+                    <h2 id="contentStudioTitle">Seu negócio tem o que contar.</h2>
+                    <span id="contentStorageStatus" class="sr"></span
+                    ><span id="contentBusinessContext" class="sr"></span
+                    ><span id="contentPreviewFormat" class="sr"></span>
+                  </div>
+                  <button class="today" id="exactV4-today" type="button">
+                    <svg><use href="#exactV4-bulb"></use></svg
+                    ><span
+                      ><small id="exactV4-td">Ideia de hoje</small><b id="exactV4-ti"></b
+                    ></span>
+                  </button>
+                </section>
+
+                <!-- CRIAR -->
+                <section
+                  id="contentCreatePanel"
+                  role="tabpanel"
+                  aria-labelledby="contentWorkspace-create"
+                  class="studio"
                 >
-                  Criar conteúdo
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  id="contentWorkspace-drafts"
-                  data-content-workspace-tab="drafts"
-                  aria-controls="contentDraftsPanel"
-                  aria-selected="false"
-                  tabindex="-1"
-                >
-                  Rascunhos
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  id="contentWorkspace-agenda"
-                  data-content-workspace-tab="agenda"
-                  aria-controls="contentAgendaPanel"
-                  aria-selected="false"
-                  tabindex="-1"
-                >
-                  Agenda
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  id="contentWorkspace-connections"
-                  data-content-workspace-tab="connections"
-                  aria-controls="contentConnectionsPanel"
-                  aria-selected="false"
-                  tabindex="-1"
-                >
-                  Conexões
-                </button>
-              </div>
-              <div
-                id="contentCreatePanel"
-                role="tabpanel"
-                aria-labelledby="contentWorkspace-create"
-              >
-                <div class="content-studio-layout">
-                  <div class="content-editor">
-                    <div class="content-formats" role="tablist" aria-label="Formato do conteúdo">
-                      <span aria-hidden="true" class="content-format-indicator"></span>
-                      <button
-                        type="button"
-                        role="tab"
-                        data-content-format="story"
-                        id="contentFormat-story"
-                        aria-controls="contentEditorPanel"
-                        aria-selected="false"
-                        tabindex="-1"
+                  <div class="stage">
+                    <div class="phone">
+                      <div
+                        class="scr empty"
+                        id="contentPreviewDevice"
+                        data-f="story"
+                        data-content-preview="story"
                       >
-                        Story <small>9:16</small>
-                      </button>
-                      <button
-                        type="button"
-                        role="tab"
-                        data-content-format="feed"
-                        id="contentFormat-feed"
-                        aria-controls="contentEditorPanel"
-                        aria-selected="true"
-                      >
-                        Feed <small>4:5</small>
-                      </button>
-                      <button
-                        type="button"
-                        role="tab"
-                        data-content-format="reel"
-                        id="contentFormat-reel"
-                        aria-controls="contentEditorPanel"
-                        aria-selected="false"
-                        tabindex="-1"
-                      >
-                        Reel <small>9:16</small>
-                      </button>
-                    </div>
-                    <div
-                      id="contentEditorPanel"
-                      role="tabpanel"
-                      aria-labelledby="contentFormat-feed"
-                    >
-                      <form id="contentDraftForm" autocomplete="off">
-                        <label for="contentTitle"
-                          >Título do rascunho <small>Para sua organização</small></label
+                        <div class="bars"><i></i><i></i><i></i></div>
+                        <div class="safe" aria-hidden="true"></div>
+                        <div class="hd">
+                          <span class="av nm0" id="contentBrandInitial">N</span
+                          ><b class="nm" id="contentPreviewBusiness">Negócio de Maiccon</b
+                          ><small>2 min</small>
+                        </div>
+                        <div
+                          class="media"
+                          id="contentPreviewStage"
+                          role="button"
+                          tabindex="0"
+                          aria-label="Escolher imagem ou vídeo"
                         >
-                        <input
-                          id="contentTitle"
-                          maxlength="80"
-                          required
-                          placeholder="Sobre o que você quer falar?"
-                        />
-                        <div class="content-field-heading">
-                          <label for="contentCaption">Texto ou legenda</label
-                          ><span id="contentCaptionCount">0 / 2200</span>
+                          <div class="ph">
+                            <svg><use href="#exactV4-img"></use></svg
+                            ><b>Seu conteúdo começa aqui</b>
+                            <p>Escolha um formato e escreva direto na tela.</p>
+                          </div>
                         </div>
-                        <textarea
-                          id="contentCaption"
-                          maxlength="2200"
-                          rows="5"
-                          placeholder="Conte o que seu negócio oferece, com suas próprias palavras."
-                        ></textarea>
-                        <label for="contentCta">Chamada para ação <small>Opcional</small></label>
-                        <input
-                          id="contentCta"
-                          maxlength="140"
-                          placeholder="Ex.: Fale comigo para saber mais"
-                        />
-                        <label for="contentHashtags">Hashtags <small>Opcionais</small></label
-                        ><input id="contentHashtags" maxlength="300" placeholder="#SeuNegócio" />
-                        <div class="content-media-control">
-                          <label for="contentMedia">Imagem ou vídeo local</label>
-                          <p id="contentMediaHelp">
-                            Feed: imagem JPG, PNG ou WebP, até 10 MB. Sugestão de composição: 4:5.
-                          </p>
-                          <input
-                            id="contentMedia"
-                            type="file"
-                            accept="image/jpeg,image/png,image/webp"
-                            aria-describedby="contentMediaHelp contentMediaStatus"
-                          />
-                          <p id="contentMediaStatus" role="status">
-                            Nenhuma mídia selecionada. O texto pode ser salvo sem mídia.
-                          </p>
-                          <button
-                            type="button"
-                            class="management-button"
-                            id="contentRemoveMedia"
-                            hidden
-                          >
-                            Remover mídia
-                          </button>
+                        <div class="ac">
+                          <svg><use href="#exactV4-ht"></use></svg
+                          ><svg><use href="#exactV4-doc"></use></svg>
                         </div>
-                        <div class="content-editor-actions">
-                          <button type="submit" class="management-button pr" id="contentSave">
-                            Salvar rascunho local</button
-                          ><button type="button" class="management-button" id="contentCopy">
-                            Copiar legenda
-                          </button>
+                        <div class="side">
+                          <svg><use href="#exactV4-ht"></use></svg
+                          ><svg><use href="#exactV4-doc"></use></svg
+                          ><svg><use href="#exactV4-up"></use></svg>
                         </div>
+                        <div class="ov">
+                          <h4
+                            id="contentPreviewTitle"
+                            contenteditable="plaintext-only"
+                            data-ph="Toque para dar um título"
+                            role="textbox"
+                            aria-label="Título na prévia"
+                            data-native-editable="true"
+                          ></h4>
+                          <p
+                            id="contentPreviewCaption"
+                            contenteditable="plaintext-only"
+                            data-ph="Toque para escrever a legenda"
+                            role="textbox"
+                            aria-label="Legenda na prévia"
+                            data-native-editable="true"
+                          ></p>
+                          <div class="tg" id="exactV4-ptg"></div>
+                          <span
+                            class="cta"
+                            id="exactV4-pcta"
+                            contenteditable="plaintext-only"
+                            role="textbox"
+                            aria-label="Chamada para ação na prévia"
+                          ></span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="tools">
+                      <button class="btn sec" id="dv4Fullscreen" type="button">Tela cheia</button
+                      ><button class="btn sec" id="dv4FeedLight" type="button" aria-pressed="false">
+                        Feed claro</button
+                      ><label id="exactV4-sfl"
+                        ><input type="checkbox" id="dv4SafeArea" /> Área segura</label
+                      >
+                    </div>
+                    <p class="hint">
+                      Com uma foto escolhida, arraste sobre o celular para reposicionar. Clique no
+                      título ou na legenda da prévia para escrever direto nela. Solte uma foto ou
+                      vídeo sobre o celular.
+                    </p>
+                  </div>
+
+                  <div>
+                    <div id="contentEditorPanel">
+                      <form id="contentDraftForm" autocomplete="off" novalidate="">
+                        <div class="ring">
+                          <svg class="r" viewbox="0 0 56 56" aria-hidden="true">
+                            <circle class="bg" cx="28" cy="28" r="24"></circle>
+                            <circle
+                              class="fg"
+                              id="dv4ProgressRing"
+                              cx="28"
+                              cy="28"
+                              r="24"
+                              stroke-dashoffset="150.8"
+                            ></circle>
+                          </svg>
+                          <div>
+                            <b id="dv4ProgressTitle">Vamos começar</b
+                            ><small id="dv4ProgressNext"
+                              >Escolha o formato e conte sua ideia.</small
+                            >
+                          </div>
+                          <span class="pc" id="dv4Percent">0%</span>
+                        </div>
+
+                        <details class="st" name="exact-v4-step" id="exactV4-d1" open>
+                          <summary>
+                            <span class="n">1</span
+                            ><span
+                              >Onde vai aparecer?<small class="s"
+                                >A prévia muda de tamanho e estilo.</small
+                              ></span
+                            >
+                          </summary>
+                          <div class="body">
+                            <div
+                              class="fmts content-formats"
+                              role="radiogroup"
+                              aria-label="Formato"
+                              id="exactV4-fmts"
+                            >
+                              <button
+                                class="fmt"
+                                role="radio"
+                                aria-checked="true"
+                                data-f="story"
+                                type="button"
+                                data-content-format="story"
+                                id="contentFormat-story"
+                                aria-selected="true"
+                                aria-controls="contentEditorPanel"
+                                tabindex="0"
+                              >
+                                <svg><use href="#exactV4-story"></use></svg><b>Story</b
+                                ><small>9:16</small>
+                              </button>
+                              <button
+                                class="fmt"
+                                role="radio"
+                                aria-checked="false"
+                                data-f="feed"
+                                type="button"
+                                data-content-format="feed"
+                                id="contentFormat-feed"
+                                aria-selected="false"
+                                aria-controls="contentEditorPanel"
+                                tabindex="-1"
+                              >
+                                <svg><use href="#exactV4-feed"></use></svg><b>Feed</b
+                                ><small>4:5</small>
+                              </button>
+                              <button
+                                class="fmt"
+                                role="radio"
+                                aria-checked="false"
+                                data-f="reel"
+                                type="button"
+                                data-content-format="reel"
+                                id="contentFormat-reel"
+                                aria-selected="false"
+                                aria-controls="contentEditorPanel"
+                                tabindex="-1"
+                              >
+                                <svg><use href="#exactV4-reel"></use></svg><b>Reel</b
+                                ><small>9:16 com vídeo</small>
+                              </button>
+                            </div>
+                          </div>
+                        </details>
+
+                        <details class="st" name="exact-v4-step" id="exactV4-d2">
+                          <summary>
+                            <span class="n">2</span
+                            ><span
+                              >Qual é a ideia?<small class="s"
+                                >Os textos vêm de modelos locais. Não há IA conectada.</small
+                              ></span
+                            >
+                          </summary>
+                          <div class="body">
+                            <div class="fld">
+                              <div>
+                                <label for="dv4Topic">Sobre o que falar</label
+                                ><input
+                                  id="dv4Topic"
+                                  placeholder="Ex.: Meu trabalho"
+                                  maxlength="60"
+                                />
+                              </div>
+                              <div>
+                                <label for="dv4Offering">Produto ou serviço</label
+                                ><input
+                                  id="dv4Offering"
+                                  placeholder="Ex.: corte de cabelo"
+                                  maxlength="60"
+                                />
+                              </div>
+                              <div>
+                                <label for="dv4Objective">Objetivo</label
+                                ><select id="dv4Objective">
+                                  <option>Apresentar</option>
+                                  <option>Vender</option>
+                                  <option>Divulgar promoção</option>
+                                  <option>Engajar</option>
+                                </select>
+                              </div>
+                              <div>
+                                <label for="dv4Tone">Jeito de falar</label
+                                ><select id="dv4Tone">
+                                  <option>Profissional</option>
+                                  <option>Próximo</option>
+                                  <option>Divertido</option>
+                                </select>
+                              </div>
+                            </div>
+                            <div class="acts">
+                              <button class="btn" id="exactV4-sug" style="flex:1" type="button">
+                                <svg><use href="#exactV4-sp"></use></svg
+                                ><span>Sugerir legendas (modelo local)</span>
+                              </button>
+                            </div>
+                            <div class="sug" id="exactV4-sugs" aria-live="polite"></div>
+                          </div>
+                        </details>
+
+                        <details class="st" name="exact-v4-step" id="exactV4-d3">
+                          <summary>
+                            <span class="n">3</span
+                            ><span
+                              >Texto e mídia<small class="s"
+                                >Ou escreva direto no celular ao lado.</small
+                              ></span
+                            >
+                          </summary>
+                          <div class="body">
+                            <div class="fld">
+                              <div class="full">
+                                <label for="contentTitle">Título do rascunho</label
+                                ><input
+                                  id="contentTitle"
+                                  maxlength="50"
+                                  placeholder="Ex.: Novidade da semana"
+                                  required=""
+                                />
+                                <p class="err">Dê um título para achar este rascunho depois.</p>
+                              </div>
+                              <div class="full rel">
+                                <label for="contentCaption">Legenda</label
+                                ><textarea
+                                  id="contentCaption"
+                                  maxlength="2200"
+                                  placeholder="Escreva ou escolha uma sugestão"
+                                ></textarea
+                                ><span class="cnt" id="contentCaptionCount">0/2200</span>
+                              </div>
+                              <p
+                                class="mu full"
+                                id="exactV4-warn"
+                                style="font-size:12.5px"
+                                aria-live="polite"
+                              ></p>
+                              <div>
+                                <label for="contentCta">Chamada para ação</label
+                                ><input
+                                  id="contentCta"
+                                  maxlength="30"
+                                  placeholder="Ex.: Agende pelo WhatsApp"
+                                />
+                              </div>
+                              <div>
+                                <label for="contentHashtags">Hashtags</label
+                                ><input
+                                  id="contentHashtags"
+                                  maxlength="120"
+                                  placeholder="#barbearia #mei"
+                                />
+                              </div>
+                              <div>
+                                <label for="dv4Zoom">Zoom da foto</label
+                                ><input
+                                  type="range"
+                                  id="dv4Zoom"
+                                  min="1"
+                                  max="3"
+                                  step=".05"
+                                  value="1"
+                                />
+                              </div>
+                              <div>
+                                <label for="dv4Alt">Descrição da imagem (acessibilidade)</label
+                                ><input
+                                  id="dv4Alt"
+                                  maxlength="120"
+                                  placeholder="Ex.: Corte feito na barbearia"
+                                />
+                              </div>
+                              <div class="full">
+                                <label class="drop" for="contentMedia"
+                                  ><svg><use href="#exactV4-up"></use></svg
+                                  ><span id="contentMediaStatus"
+                                    >Escolher imagem ou vídeo. O arquivo fica só no seu
+                                    navegador.</span
+                                  ></label
+                                ><input
+                                  class="sr"
+                                  type="file"
+                                  id="contentMedia"
+                                  accept="image/*,video/*"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </details>
+
+                        <details class="st" name="exact-v4-step" id="exactV4-d4">
+                          <summary>
+                            <span class="n">4</span
+                            ><span
+                              >Revisar e guardar<small class="s"
+                                >Rascunhos guardam só texto, não a mídia.</small
+                              ></span
+                            >
+                          </summary>
+                          <div class="body">
+                            <ul class="chk" id="exactV4-chk"></ul>
+                            <div class="acts">
+                              <button class="btn" id="contentSave" type="submit">
+                                <svg><use href="#exactV4-doc"></use></svg
+                                ><span>Salvar rascunho</span></button
+                              ><button
+                                class="btn sec"
+                                id="exactV4-week"
+                                type="button"
+                                disabled
+                                aria-describedby="exactV4-weekHelp"
+                              >
+                                <svg><use href="#exactV4-cal"></use></svg
+                                ><span>Simular semana</span></button
+                              ><button class="btn sec" id="contentCopy" type="button">
+                                <span>Copiar legenda</span></button
+                              ><button class="btn sec" id="exactV4-copyall" type="button">
+                                <span>Copiar publicação completa</span></button
+                              ><button class="btn sec" id="contentNew" type="button">
+                                <span>Começar de novo</span>
+                              </button>
+                            </div>
+                            <p id="exactV4-weekHelp" class="mu">
+                              Simular três publicações exige transação de lote com revisão ainda não
+                              suportada. Use a preparação compartilhada para revisar cada
+                              agendamento.
+                            </p>
+                            <p class="mu" style="font-size:12.5px;margin-top:12px">
+                              Ao salvar, uma miniatura pequena da foto fica guardada só neste
+                              navegador. O arquivo original não é guardado.
+                            </p>
+                          </div>
+                        </details>
                         <p
                           id="contentActionStatus"
                           role="status"
                           aria-live="polite"
-                          class="management-note"
+                          class="v4-action-status"
                         ></p>
+                        <p id="contentMediaHelp" class="mu"></p>
+                        <div class="acts">
+                          <button type="button" class="btn sec" id="contentRemoveMedia" hidden>
+                            Remover mídia</button
+                          ><button type="button" class="btn sec" id="contentExport">
+                            Baixar texto de preparação</button
+                          ><button
+                            type="button"
+                            class="btn sec"
+                            id="contentPublish"
+                            disabled
+                            aria-describedby="contentPublishHelp"
+                          >
+                            Publicação não conectada
+                          </button>
+                        </div>
+                        <p id="contentPublishHelp" class="mu">
+                          Nenhuma conta conectada. A prévia não incorpora textos ao arquivo e não
+                          publica conteúdo.
+                        </p>
                       </form>
                     </div>
-                  </div>
-                  <aside class="content-preview-column" aria-label="Prévia do conteúdo">
-                    <div class="content-preview-heading">
-                      <h3>É assim que está ficando</h3>
-                      <span id="contentPreviewFormat">Feed</span>
-                    </div>
-                    <div class="content-preview-device" data-content-preview="feed">
-                      <div class="content-preview-brand">
-                        <span aria-hidden="true" id="contentBrandInitial">S</span
-                        ><strong id="contentPreviewBusiness">Seu negócio</strong
-                        ><small>Prévia local</small>
-                      </div>
-                      <div class="content-preview-stage" id="contentPreviewStage">
-                        <div class="content-preview-placeholder">
-                          <span aria-hidden="true">＋</span><b>Seu conteúdo começa aqui</b>
-                          <p>Selecione uma imagem ou vídeo para conferir o enquadramento.</p>
+                    <details class="native-v4-extra">
+                      <summary>Preparação compartilhada e testes autenticados</summary>
+                      <div id="contentSharedPreparation"></div>
+                      <section
+                        class="instagram-publish-panel"
+                        id="instagramPublishPanel"
+                        aria-labelledby="instagramPublishTitle"
+                        hidden
+                      >
+                        <header class="instagram-publish-header">
+                          <div>
+                            <span class="instagram-publish-kicker">INSTAGRAM · PILOTO</span>
+                            <h3 id="instagramPublishTitle">
+                              Seu conteúdo, pronto para sair do rascunho.
+                            </h3>
+                            <p>
+                              Prepare aqui e continue no formulário externo somente após a liberação
+                              do piloto. Confira quem controla a conta do Instagram antes de
+                              publicar.
+                            </p>
+                          </div>
+                          <span class="instagram-publish-state" id="instagramPublishState">
+                            Integração pendente
+                          </span>
+                        </header>
+                        <div class="instagram-publish-grid">
+                          <ol class="instagram-publish-steps">
+                            <li>
+                              <strong>Prepare o conteúdo</strong>
+                              <span
+                                >Escreva a legenda, confira a prévia e guarde seu rascunho.</span
+                              >
+                            </li>
+                            <li>
+                              <strong>Confira o destino</strong>
+                              <span
+                                >Verifique a conta do Instagram, o formato e a mídia original.</span
+                              >
+                            </li>
+                            <li>
+                              <strong>Finalize no n8n</strong>
+                              <span
+                                >O formulário externo solicita os arquivos e a confirmação
+                                final.</span
+                              >
+                            </li>
+                          </ol>
+                          <div class="instagram-publish-next">
+                            <strong
+                              >Próximo passo: <span id="instagramPublishFormat">Feed</span></strong
+                            >
+                            <p class="instagram-publish-guide" id="instagramPublishGuide"></p>
+                            <button
+                              type="button"
+                              class="management-button pr"
+                              id="instagramPublishStart"
+                              aria-describedby="instagramPublishStatus"
+                              disabled
+                            >
+                              Publicação em configuração
+                            </button>
+                            <p
+                              class="instagram-publish-status"
+                              id="instagramPublishStatus"
+                              role="status"
+                            >
+                              A conexão de publicação ainda não foi habilitada neste ambiente.
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                      <div class="content-preview-text">
-                        <strong id="contentPreviewTitle">Título do conteúdo</strong>
-                        <p id="contentPreviewCaption">O texto da sua postagem aparece aqui.</p>
-                      </div>
-                    </div>
-                    <p class="content-preview-disclosure">
-                      Prévia de composição. Não recortamos nem editamos o arquivo. Texto sobre
-                      vídeo/imagem não é incorporado à mídia.
-                    </p>
-                    <div class="content-preparation">
-                      <button type="button" class="management-button" id="contentExport">
-                        Baixar texto de preparação</button
-                      ><button
-                        type="button"
-                        class="management-button"
-                        id="contentPublish"
-                        disabled
-                        aria-describedby="contentPublishHelp"
+                      </section>
+                      <section
+                        class="instagram-simulation-panel"
+                        id="instagramSimulationPanel"
+                        hidden
+                        aria-labelledby="instagramSimulationTitle"
                       >
-                        Publicação não conectada
-                      </button>
-                      <p id="contentPublishHelp">
-                        Conexão e permissões do Instagram ainda precisam de homologação. Use o texto
-                        e o arquivo original no seu canal.
-                      </p>
-                    </div>
-                  </aside>
-                </div>
-                <section
-                  class="instagram-publish-panel"
-                  id="instagramPublishPanel"
-                  aria-labelledby="instagramPublishTitle"
-                  hidden
-                >
-                  <header class="instagram-publish-header">
-                    <div>
-                      <span class="instagram-publish-kicker">INSTAGRAM · PILOTO</span>
-                      <h3 id="instagramPublishTitle">
-                        Seu conteúdo, pronto para sair do rascunho.
-                      </h3>
-                      <p>
-                        Prepare aqui e continue no formulário externo somente após a liberação do
-                        piloto. Confira quem controla a conta do Instagram antes de publicar.
-                      </p>
-                    </div>
-                    <span class="instagram-publish-state" id="instagramPublishState">
-                      Integração pendente
-                    </span>
-                  </header>
-                  <div class="instagram-publish-grid">
-                    <ol class="instagram-publish-steps">
-                      <li>
-                        <strong>Prepare o conteúdo</strong>
-                        <span>Escreva a legenda, confira a prévia e guarde seu rascunho.</span>
-                      </li>
-                      <li>
-                        <strong>Confira o destino</strong>
-                        <span>Verifique a conta do Instagram, o formato e a mídia original.</span>
-                      </li>
-                      <li>
-                        <strong>Finalize no n8n</strong>
-                        <span
-                          >O formulário externo solicita os arquivos e a confirmação final.</span
-                        >
-                      </li>
-                    </ol>
-                    <div class="instagram-publish-next">
-                      <strong>Próximo passo: <span id="instagramPublishFormat">Feed</span></strong>
-                      <p class="instagram-publish-guide" id="instagramPublishGuide"></p>
-                      <button
-                        type="button"
-                        class="management-button pr"
-                        id="instagramPublishStart"
-                        aria-describedby="instagramPublishStatus"
-                        disabled
-                      >
-                        Publicação em configuração
-                      </button>
-                      <p class="instagram-publish-status" id="instagramPublishStatus" role="status">
-                        A conexão de publicação ainda não foi habilitada neste ambiente.
-                      </p>
-                    </div>
+                        <header>
+                          <span class="instagram-publish-kicker"
+                            >AMBIENTE DE TESTE · SEM PUBLICAÇÃO</span
+                          >
+                          <h3 id="instagramSimulationTitle">
+                            Teste o fluxo do Instagram com segurança.
+                          </h3>
+                          <p>
+                            A simulação registra somente os dados da publicação no banco de testes.
+                            Imagens e vídeos não são enviados; nenhuma conta real é conectada.
+                          </p>
+                        </header>
+                        <div class="instagram-simulation-fields">
+                          <label for="instagramSimulationAccount"
+                            >Conta fictícia para o teste</label
+                          >
+                          <select id="instagramSimulationAccount"></select>
+                          <div class="instagram-simulation-create">
+                            <label for="instagramSimulationName">Nome da conta de teste</label>
+                            <input
+                              id="instagramSimulationName"
+                              type="text"
+                              maxlength="80"
+                              placeholder="Ex.: Minha loja (teste)"
+                              autocomplete="off"
+                            />
+                            <button
+                              type="button"
+                              class="management-button"
+                              id="instagramSimulationCreate"
+                            >
+                              Criar conta fictícia
+                            </button>
+                          </div>
+                          <label for="instagramSimulationSchedule">
+                            Agendar simulação (opcional, horário do dispositivo)
+                          </label>
+                          <input id="instagramSimulationSchedule" type="datetime-local" />
+                          <button
+                            type="button"
+                            class="management-button pr"
+                            id="instagramSimulationSubmit"
+                          >
+                            Simular com o conteúdo selecionado
+                          </button>
+                        </div>
+                        <p id="instagramSimulationStatus" role="status" aria-live="polite">
+                          Este recurso não publica no Instagram.
+                        </p>
+                        <div id="instagramSimulationHistory" aria-label="Simulações recentes"></div>
+                      </section>
+                    </details>
                   </div>
                 </section>
-                <!-- The staged test section is an intentionally isolated component. -->
-                <!-- prettier-ignore -->
+
+                <!-- RASCUNHOS -->
                 <section
-                class="instagram-simulation-panel"
-                id="instagramSimulationPanel"
-                hidden
-                aria-labelledby="instagramSimulationTitle"
-              >
-                <header>
-                  <span class="instagram-publish-kicker">AMBIENTE DE TESTE · SEM PUBLICAÇÃO</span>
-                  <h3 id="instagramSimulationTitle">Teste o fluxo do Instagram com segurança.</h3>
-                  <p>
-                    A simulação registra somente os dados da publicação no banco de testes.
-                    Imagens e vídeos não são enviados; nenhuma conta real é conectada.
-                  </p>
-                </header>
-                <div class="instagram-simulation-fields">
-                  <label for="instagramSimulationAccount">Conta fictícia para o teste</label>
-                  <select id="instagramSimulationAccount"></select>
-                  <div class="instagram-simulation-create">
-                    <label for="instagramSimulationName">Nome da conta de teste</label>
-                    <input
-                      id="instagramSimulationName"
-                      type="text"
-                      maxlength="80"
-                      placeholder="Ex.: Minha loja (teste)"
-                      autocomplete="off"
-                    />
+                  id="contentDraftsPanel"
+                  role="tabpanel"
+                  aria-labelledby="contentWorkspace-drafts"
+                  hidden
+                  class="pn"
+                >
+                  <div class="card">
+                    <div class="bar">
+                      <input
+                        id="dv4DraftQuery"
+                        placeholder="Buscar rascunho"
+                        aria-label="Buscar rascunho"
+                      /><select id="dv4DraftFormat" aria-label="Formato">
+                        <option value="">Todos os formatos</option>
+                        <option value="story">Story</option>
+                        <option value="feed">Feed</option>
+                        <option value="reel">Reel</option></select
+                      ><select id="dv4DraftOrder" aria-label="Ordem">
+                        <option value="new">Mais recentes</option>
+                        <option value="old">Mais antigos</option>
+                        <option value="az">A–Z</option></select
+                      ><button class="btn sec" id="dv4Export" type="button">Exportar backup</button
+                      ><button class="btn sec" id="dv4Import" type="button">Importar backup</button
+                      ><input
+                        class="sr"
+                        type="file"
+                        id="dv4ImportFile"
+                        accept="application/json,.json"
+                        aria-label="Importar backup de rascunhos"
+                      />
+                    </div>
+                    <p id="contentDraftCount" class="mu"></p>
+                    <div class="dg" id="contentDraftList" aria-live="polite"></div>
+                  </div>
+                </section>
+
+                <!-- AGENDA -->
+                <section
+                  id="contentAgendaPanel"
+                  role="tabpanel"
+                  aria-labelledby="contentWorkspace-agenda"
+                  hidden
+                  class="pn"
+                >
+                  <div class="card">
+                    <div class="sim">
+                      Agenda simulada. Nada é enviado ou publicado em redes sociais.
+                    </div>
+                    <div
+                      class="strip"
+                      id="exactV4-strip"
+                      role="group"
+                      aria-label="Próximos 14 dias"
+                    ></div>
+                    <h3 id="exactV4-dl" style="margin:6px 0 12px"></h3>
+                    <div class="fld" style="margin-bottom:14px">
+                      <div class="full">
+                        <label for="exactV4-sd">Rascunho</label
+                        ><select id="exactV4-scheduleDraft"></select>
+                      </div>
+                      <div>
+                        <label for="exactV4-st">Horário</label
+                        ><input type="time" id="exactV4-scheduleTime" value="10:00" />
+                      </div>
+                      <div>
+                        <label for="exactV4-ss">Mostrar</label
+                        ><select id="contentAgendaStatus" aria-label="Mostrar estados">
+                          <option value="all">Todos os estados</option>
+                          <option value="scheduled">Simulado · agendado</option>
+                          <option value="simulated">Simulação concluída</option>
+                          <option value="cancelled">Cancelado</option>
+                          <option value="pending_review">Aguardando revisão</option>
+                          <option value="draft">Rascunho compartilhado</option>
+                          <option value="failed">Falhou</option>
+                          <option value="uncertain">Resultado incerto</option>
+                        </select>
+                      </div>
+                    </div>
+                    <p class="mu" id="exactV4-sh" style="font-size:12.5px;margin:-4px 0 12px"></p>
                     <button
+                      class="btn"
+                      id="exactV4-sch"
+                      style="width:100%"
                       type="button"
-                      class="management-button"
-                      id="instagramSimulationCreate"
+                      aria-describedby="exactV4-scheduleHelp"
+                      disabled
                     >
-                      Criar conta fictícia
+                      <svg><use href="#exactV4-cal"></use></svg><span>Simular neste dia</span>
                     </button>
+                    <p id="exactV4-scheduleHelp" class="mu">
+                      Abra e revise a preparação compartilhada para confirmar o agendamento. Nada é
+                      publicado.
+                    </p>
+                    <div id="exactV4-agendaList" style="margin-top:16px" aria-live="polite"></div>
+                    <p id="contentAgendaCount" class="mu" role="status"></p>
+                    <input id="contentAgendaDay" type="date" class="sr" tabindex="-1" /><label
+                      class="sr"
+                      for="contentAgendaDay"
+                      >Dia no fuso do agendamento</label
+                    >
                   </div>
-                  <label for="instagramSimulationSchedule">
-                    Agendar simulação (opcional, horário do dispositivo)
-                  </label>
-                  <input id="instagramSimulationSchedule" type="datetime-local" />
-                  <button
-                    type="button"
-                    class="management-button pr"
-                    id="instagramSimulationSubmit"
-                  >
-                    Simular com o conteúdo selecionado
-                  </button>
-                </div>
-                <p id="instagramSimulationStatus" role="status" aria-live="polite">
-                  Este recurso não publica no Instagram.
-                </p>
-                <div id="instagramSimulationHistory" aria-label="Simulações recentes"></div>
-              </section>
+                </section>
+
+                <!-- CONEXÕES -->
+                <section
+                  id="contentConnectionsPanel"
+                  role="tabpanel"
+                  aria-labelledby="contentWorkspace-connections"
+                  hidden
+                  class="pn"
+                >
+                  <div class="card">
+                    <div class="cg" id="exactV4-cg"></div>
+                    <h3>Dados públicos do negócio</h3>
+                    <p class="mu" style="margin:2px 0 12px;font-size:13px">
+                      Aparecem na prévia. Nunca informe senhas ou códigos de acesso aqui.
+                    </p>
+                    <div class="fld">
+                      <div>
+                        <label for="contentPublicBusinessName">Nome do negócio</label
+                        ><input id="contentPublicBusinessName" maxlength="40" readonly />
+                      </div>
+                      <div>
+                        <label for="contentPublicBusinessBio">Descrição curta</label
+                        ><input
+                          id="contentPublicBusinessBio"
+                          maxlength="80"
+                          placeholder="Ex.: Barbearia no centro"
+                          readonly
+                        />
+                      </div>
+                    </div>
+                    <div class="acts">
+                      <button class="btn" id="exactV4-bs" type="button">
+                        Editar perfil nas Configurações<span>Salvar informações</span>
+                      </button>
+                    </div>
+                  </div>
+                  <details class="native-v4-extra">
+                    <summary>Preparar dados públicos do Instagram</summary>
+                    <div id="integrationSetupPanel"></div>
+                  </details>
+                </section>
               </div>
-              <section
-                class="content-library"
-                id="contentDraftsPanel"
-                role="tabpanel"
-                aria-labelledby="contentWorkspace-drafts"
-                hidden
+
+              <nav
+                class="dock content-workspace-tabs"
+                role="tablist"
+                aria-label="Divulgação"
+                id="exactV4-dock"
               >
-                <div class="content-library-heading">
-                  <div>
-                    <h3 id="contentLibraryTitle">Seus rascunhos</h3>
-                    <p>Organize hoje. Continue quando quiser, neste navegador.</p>
-                  </div>
-                  <span id="contentDraftCount">0 rascunhos</span>
-                </div>
-                <div id="contentDraftList"></div>
-              </section>
-              <section
-                id="contentAgendaPanel"
-                role="tabpanel"
-                aria-labelledby="contentWorkspace-agenda"
-                hidden
-              >
-                <h3>Agenda de testes</h3>
-                <p>
-                  Preparações salvas no negócio. Agendamentos são simulados; nada é publicado. Para
-                  agendar, revise o conteúdo na aba Criar conteúdo.
-                </p>
-                <div class="content-preparation-fields">
-                  <label
-                    >Situação
-                    <select id="contentAgendaStatus">
-                      <option value="all">Todas</option>
-                      <option value="draft">Rascunho compartilhado</option>
-                      <option value="pending_review">Aguardando revisão</option>
-                      <option value="scheduled">Agendado · teste</option>
-                      <option value="processing">Processando · teste</option>
-                      <option value="simulated">Simulação concluída</option>
-                      <option value="failed">Falhou</option>
-                      <option value="uncertain">Resultado incerto</option>
-                      <option value="cancelled">Cancelado</option>
-                    </select></label
-                  >
-                  <label
-                    >Dia no fuso do agendamento <input type="date" id="contentAgendaDay"
-                  /></label>
-                </div>
-                <p id="contentAgendaCount" role="status"></p>
-              </section>
-              <section
-                id="contentConnectionsPanel"
-                role="tabpanel"
-                aria-labelledby="contentWorkspace-connections"
-                hidden
-              >
-                <div id="integrationSetupPanel" class="content-preparation-workflow"></div>
-              </section>
+                <span class="ind" id="exactV4-ind"></span>
+                <button
+                  role="tab"
+                  id="contentWorkspace-create"
+                  aria-selected="true"
+                  aria-controls="contentCreatePanel"
+                  type="button"
+                  data-content-workspace-tab="create"
+                >
+                  <svg><use href="#exactV4-pen"></use></svg><span>Criar</span>
+                </button>
+                <button
+                  role="tab"
+                  id="contentWorkspace-drafts"
+                  aria-selected="false"
+                  tabindex="-1"
+                  aria-controls="contentDraftsPanel"
+                  type="button"
+                  data-content-workspace-tab="drafts"
+                >
+                  <svg><use href="#exactV4-doc"></use></svg><span>Rascunhos</span>
+                </button>
+                <button
+                  role="tab"
+                  id="contentWorkspace-agenda"
+                  aria-selected="false"
+                  tabindex="-1"
+                  aria-controls="contentAgendaPanel"
+                  type="button"
+                  data-content-workspace-tab="agenda"
+                >
+                  <svg><use href="#exactV4-cal"></use></svg><span>Agenda</span>
+                </button>
+                <button
+                  role="tab"
+                  id="contentWorkspace-connections"
+                  aria-selected="false"
+                  tabindex="-1"
+                  aria-controls="contentConnectionsPanel"
+                  type="button"
+                  data-content-workspace-tab="connections"
+                >
+                  <svg><use href="#exactV4-net"></use></svg><span>Conexões</span>
+                </button>
+              </nav>
+              <div id="exactV4-toast" role="status" aria-live="polite"></div>
             </div>
           </section>
 
@@ -5312,7 +5721,6 @@
     <script src="scripts/experience.js"></script>
     <script src="scripts/content-workspace.js"></script>
     <script src="scripts/divulgacao-v4.js"></script>
-    <script src="scripts/divulgacao-v4-parity.js"></script>
     <script src="scripts/integration-setup.js"></script>
     <script src="scripts/message-enrichment-store.js"></script>
     <script src="scripts/message-enrichment.js"></script>

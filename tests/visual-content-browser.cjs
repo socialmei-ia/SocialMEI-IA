@@ -1,3 +1,4 @@
+const { revealContentControl, contentDock } = require("./content-test-ui.cjs");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -18,48 +19,55 @@ module.exports = async (browser, origin) => {
     await page.locator('[data-xp-go="app"]').first().click();
     // V8 is visible in the public demo, but CRM writes still require authenticated backend.
     await page.evaluate(() => setView("Oportunidades"));
-    assert(await page.locator("#op8Summary").isVisible());
-    assert(await page.locator("#op8Create").isDisabled());
+    assert(await page.locator("#v8-sum").isVisible());
+    assert(await page.locator("#opportunityCreateForm button[type=submit]").isDisabled());
     await page.evaluate(() => setView("Início"));
     await page.locator("#contentStudioOpen").click();
+    await revealContentControl(page, "#contentTitle");
     await page.locator("#contentTitle").fill("Rascunho de demonstração visual");
-    assert(await page.locator("#dv4ProgressBar").isVisible());
-    assert(Number(await page.locator("#dv4ProgressBar").getAttribute("aria-valuenow")) > 0);
+    assert(await page.locator("#dv4ProgressRing").isVisible());
+    assert(Number((await page.locator("#dv4Percent").textContent()).replace("%", "")) > 0);
     // The daily idea must not silently overwrite a user's existing draft.
-    page.once("dialog", (dialog) => dialog.dismiss());
-    await page.getByRole("button", { name: "Usar ideia" }).click();
+    await page.locator("#exactV4-today").click();
+    assert(await page.locator("#exactV4-toast .tb").isVisible());
+    // The original V4 confirms replacement through an explicit toast action.
+    await revealContentControl(page, "#contentTitle");
+    await page.locator("#contentTitle").focus();
     assert.equal(
       await page.locator("#contentTitle").inputValue(),
       "Rascunho de demonstração visual",
     );
+    await revealContentControl(page, "#contentSave");
     await page.locator("#contentSave").click();
+    await revealContentControl(page, "#dv4Topic");
     await page.locator("#dv4Topic").fill("Cuidados com a pele");
+    await revealContentControl(page, "#dv4Offering");
     await page.locator("#dv4Offering").fill("Limpeza de pele");
-    await page.getByRole("button", { name: "Sugerir três legendas" }).click();
-    assert.equal(await page.locator("#dv4OriginalSuggestions .dv4-suggestion").count(), 3);
-    await page.getByRole("button", { name: "Usar legenda 1" }).click();
+    await revealContentControl(page, "#exactV4-sug");
+    await page.locator("#exactV4-sug").click();
+    assert.equal(await page.locator("#exactV4-sugs button").count(), 3);
+    await page.locator("#exactV4-sugs button").first().click();
     assert.match(await page.locator("#contentCaption").inputValue(), /Cuidados com a pele/);
+    await revealContentControl(page, "#contentSave");
     await page.locator("#contentSave").click();
     await page.getByRole("button", { name: "Tela cheia" }).click();
     assert(
       await page
         .locator("#contentStudioView")
-        .evaluate((root) => root.classList.contains("dv4-fullscreen")),
+        .evaluate((root) => !!root.querySelector(".stage.fs")),
     );
     await page.keyboard.press("Escape");
     assert(
-      await page
-        .locator("#contentStudioView")
-        .evaluate((root) => !root.classList.contains("dv4-fullscreen")),
+      await page.locator("#contentStudioView").evaluate((root) => !root.querySelector(".stage.fs")),
     );
-    await page.locator("#contentWorkspace-drafts").click();
+    await contentDock(page, "drafts");
     await page.locator("#dv4DraftQuery").fill("não encontrado");
     assert.equal(await page.locator("#contentDraftList .content-draft-row:visible").count(), 0);
     await page.locator("#dv4DraftQuery").fill("Rascunho de demonstração visual");
     assert.equal(await page.locator("#contentDraftList .content-draft-row:visible").count(), 1);
     // The standalone V4 backup is converted into the native scoped draft format.
     page.once("dialog", (dialog) => dialog.accept());
-    await page.locator('input[aria-label="Selecionar backup JSON de rascunhos"]').setInputFiles({
+    await page.locator("#dv4ImportFile").setInputFiles({
       name: "rascunhos-v4.json",
       mimeType: "application/json",
       buffer: Buffer.from(
@@ -84,9 +92,20 @@ module.exports = async (browser, origin) => {
     );
     await page.keyboard.press("Home");
     assert(await page.locator("#contentCreatePanel").isVisible());
+    await revealContentControl(page, "#contentFormat-story");
     await page.locator("#contentFormat-story").click();
     let stage = await page.locator("#contentPreviewStage").boundingBox();
-    assert(Math.abs(stage.width / stage.height - 9 / 16) < 0.01, "Story must retain 9:16 preview");
+    const phone = await page.locator("#contentStudioView .phone").boundingBox();
+    assert(
+      Math.abs(phone.width / phone.height - 9 / 18.6) < 0.01,
+      "Story keeps the exact V4 phone frame",
+    );
+    assert(
+      Math.abs(stage.width - (phone.width - 20)) < 1 &&
+        Math.abs(stage.height - (phone.height - 20)) < 1,
+      "Story fills the original screen inside its ten-pixel bezel",
+    );
+    await revealContentControl(page, "#contentFormat-feed");
     await page.locator("#contentFormat-feed").click();
     stage = await page.locator("#contentPreviewStage").boundingBox();
     assert(Math.abs(stage.width / stage.height - 4 / 5) < 0.01, "Feed must retain 4:5 preview");
@@ -143,7 +162,7 @@ module.exports = async (browser, origin) => {
         }
       }
     }
-    await page.locator("#contentWorkspace-create").click();
+    await contentDock(page, "create");
     assert.equal(
       await page.locator("#contentTitle").inputValue(),
       "Rascunho de demonstração visual",

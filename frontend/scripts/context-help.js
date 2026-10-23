@@ -28,8 +28,20 @@ const SocialMEIContextHelp = (() => {
       ],
     },
     Oportunidades: {
-      intro: "Entenda quem acompanhar e confira as evidências antes de decidir.",
+      intro: "Acompanhe negociações e revise o contexto antes de agir.",
       sections: [
+        [
+          "Lista, Quadro e Semana",
+          "Use a lista para editar e consultar a auditoria. No Quadro, arraste as fichas ou use as setas para mudar o interesse. Na Semana, selecione uma pessoa e depois um dia para remarcar o retorno.",
+        ],
+        [
+          "CRM e planejamento local",
+          "Interesse, encerramento, reabertura e vínculo de venda usam o negócio autenticado. Valor estimado, anotação e retorno ficam só neste navegador e não sincronizam nem alteram vendas. Sem backend, o acompanhamento é somente leitura.",
+        ],
+        [
+          "Atalhos e retornos",
+          "Use / para buscar, N para uma nova oportunidade e Ctrl+K para comandos. Em Opções da análise você pode copiar os retornos de hoje; isso não envia mensagens.",
+        ],
         [
           "Em análise, Chance de fechar e Atenção",
           "Em análise reúne necessidades indefinidas. Quente, Morno e Frio são níveis qualitativos por regras locais, não probabilidades de venda. Atenção separa suporte e situações urgentes da fila comercial.",

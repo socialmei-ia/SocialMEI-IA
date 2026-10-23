@@ -1,398 +1,138 @@
-/* V8 parity: local-only planning metadata, not part of the CRM API. */
-(() => {
+/* Local planning sidecar only. Commercial writes remain in opportunity-lifecycle-store. */
+(function (root, factory) {
+  const api = factory();
+  if (typeof module === "object" && module.exports) module.exports = api;
+  else root.SocialMEIOpportunityV8Planning = api;
+})(globalThis, function () {
   "use strict";
-  document.addEventListener("DOMContentLoaded", () => {
-    const bridge = window.SocialMEIOpportunityV8Bridge;
-    const view = document.querySelector("#opportunitiesView .op8-shell");
-    const nativeList = document.getElementById("commercialOpportunityList");
-    if (!bridge || !view || !nativeList) return;
-    const $ = (selector) => view.querySelector(selector);
-    const note = document.createElement("p");
-    note.className = "op8-parity-disclosure";
-    note.textContent =
-      "Busca e Semana usam oportunidades do CRM. Valores, anotações e retornos são " +
-      "um planejamento deste navegador: não sincronizam entre dispositivos nem alteram vendas.";
-    view.querySelector(".op8-overview").append(note);
-
-    const toolbar = document.createElement("div");
-    toolbar.className = "op8-parity-tools";
-    toolbar.innerHTML =
-      '<label>Buscar cliente ou interesse<input type="search" id="op8Query" ' +
-      'placeholder="Pesquisar oportunidades" autocomplete="off"></label>' +
-      '<label>Ordenar<select id="op8Sort"><option value="recent">Mais recentes</option>' +
-      '<option value="followup">Próximo retorno</option>' +
-      '<option value="value">Maior valor local</option></select></label>';
-    view.querySelector(".op8-toolbar").after(toolbar);
-
-    const agenda = document.createElement("section");
-    agenda.className = "op8-today";
-    agenda.innerHTML =
-      '<div class="op8-today-head"><h4>Retornos para acompanhar</h4>' +
-      '<button type="button" class="management-button" id="op8CopyDue">Copiar retornos</button></div>' +
-      '<div id="op8DueList"></div>';
-    view.querySelector(".op8-overview").append(agenda);
-
-    const createForm = document.getElementById("opportunityCreateForm");
-    let pendingCreate = null;
-    if (createForm) {
-      const fields = document.createElement("div");
-      fields.className = "op8-create-fields";
-      fields.innerHTML =
-        "<label>Valor estimado (opcional, só neste navegador)" +
-        '<input id="op8CreateValue" inputmode="decimal" placeholder="Ex.: 350,50"></label>' +
-        "<label>Data de retorno (opcional, só neste navegador)" +
-        '<input id="op8CreateDate" type="date"></label>';
-      createForm.insertBefore(fields, createForm.lastElementChild);
-      createForm.addEventListener(
-        "submit",
-        () => {
-          pendingCreate = {
-            scope: bridge.snapshot().scope,
-            amount: createForm.querySelector("#op8CreateValue")?.value || "",
-            date: createForm.querySelector("#op8CreateDate")?.value || "",
-          };
-        },
-        true,
-      );
-      document.addEventListener("socialmei-v8-created", (event) => {
-        const scope = bridge.snapshot().scope;
-        if (!pendingCreate || pendingCreate.scope !== scope || !event.detail?.id) return;
-        const value = parseMoney(pendingCreate.amount);
-        if (Number.isFinite(value)) {
-          setMeta(event.detail.id, { amount: value, date: pendingCreate.date });
-          createForm.querySelector("#op8CreateValue").value = "";
-          createForm.querySelector("#op8CreateDate").value = "";
-        }
-        pendingCreate = null;
-        update();
-      });
-    }
-
-    const state = { scope: "", meta: {} };
-    const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-    function parseMoney(input) {
-      if (!String(input || "").trim()) return 0;
-      const clean = String(input).trim().replace(/\./g, "").replace(",", ".");
-      const value = Number(clean);
-      return Number.isFinite(value) && value >= 0 && value <= 1000000000 ? value : NaN;
-    }
-    function key(scope) {
-      return "socialmei-op8-local-v1:" + encodeURIComponent(scope);
-    }
-    function read(scope) {
-      if (!scope) return {};
-      try {
-        const raw = JSON.parse(localStorage.getItem(key(scope)));
-        if (raw?.v !== 1 || raw?.scope !== scope || !raw.items || Array.isArray(raw.items))
-          return {};
-        const result = {};
-        for (const [id, value] of Object.entries(raw.items).slice(0, 100)) {
-          if (!/^[a-z0-9-]{8,80}$/i.test(id) || typeof value !== "object" || !value) continue;
-          result[id] = {
-            amount: Number.isFinite(value.amount) && value.amount >= 0 ? value.amount : 0,
-            date: /^\d{4}-\d{2}-\d{2}$/.test(value.date || "") ? value.date : "",
-            note: String(value.note || "").slice(0, 140),
-            contacted: Boolean(value.contacted),
-          };
-        }
-        return result;
-      } catch {
-        return {};
-      }
-    }
-    function setMeta(id, patch) {
-      if (!state.scope || !bridge.snapshot().items.some((row) => row.id === id)) return false;
-      const old = state.meta[id] || {};
-      const next = { ...old, ...patch };
-      state.meta[id] = next;
-      try {
-        localStorage.setItem(
-          key(state.scope),
-          JSON.stringify({ v: 1, scope: state.scope, items: state.meta }),
-        );
-        return true;
-      } catch {
-        state.meta[id] = old;
-        view.querySelector("#op8Feedback").textContent =
-          "Não foi possível salvar o planejamento neste navegador.";
-        return false;
-      }
-    }
-    function isoToday() {
-      const d = new Date();
-      return [
-        d.getFullYear(),
-        String(d.getMonth() + 1).padStart(2, "0"),
-        String(d.getDate()).padStart(2, "0"),
-      ].join("-");
-    }
-    function nextDay(days) {
-      const d = new Date();
-      d.setDate(d.getDate() + days);
-      return [
-        d.getFullYear(),
-        String(d.getMonth() + 1).padStart(2, "0"),
-        String(d.getDate()).padStart(2, "0"),
-      ].join("-");
-    }
-    function eligible() {
-      const snapshot = bridge.snapshot();
-      return (
-        snapshot.ready && !snapshot.busy && ["owner", "admin", "member"].includes(snapshot.role)
-      );
-    }
-    function rows() {
-      const query = $("#op8Query").value.trim().toLocaleLowerCase("pt-BR");
-      const snapshot = bridge.snapshot();
-      const sort = $("#op8Sort").value;
-      const data = snapshot.items.filter((row) =>
-        (row.client_name + " " + row.title + " " + row.interest_level)
-          .toLocaleLowerCase("pt-BR")
-          .includes(query),
-      );
-      data.sort((a, b) =>
-        sort === "value"
-          ? (state.meta[b.id]?.amount || 0) - (state.meta[a.id]?.amount || 0)
-          : sort === "followup"
-            ? (state.meta[a.id]?.date || "9999").localeCompare(state.meta[b.id]?.date || "9999")
-            : Date.parse(b.updated_at || 0) - Date.parse(a.updated_at || 0),
-      );
-      return data;
-    }
-    function button(label, handler) {
-      const b = document.createElement("button");
-      b.className = "management-button";
-      b.type = "button";
-      b.textContent = label;
-      b.addEventListener("click", handler);
-      return b;
-    }
-    function safeText(tag, text, klass = "") {
-      const element = document.createElement(tag);
-      element.textContent = String(text);
-      if (klass) element.className = klass;
-      return element;
-    }
-    function renderDue(data) {
-      const host = $("#op8DueList");
-      host.replaceChildren();
-      const today = isoToday();
-      const due = data.filter((row) => {
-        const meta = state.meta[row.id];
-        return row.outcome === "open" && meta?.date && meta.date <= today;
-      });
-      agenda.hidden = !due.length;
-      for (const row of due) {
-        const item = safeText("div", "", "op8-due-row");
-        item.append(
-          safeText("strong", row.client_name + " · " + row.title),
-          safeText("small", state.meta[row.id].date),
-          button("+1 dia", () => {
-            if (setMeta(row.id, { date: nextDay(1), contacted: false })) update();
-          }),
-          button("Contato registrado", () => {
-            if (setMeta(row.id, { date: "", contacted: true })) update();
-          }),
-        );
-        host.append(item);
-      }
-    }
-    function extraCard(card, row) {
-      const existing = card.querySelector(".op8-extra");
-      if (existing) existing.remove();
-      const value = state.meta[row.id] || {};
-      const details = document.createElement("details");
-      details.className = "op8-extra";
-      details.append(safeText("summary", "Valor, anotação e retorno (local)"));
-      const amount = document.createElement("input");
-      amount.inputMode = "decimal";
-      amount.placeholder = "Valor R$";
-      amount.value = value.amount ? String(value.amount).replace(".", ",") : "";
-      amount.setAttribute("aria-label", "Valor estimado de " + row.client_name);
-      const date = document.createElement("input");
-      date.type = "date";
-      date.value = value.date || "";
-      date.setAttribute("aria-label", "Próximo retorno para " + row.client_name);
-      const note = document.createElement("input");
-      note.maxLength = 140;
-      note.placeholder = "Anotação local";
-      note.value = value.note || "";
-      note.setAttribute("aria-label", "Anotação para " + row.client_name);
-      const save = button("Salvar planejamento", () => {
-        const parsed = parseMoney(amount.value);
-        if (!Number.isFinite(parsed)) {
-          view.querySelector("#op8Feedback").textContent = "Confira o valor informado.";
-          amount.focus();
-          return;
-        }
-        const validDate = !date.value || /^\d{4}-\d{2}-\d{2}$/.test(date.value);
-        if (!validDate) return;
-        if (setMeta(row.id, { amount: parsed, date: date.value, note: note.value })) {
-          view.querySelector("#op8Feedback").textContent =
-            "Planejamento salvo apenas neste navegador, sem alterar o CRM.";
-          update();
-        }
-      });
-      const quick = document.createElement("div");
-      quick.className = "op8-quick";
-      for (const [days, label] of [
-        [1, "+1 dia"],
-        [3, "+3 dias"],
-        [7, "+1 semana"],
-      ]) {
-        quick.append(
-          button(label, () => {
-            date.value = nextDay(days);
-            if (setMeta(row.id, { date: date.value, contacted: false })) update();
-          }),
-        );
-      }
-      details.append(amount, date, note, save, quick);
-      card.append(details);
-      const summary = document.createElement("span");
-      summary.className = "op8-local-meta";
-      summary.textContent =
-        (value.amount ? money.format(value.amount) : "Sem valor") +
-        " · " +
-        (value.date ? "Retomar: " + value.date : "Sem retorno marcado");
-      card.insertBefore(summary, details);
-    }
-    function renderWeek(data) {
-      const week = $("#op8Week");
-      week.tabIndex = 0;
-      week.replaceChildren();
-      const open = data.filter((row) => row.outcome === "open");
-      const days = Array.from({ length: 7 }, (_, n) => nextDay(n));
-      days.push("later", "");
-      for (const date of days) {
-        const column = document.createElement("section");
-        column.className = "op8-week-col";
-        column.dataset.day = date;
-        const label = date === "later" ? "Depois" : date || "Sem data";
-        const matches = open.filter((row) => {
-          const scheduled = state.meta[row.id]?.date || "";
-          return date === "later" ? scheduled > days[6] : scheduled === date;
-        });
-        column.append(safeText("h4", label + " (" + matches.length + ")"));
-        const select = document.createElement("div");
-        select.className = "op8-week-cards";
-        for (const row of matches) {
-          const entry = safeText("div", row.client_name + " · " + row.title, "op8-week-card");
-          entry.draggable = true;
-          entry.dataset.opportunityId = row.id;
-          entry.append(
-            safeText(
-              "small",
-              state.meta[row.id]?.amount ? money.format(state.meta[row.id].amount) : "Sem valor",
-            ),
-          );
-          const move = document.createElement("select");
-          move.setAttribute("aria-label", "Mover retorno de " + row.client_name);
-          for (const day of days.filter((candidate) => candidate !== "later")) {
-            const opt = document.createElement("option");
-            opt.value = day;
-            opt.textContent = day || "Sem data";
-            move.append(opt);
-          }
-          move.value = date === "later" ? "" : date;
-          move.addEventListener("change", () => {
-            if (setMeta(row.id, { date: move.value, contacted: false })) update();
-          });
-          entry.append(move);
-          select.append(entry);
-        }
-        column.append(select);
-        week.append(column);
-      }
-    }
-    function update() {
-      const snapshot = bridge.snapshot();
-      if (state.scope !== snapshot.scope) {
-        state.scope = snapshot.scope;
-        state.meta = read(snapshot.scope);
-      }
-      const data = rows();
-      renderDue(data);
-      renderWeek(data);
-      for (const card of view.querySelectorAll(".op8-entry")) {
-        const row = snapshot.items.find((item) => item.id === card.dataset.opportunityId);
-        if (row) {
-          card.hidden = !data.some((item) => item.id === row.id);
-          extraCard(card, row);
-        }
-      }
-      for (const item of nativeList.querySelectorAll("[data-commercial-opportunity]")) {
-        item.hidden = !data.some((row) => row.id === item.dataset.commercialOpportunity);
-      }
-      for (const item of view.querySelectorAll(".op8-day-list li")) {
-        const title = item.querySelector("strong")?.textContent || "";
-        item.hidden = !data.some((row) => row.client_name === title);
-      }
-      const weekTab = view.querySelector('[data-op8-view="week"]');
-      if (weekTab?.getAttribute("aria-pressed") === "true") week.hidden = false;
-    }
-    // Original V8 supports drag-and-drop; the select controls remain the keyboard alternative.
-    const board = $("#op8Board");
-    board.addEventListener("dragstart", (event) => {
-      const card = event.target.closest(".op8-entry");
-      if (!card || !event.dataTransfer) return;
-      event.dataTransfer.setData("text/plain", card.dataset.opportunityId);
-      event.dataTransfer.effectAllowed = "move";
-    });
-    board.addEventListener("dragover", (event) => {
-      if (event.target.closest(".op8-column")) event.preventDefault();
-    });
-    board.addEventListener("drop", async (event) => {
-      const column = event.target.closest(".op8-column");
-      const id = event.dataTransfer?.getData("text/plain");
-      const level = column?.className.match(/op8-column-(unknown|cold|warm|hot)/)?.[1];
-      if (!id || !level || !eligible()) return;
-      event.preventDefault();
-      const saved = await bridge.changeInterest(id, level);
-      view.querySelector("#op8Feedback").textContent = saved
-        ? "Interesse alterado após confirmação do CRM."
-        : "Não foi possível mover. Confira o aviso do acompanhamento.";
-    });
-    const week = $("#op8Week");
-    week.addEventListener("dragstart", (event) => {
-      const card = event.target.closest("[data-opportunity-id]");
-      if (!card || !event.dataTransfer) return;
-      event.dataTransfer.setData("text/plain", card.dataset.opportunityId);
-    });
-    week.addEventListener("dragover", (event) => {
-      const col = event.target.closest(".op8-week-col");
-      if (col && col.dataset.day !== "later") event.preventDefault();
-    });
-    week.addEventListener("drop", (event) => {
-      const col = event.target.closest(".op8-week-col");
-      const id = event.dataTransfer?.getData("text/plain");
-      if (!col || col.dataset.day === "later" || !id) return;
-      event.preventDefault();
-      if (setMeta(id, { date: col.dataset.day, contacted: false })) update();
-    });
-    for (const input of [$("#op8Query"), $("#op8Sort")])
-      input.addEventListener(input.id === "op8Query" ? "input" : "change", update);
-    view.addEventListener("click", (event) => {
-      if (event.target.closest("[data-op8-view]")) requestAnimationFrame(update);
-    });
-    $("#op8CopyDue").addEventListener("click", async () => {
-      const due = rows().filter((row) => {
-        const meta = state.meta[row.id];
-        return row.outcome === "open" && meta?.date && meta.date <= isoToday();
-      });
-      const text = due.map((row) => row.client_name + " — " + row.title).join("\n");
-      if (!text) return;
-      try {
-        await navigator.clipboard.writeText(text);
-        view.querySelector("#op8Feedback").textContent =
-          "Retornos locais copiados; nenhum contato foi enviado.";
-      } catch {
-        view.querySelector("#op8Feedback").textContent =
-          "Selecione e copie os retornos manualmente.";
-      }
-    });
-    document.addEventListener("socialmei-opportunity-v8-change", update);
-    document.addEventListener("socialmei-view-change", () => requestAnimationFrame(update));
-    update();
+  const copy = (value) => JSON.parse(JSON.stringify(value));
+  const empty = () => ({
+    amount: 0,
+    date: "",
+    note: "",
+    contacted: false,
+    updatedAt: 0,
+    events: [],
   });
-})();
+  function parseMoney(input) {
+    const text = String(input ?? "").trim();
+    if (!text) return 0;
+    if (!/^(?:\d+|\d{1,3}(?:\.\d{3})+)(?:,\d{1,2})?$/.test(text)) return NaN;
+    const value = Number(text.replace(/\./g, "").replace(",", "."));
+    return Number.isFinite(value) && value >= 0 && value <= 1e9 ? value : NaN;
+  }
+  function validDate(value) {
+    if (value === "") return true;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    const d = new Date(value + "T12:00:00Z");
+    return Number.isFinite(d.getTime()) && d.toISOString().slice(0, 10) === value;
+  }
+  function normalize(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return empty();
+    return {
+      amount:
+        Number.isFinite(value.amount) && value.amount >= 0 && value.amount <= 1e9
+          ? value.amount
+          : 0,
+      date: validDate(value.date) ? value.date : "",
+      note: typeof value.note === "string" ? value.note.slice(0, 140) : "",
+      contacted: !!value.contacted,
+      updatedAt: Number.isSafeInteger(value.updatedAt) && value.updatedAt > 0 ? value.updatedAt : 0,
+      events: Array.isArray(value.events)
+        ? value.events
+            .filter((e) => e && Number.isSafeInteger(e.t) && e.t > 0 && typeof e.s === "string")
+            .slice(-20)
+            .map((e) => ({ t: e.t, s: e.s.slice(0, 250) }))
+        : [],
+    };
+  }
+  function createRepository(options) {
+    let current = null,
+      items = {};
+    const key = (scope) => "socialmei-op8-local-v1:" + encodeURIComponent(scope);
+    const validId = (id) => typeof id === "string" && /^[a-z0-9-]{8,80}$/i.test(id);
+    function sync() {
+      const next = options.scope() || "";
+      if (next === current) return;
+      current = next;
+      items = {};
+      if (!next) return;
+      try {
+        const value = JSON.parse(options.storage.getItem(key(next)));
+        if (
+          value?.v !== 1 ||
+          value.scope !== next ||
+          !value.items ||
+          typeof value.items !== "object" ||
+          Array.isArray(value.items)
+        )
+          return;
+        for (const [id, metadata] of Object.entries(value.items).slice(0, 100))
+          if (validId(id)) items[id] = normalize(metadata);
+      } catch {
+        /* A malformed sidecar never replaces the authenticated CRM snapshot. */
+      }
+    }
+    function persist(next) {
+      try {
+        options.storage.setItem(
+          key(current),
+          JSON.stringify({ v: 1, scope: current, items: next }),
+        );
+      } catch {
+        throw new Error(
+          "Não foi possível salvar o planejamento neste navegador. Seus campos foram preservados.",
+        );
+      }
+      items = next;
+    }
+    function guard(id) {
+      sync();
+      if (!current || !options.writable())
+        throw new Error("Este acesso é somente leitura ou ainda não carregou os dados.");
+      if (!validId(id) || !options.exists(id))
+        throw new Error("Oportunidade indisponível no negócio atual.");
+    }
+    return Object.freeze({
+      get(id) {
+        sync();
+        return copy(items[id] || empty());
+      },
+      all() {
+        sync();
+        return copy(items);
+      },
+      save(id, patch) {
+        guard(id);
+        if (
+          patch.amount !== undefined &&
+          (!Number.isFinite(patch.amount) || patch.amount < 0 || patch.amount > 1e9)
+        )
+          throw new Error("Confira o valor estimado.");
+        if (patch.date !== undefined && !validDate(patch.date))
+          throw new Error("Confira a data de retorno.");
+        if (patch.note !== undefined && (typeof patch.note !== "string" || patch.note.length > 140))
+          throw new Error("A anotação deve ter até 140 caracteres.");
+        const before = items[id] ? copy(items[id]) : null;
+        const after = normalize({ ...empty(), ...before, ...patch, updatedAt: Date.now() });
+        const next = { ...items, [id]: after };
+        persist(next);
+        return { scope: current, id, before, after: copy(after) };
+      },
+      undo(receipt) {
+        sync();
+        if (!receipt || receipt.scope !== current)
+          throw new Error("A sessão ou o negócio mudou. Não foi desfeito.");
+        guard(receipt.id);
+        if (JSON.stringify(items[receipt.id]) !== JSON.stringify(receipt.after))
+          throw new Error("Existe uma edição mais recente. Não foi desfeito.");
+        const next = { ...items };
+        if (receipt.before) next[receipt.id] = copy(receipt.before);
+        else delete next[receipt.id];
+        persist(next);
+        return true;
+      },
+    });
+  }
+  return Object.freeze({ createRepository, parseMoney, validDate });
+});

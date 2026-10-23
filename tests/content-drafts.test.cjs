@@ -145,3 +145,52 @@ test("backup cannot overflow the 40-draft quota or modify previous entries", () 
   assert.equal(JSON.stringify(f.repo.read().items), prior);
   assert.throws(() => f.repo.importMany([], "a"), /Backup inválido/);
 });
+
+test("V4 presentation and work in progress reuse scoped repository without raw media", () => {
+  const f = fixture();
+  const presentation = {
+    topic: "Bastidores",
+    offering: "Corte",
+    objective: "Apresentar",
+    tone: "Profissional",
+    alt: "Mesa de trabalho",
+    zoom: 1.5,
+    x: 20,
+    y: 65,
+  };
+  const saved = f.repo.save({ ...input, presentation }, "a");
+  assert.equal(saved.presentation.zoom, 1.5);
+  assert.equal(f.repo.read().items[0].presentation.topic, "Bastidores");
+  assert.throws(
+    () => f.repo.save({ ...input, presentation: { ...presentation, zoom: 5 } }, "a"),
+    /apresentação/,
+  );
+  f.repo.saveEditor({ ...input, presentation, id: saved.id }, "a");
+  assert.equal(f.repo.read().editor.presentation.offering, "Corte");
+  f.switch("b");
+  assert.equal(f.repo.read().editor, null);
+  assert.throws(() => f.repo.saveEditor(input, "a"), /sessão/);
+  f.switch("a");
+  assert.equal(f.repo.read().editor.id, saved.id);
+  f.repo.remove(saved.id, "a");
+  assert.equal(f.repo.read().editor.id, null);
+});
+
+test("presentation rejects executable thumbnails, nonfinite geometry and foreign editor references", () => {
+  const f = fixture();
+  assert.throws(
+    () =>
+      f.repo.save(
+        { ...input, presentation: { thumbnail: "data:image/svg+xml,<svg onload=alert(1)>" } },
+        "a",
+      ),
+    /Miniatura/,
+  );
+  assert.throws(
+    () => f.repo.save({ ...input, presentation: { x: Infinity } }, "a"),
+    /apresentação/,
+  );
+  const saved = f.repo.save(input, "a");
+  f.repo.saveEditor({ ...saved, id: "foreign-id", media: null }, "a");
+  assert.equal(f.repo.read().editor.id, null);
+});

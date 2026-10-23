@@ -2,6 +2,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const http = require("node:http");
+const { openOpportunityAnalysis } = require("./exact-view-helpers.cjs");
 const { chromium } = require("playwright");
 const root = path.resolve(__dirname, "..");
 module.exports = async function nativeOpportunities(browser, origin) {
@@ -37,6 +38,7 @@ module.exports = async function nativeOpportunities(browser, origin) {
       assert(
         await page.locator("#opportunitiesView").evaluate((el) => el.classList.contains("active")),
       );
+      await openOpportunityAnalysis(page);
     };
     await navigate();
     assert.equal(await page.locator("#salesCalculator").count(), 0);
@@ -121,8 +123,12 @@ module.exports = async function nativeOpportunities(browser, origin) {
           assert.equal(tabState, "true");
           if (id === "analysis") {
             const positions = await page.evaluate(() => ({
-              tab: document.getElementById("clientAnalysisTabs").getBoundingClientRect().top,
-              card: document.querySelector(".client-analysis-card")?.getBoundingClientRect().top,
+              tab:
+                document.getElementById("clientAnalysisTabs").getBoundingClientRect().top -
+                document.getElementById("opportunityMessageAnalysis").getBoundingClientRect().top,
+              card:
+                document.querySelector(".client-analysis-card")?.getBoundingClientRect().top -
+                document.getElementById("opportunityMessageAnalysis").getBoundingClientRect().top,
             }));
             assert(
               positions.tab < (width <= 390 ? 330 : 300),
@@ -450,6 +456,7 @@ module.exports = async function nativeOpportunities(browser, origin) {
           "Texto sintético sem identidade",
         ),
       );
+      await openOpportunityAnalysis(account);
       await account.locator(".native-opportunity-analysis > summary").click();
       await account.locator("#opportunityText").fill("Quero comprar.");
       await account.locator('#opportunityAnalyzeForm [type="submit"]').click();

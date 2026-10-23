@@ -11,6 +11,45 @@
       throw new Error("O conteúdo excede os limites do rascunho.");
     return value;
   }
+  function presentation(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value))
+      throw new Error("Dados de apresentação inválidos.");
+    const result = {};
+    for (const [key, max] of [
+      ["topic", 60],
+      ["offering", 60],
+      ["objective", 30],
+      ["tone", 30],
+      ["alt", 120],
+    ])
+      if (value[key] !== undefined) result[key] = text(value[key], max);
+    for (const [key, min, max] of [
+      ["zoom", 1, 3],
+      ["x", 0, 100],
+      ["y", 0, 100],
+    ]) {
+      if (value[key] !== undefined) {
+        if (
+          typeof value[key] !== "number" ||
+          !Number.isFinite(value[key]) ||
+          value[key] < min ||
+          value[key] > max
+        )
+          throw new Error("Dados de apresentação inválidos.");
+        result[key] = value[key];
+      }
+    }
+    if (value.thumbnail !== undefined && value.thumbnail !== "") {
+      if (
+        typeof value.thumbnail !== "string" ||
+        value.thumbnail.length > 40000 ||
+        !/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(value.thumbnail)
+      )
+        throw new Error("Miniatura de apresentação inválida.");
+      result.thumbnail = value.thumbnail;
+    }
+    return result;
+  }
   function draft(value) {
     if (!value || !Object.hasOwn(FORMATS, value.format))
       throw new Error("Escolha Story, Feed ou Reel.");
@@ -39,7 +78,16 @@
       cta: text(value.cta || "", 140),
       hashtags: text(value.hashtags || "", 300),
       media,
+      ...(value.presentation !== undefined
+        ? { presentation: presentation(value.presentation) }
+        : {}),
     };
+  }
+  function editorValue(value, items) {
+    if (!value) return null;
+    const title = text(value.title || "", 80);
+    const valid = draft({ ...value, title: title.trim() || "Rascunho em andamento" });
+    return { ...valid, title, id: items.some((item) => item.id === value.id) ? value.id : null };
   }
   function caption(value) {
     return [value.caption, value.cta, value.hashtags]
@@ -55,10 +103,10 @@
     const key = (scope) => "socialmei-content-drafts-v1:" + encodeURIComponent(scope);
     function read() {
       const scope = getScope();
-      if (!scope) return { scope: null, items: [], status: "unavailable" };
+      if (!scope) return { scope: null, items: [], editor: null, status: "unavailable" };
       try {
         const raw = storage.getItem(key(scope));
-        if (!raw) return { scope, items: [], status: "ready" };
+        if (!raw) return { scope, items: [], editor: null, status: "ready" };
         const data = JSON.parse(raw);
         if (
           data.version !== 1 ||
@@ -84,9 +132,9 @@
             updatedAt: item.updatedAt,
           };
         });
-        return { scope, items, status: "ready" };
+        return { scope, items, editor: editorValue(data.editor, items), status: "ready" };
       } catch {
-        return { scope, items: [], status: "error" };
+        return { scope, items: [], editor: null, status: "error" };
       }
     }
     function change(expected, update) {
@@ -100,11 +148,39 @@
         throw new Error("Limite de 40 rascunhos neste navegador. Exclua um antes de continuar.");
       if (getScope() !== expected) throw new Error("A sessão mudou. Nenhum rascunho foi salvo.");
       try {
-        storage.setItem(key(expected), JSON.stringify({ version: 1, scope: expected, items }));
+        storage.setItem(
+          key(expected),
+          JSON.stringify({
+            version: 1,
+            scope: expected,
+            items,
+            editor: editorValue(state.editor, items),
+          }),
+        );
       } catch {
         throw new Error("Não foi possível salvar no navegador. Confira o espaço e as permissões.");
       }
       return items;
+    }
+    function saveEditor(value, expected) {
+      if (!expected || getScope() !== expected)
+        throw new Error("A sessão mudou. Reabra Divulgação.");
+      const state = read();
+      if (state.status !== "ready" || state.scope !== expected)
+        throw new Error("Não foi possível preservar o editor neste navegador.");
+      const editor = editorValue(value, state.items);
+      if (getScope() !== expected) throw new Error("A sessão mudou. O editor não foi salvo.");
+      try {
+        storage.setItem(
+          key(expected),
+          JSON.stringify({ version: 1, scope: expected, items: state.items, editor }),
+        );
+      } catch {
+        throw new Error(
+          "Não foi possível preservar o editor neste navegador. Confira o espaço e as permissões.",
+        );
+      }
+      return editor;
     }
     function save(value, expected) {
       const valid = draft(value);
@@ -156,7 +232,7 @@
         return [...imported, ...existing];
       });
     }
-    return Object.freeze({ read, save, remove, duplicate, importMany });
+    return Object.freeze({ read, save, remove, duplicate, importMany, saveEditor });
   }
   async function validateMedia(file, format) {
     if (!file || !Object.hasOwn(FORMATS, format))
