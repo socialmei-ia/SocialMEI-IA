@@ -38,6 +38,10 @@ async function run() {
       assert(identity.csrf_token);
       context.previewIdentity = identity;
     }
+    assert.equal(
+      (await contexts[0].request.get(origin + "/api/v1/instagram/provider-lab/status")).status(),
+      503,
+    );
     const first = contexts[0];
     const headers = { Origin: origin, "X-SocialMEI-CSRF": first.previewIdentity.csrf_token };
     const created = await first.request.post(origin + "/api/v1/clientes", {

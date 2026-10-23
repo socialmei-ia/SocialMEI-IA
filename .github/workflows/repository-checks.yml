@@ -15,6 +15,7 @@ on:
         feat/dashboard-functional-readiness,
         feat/visual-opportunities-content-91,
         feat/native-opportunities-v8-content-v4,
+        feat/instagram-provider-lab,
       ]
 
 permissions:
@@ -237,6 +238,10 @@ jobs:
         run: |
           npm run preview -- up
           npm run test:preview
+      - name: Fake Instagram provider in disposable preview only
+        run: |
+          docker compose --project-name socialmei-preview --env-file .preview/.env -f compose.preview.yaml -f compose.preview.instagram-lab.yaml up -d --no-build --wait --wait-timeout 180 api
+          node tests/instagram-provider-lab-preview.cjs
       - name: Preview startup diagnostics
         if: failure()
         run: |
@@ -253,5 +258,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: isolated-preview
-          path: test-results/preview/
+          path: |
+            test-results/preview/
+            test-results/instagram-provider-lab/
           if-no-files-found: ignore
