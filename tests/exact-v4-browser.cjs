@@ -233,6 +233,28 @@ module.exports = async function exactV4(browser, origin) {
           .locator(".exact-v4-root")
           .evaluate((el) => Math.round(el.getBoundingClientRect().width));
         await reference.setViewportSize({ width: canvasWidth, height: 900 });
+        // ResizeObserver delivery and media-query layout happen on rendering frames.
+        // Opening the reference tab can background the native page before that delivery.
+        // Compare settled layouts; keep the exact original/native geometry assertion below.
+        await page.bringToFront();
+        await page.waitForFunction(() => {
+          const el = document.querySelector(".exact-v4-root");
+          const width = el.getBoundingClientRect().width;
+          return (
+            width > 0 &&
+            [
+              ["compact", 900],
+              ["mobile", 560],
+              ["tiny", 340],
+            ].every(([name, max]) => el.hasAttribute("data-v4-" + name) === width <= max) &&
+            Math.abs(parseFloat(el.style.getPropertyValue("--v4-vw")) * 100 - width) < 0.2
+          );
+        });
+        await reference.bringToFront();
+        await reference.evaluate(
+          () =>
+            new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+        );
         const nativeStyle = await page.locator(".exact-v4-root").evaluate((el) => {
           const root = getComputedStyle(el),
             phone = getComputedStyle(el.querySelector(".phone")),
@@ -262,7 +284,8 @@ module.exports = async function exactV4(browser, origin) {
         assert.deepEqual(
           nativeStyle,
           originalStyle,
-          "Original tokens and component geometry must match at the same content width",
+          "Original tokens and component geometry must match at the same content width: " +
+            JSON.stringify({ viewport: width, theme, canvasWidth }),
         );
         await reference.screenshot({
           path: path.join(output, `divulgacao-original-canvas-${width}-${theme}.png`),
