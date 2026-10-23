@@ -41,7 +41,7 @@ for (const [source, target] of files) {
       : '<aside aria-label="Ambiente demonstrativo" style="position:relative;z-index:1;padding:8px 16px;background:#10233e;color:#eef3fb;font:13px/1.5 system-ui;text-align:center">Demonstração · use somente dados fictícios · nada é enviado ou sincronizado. <a href="../index.html" style="color:inherit">Voltar ao laboratório</a></aside>';
   // The golden masters stay byte-identical; only the distributed copy receives this narrow mobile containment fix.
   const containment = target.includes("Oportunidades")
-    ? "<style>@media(max-width:560px){.tbi,.tbr{flex-wrap:wrap}.tbr{max-width:100%}.tbi{align-items:flex-start}.wrap,.wk,.filters{min-width:0;max-width:100%}}</style>"
+    ? "<style>@media(max-width:980px){.tbi,.tbr{flex-wrap:wrap}.tbr{max-width:100%}.tbi{align-items:flex-start}.wrap,.wk,.filters{min-width:0;max-width:100%}}</style>"
     : "";
   const html = original
     .replace(

@@ -48,7 +48,7 @@ module.exports = async (browser, origin) => {
     assert.equal(await page.locator(".bz").count(), 4);
     await page.locator('.views [data-v="week"]').click();
     assert(await page.locator("#vw").isVisible());
-    for (const width of [320, 390, 768, 1440]) {
+    for (const width of [320, 360, 390, 768, 1024, 1440]) {
       await page.setViewportSize({ width, height: 900 });
       for (const theme of ["light", "dark"]) {
         await page.evaluate((t) => (document.documentElement.dataset.theme = t), theme);
@@ -115,6 +115,7 @@ module.exports = async (browser, origin) => {
     await page.waitForFunction(
       () => JSON.parse(localStorage.getItem("smei4_s") || "[]").length === 3,
     );
+    await page.waitForFunction(() => document.querySelectorAll("#strip .dy").length === 14);
     assert.equal(await page.locator("#strip .dy").count(), 14);
     await page.locator('#al [data-a="c"]').first().click();
     assert(
@@ -129,7 +130,7 @@ module.exports = async (browser, origin) => {
     await page.keyboard.press("2");
     await page.locator("#q").fill("Rascunho fictício público");
     assert.equal(await page.locator("#dg .dc").count(), 1);
-    for (const width of [320, 390, 768, 1440]) {
+    for (const width of [320, 360, 390, 768, 1024, 1440]) {
       await page.setViewportSize({ width, height: 900 });
       for (const theme of ["light", "dark"]) {
         await page.evaluate((t) => (document.documentElement.dataset.t = t), theme);
@@ -152,7 +153,7 @@ module.exports = async (browser, origin) => {
     assert.deepEqual(errors, []);
     assert.deepEqual(external, []);
     assert.deepEqual(writes, []);
-    return "Public static candidate: links, local CRUD/reload, four widths/themes, isolated browser storage, zero external requests or writes";
+    return "Public static candidate: links, local CRUD/reload, six widths/themes, isolated browser storage, zero external requests or writes";
   } finally {
     await context.close();
   }

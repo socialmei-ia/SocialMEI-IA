@@ -56,3 +56,13 @@ Instagram: preparação em [INSTAGRAM-META-INTEGRATION-READINESS.md](INSTAGRAM-M
 OAuth, tokens, webhook e transportes reais continuam não conectados. Próxima etapa:
 adaptador testado com provedor falso, assinatura, expiração, replay e2workspaces;
 schema/App Review/contas reais exigem revisão própria.
+
+## Correção confirmada no CI remoto
+
+A execução39918451479 aprovou Validate/Preview e encontrou overflow da barra superior
+na cópia pública V8 em768px. O ajuste de quebra de linha foi estendido a tablet na
+cópia distribuída, sem modificar o golden master nem afrouxar a assertion. Regressão
+pública cobre320/360/390/768/1024/1440 claro/escuro, mídia, legendas, rascunho,
+agendamento/cancelamento e conexões fictícias. A contagem da agenda aguarda o estado
+renderizado após a transição, preservando a exigência de14dias. Nova execução dos
+3jobs é obrigatória no novo HEAD; o resultado da execução anterior não é aprovação.
