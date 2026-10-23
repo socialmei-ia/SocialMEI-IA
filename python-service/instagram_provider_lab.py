@@ -28,10 +28,31 @@ router = APIRouter(prefix="/api/v1/instagram/provider-lab", tags=["isolated fake
 MAX_BODY = 16384
 
 
-def guard(*, manage=False):
-    require_enabled()
+class FakeInstagramProvider:
+    """Fixture adapter with no HTTP client, credentials or external capabilities."""
+    name = "fake"
+
+    def authorization(self):
+        return {"fake_code": "fake-authorization-code", "redirect": None}
+
+    def valid_signature(self, raw, signature, key):
+        expected = "sha256=" + hmac.new(key.encode(), raw, hashlib.sha256).hexdigest()
+        return hmac.compare_digest(signature.encode(), expected.encode())
+
+    def publish(self, outcome):
+        return {"fictional": True, "provider": self.name, "outcome": outcome, "published": False}
+
+
+def provider():
+    # Deliberately no live provider registry or network-enabled fallback.
     if not settings.instagram_provider_lab_enabled():
         raise HTTPException(503, "Laboratório isolado não habilitado.")
+    return FakeInstagramProvider()
+
+
+def guard(*, manage=False):
+    require_enabled()
+    provider()
     user = current()
     if manage and user["role"] not in {"owner", "admin"}:
         raise HTTPException(403, "Somente responsáveis podem gerenciar o laboratório.")
@@ -86,7 +107,7 @@ def oauth_start(request: Request):
         enrichment.rate_limit(conn, user["workspace_id"])
         conn.execute("INSERT INTO socialmei.ig_lab_states(state_hash,workspace_id,user_id,session_hash,expires_at) VALUES(%s,%s,%s,%s,%s)",
                      (digest(state), user["workspace_id"], user["id"], digest(request.cookies[COOKIE]), datetime.now(timezone.utc) + timedelta(minutes=5)))
-    return {"state": state, "fake_code": "fake-authorization-code", "expires_in": 300, "provider": "fake", "redirect": None}
+    return {"state": state, "expires_in": 300, "provider": "fake", **provider().authorization()}
 
 
 class Callback(Strict):
@@ -117,7 +138,7 @@ def end_connection(new_status):
     with db() as conn:
         enrichment.lock_workspace(conn, user["workspace_id"])
         conn.execute("UPDATE socialmei.ig_lab_connections SET status=%s WHERE workspace_id=%s", (new_status, user["workspace_id"]))
-        conn.execute("UPDATE socialmei.ig_lab_publications SET status='failed',approved_by=NULL,provider_result=%s WHERE workspace_id=%s AND status IN ('pending','processing')", (Jsonb({"fictional": True, "reason": "connection-revoked"}), user["workspace_id"]))
+        conn.execute("UPDATE socialmei.ig_lab_publications SET status='failed',approved_by=NULL,provider_result=%s WHERE workspace_id=%s AND status IN ('pending','processing','failed')", (Jsonb({"fictional": True, "reason": "connection-revoked"}), user["workspace_id"]))
         conn.execute("UPDATE socialmei.ig_lab_states SET consumed_at=NOW() WHERE workspace_id=%s AND consumed_at IS NULL", (user["workspace_id"],))
     return {"status": new_status, "published": False}
 
@@ -146,8 +167,7 @@ def ingest(raw, signature, workspace):
     key = settings.instagram_provider_lab_signing_key()
     if len(key) < 32 or settings.message_enrichment_mode() != "stub":
         raise HTTPException(503, "Adaptador de testes não configurado.")
-    expected = "sha256=" + hmac.new(key.encode(), raw, hashlib.sha256).hexdigest()
-    if not hmac.compare_digest(signature.encode(), expected.encode()):
+    if not provider().valid_signature(raw, signature, key):
         raise HTTPException(403, "Assinatura inválida.")
     try:
         data = json.loads(raw, object_pairs_hook=enrichment.unique_json_fields)
@@ -237,6 +257,6 @@ def run(job_id: UUID, payload: Run):
             raise HTTPException(409, "Job não aprovado, já processado, futuro ou sem tentativas.")
         # Both state changes are atomic: a crash rolls back the claim for safe retry.
         final = "simulated-published" if payload.outcome == "success" else "failed"
-        result = {"fictional": True, "provider": "fake", "outcome": payload.outcome, "published": False}
+        result = provider().publish(payload.outcome)
         row = conn.execute("UPDATE socialmei.ig_lab_publications SET status=%s,provider_result=%s WHERE workspace_id=%s AND id=%s AND status='processing' RETURNING *", (final, Jsonb(result), user["workspace_id"], job_id)).fetchone()
         return safe_job(row)

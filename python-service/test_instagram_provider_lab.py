@@ -166,3 +166,21 @@ class LabTests(unittest.TestCase):
             result = self.post(f"/publications/{job2}/run", {"outcome": "failure"})
             self.assertEqual(result.json()["attempts"], attempt)
         self.assertEqual(self.post(f"/publications/{job2}/run").status_code, 409)
+
+    def test_failed_jobs_cannot_retry_after_disconnect_or_revoke(self):
+        for action in ("disconnect", "revoke"):
+            with self.subTest(action=action):
+                account = self.connect_fake()
+                data = {"account_id": account, "idempotency_key": str(uuid4()), "format": "feed", "caption": "Teste", "media": MEDIA}
+                job = self.post("/publications", data).json()["id"]
+                self.post(f"/publications/{job}/approve")
+                failed = self.post(f"/publications/{job}/run", {"outcome": "failure"})
+                self.assertEqual(failed.json()["status"], "failed")
+                if action == "disconnect":
+                    self.post("/connection/disconnect")
+                else:
+                    self.client.delete(P + "/connection", headers=self.headers)
+                self.connect_fake()
+                self.assertEqual(self.post(f"/publications/{job}/run").status_code, 409)
+                items = self.client.get(P + "/publications").json()["items"]
+                self.assertFalse(next(item for item in items if item["id"] == job)["approved"])
