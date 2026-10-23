@@ -84,3 +84,38 @@ revogação/expiração/desconexão, aprovação, falha/retry/idempotência e co
 Não homologa OAuth Meta, App Review, scopes, Stories elegíveis, recebimento externo,
 criptografia de tokens, upload real, quotas, worker ou n8n. Habilitar qualquer
 operação real exige nova autorização e contratos próprios. Não instalar em produção.
+
+## Demonstração e regressão no navegador
+
+O laboratório é técnico, via API autenticada. Não adiciona outro painel à V4.
+Mensagens recebidas aparecem na Caixa existente, identificadas como fictícias,
+com o compositor de envio oculto. O contrato de publicação aceita um snapshot
+selecionado do editor/rascunho (legenda/formato/metadados); não procura arquivos
+locais no servidor nem sincroniza mídia. Ainda não existe um botão OAuth Meta.
+
+Para repetir **somente no preview descartável local**, com Docker local e Node22:
+
+```sh
+npm ci
+npm run preview -- up
+npm run test:preview
+docker compose --project-name socialmei-preview --env-file .preview/.env -f compose.preview.yaml -f compose.preview.instagram-lab.yaml up -d --no-build --wait --wait-timeout 180 api
+node tests/instagram-provider-lab-preview.cjs
+npm run preview -- down
+```
+
+A primeira suíte confirma que o laboratório está fechado (503) no preview padrão.
+A segunda aplica o overlay explícito, gera três sessões em dois negócios, testa
+OAuth ligado à sessão, CSRF, HMAC/dedupe/conflito/ordem, abre a conversa na Caixa
+nativa em1440/390claro/escuro, usa mídia local do editor e exercita aprovação,
+falha/retry e bloqueio de agendamento futuro. Capturas e resultado sanitizado:
+`test-results/instagram-provider-lab/`. A chave é a fixture gerada em `.preview/.env`,
+nunca enviada ao frontend, publicada ou impressa. Scripts recusam origem remota.
+O CI executa as duas etapas, sem qualquer acesso à Meta.
+
+O overlay não deve ser combinado com compose.team ou produção. Não há job de
+processamento contínuo: `processing` e conclusão são transições atômicas na mesma
+requisição fictícia. Uma fila assíncrona real, retenção/limpeza dos states e ledger,
+monitoramento, permissões oficiais e gestão de tokens continuam pendentes de desenho
+seguro e autorização específica. Não existe promessa de formatos/limites Meta
+homologados: o validador atual valida somente o contrato demonstrativo existente.

@@ -1,0 +1,7 @@
+# Opt-in overlay for compose.preview.yaml ONLY. No real accounts or external ingress.
+services:
+  api:
+    environment:
+      SOCIALMEI_INSTAGRAM_PROVIDER: fake
+      SOCIALMEI_INSTAGRAM_LAB_ENVIRONMENT: isolated
+      SOCIALMEI_INSTAGRAM_LAB_TEST_KEY: ${PREVIEW_TEST_KEY:?Run npm run preview -- up first}
