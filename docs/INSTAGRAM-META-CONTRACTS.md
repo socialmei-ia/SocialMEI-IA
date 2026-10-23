@@ -64,3 +64,9 @@ rejeitados. Nunca combinar dados reais e fixtures do laboratório.
 
 Os testes não fazem solicitações de rede ou conexão ao banco, usam somente
 segredos sintéticos e são incorporados à descoberta `test_*.py` do CI.
+
+## Validação da PR dependente
+
+A branch base desta PR é `feat/instagram-provider-lab` (PR #101), não `main`.
+O CI deve ser verificado no SHA da PR #103, incluindo testes Python e demais
+regressões. Um resultado verde da PR #101 não substitui esse gate.
