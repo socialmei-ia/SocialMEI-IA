@@ -9,7 +9,7 @@
     /(?:0123|1234|2345|3456|4567|5678|6789|abcd|bcde|cdef|defg|qwer|wert|erty|asdf)/i;
   const labels = ["Defina sua senha", "Fraca", "Razoável", "Boa", "Forte"];
 
-  function evaluatePassword(value, minimumLength = 12) {
+  function evaluatePassword(value, minimumLength = 8) {
     const rules = [
       {
         id: "length",
@@ -86,7 +86,7 @@
 
     function update() {
       clearTimeout(announcementTimer);
-      const minimum = input.minLength > 0 ? input.minLength : 12;
+      const minimum = input.minLength > 0 ? input.minLength : 8;
       const state = evaluatePassword(input.value, minimum);
       if (currentMinimum !== minimum) {
         ruleList.replaceChildren();

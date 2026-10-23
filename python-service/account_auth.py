@@ -82,9 +82,38 @@ def normalize_email(value):
     return value
 
 
+COMMON_PASSWORDS = frozenset(
+    [
+        "12345678",
+        "123456789",
+        "1234567890",
+        "01234567",
+        "87654321",
+        "password",
+        "password1",
+        "password123",
+        "qwertyui",
+        "qwerty123",
+        "senha123",
+        "senha1234",
+        "admin123",
+        "admin1234",
+        "iloveyou",
+        "abc12345",
+    ]
+)
+
+
+def validate_new_password(value):
+    if not 8 <= len(value) <= 128:
+        raise ValueError("Use uma senha de 8 a 128 caracteres.")
+    if value.casefold() in COMMON_PASSWORDS or len(set(value)) == 1:
+        raise ValueError("Esta senha é muito comum. Escolha uma senha menos previsível.")
+    return value
+
+
 def hash_password(value):
-    if not 12 <= len(value) <= 128:
-        raise ValueError("Use uma senha de 12 a 128 caracteres.")
+    validate_new_password(value)
     if not HASH_LIMIT.acquire(timeout=2):
         raise HTTPException(503, "Aguarde e tente novamente.")
     try:
@@ -240,7 +269,8 @@ class Register(Login):
 
     nome: str = Field(min_length=1, max_length=160)
     telefone: str = Field(default="", max_length=40)
-    senha: str = Field(min_length=12, max_length=128)
+    senha: str = Field(min_length=8, max_length=128)
+    _password = field_validator("senha")(validate_new_password)
     convite: str | None = Field(default=None, pattern=r"^[A-Za-z0-9_-]{64}$")
 
     @field_validator("nome")
@@ -272,7 +302,8 @@ class Profile(Strict):
 
 class Password(Strict):
     atual: str = Field(min_length=1, max_length=128)
-    nova: str = Field(min_length=12, max_length=128)
+    nova: str = Field(min_length=8, max_length=128)
+    _password = field_validator("nova")(validate_new_password)
 
 
 class Invite(Strict):

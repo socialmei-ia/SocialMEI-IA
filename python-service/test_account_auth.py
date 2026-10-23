@@ -9,7 +9,7 @@ from uuid import uuid4
 
 import psycopg
 from account_admin import create_admin, enable_user, reset_password
-from account_auth import COOKIE, digest, hash_password, origin
+from account_auth import COOKIE, Password, Register, digest, hash_password, origin, verify_password
 from app import app
 from auth_context import principal
 from fastapi.testclient import TestClient
@@ -26,6 +26,32 @@ ENV = {
     "SOCIALMEI_WORKSPACE_SLUG": "team",
     "SOCIALMEI_N8N_READ_TOKEN": "technical-key-long-enough-for-private-test-123",
 }
+
+
+class PasswordPolicyTests(unittest.TestCase):
+    def test_seven_rejected_eight_accepted(self):
+        for value in (
+            "FlorSol", "7392518", "12345678", "PASSWORD", "senha123", "aaaaaaaa", "x" * 129
+        ):
+            with self.subTest(), self.assertRaises(ValueError):
+                hash_password(value)
+            with self.assertRaises(ValueError):
+                Register(nome="Teste", email="teste@example.test", senha=value)
+            with self.assertRaises(ValueError):
+                Password(atual="existing", nova=value)
+        for value in ("FlorSol!", "73925186", "luaverde"):
+            self.assertEqual(
+                Register(nome="Teste", email="teste@example.test", senha=value).senha, value
+            )
+            self.assertEqual(Password(atual="existing", nova=value).nova, value)
+            encoded = hash_password(value)
+            self.assertTrue(encoded.startswith("$argon2"))
+            self.assertTrue(verify_password(value, encoded))
+
+    def test_existing_common_password_can_still_authenticate(self):
+        from account_auth import HASHER
+
+        self.assertTrue(verify_password("12345678", HASHER.hash("12345678")))
 
 
 class AccountGuards(unittest.TestCase):
@@ -279,6 +305,36 @@ class AccountDatabaseTests(unittest.TestCase):
         response = client.post("/api/v1/" + path, json=data)
         self.assertEqual(response.status_code, 201, response.text)
         return response.json()
+
+    def test_eight_character_registration_and_password_change_with_sessions(self):
+        address = "eight@example.test"
+        token = self.invited(address)
+        client = TestClient(app, base_url=ORIGIN, headers=HEADERS)
+        payload = {
+            "nome": "Teste", "email": address, "convite": token, "senha": "FlorSol"
+        }
+        self.assertEqual(client.post("/api/v1/auth/register", json=payload).status_code, 422)
+        payload["senha"] = "12345678"
+        self.assertEqual(client.post("/api/v1/auth/register", json=payload).status_code, 422)
+        payload["senha"] = "FlorSol!"
+        response = client.post("/api/v1/auth/register", json=payload)
+        self.assertEqual(response.status_code, 201, response.text)
+        client.headers["X-SocialMEI-CSRF"] = response.json()["csrf_token"]
+        second = self.login(address, password="FlorSol!")
+        for value in ("7392518", "senha123"):
+            response = client.post(
+                "/api/v1/auth/password", json={"atual": "FlorSol!", "nova": value}
+            )
+            self.assertEqual(response.status_code, 422, response.text)
+            self.assertEqual(second.get("/api/v1/auth/me").status_code, 200)
+        response = client.post(
+            "/api/v1/auth/password", json={"atual": "FlorSol!", "nova": "73925186"}
+        )
+        self.assertEqual(response.status_code, 204, response.text)
+        self.assertEqual(second.get("/api/v1/auth/me").status_code, 401)
+        self.assertEqual(
+            self.login(address, password="73925186").get("/api/v1/auth/me").status_code, 200
+        )
 
     def test_admin_bootstrap_preserves_team_and_cannot_promote_existing_user(self):
         self.assertEqual(self.admin_client.identity["negocio"]["slug"], "team")

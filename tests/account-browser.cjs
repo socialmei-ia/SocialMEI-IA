@@ -118,7 +118,7 @@ module.exports = async function accountFlow(browser, origin) {
     } else if (url.pathname === "/api/v1/auth/register") {
       if (registrationMode === "invite") assert.equal(body.convite, "b".repeat(64));
       else assert.equal(Object.hasOwn(body, "convite"), false);
-      assert.equal(body.senha, "Valid-password-123!");
+      assert.equal(body.senha, "FlorSol!");
       if (refuseRegistration) {
         status = 503;
         data = { detail: "Cadastro temporariamente indisponível." };
@@ -370,6 +370,20 @@ module.exports = async function accountFlow(browser, origin) {
     await page.evaluate(() => setTheme("light"));
     await page.locator(".account-password-disclosure > summary").click();
     await page.locator("#accountCurrentPassword").fill("Valid-password-123!");
+    for (const value of ["FlorSol", "12345678"]) {
+      await page.locator("#accountNewPassword").fill(value);
+      await page.locator("#accountConfirmPassword").fill(value);
+      assert.equal(
+        await page.locator("#accountNewPassword").evaluate((el) => el.checkValidity()),
+        false,
+      );
+    }
+    await page.locator("#accountNewPassword").fill("FlorSol!");
+    assert.equal(
+      await page.locator("#accountNewPassword").evaluate((el) => el.checkValidity()),
+      true,
+    );
+    assert.match(await page.locator("#accountPasswordFeedback").textContent(), /fraca/i);
     await page.locator("#accountNewPassword").fill("New-valid-password-123!");
     assert.equal(
       await page
@@ -387,7 +401,8 @@ module.exports = async function accountFlow(browser, origin) {
       requests.filter((request) => request.path === "/api/v1/auth/password").length,
       passwordRequests,
     );
-    await page.locator("#accountConfirmPassword").fill("New-valid-password-123!");
+    await page.locator("#accountNewPassword").fill("FlorSol!");
+    await page.locator("#accountConfirmPassword").fill("FlorSol!");
     await page.locator("#accountPasswordForm [type=submit]").click();
     await page.waitForFunction(
       () =>
@@ -521,7 +536,24 @@ module.exports = async function accountFlow(browser, origin) {
     await page.locator("#registerName").fill("MEI");
     await page.locator("#registerEmail").fill("user2@example.com");
     await page.locator("#registerPhone").fill("11999998888");
-    await page.locator("#registerPassword").fill("Valid-password-123!");
+    for (const value of ["FlorSol", "12345678"]) {
+      await page.locator("#registerPassword").fill(value);
+      assert.equal(
+        await page.locator("#registerPassword").evaluate((el) => el.checkValidity()),
+        false,
+      );
+      assert.equal(
+        await page.locator("#previewSecurity").evaluate((el) => el.classList.contains("is-built")),
+        false,
+      );
+    }
+    await page.locator("#registerPassword").fill("FlorSol!");
+    assert.equal(
+      await page.locator("#registerPassword").evaluate((el) => el.checkValidity()),
+      true,
+    );
+    assert.match(await page.locator("#registerPasswordStatus").textContent(), /fraca/i);
+
     await page.locator("#registerEmail").fill("test@incomplete");
     const registrationsBefore = requests.filter(
       (request) => request.path === "/api/v1/auth/register",

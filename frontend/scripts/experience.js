@@ -137,10 +137,10 @@
     retry.hidden = true;
     retry.addEventListener("click", loadRegistrationPolicy);
     q("#xpRegisterForm").append(retry);
-    q("#registerPassword").minLength = 12;
+    q("#registerPassword").minLength = 8;
     q("#registerPassword").maxLength = 128;
-    q("#registerPassword").placeholder = "12 caracteres ou mais";
-    q("#registerPasswordStatus").textContent = "Use 12 ou mais caracteres.";
+    q("#registerPassword").placeholder = "8 caracteres ou mais";
+    q("#registerPasswordStatus").textContent = "Use 8 ou mais caracteres. Evite senhas comuns.";
     q("#xpRegisterForm .experience-form-hint").textContent =
       "Consultando a disponibilidade do cadastro…";
     q("#xpLoginForm .experience-form-hint").textContent =
@@ -2061,7 +2061,11 @@ ONBOARDING — JAVASCRIPT
         !!name && q("#registerEmail").validity.valid && !!q("#registerEmail").value,
       ],
       ["previewChannel", phoneResult.valid],
-      ["previewSecurity", q("#registerPassword").value.length >= (SocialMEIAuth.remote ? 12 : 8)],
+      [
+        "previewSecurity",
+        !!q("#registerPassword").value &&
+          !SocialMEIAuth.passwordPolicy(q("#registerPassword").value).error,
+      ],
     ]) {
       const element = q("#" + id);
       const changed = element.classList.contains("is-built") !== built;
@@ -2087,7 +2091,8 @@ ONBOARDING — JAVASCRIPT
       !!name,
       q("#registerEmail").validity.valid && !!q("#registerEmail").value,
       phoneResult.valid,
-      q("#registerPassword").value.length >= (SocialMEIAuth.remote ? 12 : 8),
+      !!q("#registerPassword").value &&
+        !SocialMEIAuth.passwordPolicy(q("#registerPassword").value).error,
     ];
     q("#authBuildProgress").textContent =
       `Prévia local · ${values.filter(Boolean).length} de 4 dados`;
@@ -2125,6 +2130,9 @@ ONBOARDING — JAVASCRIPT
     if (input.id === "registerPhone") {
       SocialMEIContacts.validateField(input, true);
     }
+    if (input.id === "registerPassword") {
+      input.setCustomValidity(SocialMEIAuth.passwordPolicy(input.value).error);
+    }
     const valid = input.validity.valid;
     const field = input.closest(".experience-field");
     const status = q("#" + input.id + "Status");
@@ -2134,15 +2142,13 @@ ONBOARDING — JAVASCRIPT
     if (status) {
       status.textContent = valid
         ? input.id === "registerPassword"
-          ? `✓ ${SocialMEIAuth.remote ? 12 : 8}+ caracteres`
+          ? SocialMEIAuth.passwordPolicy(input.value).warning || "✓ 8+ caracteres"
           : "✓ Tudo certo"
         : input.validity.valueMissing
           ? "Preencha este campo."
           : input.validity.typeMismatch
             ? "Use um e-mail como voce@empresa.com."
-            : input.id === "registerPassword"
-              ? `Use pelo menos ${SocialMEIAuth.remote ? 12 : 8} caracteres.`
-              : input.validationMessage;
+            : input.validationMessage;
     }
     return valid;
   }
@@ -2155,7 +2161,7 @@ ONBOARDING — JAVASCRIPT
       });
       element.addEventListener("input", () => {
         element.closest(".experience-field").classList.toggle("is-filled", !!element.value);
-        if (element.dataset.visited) {
+        if (element.dataset.visited || element.id === "registerPassword") {
           validateAuth(element);
         }
         clearTimeout(previewTimer);
