@@ -217,6 +217,13 @@ class Rehearsal:
                 elif version == 17:
                     preparation = {'username': 'loja.ficticia', 'account_type': 'business', 'meta_app_status': 'unknown', 'test_participants': ['equipe.teste'], 'reply_mode': 'review'}
                     conn.execute('INSERT INTO socialmei.integration_setup(workspace_id,instagram,updated_by) VALUES(%s,%s,%s)', (workspace, Jsonb(preparation), user))
+                elif version == 18:
+                    account = conn.execute('SELECT id FROM socialmei.instagram_sim_accounts WHERE workspace_id=%s LIMIT 1', (workspace,)).fetchone()[0]
+                    state_hash = digest(f'synthetic-state:{workspace}'.encode())
+                    conn.execute("INSERT INTO socialmei.ig_lab_states(state_hash,workspace_id,user_id,session_hash,expires_at) VALUES(%s,%s,%s,%s,NOW()+INTERVAL '5 minutes')", (state_hash, workspace, user, 'f'*64))
+                    conn.execute("INSERT INTO socialmei.ig_lab_connections(workspace_id,account_id,status,expires_at) VALUES(%s,%s,'connected',NOW()+INTERVAL '1 hour')", (workspace, account))
+                    conn.execute('INSERT INTO socialmei.ig_lab_events(workspace_id,event_id,fingerprint,result) VALUES(%s,%s,%s,%s)', (workspace, uuid4(), 'a'*64, Jsonb({'fictional':True,'transport':'none'})))
+                    conn.execute("INSERT INTO socialmei.ig_lab_publications(workspace_id,id,account_id,idempotency_key,fingerprint,payload,approved_by,status,attempts,provider_result) VALUES(%s,%s,%s,%s,%s,%s,%s,'simulated-published',1,%s)", (workspace, uuid4(), account, uuid4(), 'b'*64, Jsonb({'caption':'Somente fixture','format':'feed','media':[{'name':'fixture.png','mime':'image/png','size':32}]}), user, Jsonb({'fictional':True,'published':False})))
 
     def prove_fks(self, tenants, database):
         import psycopg
@@ -230,6 +237,18 @@ class Rehearsal:
                 pass
             else:
                 raise AssertionError('Cross-workspace RAG FK accepted invalid data')
+            for table in ('ig_lab_connections', 'ig_lab_publications'):
+                from psycopg import sql
+                try:
+                    with conn.transaction():
+                        foreign_account = uuid4()
+                        conn.execute("INSERT INTO socialmei.instagram_sim_accounts(workspace_id,id,label,created_by) VALUES(%s,%s,'Probe fictício',%s)", (second, foreign_account, tenants[1]['user']))
+                        conn.execute(sql.SQL('UPDATE socialmei.{} SET account_id=%s WHERE workspace_id=%s').format(sql.Identifier(table)), (foreign_account, first))
+                except psycopg.errors.ForeignKeyViolation:
+                    pass
+                else:
+                    raise AssertionError('Cross-workspace fake provider FK accepted invalid data: '+table)
+            self.check(True, database+': fake provider connection/publication cross-workspace FKs reject invalid data')
             self.check(conn.execute("SELECT COUNT(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid=c.connamespace WHERE n.nspname='socialmei' AND c.contype='f' AND NOT c.convalidated").fetchone()[0] == 0, database+': all foreign keys validated and cross-workspace RAG link rejected')
 
     def defaults(self, tenants):
@@ -241,6 +260,8 @@ class Rehearsal:
             os.environ.pop('SOCIALMEI_MESSAGE_ENRICHMENT_MODE', None)
             os.environ.pop('SOCIALMEI_CONTENT_PREPARATION_MODE', None)
             os.environ.pop('SOCIALMEI_CHANNEL_INGRESS_MODE', None)
+            os.environ.pop('SOCIALMEI_INSTAGRAM_PROVIDER', None)
+            os.environ.pop('SOCIALMEI_INSTAGRAM_LAB_ENVIRONMENT', None)
             from app import app
             from fastapi.testclient import TestClient
             import settings
@@ -248,6 +269,7 @@ class Rehearsal:
             with patch('account_auth.session_identity', return_value=identity), patch('instagram_simulation.connect', side_effect=AssertionError('unexpected database')), patch('message_enrichment.connect', side_effect=AssertionError('unexpected database')), patch('content_preparation.connect', side_effect=AssertionError('unexpected database')):
                 client = TestClient(app, base_url=safe['SOCIALMEI_AUTH_ORIGIN'])
                 client.cookies.set('__Host-socialmei-session', 'a'*64)
+                self.check(not settings.instagram_provider_lab_enabled() and client.get('/api/v1/instagram/provider-lab/status').status_code == 503, 'fake Instagram provider default disabled')
                 self.check(client.get('/api/v1/instagram/simulation/accounts').status_code == 503, 'Instagram default disabled without database access')
                 self.check(client.get('/api/v1/content/preparation/status').status_code == 503, 'content preparation default disabled without database access')
                 self.check(client.get('/api/v1/channel-lab/accounts').status_code == 503, 'channel ingress default disabled without database access')
@@ -257,7 +279,7 @@ class Rehearsal:
     def run(self, backend_tests):
         import psycopg
         files = sorted((ROOT/'database/migrations').glob('*.sql'))
-        self.check(len(files) == 17 and [p.name[:3] for p in files] == [f'{n:03}' for n in range(1,18)], 'exact incremental migrations001–017 present')
+        self.check(len(files) == 18 and [p.name[:3] for p in files] == [f'{n:03}' for n in range(1,19)], 'exact incremental migrations001–018 present')
         manifest = {}
         for path in files:
             committed = subprocess.run(['git','show','HEAD:database/migrations/'+path.name], cwd=ROOT, capture_output=True, check=True).stdout
@@ -293,12 +315,12 @@ class Rehearsal:
                 current = self.snapshot()
                 self.check(all(current['tables'][name] == rows for name,rows in legacy.items()), f'{number:03} preserves all preexisting001–011 table values')
             baseline = self.snapshot()
-            self.migrate(folder, 'ledger replay001–017')
+            self.migrate(folder, 'ledger replay001–018')
             self.check(self.snapshot() == baseline, 'team migrator ledger replay preserves rows, schema, sequences and applied_at')
             with self.connect() as conn:
                 for path in files[11:]:
                     conn.execute(path.read_text(), prepare=False)
-            self.check(self.snapshot() == baseline, 'raw012–017 reapplication is idempotent with seeded data')
+            self.check(self.snapshot() == baseline, 'raw012–018 reapplication is idempotent with seeded data')
             with tempfile.TemporaryDirectory(prefix='socialmei-rc80-failure-') as failure:
                 (Path(failure)/'999_release_probe.sql').write_text('CREATE TABLE socialmei.rc80_rollback_probe(id INT); SELECT 1/0;')
                 try:
