@@ -9,11 +9,11 @@ on:
         main,
         feat/ux-interaction-refinement,
         release/integration-candidate-80,
+        release/integration-candidate-94-review,
         feat/priority-integrations,
         feat/isolated-preview,
         feat/dashboard-functional-readiness,
         feat/visual-opportunities-content-91,
-        release/integration-candidate-94-review,
       ]
 
 permissions:
@@ -45,6 +45,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Node
         uses: actions/setup-node@v4
         with:
@@ -58,6 +60,15 @@ jobs:
         run: npm ci
       - name: Contracts and repository structure
         run: npm test
+      - name: Package isolated public candidate (no publication)
+        run: node tools/package-public-demo.mjs
+      - name: Save static candidate artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SocialMEI-public-demo-${{ github.event.pull_request.head.sha || github.sha }}
+          path: test-results/public-demo/
+          if-no-files-found: error
+          retention-days: 14
       - name: Formatting
         run: npm run format:check
       - name: Python contracts
@@ -165,6 +176,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Node
         uses: actions/setup-node@v4
         with:
@@ -206,6 +219,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Node
         uses: actions/setup-node@v4
         with:

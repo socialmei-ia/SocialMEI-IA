@@ -56,3 +56,62 @@ A PR #100 possui integração nativa parcial para o CRM, com CI de navegador e A
 `docs/INSTAGRAM-META-INTEGRATION-READINESS.md` consolida a proposta de login profissional, scopes mínimos, webhooks com assinatura, isolamento por workspace e outbox de publicações. Não executar OAuth, obter credenciais, configurar webhook público, publicar mídia, iniciar Direct nem habilitar workers nesta rodada. Primeiro homologar a demonstração pública e o modelo de contas/conexões em staging separado.
 
 **Liberação:** a aprovação específica para usar uma origem pública não autoriza atualização do CRM na AWS ou merge da PR #100.
+
+## Continuidade da candidata — 23/10/2026
+
+O laboratório existente e os golden masters foram preservados. O ZIP revisado
+`SocialMEI-Frontend-PR100-prototipos.zip` não está disponível nos arquivos do
+workspace; não foi presumida equivalência com um ZIP desconhecido.
+
+### Pacote reproduzível, sem publicação
+
+```sh
+node tools/package-public-demo.mjs
+python3 -m http.server 5500 --bind 127.0.0.1 --directory test-results/public-demo
+```
+
+Abrir `http://127.0.0.1:5500/`. No Windows, usar `py` no lugar de `python3`.
+A ferramenta copia somente três HTMLs autorizados, adiciona CSP `connect-src 'none'`,
+aviso de demonstração e link de volta nas cópias distribuídas. Os originais do Git
+permanecem byte a byte intactos. A cópia pública V8 recebe exclusivamente um ajuste
+para quebrar a barra superior em linhas em celulares estreitos (sem esconder controles).
+O manifesto registra SHA Git e hashes dos arquivos de entrada e saída. O diretório
+não contém config.js, API, credenciais, mídia de usuário ou arquivos do CRM.
+
+Workflow `Package public demonstration (no deployment)` somente gera artifact;
+não possui permissão Pages/deploy nem publica automaticamente. O CI da PR também gera o mesmo artifact automaticamente. Conferir `manifest.json`
+e baixá-lo pelo Actions do HEAD final. O workflow manual só aparece na interface
+do GitHub quando registrado na branch padrão; não é necessário alterar main para
+obter o artifact gerado pelo CI desta PR.
+`_headers` é uma configuração de cabeçalhos para provedores compatíveis, não prova
+que uma hospedagem aplicou esses cabeçalhos. GitHub Pages não lê `_headers`; a CSP
+meta já bloqueia conexões, mas `frame-ancestors` exige cabeçalho no provedor escolhido.
+
+### Destino proposto e aprovação pendente
+
+Preferir **projeto estático separado**, por exemplo repositório dedicado de
+laboratório com origem `socialmei-lab.github.io` (nome/disponibilidade não confirmados),
+ou projeto estático equivalente com domínio HTTPS exclusivo. Não usar o Pages atual
+do repositório sem verificar seu conteúdo e configuração: ele pode atender outra
+versão e é uma origem compartilhada entre projetos do mesmo usuário GitHub.
+Não criar hospedagem, repositório, DNS, secrets ou publicação nesta rodada.
+
+O domínio escolhido não pode receber cookies com atributo Domain do CRM. A demo
+usa localStorage da própria origem, não identifica contas; dois testadores no mesmo
+perfil de navegador compartilham esses dados demonstrativos. Usar perfil/anônimo
+separado quando necessário. Não inserir dados reais. Sem cookies de sessão, servidor,
+analytics, formulários externos ou sincronização.
+
+**Rollback:** manter artifact+manifest anterior; restaurar os arquivos desse artifact
+ou retirar a hospedagem de testes. Nenhum banco/serviço deve ser restaurado ou reiniciado.
+A autorização final deve indicar origem/provedor e SHA exato; não abrange merge ou AWS.
+
+### Integração nativa separada
+
+A composição extraída está também dentro das abas oficiais, sem iframe. CRM de
+Oportunidades usa o store autenticado existente; valores, notas e retornos continuam
+locais e isolados por usuário/negócio/oportunidade. Divulgação reutiliza o repositório
+de rascunhos e a preparação existente. Thumb JPEG limitado é local; mídia bruta não
+é sincronizada nem incluída no backup. Agenda compartilhada depende de API habilitada;
+simular3publicações permanece desabilitado quando não há transação segura disponível.
+Não confundir estas limitações com as capacidades do protótipo público independente.

@@ -85,3 +85,33 @@ Cada query e atualização deve autorizar o workspace via sessão/autorização;
 5. Habilitar por feature flag por negócio, após backup, rollback e avaliação de impacto.
 
 **Gate:** não configurar app Meta, tokens, DNS, webhooks públicos, WAHA, n8n ou publicações nesta PR.
+
+## Revalidação documental — 23/10/2026 (Fortaleza)
+
+A leitura direta de developers.facebook.com foi bloqueada pelo proxy deste ambiente
+(403 no CONNECT). A documentação oficial indexada pelo Context7 foi consultada;
+isto confirma o conteúdo abaixo, mas não configura acesso ao painel Meta nem
+homologação da conta/app. Nenhuma API operacional da Meta foi chamada.
+
+- [Business Login](https://developers.facebook.com/documentation/instagram-platform/instagram-api-with-instagram-login/business-login): scopes `instagram_business_*`; token longo renovável por 60 dias se ainda válido, com pelo menos24horas e permissão `instagram_business_basic`. Não registrar tokens em logs/URLs do produto; o adaptador deve redigir inclusive erros do provedor.
+- [Overview](https://developers.facebook.com/documentation/instagram-platform/overview): mensagens iniciadas pelo usuário; resposta na janela de24horas. A extensão Human Agent de7dias é um recurso próprio sujeito a permissão/regras; não autoriza resposta automática tardia.
+- [Webhooks](https://developers.facebook.com/documentation/instagram-platform/webhooks): assinatura `X-Hub-Signature-256`, SHA256 do corpo bruto com App Secret. Exigir comparação constante, limite de tamanho e deduplicação transacional no backend antes de expor ao CRM.
+- [Publishing](https://developers.facebook.com/documentation/instagram-platform/content-publishing): criar contêiner, aguardar `FINISHED`, publicar e confirmar ID remoto; tratar `IN_PROGRESS`, `ERROR`, `EXPIRED`, `PUBLISHED`. Contêiner não publicado expira em24horas. Consultar quota da conta, sem prometer publicação por um horário local da demo.
+
+**Ainda não confirmado:** elegibilidade específica de Stories por tipo de conta/login,
+versão Graph a fixar, Advanced Access/App Review concedidos, capacidades regionais,
+URLs públicas de mídia e ambiente de callbacks. Não reutilizar exemplos de
+`graph.facebook.com` em um adaptador `graph.instagram.com` sem validar o produto.
+
+### Reaproveitamento confirmado no código
+
+- `python-service/instagram_simulation.py`: contrato autenticado somente dry-run,
+  autorização por role, idempotência e `transport: none`; não substituir por envio.
+- `python-service/instagram_n8n_protocol.py`: protocolo piloto; não chamar n8n ativo.
+- `content_preparation.py` e stores de frontend: preparação/revisão/histórico.
+- Fundação de canais/conversas existente para Direct; não criar segunda Caixa.
+
+Próxima implementação proposta: testes de contrato do adaptador OAuth e assinatura
+usando servidor falso e duas identidades, antes de qualquer schema ou credencial
+real. Publicação e mensagens continuam desligadas por padrão. A aprovação para
+hospedar a demo estática não autoriza OAuth ou webhooks reais.

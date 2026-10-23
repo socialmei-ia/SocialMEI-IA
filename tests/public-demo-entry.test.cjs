@@ -37,3 +37,22 @@ test("both reference prototypes remain standalone; never expose fake persistence
     assert.doesNotMatch(html, /\bfetch\s*\(/);
   }
 });
+
+test("static packaging is allowlisted and cannot publish or copy connected configuration", () => {
+  const builder = fs.readFileSync(
+    path.resolve(__dirname, "../tools/package-public-demo.mjs"),
+    "utf8",
+  );
+  assert.match(builder, /connect-src 'none'/);
+  assert.match(builder, /form-action 'none'/);
+  assert.match(builder, /manifest\.json/);
+  assert.match(builder, /sourceSha256/);
+  assert.doesNotMatch(builder, /\b(fetch|scp|rsync)\s*\(|config\.js|\.env|deploy\/team/);
+  const workflow = fs.readFileSync(
+    path.resolve(__dirname, "../.github/workflows/public-demo-package.yml"),
+    "utf8",
+  );
+  assert.match(workflow, /contents: read/);
+  assert.match(workflow, /upload-artifact/);
+  assert.doesNotMatch(workflow, /pages: write|id-token: write|deploy-pages|secrets\./);
+});
