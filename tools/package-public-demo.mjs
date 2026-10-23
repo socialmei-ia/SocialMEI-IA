@@ -31,6 +31,7 @@ const manifest = {
     execFileSync("git", ["status", "--porcelain"], { cwd: root, encoding: "utf8" }).trim(),
   ),
   published: false,
+  assets: [],
   files: [],
 };
 for (const [source, target] of files) {
@@ -46,7 +47,7 @@ for (const [source, target] of files) {
   const html = original
     .replace(
       /<head>/i,
-      '<head><meta http-equiv="Content-Security-Policy" content="' +
+      '<head><meta name="robots" content="noindex,nofollow"><meta http-equiv="Content-Security-Policy" content="' +
         policy +
         '"><meta name="referrer" content="no-referrer">',
     )
@@ -60,17 +61,26 @@ for (const [source, target] of files) {
     sha256: createHash("sha256").update(html).digest("hex"),
   });
 }
-await writeFile(resolve(output, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
-await writeFile(
-  resolve(output, "_headers"),
+async function asset(target, content) {
+  await writeFile(resolve(output, target), content);
+  manifest.assets.push({ target, sha256: createHash("sha256").update(content).digest("hex") });
+}
+await asset(
+  "_headers",
   "/*\n  Cache-Control: no-store\n  Referrer-Policy: no-referrer\n  X-Content-Type-Options: nosniff\n  Content-Security-Policy: " +
     policy +
-    "; frame-ancestors 'none'\n",
+    "; frame-ancestors 'none'\n  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()\n  Cross-Origin-Opener-Policy: same-origin\n  Cross-Origin-Resource-Policy: same-origin\n",
 );
-await writeFile(
-  resolve(output, "README.txt"),
+await asset(
+  "README.txt",
   "Candidata NÃO publicada. Servir index.html por HTTP local ou HTTPS em origem EXCLUSIVA, sem cookies de domínio do CRM. Apenas dados fictícios; armazenamento local da origem, sem sincronização. Não copiar outros arquivos do repositório. _headers depende do provedor; aplicar cabeçalhos equivalentes. Sem backend/API. Rollback: restaurar artefato anterior ou retirar a hospedagem. Ver docs/PUBLIC-PROTOTYPE-BETA.md.\nSHA: " +
     manifest.sha +
     "\n",
 );
+await asset(
+  "404.html",
+  '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Página não encontrada · SocialMEI.IA</title></head><body><h1>Página não encontrada</h1><p>Este laboratório não possui API ou login.</p><a href="/">Voltar à demonstração</a></body></html>',
+);
+await asset("robots.txt", "User-agent: *\nDisallow: /\n");
+await writeFile(resolve(output, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
 console.log("Static candidate prepared: test-results/public-demo; no publication performed.");

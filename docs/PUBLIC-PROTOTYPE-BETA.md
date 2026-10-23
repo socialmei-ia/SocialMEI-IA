@@ -1,135 +1,132 @@
-# SocialMEI.IA — candidata de testes públicos dos protótipos V8/V4
+# Demonstração V8/V4 — Cloudflare Pages
 
-**Situação:** preparada no código, NÃO publicada; PR #100 em Draft. A homologação visual e a operação em um domínio isolado são passos pendentes.
+**Preparada, não publicada.** PR #100 permanece Draft. Nenhuma conta Cloudflare,
+publicação, domínio, DNS, cookie do CRM ou conexão externa foi criada.
 
-## Escopo pronto no Git
+## Candidata e limites
 
-- Entrada estática: `frontend/testes-publicos.html`.
-- Oportunidades fiel ao HTML do usuário: `frontend/reference/Oportunidades-V8-original.html`.
-- Divulgação fiel ao HTML do usuário: `frontend/reference/Divulgacao-V4-original.html`.
-- Testes automatizados de links e ausência de chamadas externas: `tests/public-demo-entry.test.cjs`.
-- Não depende de banco, FastAPI, Docker, n8n, WAHA, Meta, login nem tokens.
-- Todos os dados editados nestes HTMLs ficam no `localStorage` **do navegador/origem**; o protótipo de Oportunidades preenche oportunidades fictícias automaticamente. Não armazenar clientes reais. Nada é sincronizado.
-- **Não é a aplicação autenticada**: os protótipos não fazem CRUD do CRM, não entram na Caixa Unificada e não publicam mídia.
+- Origem proposta: **https://socialmei-lab.pages.dev/**, projeto `socialmei-lab`.
+  Nome e disponibilidade ainda não confirmados. Se indisponível, escolher outro
+  nome e revisar a allowlist do smoke antes de publicar.
+- `wrangler.public-demo.toml`: configuração local de build/saída; não cria recursos.
+- A demonstração distribui os HTMLs originais V8/V4 e uma entrada estática.
+  **Não é a aplicação autenticada**: não faz CRUD do CRM, não recebe mensagens,
+  não publica mídia nem usa FastAPI, PostgreSQL, Meta, n8n ou WAHA.
+- Dados são fictícios e locais à origem/navegador. Pessoas usando o mesmo perfil
+  do navegador compartilham os exemplos locais. Usar janela anônima ou perfil
+  separado; nunca inserir clientes, mensagens ou mídia privados.
+- Golden masters permanecem intactos. As cópias recebem CSP, aviso/backlink e,
+  no V8, somente contenção da barra superior em larguras até 980 px.
+- O ZIP revisado `SocialMEI-Frontend-PR100-prototipos.zip` não está disponível;
+  a origem utilizada é o Git, sem presumir equivalência com esse ZIP.
 
-## Hospedagem segura — decisão necessária
+## Build e conferência local
 
-A opção prioritária é uma **origem HTTPS dedicada à demonstração**, diferente do host do CRM. O ambiente AWS/team e seus cookies, dados e APIs não devem ser usados nem referenciados.
-
-A publicação na GitHub Pages atual é aceitável **apenas depois** de confirmar a configuração do Pages, origem, visibilidade e que nenhum link ou configuração compartilha sessão com a instância real. A configuração remota de Pages não foi confirmada nesta revisão.
-
-O conteúdo a disponibilizar nessa origem é um subconjunto estático e mínimo:
-
-```text
-/
-├── index.html                      ← cópia da entrada frontend/testes-publicos.html
-└── reference/
-    ├── Oportunidades-V8-original.html
-    └── Divulgacao-V4-original.html
-```
-
-**Não copie** `compose.team.yaml`, `python-service`, `database`, `deploy/team/private`, `.env`, arquivos de clientes nem segredos. Não publique o frontend autenticado como se estivesse conectado quando não houver API real.
-
-### Antes de publicar (gate humano)
-
-1. Verificar o SHA exato da PR #100 e resultado CI validate/browser/preview nesse SHA. Após novas edições, repetir a matriz; CI verde anterior não vale para o HEAD novo.
-2. Testar entrada, links, navegação, teclado, mobile 320/390, desktop 1440, temas claro/escuro, rascunho, mídia local, Agenda e Termômetro, com dados **fictícios**.
-3. Confirmar ausência de chamadas externas no DevTools Network; arquivos de referência possuem scripts inline e `localStorage`.
-4. Confirmar que a origem HTTPS de testes é separada da origem de produção (inclusive armazenamento e cookies) e enviar `Cache-Control: no-store` para evitar versão velha.
-5. Identificar responsável pelo suporte aos testadores e um canal de feedback sem solicitar dados de clientes.
-6. Autorizar especificamente **destino, versão SHA e publicação estática**. Não acionar o workflow de staging/produção genérico.
-
-### Depois da aprovação de publicação
-
-- Disponibilizar somente os três arquivos na origem HTTPS aprovada.
-- Verificar links do celular e desktop em navegação anônima.
-- Testar que API, Postgres, WhatsApp, n8n, Facebook e Instagram reais não aparecem na Network.
-- Registrar URL real somente depois de a hospedagem responder e um usuário sem login conseguir abrir.
-- Rollback imediato: trocar a versão estática publicada pelo conjunto anterior (ou retirar a rota). Não deve haver rollback de banco, pois o pacote é inteiramente estático.
-
-## Caminho da aplicação conectada — etapa distinta
-
-A PR #100 possui integração nativa parcial para o CRM, com CI de navegador e API real no preview isolado; esse CI **não demonstra** paridade 1:1 com os protótipos nem torna os HTMLs originais conectados. Retomar a integração 1:1 somente com adapters autenticados, regras de escopo e migrations específicas autorizadas.
-
-## Instagram — próxima etapa, somente preparação
-
-`docs/INSTAGRAM-META-INTEGRATION-READINESS.md` consolida a proposta de login profissional, scopes mínimos, webhooks com assinatura, isolamento por workspace e outbox de publicações. Não executar OAuth, obter credenciais, configurar webhook público, publicar mídia, iniciar Direct nem habilitar workers nesta rodada. Primeiro homologar a demonstração pública e o modelo de contas/conexões em staging separado.
-
-**Liberação:** a aprovação específica para usar uma origem pública não autoriza atualização do CRM na AWS ou merge da PR #100.
-
-## Continuidade da candidata — 23/10/2026
-
-O laboratório existente e os golden masters foram preservados. O ZIP revisado
-`SocialMEI-Frontend-PR100-prototipos.zip` não está disponível nos arquivos do
-workspace; não foi presumida equivalência com um ZIP desconhecido.
-
-### Pacote reproduzível, sem publicação
+Em checkout limpo do **SHA aprovado**, com Node 22:
 
 ```sh
-node tools/package-public-demo.mjs
+npm ci
+npm run demo:build
+npm run demo:verify -- test-results/public-demo SHA_APROVADO
 python3 -m http.server 5500 --bind 127.0.0.1 --directory test-results/public-demo
 ```
 
-Abrir `http://127.0.0.1:5500/`. No Windows, usar `py` no lugar de `python3`.
-A ferramenta copia somente três HTMLs autorizados, adiciona CSP `connect-src 'none'`,
-aviso de demonstração e link de volta nas cópias distribuídas. Os originais do Git
-permanecem byte a byte intactos. A cópia pública V8 recebe exclusivamente um ajuste
-para quebrar a barra superior em linhas em celulares estreitos (sem esconder controles).
-O manifesto registra SHA Git e hashes dos arquivos de entrada e saída. O diretório
-não contém config.js, API, credenciais, mídia de usuário ou arquivos do CRM.
+No Windows, usar `py -m http.server ...` em lugar de `python3`. Abrir
+`http://127.0.0.1:5500/`. O servidor Python serve para inspeção visual; não aplica
+`_headers`. O teste de navegador do projeto usa servidor local que aplica esses
+cabeçalhos e a página 404, sem backend.
 
-Workflow `Package public demonstration (no deployment)` somente gera artifact;
-não possui permissão Pages/deploy nem publica automaticamente. O CI da PR também gera o mesmo artifact automaticamente. Conferir `manifest.json`
-e baixá-lo pelo Actions do HEAD final. O workflow manual só aparece na interface
-do GitHub quando registrado na branch padrão; não é necessário alterar main para
-obter o artifact gerado pelo CI desta PR.
-`_headers` é uma configuração de cabeçalhos para provedores compatíveis, não prova
-que uma hospedagem aplicou esses cabeçalhos. GitHub Pages não lê `_headers`; a CSP
-meta já bloqueia conexões, mas `frame-ancestors` exige cabeçalho no provedor escolhido.
+O pacote tem **oito arquivos**: `index.html`, os dois HTMLs em `reference/`,
+`manifest.json`, `_headers`, `404.html`, `robots.txt` e `README.txt`.
+O manifesto informa SHA, checkout limpo/sujo, hashes dos originais e dos arquivos
+entregues. A verificação rejeita arquivos extras, symlinks e alterações de bytes.
+Não copiar o repositório inteiro, `.env`, config.js, banco ou infraestrutura.
 
-### Destino proposto e aprovação pendente
+O CI gera artifact `SocialMEI-public-demo-SHA` e executa o smoke em origem local
+com os cabeçalhos reais. O workflow manual de empacotamento também só gera artifact;
+não tem credenciais nem permissão de deploy. Baixar o artifact do HEAD verde e
+conferir o manifesto. A versão publicada deve ter `workingTreeDirty: false`.
 
-Preferir **projeto estático separado**, por exemplo repositório dedicado de
-laboratório com origem `socialmei-lab.github.io` (nome/disponibilidade não confirmados),
-ou projeto estático equivalente com domínio HTTPS exclusivo. Não usar o Pages atual
-do repositório sem verificar seu conteúdo e configuração: ele pode atender outra
-versão e é uma origem compartilhada entre projetos do mesmo usuário GitHub.
-Não criar hospedagem, repositório, DNS, secrets ou publicação nesta rodada.
+## Cabeçalhos e isolamento
 
-O domínio escolhido não pode receber cookies com atributo Domain do CRM. A demo
-usa localStorage da própria origem, não identifica contas; dois testadores no mesmo
-perfil de navegador compartilham esses dados demonstrativos. Usar perfil/anônimo
-separado quando necessário. Não inserir dados reais. Sem cookies de sessão, servidor,
-analytics, formulários externos ou sincronização.
+Cloudflare Pages interpreta `_headers`: CSP com scripts inline autorizados por
+hash, `connect-src 'none'`, `form-action 'none'`, `frame-ancestors 'none'`,
+`Cache-Control: no-store`, `nosniff`, `no-referrer`, COOP/CORP `same-origin` e
+Permissions-Policy restritiva. A CSP meta também bloqueia conexões na inspeção local.
+`404.html` impede fallback de SPA para URLs como `/api/` e `/.env`. `robots.txt` e
+meta noindex desencorajam indexação, mas **não são controle de acesso**.
 
-**Rollback:** manter artifact+manifest anterior; restaurar os arquivos desse artifact
-ou retirar a hospedagem de testes. Nenhum banco/serviço deve ser restaurado ou reiniciado.
-A autorização final deve indicar origem/provedor e SHA exato; não abrange merge ou AWS.
+Não habilitar Analytics/Beacon, Rocket Loader, transformação de HTML ou injeção de
+scripts: os hashes e o smoke devem detectar qualquer diferença do artifact.
+Não configurar Functions, redirects para o CRM, domínio personalizado, login ou
+cookies. Não vincular um domínio que receba cookies Domain do CRM. O subdomínio
+`pages.dev` dedicado mantém outra origem e outro armazenamento.
 
-### Integração nativa separada
+## Aprovação necessária e publicação posterior
 
-A composição extraída está também dentro das abas oficiais, sem iframe. CRM de
-Oportunidades usa o store autenticado existente; valores, notas e retornos continuam
-locais e isolados por usuário/negócio/oportunidade. Divulgação reutiliza o repositório
-de rascunhos e a preparação existente. Thumb JPEG limitado é local; mídia bruta não
-é sincronizada nem incluída no backup. Agenda compartilhada depende de API habilitada;
-simular3publicações permanece desabilitado quando não há transação segura disponível.
-Não confundir estas limitações com as capacidades do protótipo público independente.
+Apresentar ao proprietário: provedor **Cloudflare Pages**, origem proposta acima,
+SHA completo, CI no SHA, hashes/manifesto e este rollback. A autorização precisa
+cobrir **criação do projeto e publicação estática**. Não abrange AWS ou merge.
+A conta Cloudflare ainda não está conectada neste ambiente. Utilizar conexão
+segura da plataforma ou login local autorizado; não enviar token/senha pelo chat.
 
-### Proposta concreta de primeira hospedagem (não executada)
+**Os comandos abaixo são procedimento posterior à aprovação, não foram executados.**
+Com autenticação autorizada e checkout limpo do SHA aprovado:
 
-**Cloudflare Pages, projeto novo `socialmei-lab`**, usando exclusivamente o artifact
-estático desta PR. Nome/disponibilidade e URL `*.pages.dev` ainda não confirmados;
-nenhum projeto foi criado ou conta conectada. A origem precisa ser independente
-inclusive do GitHub Pages atual. Não configurar domínio próprio nem DNS nesta fase.
+```sh
+npx wrangler@4.152.0 pages project create socialmei-lab --production-branch beta
+npm run demo:build
+npm run demo:verify -- test-results/public-demo SHA_APROVADO
+npx wrangler@4.152.0 pages deploy test-results/public-demo --project-name socialmei-lab --branch beta --commit-hash SHA_APROVADO
+npm run demo:smoke -- https://socialmei-lab.pages.dev/ SHA_APROVADO
+```
 
-Após autorização de origem+SHA: criar o projeto de upload estático, conferir manifesto,
-subir somente o conteúdo de `test-results/public-demo/`, verificar os cabeçalhos e
-repetir smoke sem login em desktop/celular. Sem comandos de API, containers ou banco.
-Para atualizações futuras, pode-se configurar build GitHub com comando
-`node tools/package-public-demo.mjs` e saída `test-results/public-demo`, somente depois
-de autorizar essa vinculação. Não usar outro workflow de produção do repositório.
+Usar upload direto; nenhuma vinculação GitHub automática é necessária. Confirmar
+no painel que `beta` é a branch de produção do projeto isolado. Não confundir com
+`main` do SocialMEI. Registrar ID do deployment, SHA, URL e resultado do smoke.
+Não publicar se CI, integridade ou isolamento falharem.
 
-Rollback do projeto novo: desabilitar a hospedagem se for a primeira publicação;
-nas seguintes, promover o deployment estático anterior e conferir seu manifesto.
-O CRM atual permanece no endereço existente, sem alteração de autenticação.
+O smoke exige o artifact local verificado do mesmo SHA, compara seus hashes e
+manifesto com a hospedagem, testa cabeçalhos/404, rejeita cookies e redirecionamentos
+para outra origem. Em seguida repete os fluxos V8/V4 com Playwright, em seis larguras
+(320/360/390/768/1024/1440), claro/escuro, apenas armazenamento local do contexto
+descartável. Não envia gravações nem autentica no CRM. Instalar Chromium/Playwright
+conforme `npm run test:browser`. Não executar contra produção.
+
+## Atualizar e reverter
+
+1. Nova versão: novo SHA revisado, CI verde, build limpo e manifesto arquivado.
+   Publicar só após autorização da versão/destino; repetir o smoke no link real.
+2. Manter deployment anterior e seu artifact/manifesto; registrar o ID antes de
+   cada atualização. Não excluir deployments anteriores durante a homologação.
+3. Falha: no painel Pages, promover novamente o deployment anterior; conferir o
+   manifesto e rodar o smoke com seu SHA e artifact. Alternativamente, reenviar
+   exatamente o artifact anterior à mesma branch `beta`.
+4. Primeira publicação sem versão anterior: retirar a hospedagem/projeto de testes.
+   Não tocar em API, banco, DNS do CRM, AWS, n8n ou WAHA.
+
+Rollback estático não apaga nem migra rascunhos locais do navegador. Para comparação
+limpa, usar perfil anônimo; não limpar armazenamento de usuários sem explicar.
+
+## Compartilhar e recolher feedback
+
+Compartilhar **somente depois** de o link real passar no smoke, com aviso:
+“Demonstração com dados fictícios; nada é enviado nem sincronizado. Use exemplos.”
+O proprietário escolhe seu canal de retorno; nenhum formulário externo ou analytics
+foi integrado. Pedir um registro curto por problema:
+
+- Tela e ação (Lista/Termômetro/Semana; Story/Feed/Reel/Rascunhos/Agenda).
+- Dispositivo, navegador, largura aproximada e tema.
+- Passos, resultado esperado e observado; captura somente com dados fictícios.
+- SHA visível em `manifest.json` e se ocorre também em janela anônima.
+
+## Aplicação nativa e Instagram: entregas separadas
+
+As abas oficiais permanecem em `frontend/socialmei-app.html`, sem iframe. CRM usa
+store autenticado; valor, nota e retorno V8 continuam locais por usuário/negócio/
+oportunidade. Divulgação usa seus rascunhos; mídia bruta não é sincronizada. Isso
+não transforma os HTMLs públicos em operações autenticadas.
+
+O laboratório Instagram será uma PR dependente, desligado por padrão e restrito a
+ambiente descartável. Não faz parte do pacote estático. Consulte
+`docs/INSTAGRAM-META-INTEGRATION-READINESS.md` para pendências de integração real.

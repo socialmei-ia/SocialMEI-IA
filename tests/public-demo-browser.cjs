@@ -1,8 +1,13 @@
 const assert = require("node:assert/strict");
 const { execFileSync } = require("node:child_process");
 const path = require("node:path");
-module.exports = async (browser, origin) => {
-  execFileSync(process.execPath, [path.resolve(__dirname, "../tools/package-public-demo.mjs")]);
+module.exports = async (
+  browser,
+  origin,
+  { build = true, basePath = "/test-results/public-demo/" } = {},
+) => {
+  if (build)
+    execFileSync(process.execPath, [path.resolve(__dirname, "../tools/package-public-demo.mjs")]);
   const context = await browser.newContext({
     viewport: { width: 1440, height: 900 },
     reducedMotion: "reduce",
@@ -17,7 +22,7 @@ module.exports = async (browser, origin) => {
       external.push(req.url().split("?")[0]);
     if (req.method() !== "GET") writes.push(req.method());
   });
-  const base = origin + "/test-results/public-demo/";
+  const base = origin + basePath;
   const settle = async () =>
     page.waitForFunction(
       () =>
