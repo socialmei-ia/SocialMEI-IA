@@ -66,3 +66,16 @@ adicionais, se persistidos, pertencem ao próprio rascunho validado por escopo.
 - Modelos locais:15testes focados inicialmente aprovados, incluindo regressão
   vermelha/verde de apresentação/recuperação no mesmo repositório e recusa de
   thumbnails executáveis/geometria inválida/IDs de outro escopo.
+
+## Ajustes mínimos exigidos pela integração
+
+- Cabeçalho do telefone usa classe `v4-phone-header` para não colidir com `.hd` do
+  cabeçalho oficial. O estilo extraído permanece equivalente.
+- No celular, o seletor de tema oficial em Ferramentas evita um segundo botão na
+  topbar; sessão/progresso continuam associados à mesma aba. Não há terceira linha
+  de cabeçalho em320px.
+- Dock tem alvo mínimo44px (até2px adicionais nas variantes menores do original).
+  ResizeObserver acompanha os botões para que o indicador cubra a opção inteira
+  após fontes, sidebar e breakpoints alterarem sua largura.
+- Setas/Home/End mantêm a etapa de formato aberta; clique por mouse/toque conserva
+  o avanço progressivo original. Isto evita perda de foco por recolhimento imediato.

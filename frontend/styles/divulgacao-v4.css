@@ -410,7 +410,7 @@
     transform: scaleX(0);
   }
 }
-#contentStudioView #exactV4-root .hd {
+#contentStudioView #exactV4-root .v4-phone-header {
   position: absolute;
   z-index: 3;
   top: 46px;
@@ -421,7 +421,7 @@
   align-items: center;
   font-weight: 700;
 }
-#contentStudioView #exactV4-root .hd small {
+#contentStudioView #exactV4-root .v4-phone-header small {
   opacity: 0.7;
   font-weight: 400;
 }
@@ -499,7 +499,7 @@
 #contentStudioView #exactV4-root .scr[data-f="feed"] {
   background: #07122a;
 }
-#contentStudioView #exactV4-root .scr[data-f="feed"] .hd {
+#contentStudioView #exactV4-root .scr[data-f="feed"] .v4-phone-header {
   position: static;
   padding: 40px 14px 10px;
 }
@@ -1549,7 +1549,13 @@
   transform: scaleX(0);
 }
 @media (max-width: 700px) {
-  #mainContent #exactV4-headerControls .pill {
+  /* The official tools menu already exposes theme selection on small screens.
+     Avoid a duplicate control forcing a third row in the shared header. */
+  #mainContent #exactV4-headerControls {
+    display: contents;
+  }
+  #mainContent #exactV4-headerControls .pill,
+  #mainContent #exactV4-headerControls .ic-b {
     display: none;
   }
 }
