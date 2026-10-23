@@ -15,6 +15,7 @@ on:
         feat/dashboard-functional-readiness,
         feat/visual-opportunities-content-91,
         feat/native-opportunities-v8-content-v4,
+        feat/instagram-provider-lab,
       ]
 
 permissions:
