@@ -1,3 +1,4 @@
+const { revealContentControl, contentDock } = require("./content-test-ui.cjs");
 const assert = require("node:assert/strict");
 module.exports = async (browser, origin) => {
   const page = await browser.newPage({
@@ -15,9 +16,11 @@ module.exports = async (browser, origin) => {
     await page.locator("#contentStudioOpen").click();
     assert.equal(await page.evaluate(() => currentView), "Divulgação");
     assert.equal(await page.locator("#contentStudioOpen").getAttribute("aria-current"), "page");
+    await revealContentControl(page, "#contentTitle");
     await page.locator("#contentTitle").fill("Conteúdo preservado");
+    await revealContentControl(page, "#contentSave");
     await page.locator("#contentSave").click();
-    await page.locator("#contentWorkspace-drafts").click();
+    await contentDock(page, "drafts");
     await page.locator('[data-content-action="edit"]').click();
     assert(await page.locator("#contentCreatePanel").isVisible());
     assert.equal(await page.locator("#contentTitle").inputValue(), "Conteúdo preservado");
@@ -34,12 +37,18 @@ module.exports = async (browser, origin) => {
           await page.locator("#mb").click();
           await page.locator("#contentStudioOpen").click();
         }
-        await page.locator("#contentWorkspace-agenda").click();
+        await contentDock(page, "agenda");
         assert.equal(
           await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
           true,
         );
-        assert(await page.locator("#contentAgendaDay").isVisible());
+        assert(await page.locator("#exactV4-strip").isVisible());
+        assert.equal(await page.locator("#exactV4-strip .dy").count(), 14);
+        await page.locator("#exactV4-strip .dy").nth(1).click();
+        assert.equal(
+          await page.locator("#contentAgendaDay").inputValue(),
+          await page.locator("#exactV4-strip .dy").nth(1).getAttribute("data-d"),
+        );
       }
     assert.deepEqual(errors, []);
     return {

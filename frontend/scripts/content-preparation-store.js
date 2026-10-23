@@ -8,11 +8,49 @@ const SocialMEIContentPreparation = (() => {
     business = "",
     objective = "informar",
     tone = "simples",
+    style = "native",
   }) {
     const subject = String(topic || "")
       .trim()
       .slice(0, 160);
     if (!subject) throw new Error("Informe o tema da publicação.");
+    if (style === "v4") {
+      const templates = {
+        Profissional: [
+          "{t}: conheça nosso serviço de {p}. Qualidade e cuidado em cada detalhe.",
+          "Atendimento de {p} com dedicação. Fale com a gente e saiba mais.",
+          "{p} feito com atenção. {t} é o que nos move todos os dias.",
+        ],
+        Próximo: [
+          "Oi! Hoje quero falar sobre {t}. Vem conhecer meu {p}, vai ser um prazer te atender.",
+          "Quer saber mais sobre {p}? Me chama, a gente conversa sem pressa.",
+          "Todo dia é um jeito novo de fazer {p}. Me conta o que você precisa.",
+        ],
+        Divertido: [
+          "Alerta de novidade: {p} chegou para animar o seu dia! {t}",
+          "Dizem que {p} muda o astral. Vem testar e conta pra gente!",
+          "{t} + {p} = combinação perfeita. Bora?",
+        ],
+      };
+      const endings = {
+        Apresentar: "Prazer em conhecer você!",
+        Vender: "Condições especiais por tempo limitado.",
+        "Divulgar promoção": "Promoção ativa. Garanta a sua.",
+        Engajar: "Comente o que você acha!",
+      };
+      return {
+        source: "template_fixture",
+        generated_by_ai: false,
+        requires_human_verification: true,
+        alternatives: (templates[tone] || templates.Profissional).map(
+          (template) =>
+            template.replace("{t}", subject).replace("{p}", offering.trim().slice(0, 60)) +
+            " " +
+            (endings[objective] || endings.Apresentar),
+        ),
+        hashtags: [],
+      };
+    }
     const about = offering.trim() ? " Sobre: " + offering.trim().slice(0, 160) + "." : "";
     const brand = business.trim() ? " — " + business.trim().slice(0, 120) : "";
     const endings = {
@@ -129,7 +167,9 @@ const SocialMEIContentPreparation = (() => {
     document.dispatchEvent(new Event("socialmei-preparations-change"));
   }
   function init() {
-    const parent = document.getElementById("contentEditorPanel");
+    const parent =
+      document.getElementById("contentSharedPreparation") ||
+      document.getElementById("contentEditorPanel");
     if (!parent) return;
     const panel = document.createElement("section");
     panel.className = "content-preparation-workflow";
@@ -405,6 +445,8 @@ const SocialMEIContentPreparation = (() => {
             byId("contentCaption").value = caption;
             byId("contentHashtags").value = result.hashtags.join(" ");
             byId("contentCaption").dispatchEvent(new Event("input", { bubbles: true }));
+            const step = byId("contentCaption").closest("details");
+            if (step) step.open = true;
             byId("contentCaption").focus();
             say("Texto aplicado ao editor. Revise e salve; modelo local, sem IA externa.");
           });

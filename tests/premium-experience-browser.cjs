@@ -1,3 +1,4 @@
+const { openOpportunityAnalysis } = require("./exact-view-helpers.cjs");
 const assert = require("node:assert/strict"),
   fs = require("node:fs"),
   path = require("node:path"),
@@ -131,12 +132,15 @@ module.exports = async function premiumExperience(browser, origin) {
             }
           }
           if (view === "Oportunidades") {
-            const positions = await page.evaluate(() => ({
-              tab: document.getElementById("clientAnalysisTabs").getBoundingClientRect().top,
-              card: document.querySelector(".client-analysis-card")?.getBoundingClientRect().top,
+            const positions = await page.locator("#opportunityLifecycle").evaluate((root) => ({
+              hero: root.querySelector(".hero2").getBoundingClientRect().bottom,
+              form: root.querySelector(".cr").getBoundingClientRect().top,
+              heading: root.querySelector(".trkh").getBoundingClientRect().bottom,
+              filters: root.querySelector(".filters").getBoundingClientRect().top,
             }));
-            assert(positions.tab < (width <= 390 ? 330 : 300), JSON.stringify(positions));
-            assert(positions.card < (width <= 390 ? 460 : 450), JSON.stringify(positions));
+            assert(positions.hero <= positions.form, JSON.stringify(positions));
+            assert(positions.heading <= positions.filters, JSON.stringify(positions));
+            assert.equal(await page.locator(".op8-shell").count(), 0);
             assert.equal(await page.locator("#opportunitiesView .management-demo").count(), 0);
           }
           layouts.push({ view, width, theme, mode: "on", ...layout });
@@ -167,6 +171,7 @@ module.exports = async function premiumExperience(browser, origin) {
     await page.waitForTimeout(30);
     assert(await page.locator(".hd #viewDemoNotice").isVisible());
     await page.evaluate(() => setView("Oportunidades"));
+    await openOpportunityAnalysis(page);
     await page.locator(".opportunity-options > summary").click();
     await page.locator("[data-opportunity-refresh]").click();
     await page.locator("[data-opportunity-open]").first().click();
@@ -208,6 +213,7 @@ module.exports = async function premiumExperience(browser, origin) {
       }
     // An explicitly isolated analysis demonstration still identifies its origin globally.
     await page.evaluate(() => setView("Oportunidades"));
+    await openOpportunityAnalysis(page);
     await page.locator("[data-opportunity-demo]").click();
     assert(await page.locator("#viewDemoNotice").isVisible());
     await page.locator("#viewDemoNotice").click();

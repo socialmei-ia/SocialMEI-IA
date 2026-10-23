@@ -1,3 +1,4 @@
+const { revealContentControl, contentDock } = require("./content-test-ui.cjs");
 // Controlled same-origin account API only. Database/auth contracts run separately in Python.
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -120,7 +121,9 @@ module.exports = async function instagramIntegration(browser, origin) {
     );
     assert(await page.locator("#instagramPublishPanel").isHidden());
     assert(await page.locator("#contentPublish").isDisabled());
+    await revealContentControl(page, "#instagramSimulationName");
     await page.locator("#instagramSimulationName").fill("Ateliê fictício");
+    await revealContentControl(page, "#instagramSimulationName");
     await page.locator("#instagramSimulationName").focus();
     await page.keyboard.press("Tab");
     assert.equal(await page.evaluate(() => document.activeElement.id), "instagramSimulationCreate");
@@ -129,13 +132,17 @@ module.exports = async function instagramIntegration(browser, origin) {
       () => document.getElementById("instagramSimulationAccount").options.length === 1,
     );
     // With multiple accounts, the selected account must survive request and refresh.
+    await revealContentControl(page, "#instagramSimulationName");
     await page.locator("#instagramSimulationName").fill("Segundo negócio fictício");
+    await revealContentControl(page, "#instagramSimulationCreate");
     await page.locator("#instagramSimulationCreate").click();
     await page.waitForFunction(
       () => document.getElementById("instagramSimulationAccount").options.length === 2,
     );
     const secondAccountId = accounts[1].id;
+    await revealContentControl(page, "#instagramSimulationAccount");
     await page.locator("#instagramSimulationAccount").selectOption(secondAccountId);
+    await revealContentControl(page, "#contentCaption");
     await page.locator("#contentCaption").fill("Conteúdo sintético, sem publicação.");
     const png = await page.evaluate(() => {
       const canvas = document.createElement("canvas");
@@ -146,12 +153,14 @@ module.exports = async function instagramIntegration(browser, origin) {
       ctx.fillRect(0, 0, 640, 800);
       return canvas.toDataURL("image/png").split(",")[1];
     });
+    await revealContentControl(page, "#contentMedia");
     await page.locator("#contentMedia").setInputFiles({
       name: "ficticio.png",
       mimeType: "image/png",
       buffer: Buffer.from(png, "base64"),
     });
     await page.locator("#contentPreviewStage img").waitFor();
+    await revealContentControl(page, "#instagramSimulationSubmit");
     await page.locator("#instagramSimulationSubmit").click();
     await page.waitForFunction(() =>
       document
@@ -168,6 +177,7 @@ module.exports = async function instagramIntegration(browser, origin) {
         .textContent.includes("Simulação habilitada"),
     );
     assert.equal(await page.locator("#instagramSimulationAccount").inputValue(), secondAccountId);
+    await revealContentControl(page, "#instagramSimulationSubmit");
     await page.locator("#instagramSimulationSubmit").focus();
     assert.equal(
       await page.evaluate(() => document.activeElement.id),
@@ -260,7 +270,9 @@ module.exports = async function instagramIntegration(browser, origin) {
       await new Promise((resolve) => setImmediate(resolve));
     assert.equal(delayedRefresh.length, 2, "The background refresh must be in flight");
     holdRefresh = false;
+    await revealContentControl(page, "#contentCaption");
     await page.locator("#contentCaption").fill("Outro conteúdo sintético.");
+    await revealContentControl(page, "#instagramSimulationSubmit");
     await page.locator("#instagramSimulationSubmit").click();
     // Only the background GETs are held; the POST and its subsequent history read run normally.
     await page.waitForFunction(
@@ -281,7 +293,9 @@ module.exports = async function instagramIntegration(browser, origin) {
 
     assert.equal(publications.length, 2);
     assert.notEqual(publications[0].idempotency_key, publications[1].idempotency_key);
+    await revealContentControl(page, "#instagramSimulationAccount");
     await page.locator("#instagramSimulationAccount").selectOption(accounts[0].id);
+    await revealContentControl(page, "#instagramSimulationSubmit");
     await page.locator("#instagramSimulationSubmit").click();
     await page.waitForFunction(
       () => document.querySelectorAll("#instagramSimulationHistory p").length === 3,
@@ -303,6 +317,7 @@ module.exports = async function instagramIntegration(browser, origin) {
       "A viewer must not be offered a write action",
     );
     assert.match(await page.locator("#instagramSimulationStatus").textContent(), /somente leitura/);
+    await revealContentControl(page, "#instagramSimulationPanel");
     await page
       .locator("#instagramSimulationPanel")
       .screenshot({ path: path.join(output, "instagram-readonly.png") });

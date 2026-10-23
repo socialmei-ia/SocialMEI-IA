@@ -32,7 +32,21 @@ test("all scripts parse, including their shared global declarations", () => {
   for (const source of sources) new vm.Script(source);
   new vm.Script(sources.join("\n"));
   new vm.Script(read("tools/devhub.js"));
-  assert.equal(sources.length, 57);
+  assert.equal(sources.length, 60);
+  assert.equal(new Set(scriptPaths).size, scriptPaths.length, "Each controller is loaded once");
+  assert.equal(
+    scriptPaths.indexOf("scripts/opportunities-v8.js") + 1,
+    scriptPaths.indexOf("scripts/opportunities-v8-parity.js"),
+  );
+  assert.equal(scriptPaths.includes("scripts/divulgacao-v4-parity.js"), false);
+  assert.equal(
+    scriptPaths.indexOf("scripts/opportunity-lifecycle.js") + 1,
+    scriptPaths.indexOf("scripts/opportunities-v8.js"),
+  );
+  assert.equal(
+    scriptPaths.indexOf("scripts/content-workspace.js") + 1,
+    scriptPaths.indexOf("scripts/divulgacao-v4.js"),
+  );
   assert.equal(
     scriptPaths.indexOf("scripts/content-preparation-store.js"),
     scriptPaths.indexOf("scripts/instagram-simulation.js") + 1,

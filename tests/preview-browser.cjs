@@ -143,44 +143,52 @@ async function run() {
           await lifecycle.getByRole("button", { name: "Quente (1)", exact: true }).count(),
           1,
         );
-        await card.getByText("Atualizar acompanhamento", { exact: true }).click();
-        await card.getByLabel("Motivo de não avançar").selectOption("other_supplier");
-        await card.getByRole("button", { name: "Não avançou", exact: true }).click();
-        await page.waitForFunction(() =>
-          document
-            .querySelector("#opportunityLifecycle .opportunity-controls")
-            .textContent.includes("Quente (0)"),
+        const expand = async () => {
+          if ((await card.locator(".rh").getAttribute("aria-expanded")) === "false")
+            await card.locator(".rh").click();
+        };
+        await expand();
+        await card.locator('[data-act="closef"]').click();
+        await card.locator('[data-box="cf"] select').selectOption("lost");
+        await card.getByRole("button", { name: "Escolheu outro", exact: true }).click();
+        await card.locator('[data-act="close"]').click();
+        await page.waitForFunction(
+          () =>
+            document.querySelector('[data-commercial-filter="hot"]').getAttribute("aria-label") ===
+            "Quente (0)",
         );
         await lifecycle.getByRole("button", { name: "Não avançou (1)", exact: true }).click();
         assert.match(await card.textContent(), /Comprou em outro lugar/);
-        await card.getByText("Atualizar acompanhamento", { exact: true }).click();
-        await card.getByRole("button", { name: "Reabrir oportunidade", exact: true }).click();
-        assert.match(
-          await lifecycle.locator('[role="status"]').first().textContent(),
-          /Informe por que/,
-        );
-        await card.getByLabel("Motivo para reabrir").fill("Cliente voltou a conversar no teste");
-        await card.getByRole("button", { name: "Reabrir oportunidade", exact: true }).click();
-        await page.waitForFunction(() =>
-          document
-            .querySelector("#opportunityLifecycle .opportunity-controls")
-            .textContent.includes("Quente (1)"),
+        await expand();
+        await card.locator('[data-act="reopenf"]').click();
+        await card.locator('[data-act="reopen"]').click();
+        assert.match(await lifecycle.locator("#v8-status").textContent(), /justificativa/);
+        await card.locator('[data-box="rf"] input').fill("Cliente voltou a conversar no teste");
+        await card.locator('[data-act="reopen"]').click();
+        await page.waitForFunction(
+          () =>
+            document.querySelector('[data-commercial-filter="hot"]').getAttribute("aria-label") ===
+            "Quente (1)",
         );
         await lifecycle.getByRole("button", { name: "Em andamento (1)", exact: true }).click();
-        await card.getByText("Atualizar acompanhamento", { exact: true }).click();
-        await card.getByRole("button", { name: "Venda realizada", exact: true }).click();
+        await expand();
+        await card.locator('[data-act="closef"]').click();
+        await card.locator('[data-box="cf"] select').selectOption("won");
+        await card.locator('[data-act="close"]').click();
         await lifecycle.getByRole("button", { name: "Venda realizada (1)", exact: true }).click();
         await card.waitFor();
         assert.equal(
           await lifecycle.getByRole("button", { name: "Quente (0)", exact: true }).count(),
           1,
         );
+        await expand();
+        await card.locator(".native-audit > summary").click();
         await card.getByRole("button", { name: "Ver histórico", exact: true }).click();
         await page.waitForFunction(
           (id) =>
             document
-              .querySelector('[data-commercial-opportunity="' + id + '"] [role="status"]')
-              .textContent.trim().length > 0,
+              .querySelector('[data-commercial-opportunity="' + id + '"] .tl')
+              .textContent.includes("Negociação encerrada"),
           opportunity.id,
         );
         const historyResponse = await first.request.get(
@@ -218,6 +226,9 @@ async function run() {
         assert.match(await card.textContent(), /Venda realizada/);
         await page.evaluate(() => setView("Divulgação"));
         await page.locator("#contentWorkspace-connections").click();
+        await page
+          .locator("#integrationSetupPanel")
+          .evaluate((panel) => (panel.closest("details").open = true));
         await page.waitForFunction(() => !document.getElementById("integrationSetupSave").disabled);
         await page.locator("#integrationUsername").fill("preview.negocio");
         await page.locator("#integrationAccountType").selectOption("business");
@@ -260,6 +271,9 @@ async function run() {
         });
         await page.evaluate(() => SocialMEIExperience.enterApp("Divulgação"));
         await page.locator("#contentWorkspace-connections").click();
+        await page
+          .locator("#integrationSetupPanel")
+          .evaluate((panel) => (panel.closest("details").open = true));
         await page.waitForFunction(
           () => document.getElementById("integrationUsername").value === "preview.atualizado",
         );

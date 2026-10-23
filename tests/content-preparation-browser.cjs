@@ -1,3 +1,4 @@
+const { revealContentControl, contentDock } = require("./content-test-ui.cjs");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -47,8 +48,8 @@ module.exports = async function contentPreparation(browser, origin) {
     assert(await local.locator("#preparationSchedule").isDisabled());
     const flowOrder = await local.evaluate(() => {
       const ids = [
-        "preparationTopic",
-        "preparationCaptions",
+        "dv4Topic",
+        "exactV4-sug",
         "contentTitle",
         "contentCaption",
         "contentMedia",
@@ -70,7 +71,9 @@ module.exports = async function contentPreparation(browser, origin) {
       flowOrder,
       "Native flow must keep idea → caption → media → review → schedule in DOM/keyboard order",
     );
+    await revealContentControl(local, "#preparationTopic");
     await local.locator("#preparationTopic").fill("Corte masculino");
+    await revealContentControl(local, "#preparationCaptions");
     await local.locator("#preparationCaptions").focus();
     await local.keyboard.press("Enter");
     assert.equal(await local.locator("#preparationAlternatives > div").count(), 3);
@@ -82,6 +85,7 @@ module.exports = async function contentPreparation(browser, origin) {
       for (const theme of ["light", "dark"]) {
         await local.setViewportSize({ width, height: 1000 });
         await local.evaluate((theme) => SocialMEIThemes.select(theme), theme);
+        await revealContentControl(local, "#contentPreparationHeading");
         await local.locator("#contentPreparationHeading").scrollIntoViewIfNeeded();
         const geometry = await local.evaluate(() => ({
           w: document.documentElement.clientWidth,
@@ -189,13 +193,17 @@ module.exports = async function contentPreparation(browser, origin) {
     );
     await remote.evaluate(() => SocialMEIExperience.enterApp("Divulgação"));
     await remote.waitForFunction(() => !document.getElementById("preparationSave").disabled);
+    await revealContentControl(remote, "#contentTitle");
     await remote.locator("#contentTitle").fill("Conteúdo fictício");
+    await revealContentControl(remote, "#contentCaption");
     await remote.locator("#contentCaption").fill("Legenda revisável");
+    await revealContentControl(remote, "#preparationSave");
     await remote.locator("#preparationSave").click();
     await remote.waitForFunction(() =>
       document.getElementById("preparationStatus").textContent.includes("temporariamente"),
     );
     assert.equal(jobs.length, 0);
+    await revealContentControl(remote, "#preparationSave");
     await remote.locator("#preparationSave").click();
     await remote.waitForFunction(() =>
       document.getElementById("preparationHistory").textContent.includes("Conteúdo fictício"),
@@ -205,6 +213,7 @@ module.exports = async function contentPreparation(browser, origin) {
       writes[1].body.idempotency_key,
       "Lost response keeps operation key",
     );
+    await revealContentControl(remote, "#preparationAccount");
     await remote.locator("#preparationAccount").selectOption(accounts[1].id);
     const png = await remote.evaluate(() => {
       const c = document.createElement("canvas");
@@ -212,14 +221,18 @@ module.exports = async function contentPreparation(browser, origin) {
       c.height = 20;
       return c.toDataURL("image/png").split(",")[1];
     });
+    await revealContentControl(remote, "#contentMedia");
     await remote.locator("#contentMedia").setInputFiles({
       name: "fixture.png",
       mimeType: "image/png",
       buffer: Buffer.from(png, "base64"),
     });
     await remote.locator("#contentPreviewStage img").waitFor();
+    await revealContentControl(remote, "#preparationWhen");
     await remote.locator("#preparationWhen").fill("2026-12-01T10:30");
+    await revealContentControl(remote, "#preparationReviewed");
     await remote.locator("#preparationReviewed").check();
+    await revealContentControl(remote, "#preparationSchedule");
     await remote.locator("#preparationSchedule").click();
     await remote.waitForFunction(() =>
       document.getElementById("preparationStatus").textContent.includes("Agendado"),
@@ -230,19 +243,24 @@ module.exports = async function contentPreparation(browser, origin) {
     assert.equal(jobs[0].scheduled_for, "2026-12-01T13:30:00.000Z");
     assert.equal(await remote.locator("#preparationAccount").inputValue(), accounts[1].id);
     nextConflict = true;
+    await revealContentControl(remote, "#contentCaption");
     await remote.locator("#contentCaption").fill("Alteração em outra sessão");
+    await revealContentControl(remote, "#preparationSave");
     await remote.locator("#preparationSave").click();
     await remote.waitForFunction(() =>
       document.getElementById("preparationStatus").textContent.includes("preparação mudou"),
     );
     assert.equal(jobs[0].status, "scheduled");
-    await remote.locator("#contentWorkspace-agenda").click();
+    await contentDock(remote, "agenda");
+    await remote.getByRole("button", { name: "Todos os agendamentos e preparações" }).click();
+    await revealContentControl(remote, '[data-preparation-action="cancel"]');
     await remote.locator('[data-preparation-action="cancel"]').click();
     await remote.waitForFunction(() =>
       document.getElementById("preparationHistory").textContent.includes("Cancelado"),
     );
     assert.equal(jobs[0].status, "cancelled");
     offline = true;
+    await revealContentControl(remote, "#preparationRefresh");
     await remote.locator("#preparationRefresh").click();
     await remote.waitForFunction(() =>
       document
@@ -252,6 +270,7 @@ module.exports = async function contentPreparation(browser, origin) {
     assert(await remote.locator("#preparationSave").isDisabled());
     offline = false;
     wrongWorkspace = true;
+    await revealContentControl(remote, "#preparationRefresh");
     await remote.locator("#preparationRefresh").click();
     await remote.waitForFunction(() =>
       document.getElementById("preparationStatus").textContent.includes("não pertence"),

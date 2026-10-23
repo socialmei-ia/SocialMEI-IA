@@ -1,3 +1,4 @@
+const { revealContentControl, contentDock } = require("./content-test-ui.cjs");
 const assert = require("node:assert/strict"),
   fs = require("node:fs"),
   path = require("node:path"),
@@ -99,17 +100,23 @@ module.exports = async function contentStudio(browser, origin) {
       SocialMEIContentStudio.render();
     });
     assert.equal(await page.locator("#contentPreviewBusiness").textContent(), "Ateliê fictício");
+    await revealContentControl(page, "#contentSave");
     await page.locator("#contentSave").click();
     assert.equal(
       await page.locator("#contentTitle").evaluate((e) => e.validity.valueMissing),
       true,
     );
+    await revealContentControl(page, "#contentTitle");
     await page.locator("#contentTitle").fill("Novidades do ateliê");
+    await revealContentControl(page, "#contentCaption");
     await page
       .locator("#contentCaption")
       .fill("Conheça o trabalho do nosso ateliê. Conteúdo fictício para teste.");
+    await revealContentControl(page, "#contentCta");
     await page.locator("#contentCta").fill("Converse com a gente para saber mais.");
+    await revealContentControl(page, "#contentHashtags");
     await page.locator("#contentHashtags").fill("#ExemploFictício");
+    await revealContentControl(page, "#contentMedia");
     await page.locator("#contentMedia").setInputFiles({
       name: "invalido.svg",
       mimeType: "image/svg+xml",
@@ -135,12 +142,14 @@ module.exports = async function contentStudio(browser, origin) {
       c.fillText("Conteúdo fictício para teste", 48, 700);
       return canvas.toDataURL("image/png").split(",")[1];
     });
+    await revealContentControl(page, "#contentMedia");
     await page.locator("#contentMedia").setInputFiles({
       name: "conteudo-ficticio.png",
       mimeType: "image/png",
       buffer: Buffer.from(png, "base64"),
     });
     await page.locator("#contentPreviewStage img").waitFor();
+    await revealContentControl(page, "#contentSave");
     await page.locator("#contentSave").click();
     assert.match(await page.locator("#contentActionStatus").textContent(), /salvo neste navegador/);
     assert.equal(await page.locator(".content-draft-row").count(), 1);
@@ -151,10 +160,19 @@ module.exports = async function contentStudio(browser, origin) {
     );
     assert.equal(saved.length, 1);
     assert(!saved[0][1].includes("blob:"));
-    assert(!saved[0][1].includes("data:image"));
+    const storedDrafts = JSON.parse(saved[0][1]);
+    const thumbnails = [...saved[0][1].matchAll(/data:image\/[^" ]+/g)].map(([value]) => value);
+    assert(thumbnails.length > 0, "Original V4 persists a bounded preview thumbnail");
+    for (const thumbnail of thumbnails) {
+      assert.match(thumbnail, /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/);
+      assert(thumbnail.length <= 40000, "Only the bounded JPEG thumbnail may persist");
+    }
+    assert(!saved[0][1].includes("data:image/png"), "The raw uploaded PNG never persists");
+    assert(storedDrafts, "Scoped draft envelope remains valid JSON");
     await page.evaluate(() => {
       navigator.clipboard.writeText = async (text) => (window.copiedContent = text);
     });
+    await revealContentControl(page, "#contentCopy");
     await page.locator("#contentCopy").click();
     assert.match(await page.evaluate(() => window.copiedContent), /#ExemploFictício/);
     await page.evaluate(() => {
@@ -162,19 +180,23 @@ module.exports = async function contentStudio(browser, origin) {
         throw Error("denied");
       };
     });
+    await revealContentControl(page, "#contentCopy");
     await page.locator("#contentCopy").click();
     assert.match(
       await page.locator("#contentActionStatus").textContent(),
       /Não foi possível copiar/,
     );
     const download = page.waitForEvent("download");
+    await revealContentControl(page, "#contentExport");
     await page.locator("#contentExport").click();
     const exported = await download;
     const filename = path.join(output, "preparacao.txt");
     await exported.saveAs(filename);
     assert.match(fs.readFileSync(filename, "utf8"), /nenhuma publicação foi realizada/);
     assert.match(fs.readFileSync(filename, "utf8"), /Novidades do ateliê/);
+    await revealContentControl(page, "#contentTitle");
     await page.locator("#contentTitle").fill("Alteração não salva");
+    await revealContentControl(page, "#contentNew");
     await page.locator("#contentNew").click();
     assert(
       await page.locator("#contentConfirmModal").evaluate((e) => e.classList.contains("open")),
@@ -184,35 +206,40 @@ module.exports = async function contentStudio(browser, origin) {
       () => !document.querySelector("#contentConfirmModal").classList.contains("open"),
     );
     assert.equal(await page.locator("#contentTitle").inputValue(), "Alteração não salva");
+    await revealContentControl(page, "#contentNew");
     await page.locator("#contentNew").click();
     await page.locator("#contentConfirmAction").click();
     await page.waitForFunction(
       () => !document.querySelector("#contentConfirmModal").classList.contains("open"),
     );
     assert.equal(await page.locator("#contentTitle").inputValue(), "");
-    await page.locator("#contentWorkspace-drafts").click();
+    await contentDock(page, "drafts");
     await page.locator('[data-content-action="edit"]').first().click();
     assert.match(await page.locator("#contentMediaStatus").textContent(), /Selecione novamente/);
     assert.equal(await page.locator("#contentPreviewStage img").count(), 0);
-    await page.locator("#contentWorkspace-drafts").click();
+    await contentDock(page, "drafts");
     await page.locator('[data-content-action="duplicate"]').first().click();
     assert.equal(await page.locator(".content-draft-row").count(), 2);
-    await page.locator("#contentWorkspace-drafts").click();
+    await contentDock(page, "drafts");
     await page.locator('[data-content-action="delete"]').first().click();
     await page.locator("#contentConfirmAction").click();
     await page.waitForFunction(
       () => !document.querySelector("#contentConfirmModal").classList.contains("open"),
     );
     assert.equal(await page.locator(".content-draft-row").count(), 1);
-    await page.locator("#contentWorkspace-drafts").click();
+    await contentDock(page, "drafts");
     await page.locator('[data-content-action="edit"]').click();
+    await revealContentControl(page, "#contentCaption");
     await page.locator("#contentCaption").fill('<img src=x onerror="window.contentXss=true">');
+    await revealContentControl(page, "#contentSave");
     await page.locator("#contentSave").click();
     assert.equal(await page.locator("#contentPreviewCaption img").count(), 0);
     assert(!(await page.evaluate(() => window.contentXss)));
+    await revealContentControl(page, "#contentCaption");
     await page
       .locator("#contentCaption")
       .fill("Conheça o trabalho do nosso ateliê. Conteúdo fictício para teste.");
+    await revealContentControl(page, "#contentSave");
     await page.locator("#contentSave").click();
     let layouts = 0;
     for (const width of [320, 390, 768, 1024, 1280, 1440])
@@ -220,8 +247,10 @@ module.exports = async function contentStudio(browser, origin) {
         await page.setViewportSize({ width, height: 1000 });
         await page.evaluate((t) => SocialMEIThemes.select(t), theme);
         for (const format of ["feed", "story", "reel"]) {
+          await revealContentControl(page, `[data-content-format="${format}"]`);
           await page.locator(`[data-content-format="${format}"]`).click();
           if (format !== "reel") {
+            await revealContentControl(page, "#contentMedia");
             await page.locator("#contentMedia").setInputFiles({
               name: "conteudo-ficticio.png",
               mimeType: "image/png",
@@ -265,6 +294,7 @@ module.exports = async function contentStudio(browser, origin) {
       stream.getTracks().forEach((t) => t.stop());
       return [...new Uint8Array(await blob.arrayBuffer())];
     });
+    await revealContentControl(page, "#contentMedia");
     await page.locator("#contentMedia").setInputFiles({
       name: "video-ficticio.webm",
       mimeType: "video/webm",
@@ -273,9 +303,11 @@ module.exports = async function contentStudio(browser, origin) {
     await page.locator("#contentPreviewStage video").waitFor();
     assert(await page.locator("#contentPreviewStage video").evaluate((v) => v.paused));
     await page.screenshot({ path: path.join(output, "reel-video-1440-dark.png"), fullPage: true });
+    await revealContentControl(page, '[data-content-format="feed"]');
     await page.locator('[data-content-format="feed"]').click();
     assert.equal(await page.locator("#contentPreviewStage video").count(), 0);
     assert.match(await page.locator("#contentActionStatus").textContent(), /compatível/);
+    await revealContentControl(page, '[data-content-format="feed"]');
     await page.locator('[data-content-format="feed"]').focus();
     await page.keyboard.press("ArrowRight");
     assert.equal(
@@ -292,16 +324,16 @@ module.exports = async function contentStudio(browser, origin) {
     await page.emulateMedia({ reducedMotion: "no-preference" });
     assert.match(
       await page
-        .locator(".content-format-indicator")
+        .locator("#contentFormat-story")
         .evaluate((e) => getComputedStyle(e).transitionDuration),
-      /0\.24s/,
+      /0\.3s/,
     );
     await page.emulateMedia({ reducedMotion: "reduce" });
     assert.equal(
       await page
-        .locator(".content-format-indicator")
+        .locator("#contentFormat-story")
         .evaluate((e) => getComputedStyle(e).transitionDuration),
-      "0s",
+      "1e-05s",
     );
     await page.evaluate(() => {
       window.oldStorageSet = Storage.prototype.setItem;
@@ -310,7 +342,9 @@ module.exports = async function contentStudio(browser, origin) {
         return window.oldStorageSet.call(this, k, v);
       };
     });
+    await revealContentControl(page, "#contentTitle");
     await page.locator("#contentTitle").fill("Falha de armazenamento");
+    await revealContentControl(page, "#contentSave");
     await page.locator("#contentSave").click();
     assert.match(
       await page.locator("#contentActionStatus").textContent(),
@@ -386,8 +420,11 @@ module.exports = async function contentStudio(browser, origin) {
         await account.evaluate(() => SocialMEIExperience.enterApp("Divulgação"));
       };
       await enter();
+      await revealContentControl(account, "#contentTitle");
       await account.locator("#contentTitle").fill("Rascunho privado A");
+      await revealContentControl(account, "#contentCaption");
       await account.locator("#contentCaption").fill("Texto privado de teste");
+      await revealContentControl(account, "#contentSave");
       await account.locator("#contentSave").click();
       assert.equal(await account.locator(".content-draft-row").count(), 1);
       workspace = 22;

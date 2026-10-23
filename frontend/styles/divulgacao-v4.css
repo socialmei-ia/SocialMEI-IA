@@ -1,0 +1,1566 @@
+/* Extracted from immutable Divulgação V4; selectors and animation names scoped only. */
+#contentStudioView #exactV4-root,
+#contentStudioView #exactV4-root *:where(:not(svg):not(svg *)),
+#contentStudioView #exactV4-root *::before,
+#contentStudioView #exactV4-root *::after {
+  all: revert;
+  box-sizing: border-box;
+}
+#contentStudioView #exactV4-root {
+  --bg: #040b1b;
+  --s1: #0a1730;
+  --s2: #10244a;
+  --ln: #1d3359;
+  --tx: #eef3ff;
+  --mu: #9fb2d6;
+  --ac: #2f7bff;
+  --ac2: #6aa8ff;
+  --ok: #3ddc97;
+  --er: #ff6b7a;
+  --wa: #f5b83d;
+  --ez: cubic-bezier(0.22, 1, 0.36, 1);
+}
+#contentStudioView #exactV4-root[data-t="light"] {
+  --bg: #eef3fb;
+  --s1: #fff;
+  --s2: #e4ecfa;
+  --ln: #c9d7ee;
+  --tx: #0b1a33;
+  --mu: #506489;
+  --ac: #2468e6;
+  --ac2: #1e5bd0;
+  --ok: #0b7a54;
+  --wa: #9a5f00;
+  --er: #c62839;
+}
+#contentStudioView #exactV4-root * {
+  box-sizing: border-box;
+  margin: 0;
+}
+#contentStudioView #exactV4-root {
+  font:
+    15px/1.5 Inter,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  color: var(--tx);
+  background:
+    radial-gradient(800px 480px at 12% 8%, #1a3f8a55, transparent),
+    radial-gradient(700px 400px at 95% 0, #0f2a6a55, transparent), var(--bg);
+  min-height: 100vh;
+  overflow-x: hidden;
+  padding-bottom: 110px;
+  transition:
+    background 0.4s,
+    color 0.3s;
+}
+#contentStudioView #exactV4-root[data-t="light"] {
+  background: radial-gradient(800px 480px at 12% 8%, #c9dcff, transparent), var(--bg);
+}
+#contentStudioView #exactV4-root button,
+#contentStudioView #exactV4-root input,
+#contentStudioView #exactV4-root select,
+#contentStudioView #exactV4-root textarea {
+  font: inherit;
+  color: inherit;
+}
+#contentStudioView #exactV4-root button {
+  cursor: pointer;
+}
+#contentStudioView #exactV4-root :focus-visible {
+  outline: 2px solid var(--ac2);
+  outline-offset: 2px;
+}
+#contentStudioView #exactV4-root svg {
+  width: 1em;
+  height: 1em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: none;
+}
+#contentStudioView #exactV4-root .sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+#contentStudioView #exactV4-root header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px clamp(16px, calc(var(--v4-vw, 1vw) * 3), 40px);
+  background: color-mix(in srgb, var(--bg) 80%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--ln);
+}
+#contentStudioView #exactV4-root header b {
+  font-size: 15px;
+}
+#contentStudioView #exactV4-root header small {
+  display: block;
+  color: var(--mu);
+  font-size: 12px;
+  line-height: 1.2;
+}
+#contentStudioView #exactV4-root .sp {
+  flex: 1;
+}
+#contentStudioView #exactV4-root .pill {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--mu);
+}
+#contentStudioView #exactV4-root .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--wa);
+}
+#contentStudioView #exactV4-root .ic-b {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  border: 1px solid var(--ln);
+  background: var(--s1);
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  transition: 0.25s var(--ez);
+}
+#contentStudioView #exactV4-root .ic-b:hover {
+  transform: rotate(15deg) scale(1.06);
+  border-color: var(--ac);
+}
+#contentStudioView #exactV4-root #exactV4-prog {
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  height: 2px;
+  width: 100%;
+  background: var(--ac);
+  transform-origin: 0;
+  transform: scaleX(0);
+}
+#contentStudioView #exactV4-root .v4-main {
+  max-width: 1280px;
+  margin: auto;
+  padding: 26px clamp(16px, calc(var(--v4-vw, 1vw) * 3), 40px);
+}
+#contentStudioView #exactV4-root .hero {
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+#contentStudioView #exactV4-root h2 {
+  font-size: clamp(30px, calc(var(--v4-vw, 1vw) * 5.2), 52px);
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+  font-weight: 800;
+}
+#contentStudioView #exactV4-root h2 .w {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: top;
+  padding-bottom: 0.12em;
+}
+#contentStudioView #exactV4-root h2 .w i {
+  display: inline-block;
+  font-style: normal;
+  transform: translateY(110%);
+  filter: blur(6px);
+  animation: v4-up 0.8s var(--ez) forwards;
+  animation-delay: calc(var(--i) * 70ms + 100ms);
+}
+@keyframes v4-up {
+  to {
+    transform: none;
+    filter: none;
+  }
+}
+@keyframes v4-fade {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+#contentStudioView #exactV4-root .today {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  max-width: 430px;
+  text-align: left;
+  background: var(--s1);
+  border: 1px solid var(--ln);
+  border-radius: 16px;
+  padding: 12px 14px;
+  animation: v4-fade 0.7s 0.6s var(--ez) backwards;
+  transition: 0.3s var(--ez);
+}
+#contentStudioView #exactV4-root .today:hover {
+  border-color: var(--ac);
+  transform: translateY(-2px);
+}
+#contentStudioView #exactV4-root .today svg {
+  font-size: 26px;
+  color: var(--wa);
+}
+#contentStudioView #exactV4-root .today small {
+  color: var(--mu);
+  display: block;
+  font-size: 12px;
+}
+#contentStudioView #exactV4-root .btn {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 12px;
+  padding: 12px 18px;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(180deg, #3b86ff, #2468e6);
+  box-shadow:
+    0 8px 24px -8px #2f7bffaa,
+    inset 0 1px #fff4;
+  transition:
+    transform 0.25s var(--ez),
+    box-shadow 0.25s;
+}
+#contentStudioView #exactV4-root .btn:hover {
+  transform: translateY(-1px);
+}
+#contentStudioView #exactV4-root .btn:active {
+  transform: scale(0.97);
+}
+#contentStudioView #exactV4-root .btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 35%, #fff4 50%, transparent 65%);
+  transform: translateX(-120%);
+  transition: transform 0.7s;
+}
+#contentStudioView #exactV4-root .btn:hover::after {
+  transform: translateX(120%);
+}
+#contentStudioView #exactV4-root .btn.sec {
+  background: var(--s2);
+  color: var(--tx);
+  box-shadow: none;
+  border: 1px solid var(--ln);
+}
+#contentStudioView #exactV4-root .btn[data-s="load"]::before {
+  content: "";
+  width: 14px;
+  height: 14px;
+  border: 2px solid #fff6;
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: v4-spin 0.7s linear infinite;
+}
+@keyframes v4-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+#contentStudioView #exactV4-root .btn[data-s="ok"] {
+  background: linear-gradient(180deg, #34d399, #16a37a);
+}
+#contentStudioView #exactV4-root .v4-shake {
+  animation: v4-shake 0.35s;
+}
+@keyframes v4-shake {
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+#contentStudioView #exactV4-root .studio {
+  display: grid;
+  grid-template-columns: minmax(300px, 400px) minmax(0, 1fr);
+  gap: clamp(20px, calc(var(--v4-vw, 1vw) * 4), 56px);
+  align-items: start;
+}
+#contentStudioView #exactV4-root .stage {
+  position: sticky;
+  top: 84px;
+} /* phone */
+#contentStudioView #exactV4-root .phone {
+  width: min(300px, 100%);
+  margin: auto;
+  aspect-ratio: 9/18.6;
+  border-radius: 44px;
+  padding: 10px;
+  background: linear-gradient(145deg, #33446a, #0a101e);
+  box-shadow:
+    0 50px 70px -30px #000,
+    0 0 0 1px #3a4b6e;
+}
+#contentStudioView #exactV4-root .scr {
+  view-transition-name: exact-v4-scr;
+  position: relative;
+  height: 100%;
+  border-radius: 35px;
+  overflow: hidden;
+  background: linear-gradient(170deg, #12306a, #0a1a3b 55%, #07122a);
+  color: #fff;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+}
+#contentStudioView #exactV4-root .scr::before {
+  content: "";
+  position: absolute;
+  z-index: 6;
+  top: 9px;
+  left: 50%;
+  width: 64px;
+  height: 18px;
+  margin-left: -32px;
+  border-radius: 10px;
+  background: #02060f;
+}
+#contentStudioView #exactV4-root .media {
+  view-transition-name: exact-v4-med;
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(120% 80% at 30% 10%, #1f4fa8, #0b1d44);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+#contentStudioView #exactV4-root .media img,
+#contentStudioView #exactV4-root .media video,
+#contentStudioView #exactV4-root .media canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+#contentStudioView #exactV4-root .ph {
+  position: relative;
+  text-align: center;
+  padding: 0 24px;
+  pointer-events: none;
+  transition: opacity 0.4s;
+}
+#contentStudioView #exactV4-root .ph svg {
+  font-size: 46px;
+  color: var(--ac2);
+  margin-bottom: 8px;
+}
+#contentStudioView #exactV4-root .ph b {
+  display: block;
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+#contentStudioView #exactV4-root .ph p {
+  font-size: 11px;
+  color: #b6c6e6;
+}
+#contentStudioView #exactV4-root .scr:not(.empty) .ph {
+  opacity: 0;
+}
+#contentStudioView #exactV4-root .bars {
+  position: absolute;
+  z-index: 3;
+  top: 34px;
+  left: 14px;
+  right: 14px;
+  display: flex;
+  gap: 4px;
+}
+#contentStudioView #exactV4-root .bars i {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: #fff4;
+  overflow: hidden;
+}
+#contentStudioView #exactV4-root .bars i:first-child::after {
+  content: "";
+  display: block;
+  height: 100%;
+  background: #fff;
+  transform-origin: 0;
+  animation: v4-bar 6s linear infinite;
+}
+@keyframes v4-bar {
+  from {
+    transform: scaleX(0);
+  }
+}
+#contentStudioView #exactV4-root .v4-phone-header {
+  position: absolute;
+  z-index: 3;
+  top: 46px;
+  left: 14px;
+  right: 14px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-weight: 700;
+}
+#contentStudioView #exactV4-root .v4-phone-header small {
+  opacity: 0.7;
+  font-weight: 400;
+}
+#contentStudioView #exactV4-root .av {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--ac);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+}
+#contentStudioView #exactV4-root .ov {
+  position: absolute;
+  z-index: 3;
+  left: 14px;
+  right: 14px;
+  bottom: 20px;
+  text-shadow: 0 1px 10px #0009;
+}
+#contentStudioView #exactV4-root .ov [contenteditable] {
+  outline: 0;
+  border-radius: 6px;
+  transition: background 0.2s;
+  cursor: text;
+}
+#contentStudioView #exactV4-root .ov [contenteditable]:hover,
+#contentStudioView #exactV4-root .ov [contenteditable]:focus {
+  background: #ffffff1f;
+}
+#contentStudioView #exactV4-root .ov [contenteditable]:empty::before {
+  content: attr(data-ph);
+  opacity: 0.55;
+}
+#contentStudioView #exactV4-root #contentPreviewTitle {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.15;
+  margin-bottom: 4px;
+}
+#contentStudioView #exactV4-root #contentPreviewCaption {
+  font-size: 12px;
+  max-height: 5.6em;
+  overflow: hidden;
+  white-space: pre-wrap;
+}
+#contentStudioView #exactV4-root .tg {
+  color: #8fc0ff;
+  margin-top: 4px;
+}
+#contentStudioView #exactV4-root .cta {
+  display: inline-block;
+  margin-top: 8px;
+  background: #fff;
+  color: #0a1a3b;
+  font-weight: 700;
+  border-radius: 20px;
+  padding: 5px 12px;
+  text-shadow: none;
+}
+#contentStudioView #exactV4-root .cta:empty {
+  display: none;
+}
+#contentStudioView #exactV4-root .ac,
+#contentStudioView #exactV4-root .side {
+  display: none;
+  font-size: 20px;
+  gap: 12px;
+}
+#contentStudioView #exactV4-root .scr[data-f="story"] .media,
+#contentStudioView #exactV4-root .scr[data-f="reel"] .media {
+  position: absolute;
+  inset: 0;
+}
+#contentStudioView #exactV4-root .scr[data-f="feed"] {
+  background: #07122a;
+}
+#contentStudioView #exactV4-root .scr[data-f="feed"] .v4-phone-header {
+  position: static;
+  padding: 40px 14px 10px;
+}
+#contentStudioView #exactV4-root .scr[data-f="feed"] .media {
+  aspect-ratio: 4/5;
+  width: 100%;
+}
+#contentStudioView #exactV4-root .scr[data-f="feed"] .ov {
+  position: static;
+  padding: 10px 14px;
+  text-shadow: none;
+}
+#contentStudioView #exactV4-root .scr[data-f="feed"] #contentPreviewTitle {
+  font-size: 14px;
+}
+#contentStudioView #exactV4-root .scr[data-f="feed"] .ac {
+  display: flex;
+}
+#contentStudioView #exactV4-root .scr[data-f="feed"] .bars,
+#contentStudioView #exactV4-root .scr[data-f="reel"] .bars {
+  display: none;
+}
+#contentStudioView #exactV4-root .scr[data-f="reel"] .side {
+  display: grid;
+  position: absolute;
+  z-index: 3;
+  right: 12px;
+  bottom: 90px;
+}
+#contentStudioView #exactV4-root .scr[data-f="reel"] .ov {
+  right: 56px;
+}
+#contentStudioView #exactV4-root .scr[data-f="reel"] .media::after {
+  content: "▶";
+  position: absolute;
+  font-size: 18px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #0007;
+  display: grid;
+  place-items: center;
+  top: 42%;
+}
+#contentStudioView #exactV4-root .stage .hint {
+  text-align: center;
+  color: var(--mu);
+  font-size: 12.5px;
+  margin-top: 14px;
+}
+@keyframes v4-vo {
+  from {
+    opacity: 0;
+  }
+}
+::view-transition-group(exact-v4-scr),
+::view-transition-group(exact-v4-med) {
+  animation-duration: 0.55s;
+  animation-timing-function: var(--ez);
+} /* steps */
+#contentStudioView #exactV4-root .ring {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  background: var(--s1);
+  border: 1px solid var(--ln);
+  border-radius: 18px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+#contentStudioView #exactV4-root .ring svg.r {
+  width: 56px;
+  height: 56px;
+  transform: rotate(-90deg);
+}
+#contentStudioView #exactV4-root .ring circle {
+  fill: none;
+  stroke-width: 5;
+}
+#contentStudioView #exactV4-root .ring .bg {
+  stroke: var(--ln);
+}
+#contentStudioView #exactV4-root .ring .fg {
+  stroke: var(--ac);
+  stroke-linecap: round;
+  stroke-dasharray: 150.8;
+  transition:
+    stroke-dashoffset 0.6s var(--ez),
+    stroke 0.3s;
+}
+#contentStudioView #exactV4-root .ring b {
+  display: block;
+}
+#contentStudioView #exactV4-root .ring small {
+  color: var(--mu);
+}
+#contentStudioView #exactV4-root .ring .pc {
+  margin-left: auto;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+#contentStudioView #exactV4-root details.st {
+  background: var(--s1);
+  border: 1px solid var(--ln);
+  border-radius: 18px;
+  margin-bottom: 10px;
+  transition:
+    border-color 0.3s,
+    box-shadow 0.3s;
+}
+#contentStudioView #exactV4-root details.st[open] {
+  border-color: var(--ac);
+  box-shadow: 0 0 0 3px #2f7bff22;
+}
+#contentStudioView #exactV4-root details.st > summary {
+  list-style: none;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 16px;
+  cursor: pointer;
+  font-weight: 700;
+}
+#contentStudioView #exactV4-root details.st > summary::-webkit-details-marker {
+  display: none;
+}
+#contentStudioView #exactV4-root .n {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--s2);
+  border: 1px solid var(--ln);
+  font-size: 14px;
+  transition: 0.4s var(--ez);
+}
+#contentStudioView #exactV4-root .done .n {
+  background: var(--ok);
+  border-color: var(--ok);
+  color: #04251a;
+}
+#contentStudioView #exactV4-root .st .body {
+  padding: 0 16px 18px;
+  animation: v4-fade 0.4s var(--ez);
+}
+#contentStudioView #exactV4-root .st small.s {
+  color: var(--mu);
+  font-weight: 400;
+  display: block;
+  font-size: 12.5px;
+}
+#contentStudioView #exactV4-root .fmts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+#contentStudioView #exactV4-root .fmt {
+  background: var(--s2);
+  border: 1px solid var(--ln);
+  border-radius: 14px;
+  padding: 14px 6px;
+  text-align: center;
+  transition: 0.3s var(--ez);
+}
+#contentStudioView #exactV4-root .fmt svg {
+  font-size: 28px;
+  display: block;
+  margin: 0 auto 6px;
+  transition: 0.4s var(--ez);
+}
+#contentStudioView #exactV4-root .fmt small {
+  display: block;
+  color: var(--mu);
+  font-size: 11.5px;
+}
+#contentStudioView #exactV4-root .fmt:hover {
+  transform: translateY(-2px);
+}
+#contentStudioView #exactV4-root .fmt[aria-checked="true"] {
+  border-color: var(--ac);
+  background: #123069;
+  color: #fff;
+  box-shadow: 0 12px 28px -12px var(--ac);
+}
+#contentStudioView #exactV4-root .fmt[aria-checked="true"] svg {
+  transform: scale(1.15) rotate(8deg);
+  color: var(--ac2);
+}
+#contentStudioView #exactV4-root .fmt[aria-checked="true"] small {
+  color: #b6c6e6;
+}
+#contentStudioView #exactV4-root .fld {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+#contentStudioView #exactV4-root .full {
+  grid-column: 1/-1;
+}
+#contentStudioView #exactV4-root label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+#contentStudioView #exactV4-root input,
+#contentStudioView #exactV4-root select,
+#contentStudioView #exactV4-root textarea {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--ln);
+  border-radius: 12px;
+  padding: 11px 13px;
+  transition: 0.25s;
+  appearance: none;
+}
+#contentStudioView #exactV4-root select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%239fb2d6' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 13px center;
+  padding-right: 36px;
+}
+#contentStudioView #exactV4-root input:hover,
+#contentStudioView #exactV4-root select:hover,
+#contentStudioView #exactV4-root textarea:hover {
+  border-color: #3a5a94;
+}
+#contentStudioView #exactV4-root input:focus,
+#contentStudioView #exactV4-root select:focus,
+#contentStudioView #exactV4-root textarea:focus {
+  outline: 0;
+  border-color: var(--ac);
+  box-shadow: 0 0 0 3px #2f7bff30;
+}
+#contentStudioView #exactV4-root .bad {
+  border-color: var(--er) !important;
+}
+#contentStudioView #exactV4-root textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+#contentStudioView #exactV4-root .rel {
+  position: relative;
+}
+#contentStudioView #exactV4-root .cnt {
+  position: absolute;
+  right: 12px;
+  bottom: 9px;
+  font-size: 12px;
+  color: var(--mu);
+}
+#contentStudioView #exactV4-root .sug {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+#contentStudioView #exactV4-root .sug button {
+  text-align: left;
+  background: var(--s2);
+  border: 1px solid var(--ln);
+  border-radius: 12px;
+  padding: 10px 13px;
+  color: var(--mu);
+  font-size: 13.5px;
+  animation: v4-fade 0.4s var(--ez) backwards;
+  animation-delay: calc(var(--i) * 70ms);
+  transition: 0.25s var(--ez);
+}
+#contentStudioView #exactV4-root .sug button:hover {
+  border-color: var(--ac);
+  color: var(--tx);
+  transform: translateX(3px);
+}
+#contentStudioView #exactV4-root .drop {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  border: 1.5px dashed #2a4a82;
+  border-radius: 14px;
+  padding: 13px;
+  cursor: pointer;
+  color: var(--mu);
+  transition: 0.3s;
+}
+#contentStudioView #exactV4-root .drop:hover,
+#contentStudioView #exactV4-root .drop:focus-within {
+  border-color: var(--ac);
+  color: var(--tx);
+}
+#contentStudioView #exactV4-root .drop svg {
+  font-size: 22px;
+}
+#contentStudioView #exactV4-root .acts {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+#contentStudioView #exactV4-root .chk {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  margin: 0 0 4px;
+}
+#contentStudioView #exactV4-root .chk li {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--mu);
+  font-size: 13.5px;
+}
+#contentStudioView #exactV4-root .chk li::before {
+  content: "";
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ln);
+  transition: 0.4s var(--ez);
+}
+#contentStudioView #exactV4-root .chk li.on {
+  color: var(--tx);
+}
+#contentStudioView #exactV4-root .chk li.on::before {
+  background: var(--ok) center/10px no-repeat
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2304251a' stroke-width='4'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7'/%3E%3C/svg%3E");
+  border-color: var(--ok);
+}
+#contentStudioView #exactV4-root .err {
+  color: var(--er);
+  font-size: 12.5px;
+  display: none;
+}
+#contentStudioView #exactV4-root .bad ~ .err {
+  display: block;
+} /* painéis */
+#contentStudioView #exactV4-root .card {
+  background: var(--s1);
+  border: 1px solid var(--ln);
+  border-radius: 20px;
+  padding: 22px;
+}
+#contentStudioView #exactV4-root .pn {
+  animation: v4-slide 0.5s var(--ez);
+}
+@keyframes v4-slide {
+  from {
+    opacity: 0;
+    transform: translateX(calc(var(--dir, 1) * 28px));
+  }
+}
+#contentStudioView #exactV4-root .pn.out {
+  opacity: 0;
+  transform: translateX(calc(var(--dir, 1) * -20px));
+  transition: 0.16s;
+}
+#contentStudioView #exactV4-root .v4-bar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+#contentStudioView #exactV4-root .v4-bar > * {
+  flex: 1;
+  min-width: 140px;
+  width: auto;
+}
+#contentStudioView #exactV4-root .dg {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 14px;
+}
+#contentStudioView #exactV4-root .dc {
+  background: var(--s2);
+  border: 1px solid var(--ln);
+  border-radius: 16px;
+  overflow: hidden;
+  animation: v4-pop 0.5s var(--ez);
+  transition: 0.3s var(--ez);
+}
+#contentStudioView #exactV4-root .dc:hover {
+  transform: translateY(-3px);
+  border-color: var(--ac);
+}
+#contentStudioView #exactV4-root .dc.rm {
+  opacity: 0;
+  transform: scale(0.9);
+  transition: 0.3s;
+}
+@keyframes v4-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+#contentStudioView #exactV4-root .th {
+  height: 110px;
+  display: grid;
+  place-items: center;
+  font-size: 30px;
+  color: #ffffffb0;
+  background: radial-gradient(100% 100% at 20% 0, #1f4fa8, #0b1d44);
+}
+#contentStudioView #exactV4-root .dc .b {
+  padding: 11px 14px;
+}
+#contentStudioView #exactV4-root .dc .b b {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#contentStudioView #exactV4-root .dc small,
+#contentStudioView #exactV4-root .mu {
+  color: var(--mu);
+}
+#contentStudioView #exactV4-root .dc .r {
+  display: flex;
+  gap: 6px;
+  padding: 0 14px 12px;
+}
+#contentStudioView #exactV4-root .dc .r button,
+#contentStudioView #exactV4-root .it button {
+  flex: 1;
+  background: var(--s1);
+  border: 1px solid var(--ln);
+  border-radius: 9px;
+  padding: 7px 8px;
+  font-size: 12.5px;
+  transition: 0.2s;
+}
+#contentStudioView #exactV4-root .dc .r button:hover,
+#contentStudioView #exactV4-root .it button:hover {
+  border-color: var(--ac);
+}
+#contentStudioView #exactV4-root .dc .r .arm {
+  background: #3a1420;
+  border-color: var(--er);
+  color: var(--er);
+}
+#contentStudioView #exactV4-root .empty-s {
+  grid-column: 1/-1;
+  text-align: center;
+  color: var(--mu);
+  padding: 36px 10px;
+}
+#contentStudioView #exactV4-root .sim {
+  background: #2a2110;
+  border: 1px solid #5b4718;
+  color: #f5d58a;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 14px;
+}
+#contentStudioView #exactV4-root .strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 2px 12px;
+  scrollbar-width: thin;
+}
+#contentStudioView #exactV4-root .dy {
+  flex: none;
+  width: 58px;
+  padding: 9px 0;
+  border-radius: 14px;
+  border: 1px solid var(--ln);
+  background: var(--s2);
+  text-align: center;
+  position: relative;
+  transition: 0.3s var(--ez);
+}
+#contentStudioView #exactV4-root .dy small {
+  display: block;
+  color: var(--mu);
+  font-size: 11px;
+  text-transform: capitalize;
+}
+#contentStudioView #exactV4-root .dy b {
+  font-size: 18px;
+}
+#contentStudioView #exactV4-root .dy:hover {
+  border-color: var(--ac);
+}
+#contentStudioView #exactV4-root .dy[aria-pressed="true"] {
+  background: #143577;
+  color: #fff;
+  border-color: var(--ac);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 22px -10px var(--ac);
+}
+#contentStudioView #exactV4-root .dy[aria-pressed="true"] small {
+  color: #b6c6e6;
+}
+#contentStudioView #exactV4-root .dy.ev::after {
+  content: "";
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  margin-left: -2.5px;
+  border-radius: 50%;
+  background: var(--ok);
+}
+#contentStudioView #exactV4-root .it {
+  background: var(--s2);
+  border: 1px solid var(--ln);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  animation: v4-pop 0.4s var(--ez);
+}
+#contentStudioView #exactV4-root .it .r {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+#contentStudioView #exactV4-root .it .r input {
+  width: auto;
+  padding: 7px 9px;
+  flex: 1;
+  min-width: 110px;
+}
+#contentStudioView #exactV4-root .chip {
+  display: inline-block;
+  font-size: 11.5px;
+  padding: 2px 9px;
+  border-radius: 20px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+#contentStudioView #exactV4-root .c-ok {
+  color: var(--ok);
+}
+#contentStudioView #exactV4-root .c-wa {
+  color: var(--wa);
+}
+#contentStudioView #exactV4-root .c-mu {
+  color: var(--mu);
+}
+#contentStudioView #exactV4-root .c-er {
+  color: var(--er);
+}
+#contentStudioView #exactV4-root .cg {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-bottom: 22px;
+}
+#contentStudioView #exactV4-root .cn {
+  background: var(--s2);
+  border: 1px solid var(--ln);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: 0.3s var(--ez);
+}
+#contentStudioView #exactV4-root .cn:hover {
+  transform: translateY(-2px);
+  border-color: var(--ac);
+}
+#contentStudioView #exactV4-root .cn p {
+  color: var(--mu);
+  font-size: 13px;
+  flex: 1;
+} /* dock */
+#contentStudioView #exactV4-root .dock {
+  position: fixed;
+  z-index: 40;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 2px;
+  padding: 6px;
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--s1) 88%, transparent);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--ln);
+  box-shadow: 0 20px 50px -15px #000a;
+  animation: v4-fade 0.7s 0.5s var(--ez) backwards;
+}
+#contentStudioView #exactV4-root .dock button {
+  min-height: 44px;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  border: 0;
+  background: none;
+  padding: 11px 16px;
+  border-radius: 16px;
+  color: var(--mu);
+  font-weight: 600;
+  transition: color 0.3s;
+}
+#contentStudioView #exactV4-root .dock button svg {
+  font-size: 20px;
+  transition: transform 0.4s var(--ez);
+}
+#contentStudioView #exactV4-root .dock button[aria-selected="true"] {
+  color: #fff;
+}
+#contentStudioView #exactV4-root .dock button[aria-selected="true"] svg {
+  transform: scale(1.15) rotate(-6deg);
+}
+#contentStudioView #exactV4-root .dock .ind {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 0;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #2f7bff, #1c55c7);
+  box-shadow: 0 8px 20px -8px #2f7bff;
+  transition:
+    transform 0.5s var(--ez),
+    width 0.5s var(--ez);
+}
+#contentStudioView #exactV4-root #exactV4-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 92px;
+  z-index: 50;
+  transform: translate(-50%, 20px);
+  opacity: 0;
+  background: var(--s2);
+  border: 1px solid var(--ac);
+  padding: 10px 16px;
+  border-radius: 14px;
+  box-shadow: 0 20px 40px -10px #000a;
+  transition: 0.4s var(--ez);
+  pointer-events: none;
+  max-width: calc(var(--v4-vw, 1vw) * 92);
+  text-align: center;
+}
+#contentStudioView #exactV4-root #exactV4-toast.on {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+#contentStudioView #exactV4-root #exactV4-toast.e {
+  border-color: var(--er);
+}
+#contentStudioView #exactV4-root [hidden] {
+  display: none !important;
+}
+#contentStudioView #exactV4-root .v4-bar > .sr {
+  min-width: 0;
+  width: 1px;
+  flex: none;
+}
+#contentStudioView #exactV4-root input[type="range"] {
+  padding: 0;
+  height: 26px;
+  background: transparent;
+  border: 0;
+  appearance: auto;
+  accent-color: var(--ac);
+}
+#contentStudioView #exactV4-root input[type="checkbox"] {
+  width: auto;
+  appearance: auto;
+  accent-color: var(--ac);
+}
+#contentStudioView #exactV4-root .media img,
+#contentStudioView #exactV4-root .media video,
+#contentStudioView #exactV4-root .media canvas {
+  object-position: var(--px, 50%) var(--py, 50%);
+  transform: scale(var(--z, 1));
+}
+#contentStudioView #exactV4-root .media.has {
+  touch-action: none;
+  cursor: grab;
+}
+#contentStudioView #exactV4-root .media.has:active {
+  cursor: grabbing;
+}
+#contentStudioView #exactV4-root .safe {
+  display: none;
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  left: 10px;
+  right: 10px;
+  top: 86px;
+  bottom: 92px;
+  border: 1.5px dashed #ffffffb0;
+  border-radius: 10px;
+}
+#contentStudioView #exactV4-root .scr.sf .safe {
+  display: block;
+}
+#contentStudioView #exactV4-root .scr.sf[data-f="feed"] .safe {
+  display: none;
+}
+#contentStudioView #exactV4-root .tools {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  margin-top: 14px;
+}
+#contentStudioView #exactV4-root .tools .btn {
+  padding: 8px 12px;
+  font-size: 13px;
+}
+#contentStudioView #exactV4-root .tools label {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin: 0;
+  font-weight: 500;
+  color: var(--mu);
+  font-size: 13px;
+}
+#contentStudioView #exactV4-root .stage.fs {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 16px;
+  overflow: auto;
+}
+#contentStudioView #exactV4-root .stage.fs .phone {
+  width: min(360px, calc((100vh - 140px) * 0.484));
+}
+#contentStudioView #exactV4-root .stage.fs .hint {
+  display: none;
+}
+#contentStudioView #exactV4-root .scr.lt[data-f="feed"] {
+  background: #fff;
+  color: #111;
+}
+#contentStudioView #exactV4-root .scr.lt[data-f="feed"] .ov [contenteditable]:hover,
+#contentStudioView #exactV4-root .scr.lt[data-f="feed"] .ov [contenteditable]:focus {
+  background: #0001;
+}
+#contentStudioView #exactV4-root .scr.lt[data-f="feed"] .cta {
+  background: #0a1a3b;
+  color: #fff;
+}
+#contentStudioView #exactV4-root .scr.lt[data-f="feed"] .tg {
+  color: #2468e6;
+}
+#contentStudioView #exactV4-root .th {
+  position: relative;
+  overflow: hidden;
+}
+#contentStudioView #exactV4-root .th img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+#contentStudioView #exactV4-root #exactV4-toast.a {
+  pointer-events: auto;
+}
+#contentStudioView #exactV4-root .tb {
+  margin-left: 8px;
+  background: var(--ac);
+  color: #fff;
+  border: 0;
+  border-radius: 8px;
+  padding: 4px 12px;
+  font-weight: 600;
+}
+#contentStudioView #exactV4-root.kb .dock {
+  transform: translate(-50%, 170%);
+}
+#contentStudioView #exactV4-root .dock {
+  transition: transform 0.35s var(--ez);
+}
+#contentStudioView #exactV4-root[data-v4-compact] .studio {
+  grid-template-columns: 1fr;
+}
+#contentStudioView #exactV4-root[data-v4-compact] .stage {
+  position: static;
+}
+#contentStudioView #exactV4-root[data-v4-compact] .phone {
+  width: 230px;
+}
+#contentStudioView #exactV4-root[data-v4-mobile] .fld {
+  grid-template-columns: 1fr;
+}
+#contentStudioView #exactV4-root[data-v4-mobile] .dock button span {
+  display: none;
+}
+#contentStudioView #exactV4-root[data-v4-mobile] .dock button[aria-selected="true"] span {
+  display: inline;
+}
+#contentStudioView #exactV4-root[data-v4-mobile] .dock button {
+  padding: 11px 14px;
+}
+#contentStudioView #exactV4-root[data-v4-mobile] .pill,
+#contentStudioView #exactV4-root[data-v4-mobile] .hm {
+  display: none;
+}
+#contentStudioView #exactV4-root[data-v4-mobile] .card {
+  padding: 16px;
+}
+#contentStudioView #exactV4-root[data-v4-tiny] .dock button[aria-selected="true"] span {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  #contentStudioView #exactV4-root *,
+  #contentStudioView #exactV4-root *::before,
+  #contentStudioView #exactV4-root *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  #contentStudioView #exactV4-root h2 .w i {
+    transform: none;
+    filter: none;
+  }
+}
+
+#contentStudioView {
+  padding: 0;
+}
+#contentStudioView #exactV4-root {
+  display: block;
+  width: 100%;
+  font-variant-numeric: tabular-nums;
+}
+#contentStudioView #exactV4-root .content-preview-placeholder {
+  all: unset;
+  display: block;
+  text-align: center;
+  position: relative;
+  padding: 0 24px;
+  pointer-events: none;
+}
+#contentStudioView #exactV4-root .content-preview-placeholder span {
+  display: block;
+  font-size: 46px;
+  color: var(--ac2);
+}
+#contentStudioView #exactV4-root .content-preview-placeholder svg {
+  width: 1em;
+  height: 1em;
+}
+#contentStudioView #exactV4-root .content-preview-placeholder b {
+  display: block;
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+#contentStudioView #exactV4-root .content-preview-placeholder p {
+  font-size: 11px;
+  color: #b6c6e6;
+}
+#contentStudioView #exactV4-root .native-v4-extra {
+  margin-top: 20px;
+  border: 1px solid var(--ln);
+  border-radius: 14px;
+  padding: 12px 16px;
+  background: var(--s1);
+}
+#contentStudioView #exactV4-root .native-v4-extra summary {
+  cursor: pointer;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+#contentStudioView #exactV4-root .v4-action-status {
+  font-size: 13px;
+  color: var(--mu);
+  margin-top: 12px;
+}
+#contentStudioView #exactV4-root .sr {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+#contentStudioView #exactV4-root #contentMediaHelp,
+#contentStudioView #exactV4-root #contentPublishHelp {
+  font-size: 12.5px;
+  margin-top: 8px;
+}
+#contentStudioView #exactV4-root .content-preparation-workflow {
+  padding: 14px 0;
+  border: 0;
+  background: transparent;
+}
+#contentStudioView #exactV4-root .content-preparation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+#contentStudioView #exactV4-root .content-preparation-actions button,
+#contentStudioView #exactV4-root .management-button {
+  background: var(--s2);
+  color: var(--tx);
+  border: 1px solid var(--ln);
+  border-radius: 10px;
+  min-height: 44px;
+  padding: 10px 12px;
+}
+#contentStudioView #exactV4-root .content-preparation-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+#contentStudioView #exactV4-root .content-preparation-review {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+#contentStudioView #exactV4-root .content-preparation-review input {
+  width: auto;
+}
+#contentStudioView #exactV4-root button[disabled] {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+#contentStudioView #exactV4-root[data-v4-mobile] .content-preparation-fields {
+  grid-template-columns: 1fr;
+}
+#contentStudioView #exactV4-root .dock {
+  left: var(--v4-dock-center, 50%);
+  margin: 0;
+  flex-wrap: nowrap;
+}
+#contentStudioView #exactV4-root #contentDraftForm {
+  display: block;
+}
+#contentStudioView #exactV4-root .content-formats {
+  margin: 0;
+  border: 0;
+  position: static;
+}
+#contentStudioView #exactV4-root .content-draft-row {
+  display: block;
+  margin: 0;
+  padding: 0;
+}
+#contentStudioView #exactV4-root .content-library-empty {
+  grid-column: 1/-1;
+  text-align: center;
+  color: var(--mu);
+  padding: 36px 10px;
+}
+#contentStudioView #exactV4-root #preparationHistory {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0 0;
+}
+#contentStudioView #exactV4-root .v4-action-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+#contentStudioView #exactV4-root .stage.fs {
+  z-index: 1500;
+}
+
+/* Only the original V4 theme/session/progress controls join the official shell. */
+#mainContent #exactV4-headerControls,
+#mainContent #exactV4-headerControls *:where(:not(svg):not(svg *)) {
+  all: revert;
+  box-sizing: border-box;
+}
+#mainContent #exactV4-headerControls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font:
+    15px/1.5 Inter,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  color: var(--tx);
+}
+#mainContent #exactV4-headerControls .pill {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--mu);
+}
+#mainContent #exactV4-headerControls .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--wa);
+}
+#mainContent #exactV4-headerControls .ic-b {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  border: 1px solid var(--ln);
+  background: var(--s1);
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  transition: 0.25s var(--ez);
+}
+#mainContent #exactV4-headerControls .ic-b:hover {
+  transform: rotate(15deg) scale(1.06);
+  border-color: var(--ac);
+}
+#mainContent #exactV4-headerControls svg {
+  width: 1em;
+  height: 1em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: none;
+}
+#mainContent #exactV4-headerControls #exactV4-prog {
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  height: 2px;
+  width: 100%;
+  background: var(--ac);
+  transform-origin: 0;
+  transform: scaleX(0);
+}
+@media (max-width: 1100px) {
+  /* The official tools menu already exposes theme selection on small screens.
+     Avoid a duplicate control forcing a third row in the shared header. */
+  #mainContent #exactV4-headerControls {
+    display: contents;
+  }
+  #mainContent #exactV4-headerControls .pill,
+  #mainContent #exactV4-headerControls .ic-b {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #mainContent #exactV4-headerControls .ic-b {
+    transition-duration: 0.01ms !important;
+  }
+}

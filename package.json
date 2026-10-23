@@ -2,7 +2,7 @@
   "name": "socialmei-ia",
   "version": "0.1.0",
   "private": true,
-  "description": "Ferramentas de manuten\u00e7\u00e3o do frontend est\u00e1tico SocialMEI.IA",
+  "description": "Ferramentas de manutenção do frontend estático SocialMEI.IA",
   "scripts": {
     "preview": "node tools/preview.mjs",
     "test:preview": "node tests/preview-browser.cjs",
@@ -21,7 +21,10 @@
     "db:migrate": "node tools/db-migrate.mjs migrate",
     "db:status": "node tools/db-migrate.mjs status",
     "doctor": "node tools/team-doctor.mjs",
-    "data:export": "node tools/export-workspace.mjs"
+    "data:export": "node tools/export-workspace.mjs",
+    "demo:build": "node tools/package-public-demo.mjs",
+    "demo:verify": "node tools/verify-public-demo.mjs",
+    "demo:smoke": "node tests/public-demo-published-browser.cjs"
   },
   "devDependencies": {
     "playwright": "1.62.1",

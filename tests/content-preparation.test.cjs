@@ -51,3 +51,18 @@ test("preparation errors explain connectivity, session, permissions and conflict
     "Informe o tema da publicação.",
   );
 });
+
+test("original V4 caption templates stay local and explicitly require human verification", () => {
+  const value = model.captionAlternatives({
+    style: "v4",
+    topic: "Meu trabalho",
+    offering: "corte",
+    objective: "Engajar",
+    tone: "Próximo",
+  });
+  assert.equal(value.generated_by_ai, false);
+  assert.equal(value.requires_human_verification, true);
+  assert.equal(value.alternatives.length, 3);
+  assert.match(value.alternatives[0], /Oi! Hoje quero falar sobre Meu trabalho/);
+  assert.match(value.alternatives[0], /Comente o que você acha/);
+});

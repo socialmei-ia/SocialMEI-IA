@@ -1,3 +1,4 @@
+const { revealContentControl, contentDock } = require("./content-test-ui.cjs");
 const assert = require("node:assert/strict");
 module.exports = async (browser, origin) => {
   const page = await browser.newPage({ reducedMotion: "reduce" }),
@@ -72,10 +73,13 @@ module.exports = async (browser, origin) => {
       () => !!SocialMEIAuth.current && document.body.classList.contains("experience-app"),
     );
     await page.evaluate(() => SocialMEIExperience.enterApp("Divulgação"));
-    await page.locator("#contentWorkspace-connections").click();
+    await contentDock(page, "connections");
     await page.waitForFunction(() => !document.getElementById("integrationSetupSave").disabled);
+    await revealContentControl(page, "#integrationUsername");
     await page.locator("#integrationUsername").fill("@negocio.teste");
+    await revealContentControl(page, "#integrationAccountType");
     await page.locator("#integrationAccountType").selectOption("business");
+    await revealContentControl(page, "#integrationSetupSave");
     await page.locator("#integrationSetupSave").click();
     await page.waitForFunction(() =>
       document.getElementById("integrationSetupStatus").textContent.includes("Preparação salva"),
@@ -86,18 +90,21 @@ module.exports = async (browser, origin) => {
     await page.reload();
     await page.waitForFunction(() => !!SocialMEIAuth.current);
     await page.evaluate(() => SocialMEIExperience.enterApp("Divulgação"));
-    await page.locator("#contentWorkspace-connections").click();
+    await contentDock(page, "connections");
     await page.waitForFunction(
       () => document.getElementById("integrationUsername").value === "negocio.teste",
     );
     fail = true;
+    await revealContentControl(page, "#integrationUsername");
     await page.locator("#integrationUsername").fill("edicao.preservada");
+    await revealContentControl(page, "#integrationSetupSave");
     await page.locator("#integrationSetupSave").click();
     await page.waitForFunction(() =>
       document.getElementById("integrationSetupStatus").textContent.includes("preparação mudou"),
     );
     assert.equal(await page.locator("#integrationUsername").inputValue(), "edicao.preservada");
     offline = true;
+    await revealContentControl(page, "#integrationSetupRefresh");
     await page.locator("#integrationSetupRefresh").click();
     await page.waitForFunction(() =>
       document

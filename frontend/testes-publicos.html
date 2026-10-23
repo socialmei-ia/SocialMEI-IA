@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+    <meta
+      name="description"
+      content="Laboratório público de demonstração das telas Oportunidades V8 e Divulgação V4 do SocialMEI.IA. Somente dados fictícios."
+    />
+    <title>Teste de funcionalidades · SocialMEI.IA</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #071326;
+        --panel: #12213b;
+        --line: #294269;
+        --text: #edf4ff;
+        --muted: #b6c7e3;
+        --blue: #579bef;
+        --gold: #f5c451;
+      }
+      *, *::before, *::after { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        padding: 0 24px 48px;
+        color: var(--text);
+        font: 16px/1.6 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+        background:
+          radial-gradient(52rem 38rem at 86% -12%, #244d904d, transparent 75%),
+          linear-gradient(180deg, #071326, #0a1830);
+      }
+      a { color: inherit; }
+      a:focus-visible { outline: 3px solid var(--gold); outline-offset: 4px; }
+      .frame { max-width: 1020px; margin: auto; }
+      header {
+        padding: 26px 0 18px;
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--line);
+      }
+      .brand { display: flex; align-items: center; gap: 11px; font-weight: 750; }
+      .logo {
+        display: grid;
+        place-items: center;
+        height: 36px;
+        width: 36px;
+        border-radius: 10px;
+        background: var(--blue);
+        color: #061226;
+        font-size: 22px;
+      }
+      .status {
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        color: var(--gold);
+        font-size: 13px;
+      }
+      .status::before {
+        content: "";
+        width: 7px;
+        height: 7px;
+        background: var(--gold);
+        border-radius: 50%;
+      }
+      main { padding-top: clamp(40px, 7vw, 80px); }
+      .eyebrow {
+        margin: 0 0 12px;
+        color: var(--blue);
+        text-transform: uppercase;
+        letter-spacing: .18em;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      h1 {
+        max-width: 800px;
+        margin: 0;
+        letter-spacing: -.04em;
+        line-height: 1.08;
+        font-size: clamp(38px, 6vw, 64px);
+      }
+      .lead { max-width: 660px; color: var(--muted); font-size: 18px; }
+      .features {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+        margin: 38px 0;
+      }
+      article {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        padding: 28px;
+        border: 1px solid var(--line);
+        border-radius: 23px;
+        background: linear-gradient(150deg, #142746, var(--panel));
+        box-shadow: 0 20px 55px #0002;
+      }
+      .art {
+        display: grid;
+        place-items: center;
+        width: 54px;
+        height: 54px;
+        margin-bottom: 22px;
+        border: 1px solid #5d86cd55;
+        border-radius: 16px;
+        background: #274a7e66;
+        color: #bad9ff;
+        font-size: 26px;
+      }
+      h2 { margin: 0; font-size: 24px; letter-spacing: -.02em; }
+      article p { color: var(--muted); flex: 1; }
+      .button {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 50px;
+        gap: 16px;
+        padding: 10px 18px;
+        border-radius: 12px;
+        background: var(--blue);
+        color: #06152c;
+        font-weight: 750;
+        text-decoration: none;
+        transition: transform .2s ease, filter .2s ease;
+      }
+      .button:hover { filter: brightness(1.12); transform: translateY(-2px); }
+      .notice {
+        padding: 19px 22px;
+        border: 1px solid #bca26299;
+        border-radius: 16px;
+        background: #59481b24;
+      }
+      .notice strong { color: #ffdb84; }
+      .notice p { margin: 6px 0 0; color: var(--muted); }
+      footer { padding-top: 28px; color: var(--muted); font-size: 13px; }
+      @media (max-width: 680px) {
+        body { padding: 0 16px 32px; }
+        .features { grid-template-columns: 1fr; gap: 13px; margin-top: 28px; }
+        article { padding: 22px; }
+        .lead { font-size: 16px; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation: none !important; transition: none !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="frame">
+      <header>
+        <div class="brand">
+          <span class="logo" aria-hidden="true">S</span><span>SocialMEI.IA</span>
+        </div>
+        <span class="status">Laboratório público · somente simulação</span>
+      </header>
+      <main>
+        <p class="eyebrow">Teste as novidades</p>
+        <h1>O futuro do seu negócio começa por aqui.</h1>
+        <p class="lead">
+          Explore as telas de Oportunidades V8 e Divulgação V4, experimente os controles e descubra
+          o que funciona melhor para você.
+        </p>
+        <div class="features">
+          <article>
+            <div class="art" aria-hidden="true">◉</div>
+            <h2>Oportunidades V8</h2>
+            <p>
+              Experimente a lista, o Termômetro, os retornos e a Semana. Os clientes e as
+              negociações exibidos são fictícios.
+            </p>
+            <a class="button" href="reference/Oportunidades-V8-original.html">
+              Abrir Oportunidades <span aria-hidden="true">↗</span>
+            </a>
+          </article>
+          <article>
+            <div class="art" aria-hidden="true">✦</div>
+            <h2>Divulgação V4</h2>
+            <p>
+              Crie conteúdo, visualize Stories, Feed e Reels, teste rascunhos e agendamentos
+              simulados. Nenhuma postagem será enviada.
+            </p>
+            <a class="button" href="reference/Divulgacao-V4-original.html">
+              Abrir Divulgação <span aria-hidden="true">↗</span>
+            </a>
+          </article>
+        </div>
+        <section class="notice" aria-label="Importante sobre este teste">
+          <strong>Este espaço é uma demonstração, não o CRM conectado.</strong>
+          <p>
+            As informações ficam somente neste navegador, podem desaparecer se você limpar os dados
+            do site e não são compartilhadas com a equipe. Não insira nomes, números, senhas, fotos
+            ou dados reais de clientes. WhatsApp, Instagram, inteligência artificial e pagamentos
+            reais não estão conectados.
+          </p>
+        </section>
+      </main>
+      <footer>
+        Versão de avaliação visual e funcional dos protótipos. Nenhuma publicação ou mensagem real.
+      </footer>
+    </div>
+  </body>
+</html>
