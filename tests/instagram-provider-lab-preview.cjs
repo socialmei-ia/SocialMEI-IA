@@ -138,10 +138,8 @@ async function run() {
     for (const width of [1440, 390])
       for (const theme of ["light", "dark"]) {
         await page.setViewportSize({ width, height: 1000 });
-        await page.evaluate(
-          (theme) => document.documentElement.setAttribute("data-theme", theme),
-          theme,
-        );
+        await page.evaluate((theme) => SocialMEIThemes.select(theme, { persist: false }), theme);
+        assert.equal(await page.evaluate(() => SocialMEIThemes.current().base), theme);
         assert.equal(
           await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),
           false,
