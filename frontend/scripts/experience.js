@@ -4902,7 +4902,7 @@ ONBOARDING — JAVASCRIPT
         else enterApp(restored);
       } else {
         authMode = "login";
-        showScreen("auth");
+        showScreen("landing");
         q("#authConfirmation").textContent = SocialMEIAuth.problem;
         await loadRegistrationPolicy();
       }

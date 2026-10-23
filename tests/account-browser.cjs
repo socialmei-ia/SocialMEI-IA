@@ -46,6 +46,17 @@ module.exports = async function accountFlow(browser, origin) {
     await page.evaluate(() => document.activeElement?.blur());
     await page.screenshot({ path: path.join(screenshots, name + ".png"), fullPage: true });
   }
+  async function openLoginFromLanding() {
+    await page.waitForFunction(
+      () =>
+        window.SocialMEIAuth?.remote &&
+        !SocialMEIAuth.current &&
+        !!document.querySelector("[data-xp-screen=landing].is-active"),
+    );
+    assert.equal(await page.locator("[data-xp-screen=auth].is-active").count(), 0);
+    await page.locator("[data-start-login]").click();
+    await page.locator("[data-xp-screen=auth].is-active").waitFor();
+  }
   async function fitsViewport() {
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth > innerWidth + 1,
@@ -244,10 +255,7 @@ module.exports = async function accountFlow(browser, origin) {
   }
   try {
     await page.goto(origin + "/frontend/socialmei-app.html");
-    await page.waitForFunction(
-      () =>
-        window.SocialMEIAuth?.remote && !!document.querySelector("[data-xp-screen=auth].is-active"),
-    );
+    await openLoginFromLanding();
     await assertRealSession();
     await page.evaluate(() => {
       localStorage.setItem(
@@ -404,12 +412,7 @@ module.exports = async function accountFlow(browser, origin) {
     await page.locator("#accountNewPassword").fill("FlorSol!");
     await page.locator("#accountConfirmPassword").fill("FlorSol!");
     await page.locator("#accountPasswordForm [type=submit]").click();
-    await page.waitForFunction(
-      () =>
-        window.SocialMEIAuth?.remote &&
-        !window.SocialMEIAuth.current &&
-        !!document.querySelector("[data-xp-screen=auth].is-active"),
-    );
+    await openLoginFromLanding();
     await login("user1@example.com");
     await page.waitForFunction(
       () =>
@@ -431,12 +434,7 @@ module.exports = async function accountFlow(browser, origin) {
     );
     assert(await page.locator("#sb [data-account-logout]").isVisible());
     await page.locator("#sb [data-account-logout]").click();
-    await page.waitForFunction(
-      () =>
-        window.SocialMEIAuth?.remote &&
-        !window.SocialMEIAuth.current &&
-        !!document.querySelector("[data-xp-screen=auth].is-active"),
-    );
+    await openLoginFromLanding();
     await login("user1@example.com");
     await page.waitForFunction(
       () =>
@@ -482,12 +480,7 @@ module.exports = async function accountFlow(browser, origin) {
     await capture("admin-mobile-dark");
     await page.locator("#adminThemeToggle").click();
     await page.locator("#adminLogout").click();
-    await page.waitForFunction(
-      () =>
-        window.SocialMEIAuth?.remote &&
-        !window.SocialMEIAuth.current &&
-        !!document.querySelector("[data-xp-screen=auth].is-active"),
-    );
+    await openLoginFromLanding();
     assert(new URL(page.url()).pathname.endsWith("/frontend/socialmei-app.html"));
     await login("user1@example.com");
     await page.waitForFunction(
@@ -510,19 +503,14 @@ module.exports = async function accountFlow(browser, origin) {
     assert.equal(await page.evaluate(() => SocialMEIAuth.current.usuario.id), 1);
     assert(await page.locator("#settingsPanel [data-account-logout]").isEnabled());
     await page.locator("#settingsPanel [data-account-logout]").click();
-    await page.waitForFunction(
-      () =>
-        window.SocialMEIAuth?.remote &&
-        !window.SocialMEIAuth.current &&
-        !!document.querySelector("[data-xp-screen=auth].is-active"),
-    );
+    await openLoginFromLanding();
     assert.equal(await page.evaluate(() => localStorage.getItem("socialmei-private-test")), null);
     await page.locator("[data-auth-tab=register]").click();
     await page.locator("#registerInvite").waitFor({ state: "visible" });
     assert(await page.locator("#registerInvite").evaluate((input) => input.required));
     registrationMode = "open";
     await page.reload();
-    await page.waitForFunction(() => !!document.querySelector("[data-xp-screen=auth].is-active"));
+    await openLoginFromLanding();
     await page.locator("[data-auth-tab=register]").click();
     await page.waitForFunction(
       () => !document.querySelector("#xpRegisterForm [type=submit]").disabled,
@@ -622,7 +610,7 @@ module.exports = async function accountFlow(browser, origin) {
         document.body.classList.contains("experience-app"),
     );
     await page.locator("#sb [data-account-logout]").click();
-    await page.waitForFunction(() => !!document.querySelector("[data-xp-screen=auth].is-active"));
+    await openLoginFromLanding();
     await login("user1@example.com");
     await page.waitForFunction(
       () =>
@@ -642,21 +630,14 @@ module.exports = async function accountFlow(browser, origin) {
     );
     session = null;
     await page.goto(origin + "/frontend/socialmei-app.html");
-    await page.waitForFunction(
-      () =>
-        window.SocialMEIAuth?.remote &&
-        !window.SocialMEIAuth.current &&
-        !!document.querySelector("[data-xp-screen=auth].is-active"),
-    );
+    await openLoginFromLanding();
     for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: 900 });
       for (const mode of ["open", "invite", "unavailable"]) {
         registrationMode = mode;
         registrationUnavailable = mode === "unavailable";
         await page.reload();
-        await page.waitForFunction(
-          () => !!document.querySelector("[data-xp-screen=auth].is-active"),
-        );
+        await openLoginFromLanding();
         await page.locator("[data-auth-tab=register]").click();
         if (registrationUnavailable) {
           await page.waitForFunction(() =>
