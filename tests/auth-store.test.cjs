@@ -185,3 +185,22 @@ test("confirmed logout leaves the app even when browser storage cannot archive l
   assert.equal(ctx.reloads, 1);
   assert.equal(local.getItem("socialmei-private-work"), "keep");
 });
+
+test("new password policy accepts eight characters without mandatory character classes", () => {
+  const { auth } = setup(() => reply(null), { mode: "local" });
+  for (const value of ["FlorSol!", "73925186", "luaverde"]) {
+    assert.equal(auth.passwordPolicy(value).error, "");
+    assert.match(auth.passwordPolicy(value).warning, /fraca/i);
+  }
+  for (const value of [
+    "FlorSol",
+    "7392518",
+    "12345678",
+    "PASSWORD",
+    "senha123",
+    "aaaaaaaa",
+    "x".repeat(129),
+  ])
+    assert(auth.passwordPolicy(value).error);
+  assert.equal(auth.passwordPolicy("Uma frase longa original").warning, "");
+});

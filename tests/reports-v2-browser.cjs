@@ -512,7 +512,7 @@ module.exports = async function reportsV2(browser, origin) {
     assert.equal(await page.locator("#reportHistoryList .rv2-history-row").count(), 0);
     identity = null;
     await page.reload();
-    await page.locator("[data-xp-screen=auth].is-active").waitFor();
+    await page.locator("[data-xp-screen=landing].is-active").waitFor();
     assert.equal(await page.evaluate(() => SocialMEIReportUI.scope()), null);
     assert.deepEqual(profileWrites, ["/api/v1/workspace-profile"]);
     assert.deepEqual(writes, []);

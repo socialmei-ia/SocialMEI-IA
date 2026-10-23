@@ -342,7 +342,7 @@ async function run() {
       assert.equal(await page.locator("#accountPasswordForm").count(), mode === "remote" ? 1 : 0);
       if (mode === "remote") {
         await page.locator(".account-password-disclosure > summary").press("Enter");
-        assert.equal(await page.locator("#accountNewPassword").getAttribute("minlength"), "12");
+        assert.equal(await page.locator("#accountNewPassword").getAttribute("minlength"), "8");
         assert.equal(
           await page.locator("#accountConfirmPassword").getAttribute("autocomplete"),
           "new-password",
