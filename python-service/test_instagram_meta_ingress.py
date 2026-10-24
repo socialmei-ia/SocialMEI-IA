@@ -13,7 +13,7 @@ import psycopg
 from fastapi.testclient import TestClient
 
 from app import app
-from account_auth import COOKIE, csrf
+from account_auth import COOKIE, csrf, session_identity as real_session_identity
 from instagram_meta_ingress import (
     InstagramIngressService,
     ingress_service,
@@ -611,9 +611,14 @@ class DatabaseTests(unittest.TestCase):
             },
         )
         self.assertEqual(result.status_code, 200, result.text)
-        self.assertEqual(
-            anonymous.get("/api/v1/message-enrichment/conversations").status_code, 401
-        )
+        # The shared test fixture replaces session_identity with a mock that
+        # authenticates every token (including an absent cookie). Exercise the
+        # real resolver here so this is a genuine unauthenticated-read check.
+        with patch("account_auth.session_identity", side_effect=real_session_identity):
+            self.assertEqual(
+                anonymous.get("/api/v1/message-enrichment/conversations").status_code,
+                401,
+            )
         self.identity = self.identities[1]
         self.client.cookies.set(COOKIE, "c" * 64)
         self.headers["X-SocialMEI-CSRF"] = csrf("c" * 64)
