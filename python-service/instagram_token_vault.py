@@ -30,14 +30,15 @@ class VaultError(ValueError):
 
 @dataclass(frozen=True)
 class TokenBinding:
-    workspace_id: UUID = field(repr=False)
+    workspace_id: int = field(repr=False)
     connection_id: UUID = field(repr=False)
     account_id: str = field(repr=False)
     provider: str = "instagram"
 
     def __post_init__(self):
         if (
-            not isinstance(self.workspace_id, UUID)
+            type(self.workspace_id) is not int
+            or not 1 <= self.workspace_id <= 2**63 - 1
             or not isinstance(self.connection_id, UUID)
             or not isinstance(self.account_id, str)
             or not re.fullmatch(r"[0-9]{1,40}", self.account_id)

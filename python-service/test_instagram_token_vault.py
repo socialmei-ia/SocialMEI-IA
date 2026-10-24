@@ -16,7 +16,7 @@ class TokenVaultTests(unittest.TestCase):
     def binding(self, **changes):
         return replace(
             TokenBinding(
-                UUID("00000000-0000-0000-0000-000000000001"),
+                1,
                 UUID("00000000-0000-0000-0000-000000000002"),
                 "12345",
             ),
@@ -44,7 +44,7 @@ class TokenVaultTests(unittest.TestCase):
         vault = TokenVault(keys={"test-v1": KEY}, active_key_id="test-v1")
         envelope = vault.seal(TOKEN, self.binding())
         for changed in (
-            self.binding(workspace_id=UUID(int=3)),
+            self.binding(workspace_id=3),
             self.binding(connection_id=UUID(int=4)),
             self.binding(account_id="67890"),
         ):
@@ -133,7 +133,7 @@ class TokenVaultTests(unittest.TestCase):
             ):
                 vault.seal(invalid, self.binding())
 
-    def test_binding_must_contain_server_uuid_and_numeric_account_id(self):
+    def test_binding_must_contain_server_ids_and_numeric_account_id(self):
         for changes in (
             {"workspace_id": "invalid"},
             {"connection_id": "invalid"},
@@ -151,3 +151,14 @@ class TokenVaultTests(unittest.TestCase):
         self.assertEqual(len(base64.urlsafe_b64decode(nonce)), 12)
         with self.assertRaises(VaultError):
             vault.open(envelope.replace(nonce, nonce + "="), self.binding())
+
+    def test_workspace_binding_uses_existing_postgresql_bigint_ids(self):
+        binding = TokenBinding(42, UUID(int=2), "12345")
+        vault = TokenVault(keys={"test-v1": KEY}, active_key_id="test-v1")
+        envelope = vault.seal(TOKEN, binding)
+        self.assertEqual(vault.open(envelope, binding), TOKEN)
+        for invalid in (True, 0, -1, "42", UUID(int=42), 2**63):
+            with self.subTest(value_type=type(invalid).__name__), self.assertRaises(
+                VaultError
+            ):
+                TokenBinding(invalid, UUID(int=2), "12345")

@@ -16,7 +16,7 @@ senha, chave do n8n reaproveitada, leitura de `.env` ou geração automática.
 - `open(envelope, binding)` autentica antes de devolver o token. Formato/base64
   canônicos, versão, limites, nonce, chave e tag são verificados; falhas têm uma
   mensagem local única, sem token, ciphertext ou exceção criptográfica original.
-- AAD vincula versão, identificador da chave, provedor Instagram, UUID do negócio,
+- AAD vincula versão, identificador da chave, provedor Instagram, ID BIGINT positivo do negócio,
   UUID interno da conexão e ID externo da conta. Mover o ciphertext entre contas,
   conexões ou negócios falha, inclusive quando usam a mesma chave física.
 - `repr` omite chaves e identidade. O token aberto continua um segredo em memória:
@@ -51,7 +51,7 @@ precisam ser conferidos na conexão persistida, ainda não implementada.
 python -m unittest discover -s python-service -p test_instagram_token_vault.py -v
 ```
 
-11 testes focados, com keyrings descartáveis e nenhum serviço externo: roundtrip,
+12 testes focados, com keyrings descartáveis e nenhum serviço externo: roundtrip,
 nonce aleatório, alteração de token/nonce, chave incorreta, dois negócios,
 conexões/contas diferentes, metadado de chave autenticado, rotação/aposentadoria,
 keyring copiado, limites e envelope malformado. Fixtures não são chaves utilizáveis
@@ -68,3 +68,5 @@ Persistência exclusiva por conta/negócio, state Meta real durável e de uso ú
 key provider privado, revogação/expiração transacional, gestão segura de refresh,
 webhooks/ledger e outbox. Aplicação/migrations em ambiente real dependem de
 aprovação própria. Nenhuma chave ou credencial real foi lida/criada/alterada.
+
+Compatibilidade conferida: `socialmei.workspaces.id` usa BIGINT. Binding aceita inteiro positivo até2^63−1, recusa bool/string/UUID e preserva UUID somente para a conexão. Teste reproduzido antes da correção.
