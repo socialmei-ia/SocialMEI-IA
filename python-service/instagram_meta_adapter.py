@@ -12,7 +12,7 @@ import time
 from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Callable, Mapping
-from urllib.parse import urlsplit
+from urllib.parse import parse_qsl, urlsplit
 
 from instagram_meta_contract import INSTAGRAM_LOGIN_SCOPES
 
@@ -168,6 +168,17 @@ class InstagramAdapter:
         self._version = graph_version
         self._transport = transport
         self._clock = clock
+
+    def matches_configuration(self, callback_uri, authorization_embed):
+        """Compare public OAuth metadata without exposing client credentials."""
+        try:
+            parameters = dict(parse_qsl(urlsplit(authorization_embed).query))
+        except (ValueError, TypeError, AttributeError):
+            return False
+        return (
+            callback_uri == self._callback_uri
+            and parameters.get("client_id") == self._client_id
+        )
 
     def _now(self):
         value = self._clock()

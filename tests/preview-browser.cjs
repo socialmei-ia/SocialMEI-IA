@@ -288,9 +288,34 @@ async function run() {
       await page.waitForFunction(() =>
         document.getElementById("preparationHistory").textContent.includes("Agendamento fictício"),
       );
+      const layoutEvidence = await page.evaluate(() => ({
+        overflow: document.documentElement.scrollWidth > innerWidth,
+        viewport: innerWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+        overflowing: [...document.querySelectorAll("body *")]
+          .map((element) => ({ element, bounds: element.getBoundingClientRect() }))
+          .filter(
+            ({ bounds }) => bounds.width > 0 && (bounds.right > innerWidth + 1 || bounds.left < -1),
+          )
+          .slice(0, 20)
+          .map(({ element, bounds }) => ({
+            tag: element.tagName,
+            id: element.id,
+            className: typeof element.className === "string" ? element.className : "",
+            left: bounds.left,
+            right: bounds.right,
+            width: bounds.width,
+          })),
+        animations: document.getAnimations().map((animation) => ({
+          id: animation.effect?.target?.id || "",
+          state: animation.playState,
+          time: animation.currentTime,
+        })),
+      }));
       assert.equal(
-        await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),
+        layoutEvidence.overflow,
         false,
+        "Agenda must not overflow horizontally: " + JSON.stringify(layoutEvidence),
       );
       await page.screenshot({ path: path.join(output, `divulgacao-${width}.png`), fullPage: true });
       await page.reload();

@@ -108,3 +108,10 @@ def instagram_provider_lab_enabled() -> bool:
 
 def instagram_provider_lab_signing_key() -> str:
     return os.getenv("SOCIALMEI_INSTAGRAM_LAB_TEST_KEY", "")
+
+
+def instagram_oauth_isolated_enabled() -> bool:
+    return (
+        os.getenv("SOCIALMEI_INSTAGRAM_OAUTH_MODE", "disabled").strip().lower() == "isolated"
+        and os.getenv("SOCIALMEI_INSTAGRAM_LAB_ENVIRONMENT", "").strip().lower() == "isolated"
+    )

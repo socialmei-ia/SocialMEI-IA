@@ -171,7 +171,9 @@ class Rehearsal:
                 channel = conn.execute("INSERT INTO socialmei.crm_canais(workspace_id,instancia,sessao) VALUES(%s,%s,'synthetic') RETURNING id", (workspace, 'rc80-'+str(index))).fetchone()[0]
                 conversation = conn.execute("INSERT INTO socialmei.crm_conversas_canal(workspace_id,canal_id,identificador_externo,cliente_id,nome) VALUES(%s,%s,'synthetic:contact',%s,'Mesmo nome sintético') RETURNING id", (workspace, channel, customer)).fetchone()[0]
                 conn.execute("INSERT INTO socialmei.crm_mensagens_canal(workspace_id,canal_id,conversa_id,identificador_externo,direcao,conteudo,status) VALUES(%s,%s,%s,'synthetic:message','entrada','Atendimento sintético preservado','recebida')", (workspace, channel, conversation))
-                tenants.append({'workspace': workspace, 'user': user})
+                session_hash = digest(f'synthetic-session:{workspace}'.encode())
+                conn.execute("INSERT INTO socialmei.auth_sessoes(token_hash,user_id,workspace_id,expira_em) VALUES(%s,%s,%s,NOW()+INTERVAL '1 day')", (session_hash,user,workspace))
+                tenants.append({'workspace': workspace, 'user': user, 'session_hash': session_hash})
         return tenants
 
     def seed_incremental(self, version, tenants):
@@ -224,6 +226,14 @@ class Rehearsal:
                     conn.execute("INSERT INTO socialmei.ig_lab_connections(workspace_id,account_id,status,expires_at) VALUES(%s,%s,'connected',NOW()+INTERVAL '1 hour')", (workspace, account))
                     conn.execute('INSERT INTO socialmei.ig_lab_events(workspace_id,event_id,fingerprint,result) VALUES(%s,%s,%s,%s)', (workspace, uuid4(), 'a'*64, Jsonb({'fictional':True,'transport':'none'})))
                     conn.execute("INSERT INTO socialmei.ig_lab_publications(workspace_id,id,account_id,idempotency_key,fingerprint,payload,approved_by,status,attempts,provider_result) VALUES(%s,%s,%s,%s,%s,%s,%s,'simulated-published',1,%s)", (workspace, uuid4(), account, uuid4(), 'b'*64, Jsonb({'caption':'Somente fixture','format':'feed','media':[{'name':'fixture.png','mime':'image/png','size':32}]}), user, Jsonb({'fictional':True,'published':False})))
+                elif version == 19:
+                    from instagram_token_vault import TokenBinding, TokenVault
+                    connection = uuid4()
+                    external = str(900000 + index)
+                    encrypted = TokenVault(keys={'rehearsal': b'r'*32}, active_key_id='rehearsal').seal('synthetic-rehearsal-token', TokenBinding(workspace,connection,external))
+                    conn.execute("INSERT INTO socialmei.ig_meta_connections(id,workspace_id,external_account_id,account_type,status,scopes,encrypted_token,token_kind,issued_at,expires_at,created_by) VALUES(%s,%s,%s,'BUSINESS','connected',%s,%s,'long',NOW(),NOW()+INTERVAL '1 day',%s)", (connection,workspace,external,['instagram_business_basic'],encrypted,user))
+                    conn.execute("INSERT INTO socialmei.ig_meta_oauth_states(state_hash,workspace_id,user_id,session_hash,callback_uri,scopes,expires_at) VALUES(%s,%s,%s,%s,'https://synthetic.invalid/callback',%s,NOW()+INTERVAL '5 minutes')", (digest(f'synthetic-meta-state:{workspace}'.encode()),workspace,user,tenant['session_hash'],['instagram_business_basic']))
+                    conn.execute("INSERT INTO socialmei.ig_meta_audit(workspace_id,user_id,connection_id,action) VALUES(%s,%s,%s,'connected')", (workspace,user,connection))
 
     def prove_fks(self, tenants, database):
         import psycopg
@@ -279,7 +289,7 @@ class Rehearsal:
     def run(self, backend_tests):
         import psycopg
         files = sorted((ROOT/'database/migrations').glob('*.sql'))
-        self.check(len(files) == 18 and [p.name[:3] for p in files] == [f'{n:03}' for n in range(1,19)], 'exact incremental migrations001–018 present')
+        self.check(len(files) == 19 and [p.name[:3] for p in files] == [f'{n:03}' for n in range(1,20)], 'exact incremental migrations001–019 present')
         manifest = {}
         for path in files:
             committed = subprocess.run(['git','show','HEAD:database/migrations/'+path.name], cwd=ROOT, capture_output=True, check=True).stdout
@@ -315,12 +325,12 @@ class Rehearsal:
                 current = self.snapshot()
                 self.check(all(current['tables'][name] == rows for name,rows in legacy.items()), f'{number:03} preserves all preexisting001–011 table values')
             baseline = self.snapshot()
-            self.migrate(folder, 'ledger replay001–018')
+            self.migrate(folder, 'ledger replay001–019')
             self.check(self.snapshot() == baseline, 'team migrator ledger replay preserves rows, schema, sequences and applied_at')
             with self.connect() as conn:
                 for path in files[11:]:
                     conn.execute(path.read_text(), prepare=False)
-            self.check(self.snapshot() == baseline, 'raw012–018 reapplication is idempotent with seeded data')
+            self.check(self.snapshot() == baseline, 'raw012–019 reapplication is idempotent with seeded data')
             with tempfile.TemporaryDirectory(prefix='socialmei-rc80-failure-') as failure:
                 (Path(failure)/'999_release_probe.sql').write_text('CREATE TABLE socialmei.rc80_rollback_probe(id INT); SELECT 1/0;')
                 try:

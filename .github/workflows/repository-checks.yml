@@ -18,6 +18,7 @@ on:
         feat/instagram-provider-lab,
         feat/instagram-meta-contract-gates,
         feat/instagram-meta-http-adapter,
+        feat/instagram-token-vault,
       ]
 
 permissions:

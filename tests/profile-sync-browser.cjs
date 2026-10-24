@@ -93,6 +93,23 @@ module.exports = async (browser, origin) => {
     assert.equal(await a.evaluate((key) => localStorage.getItem(key), key), raw);
     assert.equal(writes.length, 0);
     await settings(a);
+    const focusEvidence = await a.evaluate(() => {
+      const events = [];
+      const record = (event) => {
+        events.push({
+          type: event.type,
+          tag: event.target?.tagName,
+          id: event.target?.id || null,
+          importAction: !!event.target?.matches?.("[data-sync-import-profile]"),
+        });
+        if (events.length > 20) events.shift();
+      };
+      document.addEventListener("focusin", record, true);
+      document.addEventListener("focusout", record, true);
+      window.__profileFocusEvidence = { events, record };
+      const button = document.querySelector("[data-sync-import-profile]");
+      return { open: button.closest("details").open, connected: button.isConnected };
+    });
     await a.locator("details:has([data-sync-import-profile]) summary").click();
     await a.evaluate(() => renderSettings());
     assert.equal(
@@ -137,13 +154,37 @@ module.exports = async (browser, origin) => {
       true,
     );
     await a.locator("[data-sync-import-profile]").focus();
-    await a.evaluate(() => renderSettings());
+    const renderFocusEvidence = await a.evaluate(() => {
+      const button = document.querySelector("[data-sync-import-profile]");
+      const before = {
+        focused: button === document.activeElement,
+        open: button.closest("details").open,
+      };
+      renderSettings();
+      const updated = document.querySelector("[data-sync-import-profile]");
+      return {
+        before,
+        after: {
+          focused: updated === document.activeElement,
+          open: updated.closest("details").open,
+        },
+      };
+    });
+    Object.assign(focusEvidence, renderFocusEvidence);
+    const observedFocus = await a.locator("[data-sync-import-profile]").evaluate((button) => {
+      const focused = button === document.activeElement;
+      const { events, record } = window.__profileFocusEvidence;
+      document.removeEventListener("focusin", record, true);
+      document.removeEventListener("focusout", record, true);
+      delete window.__profileFocusEvidence;
+      return { focused, events };
+    });
+    focusEvidence.events = observedFocus.events;
     assert.equal(
-      await a
-        .locator("[data-sync-import-profile]")
-        .evaluate((button) => button === document.activeElement),
+      observedFocus.focused,
       true,
-      "Refreshing settings must preserve focus on the local-profile import action",
+      "Refreshing settings must preserve focus on the local-profile import action: " +
+        JSON.stringify(focusEvidence),
     );
     await a.locator("[data-sync-import-profile]").click();
     await a.locator("[data-onboard-next]").click();
