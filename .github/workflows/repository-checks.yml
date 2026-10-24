@@ -17,6 +17,7 @@ on:
         feat/native-opportunities-v8-content-v4,
         feat/instagram-provider-lab,
         feat/instagram-meta-contract-gates,
+        feat/instagram-meta-http-adapter,
       ]
 
 permissions:
