@@ -160,12 +160,22 @@ class InstagramOAuthService:
 
     def _failed(self, user, state_hash):
         with db() as conn:
+            # Provider completion is asynchronous: the actor may no longer be a member.
+            workspace = conn.execute(
+                "SELECT id FROM socialmei.workspaces WHERE id=%s FOR KEY SHARE",
+                (user["workspace_id"],),
+            ).fetchone()
+            if not workspace:
+                return
             row = conn.execute(
                 "UPDATE socialmei.ig_meta_oauth_states SET status='failed' WHERE state_hash=%s AND workspace_id=%s AND status='exchanging' RETURNING state_hash",
                 (state_hash, user["workspace_id"]),
             ).fetchone()
             if row:
-                _audit(conn, user, "failed")
+                conn.execute(
+                    "INSERT INTO socialmei.ig_meta_audit(workspace_id,action) VALUES(%s,'failed')",
+                    (user["workspace_id"],),
+                )
 
     def callback(self, user, session_hash, state, code, callback_uri, error=None):
         state_hash = digest(state)

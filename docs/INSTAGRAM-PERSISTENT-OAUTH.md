@@ -71,7 +71,9 @@ não podem trocar o mesmo código; falha, negação ou timeout não reabre o sta
 Não há retry automático. Após exchange → token longo → identidade, uma nova
 transação confere sessão/role e estado novamente antes de persistir. Desconectar
 ou iniciar outro fluxo durante HTTP impede uma conclusão tardia de reconectar.
-Revogação de sessão, desativação, remoção de membership ou perda da role também
+Falhas assíncronas do provedor são auditadas como ação do sistema (`user_id`
+nulo), pois o ator pode ter perdido membership durante HTTP. Revogação de
+sessão, desativação, remoção de membership ou perda da role também
 impedem a conclusão. Falha após consumo exige uma autorização nova.
 
 Reconectar não apaga histórico: a conexão anterior perde ciphertext e ganha

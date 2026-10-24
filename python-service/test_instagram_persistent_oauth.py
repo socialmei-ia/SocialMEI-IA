@@ -655,3 +655,85 @@ class PersistentTests(unittest.TestCase):
             )
         self.assertEqual(self.client.get(PREFIX + "/status").status_code, 401)
         self.assertEqual(self.transport.calls, [])
+
+    def test_provider_unauthorized_in_extend_and_identity_never_persists(self):
+        for failed_stage in (2, 3):
+            with self.subTest(failed_stage=failed_stage):
+                state = self.begin()
+                calls = []
+                fake = FakeTransport()
+
+                def unauthorized(request):
+                    calls.append(request)
+                    if len(calls) == failed_stage:
+                        return ProviderResponse(
+                            401, b'{"error":{"message":"synthetic-secret"}}'
+                        )
+                    return fake(request)
+
+                self.service = service(unauthorized)
+                result = self.complete(state)
+                self.assertEqual(result.status_code, 502, result.text)
+                self.assertNotIn("synthetic-secret", result.text)
+                self.assertEqual(len(calls), failed_stage)
+                self.assertIsNone(self.connection())
+                self.assertEqual(self.complete(state).status_code, 409)
+                self.assertEqual(len(calls), failed_stage)
+                with psycopg.connect(DB) as conn:
+                    self.assertEqual(
+                        conn.execute(
+                            "SELECT status FROM socialmei.ig_meta_oauth_states WHERE state_hash=%s",
+                            (digest(state),),
+                        ).fetchone(),
+                        ("failed",),
+                    )
+                    self.assertEqual(
+                        conn.execute(
+                            "SELECT user_id FROM socialmei.ig_meta_audit WHERE workspace_id=%s AND action='failed' ORDER BY id DESC LIMIT 1",
+                            (self.identity["workspace_id"],),
+                        ).fetchone(),
+                        (None,),
+                    )
+
+    def test_membership_removed_during_provider_failure_remains_sanitized(self):
+        state = self.begin()
+        self.transport.block = threading.Event()
+        self.transport.started.clear()
+        self.transport.fail = True
+
+        def callback():
+            try:
+                self.service.callback(
+                    self.identities[0], digest(TOKEN), state, "synthetic-code", CALLBACK
+                )
+                return 200, ""
+            except Exception as error:
+                return getattr(error, "status_code", 500), str(error)
+
+        with ThreadPoolExecutor(1) as pool:
+            future = pool.submit(callback)
+            self.assertTrue(self.transport.started.wait(5))
+            with psycopg.connect(DB) as conn:
+                self.assertEqual(
+                    conn.execute(
+                        "SELECT consumed_at IS NOT NULL FROM socialmei.ig_meta_oauth_states WHERE state_hash=%s",
+                        (digest(state),),
+                    ).fetchone(),
+                    (True,),
+                )
+                conn.execute(
+                    "DELETE FROM socialmei.workspace_members WHERE workspace_id=%s AND user_id=%s",
+                    (self.identity["workspace_id"], self.identity["id"]),
+                )
+            self.transport.block.set()
+            code, message = future.result(10)
+            self.assertEqual(code, 502)
+            self.assertNotIn("synthetic-secret", message)
+            self.assertIsNone(self.connection())
+        with psycopg.connect(DB) as conn:
+            self.assertIsNone(
+                conn.execute(
+                    "SELECT state_hash FROM socialmei.ig_meta_oauth_states WHERE state_hash=%s",
+                    (digest(state),),
+                ).fetchone()
+            )
