@@ -289,6 +289,7 @@ async function run() {
         document.getElementById("preparationHistory").textContent.includes("Agendamento fictício"),
       );
       const layoutEvidence = await page.evaluate(() => ({
+        overflow: document.documentElement.scrollWidth > innerWidth,
         viewport: innerWidth,
         scrollWidth: document.documentElement.scrollWidth,
         overflowing: [...document.querySelectorAll("body *")]
@@ -312,7 +313,7 @@ async function run() {
         })),
       }));
       assert.equal(
-        await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),
+        layoutEvidence.overflow,
         false,
         "Agenda must not overflow horizontally: " + JSON.stringify(layoutEvidence),
       );
