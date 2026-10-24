@@ -170,7 +170,7 @@ class SignedEvent(Input):
         return self
 
 
-def guard(request, response, *, write=False, manage=False, capability=False):
+def guard(request, response, *, write=False, manage=False, capability=False, read_inbox=False):
     response.headers['Cache-Control'] = 'no-store'
     try:
         require_enabled()
@@ -185,7 +185,8 @@ def guard(request, response, *, write=False, manage=False, capability=False):
         raise HTTPException(503, 'Análise não configurada.')
     if capability:
         return user
-    if mode != 'stub' or len(settings.message_enrichment_signing_key()) < 32:
+    provider_read = read_inbox and settings.instagram_ingress_isolated_enabled()
+    if not provider_read and (mode != 'stub' or len(settings.message_enrichment_signing_key()) < 32):
         raise HTTPException(503, 'Análise sintética não habilitada.')
     if write and user['role'] not in {'owner', 'admin', 'member'}:
         raise HTTPException(403, 'Acesso somente leitura.')
@@ -366,7 +367,10 @@ def stub_result(conn, workspace, text):
 @router.get('/capabilities')
 def capabilities(request: Request, response: Response):
     user = guard(request, response, capability=True)
-    return {'schema_version': 1, 'workspace_id': user['workspace_id'], 'mode': settings.message_enrichment_mode(), 'transport': 'none'}
+    result = {'schema_version': 1, 'workspace_id': user['workspace_id'], 'mode': settings.message_enrichment_mode(), 'transport': 'none'}
+    if settings.instagram_ingress_isolated_enabled():
+        result['instagram_inbox'] = True
+    return result
 
 
 @router.post('/synthetic-messages')
@@ -382,37 +386,46 @@ def persist_incoming(conn, workspace, payload):
     if prior:
         return {**prior, 'replayed': True}
     external_fingerprint = fingerprint({k: v for k, v in operation_data(payload).items() if k != 'operation_id'})
-    existing = conn.execute('SELECT m.* FROM socialmei.me_external_messages e JOIN socialmei.me_messages m ON m.workspace_id=e.workspace_id AND m.id=e.message_id WHERE e.workspace_id=%s AND e.channel=%s AND e.account_ref=%s AND e.external_message_id=%s', (workspace, payload.channel, payload.account_ref, payload.external_message_id)).fetchone()
-    if existing:
-        if existing['fingerprint'] != external_fingerprint:
-            raise HTTPException(409, 'Mensagem externa já usada com outros dados.')
-        # A new operation alias consumes quota because it persists a new row.
-        rate_limit(conn, workspace)
-        result = {'conversation_id': existing['conversation_id'], 'message_id': existing['id'], 'revision': existing['conversation_revision'], 'replayed': True}
-    else:
-        rate_limit(conn, workspace)
-        conv = conn.execute('INSERT INTO socialmei.me_conversations(workspace_id,channel,account_ref,contact_ref,contact_name) VALUES(%s,%s,%s,%s,%s) ON CONFLICT(workspace_id,channel,account_ref,contact_ref) DO UPDATE SET contact_name=me_conversations.contact_name RETURNING *', (workspace, payload.channel, payload.account_ref, payload.contact_ref, payload.contact_name)).fetchone()
-        revision = conn.execute('UPDATE socialmei.me_conversations SET revision=revision+1 WHERE id=%s RETURNING revision', (conv['id'],)).fetchone()['revision']
-        message = conn.execute('INSERT INTO socialmei.me_messages(workspace_id,conversation_id,external_message_id,text,fingerprint,conversation_revision,occurred_at) VALUES(%s,%s,%s,%s,%s,%s,COALESCE(%s,NOW())) RETURNING id', (workspace, conv['id'], payload.external_message_id, payload.text, external_fingerprint, revision, payload.occurred_at)).fetchone()
-        conn.execute('INSERT INTO socialmei.me_external_messages(workspace_id,channel,account_ref,external_message_id,message_id) VALUES(%s,%s,%s,%s,%s)', (workspace, payload.channel, payload.account_ref, payload.external_message_id, message['id']))
-        result = {'conversation_id': conv['id'], 'message_id': message['id'], 'revision': revision, 'replayed': False}
+    rate_limit(conn, workspace)
+    result = _append_inbox_message(conn, workspace, payload, external_fingerprint, origin='synthetic')
     remember(conn, workspace, 'message', payload, result)
     return result
 
 
+def _append_inbox_message(conn, workspace, payload, external_fingerprint, *, origin):
+    # Trusted append only: provider ingress verifies account ownership before calling.
+    # Public synthetic routes still validate Incoming and keep their quota/operation ledger.
+    lock_workspace(conn, workspace)
+    existing = conn.execute('SELECT m.* FROM socialmei.me_external_messages e JOIN socialmei.me_messages m ON m.workspace_id=e.workspace_id AND m.id=e.message_id WHERE e.workspace_id=%s AND e.channel=%s AND e.account_ref=%s AND e.external_message_id=%s AND e.origin=%s', (workspace, payload.channel, payload.account_ref, payload.external_message_id, origin)).fetchone()
+    if existing:
+        if existing['fingerprint'] != external_fingerprint:
+            raise HTTPException(409, 'Mensagem externa já usada com outros dados.')
+        return {'conversation_id': existing['conversation_id'], 'message_id': existing['id'], 'revision': existing['conversation_revision'], 'replayed': True}
+    conv = conn.execute('INSERT INTO socialmei.me_conversations(workspace_id,channel,account_ref,contact_ref,contact_name,origin) VALUES(%s,%s,%s,%s,%s,%s) ON CONFLICT(workspace_id,channel,account_ref,contact_ref) DO UPDATE SET contact_name=me_conversations.contact_name RETURNING *', (workspace, payload.channel, payload.account_ref, payload.contact_ref, payload.contact_name, origin)).fetchone()
+    revision = conn.execute('UPDATE socialmei.me_conversations SET revision=revision+1 WHERE id=%s RETURNING revision', (conv['id'],)).fetchone()['revision']
+    message = conn.execute('INSERT INTO socialmei.me_messages(workspace_id,conversation_id,external_message_id,text,fingerprint,conversation_revision,occurred_at,origin) VALUES(%s,%s,%s,%s,%s,%s,COALESCE(%s,NOW()),%s) RETURNING id', (workspace, conv['id'], payload.external_message_id, payload.text, external_fingerprint, revision, payload.occurred_at, origin)).fetchone()
+    conn.execute('INSERT INTO socialmei.me_external_messages(workspace_id,channel,account_ref,external_message_id,message_id,origin) VALUES(%s,%s,%s,%s,%s,%s)', (workspace, payload.channel, payload.account_ref, payload.external_message_id, message['id'], origin))
+    return {'conversation_id': conv['id'], 'message_id': message['id'], 'revision': revision, 'replayed': False}
+
 
 @router.get('/conversations')
 def conversations(request: Request, response: Response):
-    workspace = guard(request, response)['workspace_id']
+    workspace = guard(request, response, read_inbox=True)['workspace_id']
+    origins = ['synthetic'] if settings.message_enrichment_mode() == 'stub' else []
+    if settings.instagram_ingress_isolated_enabled():
+        origins.append('instagram')
     with db() as conn:
-        invalidate_expired(conn, workspace)
-        items = conn.execute('SELECT id,channel,account_ref,contact_ref,contact_name,revision FROM socialmei.me_conversations WHERE workspace_id=%s ORDER BY id DESC LIMIT 100', (workspace,)).fetchall()
+        if 'synthetic' in origins:
+            invalidate_expired(conn, workspace)
+        items = conn.execute('SELECT id,channel,account_ref,contact_ref,contact_name,revision,origin FROM socialmei.me_conversations WHERE workspace_id=%s AND origin=ANY(%s) ORDER BY id DESC LIMIT 100', (workspace, origins)).fetchall()
         for conversation in items:
             messages = conn.execute('SELECT id,external_message_id,text,occurred_at,revision FROM socialmei.me_messages WHERE workspace_id=%s AND conversation_id=%s ORDER BY occurred_at DESC,id DESC LIMIT 100', (workspace, conversation['id'])).fetchall()
             for message in messages:
-                job = conn.execute('SELECT * FROM socialmei.me_jobs WHERE workspace_id=%s AND message_id=%s ORDER BY message_revision DESC,id DESC LIMIT 1', (workspace, message['id'])).fetchone()
+                job = conn.execute('SELECT * FROM socialmei.me_jobs WHERE workspace_id=%s AND message_id=%s ORDER BY message_revision DESC,id DESC LIMIT 1', (workspace, message['id'])).fetchone() if conversation['origin'] == 'synthetic' else None
                 message['enrichment'] = envelope(job) if job else None
             conversation['messages'] = list(reversed(messages))
+            if conversation['origin'] == 'synthetic':
+                del conversation['origin']
         return {'workspace_id': workspace, 'items': items}
 
 
@@ -432,6 +445,8 @@ def enrich(message_id: Id, payload: Enrich, request: Request, response: Response
         message = conn.execute('SELECT * FROM socialmei.me_messages WHERE workspace_id=%s AND id=%s FOR UPDATE', (workspace, message_id)).fetchone()
         if not message:
             raise HTTPException(404, 'Mensagem não encontrada.')
+        if message['origin'] != 'synthetic':
+            raise HTTPException(409, 'Análise sintética indisponível para esta origem.')
         if message['revision'] != payload.expected_revision:
             raise HTTPException(409, 'A mensagem mudou. Recarregue antes de analisar.')
         rate_limit(conn, workspace); invalidate_expired(conn, workspace)

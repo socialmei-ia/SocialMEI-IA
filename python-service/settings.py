@@ -115,3 +115,10 @@ def instagram_oauth_isolated_enabled() -> bool:
         os.getenv("SOCIALMEI_INSTAGRAM_OAUTH_MODE", "disabled").strip().lower() == "isolated"
         and os.getenv("SOCIALMEI_INSTAGRAM_LAB_ENVIRONMENT", "").strip().lower() == "isolated"
     )
+
+
+def instagram_ingress_isolated_enabled() -> bool:
+    return (
+        os.getenv("SOCIALMEI_INSTAGRAM_INGRESS_MODE", "disabled").strip().lower() == "isolated"
+        and os.getenv("SOCIALMEI_INSTAGRAM_LAB_ENVIRONMENT", "").strip().lower() == "isolated"
+    )

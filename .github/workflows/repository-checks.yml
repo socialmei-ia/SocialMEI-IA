@@ -19,6 +19,7 @@ on:
         feat/instagram-meta-contract-gates,
         feat/instagram-meta-http-adapter,
         feat/instagram-token-vault,
+        feat/instagram-persistent-oauth,
       ]
 
 permissions:

@@ -218,3 +218,57 @@ test("lost refresh after confirmed POST keeps its idempotency key for retry", as
   assert.equal(operations.length, 2);
   assert.equal(operations[0], operations[1]);
 });
+test("Instagram rows require explicit provenance and capability without synthetic masking", async () => {
+  const { auth, store } = fixture();
+  const providerRow = {
+    ...row(),
+    origin: "instagram",
+    channel: "instagram",
+    account_ref: "instagram:987654321",
+    contact_ref: "instagram:123456789",
+    messages: [
+      {
+        id: 1,
+        text: "  Original\n",
+        external_message_id: "m".repeat(300),
+        occurred_at: "2026-10-23T15:40:00.123Z",
+        revision: 1,
+        enrichment: null,
+      },
+    ],
+  };
+  auth.request = async (p) =>
+    p.endsWith("capabilities")
+      ? {
+          schema_version: 1,
+          mode: "disabled",
+          transport: "none",
+          workspace_id: 1,
+          instagram_inbox: true,
+        }
+      : { workspace_id: 1, items: [providerRow] };
+  await store.refresh();
+  assert.equal(store.state().status, "ready");
+  assert.equal(store.state().rows[0].origin, "instagram");
+  assert.equal(store.state().rows[0].messages[0].text, "  Original\n");
+  await assert.rejects(store.write("x", "/synthetic-messages", "POST", {}, store.state().scope));
+  for (const change of [
+    { origin: "unknown" },
+    { origin: "synthetic" },
+    { account_ref: "synthetic:fake" },
+    { channel: "whatsapp" },
+  ]) {
+    auth.request = async (p) =>
+      p.endsWith("capabilities")
+        ? {
+            schema_version: 1,
+            mode: "disabled",
+            transport: "none",
+            workspace_id: 1,
+            instagram_inbox: true,
+          }
+        : { workspace_id: 1, items: [{ ...providerRow, ...change }] };
+    await store.refresh();
+    assert.equal(store.state().status, "error");
+  }
+});
