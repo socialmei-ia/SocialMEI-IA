@@ -1,4 +1,4 @@
-/* Synthetic Inbox enrichment is scoped by the existing account session; never persisted locally. */
+/* Inbox sources are scoped by the existing account session; never persisted locally. */
 (function (root, factory) {
   const api = factory();
   if (typeof module === "object" && module.exports) module.exports = api;
@@ -55,6 +55,28 @@
       if (!id || id !== bind())
         throw new Error("A sessão mudou. Abra novamente a análise neste negócio.");
     }
+    function validOrigin(row) {
+      if (row.origin === "instagram")
+        return (
+          capability?.instagram_inbox === true &&
+          row.channel === "instagram" &&
+          /^instagram:[0-9]{1,40}$/.test(row.account_ref) &&
+          /^instagram:[0-9]{1,40}$/.test(row.contact_ref) &&
+          Array.isArray(row.messages) &&
+          row.messages.every(
+            (m) =>
+              typeof m.external_message_id === "string" &&
+              /^[!-~]{1,1024}$/.test(m.external_message_id) &&
+              typeof m.occurred_at === "string" &&
+              Number.isFinite(Date.parse(m.occurred_at)),
+          )
+        );
+      return (
+        (row.origin === undefined || row.origin === "synthetic") &&
+        /^synthetic:[A-Za-z0-9_.:-]{1,100}$/.test(row.account_ref) &&
+        /^synthetic:[A-Za-z0-9_.:-]{1,100}$/.test(row.contact_ref)
+      );
+    }
     function validateRows(items) {
       if (
         !Array.isArray(items) ||
@@ -63,8 +85,7 @@
             !Number.isSafeInteger(r.id) ||
             r.id < 1 ||
             !["whatsapp", "instagram"].includes(r.channel) ||
-            !r.account_ref?.startsWith("synthetic:") ||
-            !r.contact_ref?.startsWith("synthetic:") ||
+            !validOrigin(r) ||
             typeof r.contact_name !== "string" ||
             !Array.isArray(r.messages) ||
             r.messages.some((m) => !Number.isSafeInteger(m.id) || typeof m.text !== "string"),
@@ -95,11 +116,12 @@
           cap.workspace_id !== workspace ||
           cap.schema_version !== 1 ||
           cap.transport !== "none" ||
-          !["disabled", "stub"].includes(cap.mode)
+          !["disabled", "stub"].includes(cap.mode) ||
+          (cap.instagram_inbox !== undefined && typeof cap.instagram_inbox !== "boolean")
         )
           throw new Error("Contrato de análise indisponível.");
         capability = cap;
-        if (cap.mode === "disabled") {
+        if (cap.mode === "disabled" && cap.instagram_inbox !== true) {
           rows = [];
           documents = [];
           status = "disabled";
@@ -108,7 +130,9 @@
         }
         const [conversations, docs] = await Promise.all([
           auth.request("/message-enrichment/conversations"),
-          auth.request("/message-enrichment/documents"),
+          cap.mode === "stub"
+            ? auth.request("/message-enrichment/documents")
+            : Promise.resolve({ workspace_id: workspace, items: [] }),
         ]);
         validScope(id);
         if (seq !== epoch) return;

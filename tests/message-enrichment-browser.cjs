@@ -17,7 +17,27 @@ module.exports = async (browser, origin) => {
     csrf_token: "a".repeat(64),
   };
   let offlineReview = false,
-    offlineRead = false;
+    offlineRead = false,
+    providerMode = false;
+  const providerRow = {
+    id: 9001,
+    origin: "instagram",
+    channel: "instagram",
+    account_ref: "instagram:987654321",
+    contact_ref: "instagram:123456789",
+    contact_name: "Contato do Instagram",
+    revision: 1,
+    messages: [
+      {
+        id: 9002,
+        external_message_id: "provider-mid-" + "m".repeat(140),
+        text: "  Mensagem Instagram <img src=x onerror=alert(1)>\n",
+        occurred_at: "2026-10-23T15:40:00.123Z",
+        revision: 1,
+        enrichment: null,
+      },
+    ],
+  };
   async function pageFor(identity) {
     const context = await browser.newContext({
       viewport: { width: 1440, height: 1000 },
@@ -44,6 +64,29 @@ module.exports = async (browser, origin) => {
       if (url.pathname === "/api/v1/auth/session") return route.fulfill({ json: identity });
       if (["/api/v1/workspace-profile", "/api/v1/auth/preferences"].includes(url.pathname))
         return profile(route, identity);
+      if (
+        providerMode &&
+        req.method() === "GET" &&
+        url.pathname.startsWith("/api/v1/message-enrichment")
+      ) {
+        if (url.pathname.endsWith("/capabilities"))
+          return route.fulfill({
+            json: {
+              schema_version: 1,
+              mode: "disabled",
+              transport: "none",
+              workspace_id: identity.negocio.id,
+              instagram_inbox: true,
+            },
+          });
+        if (url.pathname.endsWith("/conversations"))
+          return route.fulfill({
+            json: {
+              workspace_id: identity.negocio.id,
+              items: identity.negocio.id === 1 ? [providerRow] : [],
+            },
+          });
+      }
       if (url.pathname.startsWith("/api/v1/message-enrichment")) {
         if (req.method() !== "GET")
           writes.push({
@@ -202,6 +245,41 @@ module.exports = async (browser, origin) => {
       0,
     );
     assert.equal(await a.locator("#enrichmentReply").count(), 0);
+    providerMode = true;
+    const provider = await pageFor(owner);
+    await provider.evaluate(async () => selectConversation(-9001));
+    assert.equal(await provider.evaluate(() => getConversation()._enrichmentSynthetic), false);
+    assert.equal(await provider.evaluate(() => getConversation()._enrichmentOrigin), "instagram");
+    assert.match(await provider.locator("#threadMeta").textContent(), /Instagram/);
+    assert(!/Fictício|n8n/.test(await provider.locator("#threadMeta").textContent()));
+    assert(await provider.locator("#composerZone").isHidden());
+    assert(await provider.locator("#threadStatus").isDisabled());
+    assert.equal(await provider.locator("#enrichmentReview").count(), 0);
+    assert(
+      await provider
+        .locator("#messages")
+        .textContent()
+        .then((text) => text.includes("<img src=x onerror=alert(1)>")),
+    );
+    const original = await provider.evaluate(() => getConversation().mensagens.length);
+    await provider.evaluate(() => sendCurrentMessage("Não enviar"));
+    assert.equal(await provider.evaluate(() => getConversation().mensagens.length), original);
+    const providerOther = await pageFor({
+      ...owner,
+      usuario: { ...owner.usuario, id: 2 },
+      negocio: { ...owner.negocio, id: 2 },
+    });
+    assert.equal(
+      await providerOther.evaluate(() => SocialMEIMessageEnrichment.state().rows.length),
+      0,
+    );
+    await provider.evaluate(() => SocialMEIMessageEnrichment.refresh());
+    assert.equal(
+      await provider.evaluate(
+        () => sessionData.conversas.filter((c) => c._enrichmentOrigin === "instagram").length,
+      ),
+      1,
+    );
     assert(!writes.some((r) => /send|waha|webhook|publish/.test(r.path)));
     assert.deepEqual(errors, []);
     assert.deepEqual(external, []);

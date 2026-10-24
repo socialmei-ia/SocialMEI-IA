@@ -1,4 +1,4 @@
-/* Native Inbox lab. No connector, automatic ingestion, message sending or browser persistence. */
+/* Native Inbox sources. No message sending or browser persistence. */
 (() => {
   const byId = (id) => document.getElementById(id);
   let updating = false;
@@ -9,9 +9,11 @@
     formOperation = null;
   function installRows(state) {
     const old = new Map(
-      sessionData.conversas.filter((c) => c._enrichmentSynthetic).map((c) => [c._enrichmentId, c]),
+      sessionData.conversas
+        .filter((c) => managedInboxConversation(c))
+        .map((c) => [c._enrichmentId, c]),
     );
-    sessionData.conversas = sessionData.conversas.filter((c) => !c._enrichmentSynthetic);
+    sessionData.conversas = sessionData.conversas.filter((c) => !managedInboxConversation(c));
     if (scope !== state.scope) {
       scope = state.scope;
       drafts.clear();
@@ -22,33 +24,38 @@
     }
     for (const row of state.rows) {
       const previous = old.get(row.id);
+      const provider = row.origin === "instagram";
       sessionData.conversas.push({
         id: -row.id,
-        _enrichmentSynthetic: true,
+        _enrichmentManaged: true,
+        _enrichmentSynthetic: !provider,
+        _enrichmentOrigin: provider ? "instagram" : "synthetic",
         _enrichmentId: row.id,
         _enrichmentScope: state.scope,
-        _enrichmentLabel: `${row.account_ref.replace("synthetic:", "").replaceAll("-", " ")} · ${row.contact_ref.replace("synthetic:", "").replaceAll("-", " ")}`,
+        _enrichmentLabel: provider
+          ? `Instagram · ${row.account_ref.slice(10)} · ${row.contact_ref.slice(10)}`
+          : `${row.account_ref.replace("synthetic:", "").replaceAll("-", " ")} · ${row.contact_ref.replace("synthetic:", "").replaceAll("-", " ")}`,
         _enrichmentKey: [state.scope, row.channel, row.account_ref, row.contact_ref].join(":"),
         nome: row.contact_name,
         iniciais: initialsFromName(row.contact_name),
         canal: row.channel,
         status: "aberto",
         telefone: "—",
-        usuario: "Contato fictício",
+        usuario: provider ? "Contato do Instagram" : "Contato fictício",
         naoLidas: previous?.naoLidas || 0,
-        atualizado: "Teste isolado",
+        atualizado: provider ? "Mensagem recebida" : "Teste isolado",
         mensagens: row.messages.map((m) => ({
           de: "cliente",
           texto: m.text,
           data: remoteDate(m.occurred_at),
           hora: remoteHour(m.occurred_at),
-          remoteId: `synthetic:${state.scope}:${m.id}`,
+          remoteId: `${provider ? "instagram" : "synthetic"}:${state.scope}:${m.id}`,
         })),
       });
     }
     if (currentView === "Caixa Unificada") {
       renderConversationList();
-      if (getConversation()?._enrichmentSynthetic) renderThread({ preserveScroll: true });
+      if (managedInboxConversation(getConversation())) renderThread({ preserveScroll: true });
       else if (activeConversationId < 0 && !getConversation()) {
         enterInboxListMode();
         renderThread();
@@ -76,8 +83,9 @@
           loading: "Consultando dados deste negócio…",
           disabled: "Análise desativada neste ambiente. Nenhum canal ou workflow foi conectado.",
           unavailable: "Entre em uma conta conectada para usar o laboratório.",
-          ready:
-            "Demonstração autenticada · mensagens e documentos fictícios. Processamento heurístico local no servidor; sem envio externo.",
+          ready: state.rows.some((row) => row.origin === "instagram")
+            ? "Mensagens do Instagram neste negócio. Envio e análise automática indisponíveis."
+            : "Demonstração autenticada · mensagens e documentos fictícios. Processamento heurístico local no servidor; sem envio externo.",
         }[state.status] ||
         "Análise indisponível.";
       byId("enrichmentLabForms").hidden = !state.capability || state.capability.mode !== "stub";

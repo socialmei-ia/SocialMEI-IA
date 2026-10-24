@@ -1,3 +1,6 @@
+function managedInboxConversation(conversation) {
+  return !!(conversation?._enrichmentManaged || conversation?._enrichmentSynthetic);
+}
 /* INBOX */
 function appendInitialLocalMessage(conversation, message) {
   const text = message.trim();
@@ -31,7 +34,7 @@ function saveInboxLocal() {
   );
 }
 function conversationKey(conversation) {
-  if (conversation._enrichmentSynthetic) return "enrichment:" + conversation._enrichmentKey;
+  if (managedInboxConversation(conversation)) return "enrichment:" + conversation._enrichmentKey;
   const key = `${conversation.canal}:${conversation.nome.toLowerCase()}`;
   return conversation._socialmeiDemoSample ? `demo:${key}` : key;
 }
@@ -265,7 +268,7 @@ function renderConversationList() {
                   >
                   <span class="conv-tags"
                     ><span class="status-mini ${statusClass}">${statusLabel(c.status)}</span
-                    >${c._enrichmentSynthetic ? `<span class="conv-tag">${escapeHtml(c._enrichmentLabel)}</span>` : ""}${c._socialmeiDemoSample && sessionData.conversas.some((row) => !row._socialmeiDemoSample) ? '<span class="conv-tag">Exemplo</span>' : ""}${conversationTags(
+                    >${managedInboxConversation(c) ? `<span class="conv-tag">${escapeHtml(c._enrichmentLabel)}</span>` : ""}${c._socialmeiDemoSample && sessionData.conversas.some((row) => !row._socialmeiDemoSample) ? '<span class="conv-tag">Exemplo</span>' : ""}${conversationTags(
                       c,
                     )
                       .map((t) => /* HTML */ `<span class="conv-tag">${escapeHtml(t)}</span>`)
@@ -401,8 +404,9 @@ function renderDetails(c) {
   if (!host || !c) {
     return;
   }
-  if (c._enrichmentSynthetic) {
-    host.innerHTML = `<div class="context-body"><section class="context-card"><h4>Contato fictício</h4><p>${escapeHtml(c._enrichmentLabel || "Identidade de teste")}</p><p>Conversa isolada deste negócio. Não há cadastro de cliente vinculado por nome, canal conectado ou envio externo.</p></section></div>`;
+  if (managedInboxConversation(c)) {
+    const provider = c._enrichmentOrigin === "instagram";
+    host.innerHTML = `<div class="context-body"><section class="context-card"><h4>${provider ? "Contato do Instagram" : "Contato fictício"}</h4><p>${escapeHtml(c._enrichmentLabel || "Identidade de teste")}</p><p>${provider ? "Mensagem recebida para este negócio. Não há cadastro de cliente vinculado por nome nem envio externo habilitado." : "Conversa isolada deste negócio. Não há cadastro de cliente vinculado por nome, canal conectado ou envio externo."}</p></section></div>`;
     return;
   }
   const missingFieldsExpanded = !!host.querySelector(".context-missing-fields[open]");
@@ -646,13 +650,16 @@ function renderThread({ animate = false, preserveScroll = false, refreshList = t
   }
   $("threadAvatar").innerHTML = avatarContents(conversation);
   $("threadName").textContent = displayName(conversation);
-  const threadSource = conversation._enrichmentSynthetic
-    ? "Mensagem fictícia · laboratório isolado"
-    : conversation.mensagens.some((message) => message.remoteId)
-      ? "Recebido via n8n"
-      : conversation.localConversation
-        ? "Conversa local"
-        : "Demonstração";
+  const threadSource =
+    conversation._enrichmentOrigin === "instagram"
+      ? "Recebido por webhook Instagram · envio indisponível"
+      : conversation._enrichmentSynthetic
+        ? "Mensagem fictícia · laboratório isolado"
+        : conversation.mensagens.some((message) => message.remoteId)
+          ? "Recebido via n8n"
+          : conversation.localConversation
+            ? "Conversa local"
+            : "Demonstração";
   $("threadMeta").innerHTML = /* HTML */ `<span class="pill info" title="${threadSource}"
             >${channelIcon(conversation.canal)} ${channelLabel(conversation.canal)}${conversation._enrichmentSynthetic ? " · Fictício" : ""}</span
           ><span class="thread-recency" title="${threadSource}"
@@ -669,9 +676,9 @@ function renderThread({ animate = false, preserveScroll = false, refreshList = t
     renderConversationList();
   }
   updateInboxNavBadge();
-  $("composerZone").hidden = !!conversation._enrichmentSynthetic;
+  $("composerZone").hidden = managedInboxConversation(conversation);
   for (const id of ["threadStatus", "favoriteBtn", "threadMoreBtn"])
-    if ($(id)) $(id).disabled = !!conversation._enrichmentSynthetic;
+    if ($(id)) $(id).disabled = managedInboxConversation(conversation);
   window.SocialMEIMessageEnrichment?.render(conversation);
 }
 function hydrateLocalNotes() {
@@ -1000,8 +1007,13 @@ function persistLocalNote(c, note) {
 }
 function sendCurrentMessage(text) {
   const conversation = getConversation();
-  if (conversation?._enrichmentSynthetic) {
-    toast("Sem envio externo", "Revise o rascunho no laboratório. Nenhuma resposta é enviada.");
+  if (managedInboxConversation(conversation)) {
+    toast(
+      "Sem envio externo",
+      conversation._enrichmentOrigin === "instagram"
+        ? "O envio de respostas para o Instagram ainda não foi habilitado."
+        : "Revise o rascunho no laboratório. Nenhuma resposta é enviada.",
+    );
     return;
   }
   if (isInboxListMode || isConversationSwitching || !conversation || !text.trim()) {
@@ -1115,7 +1127,7 @@ function updateComposerState() {
     isInboxListMode ||
     isConversationSwitching ||
     !getConversation() ||
-    !!getConversation()?._enrichmentSynthetic ||
+    managedInboxConversation(getConversation()) ||
     !input.value.trim();
   autoResizeComposer();
   $("noteModeBtn")?.classList.toggle("active", isComposerNoteMode);
@@ -1285,7 +1297,7 @@ function updateFavoriteButton(c) {
   b.title = isFavorite(c) ? "Remover dos favoritos" : "Favoritar atendimento";
 }
 function persistConversationState(c) {
-  if (!c || c._enrichmentSynthetic) {
+  if (!c || managedInboxConversation(c)) {
     return;
   }
   inboxLocalState[`state:${conversationKey(c)}`] = {
@@ -1297,7 +1309,7 @@ function persistConversationState(c) {
   saveInboxLocal();
 }
 function recordEvent(c, label) {
-  if (c._enrichmentSynthetic) return;
+  if (managedInboxConversation(c)) return;
   const key = `events:${conversationKey(c)}`;
   const events = inboxLocalState[key] || [];
   events.push({
@@ -1530,7 +1542,7 @@ function closeInboxPopovers() {
 }
 function saveCurrentDraft() {
   const conversation = getConversation();
-  if (conversation?._enrichmentSynthetic) return;
+  if (managedInboxConversation(conversation)) return;
   if (conversation) {
     conversationDrafts.set(conversation.id, {
       text: $("messageInput").value,

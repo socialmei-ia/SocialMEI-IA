@@ -8,6 +8,13 @@ test("demo conversations cannot inherit drafts, notes or state of a real contact
   const context = vm.createContext({});
   vm.runInContext(
     source.slice(
+      source.indexOf("function managedInboxConversation("),
+      source.indexOf("/* INBOX */"),
+    ),
+    context,
+  );
+  vm.runInContext(
+    source.slice(
       source.indexOf("function conversationKey("),
       source.indexOf("function isReducedMotion("),
     ),
@@ -123,6 +130,10 @@ test("sample refresh honors new and legacy removals without importing real conta
   context.initialsFromName = () => "PQ";
   context.getConversation = () => null;
   vm.runInContext(
+    inbox.slice(inbox.indexOf("function managedInboxConversation("), inbox.indexOf("/* INBOX */")),
+    context,
+  );
+  vm.runInContext(
     inbox.slice(
       inbox.indexOf("function conversationKey("),
       inbox.indexOf("function isReducedMotion("),
@@ -185,4 +196,41 @@ test("sample or active demo cannot create or update a CRM client, even through d
     null,
   );
   assert.equal(writes, 0);
+});
+
+test("managed Instagram conversation identity remains isolated by workspace and account", () => {
+  const source = fs.readFileSync(path.join(__dirname, "../frontend/scripts/inbox.js"), "utf8");
+  const context = vm.createContext({});
+  vm.runInContext(
+    source.slice(
+      source.indexOf("function managedInboxConversation("),
+      source.indexOf("/* INBOX */"),
+    ),
+    context,
+  );
+  vm.runInContext(
+    source.slice(
+      source.indexOf("function conversationKey("),
+      source.indexOf("function isReducedMotion("),
+    ),
+    context,
+  );
+  const provider = {
+    canal: "instagram",
+    nome: "Pessoa QA",
+    _enrichmentManaged: true,
+    _enrichmentSynthetic: false,
+    _enrichmentKey: "workspace-one:instagram:111:222",
+  };
+  const otherWorkspace = { ...provider, _enrichmentKey: "workspace-two:instagram:111:222" };
+  const otherAccount = { ...provider, _enrichmentKey: "workspace-one:instagram:333:222" };
+  assert.equal(context.managedInboxConversation(provider), true);
+  assert.equal(context.conversationKey(provider), "enrichment:" + provider._enrichmentKey);
+  assert.notEqual(context.conversationKey(provider), context.conversationKey(otherWorkspace));
+  assert.notEqual(context.conversationKey(provider), context.conversationKey(otherAccount));
+  assert.notEqual(
+    context.conversationKey(provider),
+    context.conversationKey({ canal: "instagram", nome: "Pessoa QA" }),
+  );
+  assert.equal(context.managedInboxConversation({ _enrichmentSynthetic: true }), true);
 });
