@@ -138,3 +138,24 @@ def waha_ingress_isolated_enabled() -> bool:
         and shared_data_enabled()
         and authentication_mode() == "enabled"
     )
+
+
+def instagram_runtime_enabled() -> bool:
+    return (
+        os.getenv("SOCIALMEI_INSTAGRAM_RUNTIME_MODE", "disabled").strip().lower() == "connect"
+        and authentication_mode() == "enabled" and shared_data_enabled()
+    )
+
+
+def instagram_runtime_configuration() -> dict:
+    # Server-only values. Never return this mapping from an API or log it.
+    return {
+        key: os.getenv("SOCIALMEI_INSTAGRAM_" + suffix, "")
+        for key, suffix in {
+            "client_id": "CLIENT_ID", "client_secret": "CLIENT_SECRET",
+            "graph_version": "GRAPH_VERSION", "authorization_embed": "AUTHORIZATION_EMBED",
+            "keyring": "TOKEN_KEYRING", "active_key_id": "TOKEN_ACTIVE_KEY_ID",
+            "verify_token": "WEBHOOK_VERIFY_TOKEN", "ingress": "RUNTIME_INGRESS_ENABLED",
+            "send": "RUNTIME_SEND_ENABLED", "privacy_reviewed": "PROXY_PRIVACY_REVIEWED",
+        }.items()
+    }

@@ -32,7 +32,10 @@ from opportunities import router as opportunities_router
 from integration_setup import router as integration_setup_router
 from settings import cors_origins as configured_cors_origins
 
-app = FastAPI(title="SocialME Python Service")
+from instagram_runtime import runtime_lifespan, router as integration_readiness_router
+
+app = FastAPI(title="SocialME Python Service", lifespan=runtime_lifespan)
+app.include_router(integration_readiness_router)
 app.add_middleware(AccountMiddleware)
 cors_origins = configured_cors_origins()
 if cors_origins:

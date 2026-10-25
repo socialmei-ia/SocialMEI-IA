@@ -22,8 +22,9 @@ router = APIRouter(prefix="/api/v1/instagram/direct", tags=["isolated Direct out
 SCOPES = {"instagram_business_basic", "instagram_business_manage_messages"}
 
 
-def outbox_service():
-    raise HTTPException(503, "Envio Instagram ainda não configurado.")
+def outbox_service(request: Request = None):
+    from instagram_runtime import runtime_service
+    return runtime_service(request, "direct")
 
 
 def reply_text(text):
@@ -91,11 +92,14 @@ def event(conn, row, action, actor=None):
 
 
 class InstagramDirectService:
-    def __init__(self, *, adapter, vault):
+    def __init__(self, *, adapter, vault, allow_dispatch=True):
         if not isinstance(adapter, InstagramAdapter) or not isinstance(
             vault, TokenVault
         ):
             raise ValueError("Dependências Direct indisponíveis.")
+        if type(allow_dispatch) is not bool:
+            raise ValueError("Permissão de despacho inválida.")
+        self.allow_dispatch = allow_dispatch
         self.adapter, self.vault = adapter, vault
 
     def source(self, conn, workspace, source_id):
@@ -126,7 +130,7 @@ class InstagramDirectService:
 
     def _authorize(self, conn, user, session, *, runner=False):
         require_enabled()
-        if not settings.instagram_direct_isolated_enabled():
+        if not (settings.instagram_direct_isolated_enabled() or settings.instagram_runtime_enabled()):
             raise HTTPException(503, "Direct isolado não habilitado.")
         _lock(conn, user["workspace_id"])
         conn.execute(
@@ -367,6 +371,8 @@ class InstagramDirectService:
                 credential = None
 
     def run(self, user, session, job_id):
+        if not self.allow_dispatch:
+            raise HTTPException(503, "Envio externo não autorizado neste ambiente.")
         credential = None
         with connect() as conn:
             conn.row_factory = dict_row
@@ -467,7 +473,7 @@ class InstagramDirectService:
 
 def identity(request):
     require_enabled()
-    if not settings.instagram_direct_isolated_enabled():
+    if not (settings.instagram_direct_isolated_enabled() or settings.instagram_runtime_enabled()):
         raise HTTPException(503, "Direct isolado não habilitado.")
     return current(), digest(request.cookies.get(COOKIE, ""))
 

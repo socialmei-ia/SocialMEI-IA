@@ -30,6 +30,8 @@ from instagram_persistent_oauth import _lock as lock_oauth_workspace
 from message_enrichment import _append_inbox_message, fingerprint
 
 PATH = "/internal/instagram/meta/webhooks"
+PUBLIC_PATH = "/webhooks/instagram"
+OAUTH_RETURN_PATH = "/api/v1/instagram/meta/oauth/return"
 router = APIRouter(tags=["prepared Instagram ingress"])
 MAX_MID_BYTES = 1024  # Product ingress bound; not a claimed Meta maximum.
 
@@ -41,11 +43,11 @@ class WebhookQueryPrivacy:
         self.app = app
 
     async def __call__(self, scope, receive, send):
-        if scope.get("type") == "http" and scope.get("path", "").rstrip("/") == PATH:
+        if scope.get("type") == "http" and scope.get("path", "").rstrip("/") in {PATH, PUBLIC_PATH, OAUTH_RETURN_PATH}:
             raw = scope.get("query_string", b"")
             scope["query_string"] = b""
             state = scope.setdefault("state", {})
-            state["instagram_webhook_query"] = (
+            state["instagram_oauth_query" if scope.get("path", "").rstrip("/") == OAUTH_RETURN_PATH else "instagram_webhook_query"] = (
                 QueryParams(raw) if len(raw) <= 4096 else None
             )
             original_send = send
@@ -56,7 +58,7 @@ class WebhookQueryPrivacy:
                         (k, v)
                         for k, v in message.get("headers", [])
                         if k.lower()
-                        not in {b"cache-control", b"x-content-type-options"}
+                        not in {b"cache-control", b"x-content-type-options", b"referrer-policy"}
                     ]
                     message = {
                         **message,
@@ -64,6 +66,7 @@ class WebhookQueryPrivacy:
                             *headers,
                             (b"cache-control", b"no-store"),
                             (b"x-content-type-options", b"nosniff"),
+                            (b"referrer-policy", b"no-referrer"),
                         ],
                     }
                 await original_send(message)
@@ -72,13 +75,14 @@ class WebhookQueryPrivacy:
         await self.app(scope, receive, send)
 
 
-def ingress_service():
-    raise HTTPException(503, "Recepção Instagram ainda não configurada.")
+def ingress_service(request: Request = None):
+    from instagram_runtime import runtime_service
+    return runtime_service(request, "ingress")
 
 
 def _enabled():
     if (
-        not settings.instagram_ingress_isolated_enabled()
+        not (settings.instagram_ingress_isolated_enabled() or settings.instagram_runtime_enabled())
         or not shared_data_enabled()
         or settings.authentication_mode() != "enabled"
     ):
@@ -409,6 +413,7 @@ class InstagramIngressService:
         return result
 
 
+@router.get(PUBLIC_PATH)
 @router.get(PATH)
 @router.get(PATH + "/", include_in_schema=False)
 def challenge(
@@ -432,6 +437,7 @@ def challenge(
     )
 
 
+@router.post(PUBLIC_PATH)
 @router.post(PATH)
 @router.post(PATH + "/", include_in_schema=False)
 async def webhook(

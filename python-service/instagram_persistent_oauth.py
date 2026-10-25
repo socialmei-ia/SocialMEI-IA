@@ -26,9 +26,9 @@ router = APIRouter(prefix="/api/v1/instagram/meta", tags=["prepared Instagram OA
 STATE_TTL_SECONDS = 300
 
 
-def oauth_service():
-    # No environment flag constructs a network transport or installs credentials.
-    raise HTTPException(503, "Conexão Instagram ainda não configurada.")
+def oauth_service(request: Request = None):
+    from instagram_runtime import runtime_service
+    return runtime_service(request, "oauth")
 
 
 @contextmanager
@@ -392,7 +392,7 @@ class Callback(Strict):
 
 def _request_identity(request):
     require_enabled()
-    if not settings.instagram_oauth_isolated_enabled():
+    if not (settings.instagram_oauth_isolated_enabled() or settings.instagram_runtime_enabled()):
         raise HTTPException(503, "Integração Instagram ainda não habilitada.")
     return current(), digest(request.cookies.get(COOKIE, ""))
 
@@ -452,3 +452,26 @@ def rotate_key(
 ):
     user, session_hash = _request_identity(request)
     return service.rotate_key(user, session_hash)
+
+
+@router.get("/oauth/return", include_in_schema=False)
+def browser_callback(request: Request, service: InstagramOAuthService = Depends(oauth_service)):
+    from fastapi.responses import RedirectResponse
+    from pydantic import ValidationError
+    user, session_hash = _request_identity(request)
+    query = request.scope.get("state", {}).get("instagram_oauth_query")
+    allowed = {"state", "code", "error", "error_reason", "error_description"}
+    outcome = "failed"
+    try:
+        if query is None or not set(query) <= allowed or any(len(query.getlist(k)) != 1 for k in query):
+            raise ValueError("Callback inválido.")
+        payload = Callback(state=query.get("state"), code=query.get("code"), error=query.get("error"), callback_uri=service.callback_uri)
+        result = service.callback(user, session_hash, payload.state, payload.code, payload.callback_uri, payload.error)
+        if result.get("status") == "connected":
+            outcome = "connected"
+    except (HTTPException, ValidationError, ValueError):
+        pass
+    return RedirectResponse(
+        "/frontend/socialmei-app.html#instagram=" + outcome, status_code=303,
+        headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer", "X-Content-Type-Options": "nosniff"},
+    )

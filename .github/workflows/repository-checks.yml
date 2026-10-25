@@ -23,6 +23,7 @@ on:
         feat/instagram-durable-webhook,
         feat/instagram-direct-outbox,
         feat/opportunity-planning-persistence,
+        feat/waha-durable-ingress,
       ]
 
 permissions:

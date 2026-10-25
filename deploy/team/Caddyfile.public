@@ -25,6 +25,13 @@
         handle @technical_reads {
             reverse_proxy team-api:8000
         }
+        # Optional provider ingress; backend stays503 until explicitly configured.
+        # Review upstream log redaction before any live webhook activation.
+        handle /webhooks/instagram {
+            reverse_proxy team-api:8000 {
+                header_up -Authorization
+            }
+        }
         handle /api/v1/* {
             reverse_proxy team-api:8000 {
                 header_up -Authorization
