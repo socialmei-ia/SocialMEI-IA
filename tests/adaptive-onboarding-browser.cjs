@@ -1009,7 +1009,7 @@ module.exports = async function onboarding(browser, origin) {
       session = null;
       sessionFailure = failed;
       await page.reload();
-      await page.locator('[data-xp-screen="auth"].is-active').waitFor();
+      await page.locator('[data-xp-screen="landing"].is-active').waitFor();
       assert.equal(
         await page.evaluate(() => SocialMEIBusinessProfile.browserRepository().read().profile),
         null,

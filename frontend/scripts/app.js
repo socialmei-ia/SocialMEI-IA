@@ -3406,11 +3406,11 @@ function renderAccountSecurityControls(administrator) {
               <input id="accountCurrentPassword" class="management-input" type="password" name="atual" autocomplete="current-password" maxlength="128" required>
             </label>
             <label class="management-field" for="accountNewPassword">Nova senha
-              <input id="accountNewPassword" class="management-input" type="password" name="nova" autocomplete="new-password" minlength="12" maxlength="128" required aria-describedby="accountPasswordHint">
+              <input id="accountNewPassword" class="management-input" type="password" name="nova" autocomplete="new-password" minlength="8" maxlength="128" required aria-describedby="accountPasswordHint">
             </label>
-            <small id="accountPasswordHint" class="account-helper">Use de 12 a 128 caracteres.</small>
+            <small id="accountPasswordHint" class="account-helper">Use de 8 a 128 caracteres. Evite senhas comuns.</small>
             <label class="management-field" for="accountConfirmPassword">Repita a nova senha
-              <input id="accountConfirmPassword" class="management-input" type="password" name="confirmacao" autocomplete="new-password" minlength="12" maxlength="128" required>
+              <input id="accountConfirmPassword" class="management-input" type="password" name="confirmacao" autocomplete="new-password" minlength="8" maxlength="128" required>
             </label>
             <p id="accountPasswordFeedback" class="account-feedback" role="status" aria-live="polite"></p>
             <button class="account-button account-button-primary" type="submit">Atualizar senha</button>
@@ -4008,6 +4008,12 @@ function isQuietPeriodActive() {
     ? time >= p.quietFrom && time < p.quietTo
     : time >= p.quietFrom || time < p.quietTo;
 }
+document.addEventListener("input", (event) => {
+  if (event.target.id !== "accountNewPassword") return;
+  const policy = SocialMEIAuth.passwordPolicy(event.target.value);
+  event.target.setCustomValidity(policy.error);
+  $("accountPasswordFeedback").textContent = policy.error || policy.warning;
+});
 document.addEventListener("submit", async (event) => {
   if (event.target.id === "accountPasswordForm") {
     event.preventDefault();
@@ -4015,6 +4021,12 @@ document.addEventListener("submit", async (event) => {
     const button = form.querySelector("button");
     const feedback = $("accountPasswordFeedback");
     const values = Object.fromEntries(new FormData(form));
+    const policy = SocialMEIAuth.passwordPolicy(values.nova);
+    if (policy.error) {
+      feedback.textContent = policy.error;
+      $("accountNewPassword").focus();
+      return;
+    }
     if (values.nova !== values.confirmacao) {
       feedback.textContent = "As novas senhas precisam ser iguais.";
       $("accountConfirmPassword").focus();

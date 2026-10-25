@@ -1,0 +1,57 @@
+# Public team gateway reference; session authorization remains mandatory in FastAPI.
+# Do not replace a live gateway configuration with this file during a password-only update.
+:80 {
+    @foreign_origin {
+        header Origin *
+        not header Origin https://{$SOCIALMEI_TEAM_HOST}
+    }
+    @app_assets path /scripts/* /styles/* /assets/* /config.js
+    @technical_reads {
+        method GET
+        path /api/v1/integracoes/resumo /api/v1/integracoes/clientes /api/v1/integracoes/produtos /api/v1/integracoes/vendas /api/v1/integracoes/financeiro
+    }
+    # Literal order: Origin checks precede every handler.
+    route {
+        respond @foreign_origin "Origem não permitida." 403
+        header {
+            X-Content-Type-Options nosniff
+            Referrer-Policy same-origin
+            Cache-Control no-store
+        }
+        request_body {
+            max_size 3MB
+        }
+        # Technical reads authenticate with Bearer inside the API.
+        handle @technical_reads {
+            reverse_proxy team-api:8000
+        }
+        handle /api/v1/* {
+            reverse_proxy team-api:8000 {
+                header_up -Authorization
+            }
+        }
+        handle /health/db {
+            respond "Não encontrado." 404
+        }
+        handle_path /frontend/* {
+            root * /srv/frontend
+            file_server
+        }
+        handle / {
+            root * /srv/frontend
+            rewrite * /socialmei-app.html
+            file_server
+        }
+        handle /index.html {
+            redir * / 302
+        }
+        # Relative assets also work when the application is opened at /.
+        handle @app_assets {
+            root * /srv/frontend
+            file_server
+        }
+        handle {
+            respond "Não encontrado." 404
+        }
+    }
+}

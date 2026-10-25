@@ -25,13 +25,38 @@ async function run() {
       });
       const anonymous = await context.request.get(origin + "/api/v1/clientes");
       assert.equal(anonymous.status(), 401);
+      assert.equal(anonymous.headers()["www-authenticate"], undefined);
+      for (const path of ["/internal/channel-ingress", "/__missing_release_route__", "/.env"])
+        assert.equal((await context.request.get(origin + path)).status(), 404);
+      const publicPage = await context.newPage();
+      const publicResponse = await publicPage.goto(origin + "/");
+      assert.equal(publicResponse.status(), 200);
+      assert.equal(publicResponse.headers()["www-authenticate"], undefined);
+      await publicPage.waitForFunction(() => !!window.SocialMEIAuth);
+      await publicPage.evaluate(async () => {
+        await SocialMEIAuth.ready;
+        await SocialMEIProfileSync.ready;
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      });
+      assert.equal(await publicPage.locator("[data-xp-screen=landing].is-active").count(), 1);
+      assert.equal(await publicPage.locator("[data-xp-screen=auth].is-active").count(), 0);
+      await publicPage.close();
+      const credentials = {
+        nome: "Pessoa fictícia " + i,
+        email: `preview-${randomUUID()}@example.test`,
+        senha: "FlorSol!",
+      };
+      for (const senha of ["FlorSol", "12345678"]) {
+        const invalid = await context.request.post(origin + "/api/v1/auth/register", {
+          headers: { Origin: origin, "X-SocialMEI-Client": "browser" },
+          data: { ...credentials, senha },
+        });
+        assert.equal(invalid.status(), 422);
+      }
+      context.previewCredentials = credentials;
       const register = await context.request.post(origin + "/api/v1/auth/register", {
         headers: { Origin: origin, "X-SocialMEI-Client": "browser" },
-        data: {
-          nome: "Pessoa fictícia " + i,
-          email: `preview-${randomUUID()}@example.test`,
-          senha: "Preview-only-" + randomUUID(),
-        },
+        data: credentials,
       });
       assert.equal(register.status(), 201, await register.text());
       const identity = await register.json();
@@ -339,6 +364,37 @@ async function run() {
       client,
       headers,
     );
+    const existingSession = await browser.newContext({ ignoreHTTPSErrors: true });
+    contexts.push(existingSession);
+    const existingLogin = await existingSession.request.post(origin + "/api/v1/auth/login", {
+      headers: { Origin: origin, "X-SocialMEI-Client": "browser" },
+      data: { email: first.previewCredentials.email, senha: first.previewCredentials.senha },
+    });
+    assert.equal(existingLogin.status(), 200);
+    for (const nova of ["Luar9!a", "12345678"]) {
+      const invalidChange = await first.request.post(origin + "/api/v1/auth/password", {
+        headers,
+        data: { atual: first.previewCredentials.senha, nova },
+      });
+      assert.equal(invalidChange.status(), 422);
+      assert.equal((await existingSession.request.get(origin + "/api/v1/auth/me")).status(), 200);
+    }
+    const changed = await first.request.post(origin + "/api/v1/auth/password", {
+      headers,
+      data: { atual: first.previewCredentials.senha, nova: "Luar9!az" },
+    });
+    assert.equal(changed.status(), 204);
+    assert.equal((await existingSession.request.get(origin + "/api/v1/auth/me")).status(), 401);
+    assert.equal((await first.request.get(origin + "/api/v1/clientes")).status(), 401);
+    const updatedLogin = await first.request.post(origin + "/api/v1/auth/login", {
+      headers: { Origin: origin, "X-SocialMEI-Client": "browser" },
+      data: { email: first.previewCredentials.email, senha: "Luar9!az" },
+    });
+    assert.equal(updatedLogin.status(), 200);
+    assert.equal(
+      (await contexts[1].request.get(origin + "/api/v1/clientes/" + client.id)).status(),
+      404,
+    );
     assert.deepEqual(errors, []);
     fs.writeFileSync(
       path.join(output, "result.json"),
@@ -350,6 +406,10 @@ async function run() {
           origin,
           workspaces: 2,
           auth: true,
+          publicLandingWithoutBasic: true,
+          passwordEightCharacters: true,
+          passwordChangeRevokesSessions: true,
+          anonymous401And404: true,
           csrf: true,
           persistentClient: true,
           opportunityLifecyclePersistent: true,
