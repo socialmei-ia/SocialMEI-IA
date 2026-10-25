@@ -24,16 +24,17 @@
     }
     for (const row of state.rows) {
       const previous = old.get(row.id);
-      const provider = row.origin === "instagram";
+      const provider = row.origin === "instagram" || row.origin === "waha";
+      const channelLabel = row.origin === "waha" ? "WhatsApp" : "Instagram";
       sessionData.conversas.push({
         id: -row.id,
         _enrichmentManaged: true,
         _enrichmentSynthetic: !provider,
-        _enrichmentOrigin: provider ? "instagram" : "synthetic",
+        _enrichmentOrigin: provider ? row.origin : "synthetic",
         _enrichmentId: row.id,
         _enrichmentScope: state.scope,
         _enrichmentLabel: provider
-          ? `Instagram · ${row.account_ref.slice(10)} · ${row.contact_ref.slice(10)}`
+          ? `${channelLabel} · ${row.account_ref.replace(/^(instagram|waha):/, "")} · ${row.contact_ref.replace(/^(instagram|waha):/, "")}`
           : `${row.account_ref.replace("synthetic:", "").replaceAll("-", " ")} · ${row.contact_ref.replace("synthetic:", "").replaceAll("-", " ")}`,
         _enrichmentKey: [state.scope, row.channel, row.account_ref, row.contact_ref].join(":"),
         nome: row.contact_name,
@@ -41,7 +42,7 @@
         canal: row.channel,
         status: "aberto",
         telefone: "—",
-        usuario: provider ? "Contato do Instagram" : "Contato fictício",
+        usuario: provider ? `Contato do ${channelLabel}` : "Contato fictício",
         naoLidas: previous?.naoLidas || 0,
         atualizado: provider ? "Mensagem recebida" : "Teste isolado",
         mensagens: row.messages.map((m) => ({
@@ -49,7 +50,7 @@
           texto: m.text,
           data: remoteDate(m.occurred_at),
           hora: remoteHour(m.occurred_at),
-          remoteId: `${provider ? "instagram" : "synthetic"}:${state.scope}:${m.id}`,
+          remoteId: `${provider ? row.origin : "synthetic"}:${state.scope}:${m.id}`,
         })),
       });
     }
@@ -83,8 +84,8 @@
           loading: "Consultando dados deste negócio…",
           disabled: "Análise desativada neste ambiente. Nenhum canal ou workflow foi conectado.",
           unavailable: "Entre em uma conta conectada para usar o laboratório.",
-          ready: state.rows.some((row) => row.origin === "instagram")
-            ? "Mensagens do Instagram neste negócio. Envio e análise automática indisponíveis."
+          ready: state.rows.some((row) => ["instagram", "waha"].includes(row.origin))
+            ? "Mensagens recebidas neste negócio. Envio e análise automática indisponíveis."
             : "Demonstração autenticada · mensagens e documentos fictícios. Processamento heurístico local no servidor; sem envio externo.",
         }[state.status] ||
         "Análise indisponível.";

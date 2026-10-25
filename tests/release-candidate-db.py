@@ -255,6 +255,14 @@ class Rehearsal:
                     legacy = {'source':'legacy-browser','client_updated_at':1792770000123,'events':[{'t':1792770000123,'s':'Registro local de ensaio'}]}
                     current = conn.execute("UPDATE socialmei.crm_opportunities o SET estimated_amount=25.30,follow_up_date='2026-10-31',planning_note='Planejamento de ensaio',contacted=TRUE,planning_initialized=TRUE,legacy_planning=%s,revision=revision+1,updated_at=NOW() WHERE workspace_id=%s AND id=%s RETURNING to_jsonb(o)", (Jsonb(legacy),workspace,previous['id'])).fetchone()[0]
                     conn.execute("INSERT INTO socialmei.crm_opportunity_events(workspace_id,opportunity_id,actor_id,action,reason,previous,current) VALUES(%s,%s,%s,'edit','planning_import',%s,%s)", (workspace,previous['id'],user,Jsonb(previous),Jsonb(current)))
+                elif version == 23:
+                    account, contact = str(510000+index)+'@c.us', str(610000+index)+'@lid'
+                    channel = conn.execute("INSERT INTO socialmei.crm_canais(workspace_id,instancia,sessao,identificador_conta,ingress_provisioned,ativo) VALUES(%s,%s,'rehearsal',%s,TRUE,TRUE) RETURNING id", (workspace,'rc-waha-'+str(index),account)).fetchone()[0]
+                    conversation = conn.execute("INSERT INTO socialmei.me_conversations(workspace_id,channel,account_ref,contact_ref,contact_name,origin,revision) VALUES(%s,'whatsapp',%s,%s,'Contato de ensaio','waha',1) RETURNING id", (workspace,'waha:'+account,'waha:'+contact)).fetchone()[0]
+                    mid = 'waha-rehearsal-'+str(index)+'x'*300
+                    message = conn.execute("INSERT INTO socialmei.me_messages(workspace_id,conversation_id,external_message_id,fingerprint,conversation_revision,text,origin) VALUES(%s,%s,%s,%s,1,'Recepção de ensaio isolado','waha') RETURNING id", (workspace,conversation,mid,'f'*64)).fetchone()[0]
+                    conn.execute("INSERT INTO socialmei.me_external_messages(workspace_id,channel,account_ref,external_message_id,message_id,origin) VALUES(%s,'whatsapp',%s,%s,%s,'waha')", (workspace,'waha:'+account,mid,message))
+                    conn.execute("INSERT INTO socialmei.crm_eventos_canal(workspace_id,canal_id,chave_evento,tipo,fingerprint,mensagem_externa_id,status,processado_em,waha_account_snapshot,waha_event_key,inbox_message_id,inbox_origin) VALUES(%s,%s,%s,'message',%s,%s,'processado',NOW(),%s,%s,%s,'waha')", (workspace,channel,digest(mid.encode()),'f'*64,mid,account,digest(mid.encode()),message))
 
     def prove_fks(self, tenants, database):
         import psycopg
@@ -310,6 +318,25 @@ class Rehearsal:
                 else:
                     raise AssertionError('Direct outbox child FK accepted a foreign tenant job')
             self.check(True, database+': Direct outbox composite FKs reject foreign source/connection/approval and child jobs')
+            foreign_channel, foreign_account = conn.execute('SELECT id,identificador_conta FROM socialmei.crm_canais WHERE workspace_id=%s AND ingress_provisioned', (second,)).fetchone()
+            foreign_waha_message = conn.execute("SELECT id FROM socialmei.me_messages WHERE workspace_id=%s AND origin='waha'", (second,)).fetchone()[0]
+            for column, value in (('canal_id',foreign_channel),('waha_account_snapshot',foreign_account),('inbox_message_id',foreign_waha_message),('inbox_message_id',synthetic_message)):
+                try:
+                    with conn.transaction():
+                        conn.execute(sql.SQL('UPDATE socialmei.crm_eventos_canal SET {}=%s WHERE workspace_id=%s AND waha_event_key IS NOT NULL').format(sql.Identifier(column)), (value,first))
+                except psycopg.errors.ForeignKeyViolation:
+                    pass
+                else:
+                    raise AssertionError('WAHA ingress FK accepted a foreign channel/account/message or synthetic origin')
+            first_account = conn.execute('SELECT identificador_conta FROM socialmei.crm_canais WHERE workspace_id=%s AND ingress_provisioned', (first,)).fetchone()[0]
+            try:
+                with conn.transaction():
+                    conn.execute("INSERT INTO socialmei.crm_canais(id,workspace_id,instancia,sessao,identificador_conta,ingress_provisioned,ativo) VALUES(9223372036854775806,%s,'rc-duplicate-account','probe',%s,TRUE,TRUE)", (second,first_account))
+            except psycopg.errors.UniqueViolation:
+                pass
+            else:
+                raise AssertionError('WAHA account accepted two active business owners')
+            self.check(True, database+': WAHA ingress preserves workspace/origin FKs and exclusive active account binding')
             self.check(conn.execute("SELECT COUNT(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid=c.connamespace WHERE n.nspname='socialmei' AND c.contype='f' AND NOT c.convalidated").fetchone()[0] == 0, database+': all foreign keys validated and cross-workspace RAG link rejected')
 
     def defaults(self, tenants):
@@ -323,6 +350,8 @@ class Rehearsal:
             os.environ.pop('SOCIALMEI_CHANNEL_INGRESS_MODE', None)
             os.environ.pop('SOCIALMEI_INSTAGRAM_PROVIDER', None)
             os.environ.pop('SOCIALMEI_INSTAGRAM_LAB_ENVIRONMENT', None)
+            os.environ.pop('SOCIALMEI_WAHA_INGRESS_MODE', None)
+            os.environ.pop('SOCIALMEI_WAHA_LAB_ENVIRONMENT', None)
             from app import app
             from fastapi.testclient import TestClient
             import settings
@@ -334,13 +363,15 @@ class Rehearsal:
                 self.check(client.get('/api/v1/instagram/simulation/accounts').status_code == 503, 'Instagram default disabled without database access')
                 self.check(client.get('/api/v1/content/preparation/status').status_code == 503, 'content preparation default disabled without database access')
                 self.check(client.get('/api/v1/channel-lab/accounts').status_code == 503, 'channel ingress default disabled without database access')
+                with patch('waha_ingress.connect', side_effect=AssertionError('unexpected database')):
+                    self.check(not settings.waha_ingress_isolated_enabled() and client.post('/internal/waha/trusted-a/webhook', content=b'{}', headers={'Content-Type':'application/json'}).status_code == 503, 'WAHA durable ingress defaults closed without database access')
                 cap = client.get('/api/v1/message-enrichment/capabilities').json()
                 self.check(settings.message_enrichment_mode() == 'disabled' and cap['mode'] == 'disabled' and cap['transport'] == 'none' and client.get('/api/v1/message-enrichment/conversations').status_code == 503, 'enrichment default disabled without database access')
 
     def run(self, backend_tests):
         import psycopg
         files = sorted((ROOT/'database/migrations').glob('*.sql'))
-        self.check(len(files) == 22 and [p.name[:3] for p in files] == [f'{n:03}' for n in range(1,23)], 'exact incremental migrations001–022 present')
+        self.check(len(files) == 23 and [p.name[:3] for p in files] == [f'{n:03}' for n in range(1,24)], 'exact incremental migrations001–023 present')
         manifest = {}
         for path in files:
             committed = subprocess.run(['git','show','HEAD:database/migrations/'+path.name], cwd=ROOT, capture_output=True, check=True).stdout
@@ -369,6 +400,7 @@ class Rehearsal:
             before = self.snapshot()
             self.check(all(before['tables'][name] == rows for name,rows in original.items() if name != 'schema_migrations'), '001 legacy values preserved through011')
             legacy = {name:rows for name,rows in before['tables'].items() if name != 'schema_migrations'}
+            legacy_columns = {name:[column[1] for column in before['columns'] if column[0] == name] for name in legacy}
             for number, path in enumerate(files[11:], 12):
                 before_ingress = self.snapshot() if number >= 20 else None
                 shutil.copy2(path, folder/path.name)
@@ -384,14 +416,17 @@ class Rehearsal:
                         self.check(sorted(projected,key=canonical) == rows, f'{number:03} preserves every preexisting value: '+table)
                 self.seed_incremental(number, tenants)
                 current = self.snapshot()
-                self.check(all(current['tables'][name] == rows for name,rows in legacy.items()), f'{number:03} preserves all preexisting001–011 table values')
+                # Later fixtures extend the existing channel tables. Compare each
+                # original row's original columns; the pre-seed check above still
+                # requires exact preservation across each incremental migration.
+                self.check(all(all(row in [{key: item[key] for key in legacy_columns[name]} for item in current['tables'][name]] for row in rows) for name,rows in legacy.items()), f'{number:03} preserves all preexisting001–011 row values')
             baseline = self.snapshot()
-            self.migrate(folder, 'ledger replay001–022')
+            self.migrate(folder, 'ledger replay001–023')
             self.check(self.snapshot() == baseline, 'team migrator ledger replay preserves rows, schema, sequences and applied_at')
             with self.connect() as conn:
                 for path in files[11:]:
                     conn.execute(path.read_text(), prepare=False)
-            self.check(self.snapshot() == baseline, 'raw012–022 reapplication is idempotent with seeded data')
+            self.check(self.snapshot() == baseline, 'raw012–023 reapplication is idempotent with seeded data')
             with tempfile.TemporaryDirectory(prefix='socialmei-rc80-failure-') as failure:
                 (Path(failure)/'999_release_probe.sql').write_text('CREATE TABLE socialmei.rc80_rollback_probe(id INT); SELECT 1/0;')
                 try:

@@ -405,8 +405,8 @@ function renderDetails(c) {
     return;
   }
   if (managedInboxConversation(c)) {
-    const provider = c._enrichmentOrigin === "instagram";
-    host.innerHTML = `<div class="context-body"><section class="context-card"><h4>${provider ? "Contato do Instagram" : "Contato fictício"}</h4><p>${escapeHtml(c._enrichmentLabel || "Identidade de teste")}</p><p>${provider ? "Mensagem recebida para este negócio. Não há cadastro de cliente vinculado por nome nem envio externo habilitado." : "Conversa isolada deste negócio. Não há cadastro de cliente vinculado por nome, canal conectado ou envio externo."}</p></section></div>`;
+    const provider = ["instagram", "waha"].includes(c._enrichmentOrigin);
+    host.innerHTML = `<div class="context-body"><section class="context-card"><h4>${provider ? (c._enrichmentOrigin === "waha" ? "Contato do WhatsApp" : "Contato do Instagram") : "Contato fictício"}</h4><p>${escapeHtml(c._enrichmentLabel || "Identidade de teste")}</p><p>${provider ? "Mensagem recebida para este negócio. Não há cadastro de cliente vinculado por nome nem envio externo habilitado." : "Conversa isolada deste negócio. Não há cadastro de cliente vinculado por nome, canal conectado ou envio externo."}</p></section></div>`;
     return;
   }
   const missingFieldsExpanded = !!host.querySelector(".context-missing-fields[open]");
@@ -650,16 +650,15 @@ function renderThread({ animate = false, preserveScroll = false, refreshList = t
   }
   $("threadAvatar").innerHTML = avatarContents(conversation);
   $("threadName").textContent = displayName(conversation);
-  const threadSource =
-    conversation._enrichmentOrigin === "instagram"
-      ? "Recebido por webhook Instagram · envio indisponível"
-      : conversation._enrichmentSynthetic
-        ? "Mensagem fictícia · laboratório isolado"
-        : conversation.mensagens.some((message) => message.remoteId)
-          ? "Recebido via n8n"
-          : conversation.localConversation
-            ? "Conversa local"
-            : "Demonstração";
+  const threadSource = ["instagram", "waha"].includes(conversation._enrichmentOrigin)
+    ? `Recebido por webhook ${conversation._enrichmentOrigin === "waha" ? "WAHA" : "Instagram"} · envio indisponível`
+    : conversation._enrichmentSynthetic
+      ? "Mensagem fictícia · laboratório isolado"
+      : conversation.mensagens.some((message) => message.remoteId)
+        ? "Recebido via n8n"
+        : conversation.localConversation
+          ? "Conversa local"
+          : "Demonstração";
   $("threadMeta").innerHTML = /* HTML */ `<span class="pill info" title="${threadSource}"
             >${channelIcon(conversation.canal)} ${channelLabel(conversation.canal)}${conversation._enrichmentSynthetic ? " · Fictício" : ""}</span
           ><span class="thread-recency" title="${threadSource}"
@@ -1010,8 +1009,8 @@ function sendCurrentMessage(text) {
   if (managedInboxConversation(conversation)) {
     toast(
       "Sem envio externo",
-      conversation._enrichmentOrigin === "instagram"
-        ? "O envio de respostas para o Instagram ainda não foi habilitado."
+      ["instagram", "waha"].includes(conversation._enrichmentOrigin)
+        ? `O envio de respostas para o ${conversation._enrichmentOrigin === "waha" ? "WhatsApp" : "Instagram"} ainda não foi habilitado.`
         : "Revise o rascunho no laboratório. Nenhuma resposta é enviada.",
     );
     return;

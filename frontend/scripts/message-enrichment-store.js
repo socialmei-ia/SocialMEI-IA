@@ -56,12 +56,19 @@
         throw new Error("A sessão mudou. Abra novamente a análise neste negócio.");
     }
     function validOrigin(row) {
-      if (row.origin === "instagram")
+      if (row.origin === "instagram" || row.origin === "waha")
         return (
-          capability?.instagram_inbox === true &&
-          row.channel === "instagram" &&
-          /^instagram:[0-9]{1,40}$/.test(row.account_ref) &&
-          /^instagram:[0-9]{1,40}$/.test(row.contact_ref) &&
+          (row.origin === "instagram"
+            ? capability?.instagram_inbox === true &&
+              row.channel === "instagram" &&
+              /^instagram:[0-9]{1,40}$/.test(row.account_ref) &&
+              /^instagram:[0-9]{1,40}$/.test(row.contact_ref)
+            : capability?.waha_inbox === true &&
+              row.channel === "whatsapp" &&
+              /^waha:[0-9]{1,40}@c\.us$/.test(row.account_ref) &&
+              /^waha:(?:[0-9]{1,40}@c\.us|[A-Za-z0-9][A-Za-z0-9_.:-]{0,79}@lid)$/.test(
+                row.contact_ref,
+              )) &&
           Array.isArray(row.messages) &&
           row.messages.every(
             (m) =>
@@ -117,11 +124,12 @@
           cap.schema_version !== 1 ||
           cap.transport !== "none" ||
           !["disabled", "stub"].includes(cap.mode) ||
-          (cap.instagram_inbox !== undefined && typeof cap.instagram_inbox !== "boolean")
+          (cap.instagram_inbox !== undefined && typeof cap.instagram_inbox !== "boolean") ||
+          (cap.waha_inbox !== undefined && typeof cap.waha_inbox !== "boolean")
         )
           throw new Error("Contrato de análise indisponível.");
         capability = cap;
-        if (cap.mode === "disabled" && cap.instagram_inbox !== true) {
+        if (cap.mode === "disabled" && cap.instagram_inbox !== true && cap.waha_inbox !== true) {
           rows = [];
           documents = [];
           status = "disabled";

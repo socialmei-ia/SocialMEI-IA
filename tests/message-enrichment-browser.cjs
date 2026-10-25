@@ -18,8 +18,9 @@ module.exports = async (browser, origin) => {
   };
   let offlineReview = false,
     offlineRead = false,
-    providerMode = false;
-  const providerRow = {
+    providerMode = false,
+    providerKind = "instagram";
+  let providerRow = {
     id: 9001,
     origin: "instagram",
     channel: "instagram",
@@ -76,7 +77,7 @@ module.exports = async (browser, origin) => {
               mode: "disabled",
               transport: "none",
               workspace_id: identity.negocio.id,
-              instagram_inbox: true,
+              [providerKind === "waha" ? "waha_inbox" : "instagram_inbox"]: true,
             },
           });
         if (url.pathname.endsWith("/conversations"))
@@ -280,6 +281,38 @@ module.exports = async (browser, origin) => {
       ),
       1,
     );
+    providerKind = "waha";
+    providerRow = {
+      ...providerRow,
+      origin: "waha",
+      channel: "whatsapp",
+      account_ref: "waha:111@c.us",
+      contact_ref: "waha:opaque-22@lid",
+      contact_name: "Contato do WhatsApp",
+      messages: providerRow.messages.map((m) => ({
+        ...m,
+        text: "  Mensagem WAHA <img src=x onerror=alert(1)>\n",
+      })),
+    };
+    const waha = await pageFor(owner);
+    await waha.evaluate(async () => selectConversation(-9001));
+    assert.equal(await waha.evaluate(() => getConversation()._enrichmentOrigin), "waha");
+    assert.equal(await waha.evaluate(() => getConversation()._enrichmentSynthetic), false);
+    assert.match(await waha.locator("#threadMeta").textContent(), /WAHA/);
+    assert(!/Fictício|n8n|Instagram/.test(await waha.locator("#threadMeta").textContent()));
+    assert(await waha.locator("#composerZone").isHidden());
+    assert(await waha.locator("#threadStatus").isDisabled());
+    assert.equal(await waha.locator("#enrichmentReview").count(), 0);
+    assert.equal(await waha.locator("#messages img").count(), 0);
+    const wahaCount = await waha.evaluate(() => getConversation().mensagens.length);
+    await waha.evaluate(() => sendCurrentMessage("Não enviar"));
+    assert.equal(await waha.evaluate(() => getConversation().mensagens.length), wahaCount);
+    const wahaOther = await pageFor({
+      ...owner,
+      usuario: { ...owner.usuario, id: 2 },
+      negocio: { ...owner.negocio, id: 2 },
+    });
+    assert.equal(await wahaOther.evaluate(() => SocialMEIMessageEnrichment.state().rows.length), 0);
     assert(!writes.some((r) => /send|waha|webhook|publish/.test(r.path)));
     assert.deepEqual(errors, []);
     assert.deepEqual(external, []);

@@ -129,3 +129,12 @@ def instagram_direct_isolated_enabled() -> bool:
         os.getenv("SOCIALMEI_INSTAGRAM_DIRECT_MODE", "disabled").strip().lower() == "isolated"
         and os.getenv("SOCIALMEI_INSTAGRAM_LAB_ENVIRONMENT", "").strip().lower() == "isolated"
     )
+
+
+def waha_ingress_isolated_enabled() -> bool:
+    return (
+        os.getenv("SOCIALMEI_WAHA_INGRESS_MODE", "disabled").strip().lower() == "isolated"
+        and os.getenv("SOCIALMEI_WAHA_LAB_ENVIRONMENT", "").strip().lower() == "isolated"
+        and shared_data_enabled()
+        and authentication_mode() == "enabled"
+    )

@@ -272,3 +272,49 @@ test("Instagram rows require explicit provenance and capability without syntheti
     assert.equal(store.state().status, "error");
   }
 });
+
+test("WAHA provider provenance supports opaque LIDs without enabling synthetic writes", async () => {
+  const { auth, store } = fixture();
+  const provider = {
+    ...row(),
+    origin: "waha",
+    channel: "whatsapp",
+    account_ref: "waha:111@c.us",
+    contact_ref: "waha:opaque-22@lid",
+    messages: [
+      {
+        id: 1,
+        text: " WAHA original\n",
+        external_message_id: "mid-long-" + "x".repeat(300),
+        occurred_at: "2026-10-25T12:00:00.123Z",
+        revision: 1,
+        enrichment: null,
+      },
+    ],
+  };
+  let candidate = provider;
+  auth.request = async (p) =>
+    p.endsWith("capabilities")
+      ? {
+          schema_version: 1,
+          mode: "disabled",
+          transport: "none",
+          workspace_id: 1,
+          waha_inbox: true,
+        }
+      : { workspace_id: 1, items: [candidate] };
+  await store.refresh();
+  assert.equal(store.state().status, "ready");
+  assert.equal(store.state().rows[0].origin, "waha");
+  await assert.rejects(store.write("x", "/synthetic-messages", "POST", {}, store.state().scope));
+  for (const change of [
+    { origin: "synthetic" },
+    { account_ref: "synthetic:fake" },
+    { contact_ref: "waha:123@g.us" },
+    { channel: "instagram" },
+  ]) {
+    candidate = { ...provider, ...change };
+    await store.refresh();
+    assert.equal(store.state().status, "error");
+  }
+});

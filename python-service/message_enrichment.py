@@ -185,7 +185,7 @@ def guard(request, response, *, write=False, manage=False, capability=False, rea
         raise HTTPException(503, 'Análise não configurada.')
     if capability:
         return user
-    provider_read = read_inbox and settings.instagram_ingress_isolated_enabled()
+    provider_read = read_inbox and (settings.instagram_ingress_isolated_enabled() or settings.waha_ingress_isolated_enabled())
     if not provider_read and (mode != 'stub' or len(settings.message_enrichment_signing_key()) < 32):
         raise HTTPException(503, 'Análise sintética não habilitada.')
     if write and user['role'] not in {'owner', 'admin', 'member'}:
@@ -370,6 +370,8 @@ def capabilities(request: Request, response: Response):
     result = {'schema_version': 1, 'workspace_id': user['workspace_id'], 'mode': settings.message_enrichment_mode(), 'transport': 'none'}
     if settings.instagram_ingress_isolated_enabled():
         result['instagram_inbox'] = True
+    if settings.waha_ingress_isolated_enabled():
+        result['waha_inbox'] = True
     return result
 
 
@@ -414,6 +416,8 @@ def conversations(request: Request, response: Response):
     origins = ['synthetic'] if settings.message_enrichment_mode() == 'stub' else []
     if settings.instagram_ingress_isolated_enabled():
         origins.append('instagram')
+    if settings.waha_ingress_isolated_enabled():
+        origins.append('waha')
     with db() as conn:
         if 'synthetic' in origins:
             invalidate_expired(conn, workspace)

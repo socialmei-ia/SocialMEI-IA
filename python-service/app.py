@@ -21,6 +21,7 @@ from account_auth import AccountMiddleware, router as account_auth_router
 from instagram_simulation import router as instagram_simulation_router
 from instagram_provider_lab import router as instagram_provider_lab_router
 from instagram_persistent_oauth import router as instagram_persistent_oauth_router
+from waha_ingress import router as waha_ingress_router
 from instagram_direct_outbox import router as instagram_direct_router
 from instagram_meta_ingress import WebhookQueryPrivacy, router as instagram_meta_ingress_router
 from workspace_profile import router as workspace_profile_router
@@ -58,6 +59,7 @@ app.include_router(instagram_provider_lab_router)
 app.include_router(instagram_persistent_oauth_router)
 app.include_router(instagram_meta_ingress_router)
 app.include_router(instagram_direct_router)
+app.include_router(waha_ingress_router)
 app.include_router(workspace_profile_router)
 app.include_router(message_enrichment_router)
 app.include_router(enrichment_internal_router)
@@ -71,8 +73,10 @@ app.include_router(integration_setup_router)
 @app.middleware("http")
 async def internal_response_privacy(request, call_next):
     response = await call_next(request)
-    if request.url.path.startswith(("/internal/message-enrichment", "/internal/channel-ingress", "/api/v1/content/preparation", "/api/v1/channel-lab", "/api/v1/opportunities", "/api/v1/integrations/setup")):
+    if request.url.path.startswith(("/internal/waha", "/internal/message-enrichment", "/internal/channel-ingress", "/api/v1/content/preparation", "/api/v1/channel-lab", "/api/v1/opportunities", "/api/v1/integrations/setup")):
         response.headers["Cache-Control"] = "no-store"
+    if request.url.path.startswith("/internal/waha"):
+        response.headers["X-Content-Type-Options"] = "nosniff"
     return response
 
 
