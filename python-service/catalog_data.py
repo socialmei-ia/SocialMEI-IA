@@ -142,13 +142,42 @@ def ensure_no_active_stock_sales(cur, workspace_id, product_id):
 
 
 @router.get("", response_model=list[ProdutoOut])
-def list_products():
+def list_products(
+    q: str = Query(default="", max_length=160),
+    tipo: Literal["Produto", "Serviço"] | None = Query(default=None),
+    status: str | None = Query(default=None, min_length=1, max_length=30),
+    estoque_baixo: bool = Query(default=False),
+):
+    for value in (q, status):
+        if value is not None:
+            try:
+                value.encode("utf-8")
+            except UnicodeEncodeError:
+                raise HTTPException(422, "Filtro de catálogo inválido.") from None
+            if "\x00" in value:
+                raise HTTPException(422, "Filtro de catálogo inválido.")
     require_shared_data()
     with connect() as conn, conn.cursor(row_factory=dict_row) as cur:
         workspace_id = ensure_workspace(conn)
+        conditions = ["workspace_id = %s"]
+        parameters = [workspace_id]
+        if q.strip():
+            # Literal substring: percent and underscore are not SQL wildcards.
+            conditions.append("strpos(lower(nome), lower(%s)) > 0")
+            parameters.append(q.strip())
+        if tipo is not None:
+            conditions.append("tipo = %s")
+            parameters.append(tipo)
+        if status is not None:
+            conditions.append("status = %s")
+            parameters.append(status)
+        if estoque_baixo:
+            conditions.append("tipo = 'Produto' AND estoque <= minimo")
         cur.execute(
-            f"SELECT {PRODUCT_COLUMNS} FROM socialmei.crm_produtos WHERE workspace_id = %s ORDER BY nome, id",
-            (workspace_id,),
+            f"SELECT {PRODUCT_COLUMNS} FROM socialmei.crm_produtos WHERE "
+            + " AND ".join(conditions)
+            + " ORDER BY nome, id",
+            parameters,
         )
         return cur.fetchall()
 

@@ -62,3 +62,16 @@ A #110 já contém recepção durável, assinada e isolada no contrato WEBJS. Se
 Preservar landing para anônimos e gateway sem Basic da #102. Não reconstruir o gateway público pela configuração privada antiga. A referência de webhook no Caddyfile.public é apenas código: alteração do proxy vivo, segredos, migrations reais, contas de teste, pareamento, envio e publicação exigem autorização específica. Manter backups/rollback equivalentes aos hotfixes do servidor.
 
 Esta candidata não é o pacote password-only da PR #102: contém os módulos de backend herdados até a #110 e o runtime opcional. Uma futura implantação exige imagem completa compatível da API, dependências e migrations001–023 verificadas, sob autorização específica; não copiar um único arquivo para uma API antiga. O frontend visual novo continua fora desta rodada e o pipeline n8n vivo não foi alterado.
+
+## Consulta do catálogo por negócio
+
+GET `/api/v1/produtos` mantém o retorno original (lista de itens e mesma ordenação) quando não há filtros. Agora aceita filtros opcionais combináveis:
+
+- `q`: trecho literal do nome, sem diferenciar maiúsculas/minúsculas, até160 caracteres. `%` e `_` não são curingas SQL; não há promessa de busca sem acentos.
+- `tipo`: `Produto` ou `Serviço`.
+- `status`: valor exato cadastrado, entre1 e30 caracteres.
+- `estoque_baixo=true`: apenas produtos físicos com estoque menor ou igual ao mínimo, inclusive zero. Não trata serviços como estoque; não filtra por situação automaticamente.
+
+Exemplo: `/api/v1/produtos?q=perfume&tipo=Produto&status=Ativo&estoque_baixo=true`.
+
+A consulta usa a identidade da sessão e parâmetros SQL; não aceita escolher outro negócio por query. Não grava dados nem altera preço/estoque. Estes filtros são contratos de frontend autenticado, não uma nova autorização para workflows n8n: acesso de serviço por negócio continua exigindo o contrato/vínculo que será homologado com a equipe.
