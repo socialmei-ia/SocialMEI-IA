@@ -298,7 +298,11 @@ module.exports = async (browser, origin) => {
     await waha.evaluate(async () => selectConversation(-9001));
     assert.equal(await waha.evaluate(() => getConversation()._enrichmentOrigin), "waha");
     assert.equal(await waha.evaluate(() => getConversation()._enrichmentSynthetic), false);
-    assert.match(await waha.locator("#threadMeta").textContent(), /WAHA/);
+    assert.match(await waha.locator("#threadMeta").textContent(), /WhatsApp/);
+    assert.equal(
+      await waha.locator("#threadMeta .pill").getAttribute("title"),
+      "Recebido por webhook WAHA · envio indisponível",
+    );
     assert(!/Fictício|n8n|Instagram/.test(await waha.locator("#threadMeta").textContent()));
     assert(await waha.locator("#composerZone").isHidden());
     assert(await waha.locator("#threadStatus").isDisabled());
