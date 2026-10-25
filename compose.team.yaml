@@ -36,7 +36,10 @@ services:
         condition: service_healthy
 
   team-api:
-    build: ./python-service
+    build:
+      context: ./python-service
+      args:
+        SOCIALMEI_RELEASE_SHA: ${SOCIALMEI_RELEASE_SHA:-unknown}
     restart: unless-stopped
     environment:
       <<: *database_environment

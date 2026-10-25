@@ -32,13 +32,13 @@ Alinhar engine GOWS dos Composes com receptor testado WEBJS, confirmar edição/
 ## Melhorias de experiência recomendadas
 
 - Recuperação por e-mail agora implementada, mas verificação de e-mail, troca segura de e-mail e MFA ainda precisam de etapas próprias.
-- Sessões/dispositivos visíveis, sair de todos os dispositivos e notificações de acesso/troca de senha.
+- API de listagem/revogação de sessões implementada na candidata; integrar controles ao frontend futuro. Notificações de acesso/troca de senha ainda pendentes.
 - Estados claros de offline, erro de gravação e sincronização, sem fallback silencioso para dados locais.
 - Status de canais, filas com falha e recibos distintos de aceitação, entrega e leitura.
 - Política de privacidade, termos, retenção/exclusão/exportação LGPD e consentimento para IA, com revisão jurídica.
 - Onboarding com primeira ação útil, ajuda de campos e acessibilidade do frontend novo a ser entregue pelo proprietário.
 - Explicar quais históricos/rascunhos são locais e quais sincronizam entre dispositivos.
 - Agenda operacional, encomendas/entregas e equipe devem ser homologadas individualmente; não confundir agenda de posts com agenda de atendimentos.
-- Monitoramento, alertas, métricas agregadas de e-mail e fila durável para recuperação antes de escala.
+- Diagnóstico privado, contagens agregadas e fila durável de recuperação implementados na candidata. Instalar/homologar worker, monitoramento e alertas operacionais antes de escala.
 
 Não implementar todas essas frentes simultaneamente. Primeiro habilitar e homologar a base existente; depois Instagram e frontend novo.

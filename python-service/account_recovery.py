@@ -7,7 +7,8 @@ import ssl
 import psycopg
 from email.message import EmailMessage
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, Response
+from fastapi import APIRouter, HTTPException, Request, Response
+from uuid import uuid4
 from pydantic import Field, field_validator
 import settings
 from database import connect
@@ -47,9 +48,11 @@ def configured():
         ) from None
     try:
         with connect() as conn:
-            if not conn.execute(
-                "SELECT to_regclass('socialmei.auth_recuperacoes')"
-            ).fetchone()[0]:
+            if not all(
+                conn.execute(
+                    "SELECT to_regclass('socialmei.auth_recuperacoes'),to_regclass('socialmei.auth_recuperacao_envios')"
+                ).fetchone()
+            ):
                 raise HTTPException(503, "Recuperação por e-mail ainda não instalada.")
     except psycopg.Error:
         raise HTTPException(503, "Recuperação temporariamente indisponível.") from None
@@ -80,40 +83,89 @@ def send_recovery_mail(address, token, config):
         server.send_message(message)
 
 
-def deliver(address, config):
-    # Executed after the generic response, including for unknown addresses.
-    token = secrets.token_urlsafe(32)
+def queue_recovery(address):
     with connect() as conn:
         row = conn.execute(
-            "SELECT c.user_id,c.senha_alterada_em FROM socialmei.auth_credenciais c JOIN socialmei.users u ON u.id=c.user_id WHERE LOWER(BTRIM(u.email))=%s AND c.ativo FOR UPDATE OF c",
+            "SELECT c.user_id FROM socialmei.auth_credenciais c JOIN socialmei.users u ON u.id=c.user_id WHERE LOWER(BTRIM(u.email))=%s AND c.ativo FOR UPDATE OF c",
             (address,),
         ).fetchone()
         if not row:
             return
         conn.execute(
-            "INSERT INTO socialmei.auth_recuperacoes(user_id,token_hash,senha_alterada_em,expira_em) VALUES(%s,%s,%s,NOW()+INTERVAL '15 minutes') ON CONFLICT(user_id) DO UPDATE SET token_hash=EXCLUDED.token_hash,senha_alterada_em=EXCLUDED.senha_alterada_em,expira_em=EXCLUDED.expira_em,usado_em=NULL",
-            (row[0], digest(token), row[1]),
+            "UPDATE socialmei.auth_recuperacoes SET usado_em=NOW() WHERE user_id=%s AND usado_em IS NULL",
+            (row[0],),
         )
+        conn.execute(
+            "INSERT INTO socialmei.auth_recuperacao_envios(user_id,generation,status) VALUES(%s,%s,'pending') ON CONFLICT(user_id) DO UPDATE SET generation=EXCLUDED.generation,status='pending',queued_at=NOW(),started_at=NULL,finished_at=NULL",
+            (row[0], uuid4()),
+        )
+
+
+def process_one():
+    """Explicit worker invocation. Commit claim before SMTP; never retry uncertain sends."""
+    config = configured()
+    with connect() as conn:
+        # No credential locks here: reclaim only abandoned delivery state.
+        conn.execute(
+            "UPDATE socialmei.auth_recuperacao_envios SET status='uncertain',finished_at=NOW() WHERE status='processing' AND started_at<NOW()-INTERVAL '2 minutes'"
+        )
+        candidate = conn.execute(
+            "SELECT user_id FROM socialmei.auth_recuperacao_envios WHERE status='pending' ORDER BY queued_at,user_id LIMIT 1"
+        ).fetchone()
+    if not candidate:
+        return False
+    token = secrets.token_urlsafe(32)
+    with connect() as conn:
+        # Same lock order as requests/password changes and confirmations.
+        account = conn.execute(
+            "SELECT c.user_id,c.senha_alterada_em,u.email,c.ativo FROM socialmei.auth_credenciais c JOIN socialmei.users u ON u.id=c.user_id WHERE c.user_id=%s FOR UPDATE OF c",
+            (candidate[0],),
+        ).fetchone()
+        job = conn.execute(
+            "SELECT generation,queued_at<NOW()-INTERVAL '15 minutes' FROM socialmei.auth_recuperacao_envios WHERE user_id=%s AND status='pending' FOR UPDATE",
+            (candidate[0],),
+        ).fetchone()
+        if not job:
+            return False
+        if not account or not account[3] or job[1]:
+            conn.execute(
+                "UPDATE socialmei.auth_recuperacao_envios SET status='expired',finished_at=NOW() WHERE user_id=%s",
+                (candidate[0],),
+            )
+            return True
+        conn.execute(
+            "INSERT INTO socialmei.auth_recuperacoes(user_id,token_hash,senha_alterada_em,expira_em) VALUES(%s,%s,%s,NOW()+INTERVAL '15 minutes') ON CONFLICT(user_id) DO UPDATE SET token_hash=EXCLUDED.token_hash,senha_alterada_em=EXCLUDED.senha_alterada_em,expira_em=EXCLUDED.expira_em,usado_em=NULL",
+            (account[0], digest(token), account[1]),
+        )
+        conn.execute(
+            "UPDATE socialmei.auth_recuperacao_envios SET status='processing',started_at=NOW() WHERE user_id=%s",
+            (account[0],),
+        )
+    status = "sent"
     try:
-        send_recovery_mail(address, token, config)
+        send_recovery_mail(account[2], token, config)
     except Exception:
-        # Never log SMTP errors: providers may include credentials or recipient data.
-        with connect() as conn:
+        # SMTP might have accepted before the connection failed. No automatic retry.
+        status = "uncertain"
+    with connect() as conn:
+        if status == "uncertain":
             conn.execute(
                 "UPDATE socialmei.auth_recuperacoes SET usado_em=NOW() WHERE token_hash=%s",
                 (digest(token),),
             )
+        conn.execute(
+            "UPDATE socialmei.auth_recuperacao_envios SET status=%s,finished_at=NOW() WHERE user_id=%s AND generation=%s AND status='processing'",
+            (status, account[0], job[0]),
+        )
+    return True
 
 
 @router.post("/auth/recovery/request", status_code=202)
-def request_recovery(
-    payload: RecoveryRequest, request: Request, tasks: BackgroundTasks
-):
-    config = configured()
+def request_recovery(payload: RecoveryRequest, request: Request):
+    configured()
     throttle(payload.email, "recovery-email")
-    # Use socket peer, never an untrusted forwarded header.
     throttle(request.client.host if request.client else "unknown", "recovery-peer")
-    tasks.add_task(deliver, payload.email, config)
+    queue_recovery(payload.email)
     return {
         "message": "Se houver uma conta ativa com esse e-mail, enviaremos um código. Confira também o spam. O envio pode demorar; se não chegar, tente novamente mais tarde."
     }

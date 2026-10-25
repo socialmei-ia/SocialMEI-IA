@@ -265,6 +265,11 @@ class Rehearsal:
                     conn.execute("INSERT INTO socialmei.crm_eventos_canal(workspace_id,canal_id,chave_evento,tipo,fingerprint,mensagem_externa_id,status,processado_em,waha_account_snapshot,waha_event_key,inbox_message_id,inbox_origin) VALUES(%s,%s,%s,'message',%s,%s,'processado',NOW(),%s,%s,%s,'waha')", (workspace,channel,digest(mid.encode()),'f'*64,mid,account,digest(mid.encode()),message))
                 elif version == 24:
                     conn.execute("INSERT INTO socialmei.auth_recuperacoes(user_id,token_hash,senha_alterada_em,expira_em,usado_em) VALUES(%s,%s,NOW(),NOW()+INTERVAL '15 minutes',CASE WHEN %s THEN NOW() ELSE NULL END)", (user,digest(('synthetic-recovery:'+str(index)).encode()),index==1))
+                elif version == 25:
+                    handles=conn.execute('SELECT COUNT(*),COUNT(DISTINCT public_id) FROM socialmei.auth_sessoes').fetchone()
+                    self.check(handles[0] == handles[1] and handles[0] >= 2, '025 gives existing sessions distinct public handles without revoking tokens')
+                elif version == 26:
+                    conn.execute("INSERT INTO socialmei.auth_recuperacao_envios(user_id,generation,status,started_at) VALUES(%s,%s,%s,CASE WHEN %s THEN NOW() ELSE NULL END)",(user,uuid4(),'pending' if index==0 else 'uncertain',index==1))
             if version == 24:
                 self.check(conn.execute('SELECT COUNT(*) FROM socialmei.auth_recuperacoes').fetchone()[0] == 2, '024 seeds two account recovery hashes with used and pending states')
 
@@ -375,7 +380,7 @@ class Rehearsal:
     def run(self, backend_tests):
         import psycopg
         files = sorted((ROOT/'database/migrations').glob('*.sql'))
-        self.check(len(files) == 24 and [p.name[:3] for p in files] == [f'{n:03}' for n in range(1,25)], 'exact incremental migrations001–024 present')
+        self.check(len(files) == 26 and [p.name[:3] for p in files] == [f'{n:03}' for n in range(1,27)], 'exact incremental migrations001–026 present')
         manifest = {}
         for path in files:
             committed = subprocess.run(['git','show','HEAD:database/migrations/'+path.name], cwd=ROOT, capture_output=True, check=True).stdout
@@ -425,12 +430,12 @@ class Rehearsal:
                 # requires exact preservation across each incremental migration.
                 self.check(all(all(row in [{key: item[key] for key in legacy_columns[name]} for item in current['tables'][name]] for row in rows) for name,rows in legacy.items()), f'{number:03} preserves all preexisting001–011 row values')
             baseline = self.snapshot()
-            self.migrate(folder, 'ledger replay001–024')
+            self.migrate(folder, 'ledger replay001–026')
             self.check(self.snapshot() == baseline, 'team migrator ledger replay preserves rows, schema, sequences and applied_at')
             with self.connect() as conn:
                 for path in files[11:]:
                     conn.execute(path.read_text(), prepare=False)
-            self.check(self.snapshot() == baseline, 'raw012–024 reapplication is idempotent with seeded data')
+            self.check(self.snapshot() == baseline, 'raw012–026 reapplication is idempotent with seeded data')
             with tempfile.TemporaryDirectory(prefix='socialmei-rc80-failure-') as failure:
                 (Path(failure)/'999_release_probe.sql').write_text('CREATE TABLE socialmei.rc80_rollback_probe(id INT); SELECT 1/0;')
                 try:

@@ -25,16 +25,18 @@ Somente após autorização de implantação, configurar no ambiente privado do 
 
 A conta Google, verificação em duas etapas, permissão de senha de aplicativo, quotas e entregabilidade precisam ser configuradas pelo responsável. OAuth do Gmail não está implementado. Gmail SMTP é adequado a um piloto, mas um provedor transacional poderá ser mais apropriado para escala. Não configurar n8n nem compartilhar tokens para essa finalidade.
 
-O Compose team encaminha essas variáveis e mantém a função desligada. Não executar o Compose padrão completo na AWS: preservar os overrides e hotfixes públicos existentes. API autenticada, origem HTTPS e migration024 são requisitos; configuração incompleta ou tabela ausente responde503.
+O Compose team encaminha essas variáveis e mantém a função desligada. Não executar o Compose padrão completo na AWS: preservar os overrides e hotfixes públicos existentes. API autenticada, origem HTTPS e migrations024/026 são requisitos; configuração incompleta ou tabela ausente responde503.
 
 ## Operação e limites
 
-Envio usa BackgroundTasks local após resposta genérica. Não é fila durável nem confirmação de entrega. Reinício ou falha SMTP pode perder o envio; o usuário solicita outro código. Falha SMTP invalida o hash correspondente, sem apagar dados e sem registrar mensagem de erro do provedor, token ou destinatário. Observabilidade agregada e uma fila durável ficam para endurecimento operacional futuro.
+As solicitações agora são persistidas na fila026 antes da resposta202. O worker explícito processa o envio sem guardar códigos em texto puro. Reinícios preservam pedidos pendentes; resultados incertos não são reenviados automaticamente. A função continua desligada até configurar SMTP e instalar/agendar o worker. Ver [operação do backend](BACKEND-OPERATIONS-READINESS.md) para estados, concorrência e rollback. Nenhum worker foi instalado na AWS.
+
+Apenas o código mais recente válido funciona: uma nova solicitação pode invalidar um e-mail que já estava em trânsito. `sent` indica aceitação SMTP, não entrega confirmada.
 
 Migration024 é incremental e foi aplicada somente em PostgreSQL descartável. Backup integral inclui a tabela; tratar seus hashes como dados sensíveis. Para rollback de código, desativar recuperação e voltar à imagem anterior, preservando a tabela aditiva. Não desfazer migrations nem apagar contas. Tokens pendentes expiram em15 minutos. Homologar a restauração e privilégios da role antes de habilitar em produção.
 
 ## Validação
 
-9 testes específicos: senha7/8, comum, expiração, replay, código inválido, isolamento, revogação, falha SMTP, mudança normal, concorrência de confirmação, migration ausente, limites e TLS465/587. Transporte e destinatários são sintéticos; nenhum acesso Google. Regressão de contas no Chromium cobre formulário, retorno, validação e capturas1440/390 claro/escuro com API controlada. Sessões e SQL reais são verificados separadamente nos testes backend.
+Testes específicos: senha7/8, comum, expiração, replay, código inválido, isolamento, revogação, falha SMTP, mudança normal, concorrência de confirmação, migration ausente, limites e TLS465/587. Transporte e destinatários são sintéticos; nenhum acesso Google. Regressão de contas no Chromium cobre formulário, retorno, validação e capturas1440/390 claro/escuro com API controlada. Sessões e SQL reais são verificados separadamente nos testes backend.
 
 Ensaio adicional de release executado em PostgreSQL16 Docker descartável: migrations001–024, preservação de valores/ledger, reexecução, falha transacional e pg_dump/pg_restore passaram. A fixture024 inclui dois hashes sintéticos de recuperação (pendente e usado); o snapshot integral confirmou seus estados após restauração. Nenhuma migration anterior foi modificada.

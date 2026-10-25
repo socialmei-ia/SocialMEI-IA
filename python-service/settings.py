@@ -175,3 +175,9 @@ def recovery_smtp_configuration():
     if values["port"] not in (465, 587):
         raise ValueError("TLS mail port required")
     return values
+
+
+def release_sha():
+    import re
+    value = os.getenv('SOCIALMEI_RELEASE_SHA', '')
+    return value if re.fullmatch(r'[a-f0-9]{40}', value) else None

@@ -42,6 +42,9 @@ class RecoveryTests(unittest.TestCase):
             response = self.client.post(
                 "/api/v1/auth/recovery/request", json={"email": "owner@example.test"}
             )
+            from account_recovery import process_one
+
+            process_one()
         self.assertEqual(response.status_code, 202, response.text)
         return mail.call_args.args[1]
 
@@ -129,7 +132,16 @@ class RecoveryTests(unittest.TestCase):
                 ).status_code,
                 202,
             )
+            from account_recovery import process_one
+
+            process_one()
         with psycopg.connect(accounts.DB) as conn:
+            self.assertEqual(
+                conn.execute(
+                    "SELECT status FROM socialmei.auth_recuperacao_envios"
+                ).fetchone()[0],
+                "uncertain",
+            )
             self.assertEqual(
                 conn.execute(
                     "SELECT count(*) FROM socialmei.auth_recuperacoes WHERE usado_em IS NULL"
@@ -192,6 +204,100 @@ class RecoveryTests(unittest.TestCase):
                     "ALTER TABLE socialmei.auth_recuperacoes_hidden RENAME TO auth_recuperacoes"
                 )
 
+    def test_durable_request_survives_worker_restart_and_never_auto_retries(self):
+        from account_recovery import process_one
+
+        with patch("account_recovery.send_recovery_mail") as mail:
+            self.client.post(
+                "/api/v1/auth/recovery/request", json={"email": "owner@example.test"}
+            )
+            mail.assert_not_called()
+            with psycopg.connect(accounts.DB) as conn:
+                self.assertEqual(
+                    conn.execute(
+                        "SELECT status FROM socialmei.auth_recuperacao_envios"
+                    ).fetchone()[0],
+                    "pending",
+                )
+            self.assertTrue(process_one())
+            self.assertFalse(process_one())
+            mail.assert_called_once()
+            with psycopg.connect(accounts.DB) as conn:
+                conn.execute(
+                    "UPDATE socialmei.auth_recuperacao_envios SET status='processing',started_at=NOW()-INTERVAL '5 minutes'"
+                )
+            self.assertFalse(process_one())
+            mail.assert_called_once()
+            with psycopg.connect(accounts.DB) as conn:
+                self.assertEqual(
+                    conn.execute(
+                        "SELECT status FROM socialmei.auth_recuperacao_envios"
+                    ).fetchone()[0],
+                    "uncertain",
+                )
+
+    def test_parallel_workers_claim_once_and_new_request_cancels_previous_code(self):
+        from concurrent.futures import ThreadPoolExecutor
+        from account_recovery import process_one
+
+        old = self.issue()
+        self.client.post(
+            "/api/v1/auth/recovery/request", json={"email": "owner@example.test"}
+        )
+        self.assertEqual(self.confirm(old).status_code, 400)
+        with patch("account_recovery.send_recovery_mail") as mail, ThreadPoolExecutor(
+            max_workers=2
+        ) as pool:
+            self.assertEqual(
+                sorted(pool.map(lambda _: process_one(), range(2))), [False, True]
+            )
+            mail.assert_called_once()
+
+    def test_new_request_during_send_preserves_new_pending_generation(self):
+        from account_recovery import process_one
+
+        self.client.post(
+            "/api/v1/auth/recovery/request", json={"email": "owner@example.test"}
+        )
+        tokens = []
+
+        def replace_request(address, token, config):
+            tokens.append(token)
+            self.assertEqual(
+                self.client.post(
+                    "/api/v1/auth/recovery/request", json={"email": address}
+                ).status_code,
+                202,
+            )
+
+        with patch("account_recovery.send_recovery_mail", side_effect=replace_request):
+            self.assertTrue(process_one())
+        self.assertEqual(self.confirm(tokens[0]).status_code, 400)
+        with psycopg.connect(accounts.DB) as conn:
+            self.assertEqual(
+                conn.execute(
+                    "SELECT status FROM socialmei.auth_recuperacao_envios"
+                ).fetchone()[0],
+                "pending",
+            )
+        with patch("account_recovery.send_recovery_mail") as mail:
+            self.assertTrue(process_one())
+        self.assertEqual(self.confirm(mail.call_args.args[1]).status_code, 204)
+
+    def test_stale_queue_expires_without_email(self):
+        from account_recovery import process_one
+
+        self.client.post(
+            "/api/v1/auth/recovery/request", json={"email": "owner@example.test"}
+        )
+        with psycopg.connect(accounts.DB) as conn:
+            conn.execute(
+                "UPDATE socialmei.auth_recuperacao_envios SET queued_at=NOW()-INTERVAL '16 minutes'"
+            )
+        with patch("account_recovery.send_recovery_mail") as mail:
+            self.assertTrue(process_one())
+            mail.assert_not_called()
+
 
 class MailTransportTests(unittest.TestCase):
     def test_tls_before_credentials_and_no_debug_logging(self):
@@ -226,3 +332,15 @@ class MailTransportTests(unittest.TestCase):
                     self.assertLess(names.index("starttls"), names.index("login"))
                 server.set_debuglevel.assert_not_called()
                 server.send_message.assert_called_once()
+
+
+class WorkerSafetyTests(unittest.TestCase):
+    def test_worker_refuses_to_run_without_explicit_flag(self):
+        import recovery_worker
+
+        with patch("sys.argv", ["recovery_worker.py"]), patch(
+            "recovery_worker.process_one"
+        ) as process:
+            with self.assertRaises(SystemExit):
+                recovery_worker.main()
+            process.assert_not_called()
