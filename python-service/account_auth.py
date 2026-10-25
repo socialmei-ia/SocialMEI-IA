@@ -31,7 +31,12 @@ TECHNICAL = {
     "/api/v1/integracoes/" + name
     for name in ["resumo", "clientes", "produtos", "vendas", "financeiro"]
 }
-PUBLIC = {"/api/v1/auth/login", "/api/v1/auth/register"}
+PUBLIC = {
+    "/api/v1/auth/login",
+    "/api/v1/auth/register",
+    "/api/v1/auth/recovery/request",
+    "/api/v1/auth/recovery/confirm",
+}
 router = APIRouter(prefix="/api/v1", tags=["accounts"])
 
 
@@ -108,7 +113,9 @@ def validate_new_password(value):
     if not 8 <= len(value) <= 128:
         raise ValueError("Use uma senha de 8 a 128 caracteres.")
     if value.casefold() in COMMON_PASSWORDS or len(set(value)) == 1:
-        raise ValueError("Esta senha é muito comum. Escolha uma senha menos previsível.")
+        raise ValueError(
+            "Esta senha é muito comum. Escolha uma senha menos previsível."
+        )
     return value
 
 

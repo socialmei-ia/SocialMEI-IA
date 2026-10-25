@@ -159,8 +159,20 @@
     recovery.id = "accountRecoveryHelp";
     recovery.hidden = true;
     recovery.setAttribute("aria-label", "Recuperar acesso");
-    recovery.innerHTML =
-      '<b>Vamos recuperar seu acesso</b><p>A recuperação por e-mail está em preparação. Por enquanto, peça ao administrador do projeto para redefinir sua senha pelo procedimento privado.</p><button class="account-button account-button-quiet" type="button" data-close-recovery>Voltar ao login</button>';
+    recovery.innerHTML = `<b>Vamos recuperar seu acesso</b>
+      <p>Peça um código por e-mail e cole abaixo. Ele vale por 15 minutos. Não compartilhe o código.</p>
+      <div class="experience-field"><label for="recoveryEmail">E-mail da conta</label><input id="recoveryEmail" type="email" maxlength="255" autocomplete="email"></div>
+      <button class="account-button" type="button" data-request-recovery>Enviar código</button>
+      <div class="experience-field"><label for="recoveryToken">Código recebido por e-mail</label><input id="recoveryToken" maxlength="43" autocomplete="one-time-code" spellcheck="false" autocapitalize="none"></div>
+      <div class="experience-field"><label for="recoveryPassword">Nova senha</label><input id="recoveryPassword" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="8 caracteres ou mais"></div>
+      <div class="experience-field"><label for="recoveryConfirm">Confirme a nova senha</label><input id="recoveryConfirm" type="password" maxlength="128" autocomplete="new-password"></div>
+      <p>Prefira uma frase longa. Senhas muito comuns não são aceitas.</p>
+      <p id="recoveryStatus" role="status" aria-live="polite"></p>
+      <button class="account-button" type="button" data-confirm-recovery>Redefinir senha</button>
+      <button class="account-button account-button-quiet" type="button" data-close-recovery>Voltar ao login</button>`;
+    recovery.querySelectorAll("input").forEach((input) => {
+      input.disabled = true;
+    });
     q("#xpLoginForm").append(recovery);
     q(".landing-login-disabled-link").setAttribute("aria-controls", "accountRecoveryHelp");
     q(".landing-login-disabled-link").setAttribute("aria-expanded", "false");
@@ -2207,13 +2219,96 @@ ONBOARDING — JAVASCRIPT
     }
     if (SocialMEIAuth.remote && event.target.closest(".landing-login-disabled-link")) {
       q("#accountRecoveryHelp").hidden = false;
+      qa("#accountRecoveryHelp input").forEach((input) => {
+        input.disabled = false;
+      });
       q(".landing-login-disabled-link").setAttribute("aria-expanded", "true");
-      q("#accountRecoveryHelp [data-close-recovery]").focus();
+      q("#recoveryEmail").value = q("#loginEmail").value;
+      q("#recoveryEmail").focus();
+    }
+  });
+  experienceRoot.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" || !event.target.closest("#accountRecoveryHelp input")) return;
+    event.preventDefault();
+    event.stopPropagation();
+    q(
+      event.target.id === "recoveryEmail" ? "[data-request-recovery]" : "[data-confirm-recovery]",
+    ).click();
+  });
+  let recoveryPending = false;
+  experienceRoot.addEventListener("click", async (event) => {
+    const action = event.target.closest("[data-request-recovery],[data-confirm-recovery]");
+    if (!action || recoveryPending) return;
+    const status = q("#recoveryStatus");
+    const requestCode = action.hasAttribute("data-request-recovery");
+    const email = q("#recoveryEmail");
+    const password = q("#recoveryPassword").value;
+    if (requestCode && (!email.value.trim() || !email.reportValidity())) {
+      status.textContent = "Informe um e-mail válido.";
+      email.focus();
+      return;
+    }
+    if (!requestCode) {
+      const policy = SocialMEIAuth.passwordPolicy(password);
+      if (
+        policy.error ||
+        password !== q("#recoveryConfirm").value ||
+        !/^[A-Za-z0-9_-]{43}$/.test(q("#recoveryToken").value.trim())
+      ) {
+        status.textContent =
+          policy.error ||
+          (password !== q("#recoveryConfirm").value
+            ? "As senhas precisam ser iguais."
+            : "Cole o código completo recebido por e-mail.");
+        return;
+      }
+    }
+    recoveryPending = true;
+    qa("#accountRecoveryHelp button").forEach((button) => {
+      button.disabled = true;
+    });
+    status.textContent = requestCode ? "Solicitando código…" : "Redefinindo senha…";
+    try {
+      const result = await SocialMEIAuth.request(
+        requestCode ? "/auth/recovery/request" : "/auth/recovery/confirm",
+        "POST",
+        requestCode
+          ? { email: email.value.trim() }
+          : { token: q("#recoveryToken").value.trim(), nova: password },
+      );
+      status.textContent = requestCode
+        ? result.message
+        : "Senha redefinida. Entre com sua nova senha." +
+          (SocialMEIAuth.passwordPolicy(password).warning
+            ? " " + SocialMEIAuth.passwordPolicy(password).warning
+            : "");
+      if (requestCode) q("#recoveryToken").focus();
+      else {
+        q("#recoveryToken").value = "";
+        q("#recoveryPassword").value = "";
+        q("#recoveryConfirm").value = "";
+        q("#loginPassword").value = "";
+        q("#loginEmail").value = email.value.trim();
+      }
+    } catch (error) {
+      status.textContent = error.message || "Não foi possível concluir. Tente novamente.";
+    } finally {
+      recoveryPending = false;
+      qa("#accountRecoveryHelp button").forEach((button) => {
+        button.disabled = false;
+      });
     }
   });
   experienceRoot.addEventListener("click", (event) => {
     if (!event.target.closest("[data-close-recovery]")) return;
     q("#accountRecoveryHelp").hidden = true;
+    qa("#accountRecoveryHelp input").forEach((input) => {
+      input.disabled = true;
+      input.value = "";
+    });
+    ["#recoveryToken", "#recoveryPassword", "#recoveryConfirm"].forEach((id) => {
+      q(id).value = "";
+    });
     q(".landing-login-disabled-link").setAttribute("aria-expanded", "false");
     q(".landing-login-disabled-link").focus();
   });

@@ -159,3 +159,19 @@ def instagram_runtime_configuration() -> dict:
             "send": "RUNTIME_SEND_ENABLED", "privacy_reviewed": "PROXY_PRIVACY_REVIEWED",
         }.items()
     }
+
+
+def recovery_smtp_configuration():
+    """Opt-in, TLS-only mail delivery. Values are server-side secrets."""
+    if os.getenv("SOCIALMEI_RECOVERY_MODE", "disabled") != "smtp":
+        raise ValueError("Recovery disabled")
+    values = {
+        key: os.getenv("SOCIALMEI_SMTP_" + key.upper(), "")
+        for key in ("host", "user", "password", "from")
+    }
+    if any(not value or "\r" in value or "\n" in value for value in values.values()):
+        raise ValueError("Incomplete mail configuration")
+    values["port"] = int(os.getenv("SOCIALMEI_SMTP_PORT", "465"))
+    if values["port"] not in (465, 587):
+        raise ValueError("TLS mail port required")
+    return values

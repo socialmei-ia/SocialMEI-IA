@@ -18,6 +18,7 @@ from finance_import import router as finance_import_router
 from workspace_transfer import router as transfer_router
 from n8n_read import router as n8n_read_router
 from account_auth import AccountMiddleware, router as account_auth_router
+from account_recovery import router as account_recovery_router
 from instagram_simulation import router as instagram_simulation_router
 from instagram_provider_lab import router as instagram_provider_lab_router
 from instagram_persistent_oauth import router as instagram_persistent_oauth_router
@@ -57,6 +58,7 @@ app.include_router(finance_import_router)
 app.include_router(transfer_router)
 app.include_router(n8n_read_router)
 app.include_router(account_auth_router)
+app.include_router(account_recovery_router)
 app.include_router(instagram_simulation_router)
 app.include_router(instagram_provider_lab_router)
 app.include_router(instagram_persistent_oauth_router)

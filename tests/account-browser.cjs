@@ -109,7 +109,15 @@ module.exports = async function accountFlow(browser, origin) {
     let status = 200,
       data = [];
     const body = request.postDataJSON();
-    if (url.pathname === "/api/v1/auth/registration") {
+    if (url.pathname === "/api/v1/auth/recovery/request") {
+      assert.equal(body.email, "user1@example.com");
+      status = 202;
+      data = { message: "Se houver uma conta ativa, enviaremos um código." };
+    } else if (url.pathname === "/api/v1/auth/recovery/confirm") {
+      assert.equal(body.token, "r".repeat(43));
+      assert.equal(body.nova, "FlorSol!");
+      return route.fulfill({ status: 204 });
+    } else if (url.pathname === "/api/v1/auth/registration") {
       status = registrationUnavailable ? 503 : 200;
       data = registrationUnavailable
         ? { detail: "Cadastro indisponível." }
@@ -287,9 +295,42 @@ module.exports = async function accountFlow(browser, origin) {
     assert.equal(session, null);
     await page.locator(".landing-login-disabled-link").click();
     assert(await page.locator("#accountRecoveryHelp").isVisible());
-    assert((await page.locator("#accountRecoveryHelp").innerText()).includes("preparação"));
+    assert.equal(await page.locator("#recoveryEmail").inputValue(), "user1@example.com");
+    await page.locator("#recoveryEmail").press("Enter");
+    await page.waitForFunction(() =>
+      document.getElementById("recoveryStatus").textContent.includes("enviaremos"),
+    );
+    await page.locator("#recoveryToken").fill("r".repeat(43));
+    await page.locator("#recoveryPassword").fill("FlorSol");
+    await page.locator("#recoveryConfirm").fill("FlorSol");
+    await page.locator("[data-confirm-recovery]").click();
+    assert((await page.locator("#recoveryStatus").innerText()).includes("8 a 128"));
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: 1000 });
+      for (const theme of ["light", "dark"]) {
+        await page.evaluate((value) => setTheme(value), theme);
+        await page.evaluate(
+          () =>
+            new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+        );
+        await fitsViewport();
+        await capture(`recovery-${width}-${theme}`);
+      }
+    }
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.locator("#recoveryPassword").fill("FlorSol!");
+    await page.locator("#recoveryConfirm").fill("FlorSol!");
+    await page.locator("[data-confirm-recovery]").click();
+    await page.waitForFunction(() =>
+      document.getElementById("recoveryStatus").textContent.includes("Senha redefinida"),
+    );
+    assert.equal(await page.locator("#recoveryToken").inputValue(), "");
+    assert.equal(await page.locator("#recoveryPassword").inputValue(), "");
+    await page.locator("#recoveryEmail").fill("invalid-email");
     await page.locator("[data-close-recovery]").click();
     assert(await page.locator("#accountRecoveryHelp").isHidden());
+    assert(await page.locator("#recoveryEmail").isDisabled());
+    assert.equal(await page.locator("#recoveryEmail").inputValue(), "");
     await page.locator("#loginRemember").check();
     assert(await page.locator("#loginRemember").isEnabled());
     await login("user1@example.com");
