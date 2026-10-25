@@ -58,7 +58,19 @@ module.exports = async function exactV8(browser, origin) {
     await root.locator('.views [data-v="week"]').click();
     const chip = root.locator('.ch[data-id="' + cold.id + '"]');
     await chip.tap();
+    const tomorrow = await page.evaluate(() => {
+      const d = new Date();
+      d.setDate(d.getDate() + 1);
+      return d.toLocaleDateString("sv-SE");
+    });
     await root.locator('.dh[data-col="1"]').tap();
+    await page.waitForFunction(
+      ({ id, date }) => {
+        const s = SocialMEIOpportunityV8Bridge.snapshot();
+        return !s.busy && s.items.find((r) => r.id === id).follow_up_date === date;
+      },
+      { id: cold.id, date: tomorrow },
+    );
     assert.equal(await root.locator('[data-col="1"] .ch[data-id="' + cold.id + '"]').count(), 1);
     await root.locator('.views [data-v="list"]').click();
     const row = root.locator('.r[data-id="' + cold.id + '"]');
@@ -66,6 +78,15 @@ module.exports = async function exactV8(browser, origin) {
     await row.locator(".nt").fill("Texto humano preservado");
     await row.locator(".vl").fill("990,50");
     await row.locator('[data-act="note"]').click();
+    await page.waitForFunction((id) => {
+      const s = SocialMEIOpportunityV8Bridge.snapshot(),
+        r = s.items.find((row) => row.id === id);
+      return (
+        !s.busy &&
+        r.planning_note === "Texto humano preservado" &&
+        Number(r.estimated_amount) === 990.5
+      );
+    }, cold.id);
     assert.equal(await row.locator(".nt").inputValue(), "Texto humano preservado");
     const writesBefore = fixture.writes.length;
     fixture.setConflict(true);
@@ -114,6 +135,10 @@ module.exports = async function exactV8(browser, origin) {
       ),
     );
     assert.equal(fixture.rows.filter((r) => r.title === "Novo interesse confirmado").length, 1);
+    const created = fixture.rows.find((r) => r.title === "Novo interesse confirmado");
+    assert.equal(Number(created.estimated_amount), 350.5);
+    assert.equal(created.planning_initialized, true);
+    assert.match(created.follow_up_date, /^\d{4}-\d{2}-\d{2}$/);
     assert(
       fixture.writes.every(
         (w) =>

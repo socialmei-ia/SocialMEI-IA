@@ -36,6 +36,19 @@ module.exports = function fixture() {
     outcome_reason: index === 4 ? "sale_completed" : index === 5 ? "price" : null,
     outcome_note: "",
     sale_id: null,
+    estimated_amount: [450, 1200, 380, 900, 280, 1500][index],
+    follow_up_date:
+      index < 4
+        ? (() => {
+            const d = new Date();
+            d.setDate(d.getDate() + [-1, 2, 1, 4][index]);
+            return d.toLocaleDateString("sv-SE");
+          })()
+        : null,
+    planning_note: "",
+    contacted: false,
+    planning_initialized: true,
+    legacy_planning: null,
     revision: 1,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -148,7 +161,17 @@ module.exports = function fixture() {
           client_id: client.id,
           client_name: client.nome,
           title: body.title,
-          interest_level: body.interest_level,
+          interest_level: body.interest_level ?? "unknown",
+          estimated_amount: body.estimated_amount ?? 0,
+          follow_up_date: body.follow_up_date ?? null,
+          planning_note: body.planning_note ?? "",
+          contacted: body.contacted ?? false,
+          planning_initialized: [
+            "estimated_amount",
+            "follow_up_date",
+            "planning_note",
+            "contacted",
+          ].some((k) => Object.hasOwn(body, k)),
           outcome: "open",
           revision: 1,
           created_at: new Date().toISOString(),
@@ -174,8 +197,51 @@ module.exports = function fixture() {
           row.sale_id = body.sale_id;
           action = "sale";
         } else {
-          assert(["unknown", "cold", "warm", "hot"].includes(body.interest_level));
-          row.interest_level = body.interest_level;
+          const fields = [
+              "title",
+              "interest_level",
+              "estimated_amount",
+              "follow_up_date",
+              "planning_note",
+              "contacted",
+            ],
+            changes = {};
+          const keys = Object.keys(body).filter(
+            (k) => !["operation_id", "expected_revision"].includes(k),
+          );
+          const dateValid = (v) =>
+            v === null ||
+            (typeof v === "string" &&
+              /^\d{4}-\d{2}-\d{2}$/.test(v) &&
+              Number.isFinite(Date.parse(v + "T12:00:00Z")) &&
+              new Date(v + "T12:00:00Z").toISOString().slice(0, 10) === v);
+          const invalid =
+            !keys.length ||
+            keys.some((k) => !fields.includes(k)) ||
+            (Object.hasOwn(body, "interest_level") &&
+              !["unknown", "cold", "warm", "hot"].includes(body.interest_level)) ||
+            (Object.hasOwn(body, "title") &&
+              (typeof body.title !== "string" || !body.title.trim() || body.title.length > 160)) ||
+            (Object.hasOwn(body, "estimated_amount") &&
+              (!["number", "string"].includes(typeof body.estimated_amount) ||
+                !/^\d+(?:\.\d{1,2})?$/.test(String(body.estimated_amount)) ||
+                !Number.isFinite(Number(body.estimated_amount)) ||
+                Number(body.estimated_amount) < 0 ||
+                Number(body.estimated_amount) > 1e9)) ||
+            (Object.hasOwn(body, "follow_up_date") && !dateValid(body.follow_up_date)) ||
+            (Object.hasOwn(body, "planning_note") &&
+              (typeof body.planning_note !== "string" || body.planning_note.length > 140)) ||
+            (Object.hasOwn(body, "contacted") && typeof body.contacted !== "boolean");
+          if (invalid)
+            return route.fulfill({ status: 422, json: { detail: "Alteração parcial inválida." } });
+          for (const key of keys) changes[key] = body[key];
+          Object.assign(row, changes);
+          if (
+            keys.some((k) =>
+              ["estimated_amount", "follow_up_date", "planning_note", "contacted"].includes(k),
+            )
+          )
+            row.planning_initialized = true;
           action = "edit";
         }
         row.revision++;
@@ -214,6 +280,8 @@ module.exports = function fixture() {
                 date: index < 4 ? d.toLocaleDateString("sv-SE") : "",
                 note: "",
                 contacted: false,
+                updatedAt: 1,
+                events: [],
               },
             ];
           }),

@@ -110,14 +110,97 @@ module.exports = async (context, origin, client, headers) => {
     await token.press("Enter");
     const card = root.locator('.r[data-id="' + id + '"]');
     assert.equal(await card.locator(".rh").getAttribute("aria-expanded"), "true");
+    const legacyCopy = await page.evaluate((id) => {
+      const scope = SocialMEIOpportunityV8Bridge.snapshot().scope,
+        key = "socialmei-op8-local-v1:" + encodeURIComponent(scope);
+      let raw = localStorage.getItem(key);
+      if (raw === null) {
+        raw = JSON.stringify({
+          v: 1,
+          scope,
+          items: {
+            [id]: {
+              amount: 9.99,
+              date: "",
+              note: "Cópia legado não importada",
+              contacted: false,
+              updatedAt: 1,
+              events: [],
+            },
+          },
+        });
+        localStorage.setItem(key, raw);
+      }
+      return { key, raw };
+    }, id);
+    const revision = await page.evaluate(
+      (id) => SocialMEIOpportunityV8Bridge.snapshot().items.find((row) => row.id === id).revision,
+      id,
+    );
     await card.locator(".vl").fill("350,50");
     await card.locator(".nt").fill("Anotação local fictícia");
     await card.locator('[data-act="note"]').click();
+    await page.waitForFunction(
+      ({ id, revision }) => {
+        const state = SocialMEIOpportunityV8Bridge.snapshot(),
+          row = state.items.find((r) => r.id === id);
+        return (
+          !state.busy &&
+          row.revision > revision &&
+          Number(row.estimated_amount) === 350.5 &&
+          row.planning_note === "Anotação local fictícia"
+        );
+      },
+      { id, revision },
+    );
+    await root.locator("#v8-toast button").last().click();
+    await page.waitForFunction((id) => {
+      const state = SocialMEIOpportunityV8Bridge.snapshot(),
+        row = state.items.find((r) => r.id === id);
+      return !state.busy && Number(row.estimated_amount) === 0 && row.planning_note === "";
+    }, id);
+    const undoResponse = await context.request.get(origin + "/api/v1/opportunities");
+    assert.equal(undoResponse.status(), 200);
+    const undone = (await undoResponse.json()).items.find((row) => row.id === id);
+    assert.equal(Number(undone.estimated_amount), 0);
+    assert.equal(undone.planning_note, "");
+    await card.locator(".vl").fill("350,50");
+    await card.locator(".nt").fill("Anotação local fictícia");
+    await card.locator('[data-act="note"]').click();
+    await page.waitForFunction((id) => {
+      const state = SocialMEIOpportunityV8Bridge.snapshot(),
+        row = state.items.find((r) => r.id === id);
+      return (
+        !state.busy &&
+        Number(row.estimated_amount) === 350.5 &&
+        row.planning_note === "Anotação local fictícia"
+      );
+    }, id);
+    const tomorrow = await page.evaluate(() => {
+      const d = new Date();
+      d.setDate(d.getDate() + 1);
+      return d.toLocaleDateString("sv-SE");
+    });
     await card.locator('[data-act="fu"][data-d="1"]').click();
+    await page.waitForFunction(
+      ({ id, date }) => {
+        const s = SocialMEIOpportunityV8Bridge.snapshot();
+        return !s.busy && s.items.find((r) => r.id === id).follow_up_date === date;
+      },
+      { id, date: tomorrow },
+    );
     await root.locator('.views [data-v="week"]').click();
     assert.equal(await root.locator('[data-col="1"] .ch[data-id="' + id + '"]').count(), 1);
     await root.locator('.ch[data-id="' + id + '"]').click();
+    const today = await page.evaluate(() => new Date().toLocaleDateString("sv-SE"));
     await root.locator('.dh[data-col="0"]').click();
+    await page.waitForFunction(
+      ({ id, date }) => {
+        const s = SocialMEIOpportunityV8Bridge.snapshot();
+        return !s.busy && s.items.find((r) => r.id === id).follow_up_date === date;
+      },
+      { id, date: today },
+    );
     assert.equal(await root.locator('[data-col="0"] .ch[data-id="' + id + '"]').count(), 1);
     await root.locator('.views [data-v="list"]').click();
     assert(await root.locator("#v8-today").isVisible());
@@ -126,6 +209,32 @@ module.exports = async (context, origin, client, headers) => {
     const records = (await returned.json()).items;
     const saved = records.find((row) => row.id === id);
     assert.equal(saved.interest_level, "cold");
+    assert.equal(Number(saved.estimated_amount), 350.5);
+    assert.equal(saved.planning_note, "Anotação local fictícia");
+    assert.equal(saved.follow_up_date, today);
+    assert.equal(saved.planning_initialized, true);
+    const concurrent = await context.request.patch(origin + "/api/v1/opportunities/" + id, {
+      headers,
+      data: { operation_id: randomUUID(), expected_revision: saved.revision, contacted: false },
+    });
+    assert.equal(concurrent.status(), 200, await concurrent.text());
+    await card.locator(".nt").fill("Conflito não salvo");
+    await card.locator('[data-act="note"]').click();
+    await page.waitForFunction(() =>
+      document.getElementById("v8-toast").textContent.includes("A oportunidade mudou"),
+    );
+    assert.equal(await card.locator(".nt").inputValue(), "Conflito não salvo");
+    const conflictResponse = await context.request.get(origin + "/api/v1/opportunities");
+    assert.equal(conflictResponse.status(), 200);
+    assert.equal(
+      (await conflictResponse.json()).items.find((row) => row.id === id).planning_note,
+      "Anotação local fictícia",
+    );
+
+    assert.equal(
+      await page.evaluate((key) => localStorage.getItem(key), legacyCopy.key),
+      legacyCopy.raw,
+    );
     for (const name of ["amount", "date", "note", "v", "f", "n"])
       assert(
         !Object.hasOwn(saved, name),
@@ -138,35 +247,30 @@ module.exports = async (context, origin, client, headers) => {
       SocialMEIExperience.enterApp("Oportunidades");
     });
     await page.waitForFunction(() => SocialMEIOpportunityV8Bridge.snapshot().ready);
-    const scope = await page.evaluate(() => SocialMEIOpportunityV8Bridge.snapshot().scope);
-    const metadata = await page.evaluate(
-      (scope) =>
-        JSON.parse(localStorage.getItem("socialmei-op8-local-v1:" + encodeURIComponent(scope))),
-      scope,
+    assert.equal(
+      await page.evaluate((key) => localStorage.getItem(key), legacyCopy.key),
+      legacyCopy.raw,
     );
-    assert.equal(metadata.items[id].amount, 350.5);
-    assert.equal(metadata.items[id].note, "Anotação local fictícia");
-    const viewItems = await page.evaluate(() => {
-      const scope = SocialMEIOpportunityV8Bridge.snapshot().scope;
-      const metadata =
-        JSON.parse(localStorage.getItem("socialmei-op8-local-v1:" + encodeURIComponent(scope)))
-          ?.items || {};
-      return SocialMEIOpportunityV8Bridge.snapshot().items.map((row) => {
-        const local = metadata[row.id] || {};
-        return {
-          id: row.id,
-          c: row.client_name,
-          w: row.title,
-          i: row.interest_level === "unknown" ? "analysis" : row.interest_level,
-          r: row.outcome,
-          n: local.note || "",
-          v: local.amount || 0,
-          f: local.date ? new Date(local.date + "T09:00:00").getTime() : null,
-          u: Date.parse(row.updated_at),
-          h: [],
-        };
-      });
-    });
+    const reloaded = await context.request.get(origin + "/api/v1/opportunities");
+    assert.equal(reloaded.status(), 200);
+    const reloadedRow = (await reloaded.json()).items.find((row) => row.id === id);
+    assert.equal(Number(reloadedRow.estimated_amount), 350.5);
+    assert.equal(reloadedRow.planning_note, "Anotação local fictícia");
+    assert.equal(reloadedRow.follow_up_date, today);
+    const viewItems = await page.evaluate(() =>
+      SocialMEIOpportunityV8Bridge.snapshot().items.map((row) => ({
+        id: row.id,
+        c: row.client_name,
+        w: row.title,
+        i: row.interest_level === "unknown" ? "analysis" : row.interest_level,
+        r: row.outcome,
+        n: row.planning_note || "",
+        v: Number(row.estimated_amount || 0),
+        f: row.follow_up_date ? new Date(row.follow_up_date + "T09:00:00").getTime() : null,
+        u: Date.parse(row.updated_at),
+        h: [],
+      })),
+    );
     const reference = await context.newPage();
     await reference.emulateMedia({ reducedMotion: "reduce" });
     await reference.route("**/*", (route) =>
@@ -261,7 +365,8 @@ module.exports = async (context, origin, client, headers) => {
     return {
       originalComposition: true,
       authenticatedCRM: true,
-      localPlanning: true,
+      sharedPlanning: true,
+      legacyCopyPreserved: true,
       focus: true,
       goldenComparisons: comparisons.length,
       errors,
