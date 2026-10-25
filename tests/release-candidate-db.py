@@ -250,6 +250,11 @@ class Rehearsal:
                     conn.execute("INSERT INTO socialmei.ig_direct_operations(workspace_id,operation_id,fingerprint,response) VALUES(%s,%s,%s,%s)", (workspace,uuid4(),'e'*64,Jsonb({'id':str(job),'status':'confirmed','revision':1})))
                     conn.execute("INSERT INTO socialmei.ig_direct_attempts(workspace_id,job_id,attempt,claim_token,status,finished_at) VALUES(%s,%s,1,%s,'confirmed',NOW())", (workspace,job,claim))
                     conn.execute("INSERT INTO socialmei.ig_direct_events(workspace_id,job_id,actor_id,action,revision) VALUES(%s,%s,%s,'confirmed',1)", (workspace,job,user))
+                elif version == 22:
+                    previous = conn.execute('SELECT to_jsonb(o) FROM socialmei.crm_opportunities o WHERE workspace_id=%s LIMIT 1', (workspace,)).fetchone()[0]
+                    legacy = {'source':'legacy-browser','client_updated_at':1792770000123,'events':[{'t':1792770000123,'s':'Registro local de ensaio'}]}
+                    current = conn.execute("UPDATE socialmei.crm_opportunities o SET estimated_amount=25.30,follow_up_date='2026-10-31',planning_note='Planejamento de ensaio',contacted=TRUE,planning_initialized=TRUE,legacy_planning=%s,revision=revision+1,updated_at=NOW() WHERE workspace_id=%s AND id=%s RETURNING to_jsonb(o)", (Jsonb(legacy),workspace,previous['id'])).fetchone()[0]
+                    conn.execute("INSERT INTO socialmei.crm_opportunity_events(workspace_id,opportunity_id,actor_id,action,reason,previous,current) VALUES(%s,%s,%s,'edit','planning_import',%s,%s)", (workspace,previous['id'],user,Jsonb(previous),Jsonb(current)))
 
     def prove_fks(self, tenants, database):
         import psycopg
@@ -335,7 +340,7 @@ class Rehearsal:
     def run(self, backend_tests):
         import psycopg
         files = sorted((ROOT/'database/migrations').glob('*.sql'))
-        self.check(len(files) == 21 and [p.name[:3] for p in files] == [f'{n:03}' for n in range(1,22)], 'exact incremental migrations001–021 present')
+        self.check(len(files) == 22 and [p.name[:3] for p in files] == [f'{n:03}' for n in range(1,23)], 'exact incremental migrations001–022 present')
         manifest = {}
         for path in files:
             committed = subprocess.run(['git','show','HEAD:database/migrations/'+path.name], cwd=ROOT, capture_output=True, check=True).stdout
@@ -381,12 +386,12 @@ class Rehearsal:
                 current = self.snapshot()
                 self.check(all(current['tables'][name] == rows for name,rows in legacy.items()), f'{number:03} preserves all preexisting001–011 table values')
             baseline = self.snapshot()
-            self.migrate(folder, 'ledger replay001–021')
+            self.migrate(folder, 'ledger replay001–022')
             self.check(self.snapshot() == baseline, 'team migrator ledger replay preserves rows, schema, sequences and applied_at')
             with self.connect() as conn:
                 for path in files[11:]:
                     conn.execute(path.read_text(), prepare=False)
-            self.check(self.snapshot() == baseline, 'raw012–021 reapplication is idempotent with seeded data')
+            self.check(self.snapshot() == baseline, 'raw012–022 reapplication is idempotent with seeded data')
             with tempfile.TemporaryDirectory(prefix='socialmei-rc80-failure-') as failure:
                 (Path(failure)/'999_release_probe.sql').write_text('CREATE TABLE socialmei.rc80_rollback_probe(id INT); SELECT 1/0;')
                 try:

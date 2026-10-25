@@ -21,6 +21,7 @@ on:
         feat/instagram-token-vault,
         feat/instagram-persistent-oauth,
         feat/instagram-durable-webhook,
+        feat/instagram-direct-outbox,
       ]
 
 permissions:

@@ -16,6 +16,15 @@ document.addEventListener("DOMContentLoaded", () => {
   root.className = "exact-v8";
   root.setAttribute("aria-label", "Acompanhamento comercial");
   root.innerHTML = SocialMEIOpportunityV8View.markup;
+  if (auth.remote) {
+    const foot = root.querySelector(".foot span"),
+      description = root.querySelector(".trkh p");
+    if (foot)
+      foot.textContent =
+        "Valor, anotação e retorno são salvos no negócio atual. Não alteram vendas.";
+    if (description)
+      description.textContent = "Alterações comerciais e planejamento salvos no negócio atual.";
+  }
   const analysis = document.createElement("details");
   analysis.className = "native-message-analysis";
   analysis.id = "opportunityMessageAnalysis";
@@ -144,7 +153,16 @@ document.addEventListener("DOMContentLoaded", () => {
       $("q").value = "";
     }
     S.items = snapshot.items.map((row) => {
-      const meta = planning.get(row.id),
+      const meta = auth.remote
+          ? {
+              amount: Number(row.estimated_amount ?? 0),
+              date: row.follow_up_date || "",
+              note: row.planning_note ?? "",
+              contacted: row.contacted ?? false,
+              updatedAt: Date.parse(row.updated_at || row.created_at) || 0,
+              events: [],
+            }
+          : planning.get(row.id),
         date = meta.date ? new Date(meta.date + "T09:00:00").getTime() : null;
       const remote =
         S.histories[row.id]?.revision === row.revision ? S.histories[row.id].events : [];
@@ -300,7 +318,47 @@ document.addEventListener("DOMContentLoaded", () => {
       return null;
     }
   }
-  function localChange(o, patch, text) {
+  async function localChange(o, patch, text) {
+    if (auth.remote) {
+      const sourceScope = store.snapshot().scope;
+      const fields = {},
+        before = {};
+      const names = {
+        amount: "estimated_amount",
+        date: "follow_up_date",
+        note: "planning_note",
+        contacted: "contacted",
+      };
+      for (const [key, value] of Object.entries(patch)) {
+        if (!names[key]) continue;
+        fields[names[key]] = key === "date" ? value || null : value;
+        before[names[key]] =
+          key === "amount"
+            ? (o.raw.estimated_amount ?? 0)
+            : key === "date"
+              ? (o.raw.follow_up_date ?? null)
+              : key === "note"
+                ? (o.raw.planning_note ?? "")
+                : (o.raw.contacted ?? false);
+      }
+      return run(
+        () => store.update(o.raw, fields),
+        text + " no negócio atual.",
+        () => {
+          delete S.histories[o.id];
+        },
+        (saved) => async () => {
+          const result = await run(
+            () => store.undoPlanning(saved, before, sourceScope),
+            "Planejamento desfeito no negócio atual.",
+            () => {
+              delete S.histories[o.id];
+            },
+          );
+          if (!result) throw new Error("Não foi possível desfazer o planejamento.");
+        },
+      );
+    }
     try {
       const old = planning.get(o.id);
       const receipt = planning.save(o.id, {
@@ -394,7 +452,11 @@ document.addEventListener("DOMContentLoaded", () => {
       (S.histories[o.id]
         ? "Histórico remoto consultado."
         : "Consulte o histórico remoto para conferir responsáveis e revisões.") +
-      '</p></details><p class="local-label">Anotação, valor e retorno: planejamento local, não sincronizado.</p>'
+      '</p></details><p class="local-label">' +
+      (auth.remote
+        ? "Anotação, valor e retorno: planejamento salvo no negócio atual."
+        : "Anotação, valor e retorno: planejamento local, não sincronizado.") +
+      "</p>"
     );
   }
   function op(k) {
@@ -670,7 +732,7 @@ document.addEventListener("DOMContentLoaded", () => {
       '">Valor</label><input class="vl" id="v8-v' +
       esc(o.id) +
       '" inputmode="decimal" value="' +
-      (o.v || "") +
+      (o.v ? String(o.v).replace(".", ",") : "") +
       '" placeholder="Valor R$"><button class="btn sm" data-act="note">Salvar</button></div>' +
       '<div data-box="cf" hidden><div class="ro"><label class="sr" for="v8-r' +
       esc(o.id) +
@@ -1049,7 +1111,20 @@ document.addEventListener("DOMContentLoaded", () => {
         : "",
     };
     await run(
-      () => store.create({ client_id: client, title, interest_level: $("interest").value }),
+      () =>
+        store.create({
+          client_id: client,
+          title,
+          interest_level: $("interest").value,
+          ...(auth.remote
+            ? {
+                estimated_amount: captured.amount,
+                follow_up_date: captured.date || null,
+                planning_note: "",
+                contacted: false,
+              }
+            : {}),
+        }),
       "Oportunidade criada no negócio atual.",
       (created) => {
         S.f = "open";
@@ -1057,7 +1132,11 @@ document.addEventListener("DOMContentLoaded", () => {
         $("q").value = "";
         S.nw = created.id;
         let warning = "";
-        if (captured.scope === store.snapshot().scope && (captured.amount || captured.date))
+        if (
+          !auth.remote &&
+          captured.scope === store.snapshot().scope &&
+          (captured.amount || captured.date)
+        )
           try {
             planning.save(created.id, { amount: captured.amount, date: captured.date });
           } catch (e) {
@@ -1585,6 +1664,18 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   window.SocialMEIOpportunityV8Bridge = Object.freeze({
     snapshot: () => store.snapshot(),
+    listLegacyCandidates: () => store.listLegacyCandidates(planning),
+    importLegacyPlanning: (id, legacy) => {
+      const row = store.snapshot().items.find((item) => item.id === id);
+      if (!row) return Promise.reject(new Error("Oportunidade indisponível no negócio atual."));
+      return run(
+        () => store.importLegacyPlanning(row, legacy),
+        "Planejamento legado importado; cópia local preservada.",
+        () => {
+          delete S.histories[id];
+        },
+      );
+    },
     changeInterest: async (id, interest) => {
       const o = S.items.find((i) => i.id === id);
       return !!(await setInt(o, interest === "unknown" ? "analysis" : interest));

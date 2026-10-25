@@ -1,9 +1,13 @@
 """Authenticated commercial lifecycle, independent from sales and payments."""
+import re
 import hashlib
 import json
 from contextlib import contextmanager
 from datetime import datetime, timezone
-from typing import Literal
+from typing import Literal, Annotated
+from datetime import date as CalendarDate
+from decimal import Decimal
+from sales_data import Money
 from uuid import UUID, uuid4
 
 import psycopg
@@ -11,7 +15,7 @@ from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 from fastapi import APIRouter, HTTPException, Response
 from fastapi.encoders import jsonable_encoder
-from pydantic import BaseModel, ConfigDict, Field, StrictInt, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictBool, StringConstraints, field_validator, model_validator
 
 from account_auth import current, require_enabled
 from database import connect
@@ -20,7 +24,7 @@ from shared_data import require_shared_data
 router = APIRouter(prefix='/api/v1/opportunities', tags=['opportunities'])
 Interest = Literal['unknown', 'cold', 'warm', 'hot']
 MAX_ID = 9007199254740991
-COLUMNS = 'o.workspace_id,o.id,o.client_id,c.nome AS client_name,o.title,o.interest_level,o.outcome,o.outcome_reason,o.outcome_note,o.sale_id,s.status AS sale_status,(o.sale_id IS NOT NULL AND (s.id IS NULL OR s.excluida OR s.status=\'Cancelado\')) AS sale_unavailable,o.revision,o.closed_at,o.updated_at,o.created_at'
+COLUMNS = 'o.estimated_amount,o.follow_up_date,o.planning_note,o.contacted,o.planning_initialized,o.legacy_planning,o.workspace_id,o.id,o.client_id,c.nome AS client_name,o.title,o.interest_level,o.outcome,o.outcome_reason,o.outcome_note,o.sale_id,s.status AS sale_status,(o.sale_id IS NOT NULL AND (s.id IS NULL OR s.excluida OR s.status=\'Cancelado\')) AS sale_unavailable,o.revision,o.closed_at,o.updated_at,o.created_at'
 SOURCE = 'socialmei.crm_opportunities o JOIN socialmei.crm_clientes c ON c.workspace_id=o.workspace_id AND c.id=o.client_id LEFT JOIN socialmei.crm_vendas s ON s.workspace_id=o.workspace_id AND s.id=o.sale_id'
 
 
@@ -32,7 +36,42 @@ class Operation(Strict):
     operation_id: UUID
 
 
-class Create(Operation):
+PLANNING_FIELDS = {'estimated_amount','follow_up_date','planning_note','contacted'}
+PlanningNote = Annotated[str, StringConstraints(strip_whitespace=False)]
+
+
+def utf16_text(value, maximum):
+    try:
+        units=len(value.encode('utf-16-le'))//2
+        value.encode('utf-8')
+    except UnicodeError:
+        raise ValueError('Texto Unicode inválido.') from None
+    if units>maximum or '\x00' in value:
+        raise ValueError('Texto excede o limite.')
+    return value
+
+
+class PlanningFields(Strict):
+    estimated_amount: Money = Field(default=Decimal(0),le=Decimal('1000000000'))
+    follow_up_date: CalendarDate | None = None
+    planning_note: PlanningNote = ''
+    contacted: StrictBool = False
+
+    @field_validator('follow_up_date',mode='before')
+    @classmethod
+    def valid_follow_up(cls,value):
+        if value is None or value == '': return None
+        if type(value) is CalendarDate: return value
+        if not isinstance(value,str) or not re.fullmatch(r'[0-9]{4}-[0-9]{2}-[0-9]{2}',value):
+            raise ValueError('Data deve conter ano, mês e dia.')
+        return CalendarDate.fromisoformat(value)
+
+    @field_validator('planning_note')
+    @classmethod
+    def valid_note(cls,value): return utf16_text(value,140)
+
+
+class Create(PlanningFields, Operation):
     client_id: StrictInt = Field(ge=1, le=MAX_ID)
     title: str = Field(min_length=1, max_length=160)
     interest_level: Interest = 'unknown'
@@ -42,15 +81,47 @@ class Revision(Operation):
     expected_revision: StrictInt = Field(ge=1, le=MAX_ID)
 
 
-class Edit(Revision):
+class Edit(PlanningFields, Revision):
     title: str | None = Field(default=None, min_length=1, max_length=160)
     interest_level: Interest | None = None
 
     @model_validator(mode='after')
     def changes(self):
-        if not self.model_fields_set.intersection({'title', 'interest_level'}) or any(getattr(self, key) is None for key in self.model_fields_set.intersection({'title', 'interest_level'})):
+        if not self.model_fields_set.intersection({'title', 'interest_level'} | PLANNING_FIELDS) or any(getattr(self, key) is None for key in self.model_fields_set.intersection({'title', 'interest_level'})):
             raise ValueError('Informe uma alteração válida.')
         return self
+
+
+class LegacyEvent(Strict):
+    model_config = ConfigDict(extra='forbid',str_strip_whitespace=False)
+    t: StrictInt = Field(gt=0,le=MAX_ID)
+    s: str
+    @field_validator('s')
+    @classmethod
+    def valid_text(cls,value): return utf16_text(value,250)
+
+
+class LegacyPlanning(Strict):
+    model_config = ConfigDict(extra='forbid',str_strip_whitespace=False)
+    amount: Money = Field(ge=0,le=Decimal('1000000000'))
+    date: str
+    note: str
+    contacted: StrictBool
+    updatedAt: StrictInt = Field(ge=0,le=MAX_ID)
+    events: list[LegacyEvent] = Field(max_length=20)
+    @field_validator('note')
+    @classmethod
+    def valid_note(cls,value): return utf16_text(value,140)
+    @field_validator('date')
+    @classmethod
+    def valid_date(cls,value):
+        if value and (len(value)!=10 or CalendarDate.fromisoformat(value).isoformat()!=value):
+            raise ValueError('Data inválida.')
+        return value
+
+
+class PlanningImport(Revision):
+    legacy: LegacyPlanning
 
 
 class Close(Revision):
@@ -110,7 +181,9 @@ def record(cur, workspace, oid):
 def mutate(action, payload, oid=None):
     user = guard(True)
     workspace = user['workspace_id']
-    fingerprint = hashlib.sha256(json.dumps({'action': action, 'id': str(oid), 'payload': payload.model_dump(mode='json')}, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+    canonical=payload.model_dump(mode='json',exclude=PLANNING_FIELDS)
+    canonical.update(payload.model_dump(mode='json',include=payload.model_fields_set & PLANNING_FIELDS))
+    fingerprint = hashlib.sha256(json.dumps({'action': action, 'id': str(oid), 'payload': canonical}, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
     with transaction() as cur:
         # One workspace lock serializes operation replay and sale linking together.
         cur.execute('SELECT id FROM socialmei.workspaces WHERE id=%s FOR UPDATE', (workspace,))
@@ -128,15 +201,21 @@ def mutate(action, payload, oid=None):
             if not cur.fetchone():
                 raise HTTPException(404, 'Cliente não encontrado neste negócio.')
             oid = uuid4()
-            cur.execute('INSERT INTO socialmei.crm_opportunities(workspace_id,id,client_id,title,interest_level,created_by) VALUES (%s,%s,%s,%s,%s,%s)', (workspace, oid, payload.client_id, payload.title, payload.interest_level, user['id']))
+            cur.execute('INSERT INTO socialmei.crm_opportunities(workspace_id,id,client_id,title,interest_level,created_by,estimated_amount,follow_up_date,planning_note,contacted,planning_initialized) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)', (workspace, oid, payload.client_id, payload.title, payload.interest_level, user['id'],payload.estimated_amount,payload.follow_up_date,payload.planning_note,payload.contacted,bool(payload.model_fields_set & PLANNING_FIELDS)))
         else:
             before = record(cur, workspace, oid)
             if before['revision'] != payload.expected_revision:
                 raise HTTPException(409, 'A oportunidade mudou. Atualize antes de salvar.')
-            transition(before['outcome'], action)
+            planning_only = action=='import_planning' or (action=='edit' and not payload.model_fields_set.intersection({'title','interest_level'}))
+            if not planning_only: transition(before['outcome'], action)
             fields = {}
             if action == 'edit':
-                fields = payload.model_dump(include={'title', 'interest_level'}, exclude_unset=True)
+                fields = payload.model_dump(include={'title', 'interest_level'} | PLANNING_FIELDS, exclude_unset=True)
+                if payload.model_fields_set & PLANNING_FIELDS: fields['planning_initialized']=True
+            elif action == 'import_planning':
+                if before['planning_initialized']: raise HTTPException(409,'Planejamento remoto já inicializado; importação não sobrescreve alterações.')
+                legacy=payload.legacy
+                fields={'estimated_amount':legacy.amount,'follow_up_date':CalendarDate.fromisoformat(legacy.date) if legacy.date else None,'planning_note':legacy.note,'contacted':legacy.contacted,'planning_initialized':True,'legacy_planning':Jsonb(legacy.model_dump(mode='json'))}
             elif action == 'close':
                 fields = {'outcome': payload.outcome, 'outcome_reason': payload.reason, 'outcome_note': payload.note, 'closed_at': datetime.now(timezone.utc)}
             elif action == 'reopen':
@@ -151,7 +230,7 @@ def mutate(action, payload, oid=None):
             assignments = ','.join(key + '=%s' for key in fields)
             cur.execute(f'UPDATE socialmei.crm_opportunities SET {assignments},revision=revision+1,updated_at=now() WHERE workspace_id=%s AND id=%s', (*fields.values(), workspace, oid))
         result = record(cur, workspace, oid)
-        cur.execute('INSERT INTO socialmei.crm_opportunity_events(workspace_id,opportunity_id,actor_id,action,reason,previous,current) VALUES (%s,%s,%s,%s,%s,%s,%s)', (workspace, oid, user['id'], action, getattr(payload, 'reason', ''), Jsonb(before), Jsonb(result)))
+        cur.execute('INSERT INTO socialmei.crm_opportunity_events(workspace_id,opportunity_id,actor_id,action,reason,previous,current) VALUES (%s,%s,%s,%s,%s,%s,%s)', (workspace, oid, user['id'], 'edit' if action=='import_planning' else action, 'planning_import' if action=='import_planning' else getattr(payload, 'reason', ''), Jsonb(before), Jsonb(result)))
         cur.execute('INSERT INTO socialmei.crm_opportunity_operations(workspace_id,operation_id,fingerprint,response) VALUES (%s,%s,%s,%s)', (workspace, payload.operation_id, fingerprint, Jsonb(result)))
         return result
 
@@ -198,3 +277,8 @@ def opportunity_history(oid: UUID, response: Response):
         record(cur, user['workspace_id'], oid)
         cur.execute('SELECT id,actor_id,action,reason,previous,current,created_at FROM socialmei.crm_opportunity_events WHERE workspace_id=%s AND opportunity_id=%s ORDER BY id DESC LIMIT 500', (user['workspace_id'], oid))
         return {'workspace_id': user['workspace_id'], 'items': cur.fetchall()}
+
+
+@router.post('/{oid}/planning/import')
+def import_planning(oid: UUID, payload: PlanningImport):
+    return mutate('import_planning',payload,oid)

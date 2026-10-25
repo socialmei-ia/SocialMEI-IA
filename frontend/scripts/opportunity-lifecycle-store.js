@@ -35,6 +35,67 @@
     }
     return totals;
   }
+  function wellFormed(value, limit) {
+    return (
+      typeof value === "string" &&
+      value.length <= limit &&
+      ![...value].some((c) => {
+        const n = c.codePointAt(0);
+        return n >= 0xd800 && n <= 0xdfff;
+      }) &&
+      !value.includes("\0")
+    );
+  }
+  function validAmount(value) {
+    return (
+      (typeof value === "number" || typeof value === "string") &&
+      /^\d+(?:\.\d{1,2})?$/.test(String(value)) &&
+      Number.isFinite(Number(value)) &&
+      Number(value) >= 0 &&
+      Number(value) <= 1e9
+    );
+  }
+  function validPlanningDate(value) {
+    if (value === "") return true;
+    if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    if (Number(value.slice(0, 4)) < 1) return false;
+    const d = new Date(value + "T12:00:00Z");
+    return Number.isFinite(d.getTime()) && d.toISOString().slice(0, 10) === value;
+  }
+  function validateLegacyPlanning(value) {
+    const keys = ["amount", "date", "note", "contacted", "updatedAt", "events"];
+    if (
+      !value ||
+      typeof value !== "object" ||
+      Array.isArray(value) ||
+      Object.keys(value).length !== keys.length ||
+      keys.some((k) => !Object.hasOwn(value, k)) ||
+      Object.keys(value).some((k) => !keys.includes(k))
+    )
+      throw new Error("Planejamento legado inválido; cópia local preservada.");
+    const result = copy(value);
+    if (
+      typeof result.amount !== "number" ||
+      !validAmount(result.amount) ||
+      !validPlanningDate(result.date) ||
+      !wellFormed(result.note, 140) ||
+      typeof result.contacted !== "boolean" ||
+      !Number.isSafeInteger(result.updatedAt) ||
+      result.updatedAt < 0 ||
+      !Array.isArray(result.events) ||
+      result.events.length > 20 ||
+      result.events.some(
+        (e) =>
+          !e ||
+          Object.keys(e).some((k) => !["t", "s"].includes(k)) ||
+          !Number.isSafeInteger(e.t) ||
+          e.t <= 0 ||
+          !wellFormed(e.s, 250),
+      )
+    )
+      throw new Error("Planejamento legado inválido; cópia local preservada.");
+    return result;
+  }
   function valid(row) {
     if (
       !row ||
@@ -49,6 +110,14 @@
       !Object.hasOwn(OUTCOME, row.outcome)
     )
       throw new Error("Resposta inválida de Oportunidades. Atualize antes de salvar.");
+    if (
+      (Object.hasOwn(row, "estimated_amount") && !validAmount(row.estimated_amount)) ||
+      (Object.hasOwn(row, "follow_up_date") && !validPlanningDate(row.follow_up_date ?? "")) ||
+      (Object.hasOwn(row, "planning_note") && !wellFormed(row.planning_note, 140)) ||
+      (Object.hasOwn(row, "contacted") && typeof row.contacted !== "boolean") ||
+      (Object.hasOwn(row, "planning_initialized") && typeof row.planning_initialized !== "boolean")
+    )
+      throw new Error("Planejamento remoto inválido. Atualize antes de salvar.");
     return row;
   }
   function createStore(options) {
@@ -198,7 +267,38 @@
     return Object.freeze({
       reload,
       history,
+      listLegacyCandidates: (repository) => {
+        const context = capture();
+        return repository
+          .rawCandidates()
+          .filter(
+            (candidate) =>
+              candidate.scope === context.scope &&
+              items.some((row) => row.id === candidate.id && !row.planning_initialized),
+          )
+          .map((candidate) => copy(candidate));
+      },
+      importLegacyPlanning: async (row, legacy) => {
+        if (row.planning_initialized) throw new Error("Planejamento remoto já inicializado.");
+        const validated = validateLegacyPlanning(legacy);
+        return write("/" + encodeURIComponent(row.id) + "/planning/import", "POST", {
+          expected_revision: row.revision,
+          legacy: validated,
+        });
+      },
       create: (data) => write("", "POST", data),
+      undoPlanning: async (saved, before, expectedScope) => {
+        const context = capture();
+        if (context.scope !== expectedScope)
+          throw new Error("A sessão ou o negócio mudou. Não foi desfeito.");
+        const latest = items.find((row) => row.id === saved.id);
+        if (!latest || latest.revision !== saved.revision)
+          throw new Error("Existe uma edição mais recente. Atualize antes de desfazer.");
+        return write("/" + encodeURIComponent(saved.id), "PATCH", {
+          ...before,
+          expected_revision: latest.revision,
+        });
+      },
       update: (row, data) =>
         write("/" + encodeURIComponent(row.id), "PATCH", {
           ...data,
@@ -245,5 +345,5 @@
       },
     });
   }
-  return Object.freeze({ createStore, counts, INTEREST, OUTCOME, REASONS });
+  return Object.freeze({ createStore, counts, validateLegacyPlanning, INTEREST, OUTCOME, REASONS });
 });

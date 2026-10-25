@@ -465,6 +465,103 @@ module.exports = async function nativeOpportunities(browser, origin) {
         "Intenção elevada",
       );
       assert.deepEqual(writes, []);
+      // Existing commercial controls now write the shared planning contract.
+      let planningRow = {
+        workspace_id: 21,
+        id: "00000000-0000-4000-8000-000000000701",
+        client_id: 701,
+        client_name: "Cliente de planejamento",
+        title: "Interesse",
+        interest_level: "warm",
+        outcome: "open",
+        outcome_note: "",
+        revision: 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        estimated_amount: "1.23",
+        follow_up_date: null,
+        planning_note: "Nota remota",
+        contacted: false,
+        planning_initialized: true,
+      };
+      const planningWrites = [];
+      let planningConflict = false;
+      await account.route("**/api/v1/opportunities**", (route) => {
+        const request = route.request(),
+          url = new URL(request.url());
+        if (request.method() === "PATCH") {
+          const body = request.postDataJSON();
+          planningWrites.push(body);
+          if (planningConflict || body.expected_revision !== planningRow.revision)
+            return route.fulfill({ status: 409, json: { detail: "A oportunidade mudou." } });
+          planningRow = {
+            ...planningRow,
+            ...body,
+            planning_initialized: true,
+            revision: planningRow.revision + 1,
+            updated_at: new Date().toISOString(),
+          };
+          return route.fulfill({ json: planningRow });
+        }
+        return route.fulfill({
+          json: { workspace_id: 21, items: url.pathname.endsWith("/history") ? [] : [planningRow] },
+        });
+      });
+      const legacyRaw = await account.evaluate((id) => {
+        const scope = SocialMEIOpportunityV8Bridge.snapshot().scope,
+          key = "socialmei-op8-local-v1:" + encodeURIComponent(scope),
+          raw = JSON.stringify({
+            v: 1,
+            scope,
+            items: {
+              [id]: {
+                amount: 999,
+                date: "",
+                note: "Cópia local preservada",
+                contacted: false,
+                updatedAt: 1,
+                events: [],
+              },
+            },
+          });
+        localStorage.setItem(key, raw);
+        return { key, raw };
+      }, planningRow.id);
+      await account.evaluate(() => SocialMEIOpportunityV8Bridge.refresh());
+      const commercial = account.locator('[data-commercial-opportunity="' + planningRow.id + '"]');
+      await commercial.locator('[data-act="tog"]').click();
+      assert.equal(await commercial.locator(".nt").inputValue(), "Nota remota");
+      assert.equal(await commercial.locator(".vl").inputValue(), "1,23");
+      await commercial.locator(".nt").fill("Nota compartilhada");
+      await commercial.locator(".vl").fill("2,34");
+      await commercial.locator('[data-act="note"]').click();
+      await account.waitForFunction(
+        () => SocialMEIOpportunityV8Bridge.snapshot().items[0]?.revision === 2,
+      );
+      assert.equal(planningWrites[0].expected_revision, 1);
+      assert.equal(planningWrites[0].estimated_amount, 2.34);
+      assert.equal(await commercial.locator(".nt").inputValue(), "Nota compartilhada");
+      await account.locator("#v8-toast button").last().click();
+      await account.waitForFunction(
+        () => SocialMEIOpportunityV8Bridge.snapshot().items[0]?.revision === 3,
+      );
+      assert.equal(await commercial.locator(".nt").inputValue(), "Nota remota");
+      assert.equal(await commercial.locator(".vl").inputValue(), "1,23");
+      planningConflict = true;
+      await commercial.locator(".nt").fill("Edição ainda não salva");
+      await commercial.locator('[data-act="note"]').click();
+      await account.waitForFunction(() =>
+        document.getElementById("v8-toast").textContent.includes("A oportunidade mudou"),
+      );
+      assert.equal(await commercial.locator(".nt").inputValue(), "Edição ainda não salva");
+      assert.equal(
+        await account.evaluate((key) => localStorage.getItem(key), legacyRaw.key),
+        legacyRaw.raw,
+      );
+      assert.equal(
+        await account.evaluate(() => SocialMEIOpportunityV8Bridge.snapshot().items[0].revision),
+        3,
+      );
     } finally {
       await accountContext.close();
     }

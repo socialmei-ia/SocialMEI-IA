@@ -94,6 +94,27 @@
         throw new Error("Oportunidade indisponível no negócio atual.");
     }
     return Object.freeze({
+      rawCandidates() {
+        const scope = options.scope() || "";
+        if (!scope) return [];
+        try {
+          const value = JSON.parse(options.storage.getItem(key(scope)));
+          if (
+            value?.v !== 1 ||
+            value.scope !== scope ||
+            !value.items ||
+            typeof value.items !== "object" ||
+            Array.isArray(value.items)
+          )
+            return [];
+          return Object.entries(value.items)
+            .slice(0, 100)
+            .filter(([id]) => validId(id) && options.exists(id))
+            .map(([id, legacy]) => ({ id, scope, legacy: copy(legacy) }));
+        } catch {
+          return [];
+        }
+      },
       get(id) {
         sync();
         return copy(items[id] || empty());
