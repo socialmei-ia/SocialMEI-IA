@@ -4,7 +4,7 @@ Base de desenvolvimento: #110 + #102, preservadas por merge na branch `feat/back
 
 ## Fontes únicas
 
-- FastAPI e PostgreSQL existentes; migrations001–023. Não há nova migration nesta entrega.
+- FastAPI e PostgreSQL existentes; candidata atual com migrations001–026. As migrations024–026 acrescentam recuperação, identificadores públicos de sessões e fila de e-mail; foram ensaiadas somente em ambiente descartável.
 - Contas e negócio são resolvidos pela sessão no servidor. Nunca aceitar workspace escolhido no navegador como autorização.
 - O frontend atual usa scripts clássicos/stores existentes. Um novo frontend pode reutilizá-los ou consumir os mesmos contratos, sem criar autenticação/banco paralelo.
 - Servir frontend e API na mesma origem HTTPS, com cookie de sessão Secure/HttpOnly. Não guardar tokens de Meta/n8n em localStorage, HTML ou config.js.
@@ -61,7 +61,7 @@ A #110 já contém recepção durável, assinada e isolada no contrato WEBJS. Se
 
 Preservar landing para anônimos e gateway sem Basic da #102. Não reconstruir o gateway público pela configuração privada antiga. A referência de webhook no Caddyfile.public é apenas código: alteração do proxy vivo, segredos, migrations reais, contas de teste, pareamento, envio e publicação exigem autorização específica. Manter backups/rollback equivalentes aos hotfixes do servidor.
 
-Esta candidata não é o pacote password-only da PR #102: contém os módulos de backend herdados até a #110 e o runtime opcional. Uma futura implantação exige imagem completa compatível da API, dependências e migrations001–023 verificadas, sob autorização específica; não copiar um único arquivo para uma API antiga. O frontend visual novo continua fora desta rodada e o pipeline n8n vivo não foi alterado.
+Esta candidata não é o pacote password-only da PR #102: contém os módulos de backend herdados até a #110 e o runtime opcional. Uma futura implantação exige imagem completa compatível da API, dependências e migrations001–026 verificadas, sob autorização específica; não copiar um único arquivo para uma API antiga. O frontend visual novo continua fora desta rodada e o pipeline n8n vivo não foi alterado.
 
 ## Consulta do catálogo por negócio
 
@@ -75,3 +75,9 @@ GET `/api/v1/produtos` mantém o retorno original (lista de itens e mesma ordena
 Exemplo: `/api/v1/produtos?q=perfume&tipo=Produto&status=Ativo&estoque_baixo=true`.
 
 A consulta usa a identidade da sessão e parâmetros SQL; não aceita escolher outro negócio por query. Não grava dados nem altera preço/estoque. Estes filtros são contratos de frontend autenticado, não uma nova autorização para workflows n8n: acesso de serviço por negócio continua exigindo o contrato/vínculo que será homologado com a equipe.
+
+## Ponto de continuidade: novo frontend
+
+O proprietário enviará um ZIP com o novo visual. Antes de integrá-lo, seguir [o checklist de recebimento e as pendências preservadas](NEXT-FRONTEND-INTEGRATION.md). O frontend atual permanece intacto até receber o pacote.
+
+Contratos adicionais preparados: `GET /api/v1/auth/sessions`, `POST /api/v1/auth/sessions/{id}/revoke`, `POST /api/v1/auth/sessions/revoke-others`, `POST /api/v1/auth/recovery/request`, `POST /api/v1/auth/recovery/confirm` e diagnóstico exclusivo de administrador `GET /api/v1/admin/diagnostics`. Modelos/cabeçalhos/estados estão em [operação do backend](BACKEND-OPERATIONS-READINESS.md). A configuração SMTP e o worker não estão homologados na AWS.
