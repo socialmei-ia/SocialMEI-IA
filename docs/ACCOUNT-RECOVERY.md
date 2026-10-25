@@ -36,3 +36,5 @@ Migration024 é incremental e foi aplicada somente em PostgreSQL descartável. B
 ## Validação
 
 9 testes específicos: senha7/8, comum, expiração, replay, código inválido, isolamento, revogação, falha SMTP, mudança normal, concorrência de confirmação, migration ausente, limites e TLS465/587. Transporte e destinatários são sintéticos; nenhum acesso Google. Regressão de contas no Chromium cobre formulário, retorno, validação e capturas1440/390 claro/escuro com API controlada. Sessões e SQL reais são verificados separadamente nos testes backend.
+
+Ensaio adicional de release executado em PostgreSQL16 Docker descartável: migrations001–024, preservação de valores/ledger, reexecução, falha transacional e pg_dump/pg_restore passaram. A fixture024 inclui dois hashes sintéticos de recuperação (pendente e usado); o snapshot integral confirmou seus estados após restauração. Nenhuma migration anterior foi modificada.
