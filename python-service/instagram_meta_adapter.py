@@ -1,7 +1,7 @@
 """Instagram Login HTTP contracts with a mandatory injected transport.
 
 Not registered in the application. No default HTTP client, token persistence,
-public callback, sending, publishing or automatic retries. Secret-bearing request
+public callback, publishing or automatic retries. Direct sending requires the explicitly injected transport. Secret-bearing request
 fields are for a trusted transport only, never product responses or logs.
 """
 
@@ -48,8 +48,11 @@ class ProviderRequest:
     timeout_seconds: int = 10
     max_response_bytes: int = MAX_RESPONSE_BYTES
     follow_redirects: bool = False
+    json_body: bytes = field(default=b"", repr=False)
+    headers: Mapping[str, str] = field(default_factory=dict, repr=False)
 
     def __post_init__(self):
+        object.__setattr__(self, "headers", MappingProxyType(dict(self.headers)))
         object.__setattr__(self, "params", MappingProxyType(dict(self.params)))
         object.__setattr__(self, "form", MappingProxyType(dict(self.form)))
 
@@ -205,7 +208,7 @@ class InstagramAdapter:
             raise ProviderError()
         return now
 
-    def _request(self, request, *, retryable):
+    def _request(self, request, *, retryable, success_codes=(200,)):
         response = None
         try:
             response = self._transport(request)
@@ -222,7 +225,7 @@ class InstagramAdapter:
             or len(response.body) > MAX_RESPONSE_BYTES
         ):
             raise ProviderError(outcome_unknown=not retryable)
-        if response.status_code != 200:
+        if response.status_code not in success_codes:
             delay = None
             if isinstance(response.headers, Mapping):
                 value = next(
@@ -308,6 +311,51 @@ class InstagramAdapter:
             now + lifetime,
             "short",
         )
+
+    def send_direct(self, access_token, account_id, recipient_id, text):
+        account_id, recipient_id = _user_id(account_id), _user_id(recipient_id)
+        token = _opaque(access_token)
+        if (
+            not isinstance(text, str)
+            or not text.strip()
+            or len(text.encode("utf-8")) > 1000
+            or any(ord(c) < 32 and c not in "\t\n\r" for c in text)
+        ):
+            raise ProviderError()
+        try:
+            data = self._request(
+                ProviderRequest(
+                    "POST",
+                    f"https://graph.instagram.com/{self._version}/{account_id}/messages",
+                    json_body=json.dumps(
+                        {"recipient": {"id": recipient_id}, "message": {"text": text}},
+                        ensure_ascii=False,
+                    ).encode(),
+                    headers={
+                        "Authorization": "Bearer " + token,
+                        "Content-Type": "application/json",
+                    },
+                ),
+                retryable=False,
+                success_codes=range(200, 300),
+            )
+        except ProviderError as error:
+            if error.status_code is not None and (
+                error.status_code < 400 or error.status_code == 408
+            ):
+                raise ProviderError(
+                    status_code=error.status_code, outcome_unknown=True
+                ) from None
+            raise
+        mid = data.get("message_id")
+        if (
+            set(data) != {"recipient_id", "message_id"}
+            or data.get("recipient_id") != recipient_id
+            or not isinstance(mid, str)
+            or not re.fullmatch(r"[!-~]{1,1024}", mid)
+        ):
+            raise ProviderError(outcome_unknown=True)
+        return {"recipient_id": recipient_id, "message_id": mid}
 
     def get_identity(self, grant):
         self._grant(grant)

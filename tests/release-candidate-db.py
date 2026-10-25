@@ -242,6 +242,14 @@ class Rehearsal:
                     message = conn.execute("INSERT INTO socialmei.me_messages(workspace_id,conversation_id,external_message_id,fingerprint,conversation_revision,text,origin) VALUES(%s,%s,%s,%s,1,'Mensagem isolada de ensaio','instagram') RETURNING id", (workspace,conversation,external_message,'d'*64)).fetchone()[0]
                     conn.execute("INSERT INTO socialmei.me_external_messages(workspace_id,channel,account_ref,external_message_id,message_id,origin) VALUES(%s,'instagram',%s,%s,%s,'instagram')", (workspace,account_ref,external_message,message))
                     conn.execute("INSERT INTO socialmei.ig_meta_ingress_events(external_account_id,event_key,workspace_id,connection_id,kind,fingerprint,status,message_id) VALUES(%s,%s,%s,%s,'message',%s,'processed',%s)", (external,digest(external_message.encode()),workspace,connection,'d'*64,message))
+                elif version == 21:
+                    connection, external = conn.execute('SELECT id,external_account_id FROM socialmei.ig_meta_connections WHERE workspace_id=%s', (workspace,)).fetchone()
+                    message, conversation = conn.execute("SELECT id,conversation_id FROM socialmei.me_messages WHERE workspace_id=%s AND origin='instagram'", (workspace,)).fetchone()
+                    job, claim = uuid4(), uuid4()
+                    conn.execute("INSERT INTO socialmei.ig_direct_jobs(workspace_id,id,conversation_id,source_message_id,connection_id,external_account_id,recipient_id,text,fingerprint,status,created_by,created_session,approved_by,approved_session,approved_revision,approved_fingerprint,attempts,provider_message_id) VALUES(%s,%s,%s,%s,%s,%s,%s,'Resposta de ensaio isolado',%s,'confirmed',%s,%s,%s,%s,1,%s,1,%s)", (workspace,job,conversation,message,connection,external,str(700000+index),'e'*64,user,tenant['session_hash'],user,tenant['session_hash'],'e'*64,'rehearsal-confirmed-'+str(index)))
+                    conn.execute("INSERT INTO socialmei.ig_direct_operations(workspace_id,operation_id,fingerprint,response) VALUES(%s,%s,%s,%s)", (workspace,uuid4(),'e'*64,Jsonb({'id':str(job),'status':'confirmed','revision':1})))
+                    conn.execute("INSERT INTO socialmei.ig_direct_attempts(workspace_id,job_id,attempt,claim_token,status,finished_at) VALUES(%s,%s,1,%s,'confirmed',NOW())", (workspace,job,claim))
+                    conn.execute("INSERT INTO socialmei.ig_direct_events(workspace_id,job_id,actor_id,action,revision) VALUES(%s,%s,%s,'confirmed',1)", (workspace,job,user))
 
     def prove_fks(self, tenants, database):
         import psycopg
@@ -279,6 +287,24 @@ class Rehearsal:
                 else:
                     raise AssertionError('Instagram ingress FK accepted a foreign tenant or synthetic message')
             self.check(True, database+': Instagram ingress composite FKs reject foreign connections/messages and synthetic origin')
+            foreign_job = conn.execute('SELECT id FROM socialmei.ig_direct_jobs WHERE workspace_id=%s', (second,)).fetchone()[0]
+            for column, value in (('connection_id',foreign_connection), ('source_message_id',foreign_message), ('approved_by',tenants[1]['user'])):
+                try:
+                    with conn.transaction():
+                        conn.execute(sql.SQL('UPDATE socialmei.ig_direct_jobs SET {}=%s WHERE workspace_id=%s').format(sql.Identifier(column)), (value,first))
+                except psycopg.errors.ForeignKeyViolation:
+                    pass
+                else:
+                    raise AssertionError('Direct outbox FK accepted a foreign tenant reference')
+            for table in ('ig_direct_attempts','ig_direct_events'):
+                try:
+                    with conn.transaction():
+                        conn.execute(sql.SQL('UPDATE socialmei.{} SET job_id=%s WHERE workspace_id=%s').format(sql.Identifier(table)), (foreign_job,first))
+                except psycopg.errors.ForeignKeyViolation:
+                    pass
+                else:
+                    raise AssertionError('Direct outbox child FK accepted a foreign tenant job')
+            self.check(True, database+': Direct outbox composite FKs reject foreign source/connection/approval and child jobs')
             self.check(conn.execute("SELECT COUNT(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid=c.connamespace WHERE n.nspname='socialmei' AND c.contype='f' AND NOT c.convalidated").fetchone()[0] == 0, database+': all foreign keys validated and cross-workspace RAG link rejected')
 
     def defaults(self, tenants):
@@ -309,7 +335,7 @@ class Rehearsal:
     def run(self, backend_tests):
         import psycopg
         files = sorted((ROOT/'database/migrations').glob('*.sql'))
-        self.check(len(files) == 20 and [p.name[:3] for p in files] == [f'{n:03}' for n in range(1,21)], 'exact incremental migrations001–020 present')
+        self.check(len(files) == 21 and [p.name[:3] for p in files] == [f'{n:03}' for n in range(1,22)], 'exact incremental migrations001–021 present')
         manifest = {}
         for path in files:
             committed = subprocess.run(['git','show','HEAD:database/migrations/'+path.name], cwd=ROOT, capture_output=True, check=True).stdout
@@ -339,28 +365,28 @@ class Rehearsal:
             self.check(all(before['tables'][name] == rows for name,rows in original.items() if name != 'schema_migrations'), '001 legacy values preserved through011')
             legacy = {name:rows for name,rows in before['tables'].items() if name != 'schema_migrations'}
             for number, path in enumerate(files[11:], 12):
-                before_ingress = self.snapshot() if number == 20 else None
+                before_ingress = self.snapshot() if number >= 20 else None
                 shutil.copy2(path, folder/path.name)
                 self.migrate(folder, f'incremental{number:03}')
                 if before_ingress is not None:
                     upgraded = self.snapshot()
                     for table, rows in before_ingress['tables'].items():
                         if table == 'schema_migrations':
-                            self.check(all(row in upgraded['tables'][table] for row in rows), '020 preserves existing migration ledger timestamps')
+                            self.check(all(row in upgraded['tables'][table] for row in rows), f'{number:03} preserves existing migration ledger timestamps')
                             continue
                         columns = [column[1] for column in before_ingress['columns'] if column[0] == table]
                         projected = [{key: row[key] for key in columns} for row in upgraded['tables'][table]]
-                        self.check(sorted(projected,key=canonical) == rows, '020 preserves every preexisting value: '+table)
+                        self.check(sorted(projected,key=canonical) == rows, f'{number:03} preserves every preexisting value: '+table)
                 self.seed_incremental(number, tenants)
                 current = self.snapshot()
                 self.check(all(current['tables'][name] == rows for name,rows in legacy.items()), f'{number:03} preserves all preexisting001–011 table values')
             baseline = self.snapshot()
-            self.migrate(folder, 'ledger replay001–020')
+            self.migrate(folder, 'ledger replay001–021')
             self.check(self.snapshot() == baseline, 'team migrator ledger replay preserves rows, schema, sequences and applied_at')
             with self.connect() as conn:
                 for path in files[11:]:
                     conn.execute(path.read_text(), prepare=False)
-            self.check(self.snapshot() == baseline, 'raw012–020 reapplication is idempotent with seeded data')
+            self.check(self.snapshot() == baseline, 'raw012–021 reapplication is idempotent with seeded data')
             with tempfile.TemporaryDirectory(prefix='socialmei-rc80-failure-') as failure:
                 (Path(failure)/'999_release_probe.sql').write_text('CREATE TABLE socialmei.rc80_rollback_probe(id INT); SELECT 1/0;')
                 try:

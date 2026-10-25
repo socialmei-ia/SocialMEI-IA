@@ -21,6 +21,7 @@ from account_auth import AccountMiddleware, router as account_auth_router
 from instagram_simulation import router as instagram_simulation_router
 from instagram_provider_lab import router as instagram_provider_lab_router
 from instagram_persistent_oauth import router as instagram_persistent_oauth_router
+from instagram_direct_outbox import router as instagram_direct_router
 from instagram_meta_ingress import WebhookQueryPrivacy, router as instagram_meta_ingress_router
 from workspace_profile import router as workspace_profile_router
 from message_enrichment import router as message_enrichment_router, internal_router as enrichment_internal_router
@@ -56,6 +57,7 @@ app.include_router(instagram_simulation_router)
 app.include_router(instagram_provider_lab_router)
 app.include_router(instagram_persistent_oauth_router)
 app.include_router(instagram_meta_ingress_router)
+app.include_router(instagram_direct_router)
 app.include_router(workspace_profile_router)
 app.include_router(message_enrichment_router)
 app.include_router(enrichment_internal_router)

@@ -20,6 +20,7 @@ on:
         feat/instagram-meta-http-adapter,
         feat/instagram-token-vault,
         feat/instagram-persistent-oauth,
+        feat/instagram-durable-webhook,
       ]
 
 permissions:
