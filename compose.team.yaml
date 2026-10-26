@@ -44,6 +44,8 @@ services:
     environment:
       <<: *database_environment
       SOCIALMEI_SHARED_DATA_ENABLED: "true"
+      # PDF knowledge remains disabled until uploads, isolation and document security are validated.
+      SOCIALMEI_KNOWLEDGE_PDF_ENABLED: ${SOCIALMEI_KNOWLEDGE_PDF_ENABLED:-false}
       SOCIALMEI_WORKSPACE_SLUG: team
       SOCIALMEI_WORKSPACE_NAME: SocialMEI Equipe
       SOCIALMEI_N8N_READ_TOKEN: ${TEAM_N8N_READ_TOKEN:-}
