@@ -11,6 +11,9 @@
     remoteProfile = null,
     remoteAreaAtLoad = "";
 
+  // The same page serves local demo and real production accounts.
+  if (remote) document.documentElement.dataset.authMode = "remote";
+
   /* ---------- utilidades ---------- */
   var $ = function (s, r) {
     return (r || document).querySelector(s);
