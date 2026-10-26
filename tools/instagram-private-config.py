@@ -11,7 +11,7 @@ from pathlib import Path
 import re
 import secrets
 import tempfile
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import parse_qsl, urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 HOST_KEY = "SOCIALMEI_TEAM_HOST"
@@ -56,14 +56,17 @@ def _check_uri(url, host, client_id):
         raise RuntimeError("Invalid Meta authorization URL.")
     try:
         parsed = urlsplit(url)
-        args = parse_qs(parsed.query, strict_parsing=True)
+        pairs = parse_qsl(parsed.query, strict_parsing=True, keep_blank_values=True)
+        args = {key: val for key, val in pairs}
+        if len(args) != len(pairs):
+            raise ValueError("Duplicate URL key")
     except (ValueError, TypeError):
         raise RuntimeError("Invalid Meta authorization URL.") from None
     allowed = {
         "client_id", "redirect_uri", "response_type", "scope",
         "force_reauth", "enable_fb_login",
     }
-    scopes = args.get("scope", [""])[0].split(",")
+    scopes = args.get("scope", "").split(",")
     if (
         parsed.scheme != "https"
         or parsed.hostname not in ("instagram.com", "www.instagram.com")
@@ -71,17 +74,16 @@ def _check_uri(url, host, client_id):
         or parsed.port not in (None, 443)
         or parsed.username or parsed.password or parsed.fragment
         or set(args) - allowed
-        or any(len(values) != 1 for values in args.values())
-        or args.get("client_id") != [client_id]
-        or args.get("redirect_uri") != ["https://" + host + RETURN_PATH]
-        or args.get("response_type") != ["code"]
+        or args.get("client_id") != client_id
+        or args.get("redirect_uri") != "https://" + host + RETURN_PATH
+        or args.get("response_type") != "code"
         or len(scopes) != len(set(scopes))
         or "instagram_business_basic" not in scopes
         or not set(scopes) <= SAFE_SCOPES
     ):
         raise RuntimeError("Meta URL, scopes or registered callback do not match.")
     for option in ("force_reauth", "enable_fb_login"):
-        if option in args and args[option][0] not in ("true", "false"):
+        if option in args and args[option] not in ("true", "false"):
             raise RuntimeError("Meta URL option is invalid.")
     return ",".join(scopes)
 
@@ -142,8 +144,15 @@ def staged_values(existing, *, prompt=input, hidden=getpass.getpass):
     else:
         try:
             raw = json.loads(keyring)
-            assert isinstance(raw, dict) and key_id in raw
-        except (ValueError, AssertionError, TypeError):
+            if not isinstance(raw, dict) or not 1 <= len(raw) <= 16 or key_id not in raw:
+                raise ValueError()
+            for kid, value in raw.items():
+                if not isinstance(kid, str) or not kid or not isinstance(value, str):
+                    raise ValueError()
+                decoded = base64.b64decode(value + "=" * (-len(value) % 4), altchars=b"-_", validate=True)
+                if len(decoded) != 32 or base64.urlsafe_b64encode(decoded).decode().rstrip("=") != value.rstrip("="):
+                    raise ValueError()
+        except (ValueError, TypeError):
             raise RuntimeError("Existing keyring invalid; refusing rotation.") from None
     result["TOKEN_KEYRING"] = keyring
     result["TOKEN_ACTIVE_KEY_ID"] = key_id
