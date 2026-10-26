@@ -1783,32 +1783,32 @@
       if (el) el.textContent = value;
     };
     trocar(
-      '#panC .pxb span',
-      'Sua conta e seu negócio são criados de verdade. A senha é protegida no servidor.',
+      "#panC .pxb span",
+      "Sua conta e seu negócio são criados de verdade. A senha é protegida no servidor.",
+    );
+    trocar("#panE .pxb span", "Entre com o e-mail e a senha da sua conta real no SocialMEI.");
+    trocar(".hero-top .badge", "Contas e dados de negócio armazenados com segurança");
+    var description = $('meta[name="description"]');
+    if (description)
+      description.setAttribute(
+        "content",
+        "Conversas, clientes e vendas organizados para o seu negócio.",
+      );
+    trocar(
+      "#demo .sub",
+      "Explore uma prévia ilustrativa. Ao criar sua conta, seus dados são salvos no seu espaço.",
     );
     trocar(
-      '#panE .pxb span',
-      'Entre com o e-mail e a senha da sua conta real no SocialMEI.',
+      ".foot-n",
+      "As prévias exibidas são exemplos; cada conta real possui seu espaço privado.",
     );
-    trocar('.hero-top .badge',
-      'Contas e dados de negócio armazenados com segurança');
-    var description = $('meta[name="description"]');
-    if (description) description.setAttribute('content',
-      'Conversas, clientes e vendas organizados para o seu negócio.');
-    trocar('#demo .sub',
-      'Explore uma prévia ilustrativa. Ao criar sua conta, seus dados são salvos no seu espaço.');
-    trocar('.foot-n',
-      'As prévias exibidas são exemplos; cada conta real possui seu espaço privado.');
-    var exemplo = $(
-      '#panC .chk span.m'
-    );
-    if (exemplo) exemplo.textContent = '(documentos sujeitos à revisão antes do lançamento público)';
-    var acesso = $(
-      '#demo a[href="#/cadastro"]'
-    );
-    if (acesso) acesso.textContent = 'Criar conta real';
-    var button = $('[data-demo-app]');
-    if (button) button.textContent = 'Entrar para experimentar';
+    var exemplo = $("#panC .chk span.m");
+    if (exemplo)
+      exemplo.textContent = "(documentos sujeitos à revisão antes do lançamento público)";
+    var acesso = $('#demo a[href="#/cadastro"]');
+    if (acesso) acesso.textContent = "Criar conta real";
+    var button = $("[data-demo-app]");
+    if (button) button.textContent = "Entrar para experimentar";
   }
 
   /* ---------- início ---------- */
