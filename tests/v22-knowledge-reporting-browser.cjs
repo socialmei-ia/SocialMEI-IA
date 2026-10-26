@@ -114,7 +114,7 @@ module.exports = async function v22KnowledgeReporting(browser, origin) {
     await page.getByText("6 clientes").waitFor();
     const [download] = await Promise.all([
       page.waitForEvent("download", { timeout: 12000 }),
-      page.getByRole("button", { name: "Exportar CSV", exact: true }).click(),
+      page.locator("[data-sm-reports]").getByRole("button", { name: "Exportar CSV" }).click(),
     ]);
     assert.equal(download.suggestedFilename(), "socialmei-relatorio.csv");
     assert.deepEqual(errors, []);
