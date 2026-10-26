@@ -33,6 +33,7 @@ EXPECTED_MIGRATIONS = (
     "024_account_recovery.sql",
     "025_session_management.sql",
     "026_recovery_delivery_queue.sql",
+    "027_instagram_image_publications.sql",
 )
 
 
