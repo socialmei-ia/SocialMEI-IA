@@ -317,9 +317,9 @@ window.SocialMEIV22 = (() => {
       const result = await request("/message-enrichment/conversations");
       if (result.workspace_id !== workspace || auth.current?.negocio.id !== workspace)
         throw Error("Resposta de outro negócio.");
-      const fingerprint = JSON.stringify(result.items.map((row) => [
-        row.id, row.revision, row.messages?.at(-1)?.id,
-      ]));
+      const fingerprint = JSON.stringify(
+        result.items.map((row) => [row.id, row.revision, row.messages?.at(-1)?.id]),
+      );
       if (fingerprint === inboxFingerprint) return;
       inboxFingerprint = fingerprint;
       inbox = result.items;
@@ -338,7 +338,8 @@ window.SocialMEIV22 = (() => {
           row.channel === "instagram" ? "ig" : "wa",
           "Aberto",
           new Date(last.occurred_at).toLocaleTimeString("pt-BR", {
-            hour: "2-digit", minute: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
           }),
         ]);
       }
@@ -350,10 +351,10 @@ window.SocialMEIV22 = (() => {
     }
   }
   // Never poll while hidden or without a session. No duplicate timers.
-  if (remote) window.setInterval(() => {
-    if (!document.hidden && loaded && H.startsWith("/caixa"))
-      refreshInbox({ silent: true });
-  }, 6000);
+  if (remote)
+    window.setInterval(() => {
+      if (!document.hidden && loaded && H.startsWith("/caixa")) refreshInbox({ silent: true });
+    }, 6000);
   async function initialize() {
     if (!remote) return;
     root.hidden = true;
