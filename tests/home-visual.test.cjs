@@ -5,27 +5,31 @@ const { test } = require("node:test");
 
 const root = path.resolve(__dirname, "..");
 const markup = fs.readFileSync(path.join(root, "frontend/socialmei-app.html"), "utf8");
-const css = fs.readFileSync(path.join(root, "frontend/styles/socialmei.css"), "utf8");
 
-test("Home highlights the real sales action without hiding other shortcuts", () => {
-  assert.match(markup, /data-home-go="Vendas" data-home-create="venda"/);
-  assert.match(markup, /data-home-go="Caixa Unificada"/);
-  assert.match(markup, /data-home-go="Automações"/);
-  assert.match(css, /\.command-starters button\[data-home-create="venda"\] \{/);
-  assert.match(
-    css,
-    /\.command-starters button\[data-home-create="venda"\]:is\(:hover, :focus-visible\)/,
-  );
+const nativeCSS = [...markup.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)]
+  .map((match) => match[1])
+  .join("\n");
+
+test("V22 Home keeps sales, Inbox and content shortcuts in the native hero", () => {
+  assert.match(markup, /class="hc" href="#\/negocio\/vendas"/);
+  assert.match(markup, /class="hc" href="#\/caixa"/);
+  assert.match(markup, /class="hc y" href="#\/divul"/);
+  assert.match(markup, /Registrar uma venda/);
+  assert.match(markup, /id="cmd" role="combobox"/);
+  assert.match(markup, /const paraHoje=/);
+  assert.match(nativeCSS, /\.hc:hover\{transform:translateX\(-6px\)/);
 });
 
-test("Home actions have keyboard focus feedback and mobile-friendly sales totals", () => {
-  assert.match(css, /\.home-priority-row:focus-visible,/);
-  assert.match(css, /\.home-sale-row:focus-visible/);
-  assert.match(css, /\.command-starters button:focus-visible/);
-  assert.match(css, /\.home-sale-row > strong \{[\s\S]*?overflow-wrap: anywhere;/);
+test("V22 Home actions preserve focus and reduced-motion feedback", () => {
+  assert.match(nativeCSS, /:focus-visible\{outline:2px solid var\(--p\)/);
+  assert.match(nativeCSS, /\.hc:focus-visible\{animation-play-state:paused/);
+  assert.match(nativeCSS, /prefers-reduced-motion:reduce/);
+  assert.match(markup, /aria-label="\$\{HP\}"/);
 });
 
-test("Home heading remains readable on the narrowest screens", () => {
-  const narrow = css.slice(css.indexOf("@media (max-width: 360px)"));
-  assert.match(narrow, /\.desk-opening h2 \{\s*font-size: clamp\(29px, 9vw, 35px\);/);
+test("V22 Home headings and shortcuts retain responsive layout rules", () => {
+  assert.match(nativeCSS, /\.hero h1\{font-size:clamp\(34px,3\.7vw,50px\)/);
+  assert.match(nativeCSS, /@media\(max-width:900px\)/);
+  assert.match(nativeCSS, /#v>\.hero \.cs>\.hc:nth-child\(n\+2\)/);
+  assert.match(nativeCSS, /padding:10px 14px;gap:12px;font-size:16px/);
 });

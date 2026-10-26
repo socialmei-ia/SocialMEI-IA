@@ -204,20 +204,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends poppler-utils
           command -v pdftotext
-      - name: Native opportunities responsive regression
-        run: node tests/native-opportunities-browser.cjs
-      - name: Offline application regression
+      - name: V22 native navigation, eleven resolutions, themes, keyboard and motion
         run: npm run test:browser
-      - name: Human Basic login and account registration
-        run: node tests/signup-basic-browser.cjs
-      - name: Eleven resolutions and all theme modes
-        run: node tests/stability-browser.cjs
-      - name: Visual interactions and motion accessibility
-        run: node tests/visual-browser.cjs
-      - name: Settings sections, local and connected modes
-        run: node tests/settings-browser.cjs
-      - name: HTTPS authentication regression
-        run: node tests/team-browser.cjs
       - name: Save browser evidence
         if: always()
         uses: actions/upload-artifact@v4

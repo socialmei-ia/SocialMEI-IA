@@ -1,6 +1,6 @@
 # Próxima entrega: integrar o frontend do proprietário
 
-Este é o ponto de continuidade da tarefa. O proprietário está preparando o visual separadamente e enviará um ZIP. Até recebê-lo, preservar o frontend atual; não criar outro layout, protótipo, aplicação ou autenticação.
+Este é o ponto de continuidade da tarefa. O ZIP V22 foi recebido em26/10/2026 e está sendo integrado na candidata #111. Ver [estado da integração e limites](FRONTEND-V22-INTEGRATION.md). Preservar a composição do proprietário; não criar outro layout, protótipo, aplicação ou autenticação.
 
 ## Referência preparada
 

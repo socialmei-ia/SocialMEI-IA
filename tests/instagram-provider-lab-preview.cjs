@@ -115,31 +115,32 @@ async function run() {
       external.push(url.origin);
       return route.abort();
     });
-    await page.goto(origin + "/");
-    await page.waitForFunction(() => !!window.SocialMEIAuth?.current);
-    await page.evaluate(async () => {
-      await SocialMEIAuth.ready;
-      await SocialMEIProfileSync.ready;
-    });
-    await page.evaluate(async (id) => {
-      SocialMEIExperience.enterApp("Caixa Unificada");
-      await SocialMEIMessageEnrichment.refresh();
-      await selectConversation(-id);
-    }, incoming.conversation_id);
-    assert.match(await page.locator("#threadName").textContent(), /Ana fictícia Instagram/);
-    assert.match(await page.locator("#threadMeta").textContent(), /Fictício/);
-    assert(await page.locator("#composerZone").isHidden());
-    const rows = await page.evaluate(() => SocialMEIMessageEnrichment.state().rows);
-    const messages = rows.find((row) => row.id === incoming.conversation_id).messages;
+    await page.goto(origin + "/frontend/socialmei-app.html");
+    await page.waitForFunction(
+      () => window.SocialMEIV22?.identity && !document.getElementById("app").hidden,
+    );
+    await page.evaluate((id) => go("/caixa/me-" + id), incoming.conversation_id);
+    assert.match(await page.locator(".ct .hd").innerText(), /Ana fictícia Instagram/);
+    assert(await page.locator('[data-a^="salvar:"]').isDisabled());
+    const messages = await page.evaluate(
+      (id) => SocialMEIV22.thread("me-" + id),
+      incoming.conversation_id,
+    );
     assert.deepEqual(
-      messages.map((message) => message.text),
+      messages.map((message) => message[1]),
       ["Mensagem anterior fictícia.", event.text],
     );
     for (const width of [1440, 390])
-      for (const theme of ["light", "dark"]) {
+      for (const theme of ["claro", "escuro"]) {
         await page.setViewportSize({ width, height: 1000 });
-        await page.evaluate((theme) => SocialMEIThemes.select(theme, { persist: false }), theme);
-        assert.equal(await page.evaluate(() => SocialMEIThemes.current().base), theme);
+        await page.evaluate((t) => {
+          S.theme = t;
+          applyTheme();
+        }, theme);
+        await page.evaluate(
+          () =>
+            new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+        );
         assert.equal(
           await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),
           false,
@@ -149,13 +150,12 @@ async function run() {
           fullPage: true,
         });
       }
-    // Consume an actual editor snapshot; no raw media goes to the provider contract.
-    await page.evaluate(() => SocialMEIExperience.enterApp("Divulgação"));
-    await page.locator("#contentFormat-feed").click();
-    await revealContentControl(page, "#contentCaption");
-    await page.locator("#contentCaption").fill("Rascunho fictício revisado; nada será publicado.");
-    await revealContentControl(page, "#contentMedia");
-    await page.locator("#contentMedia").setInputFiles({
+    await page.evaluate(() => go("/divul"));
+    const editor = page.frameLocator("#v iframe");
+    await editor.locator('.fmt[data-f="feed"]').click();
+    await editor.locator("#d3 summary").click();
+    await editor.locator("#leg").fill("Rascunho fictício revisado; nada será publicado.");
+    await editor.locator("#file").setInputFiles({
       name: "fixture.png",
       mimeType: "image/png",
       buffer: Buffer.from(
@@ -163,8 +163,14 @@ async function run() {
         "base64",
       ),
     });
-    await page.waitForFunction(() => !!SocialMEIContentStudio.simulationSnapshot());
-    const snapshot = await page.evaluate(() => SocialMEIContentStudio.simulationSnapshot());
+    const snapshot = await editor.locator("body").evaluate(() => {
+      const file = V22Frame.mediaManifest;
+      return {
+        format: document.querySelector('.fmt[aria-checked="true"]').dataset.f,
+        caption: document.getElementById("leg").value,
+        media: { name: file.name, mime: file.mime, size: file.size },
+      };
+    });
     const data = {
       account_id: connected.account_id,
       idempotency_key: randomUUID(),
