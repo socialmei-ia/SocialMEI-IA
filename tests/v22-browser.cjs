@@ -40,6 +40,7 @@ async function run() {
   try {
     const entry = await require("./v22-entry-browser.cjs")(browser, origin);
     const contracts = await require("./v22-contract-browser.cjs")(browser, origin);
+    await require("./v22-instagram-browser.cjs")(browser, origin);
     const page = await browser.newPage({ reducedMotion: "reduce" });
     page.on("pageerror", (e) => errors.push(e.message));
     await page.route("**/*", (r) => {

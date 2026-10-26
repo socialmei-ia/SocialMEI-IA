@@ -39,6 +39,12 @@
     document.body.appendChild(script);
   });
   await window.SocialMEIV22.ready;
+  if (auth.remote) {
+    const instagram = document.createElement("script");
+    instagram.src = "scripts/v22-instagram.js";
+    instagram.onerror = () => console.warn("Controles Instagram indisponíveis.");
+    document.body.appendChild(instagram);
+  }
   if (!auth.remote) {
     const profile = document.createElement("script");
     profile.src = "scripts/app-perfil.js";
