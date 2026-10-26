@@ -19,6 +19,10 @@ async function run() {
       const marker = await ctx.request.get(origin + "/__preview");
       assert.equal((await marker.json()).environment, "local-disposable-preview");
       assert.equal((await ctx.request.get(origin + "/api/v1/clientes")).status(), 401);
+      const visitor = await ctx.newPage();
+      await visitor.goto(origin + "/");
+      await visitor.waitForURL(origin + "/frontend/entrada.html");
+      await visitor.close();
       const response = await ctx.request.post(origin + "/api/v1/auth/register", {
         headers: { Origin: origin, "X-SocialMEI-Client": "browser" },
         data: {
@@ -31,7 +35,8 @@ async function run() {
       const page = await ctx.newPage();
       const errors = [];
       page.on("pageerror", (e) => errors.push(e.message));
-      await page.goto(origin + "/frontend/socialmei-app.html");
+      await page.goto(origin + "/?from=root#/oport");
+      await page.waitForURL(origin + "/frontend/socialmei-app.html?from=root#/oport");
       await page.waitForFunction(
         () => window.SocialMEIV22?.identity && document.getElementById("app")?.hidden === false,
       );

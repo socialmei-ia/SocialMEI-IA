@@ -8,6 +8,10 @@
     return;
   }
   if (auth.remote) {
+    if (location.pathname !== "/frontend/socialmei-app.html") {
+      location.replace("/frontend/socialmei-app.html" + location.search + location.hash);
+      return;
+    }
     const prefix = `smei-v22-account:${auth.current.usuario.id}:${auth.current.negocio.id}:`;
     for (const method of ["getItem", "setItem", "removeItem"]) {
       const original = Storage.prototype[method];

@@ -8,7 +8,7 @@ Recebido em 26/10/2026: `SocialMEI-Frontend-v22.zip`, SHA256 `2f7193bdef4dc482f6
 
 O pacote original já incorpora Oportunidades e Divulgação em iframes same-origin em `telas/`. Essa composição foi preservada por solicitação do proprietário; não foram criados hubs ou iframes de demonstração adicionais. Os scripts funcionais adaptam autenticação/persistência, mantendo renderização, gráficos, efeitos e handlers visuais nativos. `hero-wall.js` e `sections-anim.js` permanecem byte a byte iguais ao ZIP. Licença Inter incluída.
 
-No modo remoto, o bootstrap só executa o shell após identificar a sessão. Visitantes seguem para a landing; links internos protegidos levam ao login. Não há flash de dados fictícios antes de carregar a conta. O modo local conserva o exemplo original, sem chamadas reais a canais.
+No modo remoto, o bootstrap só executa o shell após identificar a sessão. Visitantes seguem para a landing; links internos protegidos levam ao login. Não há flash de dados fictícios antes de carregar a conta. Quando o gateway serve o aplicativo em `/`, a sessão autenticada segue para `/frontend/socialmei-app.html`, preservando query/hash e os caminhos relativos das telas internas; visitantes continuam na landing. O preview HTTPS testa ambos os acessos pela raiz. O modo local conserva o exemplo original, sem chamadas reais a canais.
 
 ## Conexões funcionais
 
