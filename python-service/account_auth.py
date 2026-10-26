@@ -467,7 +467,7 @@ def register(payload: Register, response: Response):
     except psycopg.errors.UniqueViolation:
         raise HTTPException(
             400,
-            "Cadastro não concluído. Confira os dados ou entre na sua conta existente.",
+            "Cadastro não concluído. Caso já tenha uma conta, tente entrar ou redefinir a senha.",
         ) from None
 
 
