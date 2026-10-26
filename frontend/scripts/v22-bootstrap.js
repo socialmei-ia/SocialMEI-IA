@@ -7,6 +7,10 @@
     location.replace("/frontend/entrada.html" + (location.hash ? "#/entrar" : ""));
     return;
   }
+  if (auth.remote && auth.current.papel === "report_viewer") {
+    location.replace("/frontend/relatorios-leitura.html");
+    return;
+  }
   if (auth.remote) {
     if (location.pathname !== "/frontend/socialmei-app.html") {
       location.replace("/frontend/socialmei-app.html" + location.search + location.hash);
