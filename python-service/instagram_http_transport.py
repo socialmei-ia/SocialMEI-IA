@@ -97,7 +97,7 @@ class InstagramHTTPTransport:
                 and url.hostname == "graph.instagram.com"
                 and request.method == "POST"
                 and re.fullmatch(
-                    r"/v[1-9][0-9]{0,2}\\.0/[0-9]{1,40}/(?:media|media_publish)",
+                    r"/v[1-9][0-9]{0,2}\.0/[0-9]{1,40}/(?:media|media_publish)",
                     url.path,
                 )
             )
