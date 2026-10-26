@@ -176,17 +176,42 @@ def _adapt(container, source):
     ], input=source))
 
 
+def _normalized_auto_hidden_config(config):
+    """Normalize ONLY Caddy's implicit file_server hide of the config path.
+
+    Caddyfile adaptation via /dev/stdin changes an automatic hide entry
+    from /etc/caddy/Caddyfile; all other configuration differences fail.
+    """
+    result = copy.deepcopy(config)
+
+    def visit(value):
+        if isinstance(value, dict):
+            if value.get("handler") == "file_server" and isinstance(value.get("hide"), list):
+                value["hide"] = [
+                    "/etc/caddy/Caddyfile" if entry == "/dev/stdin" else entry
+                    for entry in value["hide"]
+                ]
+            for child in value.values():
+                visit(child)
+        elif isinstance(value, list):
+            for child in value:
+                visit(child)
+
+    visit(result)
+    return result
+
+
 def _candidate(container):
     raw = _call(["docker", "exec", container, "cat", "/etc/caddy/Caddyfile"])
     active = _json(_call([
         "docker", "exec", container, "wget", "-qO-",
         "http://127.0.0.1:2019/config/",
     ]))
-    baseline = _adapt(container, raw)
+    baseline = _normalized_auto_hidden_config(_adapt(container, raw))
     if baseline != active:
         raise RuntimeError("Active Caddy config differs from source; manual review required.")
     changed = with_logging(raw)
-    adapted = _adapt(container, changed)
+    adapted = _normalized_auto_hidden_config(_adapt(container, changed))
     if not logging_only(active, adapted):
         raise RuntimeError("Candidate changes more than protected log encoding.")
     return raw, changed
