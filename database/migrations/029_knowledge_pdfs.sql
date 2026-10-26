@@ -3,7 +3,7 @@
 CREATE TABLE IF NOT EXISTS socialmei.knowledge_pdfs (
  id UUID NOT NULL,
  workspace_id BIGINT NOT NULL REFERENCES socialmei.workspaces(id) ON DELETE CASCADE,
- uploaded_by BIGINT NOT NULL,
+ uploaded_by BIGINT REFERENCES socialmei.users(id) ON DELETE SET NULL,
  filename TEXT NOT NULL CHECK (char_length(filename) BETWEEN 1 AND 180),
  file_sha256 CHAR(64) NOT NULL CHECK (file_sha256 ~ '^[0-9a-f]{64}$'),
  media_type TEXT NOT NULL DEFAULT 'application/pdf' CHECK(media_type='application/pdf'),
@@ -11,8 +11,7 @@ CREATE TABLE IF NOT EXISTS socialmei.knowledge_pdfs (
  pages INTEGER NOT NULL CHECK (pages BETWEEN 1 AND 80),
  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
  PRIMARY KEY(workspace_id,id),
- UNIQUE (workspace_id, file_sha256),
- FOREIGN KEY (workspace_id, uploaded_by) REFERENCES socialmei.workspace_members(workspace_id,user_id)
+ UNIQUE (workspace_id, file_sha256)
 );
 CREATE INDEX IF NOT EXISTS knowledge_pdfs_workspace_recent ON socialmei.knowledge_pdfs(workspace_id,created_at DESC);
 CREATE TABLE IF NOT EXISTS socialmei.knowledge_pdf_pages (
