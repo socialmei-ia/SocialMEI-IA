@@ -169,8 +169,13 @@ def prepare(path, *, prompt=input, hidden=getpass.getpass):
     for key, val in DISABLED.items():
         if key not in existing:
             additions[key] = val
-    updates = [key + "=" + _quoted(value) for key, value in additions.items() if key not in existing]
-    if not updates:
+    # Existing empty placeholders are common in .env.team. Fill those in place
+    # rather than incorrectly claiming the private settings were prepared.
+    replacements = {}
+    for key, value in additions.items():
+        if key not in existing or not existing[key]:
+            replacements[key] = _quoted(value)
+    if not replacements:
         print("Private values already staged. OAuth remains OFF.")
         return
     folder = Path.home() / "socialmei-backups" / "instagram-pilot-inspection"
@@ -180,13 +185,29 @@ def prepare(path, *, prompt=input, hidden=getpass.getpass):
     folder.chmod(0o700)
     backup = folder / ("env-team-before-" + secrets.token_hex(8) + ".bak")
     _write_private(backup, content)
-    updated = content.rstrip("\n") + "\n" + "\n".join(updates) + "\n"
-    _write_private(path, updated)
+    updated_lines = []
+    updated_keys = set()
+    for line in content.splitlines():
+        key, separator, _value = line.partition("=")
+        key = key.strip()
+        if separator and key in replacements and key not in updated_keys:
+            updated_lines.append(key + "=" + replacements[key])
+            updated_keys.add(key)
+        else:
+            updated_lines.append(line)
+    for key, value in replacements.items():
+        if key not in updated_keys:
+            updated_lines.append(key + "=" + value)
+    _write_private(path, "\n".join(updated_lines) + "\n")
     print("Staged server-only settings with private backup. OAuth, incoming and sending remain OFF.")
 
 
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Stage private Instagram settings without activation.")
+    parser.add_argument("--env-file", default=str(ROOT / ".env.team"))
+    args = parser.parse_args()
     try:
-        prepare(ROOT / ".env.team")
+        prepare(Path(args.env_file))
     except (RuntimeError, OSError) as exc:
         raise SystemExit(str(exc)) from None
