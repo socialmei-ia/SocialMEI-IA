@@ -9,8 +9,9 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import ssl
 import time
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 
 ROOT = Path("/home/ubuntu/socialmei-team")
@@ -50,14 +51,19 @@ def runtime_shape_matches(model, container, service):
     return expected == actual and not config.get("ports") and not container["HostConfig"].get("PortBindings")
 
 
+def baseline_matches(meta, live, accept_recreated=False):
+    return live["Image"] == meta["image_id"] and (live["Id"] == meta["container_id"] or accept_recreated)
+
+
 def up_command(args, service):
     require(service in SERVICES, "Serviço fora do escopo.")
     return args + ["up", "-d", "--no-deps", "--no-build", "--pull", "never", "--force-recreate", service]
 
 
 class Publisher:
-    def __init__(self, folder, sha, rollback_backup):
+    def __init__(self, folder, sha, rollback_backup, accept_recreated=False):
         self.folder, self.sha, self.rollback_backup = folder, sha, rollback_backup
+        self.accept_recreated = accept_recreated
         self.commands = json.loads((folder / "compose-commands.json").read_text())
         self.log = folder / "publication-private.log"
 
@@ -87,10 +93,13 @@ class Publisher:
             require(digest(self.rollback_backup / name) == checksum, "Backup de rollback divergente.")
             found.add(name)
         require(len(found) == 4, "Backup de rollback incompleto.")
+        recreated = []
         for service in SERVICES:
             meta = self.commands[service]
             live = self.inspect("socialmei-team-" + service + "-1")
-            require(live["Id"] == meta["container_id"] and live["Image"] == meta["image_id"], "Container mudou após preparação.")
+            require(baseline_matches(meta, live, self.accept_recreated), "Container mudou após preparação; revalide o rollback antes de aceitar nova identidade.")
+            if live["Id"] != meta["container_id"]:
+                recreated.append({"service": service, "previous_id": meta["container_id"], "revalidated_id": live["Id"]})
             for mode, suffix in (("previous", "before"), ("candidate", "candidate")):
                 model = json.loads(self.run(self.compose(service, mode) + ["config", "--format", "json"]))
                 require(model == json.loads((self.folder / f"{service}.{suffix}.json").read_text()), "Configuração mudou após preparação.")
@@ -119,6 +128,9 @@ class Publisher:
         current_hash = self.run(["docker", "exec", "socialmei-team-team-gateway-1", "sha256sum", "/etc/caddy/Caddyfile"]).split()[0]
         candidate_hash = self.run(["docker", "run", "--rm", "--network", "none", "--entrypoint", "sha256sum", f"socialmei-v22/team-gateway:{self.sha}", "/etc/caddy/Caddyfile"]).split()[0]
         require(current_hash == candidate_hash, "Caddy candidato difere do gateway instalado.")
+        if recreated:
+            (self.folder / "revalidated-baseline.json").write_text(json.dumps(recreated, indent=2))
+            print("Containers recriados revalidados com as mesmas imagens/configurações de rollback.", flush=True)
         print("PREFLIGHT CONFERIDO.", flush=True)
 
     def inspect_image(self, name):
@@ -128,6 +140,12 @@ class Publisher:
         for _ in range(60):
             state = self.inspect("socialmei-team-" + service + "-1")["State"]
             if state["Running"] and ("Health" not in state or state["Health"]["Status"] == "healthy"):
+                if service == "team-gateway":
+                    try:
+                        self.run(["docker", "exec", "socialmei-team-team-gateway-1", "wget", "-q", "-T", "2", "-O", "/dev/null", "http://127.0.0.1:80/"])
+                    except RuntimeError:
+                        time.sleep(2)
+                        continue
                 return
             time.sleep(2)
         raise RuntimeError("Serviço não ficou saudável no prazo.")
@@ -162,17 +180,29 @@ class Publisher:
         finally:
             env_file.unlink(missing_ok=True)
 
-    def smoke(self):
-        for path, expected in (("/", 200), ("/frontend/entrada.html", 200), ("/api/v1/clientes", 401), ("/health/db", 404)):
+    def https(self, path, expected):
+        for attempt in range(12):
+            status, content = None, b""
             try:
-                with urlopen(ORIGIN + path, timeout=20) as response:
-                    status = response.status
+                with urlopen(ORIGIN + path, timeout=5) as response:
+                    status, content = response.status, response.read()
             except HTTPError as error:
                 status = error.code
-            require(status == expected, f"HTTPS divergente em {path}: {status}.")
+            except URLError as error:
+                require(not isinstance(error.reason, ssl.SSLError), "Falha de certificado/TLS; publicação interrompida.")
+            except TimeoutError:
+                pass
+            if status == expected:
+                return content
+            if status not in (None, 502, 503, 504) or attempt == 11:
+                raise RuntimeError(f"HTTPS divergente em {path}: {status}.")
+            time.sleep(2)
+
+    def smoke(self):
+        for path, expected in (("/", 200), ("/frontend/entrada.html", 200), ("/api/v1/clientes", 401), ("/health/db", 404)):
+            self.https(path, expected)
         for path in ("socialmei-app.html", "scripts/v22-bootstrap.js", "scripts/v22-backend.js", "scripts/v22-frame.js", "scripts/entrada.js", "styles/entrada.css", "telas/oportunidades.html", "telas/divulgacao.html"):
-            with urlopen(ORIGIN + "/frontend/" + path, timeout=20) as response:
-                value = hashlib.sha256(response.read()).hexdigest()
+            value = hashlib.sha256(self.https("/frontend/" + path, 200)).hexdigest()
             require(value == digest(self.folder / "source/frontend" / path), "Arquivo publicado diverge da candidata.")
 
     def switch(self, mode, services=SERVICES):
@@ -210,6 +240,7 @@ def main():
     parser.add_argument("--folder", required=True, type=Path)
     parser.add_argument("--sha", required=True)
     parser.add_argument("--rollback-backup", required=True, type=Path)
+    parser.add_argument("--accept-recreated-baseline", action="store_true", help="Após rollback confirmado: revalidar IDs novos somente com mesmas imagens/configurações.")
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--apply", action="store_true")
     mode.add_argument("--rollback", action="store_true")
@@ -220,7 +251,7 @@ def main():
     os.umask(0o077)
     with (BACKUPS / ".team-publication.lock").open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        release = Publisher(args.folder.resolve(), args.sha, args.rollback_backup.resolve())
+        release = Publisher(args.folder.resolve(), args.sha, args.rollback_backup.resolve(), args.accept_recreated_baseline)
         if args.rollback:
             release.switch("previous")
             print("Imagens anteriores restauradas; migrations aditivas e dados preservados.")

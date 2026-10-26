@@ -4,7 +4,9 @@ import importlib.util
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
+from urllib.error import HTTPError, URLError
+import ssl
 
 spec = importlib.util.spec_from_file_location("publisher", Path(__file__).resolve().parents[1] / "tools/team-publish-prepared.py")
 module = importlib.util.module_from_spec(spec)
@@ -101,6 +103,76 @@ class PreparedReleaseTests(unittest.TestCase):
                 value.publish()
             self.assertEqual(value.switch.call_args_list[-1].args, ("previous", ("team-api", "team-gateway")))
             self.assertFalse((Path(directory) / "installed.json").exists())
+
+    def test_recreated_container_requires_explicit_acceptance_and_same_image(self):
+        meta = {"image_id": "old-image", "container_id": "old-container"}
+        live = {"Image": "old-image", "Id": "new-container"}
+        self.assertFalse(module.baseline_matches(meta, live))
+        self.assertTrue(module.baseline_matches(meta, live, True))
+        live["Image"] = "unexpected-image"
+        self.assertFalse(module.baseline_matches(meta, live, True))
+
+    def test_running_gateway_is_not_ready_until_http_accepts_connections(self):
+        with tempfile.TemporaryDirectory() as directory:
+            value = self.publisher(directory)
+            value.inspect = Mock(return_value={"State": {"Running": True}})
+            value.run = Mock(side_effect=[RuntimeError("connection refused"), b""])
+            with patch.object(module.time, "sleep"):
+                value.wait("team-gateway")
+            self.assertEqual(value.inspect.call_count, 2)
+            self.assertEqual(value.run.call_count, 2)
+
+    def test_transient_https_502_must_recover_to_exact_expected_status(self):
+        with tempfile.TemporaryDirectory() as directory:
+            value = self.publisher(directory)
+            response = Mock()
+            response.__enter__ = Mock(return_value=response)
+            response.__exit__ = Mock(return_value=False)
+            response.status = 200
+            response.read.return_value = b"ready"
+            with patch.object(module, "urlopen", side_effect=[HTTPError(module.ORIGIN, 502, "Bad Gateway", None, None), response]) as get, patch.object(module.time, "sleep"):
+                self.assertEqual(value.https("/", 200), b"ready")
+            self.assertEqual(get.call_count, 2)
+
+    def test_persistent_https_502_still_fails(self):
+        with tempfile.TemporaryDirectory() as directory:
+            value = self.publisher(directory)
+            with patch.object(module, "urlopen", side_effect=HTTPError(module.ORIGIN, 502, "Bad Gateway", None, None)) as get, patch.object(module.time, "sleep"):
+                with self.assertRaises(RuntimeError):
+                    value.https("/", 200)
+            self.assertEqual(get.call_count, 12)
+
+    def test_unprotected_api_is_rejected_without_retry(self):
+        with tempfile.TemporaryDirectory() as directory:
+            value = self.publisher(directory)
+            response = Mock()
+            response.__enter__ = Mock(return_value=response)
+            response.__exit__ = Mock(return_value=False)
+            response.status = 200
+            response.read.return_value = b"unprotected"
+            with patch.object(module, "urlopen", return_value=response) as get:
+                with self.assertRaises(RuntimeError):
+                    value.https("/api/v1/clientes", 401)
+            self.assertEqual(get.call_count, 1)
+
+    def test_invalid_tls_certificate_is_never_retried_or_ignored(self):
+        with tempfile.TemporaryDirectory() as directory:
+            value = self.publisher(directory)
+            with patch.object(module, "urlopen", side_effect=URLError(ssl.SSLCertVerificationError("invalid certificate"))) as get, patch.object(module.time, "sleep") as sleep:
+                with self.assertRaises(RuntimeError):
+                    value.https("/", 200)
+            self.assertEqual(get.call_count, 1)
+            sleep.assert_not_called()
+
+    def test_gateway_that_never_accepts_http_fails_readiness(self):
+        with tempfile.TemporaryDirectory() as directory:
+            value = self.publisher(directory)
+            value.inspect = Mock(return_value={"State": {"Running": True}})
+            value.run = Mock(side_effect=RuntimeError("connection refused"))
+            with patch.object(module.time, "sleep"):
+                with self.assertRaises(RuntimeError):
+                    value.wait("team-gateway")
+            self.assertEqual(value.run.call_count, 60)
 
     def test_success_records_manual_login_validation_as_pending(self):
         import json
