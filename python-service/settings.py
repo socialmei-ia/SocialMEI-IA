@@ -161,6 +161,15 @@ def instagram_runtime_configuration() -> dict:
     }
 
 
+def instagram_live_ingress_enabled() -> bool:
+    """Enable workspace inbox visibility only after production webhook ingress is active."""
+    return (
+        instagram_runtime_enabled()
+        and os.getenv("SOCIALMEI_INSTAGRAM_RUNTIME_INGRESS_ENABLED", "false")
+        .strip().lower() == "true"
+    )
+
+
 def recovery_smtp_configuration():
     """Opt-in, TLS-only mail delivery. Values are server-side secrets."""
     if os.getenv("SOCIALMEI_RECOVERY_MODE", "disabled") != "smtp":
