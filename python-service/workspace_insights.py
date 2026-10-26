@@ -3,8 +3,6 @@
 All queries are scoped to the authenticated application's workspace. Existing
 n8n technical token endpoints remain separate; do not expose a generic SQL API.
 """
-import os
-from decimal import Decimal
 from fastapi import APIRouter, HTTPException, Query
 from psycopg.rows import dict_row
 from account_auth import current, require_enabled
@@ -18,7 +16,7 @@ def _actor():
     require_shared_data()
     require_enabled()
     user = current()
-    if user["role"] not in ("owner", "admin", "member"):
+    if user["role"] not in ("owner", "admin", "member", "viewer"):
         raise HTTPException(403, "Consulta não autorizada.")
     return user
 
@@ -63,12 +61,14 @@ def availability(q: str = Query(min_length=2,max_length=80), limit: int = Query(
     for item in records:
         active = item["status"].strip().lower() in ("ativo","disponível","disponivel")
         kind = item["tipo"]
+        # Zero is the catalog's default; without explicit stock tracking, it cannot
+        # establish that this product is sold out.
         quantity = item["estoque"] if kind == "Produto" else None
         availability = (
             "inactive" if not active else
             "service" if kind == "Serviço" else
             "in_stock" if quantity is not None and quantity > 0 else
-            "out_of_stock" if quantity == 0 else "unconfirmed"
+            "unconfirmed"
         )
         items.append({
             "id":item["id"],"name":item["nome"],"type":kind,
