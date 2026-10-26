@@ -77,6 +77,30 @@ class InstagramPrivateSetupTests(unittest.TestCase):
             self.assertEqual(backups[0].stat().st_mode & 0o777, 0o600)
             self.assertNotIn(SECRET, backups[0].read_text())
 
+    def test_existing_empty_placeholders_are_replaced_without_duplicate_keys(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cfg = root / ".env.team"
+            cfg.write_text(
+                "TEAM_AUTH_ENABLED=true\n"
+                + module.HOST_KEY + "=" + HOST + "\n"
+                + "SOCIALMEI_INSTAGRAM_CLIENT_ID=\n"
+                + "SOCIALMEI_INSTAGRAM_CLIENT_SECRET=\n"
+                + "SOCIALMEI_INSTAGRAM_GRAPH_VERSION=\n"
+                + "SOCIALMEI_INSTAGRAM_SCOPES=\n"
+                + "SOCIALMEI_INSTAGRAM_AUTHORIZATION_EMBED=\n"
+            )
+            with patch.object(module.Path, "home", return_value=root), redirect_stdout(io.StringIO()):
+                module.prepare(cfg,
+                               prompt=lambda label: "v23.0" if "Graph" in label else url(),
+                               hidden=lambda _: SECRET)
+            values = module.read_environment(cfg.read_text())
+            self.assertEqual(values["SOCIALMEI_INSTAGRAM_CLIENT_ID"], module.CLIENT_ID)
+            self.assertEqual(values["SOCIALMEI_INSTAGRAM_CLIENT_SECRET"], SECRET)
+            self.assertEqual(values["SOCIALMEI_INSTAGRAM_GRAPH_VERSION"], "v23.0")
+            self.assertEqual(values["SOCIALMEI_INSTAGRAM_RUNTIME_MODE"], "disabled")
+            self.assertEqual(cfg.read_text().count("SOCIALMEI_INSTAGRAM_CLIENT_SECRET="), 1)
+
     def test_partial_existing_vault_never_overwritten(self):
         existing = {module.HOST_KEY: HOST, "SOCIALMEI_INSTAGRAM_TOKEN_ACTIVE_KEY_ID": "key"}
         with self.assertRaises(RuntimeError):
