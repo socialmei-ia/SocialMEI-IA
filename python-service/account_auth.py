@@ -27,7 +27,7 @@ COOKIE = "__Host-socialmei-session"
 HASHER = PasswordHasher(time_cost=2, memory_cost=19456, parallelism=1)
 HASH_LIMIT = threading.BoundedSemaphore(2)
 DUMMY_HASH = HASHER.hash(secrets.token_urlsafe(32))
-TECHNICAL = {
+TECHNICAL = {"/api/v1/integracoes/whatsapp/menu"} | {
     "/api/v1/integracoes/" + name
     for name in ["resumo", "clientes", "produtos", "vendas", "financeiro"]
 }
@@ -467,7 +467,7 @@ def register(payload: Register, response: Response):
     except psycopg.errors.UniqueViolation:
         raise HTTPException(
             400,
-            "Cadastro não concluído. Confira os dados ou entre na sua conta existente.",
+            "Cadastro não concluído. Caso já tenha uma conta, tente entrar ou redefinir a senha.",
         ) from None
 
 
