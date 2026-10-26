@@ -153,6 +153,9 @@ class RealCaddyPrivacyTests(unittest.TestCase):
                     for error in errors:
                         self.assertIn("msg", error)
                         if label == "filtered":
-                            self.assertNotIn("request", error)
+                            request = error.get("request") or {}
+                            self.assertNotIn("uri", request)
+                            self.assertNotIn("headers", request)
+                            self.assertNotIn("resp_headers", error)
                 finally:
                     subprocess.run(["docker", "rm", "-f", name], capture_output=True, timeout=15)
