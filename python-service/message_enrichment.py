@@ -368,7 +368,7 @@ def stub_result(conn, workspace, text):
 def capabilities(request: Request, response: Response):
     user = guard(request, response, capability=True)
     result = {'schema_version': 1, 'workspace_id': user['workspace_id'], 'mode': settings.message_enrichment_mode(), 'transport': 'none'}
-    if settings.instagram_ingress_isolated_enabled():
+    if settings.instagram_ingress_isolated_enabled() or settings.instagram_live_ingress_enabled():
         result['instagram_inbox'] = True
     if settings.waha_ingress_isolated_enabled():
         result['waha_inbox'] = True
@@ -414,7 +414,7 @@ def _append_inbox_message(conn, workspace, payload, external_fingerprint, *, ori
 def conversations(request: Request, response: Response):
     workspace = guard(request, response, read_inbox=True)['workspace_id']
     origins = ['synthetic'] if settings.message_enrichment_mode() == 'stub' else []
-    if settings.instagram_ingress_isolated_enabled():
+    if settings.instagram_ingress_isolated_enabled() or settings.instagram_live_ingress_enabled():
         origins.append('instagram')
     if settings.waha_ingress_isolated_enabled():
         origins.append('waha')
