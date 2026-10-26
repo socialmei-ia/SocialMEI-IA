@@ -30,6 +30,34 @@ A URL incorporada recebida inclui `instagram_business_manage_insights`, que o co
 - Clique em Instagram remoto não executa o antigo toggle demonstrativo do frame. Modo local mantém a demonstração original.
 - Conexão OAuth não equivale a recebimento/publicação. UI informa explicitamente quando ingresso ou publicação ainda não estão habilitados. Não afirma que a conta conectada é @testefacep sem verificação da identidade.
 
+## Avanço de implantação segura (26/10)
+
+O Compose da equipe agora entrega as variáveis `SOCIALMEI_INSTAGRAM_*` à API, com todos os recursos desativados por padrão. Isso resolve um bloqueio de configuração: escrever valores em `.env.team` anteriormente não os encaminhava à aplicação. **Isso não significa conta conectada, deploy ou webhook ativo.**
+
+A ferramenta `tools/instagram-proxy-privacy.py` prepara candidatos de Caddy para o proxy público e gateway. Ela lê a configuração ativa (API admin localhost), adapta a configuração de arquivo e recusa prosseguir se as duas diferirem. Cria uma alteração somente de codificação de logs e verifica que não muda rotas, autenticação, proxies, TLS nem outros parâmetros. Remove URI completa, cabeçalhos da requisição e cabeçalhos da resposta dos logs, preservando diagnósticos de erro. Havendo logger personalizado não protegido, bloqueia a operação. **Não escreve Caddyfiles ativos, não recarrega containers e não altera segredos.** Há testes com 502 sintético em Caddy descartável, executados pelo CI.
+
+No servidor Ubuntu, *após revisar a PR e atualizar os scripts com controle de versão*, preparar apenas os candidatos privados:
+
+```sh
+cd /home/ubuntu/socialmei-team
+umask 077
+python3 tools/instagram-proxy-privacy.py prepare \\
+  --output-dir /home/ubuntu/socialmei-backups/instagram-pilot-inspection
+```
+
+A saída privada é apenas para conferência. Se houver divergência entre configuração ativa e arquivo, **pare**: não copie arquivos gerados nem marque `SOCIALMEI_INSTAGRAM_PROXY_PRIVACY_REVIEWED=true`. Antes de liberar callbacks, alguém com acesso operacional deve revisar Caddyfile público, gateway e qualquer outro logger upstream/downstream, aplicar os filtros por procedimento com backup e rollback, verificar um canário sintético e confirmar observabilidade sem URI/cookies/headers sensíveis.
+
+Somente após tal revisão e com aplicação controlada das migrations do backend, preparar `.env.team` em modo privado com as configurações corretas do Meta Dashboard: Instagram Client ID (não confundir com App ID geral), App Secret, URL completa de autorização com callback registrado, Graph version oficialmente suportada, escopos `instagram_business_basic` e `instagram_business_manage_messages`, keyring de 32 bytes por chave em base64url e key ID ativo. A API exige `TEAM_AUTH_ENABLED=true`. Nunca cole segredos em issues, chat, commits, logs ou frontend.
+
+Sequência de flags a ser aplicada em mudança operacional separada, com backup e validação:
+
+1. Primeiro, `SOCIALMEI_INSTAGRAM_RUNTIME_MODE=connect`, `SOCIALMEI_INSTAGRAM_RUNTIME_INGRESS_ENABLED=false`, `SOCIALMEI_INSTAGRAM_RUNTIME_SEND_ENABLED=false`, e `SOCIALMEI_INSTAGRAM_PROXY_PRIVACY_REVIEWED=true` **somente depois** dos filtros ativos e revisados. Reiniciar API de forma controlada, confirmar readiness e autorizar a conta profissional pelo botão no site.
+2. Verificar pelo status real que a conta conectada é a conta pretendida e está vinculada ao negócio certo; validar expiração, desconexão e revogação de acesso.
+3. Resolver estratégia de webhook com o n8n existente. Não sobrescrever o único endpoint Meta nem fazer dupla resposta. Habilitar ingress apenas depois de validar assinatura HMAC dos bytes originais e tratamento de duplicações; testar um Direct controlado na Caixa.
+4. Habilitar envio de resposta somente após acordar quem é o remetente único (n8n ou outbox), com aprovação humana e garantias anti-replay. Publicação de Feed/Stories/Reels ainda exige contrato autenticado, mídia durável e idempotência; o formulário público do n8n não oferece isso automaticamente.
+
+Nenhum passo acima deve ser confundido com implantação já realizada.
+
 ## Pendências para teste real
 
 1. Conferir versão Graph usada/homologada e configurar Instagram App Secret somente no servidor, com keyring durável protegido. Não enviar segredo/token pelo chat, Git ou frontend.
