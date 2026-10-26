@@ -45,8 +45,12 @@
         const item = el("li");
         item.appendChild(el("strong", record.filename + " — "));
         item.appendChild(
-          el("small", record.page_count + " página(s) · " +
-            (record.status === "indexed" ? "texto indexado" : "sem texto extraível")),
+          el(
+            "small",
+            record.page_count +
+              " página(s) · " +
+              (record.status === "indexed" ? "texto indexado" : "sem texto extraível"),
+          ),
         );
         if (canManage) {
           const remove = el("button", "Excluir");
@@ -68,17 +72,18 @@
       }
       result.textContent = "Documentos privados deste negócio.";
     } catch (error) {
-      result.textContent = error.status === 503
-        ? "A base de PDFs ainda não foi habilitada no servidor."
-        : error.message || "Não foi possível consultar os documentos.";
+      result.textContent =
+        error.status === 503
+          ? "A base de PDFs ainda não foi habilitada no servidor."
+          : error.message || "Não foi possível consultar os documentos.";
     }
   }
   function mountKnowledge(view) {
-    if (view.querySelector('[data-sm-knowledge]')) return;
+    if (view.querySelector("[data-sm-knowledge]")) return;
     const section = panel(
       "Documentos da IA",
       "Adicione PDFs do seu negócio e consulte os trechos encontrados por página. " +
-      "A geração automática de respostas ainda depende de configuração específica.",
+        "A geração automática de respostas ainda depende de configuração específica.",
     );
     section.dataset.smKnowledge = "true";
     const results = status(section);
@@ -119,9 +124,10 @@
           if (!response.ok) throw Error(data?.detail || "Não foi possível processar o PDF.");
           file.value = "";
           await knowledge(section, results, list);
-          results.textContent = data.status === "indexed"
-            ? "Documento indexado e disponível para consulta."
-            : "PDF salvo, mas sem texto extraível. O arquivo pode ser digitalizado.";
+          results.textContent =
+            data.status === "indexed"
+              ? "Documento indexado e disponível para consulta."
+              : "PDF salvo, mas sem texto extraível. O arquivo pode ser digitalizado.";
         } catch (error) {
           results.textContent = error.message || "Falha no envio.";
         } finally {
@@ -152,7 +158,9 @@
         const data = await bridge.request("/knowledge/pdf/search?q=" + encodeURIComponent(q));
         matches.replaceChildren();
         for (const match of data.items) {
-          matches.append(el("li", match.filename + ", página " + match.page + ": " + match.excerpt));
+          matches.append(
+            el("li", match.filename + ", página " + match.page + ": " + match.excerpt),
+          );
         }
         if (!data.items.length) matches.append(el("li", "Nenhum trecho encontrado."));
         results.textContent = "Resultados extraídos dos documentos cadastrados.";
@@ -168,7 +176,7 @@
     knowledge(section, results, list);
   }
   function mountReport(view) {
-    if (view.querySelector('[data-sm-reports]')) return;
+    if (view.querySelector("[data-sm-reports]")) return;
     const section = panel(
       "Dados reais do PostgreSQL",
       "Indicadores por negócio. As informações de demonstração não entram nesta consulta.",
@@ -183,7 +191,8 @@
       exportButton.disabled = true;
       try {
         const response = await fetch("/api/v1/reporting/overview.csv?days=30", {
-          credentials: "same-origin", cache: "no-store",
+          credentials: "same-origin",
+          cache: "no-store",
         });
         if (!response.ok) throw Error("Exportação não autorizada ou indisponível.");
         const url = URL.createObjectURL(await response.blob());
@@ -200,17 +209,20 @@
     });
     section.append(summary, exportButton);
     view.appendChild(section);
-    bridge.request("/reporting/overview?days=30").then((data) => {
-      summary.replaceChildren(
-        el("strong", data.totals.clientes + " clientes"),
-        el("strong", data.totals.itens_ativos + " itens ativos"),
-        el("strong", data.totals.estoque_baixo + " com estoque baixo"),
-      );
-      results.textContent = "Consulta concluída para os últimos " + data.period_days + " dias.";
-    }).catch((error) => {
-      results.textContent = error.message || "Relatórios reais indisponíveis.";
-      exportButton.disabled = true;
-    });
+    bridge
+      .request("/reporting/overview?days=30")
+      .then((data) => {
+        summary.replaceChildren(
+          el("strong", data.totals.clientes + " clientes"),
+          el("strong", data.totals.itens_ativos + " itens ativos"),
+          el("strong", data.totals.estoque_baixo + " com estoque baixo"),
+        );
+        results.textContent = "Consulta concluída para os últimos " + data.period_days + " dias.";
+      })
+      .catch((error) => {
+        results.textContent = error.message || "Relatórios reais indisponíveis.";
+        exportButton.disabled = true;
+      });
   }
   function mount() {
     const view = currentView();
