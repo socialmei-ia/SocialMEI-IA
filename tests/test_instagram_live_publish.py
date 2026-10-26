@@ -64,3 +64,12 @@ class ImagePublishingTests(unittest.TestCase):
             with self.subTest(url=url):
                 with self.assertRaises(ProviderError):
                     transport._allowed(ProviderRequest("POST", url))
+
+    def test_status_read_allowlist_requires_exact_fields_and_flag(self):
+        read = ProviderRequest('GET','https://graph.instagram.com/v22.0/12345',params={'fields':'status_code'})
+        with self.assertRaises(ProviderError):
+            InstagramHTTPTransport()._allowed(read)
+        InstagramHTTPTransport(allow_publishing=True)._allowed(read)
+        for params in ({'fields':'messages'}, {}, {'fields':'status_code','access_token':'hidden'}):
+            with self.assertRaises(ProviderError):
+                InstagramHTTPTransport(allow_publishing=True)._allowed(ProviderRequest('GET',read.url,params=params))

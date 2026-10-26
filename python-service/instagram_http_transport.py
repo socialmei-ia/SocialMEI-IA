@@ -95,11 +95,13 @@ class InstagramHTTPTransport:
             publishing = (
                 self._allow_publishing
                 and url.hostname == "graph.instagram.com"
-                and request.method == "POST"
-                and re.fullmatch(
+                and ((request.method == "GET"
+                      and re.fullmatch(r"/v[1-9][0-9]{0,2}\.0/[0-9]{1,40}", url.path)
+                      and dict(request.params) == {"fields": "status_code"})
+                     or (request.method == "POST" and re.fullmatch(
                     r"/v[1-9][0-9]{0,2}\.0/[0-9]{1,40}/(?:media|media_publish)",
                     url.path,
-                )
+                )))
             )
             if not trusted or not (oauth or sending or publishing):
                 raise ProviderError()

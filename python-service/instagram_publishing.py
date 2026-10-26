@@ -3,7 +3,7 @@
 Requires a connected Instagram professional account, permitted scopes, workspace
 owner/admin, live session, installed schema and opt-in env. Unlike the n8n flow,
 this endpoint never triggers a background send or retries uncertain operations.
-Meta fetches the user's *public* JPEG URL; private uploads are not supported yet.
+Meta fetches a public JPEG URL or an expiring locally uploaded JPEG.
 """
 import hashlib
 import json
@@ -14,7 +14,7 @@ from urllib.parse import urlsplit
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from psycopg.rows import dict_row
 
 from account_auth import COOKIE, Strict, current, digest, require_enabled
@@ -60,13 +60,21 @@ def image_url(value):
 
 class ImagePost(Strict):
     request_id: UUID
-    image_url: str = Field(min_length=15, max_length=2048)
+    image_url: str | None = Field(default=None, min_length=15, max_length=2048)
+    media_id: UUID | None = None
+    connection_id: UUID | None = None
     caption: str = Field(min_length=1, max_length=2200)
 
     @field_validator("image_url")
     @classmethod
     def validate_image(cls, value):
-        return image_url(value)
+        return image_url(value) if value is not None else None
+
+    @model_validator(mode="after")
+    def exactly_one_image(self):
+        if (self.image_url is None) == (self.media_id is None):
+            raise ValueError("Selecione uma foto ou informe uma URL.")
+        return self
 
     @field_validator("caption")
     @classmethod
@@ -148,13 +156,15 @@ class InstagramPublishingService:
     def publish_image(self, user, session, payload):
         value = payload.model_dump(mode="json")
         fingerprint = hashlib.sha256(
-            json.dumps([user["workspace_id"], user["id"], value["image_url"], value["caption"]],
+            json.dumps([user["workspace_id"], user["id"], value["image_url"], value["media_id"], value["caption"], value["connection_id"]],
                        ensure_ascii=False, separators=(",", ":")).encode()
         ).hexdigest()
         request_id = payload.request_id
         with connect() as conn:
             conn.row_factory = dict_row
             _authorize(conn, user, session)
+            conn.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s,0))",
+                         (f"instagram-publication:{user['workspace_id']}:{request_id}",))
             row = conn.execute(
                 "SELECT * FROM socialmei.ig_meta_publications WHERE workspace_id=%s AND request_id=%s",
                 (user["workspace_id"], request_id),
@@ -164,64 +174,99 @@ class InstagramPublishingService:
                     raise HTTPException(409, "Identificador usado para outra publicação.")
                 return public_view(row)
             connection = self._connection(conn, user)
+            if payload.connection_id and payload.connection_id != connection['id']:
+                raise HTTPException(409, "A conta Instagram mudou. Confira o perfil novamente.")
             token = self._token(user, connection)
+            resolved_url = payload.image_url
+            if payload.media_id:
+                from instagram_media import resolve_media
+                resolved_url = resolve_media(conn, user, payload.media_id)
             row = conn.execute(
                 "INSERT INTO socialmei.ig_meta_publications "
                 "(id,workspace_id,request_id,created_by,connection_id,external_account_id,"
                 "image_url,caption,content_fingerprint,status) "
                 "VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,'creating') RETURNING *",
                 (uuid4(), user["workspace_id"], request_id, user["id"], connection["id"],
-                 connection["external_account_id"], payload.image_url, payload.caption, fingerprint),
+                 connection["external_account_id"], resolved_url, payload.caption, fingerprint),
             ).fetchone()
-        # The creation claim is committed before the first Meta request. Never
-        # retry automatically after a timeout or process crash (unknown outcome).
-        outcome = "uncertain"
-        error_code = "provider_unconfirmed"
-        media_id = None
-        container_id = None
+        # A committed claim precedes the only container creation request.
         try:
             container_id = self._call(
                 connection["external_account_id"], "media",
-                {"image_url": payload.image_url, "caption": payload.caption},
-                token,
+                {"image_url": resolved_url, "caption": payload.caption}, token,
             )
-            with connect() as conn:
-                conn.execute(
-                    "UPDATE socialmei.ig_meta_publications SET container_id=%s,status='created',"
-                    "updated_at=NOW() WHERE id=%s AND status='creating'",
-                    (container_id, row["id"]),
-                )
-            # Publish once and record intent before calling Meta.
-            with connect() as conn:
-                conn.execute(
-                    "UPDATE socialmei.ig_meta_publications SET status='publishing',"
-                    "updated_at=NOW() WHERE id=%s AND status='created'",
-                    (row["id"],),
-                )
-            media_id = self._call(
-                connection["external_account_id"], "media_publish",
-                {"creation_id": container_id},
-                token,
-            )
-            outcome, error_code = "published", None
-        except (ProviderError, HTTPException):
-            pass
         except Exception:
-            # No exception chaining: never reveal a token, URL or Meta response.
-            pass
+            return self._result(row["id"], "uncertain", "container_unconfirmed")
         finally:
             token = None
+        with connect() as conn:
+            conn.execute("UPDATE socialmei.ig_meta_publications SET container_id=%s,"
+                         "status='created',updated_at=NOW() WHERE id=%s AND status='creating'",
+                         (container_id, row["id"]))
+        return self.advance(user, session, row["id"])
+
+    def _result(self, publication_id, status, error_code, media_id=None):
         with connect() as conn:
             conn.row_factory = dict_row
             row = conn.execute(
                 "UPDATE socialmei.ig_meta_publications SET status=%s,error_code=%s,"
-                "container_id=COALESCE(container_id,%s),media_id=%s,updated_at=NOW() "
-                "WHERE id=%s AND status IN ('creating','created','publishing') RETURNING *",
-                (outcome, error_code, container_id, media_id, row["id"]),
+                "media_id=%s,updated_at=NOW() WHERE id=%s RETURNING *",
+                (status, error_code, media_id, publication_id),
             ).fetchone()
-        if not row:
-            raise HTTPException(503, "Registro de publicação não confirmado.")
         return public_view(row)
+
+    def advance(self, user, session, publication_id):
+        # Explicit POST continuation of an existing approved intention. GETs never send.
+        with connect() as conn:
+            conn.row_factory = dict_row
+            _authorize(conn, user, session)
+            row = conn.execute(
+                "SELECT *,created_at<NOW()-INTERVAL '5 minutes' AS too_old, "
+                "checked_at IS NOT NULL AND checked_at>NOW()-INTERVAL '60 seconds' AS throttled "
+                "FROM socialmei.ig_meta_publications WHERE id=%s AND workspace_id=%s FOR UPDATE",
+                (publication_id, user["workspace_id"]),
+            ).fetchone()
+            if not row:
+                raise HTTPException(404, "Publicação não encontrada.")
+            if row["status"] != "created" or row["throttled"]:
+                return public_view(row)
+            if row['too_old']:
+                row = conn.execute("UPDATE socialmei.ig_meta_publications SET status='uncertain',"
+                                   "error_code='processing_timeout',updated_at=NOW() WHERE id=%s RETURNING *",
+                                   (row['id'],)).fetchone()
+                return public_view(row)
+            connection = self._connection(conn, user)
+            if connection['id'] != row['connection_id']:
+                raise HTTPException(409, "A conta Instagram mudou. Confira a publicação anterior.")
+            token = self._token(user, connection)
+            try:
+                data = self.adapter._request(ProviderRequest(
+                    "GET", f"https://graph.instagram.com/{self.adapter._version}/{row['container_id']}",
+                    headers={"Authorization": "Bearer " + token}, params={"fields": "status_code"},
+                ), retryable=True)
+                state = data.get('status_code')
+            except ProviderError:
+                state = 'UNAVAILABLE'
+            conn.execute("UPDATE socialmei.ig_meta_publications SET checked_at=NOW() WHERE id=%s", (row['id'],))
+            if state == 'IN_PROGRESS' or state == 'UNAVAILABLE':
+                return public_view(row)
+            if state != 'FINISHED':
+                # No guessed success, and never republish a PUBLISHED container.
+                row = conn.execute("UPDATE socialmei.ig_meta_publications SET status='uncertain',"
+                                   "error_code=%s,updated_at=NOW() WHERE id=%s RETURNING *",
+                                   ('media_processing_failed' if state in {'ERROR','EXPIRED'} else 'provider_unconfirmed', row['id'])).fetchone()
+                return public_view(row)
+            conn.execute("UPDATE socialmei.ig_meta_publications SET status='publishing',updated_at=NOW() "
+                         "WHERE id=%s", (row['id'],))
+        # Only the row-lock owner commits publishing intent; concurrent continuations do nothing.
+        try:
+            media_id = self._call(row['external_account_id'], 'media_publish',
+                                  {'creation_id': row['container_id']}, token)
+        except Exception:
+            return self._result(row['id'], 'uncertain', 'publication_unconfirmed')
+        finally:
+            token = None
+        return self._result(row['id'], 'published', None, media_id)
 
 
 @router.get("/status")
@@ -234,7 +279,36 @@ def status(request: Request):
             "AND status='connected' AND expires_at>NOW() AND scopes @> %s::text[] LIMIT 1",
             (user["workspace_id"], list(_REQUIRED)),
         ).fetchone()
-    return {"available": permitted(), "connected": bool(connected), "format": "public_image_url"}
+    from instagram_runtime import schema_ready
+    runtime = getattr(request.app.state, "instagram_runtime", None)
+    available = permitted() and getattr(runtime, 'publish', None) is not None and schema_ready('publish')
+    return {"available": available, "connected": bool(connected),
+            "format": "local_image_or_public_url", "upload_available": available}
+
+
+@router.get("/account")
+def account(request: Request, publisher: InstagramPublishingService = Depends(service)):
+    user, session = actor(request)
+    with connect() as conn:
+        conn.row_factory = dict_row
+        _authorize(conn, user, session)
+        connection = publisher._connection(conn, user)
+        token = publisher._token(user, connection)
+    try:
+        result = publisher.adapter._request(ProviderRequest(
+            'GET', f'https://graph.instagram.com/{publisher.adapter._version}/me',
+            params={'fields': 'id,username,account_type'},
+            headers={'Authorization': 'Bearer ' + token},
+        ), retryable=True)
+        username = result.get('username')
+        if (str(result.get('id')) != connection['external_account_id']
+                or not isinstance(username, str) or not re.fullmatch(r'[A-Za-z0-9_.]{1,30}', username)):
+            raise ProviderError()
+        return {'username': username, 'connection_id': str(connection['id'])}
+    except ProviderError:
+        raise HTTPException(503, 'Não foi possível confirmar o perfil Instagram. Tente novamente.') from None
+    finally:
+        token = None
 
 
 @router.post("/image")
@@ -258,3 +332,10 @@ def recent(request: Request, publisher: InstagramPublishingService = Depends(ser
             (user["workspace_id"],),
         ).fetchall()
     return {"items": [public_view(row) for row in rows]}
+
+
+@router.post("/{publication_id}/continue")
+def continue_publication(publication_id: UUID, request: Request,
+                         publisher: InstagramPublishingService = Depends(service)):
+    user, session = actor(request)
+    return publisher.advance(user, session, publication_id)

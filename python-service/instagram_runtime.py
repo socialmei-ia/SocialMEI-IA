@@ -156,7 +156,7 @@ INGRESS_TABLES = (
 SCHEMA_TABLES = {
     "oauth": OAUTH_TABLES,
     "ingress": INGRESS_TABLES,
-    "publish": (*OAUTH_TABLES, "ig_meta_publications"),
+    "publish": (*OAUTH_TABLES, "ig_meta_publications", "ig_meta_media"),
     "direct": (
         *INGRESS_TABLES,
         "ig_direct_jobs",
@@ -171,7 +171,7 @@ SCHEMA_MIGRATIONS = {
         "019_instagram_persistent_oauth.sql",
         "020_instagram_durable_webhook.sql",
     },
-    "publish": {"019_instagram_persistent_oauth.sql", "027_instagram_image_publications.sql"},
+    "publish": {"019_instagram_persistent_oauth.sql", "027_instagram_image_publications.sql", "028_instagram_temporary_media.sql"},
     "direct": {
         "019_instagram_persistent_oauth.sql",
         "020_instagram_durable_webhook.sql",
