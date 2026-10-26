@@ -35,6 +35,7 @@ EXPECTED_MIGRATIONS = (
     "026_recovery_delivery_queue.sql",
     "027_instagram_image_publications.sql",
     "028_instagram_temporary_media.sql",
+    "029_workspace_pdf_knowledge.sql",
 )
 
 
