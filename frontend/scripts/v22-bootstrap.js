@@ -40,6 +40,12 @@
   });
   await window.SocialMEIV22.ready;
   if (auth.remote) {
+    const knowledge = document.createElement("script");
+    knowledge.src = "scripts/v22-knowledge-reporting.js";
+    knowledge.onerror = () => console.warn("Gestão de conhecimento indisponível.");
+    document.body.appendChild(knowledge);
+  }
+  if (auth.remote) {
     const instagram = document.createElement("script");
     instagram.src = "scripts/v22-instagram.js";
     instagram.onerror = () => console.warn("Controles Instagram indisponíveis.");
