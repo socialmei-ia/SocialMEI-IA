@@ -1,3 +1,4 @@
+// prettier-ignore-file
 /* V22 authenticated Instagram publication (one public JPEG URL per post). */
 (() => {
   const host = window.SocialMEIV22;
