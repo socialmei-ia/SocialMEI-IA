@@ -6,7 +6,6 @@ Only owner/admin can upload/delete; collaborators with access can search.
 import hashlib
 import io
 import os
-import re
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
@@ -17,7 +16,7 @@ from account_auth import current, require_enabled
 from database import connect
 
 router = APIRouter(prefix="/api/v1/knowledge/pdfs", tags=["Private PDF knowledge"])
-MAX_FILE = 5 * 1024 * 1024
+MAX_FILE = 2 * 1024 * 1024
 MAX_PAGES = 80
 MAX_PAGE_TEXT = 32768
 
@@ -37,7 +36,7 @@ def _user(*, manage=False):
 
 def _extract(blob):
     if not blob.startswith(b"%PDF-") or len(blob) > MAX_FILE:
-        raise HTTPException(422, "Arquivo PDF inválido ou maior que 5 MB.")
+        raise HTTPException(422, "Arquivo PDF inválido ou maior que 2 MB.")
     try:
         document = PdfReader(io.BytesIO(blob), strict=True)
         if document.is_encrypted or not 1 <= len(document.pages) <= MAX_PAGES:
@@ -52,7 +51,7 @@ def _extract(blob):
         if not pages:
             raise ValueError("PDF sem texto pesquisável.")
         return len(document.pages), pages
-    except (Exception,):
+    except Exception:
         raise HTTPException(422, "PDF inválido, digitalizado ou sem texto extraível.") from None
 
 
@@ -69,7 +68,7 @@ async def upload(request: Request, document: UploadFile = File(...), title: str 
     blob = await document.read(MAX_FILE + 1)
     await document.close()
     if len(blob) > MAX_FILE:
-        raise HTTPException(413, "Arquivo excede 5 MB.")
+        raise HTTPException(413, "Arquivo excede 2 MB.")
     page_count, pages = _extract(blob)
     filehash = hashlib.sha256(blob).hexdigest()
     with connect() as conn:
@@ -96,10 +95,11 @@ async def upload(request: Request, document: UploadFile = File(...), title: str 
             "VALUES (%s,%s,%s,%s,%s,%s,%s)",
             (doc_id, user["workspace_id"], user["id"], title.strip(), filehash, blob, page_count),
         )
-        conn.executemany(
-            "INSERT INTO socialmei.knowledge_pdf_pages(workspace_id,document_id,page_number,page_text) VALUES(%s,%s,%s,%s)",
-            [(user["workspace_id"], doc_id, page, text) for page, text in pages],
-        )
+        with conn.cursor() as cursor:
+            cursor.executemany(
+                "INSERT INTO socialmei.knowledge_pdf_pages(workspace_id,document_id,page_number,page_text) VALUES(%s,%s,%s,%s)",
+                [(user["workspace_id"], doc_id, page, text) for page, text in pages],
+            )
     return {"id": str(doc_id), "pages": page_count, "indexed_pages": len(pages), "replayed": False}
 
 
