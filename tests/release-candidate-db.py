@@ -380,7 +380,7 @@ class Rehearsal:
     def run(self, backend_tests):
         import psycopg
         files = sorted((ROOT/'database/migrations').glob('*.sql'))
-        self.check(len(files) == 28 and [p.name[:3] for p in files] == [f'{n:03}' for n in range(1,29)], 'exact incremental migrations001–028 present')
+        self.check(len(files) == 29 and [p.name[:3] for p in files] == [f'{n:03}' for n in range(1,30)], 'exact incremental migrations001–029 present')
         manifest = {}
         for path in files:
             committed = subprocess.run(['git','show','HEAD:database/migrations/'+path.name], cwd=ROOT, capture_output=True, check=True).stdout
@@ -435,7 +435,7 @@ class Rehearsal:
             with self.connect() as conn:
                 for path in files[11:]:
                     conn.execute(path.read_text(), prepare=False)
-            self.check(self.snapshot() == baseline, 'raw012–028 reapplication is idempotent with seeded data')
+            self.check(self.snapshot() == baseline, 'raw012–029 reapplication is idempotent with seeded data')
             with tempfile.TemporaryDirectory(prefix='socialmei-rc80-failure-') as failure:
                 (Path(failure)/'999_release_probe.sql').write_text('CREATE TABLE socialmei.rc80_rollback_probe(id INT); SELECT 1/0;')
                 try:
