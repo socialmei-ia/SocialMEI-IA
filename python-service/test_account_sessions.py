@@ -78,3 +78,18 @@ class SessionTests(unittest.TestCase):
         self.assertEqual(response.status_code, 204)
         self.assertIn("Max-Age=0", response.headers["set-cookie"])
         self.assertIsNone(owner.get("/api/v1/auth/session").json())
+
+    def test_stale_browser_identity_cannot_read_or_write_another_account(self):
+        owner = self.register("stale-owner@example.test")
+        other = self.register("stale-other@example.test")
+        stale = f"{owner.identity['usuario']['id']}:{owner.identity['negocio']['id']}"
+        other.headers["X-SocialMEI-Identity"] = stale
+        self.assertEqual(other.get("/api/v1/clientes").status_code, 409)
+        self.assertEqual(
+            other.post(
+                "/api/v1/clientes", json={"nome": "Should not be saved"}
+            ).status_code,
+            409,
+        )
+        del other.headers["X-SocialMEI-Identity"]
+        self.assertEqual(other.get("/api/v1/clientes").json(), [])

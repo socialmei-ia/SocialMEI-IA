@@ -223,6 +223,14 @@ class AccountMiddleware(BaseHTTPMiddleware):
             user = await run_in_threadpool(session_identity, token)
             if not user:
                 raise HTTPException(401, "Sessão ausente ou expirada. Entre novamente.")
+            expected_identity = request.headers.get("x-socialmei-identity")
+            if (
+                expected_identity is not None
+                and expected_identity != f"{user['id']}:{user['workspace_id']}"
+            ):
+                raise HTTPException(
+                    409, "A conta mudou em outra aba. Atualize antes de continuar."
+                )
             if request.method not in {"GET", "HEAD", "OPTIONS"}:
                 if not hmac.compare_digest(
                     request.headers.get("x-socialmei-csrf", "").encode(),

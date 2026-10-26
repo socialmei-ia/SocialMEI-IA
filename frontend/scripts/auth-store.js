@@ -113,7 +113,12 @@ const SocialMEIAuth = (() => {
     }
   }
   function headers() {
-    return remote && current ? { "X-SocialMEI-CSRF": current.csrf_token } : {};
+    return remote && current
+      ? {
+          "X-SocialMEI-CSRF": current.csrf_token,
+          "X-SocialMEI-Identity": `${current.usuario.id}:${current.negocio.id}`,
+        }
+      : {};
   }
   async function signIn(path, data) {
     const value = identity(await request(path, "POST", data));
