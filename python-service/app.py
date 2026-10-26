@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, status
+from pdf_knowledge import router as pdf_knowledge_router
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.exception_handlers import request_validation_exception_handler
@@ -53,6 +54,7 @@ if cors_origins:
         allow_headers=["Content-Type", "Accept"],
         allow_credentials=False,
     )
+app.include_router(pdf_knowledge_router)
 app.include_router(shared_data_router)
 app.include_router(client_import_router)
 app.include_router(catalog_router)
