@@ -40,6 +40,7 @@ from instagram_publishing import router as instagram_publishing_router
 from instagram_media import InstagramMediaPrivacy, router as instagram_media_router
 from pdf_knowledge import router as pdf_knowledge_router
 from workspace_reporting import router as workspace_reporting_router
+from whatsapp_catalog import router as whatsapp_catalog_router
 
 app = FastAPI(title="SocialME Python Service", lifespan=runtime_lifespan)
 app.include_router(integration_readiness_router)
@@ -47,6 +48,7 @@ app.include_router(instagram_publishing_router)
 app.include_router(instagram_media_router)
 app.include_router(pdf_knowledge_router)
 app.include_router(workspace_reporting_router)
+app.include_router(whatsapp_catalog_router)
 app.add_middleware(AccountMiddleware)
 cors_origins = configured_cors_origins()
 if cors_origins:
