@@ -66,7 +66,6 @@
           workspace_id: Number(select.value),
         });
         location.replace("/frontend/socialmei-app.html#/relatorios");
-        location.reload();
       } catch (error) {
         message.textContent = error.message || "Não foi possível trocar de negócio.";
         change.disabled = false;
