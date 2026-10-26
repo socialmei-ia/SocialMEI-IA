@@ -199,8 +199,13 @@
         const link = document.createElement("a");
         link.href = url;
         link.download = "socialmei-relatorio.csv";
+        document.body.appendChild(link);
         link.click();
-        URL.revokeObjectURL(url);
+        // Chromium needs the blob URL alive until the download begins.
+        window.setTimeout(() => {
+          URL.revokeObjectURL(url);
+          link.remove();
+        }, 30000);
       } catch (error) {
         results.textContent = error.message;
       } finally {
