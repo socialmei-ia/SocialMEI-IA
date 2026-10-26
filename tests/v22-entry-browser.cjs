@@ -106,6 +106,14 @@ module.exports = async function v22EntryFlow(browser, origin) {
         (mode === "onboarding" ? "comecar" : mode === "register" ? "cadastro" : "entrar"),
     );
     if (mode === "register") {
+      assert.match(await page.locator("#panC .pxb").innerText(), /conta.*verdade/i);
+      assert.doesNotMatch(await page.locator("#panC .pxb").innerText(), /nenhuma conta real/i);
+      assert.match(await page.locator(".hero-top .badge").innerText(), /dados de negócio/i);
+    }
+    if (mode === "login") {
+      assert.match(await page.locator("#panE .pxb").innerText(), /conta real/i);
+    }
+    if (mode === "register") {
       await page.locator("#cNome").fill("Pessoa Teste");
       await page.locator("#cMail").fill("teste@example.test");
       await page.locator("#cPass").fill("FlorSol!");

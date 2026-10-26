@@ -42,15 +42,17 @@ def _protect_http_logs():
 
 class InstagramHTTPTransport:
     def __init__(
-        self, *, allow_sends=False, client_factory=httpx.Client, clock=time.monotonic
+        self, *, allow_sends=False, allow_publishing=False, client_factory=httpx.Client, clock=time.monotonic
     ):
         if (
             type(allow_sends) is not bool
+            or type(allow_publishing) is not bool
             or not callable(client_factory)
             or not callable(clock)
         ):
             raise ProviderError()
         self._allow_sends = allow_sends
+        self._allow_publishing = allow_publishing
         self._client_factory = client_factory
         self._clock = clock
 
@@ -90,7 +92,18 @@ class InstagramHTTPTransport:
                 and request.method == "POST"
                 and re.fullmatch(r"/v[1-9][0-9]{0,2}\.0/[0-9]{1,40}/messages", url.path)
             )
-            if not trusted or not (oauth or sending):
+            publishing = (
+                self._allow_publishing
+                and url.hostname == "graph.instagram.com"
+                and ((request.method == "GET"
+                      and re.fullmatch(r"/v[1-9][0-9]{0,2}\.0/[0-9]{1,40}", url.path)
+                      and dict(request.params) == {"fields": "status_code"})
+                     or (request.method == "POST" and re.fullmatch(
+                    r"/v[1-9][0-9]{0,2}\.0/[0-9]{1,40}/(?:media|media_publish)",
+                    url.path,
+                )))
+            )
+            if not trusted or not (oauth or sending or publishing):
                 raise ProviderError()
         except (TypeError, ValueError, AttributeError):
             raise ProviderError() from None

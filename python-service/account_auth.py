@@ -27,7 +27,7 @@ COOKIE = "__Host-socialmei-session"
 HASHER = PasswordHasher(time_cost=2, memory_cost=19456, parallelism=1)
 HASH_LIMIT = threading.BoundedSemaphore(2)
 DUMMY_HASH = HASHER.hash(secrets.token_urlsafe(32))
-TECHNICAL = {
+TECHNICAL = {"/api/v1/integracoes/whatsapp/menu"} | {
     "/api/v1/integracoes/" + name
     for name in ["resumo", "clientes", "produtos", "vendas", "financeiro"]
 }
@@ -185,6 +185,15 @@ def admin():
     return user
 
 
+REPORT_ONLY = {
+    ("GET", "/api/v1/reporting/overview"),
+    ("GET", "/api/v1/reporting/overview.csv"),
+    ("GET", "/api/v1/auth/workspaces"),
+    ("POST", "/api/v1/auth/workspaces/switch"),
+    ("POST", "/api/v1/auth/logout"),
+}
+
+
 class AccountMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         path = request.url.path
@@ -223,6 +232,8 @@ class AccountMiddleware(BaseHTTPMiddleware):
             user = await run_in_threadpool(session_identity, token)
             if not user:
                 raise HTTPException(401, "Sessão ausente ou expirada. Entre novamente.")
+            if user["role"] == "report_viewer" and (request.method, path) not in REPORT_ONLY:
+                raise HTTPException(403, "Esta conta permite consultar somente relatórios.")
             expected_identity = request.headers.get("x-socialmei-identity")
             if (
                 expected_identity is not None
@@ -237,7 +248,7 @@ class AccountMiddleware(BaseHTTPMiddleware):
                     csrf(token).encode(),
                 ):
                     raise HTTPException(403, "Confira a sessão antes de salvar.")
-                if user["role"] == "viewer" and not path.startswith("/api/v1/auth/"):
+                if user["role"] in {"viewer", "report_viewer"} and not path.startswith("/api/v1/auth/"):
                     raise HTTPException(403, "Este acesso permite somente leitura.")
             if (
                 path.startswith("/api/v1/transferencias")
@@ -467,7 +478,7 @@ def register(payload: Register, response: Response):
     except psycopg.errors.UniqueViolation:
         raise HTTPException(
             400,
-            "Cadastro não concluído. Confira os dados ou entre na sua conta existente.",
+            "Cadastro não concluído. Caso já tenha uma conta, tente entrar ou redefinir a senha.",
         ) from None
 
 

@@ -49,7 +49,7 @@ class DiagnosticsTests(unittest.TestCase):
         body = result.json()
         self.assertEqual(body["release_sha"], "a" * 40)
         self.assertEqual(body["database"]["status"], "ready")
-        self.assertEqual(body["database"]["expected_migrations"], 26)
+        self.assertEqual(body["database"]["expected_migrations"], 31)
         self.assertEqual(body["providers"]["n8n"], "not_verified")
         self.assertNotIn("secret-do-not-expose", result.text)
         self.assertEqual(result.headers["cache-control"], "no-store")
