@@ -69,12 +69,16 @@ def container_summary(value):
 
 def proxy_routes(config):
     records = []
+    has_http_auth = False
 
     def walk(node, paths=(), methods=()):
+        nonlocal has_http_auth
         if isinstance(node, list):
             for child in node:
                 walk(child, paths, methods)
         elif isinstance(node, dict):
+            if node.get("handler") == "authentication":
+                has_http_auth = True
             matches = node.get("match")
             if matches:
                 # Caddy match entries are OR alternatives; keep each branch separate.
@@ -97,6 +101,7 @@ def proxy_routes(config):
     media = [row for row in records if "/media/instagram/*" in row["paths"] and row["api"]]
     webhook = [row for row in records if "/webhooks/instagram" in row["paths"] and row["api"]]
     return {
+        "anonymous_gateway_without_http_auth": bool(media and webhook) and not has_http_auth,
         "media_get_to_api": any(row["methods"] == ("GET",) for row in media),
         "media_strips_authorization_cookie": bool(media) and all(
             {"authorization", "cookie"} <= row["strips"] for row in media),

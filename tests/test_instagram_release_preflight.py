@@ -73,6 +73,12 @@ class ReleasePreflightTests(unittest.TestCase):
         self.assertTrue(all(result.values()))
         self.assertEqual(module.proxy_routes({}), {key: False for key in result})
 
+    def test_gateway_http_auth_blocks_anonymous_provider_preparation(self):
+        fixture=proxy_fixture()
+        fixture['apps']['http']['servers']['srv0']['routes'].insert(0,{
+            'handle':[{'handler':'authentication','providers':{'http_basic':{}}}]})
+        self.assertFalse(all(module.proxy_routes(fixture).values()))
+
     def test_media_must_not_fail_over_to_another_backend(self):
         fixture=proxy_fixture()
         proxy=fixture['apps']['http']['servers']['srv0']['routes'][0]['handle'][0]['routes'][0]['handle'][0]

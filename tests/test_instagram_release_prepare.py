@@ -220,5 +220,10 @@ class RealGatewayPreparationTests(unittest.TestCase):
                 still_active=json.loads(run('exec',name,'wget','-qO-','http://127.0.0.1:2019/config/'))
                 self.assertEqual(still_active,active,'Preparation must never reload Caddy')
                 run('exec','-i',name,'caddy','validate','--config','/dev/stdin','--adapter','caddyfile',input=changed)
+                # A previously protected gateway must stop for review; preparation
+                # cannot remove Basic Auth or claim that Meta can reach its routes.
+                basic=source.replace(' route {', ' route {\n basic_auth {\n tester $2a$14$OvF3gOBUchjj49Ws.qBH.O6n7NN8xPRWxOZuF0lYxH4hNIsSzbcQm\n }',1)
+                auth_active=prep.privacy._normalized_auto_hidden_config(prep.privacy._adapt(name,basic))
+                with self.assertRaises(RuntimeError):prep.validate_gateway(name,basic,auth_active)
             finally:
                 subprocess.run(['docker','rm','-f',name],capture_output=True,timeout=20)
