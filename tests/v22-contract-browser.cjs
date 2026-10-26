@@ -82,6 +82,7 @@ module.exports = async function (browser, origin) {
     await op.locator("#client").waitFor();
     assert(!(await op.locator("body").innerText()).includes("OUTRO-USUARIO-PRIVADO"));
     await page.evaluate(() => go("/relatorios"));
+    await page.getByText("Dados do seu negócio", { exact: true }).waitFor();
     const downloadPromise = page.waitForEvent("download");
     await page.evaluate(() => exportCsv());
     const download = await downloadPromise;
