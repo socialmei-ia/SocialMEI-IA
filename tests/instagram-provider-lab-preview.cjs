@@ -133,6 +133,14 @@ async function run() {
     for (const width of [1440, 390])
       for (const theme of ["claro", "escuro"]) {
         await page.setViewportSize({ width, height: 1000 });
+        await page.evaluate(() => document.fonts.ready);
+        await page.waitForFunction(
+          () =>
+            Math.abs(
+              parseFloat(document.body.style.width) * Number(document.body.style.zoom || 1) -
+                innerWidth,
+            ) < 0.1,
+        );
         await page.evaluate((t) => {
           S.theme = t;
           applyTheme();
@@ -144,6 +152,14 @@ async function run() {
         assert.equal(
           await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),
           false,
+          JSON.stringify(
+            await page.evaluate(() => ({
+              width: innerWidth,
+              scroll: document.documentElement.scrollWidth,
+              bodyWidth: document.body.style.width,
+              zoom: document.body.style.zoom,
+            })),
+          ),
         );
         await page.screenshot({
           path: path.join(output, `inbox-${width}-${theme}.png`),
