@@ -9,7 +9,11 @@
         method GET
         path /api/v1/integracoes/resumo /api/v1/integracoes/clientes /api/v1/integracoes/produtos /api/v1/integracoes/vendas /api/v1/integracoes/financeiro
     }
+    # Meta must reach this endpoint without the browser Basic Auth challenge.
+    # The API authenticates POST by raw HMAC signature and GET by verify token.
+    @instagram_webhook path /webhooks/instagram
     @browser_requests {
+        not path /webhooks/instagram
         not {
             method GET
             path /api/v1/integracoes/resumo /api/v1/integracoes/clientes /api/v1/integracoes/produtos /api/v1/integracoes/vendas /api/v1/integracoes/financeiro
@@ -28,6 +32,12 @@
         }
         request_body {
             max_size 3MB
+        }
+        # Signature-verified Meta webhook (no n8n flow is replaced here).
+        handle @instagram_webhook {
+            reverse_proxy team-api:8000 {
+                header_up -Authorization
+            }
         }
         # Technical reads authenticate with Bearer inside the API.
         handle @technical_reads {
