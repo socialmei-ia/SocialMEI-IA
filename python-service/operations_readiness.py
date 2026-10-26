@@ -37,6 +37,7 @@ EXPECTED_MIGRATIONS = (
     "028_instagram_temporary_media.sql",
     "029_workspace_pdf_knowledge.sql",
     "030_whatsapp_catalog_access.sql",
+    "031_report_viewer_role.sql",
 )
 
 

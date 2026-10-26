@@ -19,7 +19,7 @@ router = APIRouter(prefix="/api/v1/reporting", tags=["workspace reporting"])
 def scope():
     require_enabled()
     user = current()
-    if user.get("role") not in {"owner", "admin", "member", "viewer"}:
+    if user.get("role") not in {"owner", "admin", "member", "viewer", "report_viewer"}:
         raise HTTPException(403, "Acesso aos relatórios indisponível.")
     return user["workspace_id"]
 
