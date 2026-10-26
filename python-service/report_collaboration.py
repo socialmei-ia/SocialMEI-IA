@@ -41,7 +41,7 @@ def list_viewers():
         people = conn.execute(
             "SELECT u.id,u.nome,u.email,m.criado_em "
             "FROM socialmei.workspace_members m JOIN socialmei.users u ON u.id=m.user_id "
-            "WHERE m.workspace_id=%s AND m.role='viewer' "
+            "WHERE m.workspace_id=%s AND m.role='report_viewer' "
             "ORDER BY m.criado_em,u.id LIMIT 25",
             (user["workspace_id"],),
         ).fetchall()
@@ -60,7 +60,7 @@ def add_viewer(payload: ExistingUser):
         )
         number = conn.execute(
             "SELECT COUNT(*) AS n FROM socialmei.workspace_members "
-            "WHERE workspace_id=%s AND role='viewer'",
+            "WHERE workspace_id=%s AND role='report_viewer'",
             (user["workspace_id"],),
         ).fetchone()["n"]
         candidate = conn.execute(
@@ -79,12 +79,12 @@ def add_viewer(payload: ExistingUser):
             (user["workspace_id"], candidate["id"]),
         ).fetchone()
         if existing:
-            return {"granted": existing["role"] == "viewer", "already_member": True}
+            return {"granted": existing["role"] == "report_viewer", "already_member": True}
         if number >= 20:
             raise HTTPException(429, "Limite de 20 visualizadores por negócio.")
         conn.execute(
             "INSERT INTO socialmei.workspace_members(workspace_id,user_id,role) "
-            "VALUES(%s,%s,'viewer')",
+            "VALUES(%s,%s,'report_viewer')",
             (user["workspace_id"], candidate["id"]),
         )
         conn.execute(
@@ -101,7 +101,7 @@ def revoke_viewer(viewer_id: int):
     with connect() as conn:
         row = conn.execute(
             "DELETE FROM socialmei.workspace_members "
-            "WHERE workspace_id=%s AND user_id=%s AND role='viewer' RETURNING user_id",
+            "WHERE workspace_id=%s AND user_id=%s AND role='report_viewer' RETURNING user_id",
             (user["workspace_id"], viewer_id),
         ).fetchone()
         if not row:
