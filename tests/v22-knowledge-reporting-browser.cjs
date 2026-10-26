@@ -47,21 +47,30 @@ module.exports = async function v22KnowledgeReporting(browser, origin) {
         assert.match(request.headers()["content-type"], /application\/pdf/);
         assert.equal(url.searchParams.get("filename"), "cliente.pdf");
         uploads.push(request.postDataBuffer());
-        stored = [{
-          id: "11111111-1111-4111-8111-111111111111",
-          filename: "cliente.pdf",
-          page_count: 2, status: "indexed",
-        }];
+        stored = [
+          {
+            id: "11111111-1111-4111-8111-111111111111",
+            filename: "cliente.pdf",
+            page_count: 2,
+            status: "indexed",
+          },
+        ];
         return route.fulfill({ status: 201, json: stored[0] });
       }
       return route.fulfill({ json: { items: stored } });
     }
     if (endpoint === "/knowledge/pdf/search") {
       return route.fulfill({
-        json: { items: [{
-          document_id: "11111111-1111-4111-8111-111111111111",
-          filename: "cliente.pdf", page: 2, excerpt: "Prazo de entrega: 5 dias úteis.",
-        }] },
+        json: {
+          items: [
+            {
+              document_id: "11111111-1111-4111-8111-111111111111",
+              filename: "cliente.pdf",
+              page: 2,
+              excerpt: "Prazo de entrega: 5 dias úteis.",
+            },
+          ],
+        },
       });
     }
     if (endpoint === "/reporting/overview") {
@@ -84,12 +93,15 @@ module.exports = async function v22KnowledgeReporting(browser, origin) {
     await page.locator("[data-sm-knowledge]").waitFor();
     assert.match(await page.locator("[data-sm-knowledge]").innerText(), /Documentos da IA/);
     assert.match(await page.locator("[data-sm-knowledge]").innerText(), /Nenhum PDF cadastrado/);
-    await page.locator('[data-sm-knowledge] input[type=file]').setInputFiles({
+    await page.locator("[data-sm-knowledge] input[type=file]").setInputFiles({
       name: "cliente.pdf",
       mimeType: "application/pdf",
       buffer: Buffer.from("%PDF-1.7 synthetic only"),
     });
-    await page.locator("[data-sm-knowledge]").getByRole("button", { name: "Adicionar PDF" }).click();
+    await page
+      .locator("[data-sm-knowledge]")
+      .getByRole("button", { name: "Adicionar PDF" })
+      .click();
     await page.getByText(/Documento indexado/).waitFor();
     assert.equal(uploads.length, 1);
     assert.match(await page.locator("[data-sm-knowledge]").innerText(), /cliente.pdf/);
