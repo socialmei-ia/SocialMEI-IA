@@ -24,12 +24,15 @@
     return node;
   }
   async function mountWorkspace(view) {
-    if (view.querySelector('[data-sm-switch]')) return;
+    if (view.querySelector("[data-sm-switch]")) return;
     const panel = element("section");
     panel.className = "sm-collab";
     panel.dataset.smSwitch = "true";
     panel.append(element("h2", "Acessar outro negócio"));
-    const description = element("p", "Alterar negócio só é permitido para contas às quais você já tem acesso.");
+    const description = element(
+      "p",
+      "Alterar negócio só é permitido para contas às quais você já tem acesso.",
+    );
     const message = status(panel);
     const controls = element("div");
     controls.className = "sm-actions";
@@ -73,12 +76,17 @@
     });
   }
   async function mountViewers(view) {
-    if (!owner() || view.querySelector('[data-sm-viewers]')) return;
+    if (!owner() || view.querySelector("[data-sm-viewers]")) return;
     const panel = element("section");
     panel.className = "sm-collab";
     panel.dataset.smViewers = "true";
     panel.append(element("h2", "Visualizadores de relatórios"));
-    panel.append(element("p", "Autorize alguém que já criou uma conta SocialMEI. Essa pessoa poderá consultar este negócio, mas não editar seus dados."));
+    panel.append(
+      element(
+        "p",
+        "Autorize alguém que já criou uma conta SocialMEI. Essa pessoa poderá consultar este negócio, mas não editar seus dados.",
+      ),
+    );
     const message = status(panel);
     const controls = element("div");
     controls.className = "sm-actions";
