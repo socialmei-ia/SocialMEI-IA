@@ -181,7 +181,7 @@ module.exports = async function (browser, origin) {
           await page.evaluate(() => SocialMEIInstagram.status.connected),
           mode === "connected",
         );
-        await card.locator("button").click();
+        await card.locator("button[data-ig-action]").click();
         await page.locator("dialog[open]").waitFor();
         await page.keyboard.press("Escape");
         assert.equal(posts.length, 0);
