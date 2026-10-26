@@ -25,6 +25,21 @@ class LoggingPatchTests(unittest.TestCase):
         self.assertTrue(patched.endswith(original))
         self.assertEqual(patched.count("log default"), 1)
 
+    def test_site_address_env_placeholder_is_not_global_options(self):
+        original = "# live n8n host\\n{$N8N_HOST} {\\n reverse_proxy n8n:5678\\n}\\n"
+        patched = privacy.with_logging(original)
+        self.assertTrue(patched.startswith("{\\n"))
+        self.assertTrue(patched.endswith(original))
+        self.assertEqual(patched.count("log default"), 1)
+        self.assertEqual(privacy._global_block(original), None)
+        self.assertIsNotNone(privacy._global_block(patched))
+
+    def test_standalone_global_open_with_comment_is_recognized(self):
+        original = "{ # options\\n email admin@example.test\\n}\\n:80 { respond ok }\\n"
+        patched = privacy.with_logging(original)
+        self.assertEqual(patched.count("log default"), 1)
+        self.assertIn("email admin@example.test", patched)
+
     def test_existing_global_preserves_braces_in_comments_and_strings(self):
         original = '# start\n{\n # }\n email "admin{example}@example.test"\n}\n:8080 { respond ok }'
         patched = privacy.with_logging(original)
