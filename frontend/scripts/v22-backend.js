@@ -302,6 +302,57 @@ window.SocialMEIV22 = (() => {
       },
     );
   }
+  // Incoming Meta webhooks persist server-side. Poll while the inbox is visible
+  // so messages appear without requiring a full page reload.
+  let inboxPolling = false;
+  let inboxFingerprint = "";
+  async function refreshInbox({ silent = false } = {}) {
+    if (inboxPolling || !remote || !auth.current) return;
+    inboxPolling = true;
+    const workspace = auth.current.negocio.id;
+    try {
+      const cap = await request("/message-enrichment/capabilities");
+      if (cap.mode !== "stub" && !cap.instagram_inbox && !cap.waha_inbox) return;
+      const result = await request("/message-enrichment/conversations");
+      if (result.workspace_id !== workspace || auth.current?.negocio.id !== workspace)
+        throw Error("Resposta de outro negócio.");
+      const fingerprint = JSON.stringify(result.items.map((row) => [
+        row.id, row.revision, row.messages?.at(-1)?.id,
+      ]));
+      if (fingerprint === inboxFingerprint) return;
+      inboxFingerprint = fingerprint;
+      inbox = result.items;
+      C.splice(0, C.length);
+      for (const row of inbox) {
+        const messages = row.messages || [];
+        const last = messages.at(-1);
+        if (!last) continue;
+        C.push([
+          "me-" + row.id,
+          row.contact_name,
+          esc(ini(row.contact_name)),
+          "#e4dcff",
+          "#4a3aa8",
+          last.text || "",
+          row.channel === "instagram" ? "ig" : "wa",
+          "Aberto",
+          new Date(last.occurred_at).toLocaleTimeString("pt-BR", {
+            hour: "2-digit", minute: "2-digit",
+          }),
+        ]);
+      }
+      if (silent && loaded && H.startsWith("/caixa")) render();
+    } catch (e) {
+      if (!silent && ![403, 503].includes(e.status)) throw e;
+    } finally {
+      inboxPolling = false;
+    }
+  }
+  // Never poll while hidden or without a session. No duplicate timers.
+  if (remote) window.setInterval(() => {
+    if (!document.hidden && loaded && H.startsWith("/caixa"))
+      refreshInbox({ silent: true });
+  }, 6000);
   async function initialize() {
     if (!remote) return;
     root.hidden = true;
@@ -323,39 +374,7 @@ window.SocialMEIV22 = (() => {
       if (![403, 404, 503].includes(e.status)) throw e;
     }
     S.biz.desc = "";
-    try {
-      const cap = await request("/message-enrichment/capabilities");
-      if (cap.mode === "stub" || cap.instagram_inbox || cap.waha_inbox) {
-        const result = await request("/message-enrichment/conversations");
-        if (result.workspace_id !== auth.current.negocio.id)
-          throw Error("Resposta de outro negócio.");
-        inbox = result.items;
-      }
-    } catch (e) {
-      if (![403, 503].includes(e.status)) throw e;
-    }
-    C.splice(0, C.length);
-    for (const row of inbox) {
-      const messages = row.messages || [],
-        last = messages.at(-1);
-      if (!last) continue;
-      C.push([
-        "me-" + row.id,
-        row.contact_name,
-        esc(ini(row.contact_name)),
-        "#e4dcff",
-        "#4a3aa8",
-        last?.text || "",
-        row.channel === "instagram" ? "ig" : "wa",
-        "Aberto",
-        last
-          ? new Date(last.occurred_at).toLocaleTimeString("pt-BR", {
-              hour: "2-digit",
-              minute: "2-digit",
-            })
-          : "—",
-      ]);
-    }
+    await refreshInbox();
     T1.splice(0, T1.length);
     T2.splice(0, T2.length);
     preferences = await request("/auth/preferences");
