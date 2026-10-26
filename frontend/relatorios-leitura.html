@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Relatórios de leitura · SocialMEI.IA</title>
+<style>
+:root{color-scheme:dark;--bg:#0c1624;--card:#142134;--border:#304057;--ink:#eef3fa;--muted:#b6c4d5;--accent:#579bef}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:24px 18px 60px}
+header{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:30px}
+h1{font-size:clamp(26px,4vw,40px);line-height:1.1;margin:12px 0}h2{font-size:18px;margin:0 0 8px}
+p{color:var(--muted)}button,select{min-height:44px;padding:10px 15px;border:1px solid var(--border);border-radius:11px;background:var(--card);color:var(--ink);font:inherit;cursor:pointer}
+button:hover{border-color:var(--accent)}.controls{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:18px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin:24px 0}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px}
+.value{font-size:32px;font-weight:700}.muted{color:var(--muted)}.sr{position:absolute;left:-9999px}
+ul{padding-left:20px;margin:8px 0}li{margin:6px 0}#status{min-height:28px}
+</style>
+</head>
+<body>
+<main>
+<header><div><strong>SocialMEI.IA</strong><p>Consultas autorizadas · somente leitura</p></div><button id="exit" type="button">Sair</button></header>
+<h1>Relatórios do negócio</h1>
+<p>Este acesso permite consultar indicadores agregados. Não altera vendas, clientes ou estoque.</p>
+<div class="controls">
+<label for="workspace">Negócio</label><select id="workspace"></select>
+<button id="change" type="button">Trocar</button>
+<label for="period">Período</label><select id="period"><option value="30">Últimos 30 dias</option><option value="7">Últimos 7 dias</option><option value="90">Últimos 90 dias</option></select>
+<button id="refresh" type="button">Atualizar</button>
+<button id="csv" type="button">Exportar CSV</button>
+</div>
+<p id="status" role="status" aria-live="polite">Verificando sessão…</p>
+<div class="grid" id="overview"></div>
+<section class="card"><h2>Vendas e financeiro</h2><div id="breakdown"></div></section>
+</main>
+<script src="config.js"></script>
+<script src="scripts/auth-store.js"></script>
+<script>
+(async()=>{
+const auth=window.SocialMEIAuth;
+await auth.ready;
+const account=auth.current;
+if(!auth.remote||!account){location.replace("entrada.html#/entrar");return}
+if(account.papel!=="report_viewer"){location.replace("socialmei-app.html#/relatorios");return}
+const byId=id=>document.getElementById(id),status=byId("status"),ov=byId("overview"),br=byId("breakdown");
+const item=(tag,text)=>{const e=document.createElement(tag);e.textContent=String(text);return e};
+const error=e=>{status.textContent=e.message||"Consulta indisponível."};
+function card(label,value){const e=item("div","");e.className="card";const a=item("p",label),b=item("div",value);b.className="value";e.append(a,b);return e}
+async function load(){
+status.textContent="Consultando dados…";ov.replaceChildren();br.replaceChildren();
+try{
+const result=await auth.request("/reporting/overview?days="+encodeURIComponent(byId("period").value));
+const t=result.totals;
+ov.append(card("Clientes",t.clientes),card("Itens ativos",t.itens_ativos),card("Estoque baixo",t.estoque_baixo));
+const list=item("ul","");
+for(const [key,record] of Object.entries(result.sales_by_status)){
+list.append(item("li","Vendas "+key+": "+record.quantidade+" · R$ "+record.valor))}
+for(const row of result.finance_by_type_and_status){
+list.append(item("li",row.tipo+" · "+row.status+": "+row.quantidade+" · R$ "+row.valor))}
+if(!list.children.length)list.append(item("li","Nenhum movimento no período."));
+br.append(list);
+status.textContent="Indicadores atualizados; valores agregados sem dados individuais.";
+}catch(e){error(e)}
+}
+try{
+const data=await auth.request("/auth/workspaces");
+const selected=byId("workspace");
+for(const row of data.items){const opt=item("option",row.nome);opt.value=String(row.id);opt.selected=row.id===data.active_workspace_id;selected.append(opt)}
+byId("change").disabled=data.items.length<2;
+}catch(e){error(e)}
+byId("change").addEventListener("click",async()=>{
+const button=byId("change");button.disabled=true;
+try{
+const result=await auth.request("/auth/workspaces/switch","POST",{workspace_id:Number(byId("workspace").value)});
+location.replace(result.papel==="report_viewer"?"relatorios-leitura.html":"socialmei-app.html#/relatorios");
+}catch(e){error(e);button.disabled=false}
+});
+byId("refresh").addEventListener("click",load);
+byId("csv").addEventListener("click",async()=>{
+const button=byId("csv");button.disabled=true;
+try{
+const result=await fetch("/api/v1/reporting/overview.csv?days="+encodeURIComponent(byId("period").value),{credentials:"same-origin",cache:"no-store"});
+if(!result.ok)throw Error("Exportação não autorizada ou indisponível.");
+const blob=URL.createObjectURL(await result.blob());
+const a=document.createElement("a");a.href=blob;a.download="socialmei-relatorio.csv";document.body.append(a);a.click();
+setTimeout(()=>{URL.revokeObjectURL(blob);a.remove()},30000);
+}catch(e){error(e)}finally{button.disabled=false}
+});
+byId("exit").addEventListener("click",async()=>{try{await auth.logout()}catch(e){error(e)}});
+await load();
+})().catch(()=>{document.getElementById("status").textContent="Não foi possível carregar o relatório."});
+</script>
+</body>
+</html>
