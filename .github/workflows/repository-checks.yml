@@ -99,6 +99,10 @@ jobs:
           if-no-files-found: ignore
       - name: Backup failure and recovery scenarios
         run: python -m unittest discover -s tests -p 'test_*.py'
+      - name: Caddy OAuth privacy canary (disposable container only)
+        env:
+          SOCIALMEI_INSTAGRAM_PROXY_TEST: "true"
+        run: python -m unittest discover -s tests -p 'test_instagram_proxy_privacy.py'
       - name: Protected team gateway
         env:
           SOCIALMEI_TEAM_GATEWAY_TEST: "true"
