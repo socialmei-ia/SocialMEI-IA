@@ -12,6 +12,10 @@ import unittest
 from unittest.mock import patch
 from uuid import uuid4
 
+# These network-none fixtures talk exclusively to loopback. Managed Docker may
+# inject outbound proxies; keep them out of the synthetic localhost requests.
+LOCAL_HTTP_ENV = [arg for name in ('http_proxy','https_proxy','HTTP_PROXY','HTTPS_PROXY','all_proxy','ALL_PROXY')
+                  for arg in ('--env', name + '=')]
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location("instagram_privacy", ROOT / "tools/instagram-proxy-privacy.py")
 privacy = importlib.util.module_from_spec(spec)
@@ -162,7 +166,7 @@ class RealCaddyPrivacyTests(unittest.TestCase):
                 subprocess.run(
                     ["docker", "run", "-d", "--name", name, "--network", "none",
                      "--mount", f"type=bind,src={config},dst=/etc/caddy/Caddyfile,readonly",
-                     "caddy:2-alpine"],
+                     *LOCAL_HTTP_ENV, "caddy:2-alpine"],
                     capture_output=True, check=True, timeout=45,
                 )
                 for _ in range(35):
@@ -195,7 +199,7 @@ class RealCaddyPrivacyTests(unittest.TestCase):
                     subprocess.run(
                         ["docker", "run", "-d", "--name", name, "--network", "none",
                          "--mount", f"type=bind,src={config},dst=/etc/caddy/Caddyfile,readonly",
-                         "caddy:2-alpine"],
+                         *LOCAL_HTTP_ENV, "caddy:2-alpine"],
                         capture_output=True, check=True, timeout=45,
                     )
                     request = ["docker", "exec", name, "wget", "-T", "2", "-S", "-O",

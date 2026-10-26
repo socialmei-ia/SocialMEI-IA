@@ -47,6 +47,9 @@ class TeamGatewayTests(unittest.TestCase):
             """from http.server import BaseHTTPRequestHandler, HTTPServer
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
+        if self.path.startswith('/media/instagram/'):
+            self.send_response(400 if self.headers.get('Cookie') or self.headers.get('Authorization') else 200)
+            self.end_headers(); self.wfile.write(b'jpeg-fixture'); return
         if self.path.startswith('/internal/'):
             self.send_response(200); self.end_headers(); self.wfile.write(b'must-never-be-served'); return
         if self.path.startswith('/api/v1/integracoes/'):
@@ -149,6 +152,10 @@ HTTPServer(('0.0.0.0', 8000), Handler).serve_forever()
                 return response.status, response.read().decode()
         except HTTPError as error:
             return error.code, error.read().decode()
+
+    def test_expiring_media_reaches_api_without_browser_auth(self):
+        self.assertEqual(self.request('/media/instagram/synthetic.jpg')[0], 200)
+        self.assertEqual(self.request('/media/instagram/synthetic.jpg', authenticated=True)[0], 200)
 
     def test_site_and_api_are_denied_without_credentials(self):
         for path in [
@@ -267,6 +274,9 @@ class PublicTeamGatewayTests(unittest.TestCase):
         (directory / "mock.py").write_text('''from http.server import BaseHTTPRequestHandler, HTTPServer
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
+        if self.path.startswith('/media/instagram/'):
+            self.send_response(400 if self.headers.get('Cookie') or self.headers.get('Authorization') else 200)
+            self.end_headers(); self.wfile.write(b'jpeg-fixture'); return
         authenticated = self.headers.get('Cookie') == 'test-session=valid'
         known = self.path in ('/api/v1/clientes', '/api/v1/auth/me')
         self.send_response(200 if authenticated and known else 401)
@@ -335,3 +345,16 @@ HTTPServer(('0.0.0.0', 8000), Handler).serve_forever()
         self.assertEqual(self.request("/api/v1/clientes", {
             "Origin": "https://evil.example.com", "Cookie": "test-session=valid"
         })[0], 403)
+
+    def test_media_route_removes_credentials_and_rejects_writes(self):
+        self.assertEqual(self.request('/media/instagram/synthetic.jpg', {
+            'Authorization':'Bearer must-not-forward', 'Cookie':'test-session=valid'
+        })[0], 200)
+        for method in ('POST','PUT','DELETE','HEAD'):
+            request=Request(self.origin+'/media/instagram/synthetic.jpg', method=method)
+            try:
+                response=urlopen(request,timeout=3)
+            except HTTPError as error:
+                response=error
+            self.assertEqual(response.code,404,method)
+            response.close()
