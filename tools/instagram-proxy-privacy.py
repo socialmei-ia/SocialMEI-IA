@@ -52,6 +52,13 @@ def _global_block(source):
         break
     if i == len(source) or source[i] != "{":
         return None
+    # A leading site address may begin with a Caddy env placeholder such
+    # as {$N8N_HOST}. Only a standalone opening brace starts global options.
+    line_end = source.find("\n", i)
+    if line_end < 0:
+        line_end = len(source)
+    if not re.fullmatch(r"[ \t]*(?:#.*)?", source[i + 1:line_end]):
+        return None
     start = i
     depth = 0
     quoted = False
