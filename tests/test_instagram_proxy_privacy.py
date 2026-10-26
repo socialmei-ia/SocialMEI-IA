@@ -112,6 +112,36 @@ class LoggingPatchTests(unittest.TestCase):
 
 @unittest.skipUnless(os.getenv("SOCIALMEI_INSTAGRAM_PROXY_TEST") == "true", "Disposable Caddy opt-in")
 class RealCaddyPrivacyTests(unittest.TestCase):
+    def test_candidate_matches_live_disposable_caddy(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            config = Path(tmp) / "Caddyfile"
+            config.write_text(":8080 {\n respond ok\n}\n")
+            name = "socialmei-ig-candidate-" + uuid4().hex[:10]
+            try:
+                subprocess.run(
+                    ["docker", "run", "-d", "--name", name, "--network", "none",
+                     "--mount", f"type=bind,src={config},dst=/etc/caddy/Caddyfile,readonly",
+                     "caddy:2-alpine"],
+                    capture_output=True, check=True, timeout=45,
+                )
+                for _ in range(35):
+                    probe = subprocess.run(
+                        ["docker", "exec", name, "wget", "-qO-",
+                         "http://127.0.0.1:2019/config/"],
+                        capture_output=True, timeout=10,
+                    )
+                    if probe.returncode == 0:
+                        break
+                    time.sleep(.2)
+                else:
+                    self.fail("Disposable Caddy admin API unavailable")
+                original, candidate = privacy._candidate(name)
+                self.assertIn("respond ok", original)
+                self.assertIn("log default", candidate)
+                self.assertNotIn("log default", original)
+            finally:
+                subprocess.run(["docker", "rm", "-f", name], capture_output=True, timeout=15)
+
     def test_502_keeps_error_without_oauth_uri_or_headers(self):
         original = "{\n admin off\n auto_https off\n}\n:8080 {\n reverse_proxy 127.0.0.1:1\n}\n"
         marker = "synthetic-oauth-canary-" + uuid4().hex
