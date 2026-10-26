@@ -1,5 +1,7 @@
 """Private Instagram server preparation never enables or exposes tokens."""
 
+import base64
+import json
 import importlib.util
 import io
 import os
@@ -42,12 +44,14 @@ class InstagramPrivateSetupTests(unittest.TestCase):
             module.staged_values(old, prompt=lambda _: url(), hidden=lambda _: SECRET)
 
     def test_does_not_regenerate_existing_vault_keys(self):
-        existing = {module.HOST_KEY: HOST, "SOCIALMEI_INSTAGRAM_TOKEN_KEYRING": '{"existing":"c2FmZQ"}',
+        vault = base64.urlsafe_b64encode(b"a" * 32).decode().rstrip("=")
+        existing = {module.HOST_KEY: HOST,
+                    "SOCIALMEI_INSTAGRAM_TOKEN_KEYRING": json.dumps({"existing": vault}),
                     "SOCIALMEI_INSTAGRAM_TOKEN_ACTIVE_KEY_ID": "existing"}
         result = module.staged_values(existing, prompt=lambda label: "v23.0" if "Graph" in label else url(),
                                       hidden=lambda _: SECRET)
         self.assertEqual(result["SOCIALMEI_INSTAGRAM_TOKEN_ACTIVE_KEY_ID"], "existing")
-        self.assertEqual(result["SOCIALMEI_INSTAGRAM_TOKEN_KEYRING"], '{"existing":"c2FmZQ"}')
+        self.assertEqual(result["SOCIALMEI_INSTAGRAM_TOKEN_KEYRING"], json.dumps({"existing": vault}))
 
     def test_private_file_backup_and_safe_flags(self):
         with tempfile.TemporaryDirectory() as tmp:
