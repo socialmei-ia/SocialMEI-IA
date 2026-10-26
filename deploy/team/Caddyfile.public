@@ -8,7 +8,7 @@
     @app_assets path /scripts/* /styles/* /assets/* /config.js
     @technical_reads {
         method GET
-        path /api/v1/integracoes/resumo /api/v1/integracoes/clientes /api/v1/integracoes/produtos /api/v1/integracoes/vendas /api/v1/integracoes/financeiro
+        path /api/v1/integracoes/resumo /api/v1/integracoes/clientes /api/v1/integracoes/produtos /api/v1/integracoes/vendas /api/v1/integracoes/financeiro /api/v1/integracoes/whatsapp/menu
     }
     # Literal order: Origin checks precede every handler.
     route {

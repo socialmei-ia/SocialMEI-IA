@@ -7,7 +7,7 @@
     @app_assets path /scripts/* /styles/* /assets/* /config.js
     @technical_reads {
         method GET
-        path /api/v1/integracoes/resumo /api/v1/integracoes/clientes /api/v1/integracoes/produtos /api/v1/integracoes/vendas /api/v1/integracoes/financeiro
+        path /api/v1/integracoes/resumo /api/v1/integracoes/clientes /api/v1/integracoes/produtos /api/v1/integracoes/vendas /api/v1/integracoes/financeiro /api/v1/integracoes/whatsapp/menu
     }
     # Meta must reach this endpoint without the browser Basic Auth challenge.
     # The API authenticates POST by raw HMAC signature and GET by verify token.
