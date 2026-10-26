@@ -37,12 +37,14 @@ def _flag(value):
 
 class InstagramRuntime:
     def __init__(
-        self, status="disabled", *, oauth=None, ingress=None, direct=None, send=False
+        self, status="disabled", *, oauth=None, ingress=None, direct=None,
+        publish=None, send=False
     ):
         self.status = status
         self.oauth = oauth
         self.ingress = ingress
         self.direct = direct
+        self.publish = publish
         self.send = send
 
     def __repr__(self):
@@ -61,6 +63,7 @@ def build_runtime():
             raise ValueError("Revisão de privacidade pendente.")
         incoming = _flag(values["ingress"])
         sending = _flag(values["send"])
+        publishing = _flag(os.getenv("SOCIALMEI_INSTAGRAM_PUBLISH_ENABLED", "false"))
         scopes = frozenset(os.getenv("SOCIALMEI_INSTAGRAM_SCOPES", "").split(","))
         if (
             "instagram_business_basic" not in scopes
@@ -69,6 +72,8 @@ def build_runtime():
             raise ValueError("Escopos inválidos.")
         if (incoming or sending) and "instagram_business_manage_messages" not in scopes:
             raise ValueError("Escopo de mensagens ausente.")
+        if publishing and "instagram_business_content_publish" not in scopes:
+            raise ValueError("Escopo de publicacao ausente.")
         if not 32 <= len(values["client_secret"]) <= 16384:
             raise ValueError("Segredo inválido.")
         if len(values["keyring"]) > 4096:
@@ -95,7 +100,7 @@ def build_runtime():
             client_secret=values["client_secret"],
             callback_uri=callback_uri,
             graph_version=values["graph_version"],
-            transport=InstagramHTTPTransport(allow_sends=sending),
+            transport=InstagramHTTPTransport(allow_sends=sending, allow_publishing=publishing),
         )
         from instagram_persistent_oauth import InstagramOAuthService
         from instagram_meta_ingress import InstagramIngressService
@@ -120,8 +125,13 @@ def build_runtime():
             if "instagram_business_manage_messages" in scopes
             else None
         )
+        publisher = None
+        if publishing:
+            from instagram_publishing import InstagramPublishingService
+            publisher = InstagramPublishingService(adapter=adapter, vault=vault)
         return InstagramRuntime(
-            "configured", oauth=oauth, ingress=ingress, direct=direct, send=sending
+            "configured", oauth=oauth, ingress=ingress, direct=direct,
+            publish=publisher, send=sending
         )
     except Exception:
         # A provider configuration problem cannot disable CRM/login or echo secrets.
@@ -146,6 +156,7 @@ INGRESS_TABLES = (
 SCHEMA_TABLES = {
     "oauth": OAUTH_TABLES,
     "ingress": INGRESS_TABLES,
+    "publish": (*OAUTH_TABLES, "ig_meta_publications"),
     "direct": (
         *INGRESS_TABLES,
         "ig_direct_jobs",
@@ -160,6 +171,7 @@ SCHEMA_MIGRATIONS = {
         "019_instagram_persistent_oauth.sql",
         "020_instagram_durable_webhook.sql",
     },
+    "publish": {"019_instagram_persistent_oauth.sql", "027_instagram_image_publications.sql"},
     "direct": {
         "019_instagram_persistent_oauth.sql",
         "020_instagram_durable_webhook.sql",
@@ -230,7 +242,7 @@ def readiness(request: Request):
             "reply_preparation_available": runtime.direct is not None
             and schema_ready("direct"),
             "send_enabled": runtime.send,
-            "publishing_available": False,
+            "publishing_available": runtime.publish is not None and schema_ready("publish"),
             "connection_status_path": "/api/v1/instagram/meta/status",
         },
         "whatsapp": {
