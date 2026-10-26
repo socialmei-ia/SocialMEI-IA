@@ -5,6 +5,7 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 from app import app
+from account_auth import REPORT_ONLY
 from report_collaboration import ExistingUser, WorkspaceSelection
 
 
@@ -20,6 +21,25 @@ class ReportViewerGuards(unittest.TestCase):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 WorkspaceSelection(workspace_id=value)
         self.assertEqual(WorkspaceSelection(workspace_id=32).workspace_id, 32)
+
+    def test_least_privilege_allowlist(self):
+        allowed = {
+            ("GET", "/api/v1/reporting/overview"),
+            ("GET", "/api/v1/reporting/overview.csv"),
+            ("GET", "/api/v1/auth/workspaces"),
+            ("POST", "/api/v1/auth/workspaces/switch"),
+            ("POST", "/api/v1/auth/logout"),
+        }
+        self.assertEqual(REPORT_ONLY, allowed)
+        for method, path in (
+            ("GET", "/api/v1/clientes"),
+            ("GET", "/api/v1/financeiro"),
+            ("GET", "/api/v1/knowledge/pdf"),
+            ("GET", "/api/v1/instagram/meta/status"),
+            ("POST", "/api/v1/reporting/overview"),
+            ("GET", "/api/v1/reporting/access"),
+        ):
+            self.assertNotIn((method, path), REPORT_ONLY)
 
     def test_report_viewer_apis_require_session(self):
         with patch.dict(os.environ, {
