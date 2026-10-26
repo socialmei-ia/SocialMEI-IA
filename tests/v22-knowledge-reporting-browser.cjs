@@ -106,7 +106,7 @@ module.exports = async function v22KnowledgeReporting(browser, origin) {
     assert.equal(uploads.length, 1);
     assert.match(await page.locator("[data-sm-knowledge]").innerText(), /cliente.pdf/);
     await page.locator("[data-sm-knowledge] input[type=search]").fill("prazo");
-    await page.getByRole("button", { name: "Buscar" }).click();
+    await page.getByRole("button", { name: "Buscar", exact: true }).click();
     await page.getByText(/Prazo de entrega: 5 dias úteis/).waitFor();
 
     await page.evaluate(() => go("/relatorios"));
