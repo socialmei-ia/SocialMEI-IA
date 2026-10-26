@@ -185,7 +185,7 @@ def guard(request, response, *, write=False, manage=False, capability=False, rea
         raise HTTPException(503, 'Análise não configurada.')
     if capability:
         return user
-    provider_read = read_inbox and (settings.instagram_ingress_isolated_enabled() or settings.waha_ingress_isolated_enabled())
+    provider_read = read_inbox and (settings.instagram_ingress_isolated_enabled() or settings.instagram_live_ingress_enabled() or settings.waha_ingress_isolated_enabled())
     if not provider_read and (mode != 'stub' or len(settings.message_enrichment_signing_key()) < 32):
         raise HTTPException(503, 'Análise sintética não habilitada.')
     if write and user['role'] not in {'owner', 'admin', 'member'}:
