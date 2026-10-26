@@ -55,3 +55,15 @@ Resposta humana depende de definir um único remetente e sua convivência com IA
 - Fixtures de privacidade em containers `--network none` limpam somente proxies desses próprios containers, para que o wget acesse o loopback. A proteção/asserção 502 e os canários permanecem completos.
 - Em desktop, o shell V22 aplica CSS zoom; o tradutor CDP de cliques em iframe não inclui esse zoom ancestral. O helper de teste calcula pixels de viewport e confirma hit-test do controle e iframe antes do clique real. Não usa `force`, dispatch de clique ou alteração de estilos para passar a navegação.
 - Capturas: `test-results/instagram-publisher/{1440,390}-{light,dark}.png`. São interface real com respostas controladas, não provas de postagem na Meta. CI remoto precisa confirmar o novo HEAD; ver checks da PR #113.
+
+## Preparador operacional (sem implantação)
+
+`tools/instagram-release-prepare.py --target team` não consulta Docker nem servidor. A opção `--prepare` exige SHA completo, imagens de baseline explícitas e diretório novo diretamente em `/home/ubuntu/socialmei-backups`. Só deve ser executada quando o operador estiver na VPS e após conferir a inspeção.
+
+O preparador lê separadamente os arquivos Compose dos labels de API/gateway, confere ambiente/redes/mounts/imagens e bloqueia checkout sujo, API sem saúde, runtime divergente, integrações de envio/ingresso/publicação já habilitadas ou migrations fora de 027/028. Aceita OAuth em modo de conexão e mantém keyring/credenciais existentes, sem sobrescrevê-los.
+
+Prepara overlays que mudam somente imagem e `SOCIALMEI_RELEASE_SHA` da API. Confere novamente o resultado do Compose com esses overlays. Para o gateway exige bind privado persistente, compara Caddyfile com JSON ativo e acrescenta somente os handlers de mídia/webhook ausentes; filtros, autenticação e demais rotas são preservados. O teste em Caddy real comprova que o arquivo e a configuração ativa permanecem intactos. Nomes internos `groupN` podem ser renumerados pelo adaptador: a comparação preserva rigorosamente a igualdade entre grupos, recusando divisão/fusão.
+
+Os arquivos gerados são **privados** (pasta0700/arquivos0600), pois contêm configuração de execução. Não os envie ao GitHub ou ao chat. O recibo registra SHA, IDs imutáveis, checksums e migrations ausentes. Preparar não significa executar backup, construir imagem, aplicar SQL, recriar serviço, recarregar Caddy ou ativar OAuth/publicação/webhook.
+
+Antes de aplicar será necessária nova conferência de drift e backup verificável, seguida do procedimento controlado acima. **Não use `docker compose build` com o checkout antigo**: construir as imagens com o código do SHA candidato num diretório separado; Compose efetivo é usado somente para preservar o runtime. O publicador V22 antigo não deve ser utilizado automaticamente num ambiente com OAuth/overlays protegidos: seus gates foram projetados para integrações desligadas e Caddy da imagem, e não foram relaxados nesta preparação.

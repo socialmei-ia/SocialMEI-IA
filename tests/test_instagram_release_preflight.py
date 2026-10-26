@@ -73,6 +73,12 @@ class ReleasePreflightTests(unittest.TestCase):
         self.assertTrue(all(result.values()))
         self.assertEqual(module.proxy_routes({}), {key: False for key in result})
 
+    def test_media_must_not_fail_over_to_another_backend(self):
+        fixture=proxy_fixture()
+        proxy=fixture['apps']['http']['servers']['srv0']['routes'][0]['handle'][0]['routes'][0]['handle'][0]
+        proxy['upstreams'].append({'dial':'other-service:8000'})
+        self.assertFalse(module.proxy_routes(fixture)['media_get_to_api'])
+
     def test_media_missing_cookie_or_ungated_method_is_not_safe(self):
         fixture = proxy_fixture()
         route = fixture["apps"]["http"]["servers"]["srv0"]["routes"][0]["handle"][0]["routes"][0]

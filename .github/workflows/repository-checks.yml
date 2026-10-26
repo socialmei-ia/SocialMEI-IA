@@ -103,6 +103,10 @@ jobs:
         env:
           SOCIALMEI_INSTAGRAM_PROXY_TEST: "true"
         run: python -m unittest discover -s tests -p 'test_instagram_proxy_privacy.py'
+      - name: Prepare Instagram gateway release without changing the installed fixture
+        env:
+          SOCIALMEI_INSTAGRAM_RELEASE_TEST: "true"
+        run: python -m unittest discover -s tests -p 'test_instagram_release_prepare.py'
       - name: Protected team gateway
         env:
           SOCIALMEI_TEAM_GATEWAY_TEST: "true"

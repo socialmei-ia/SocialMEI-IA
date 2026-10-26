@@ -86,7 +86,7 @@ def proxy_routes(config):
                 deletions = (node.get("headers") or {}).get("request", {}).get("delete", [])
                 records.append({
                     "paths": paths, "methods": methods,
-                    "api": any(up.get("dial") == "team-api:8000" for up in node.get("upstreams", [])),
+                    "api": len(node.get("upstreams", [])) == 1 and node["upstreams"][0].get("dial") == "team-api:8000",
                     "strips": {header.lower() for header in deletions},
                 })
             for key, child in node.items():
