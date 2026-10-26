@@ -1,7 +1,7 @@
 -- Workspace-isolated PDF knowledge, stored privately in PostgreSQL.
 -- Future OCR/embeddings can extend this ledger without changing uploaded originals.
 CREATE TABLE IF NOT EXISTS socialmei.knowledge_pdfs (
- id UUID PRIMARY KEY,
+ id UUID NOT NULL,
  workspace_id BIGINT NOT NULL REFERENCES socialmei.workspaces(id) ON DELETE CASCADE,
  uploaded_by BIGINT NOT NULL,
  filename TEXT NOT NULL CHECK (char_length(filename) BETWEEN 1 AND 180),
@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS socialmei.knowledge_pdfs (
  original_bytes BYTEA NOT NULL CHECK (octet_length(original_bytes) BETWEEN 1 AND 5242880),
  pages INTEGER NOT NULL CHECK (pages BETWEEN 1 AND 80),
  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+ PRIMARY KEY(workspace_id,id),
  UNIQUE (workspace_id, file_sha256),
  FOREIGN KEY (workspace_id, uploaded_by) REFERENCES socialmei.workspace_members(workspace_id,user_id)
 );
