@@ -1,0 +1,23 @@
+{
+  "realBackend": true,
+  "visualOpportunities": {
+    "sizes": [320, 390, 768, 1024, 1440],
+    "themes": ["light", "dark"],
+    "states": ["empty", "one", "many"],
+    "keyboard": true,
+    "reducedMotion": true,
+    "zoom": "200% equivalent CSS viewport",
+    "errors": []
+  },
+  "origin": "https://127.0.0.1:8443",
+  "workspaces": 2,
+  "auth": true,
+  "csrf": true,
+  "persistentClient": true,
+  "opportunityLifecyclePersistent": true,
+  "integrationSetupPersistentCAS": true,
+  "scheduledReplayCancelled": true,
+  "externalTransport": "none",
+  "viewports": [1440, 390],
+  "errors": []
+}

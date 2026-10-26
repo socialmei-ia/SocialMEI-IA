@@ -1,0 +1,59 @@
+# New local preview only. Existing team/public proxies are not changed.
+{
+    auto_https disable_redirects
+    default_sni 127.0.0.1
+    skip_install_trust
+    admin off
+}
+https://127.0.0.1:8443 {
+    tls internal
+    @foreign_origin {
+        header Origin *
+        not header Origin https://127.0.0.1:8443
+    }
+    route {
+        respond @foreign_origin "Origem não permitida." 403
+        header {
+            X-Content-Type-Options nosniff
+            Referrer-Policy same-origin
+            Cache-Control no-store
+        }
+        request_body {
+            max_size 3MB
+        }
+        handle /__preview {
+            header Content-Type application/json
+            respond `{"environment":"local-disposable-preview","transport":"none"}` 200
+        }
+        handle /internal/* {
+            respond "Não encontrado." 404
+        }
+        handle /api/v1/* {
+            reverse_proxy api:8000
+        }
+        handle /health/db {
+            reverse_proxy api:8000
+        }
+        handle / {
+            root * /srv/frontend
+            rewrite * /socialmei-app.html
+            file_server
+        }
+        handle_path /frontend/* {
+            root * /srv/frontend
+            file_server
+        }
+        handle /config.js {
+            root * /srv/frontend
+            file_server
+        }
+        @assets path /scripts/* /styles/* /assets/*
+        handle @assets {
+            root * /srv/frontend
+            file_server
+        }
+        handle {
+            respond "Não encontrado." 404
+        }
+    }
+}

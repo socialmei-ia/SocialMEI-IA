@@ -31,7 +31,12 @@ TECHNICAL = {
     "/api/v1/integracoes/" + name
     for name in ["resumo", "clientes", "produtos", "vendas", "financeiro"]
 }
-PUBLIC = {"/api/v1/auth/login", "/api/v1/auth/register"}
+PUBLIC = {
+    "/api/v1/auth/login",
+    "/api/v1/auth/register",
+    "/api/v1/auth/recovery/request",
+    "/api/v1/auth/recovery/confirm",
+}
 router = APIRouter(prefix="/api/v1", tags=["accounts"])
 
 
@@ -82,9 +87,40 @@ def normalize_email(value):
     return value
 
 
+COMMON_PASSWORDS = frozenset(
+    [
+        "12345678",
+        "123456789",
+        "1234567890",
+        "01234567",
+        "87654321",
+        "password",
+        "password1",
+        "password123",
+        "qwertyui",
+        "qwerty123",
+        "senha123",
+        "senha1234",
+        "admin123",
+        "admin1234",
+        "iloveyou",
+        "abc12345",
+    ]
+)
+
+
+def validate_new_password(value):
+    if not 8 <= len(value) <= 128:
+        raise ValueError("Use uma senha de 8 a 128 caracteres.")
+    if value.casefold() in COMMON_PASSWORDS or len(set(value)) == 1:
+        raise ValueError(
+            "Esta senha é muito comum. Escolha uma senha menos previsível."
+        )
+    return value
+
+
 def hash_password(value):
-    if not 12 <= len(value) <= 128:
-        raise ValueError("Use uma senha de 12 a 128 caracteres.")
+    validate_new_password(value)
     if not HASH_LIMIT.acquire(timeout=2):
         raise HTTPException(503, "Aguarde e tente novamente.")
     try:
@@ -187,6 +223,14 @@ class AccountMiddleware(BaseHTTPMiddleware):
             user = await run_in_threadpool(session_identity, token)
             if not user:
                 raise HTTPException(401, "Sessão ausente ou expirada. Entre novamente.")
+            expected_identity = request.headers.get("x-socialmei-identity")
+            if (
+                expected_identity is not None
+                and expected_identity != f"{user['id']}:{user['workspace_id']}"
+            ):
+                raise HTTPException(
+                    409, "A conta mudou em outra aba. Atualize antes de continuar."
+                )
             if request.method not in {"GET", "HEAD", "OPTIONS"}:
                 if not hmac.compare_digest(
                     request.headers.get("x-socialmei-csrf", "").encode(),
@@ -240,7 +284,8 @@ class Register(Login):
 
     nome: str = Field(min_length=1, max_length=160)
     telefone: str = Field(default="", max_length=40)
-    senha: str = Field(min_length=12, max_length=128)
+    senha: str = Field(min_length=8, max_length=128)
+    _password = field_validator("senha")(validate_new_password)
     convite: str | None = Field(default=None, pattern=r"^[A-Za-z0-9_-]{64}$")
 
     @field_validator("nome")
@@ -272,7 +317,8 @@ class Profile(Strict):
 
 class Password(Strict):
     atual: str = Field(min_length=1, max_length=128)
-    nova: str = Field(min_length=12, max_length=128)
+    nova: str = Field(min_length=8, max_length=128)
+    _password = field_validator("nova")(validate_new_password)
 
 
 class Invite(Strict):

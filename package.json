@@ -2,10 +2,12 @@
   "name": "socialmei-ia",
   "version": "0.1.0",
   "private": true,
-  "description": "Ferramentas de manuten\u00e7\u00e3o do frontend est\u00e1tico SocialMEI.IA",
+  "description": "Ferramentas de manutenção do frontend estático SocialMEI.IA",
   "scripts": {
+    "preview": "node tools/preview.mjs",
+    "test:preview": "node tests/v22-preview-browser.cjs",
     "test": "node --test tests/*.test.cjs",
-    "test:browser": "node tests/browser.cjs",
+    "test:browser": "node tests/v22-browser.cjs",
     "format": "prettier --write frontend tools tests *.html *.json .github docs *.md compose*.yaml",
     "format:check": "prettier --check frontend tools tests *.html *.json .github docs *.md compose*.yaml",
     "setup": "node tools/dev-workspace.mjs setup",
@@ -19,7 +21,10 @@
     "db:migrate": "node tools/db-migrate.mjs migrate",
     "db:status": "node tools/db-migrate.mjs status",
     "doctor": "node tools/team-doctor.mjs",
-    "data:export": "node tools/export-workspace.mjs"
+    "data:export": "node tools/export-workspace.mjs",
+    "demo:build": "node tools/package-public-demo.mjs",
+    "demo:verify": "node tools/verify-public-demo.mjs",
+    "demo:smoke": "node tests/public-demo-published-browser.cjs"
   },
   "devDependencies": {
     "playwright": "1.62.1",

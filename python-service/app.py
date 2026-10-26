@@ -18,9 +18,27 @@ from finance_import import router as finance_import_router
 from workspace_transfer import router as transfer_router
 from n8n_read import router as n8n_read_router
 from account_auth import AccountMiddleware, router as account_auth_router
+from account_recovery import router as account_recovery_router
+from account_sessions import router as account_sessions_router
+from operations_readiness import router as operations_readiness_router
+from instagram_simulation import router as instagram_simulation_router
+from instagram_provider_lab import router as instagram_provider_lab_router
+from instagram_persistent_oauth import router as instagram_persistent_oauth_router
+from waha_ingress import router as waha_ingress_router
+from instagram_direct_outbox import router as instagram_direct_router
+from instagram_meta_ingress import WebhookQueryPrivacy, router as instagram_meta_ingress_router
+from workspace_profile import router as workspace_profile_router
+from message_enrichment import router as message_enrichment_router, internal_router as enrichment_internal_router
+from content_preparation import router as content_preparation_router
+from channel_ingress import router as channel_ingress_router, internal_router as channel_ingress_internal_router
+from opportunities import router as opportunities_router
+from integration_setup import router as integration_setup_router
 from settings import cors_origins as configured_cors_origins
 
-app = FastAPI(title="SocialME Python Service")
+from instagram_runtime import runtime_lifespan, router as integration_readiness_router
+
+app = FastAPI(title="SocialME Python Service", lifespan=runtime_lifespan)
+app.include_router(integration_readiness_router)
 app.add_middleware(AccountMiddleware)
 cors_origins = configured_cors_origins()
 if cors_origins:
@@ -42,12 +60,44 @@ app.include_router(finance_import_router)
 app.include_router(transfer_router)
 app.include_router(n8n_read_router)
 app.include_router(account_auth_router)
+app.include_router(account_recovery_router)
+app.include_router(account_sessions_router)
+app.include_router(operations_readiness_router)
+app.include_router(instagram_simulation_router)
+app.include_router(instagram_provider_lab_router)
+app.include_router(instagram_persistent_oauth_router)
+app.include_router(instagram_meta_ingress_router)
+app.include_router(instagram_direct_router)
+app.include_router(waha_ingress_router)
+app.include_router(workspace_profile_router)
+app.include_router(message_enrichment_router)
+app.include_router(enrichment_internal_router)
+app.include_router(content_preparation_router)
+app.include_router(channel_ingress_router)
+app.include_router(channel_ingress_internal_router)
+app.include_router(opportunities_router)
+app.include_router(integration_setup_router)
+
+
+@app.middleware("http")
+async def internal_response_privacy(request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith(("/internal/waha", "/internal/message-enrichment", "/internal/channel-ingress", "/api/v1/content/preparation", "/api/v1/channel-lab", "/api/v1/opportunities", "/api/v1/integrations/setup")):
+        response.headers["Cache-Control"] = "no-store"
+    if request.url.path.startswith("/internal/waha"):
+        response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
+app.add_middleware(WebhookQueryPrivacy)
 
 
 @app.exception_handler(RequestValidationError)
 async def private_validation_error(request, error):
     # FastAPI's default validation response includes submitted values, including passwords.
-    if request.url.path.startswith(("/api/v1/auth/", "/api/v1/admin/")):
+    if request.url.path.startswith(
+        ("/api/v1/auth/", "/api/v1/admin/", "/api/v1/instagram/", "/api/v1/workspace-profile", "/api/v1/message-enrichment", "/internal/message-enrichment", "/api/v1/channel-lab", "/internal/channel-ingress", "/api/v1/content/preparation", "/api/v1/opportunities", "/api/v1/integrations/setup")
+    ):
         return JSONResponse(
             {"detail": "Confira os campos informados."},
             status_code=422,

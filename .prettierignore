@@ -5,3 +5,19 @@ docs/assets/
 frontend/assets/
 database/
 work/
+
+# Golden masters are binary-fidelity user references (SHA-256 tested).
+# Formatting them would invalidate the preserved originals.
+frontend/reference/Oportunidades-V8-original.html
+frontend/reference/Divulgacao-V4-original.html
+
+# Owner-supplied V22 native composition: preserve original styles and animation source.
+frontend/reference/Frontend-V22-original.html
+frontend/socialmei-app.html
+frontend/entrada.html
+frontend/styles/entrada.css
+frontend/telas/oportunidades.html
+frontend/telas/divulgacao.html
+frontend/scripts/hero-wall.js
+frontend/scripts/sections-anim.js
+frontend/scripts/app-perfil.js

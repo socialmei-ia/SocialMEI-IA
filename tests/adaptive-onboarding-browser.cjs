@@ -868,6 +868,7 @@ module.exports = async function onboarding(browser, origin) {
   try {
     let session = { user: 1, workspace: 10 },
       sessionFailure = false;
+    const profileAPI = require("./profile-sync-fixture.cjs")();
     const writes = [];
     const page = await accountContext.newPage();
     page.on("pageerror", (error) => errors.push(error.message));
@@ -909,6 +910,20 @@ module.exports = async function onboarding(browser, origin) {
         });
       if (url.pathname === "/api/v1/auth/registration")
         return route.fulfill({ json: { mode: "open" } });
+      const profileReply = profileAPI(
+        route,
+        session
+          ? {
+              usuario: { id: session.user },
+              negocio: { id: session.workspace, nome: "Negócio sintético" },
+              papel: "owner",
+            }
+          : null,
+      );
+      if (profileReply) {
+        if (request.method() !== "GET") writes.push(request.method() + " " + url.pathname);
+        return profileReply;
+      }
       if (url.pathname.startsWith("/api/")) {
         writes.push(request.method() + " " + url.pathname);
         return route.fulfill({
@@ -940,7 +955,7 @@ module.exports = async function onboarding(browser, origin) {
     );
     assert.match(
       await page.locator("#businessProfileStorageNotice").textContent(),
-      /apenas neste navegador/,
+      /Perfil compartilhado com este negócio/,
     );
     await page.locator("#businessSegmentAlternative").evaluate((el) => (el.open = true));
     await page.locator("#obSegment").selectOption("barber");
@@ -969,16 +984,19 @@ module.exports = async function onboarding(browser, origin) {
       session = other;
       await page.reload();
       await waitSession();
-      assert.equal(
-        await page.evaluate(() => SocialMEIBusinessProfile.browserRepository().read().profile),
-        null,
+      const restoredProfile = await page.evaluate(
+        () => SocialMEIBusinessProfile.browserRepository().read().profile,
       );
-      assert(
-        !(await page
-          .locator("body")
-          .innerText()
-          .then((text) => text.includes("Corte masculino"))),
-      );
+      if (other.workspace === 10)
+        assert.deepEqual(
+          restoredProfile,
+          ownerProfile,
+          "Members of the same workspace share the business profile",
+        );
+      else {
+        assert.equal(restoredProfile, null);
+        assert(!(await page.locator("body").innerText()).includes("Corte masculino"));
+      }
     }
     session = { user: 1, workspace: 10 };
     await page.reload();
@@ -991,23 +1009,31 @@ module.exports = async function onboarding(browser, origin) {
       session = null;
       sessionFailure = failed;
       await page.reload();
-      await page.locator('[data-xp-screen="auth"].is-active').waitFor();
+      await page.locator('[data-xp-screen="landing"].is-active').waitFor();
       assert.equal(
         await page.evaluate(() => SocialMEIBusinessProfile.browserRepository().read().profile),
         null,
       );
       assert.equal(
-        await page.evaluate(() =>
-          SocialMEIBusinessProfile.browserRepository().save({
-            completed: true,
-            businessName: "No session",
-            offers: ["services"],
-          }),
-        ),
+        await page.evaluate(async () => {
+          try {
+            return await SocialMEIBusinessProfile.browserRepository().save({
+              completed: true,
+              businessName: "No session",
+              offers: ["services"],
+            });
+          } catch (_) {
+            return false;
+          }
+        }),
         false,
       );
     }
-    assert.deepEqual(writes, [], "preferences must not write backend data");
+    assert.deepEqual(
+      writes,
+      ["PATCH /api/v1/workspace-profile"],
+      "Only the explicitly confirmed onboarding writes to its contracted resource",
+    );
   } finally {
     await accountContext.close();
   }

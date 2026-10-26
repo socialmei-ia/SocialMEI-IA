@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Annotated, Any
 
 from fastapi import APIRouter, HTTPException, Query, Response, status
-from psycopg.errors import UniqueViolation
+from psycopg.errors import UniqueViolation, ForeignKeyViolation
 from psycopg.rows import dict_row
 from pydantic import (
     AwareDatetime,
@@ -277,10 +277,16 @@ def delete_cliente(
         workspace_id = ensure_workspace(conn)
         with conn.cursor(row_factory=dict_row) as cur:
             lock_cliente(cur, workspace_id, cliente_id, expected_version)
-            cur.execute(
-                "DELETE FROM socialmei.crm_clientes WHERE workspace_id = %s AND id = %s",
-                (workspace_id, cliente_id),
-            )
+            try:
+                cur.execute(
+                    "DELETE FROM socialmei.crm_clientes WHERE workspace_id = %s AND id = %s",
+                    (workspace_id, cliente_id),
+                )
+            except ForeignKeyViolation:
+                raise HTTPException(
+                    409,
+                    "Este cliente possui oportunidades ou histórico vinculado e não pode ser excluído. Preserve o cadastro para consultar as negociações.",
+                ) from None
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

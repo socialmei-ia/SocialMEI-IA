@@ -12,6 +12,7 @@
   let businessDraft = businessModel.normalize();
   let businessEditing = false;
   let businessScope = null;
+  let businessRevision = null;
   let businessToolsChosen = false;
   let businessSegmentChosen = false;
   let businessOffersChosen = false;
@@ -136,10 +137,10 @@
     retry.hidden = true;
     retry.addEventListener("click", loadRegistrationPolicy);
     q("#xpRegisterForm").append(retry);
-    q("#registerPassword").minLength = 12;
+    q("#registerPassword").minLength = 8;
     q("#registerPassword").maxLength = 128;
-    q("#registerPassword").placeholder = "12 caracteres ou mais";
-    q("#registerPasswordStatus").textContent = "Use 12 ou mais caracteres.";
+    q("#registerPassword").placeholder = "8 caracteres ou mais";
+    q("#registerPasswordStatus").textContent = "Use 8 ou mais caracteres. Evite senhas comuns.";
     q("#xpRegisterForm .experience-form-hint").textContent =
       "Consultando a disponibilidade do cadastro…";
     q("#xpLoginForm .experience-form-hint").textContent =
@@ -158,8 +159,20 @@
     recovery.id = "accountRecoveryHelp";
     recovery.hidden = true;
     recovery.setAttribute("aria-label", "Recuperar acesso");
-    recovery.innerHTML =
-      '<b>Vamos recuperar seu acesso</b><p>A recuperação por e-mail está em preparação. Por enquanto, peça ao administrador do projeto para redefinir sua senha pelo procedimento privado.</p><button class="account-button account-button-quiet" type="button" data-close-recovery>Voltar ao login</button>';
+    recovery.innerHTML = `<b>Vamos recuperar seu acesso</b>
+      <p>Peça um código por e-mail e cole abaixo. Ele vale por 15 minutos. Não compartilhe o código.</p>
+      <div class="experience-field"><label for="recoveryEmail">E-mail da conta</label><input id="recoveryEmail" type="email" maxlength="255" autocomplete="email"></div>
+      <button class="account-button" type="button" data-request-recovery>Enviar código</button>
+      <div class="experience-field"><label for="recoveryToken">Código recebido por e-mail</label><input id="recoveryToken" maxlength="43" autocomplete="one-time-code" spellcheck="false" autocapitalize="none"></div>
+      <div class="experience-field"><label for="recoveryPassword">Nova senha</label><input id="recoveryPassword" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="8 caracteres ou mais"></div>
+      <div class="experience-field"><label for="recoveryConfirm">Confirme a nova senha</label><input id="recoveryConfirm" type="password" maxlength="128" autocomplete="new-password"></div>
+      <p>Prefira uma frase longa. Senhas muito comuns não são aceitas.</p>
+      <p id="recoveryStatus" role="status" aria-live="polite"></p>
+      <button class="account-button" type="button" data-confirm-recovery>Redefinir senha</button>
+      <button class="account-button account-button-quiet" type="button" data-close-recovery>Voltar ao login</button>`;
+    recovery.querySelectorAll("input").forEach((input) => {
+      input.disabled = true;
+    });
     q("#xpLoginForm").append(recovery);
     q(".landing-login-disabled-link").setAttribute("aria-controls", "accountRecoveryHelp");
     q(".landing-login-disabled-link").setAttribute("aria-expanded", "false");
@@ -788,14 +801,25 @@ ONBOARDING — JAVASCRIPT
       "finance",
     ].filter((id) => eligible.includes(id));
   }
-  function startBusinessOnboarding(editing = false) {
+  function startBusinessOnboarding(editing = false, importedProfile = null) {
+    const sync = window.SocialMEIProfileSync;
+    if (sync?.remote && (!sync.state().canEdit || sync.state().profileRevision === null)) {
+      toast(
+        "Perfil indisponível",
+        "Carregue os dados da conta. Somente o responsável ou administrador pode editar o negócio.",
+      );
+      return;
+    }
     onboardingTransition++;
     onboardingBusy = false;
     onboardingReviewReturn = false;
     businessEditing = editing;
     businessScope = businessStore.scope();
-    const saved = businessStore.read();
-    businessDraft = saved.profile || businessModel.normalize();
+    const saved = importedProfile ? { profile: importedProfile } : businessStore.read();
+    businessRevision = sync?.remote ? sync.state().profileRevision : null;
+    businessDraft = businessModel.normalize(saved.profile || {});
+    if (sync?.remote) businessDraft.businessName = SocialMEIAuth.current.negocio.nome;
+    q("#businessProfileConflict").hidden = true;
     businessToolsChosen = !!saved.profile;
     businessSegmentChosen = !!saved.profile;
     businessOffersChosen = !!saved.profile;
@@ -805,7 +829,7 @@ ONBOARDING — JAVASCRIPT
     q("#businessSegmentAlternative").open = false;
     q(".onboarding-optional").open = false;
     q("#businessSegmentSearch").value = "";
-    onboardingStep = editing ? 2 : 1;
+    onboardingStep = importedProfile ? 6 : editing ? 2 : 1;
     if (editing) refreshExperienceProfile();
     showScreen("onboarding");
     q("#obSegment").value = businessDraft.segment;
@@ -815,8 +839,13 @@ ONBOARDING — JAVASCRIPT
     q("#obBusiness").disabled = SocialMEIAuth.remote;
     for (const id of ["obName", "obEmail", "obPhone"]) q("#" + id).readOnly = SocialMEIAuth.remote;
     q("#businessProfileStorageNotice").textContent = SocialMEIAuth.remote
-      ? "Preferências deste usuário e negócio, apenas neste navegador. Ainda não sincronizam com o servidor ou outros dispositivos."
+      ? importedProfile
+        ? "Importação em revisão. Só será enviada ao confirmar. O nome seguirá o cadastro oficial; a cópia local será preservada."
+        : "Perfil compartilhado com este negócio. Será salvo na conta somente ao confirmar; outras sessões verão as mudanças após recarregar."
       : "Demonstração local · preferências apenas neste navegador. Nenhuma conta é criada no servidor.";
+    q("#businessProfileNextNotice").textContent = SocialMEIAuth.remote
+      ? "Confirme para salvar o perfil na conta e entrar no seu espaço. Isso não cadastra produtos, vendas ou conexões."
+      : "Confirme para salvar o perfil neste navegador e entrar no seu espaço. Isso não cadastra produtos, vendas ou conexões.";
     q("[data-business-cancel]").hidden = !editing;
     q('[data-review-edit-step="1"]').hidden = editing || SocialMEIAuth.remote;
     renderBusinessFields();
@@ -930,9 +959,53 @@ ONBOARDING — JAVASCRIPT
       host.append(row);
     });
   }
-  function finishBusinessOnboarding() {
+  async function finishBusinessOnboarding() {
     businessDraft.completed = true;
-    if (!businessStore.save(businessDraft, businessScope)) {
+    let saved;
+    onboardingBusy = true;
+    const actions = qa("[data-onboard-next],[data-onboard-back]");
+    actions.forEach((button) => (button.disabled = true));
+    try {
+      saved = await businessStore.save(businessDraft, businessScope, businessRevision);
+    } catch (error) {
+      q("#obValidation").textContent =
+        error.status === 409
+          ? "Outra sessão alterou o perfil. Suas respostas continuam nesta tela. Confira a versão salva antes de decidir."
+          : "Não foi possível salvar na conta. Suas respostas continuam nesta tela. Confira a conexão e tente novamente.";
+      if (error.status === 409) {
+        await window.SocialMEIProfileSync.refresh("profile");
+        const latest = businessStore.read().profile;
+        q("#businessConflictSummary").textContent = latest
+          ? [
+              "Negócio: " + latest.businessName,
+              "Atividade: " + (latest.activity || businessModel.segments[latest.segment].label),
+              "Ofertas: " +
+                latest.offers
+                  .map((id) => (id === "services" ? "Serviços" : "Produtos"))
+                  .join(" e "),
+              "Serviços: " + (latest.services.join(", ") || "Nenhum escolhido"),
+              "Categorias: " + (latest.productCategories.join(", ") || "Nenhuma escolhida"),
+              "Rotina: " +
+                (Object.keys(latest.capabilities)
+                  .filter((id) => latest.capabilities[id])
+                  .map((id) => businessModel.capabilities[id])
+                  .join(", ") || "Nenhuma necessidade adicional"),
+              "Ferramentas: " +
+                (latest.modules.map((id) => businessModel.modules[id]).join(", ") ||
+                  "Escolher depois"),
+              "Sugestões ignoradas: " + latest.ignoredSuggestions.length,
+            ].join("\n")
+          : "Não foi possível conferir o perfil salvo. Tente atualizar os dados da conta.";
+        q("#businessProfileConflict").hidden = false;
+        q("#businessProfileConflict").focus();
+        q("#businessProfileConflict").scrollIntoView({ block: "start", behavior: "instant" });
+      }
+      return false;
+    } finally {
+      onboardingBusy = false;
+      actions.forEach((button) => (button.disabled = false));
+    }
+    if (!saved) {
       q("#obValidation").textContent =
         "Não foi possível salvar neste navegador. Confira a sessão e a permissão de armazenamento e tente novamente. Suas respostas continuam nesta tela.";
       return false;
@@ -958,6 +1031,12 @@ ONBOARDING — JAVASCRIPT
   }
   document.addEventListener("click", (event) => {
     if (event.target.closest("[data-business-profile-edit]")) startBusinessOnboarding(true);
+    if (event.target.closest("[data-sync-import-profile]")) {
+      const local = window.SocialMEIProfileSync.legacyProfile();
+      if (local) startBusinessOnboarding(true, local);
+    }
+    if (event.target.closest("[data-business-reload]") && !onboardingBusy)
+      startBusinessOnboarding(true);
     if (event.target.closest("[data-business-cancel]")) {
       if (onboardingBusy) return;
       onboardingTransition++;
@@ -1079,7 +1158,7 @@ ONBOARDING — JAVASCRIPT
         )[0] || "Atendimento";
     }
   }
-  experienceRoot.addEventListener("click", (event) => {
+  experienceRoot.addEventListener("click", async (event) => {
     const completedStep = event.target.closest("button[data-onboard-step]");
     if (completedStep) {
       const target = Number(completedStep.dataset.onboardStep);
@@ -1168,7 +1247,7 @@ ONBOARDING — JAVASCRIPT
       if (!collectBusinessStep()) return;
       if (onboardingStep < 6) {
         navigateOnboardingForward();
-      } else if (finishBusinessOnboarding()) {
+      } else if (await finishBusinessOnboarding()) {
         enterApp(businessEditing ? "Configurações" : "Início");
       }
       return;
@@ -1994,7 +2073,11 @@ ONBOARDING — JAVASCRIPT
         !!name && q("#registerEmail").validity.valid && !!q("#registerEmail").value,
       ],
       ["previewChannel", phoneResult.valid],
-      ["previewSecurity", q("#registerPassword").value.length >= (SocialMEIAuth.remote ? 12 : 8)],
+      [
+        "previewSecurity",
+        !!q("#registerPassword").value &&
+          !SocialMEIAuth.passwordPolicy(q("#registerPassword").value).error,
+      ],
     ]) {
       const element = q("#" + id);
       const changed = element.classList.contains("is-built") !== built;
@@ -2020,7 +2103,8 @@ ONBOARDING — JAVASCRIPT
       !!name,
       q("#registerEmail").validity.valid && !!q("#registerEmail").value,
       phoneResult.valid,
-      q("#registerPassword").value.length >= (SocialMEIAuth.remote ? 12 : 8),
+      !!q("#registerPassword").value &&
+        !SocialMEIAuth.passwordPolicy(q("#registerPassword").value).error,
     ];
     q("#authBuildProgress").textContent =
       `Prévia local · ${values.filter(Boolean).length} de 4 dados`;
@@ -2058,6 +2142,9 @@ ONBOARDING — JAVASCRIPT
     if (input.id === "registerPhone") {
       SocialMEIContacts.validateField(input, true);
     }
+    if (input.id === "registerPassword") {
+      input.setCustomValidity(SocialMEIAuth.passwordPolicy(input.value).error);
+    }
     const valid = input.validity.valid;
     const field = input.closest(".experience-field");
     const status = q("#" + input.id + "Status");
@@ -2067,15 +2154,13 @@ ONBOARDING — JAVASCRIPT
     if (status) {
       status.textContent = valid
         ? input.id === "registerPassword"
-          ? `✓ ${SocialMEIAuth.remote ? 12 : 8}+ caracteres`
+          ? SocialMEIAuth.passwordPolicy(input.value).warning || "✓ 8+ caracteres"
           : "✓ Tudo certo"
         : input.validity.valueMissing
           ? "Preencha este campo."
           : input.validity.typeMismatch
             ? "Use um e-mail como voce@empresa.com."
-            : input.id === "registerPassword"
-              ? `Use pelo menos ${SocialMEIAuth.remote ? 12 : 8} caracteres.`
-              : input.validationMessage;
+            : input.validationMessage;
     }
     return valid;
   }
@@ -2088,7 +2173,7 @@ ONBOARDING — JAVASCRIPT
       });
       element.addEventListener("input", () => {
         element.closest(".experience-field").classList.toggle("is-filled", !!element.value);
-        if (element.dataset.visited) {
+        if (element.dataset.visited || element.id === "registerPassword") {
           validateAuth(element);
         }
         clearTimeout(previewTimer);
@@ -2134,13 +2219,96 @@ ONBOARDING — JAVASCRIPT
     }
     if (SocialMEIAuth.remote && event.target.closest(".landing-login-disabled-link")) {
       q("#accountRecoveryHelp").hidden = false;
+      qa("#accountRecoveryHelp input").forEach((input) => {
+        input.disabled = false;
+      });
       q(".landing-login-disabled-link").setAttribute("aria-expanded", "true");
-      q("#accountRecoveryHelp [data-close-recovery]").focus();
+      q("#recoveryEmail").value = q("#loginEmail").value;
+      q("#recoveryEmail").focus();
+    }
+  });
+  experienceRoot.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" || !event.target.closest("#accountRecoveryHelp input")) return;
+    event.preventDefault();
+    event.stopPropagation();
+    q(
+      event.target.id === "recoveryEmail" ? "[data-request-recovery]" : "[data-confirm-recovery]",
+    ).click();
+  });
+  let recoveryPending = false;
+  experienceRoot.addEventListener("click", async (event) => {
+    const action = event.target.closest("[data-request-recovery],[data-confirm-recovery]");
+    if (!action || recoveryPending) return;
+    const status = q("#recoveryStatus");
+    const requestCode = action.hasAttribute("data-request-recovery");
+    const email = q("#recoveryEmail");
+    const password = q("#recoveryPassword").value;
+    if (requestCode && (!email.value.trim() || !email.reportValidity())) {
+      status.textContent = "Informe um e-mail válido.";
+      email.focus();
+      return;
+    }
+    if (!requestCode) {
+      const policy = SocialMEIAuth.passwordPolicy(password);
+      if (
+        policy.error ||
+        password !== q("#recoveryConfirm").value ||
+        !/^[A-Za-z0-9_-]{43}$/.test(q("#recoveryToken").value.trim())
+      ) {
+        status.textContent =
+          policy.error ||
+          (password !== q("#recoveryConfirm").value
+            ? "As senhas precisam ser iguais."
+            : "Cole o código completo recebido por e-mail.");
+        return;
+      }
+    }
+    recoveryPending = true;
+    qa("#accountRecoveryHelp button").forEach((button) => {
+      button.disabled = true;
+    });
+    status.textContent = requestCode ? "Solicitando código…" : "Redefinindo senha…";
+    try {
+      const result = await SocialMEIAuth.request(
+        requestCode ? "/auth/recovery/request" : "/auth/recovery/confirm",
+        "POST",
+        requestCode
+          ? { email: email.value.trim() }
+          : { token: q("#recoveryToken").value.trim(), nova: password },
+      );
+      status.textContent = requestCode
+        ? result.message
+        : "Senha redefinida. Entre com sua nova senha." +
+          (SocialMEIAuth.passwordPolicy(password).warning
+            ? " " + SocialMEIAuth.passwordPolicy(password).warning
+            : "");
+      if (requestCode) q("#recoveryToken").focus();
+      else {
+        q("#recoveryToken").value = "";
+        q("#recoveryPassword").value = "";
+        q("#recoveryConfirm").value = "";
+        q("#loginPassword").value = "";
+        q("#loginEmail").value = email.value.trim();
+      }
+    } catch (error) {
+      status.textContent = error.message || "Não foi possível concluir. Tente novamente.";
+    } finally {
+      recoveryPending = false;
+      qa("#accountRecoveryHelp button").forEach((button) => {
+        button.disabled = false;
+      });
     }
   });
   experienceRoot.addEventListener("click", (event) => {
     if (!event.target.closest("[data-close-recovery]")) return;
     q("#accountRecoveryHelp").hidden = true;
+    qa("#accountRecoveryHelp input").forEach((input) => {
+      input.disabled = true;
+      input.value = "";
+    });
+    ["#recoveryToken", "#recoveryPassword", "#recoveryConfirm"].forEach((id) => {
+      q(id).value = "";
+    });
     q(".landing-login-disabled-link").setAttribute("aria-expanded", "false");
     q(".landing-login-disabled-link").focus();
   });
@@ -4264,7 +4432,7 @@ ONBOARDING — JAVASCRIPT
       setView("Caixa Unificada");
       const old = conversationDrafts.get(d.conversationId)?.text || "";
       conversationDrafts.set(d.conversationId, {
-        text: old && old !== d.text ? old + "\n\n" + d.text : d.text,
+        text: old.includes(d.text) ? old : old ? old + "\n\n" + d.text : d.text,
         note: false,
       });
       await selectConversation(d.conversationId);
@@ -4820,6 +4988,7 @@ ONBOARDING — JAVASCRIPT
   }
   if (SocialMEIAuth.remote) {
     SocialMEIAuth.ready.then(async (identity) => {
+      await window.SocialMEIProfileSync.ready;
       if (identity) {
         refreshExperienceProfile();
         const requested = sessionStorage.getItem(registrationOnboardingKey);
@@ -4828,7 +4997,7 @@ ONBOARDING — JAVASCRIPT
         else enterApp(restored);
       } else {
         authMode = "login";
-        showScreen("auth");
+        showScreen("landing");
         q("#authConfirmation").textContent = SocialMEIAuth.problem;
         await loadRegistrationPolicy();
       }

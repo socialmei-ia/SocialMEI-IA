@@ -96,3 +96,101 @@ test("local media requires compatible MIME, size and header before preview", asy
   );
   await assert.rejects(model.validateMedia(file("image/png", [137, 80, 78, 71]), "reel"), /vídeo/);
 });
+
+test("backup import is atomic, scoped, and discards untrusted IDs or extra metadata", () => {
+  const f = fixture();
+  const saved = f.repo.save(input, "a");
+  const imported = f.repo.importMany(
+    [{ ...input, id: saved.id, title: "Importado", published: true, url: "https://bad.test" }],
+    "a",
+  );
+  assert.equal(imported.length, 2);
+  assert.equal(imported[0].title, "Importado");
+  assert.notEqual(imported[0].id, saved.id);
+  assert.equal("published" in imported[0], false);
+  assert.equal("url" in imported[0], false);
+  const previous = JSON.stringify(f.repo.read().items);
+  assert.throws(
+    () =>
+      f.repo.importMany(
+        [
+          { ...input, title: "Válido" },
+          { ...input, format: "invalid" },
+        ],
+        "a",
+      ),
+    /Escolha/,
+  );
+  assert.equal(JSON.stringify(f.repo.read().items), previous);
+  f.switch("b");
+  assert.deepEqual(f.repo.read().items, []);
+  assert.throws(() => f.repo.importMany([input], "a"), /sessão/);
+  assert.equal(f.repo.importMany([input], "b").length, 1);
+  f.switch("a");
+  assert.equal(JSON.stringify(f.repo.read().items), previous);
+});
+
+test("backup cannot overflow the 40-draft quota or modify previous entries", () => {
+  const f = fixture();
+  f.repo.save(input, "a");
+  const prior = JSON.stringify(f.repo.read().items);
+  assert.throws(
+    () =>
+      f.repo.importMany(
+        Array.from({ length: 40 }, () => input),
+        "a",
+      ),
+    /40/,
+  );
+  assert.equal(JSON.stringify(f.repo.read().items), prior);
+  assert.throws(() => f.repo.importMany([], "a"), /Backup inválido/);
+});
+
+test("V4 presentation and work in progress reuse scoped repository without raw media", () => {
+  const f = fixture();
+  const presentation = {
+    topic: "Bastidores",
+    offering: "Corte",
+    objective: "Apresentar",
+    tone: "Profissional",
+    alt: "Mesa de trabalho",
+    zoom: 1.5,
+    x: 20,
+    y: 65,
+  };
+  const saved = f.repo.save({ ...input, presentation }, "a");
+  assert.equal(saved.presentation.zoom, 1.5);
+  assert.equal(f.repo.read().items[0].presentation.topic, "Bastidores");
+  assert.throws(
+    () => f.repo.save({ ...input, presentation: { ...presentation, zoom: 5 } }, "a"),
+    /apresentação/,
+  );
+  f.repo.saveEditor({ ...input, presentation, id: saved.id }, "a");
+  assert.equal(f.repo.read().editor.presentation.offering, "Corte");
+  f.switch("b");
+  assert.equal(f.repo.read().editor, null);
+  assert.throws(() => f.repo.saveEditor(input, "a"), /sessão/);
+  f.switch("a");
+  assert.equal(f.repo.read().editor.id, saved.id);
+  f.repo.remove(saved.id, "a");
+  assert.equal(f.repo.read().editor.id, null);
+});
+
+test("presentation rejects executable thumbnails, nonfinite geometry and foreign editor references", () => {
+  const f = fixture();
+  assert.throws(
+    () =>
+      f.repo.save(
+        { ...input, presentation: { thumbnail: "data:image/svg+xml,<svg onload=alert(1)>" } },
+        "a",
+      ),
+    /Miniatura/,
+  );
+  assert.throws(
+    () => f.repo.save({ ...input, presentation: { x: Infinity } }, "a"),
+    /apresentação/,
+  );
+  const saved = f.repo.save(input, "a");
+  f.repo.saveEditor({ ...saved, id: "foreign-id", media: null }, "a");
+  assert.equal(f.repo.read().editor.id, null);
+});

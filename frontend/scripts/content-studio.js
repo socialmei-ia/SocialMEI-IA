@@ -5,7 +5,7 @@ const SocialMEIContentStudio = (() => {
   const profile = SocialMEIBusinessProfile.browserRepository();
   const repo = model.repository(localStorage, () => profile.scope());
   let scope,
-    format = "feed",
+    format = "story",
     draftId = null,
     media = null,
     file = null,
@@ -33,6 +33,19 @@ const SocialMEIContentStudio = (() => {
     format,
     ...Object.fromEntries(Object.entries(fields).map(([key, id]) => [key, byId(id).value])),
     media,
+    presentation: {
+      topic: byId("dv4Topic").value,
+      offering: byId("dv4Offering").value,
+      objective: byId("dv4Objective").value,
+      tone: byId("dv4Tone").value,
+      alt: byId("dv4Alt").value,
+      zoom: Number(byId("dv4Zoom").value || 1),
+      x: Number(byId("contentPreviewStage").dataset.dv4X || 50),
+      y: Number(byId("contentPreviewStage").dataset.dv4Y || 50),
+      ...(byId("contentPreviewStage").dataset.thumbnail
+        ? { thumbnail: byId("contentPreviewStage").dataset.thumbnail }
+        : {}),
+    },
   });
   const dirty = () => JSON.stringify(value()) !== baseline;
   function release() {
@@ -57,12 +70,30 @@ const SocialMEIContentStudio = (() => {
   function load(item) {
     removeMedia();
     draftId = item?.id || null;
-    format = item?.format || "feed";
+    format = item?.format || "story";
     media = item?.media || null;
     for (const [key, id] of Object.entries(fields)) byId(id).value = item?.[key] || "";
+    const presentation = item?.presentation || {};
+    for (const [key, id] of [
+      ["topic", "dv4Topic"],
+      ["offering", "dv4Offering"],
+      ["objective", "dv4Objective"],
+      ["tone", "dv4Tone"],
+      ["alt", "dv4Alt"],
+      ["zoom", "dv4Zoom"],
+    ]) {
+      const field = byId(id);
+      field.value =
+        presentation[key] ??
+        (field.tagName === "SELECT" ? field.options[0].value : key === "zoom" ? 1 : "");
+    }
+    byId("contentPreviewStage").dataset.dv4X = String(presentation.x ?? 50);
+    byId("contentPreviewStage").dataset.dv4Y = String(presentation.y ?? 50);
+    byId("contentPreviewStage").dataset.thumbnail = presentation.thumbnail || "";
     baseline = JSON.stringify(value());
     message(item ? "Rascunho aberto neste navegador." : "");
     preview();
+    if (item) document.dispatchEvent(new Event("socialmei-content-editor-open"));
   }
   function synchronize() {
     const next = profile.scope();
@@ -70,7 +101,8 @@ const SocialMEIContentStudio = (() => {
       scope = next;
       pending = null;
       if (byId("contentConfirmModal").classList.contains("open")) closeModal("contentConfirmModal");
-      load(null);
+      const editor = repo.read().editor;
+      load(editor);
       return true;
     }
     return false;
@@ -79,20 +111,28 @@ const SocialMEIContentStudio = (() => {
     const current = value(),
       video = file?.type.startsWith("video/");
     byId("contentPreviewFormat").textContent = model.FORMATS[format];
-    document.querySelector("[data-content-preview]").dataset.contentPreview = format;
+    const device = document.querySelector("[data-content-preview]");
+    device.dataset.contentPreview = format;
+    device.dataset.f = format;
+    device.classList.toggle("empty", !file && !current.title && !current.caption && !current.cta);
     const tabs = [...document.querySelectorAll("[data-content-format]")];
     tabs.forEach((tab) => {
       const active = tab.dataset.contentFormat === format;
       tab.setAttribute("aria-selected", String(active));
+      tab.setAttribute("aria-checked", String(active));
       tab.tabIndex = active ? 0 : -1;
     });
     document
       .querySelector(".content-formats")
       .style.setProperty("--content-format", ["story", "feed", "reel"].indexOf(format));
     byId("contentEditorPanel").setAttribute("aria-labelledby", "contentFormat-" + format);
-    byId("contentPreviewTitle").textContent = current.title || "Título do conteúdo";
-    byId("contentPreviewCaption").textContent =
-      model.caption(current) || "O texto da sua postagem aparece aqui.";
+    if (document.activeElement !== byId("contentPreviewTitle"))
+      byId("contentPreviewTitle").textContent = current.title;
+    if (document.activeElement !== byId("contentPreviewCaption"))
+      byId("contentPreviewCaption").textContent = current.caption;
+    byId("exactV4-ptg").textContent = current.hashtags;
+    if (document.activeElement !== byId("exactV4-pcta"))
+      byId("exactV4-pcta").textContent = current.cta;
     byId("contentCaptionCount").textContent = current.caption.length + " / 2200";
     byId("contentMedia").accept =
       format === "reel"
@@ -131,17 +171,20 @@ const SocialMEIContentStudio = (() => {
       stage.append(element);
     } else if (!file) {
       const placeholder = node("div");
-      placeholder.className = "content-preview-placeholder";
+      placeholder.className = "ph";
       placeholder.append(
-        node("span", "＋"),
+        (() => {
+          const icon = node("span");
+          icon.setAttribute("aria-hidden", "true");
+          icon.innerHTML = '<svg aria-hidden="true"><use href="#exactV4-img"></use></svg>';
+          return icon.firstElementChild;
+        })(),
         node("b", media ? "Selecione a mídia novamente" : "Seu conteúdo começa aqui"),
-        node(
-          "p",
-          media ? media.name : "Selecione uma imagem ou vídeo para conferir o enquadramento.",
-        ),
+        node("p", media ? media.name : "Escolha um formato e escreva direto na tela."),
       );
       byId("contentPreviewStage").replaceChildren(placeholder);
     }
+    document.dispatchEvent(new Event("socialmei-content-preview-change"));
   }
   function library() {
     const state = repo.read(),
@@ -161,7 +204,7 @@ const SocialMEIContentStudio = (() => {
       const empty = node(
         "p",
         usable
-          ? "Ainda não há rascunhos. Prepare seu primeiro conteúdo acima."
+          ? "Ainda não há rascunhos. Prepare seu primeiro conteúdo na aba Criar conteúdo."
           : "Rascunhos indisponíveis nesta sessão.",
       );
       empty.className = "content-library-empty";
@@ -169,21 +212,31 @@ const SocialMEIContentStudio = (() => {
     }
     state.items.forEach((item) => {
       const row = node("article");
-      row.className = "content-draft-row";
+      row.className = "dc content-draft-row";
       row.dataset.contentDraft = item.id;
+      const thumb = node("div");
+      thumb.className = "th";
+      thumb.innerHTML =
+        '<svg aria-hidden="true"><use href="#exactV4-' + item.format + '"></use></svg>';
+      if (item.presentation?.thumbnail) {
+        const image = node("img");
+        image.src = item.presentation.thumbnail;
+        image.alt = "";
+        thumb.append(image);
+      }
       const info = node("div");
+      info.className = "b";
       info.append(
-        node("strong", item.title),
+        node("b", item.title),
         node(
           "small",
           model.FORMATS[item.format] +
             " · " +
-            new Date(item.updatedAt).toLocaleString("pt-BR", { timeZone: APP_TIMEZONE }) +
-            (item.media ? " · mídia precisa ser selecionada novamente" : ""),
+            new Date(item.updatedAt).toLocaleString("pt-BR", { timeZone: APP_TIMEZONE }),
         ),
       );
       const actions = node("div");
-      actions.className = "content-draft-actions";
+      actions.className = "r content-draft-actions";
       for (const [action, label] of [
         ["edit", "Editar"],
         ["duplicate", "Duplicar"],
@@ -191,15 +244,15 @@ const SocialMEIContentStudio = (() => {
       ]) {
         const button = node("button", label);
         button.type = "button";
-        button.className = "management-button";
         button.dataset.contentAction = action;
         button.dataset.contentId = item.id;
         button.setAttribute("aria-label", label + " " + item.title);
         actions.append(button);
       }
-      row.append(info, actions);
+      row.append(thumb, info, actions);
       list.append(row);
     });
+    document.dispatchEvent(new Event("socialmei-content-drafts-change"));
   }
   function render() {
     synchronize();
@@ -216,6 +269,9 @@ const SocialMEIContentStudio = (() => {
         ? "Use as informações reais do seu negócio. Nenhuma oferta ou preço é criado automaticamente."
         : business + " · prepare conteúdo com a sua voz.";
     byId("contentPreviewBusiness").textContent = business;
+    byId("exactV4-bh").textContent = business;
+    byId("contentPublicBusinessName").value = business;
+    byId("contentPublicBusinessBio").value = profile.read().profile?.description || "";
     byId("contentBrandInitial").textContent = business[0].toUpperCase();
     preview();
     library();
@@ -237,18 +293,31 @@ const SocialMEIContentStudio = (() => {
       );
     else action();
   }
-  byId("contentStudioOpen").addEventListener("click", () => setView("Divulgação"));
   byId("contentNew").addEventListener("click", () => {
     synchronize();
     replaceEditor(() => {
       load(null);
-      byId("contentTitle").focus();
+      try {
+        repo.saveEditor(value(), scope);
+      } catch (error) {
+        message(error.message);
+      }
+      document.dispatchEvent(new Event("socialmei-content-editor-new"));
     });
   });
   byId("contentDraftForm").addEventListener("input", () => {
     synchronize();
     preview();
-    message(dirty() ? "Alterações ainda não salvas." : "");
+    message(
+      dirty()
+        ? "Alterações ainda não salvas como rascunho. Editor preservado somente neste navegador."
+        : "",
+    );
+    try {
+      repo.saveEditor(value(), scope);
+    } catch (error) {
+      message(error.message);
+    }
   });
   byId("contentDraftForm").addEventListener("submit", (event) => {
     event.preventDefault();
@@ -257,9 +326,16 @@ const SocialMEIContentStudio = (() => {
       return;
     }
     try {
+      const title = byId("contentTitle");
+      if (!title.value.trim()) {
+        document.getElementById("exactV4-d3").open = true;
+        title.classList.add("bad");
+        title.focus();
+      }
       const saved = repo.save(value(), scope);
       draftId = saved.id;
       baseline = JSON.stringify(value());
+      repo.saveEditor(value(), scope);
       library();
       message("Rascunho salvo neste navegador. Nenhuma publicação foi feita.");
     } catch (error) {
@@ -284,6 +360,9 @@ const SocialMEIContentStudio = (() => {
       release();
       file = selected;
       media = metadata;
+      byId("contentPreviewStage").dataset.dv4X = "50";
+      byId("contentPreviewStage").dataset.dv4Y = "50";
+      byId("dv4Zoom").value = "1";
       preview();
       message("Mídia pronta para prévia local. Salve o texto se quiser continuar depois.");
     } catch (error) {
@@ -316,6 +395,11 @@ const SocialMEIContentStudio = (() => {
       message("Selecione uma mídia compatível com o novo formato. Seu texto foi preservado.");
     }
     preview();
+    try {
+      repo.saveEditor(value(), scope);
+    } catch (error) {
+      message(error.message);
+    }
   });
   document.querySelector(".content-formats").addEventListener("keydown", (event) => {
     const tabs = [...document.querySelectorAll("[data-content-format]")],
@@ -436,5 +520,59 @@ const SocialMEIContentStudio = (() => {
     uploadEpoch++;
     removeMedia();
   });
-  return Object.freeze({ render });
+  function simulationSnapshot() {
+    synchronize();
+    if (!scope || !file || !media) return null;
+    return {
+      scope,
+      format,
+      caption: model.caption(value()),
+      media: { name: media.name, mime: media.type, size: media.size },
+    };
+  }
+  function preparationSnapshot() {
+    synchronize();
+    if (!scope) return null;
+    return {
+      scope,
+      title: byId("contentTitle").value,
+      format,
+      caption: model.caption(value()),
+      media: media ? { name: media.name, mime: media.type, size: media.size } : null,
+    };
+  }
+  function loadPreparation(item, onLoaded = () => {}) {
+    synchronize();
+    replaceEditor(() => {
+      load({
+        id: null,
+        title: item.title,
+        format: item.format,
+        caption: item.caption,
+        media: item.media?.[0]
+          ? { name: item.media[0].name, type: item.media[0].mime, size: item.media[0].size }
+          : null,
+      });
+      message(
+        "Preparação compartilhada aberta. Texto não salvo localmente; mídia somente como referência.",
+      );
+      onLoaded();
+    });
+  }
+  function openDraft(id, onLoaded = () => {}) {
+    synchronize();
+    const item = repo.read().items.find((item) => item.id === id);
+    if (!item) return message("Rascunho indisponível neste negócio.");
+    replaceEditor(() => {
+      load(item);
+      onLoaded();
+    });
+  }
+  return Object.freeze({
+    render,
+    simulationSnapshot,
+    preparationSnapshot,
+    loadPreparation,
+    openDraft,
+  });
 })();

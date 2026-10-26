@@ -1,0 +1,498 @@
+/* Approved native Oportunidades composition; business state remains in its store. */
+:is(#opportunitiesView, #contentStudioView) {
+  --visual-border: color-mix(in srgb, var(--border) 87%, var(--brand-primary) 13%);
+  --visual-panel: color-mix(in srgb, var(--surface) 94%, var(--brand-primary) 6%);
+  --visual-panel-soft: color-mix(in srgb, var(--surface-secondary) 96%, var(--brand-primary) 4%);
+  --visual-accent: var(--brand-primary);
+}
+#opportunitiesView > .management-stack {
+  max-width: 1320px;
+  gap: 20px;
+}
+#opportunitiesView .management-header {
+  position: relative;
+  isolation: isolate;
+  z-index: 2;
+  align-items: center;
+  min-height: 218px;
+  padding: 12px 22px 16px;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  gap: 24px;
+}
+#opportunitiesView .management-header > div:first-child {
+  max-width: 64%;
+  position: relative;
+  z-index: 1;
+}
+#opportunitiesView .management-header h2 {
+  font-size: clamp(29px, 3.2vw, 43px);
+  line-height: 1.12;
+  letter-spacing: -0.045em;
+  margin: 8px 0 10px;
+}
+#opportunitiesView .management-header p {
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin: 0;
+  max-width: 68ch;
+}
+#opportunitiesView .report-eyebrow {
+  color: var(--text-secondary);
+  letter-spacing: 0.14em;
+  font-size: 12px;
+}
+#opportunitiesView .opportunity-commercial-explanation {
+  font-size: 13px;
+  margin-top: 14px;
+}
+#opportunitiesView .opportunity-hero-art {
+  position: absolute;
+  right: 24px;
+  top: 0;
+  width: 36%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  z-index: 0;
+}
+#opportunitiesView #opportunitySource {
+  position: absolute;
+  right: 0;
+  top: 0;
+  z-index: 2;
+}
+#opportunitiesView .management-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 44px;
+  border-radius: 10px;
+  font-weight: 650;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+#opportunitiesView .management-button:hover:not(:disabled) {
+  border-color: var(--brand-primary);
+  background: var(--visual-panel);
+}
+#opportunitiesView :is(input, select, textarea, button, summary):focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+#opportunitiesView .opportunity-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+}
+#opportunitiesView .opportunity-icon .i {
+  width: 100%;
+  height: 100%;
+}
+#opportunitiesView .management-header .management-button {
+  margin-top: 16px;
+  min-width: 240px;
+  background: var(--visual-panel);
+  border-color: var(--visual-border);
+}
+#opportunitiesView #opportunityLifecycle {
+  display: grid;
+  gap: 12px;
+  max-width: none;
+  min-width: 0;
+  margin-bottom: 14px;
+}
+#opportunityLifecycle > h3 {
+  margin: 8px 0 0;
+  font-size: 20px;
+  letter-spacing: -0.025em;
+  line-height: 1.3;
+}
+#opportunityLifecycle > [role="status"] {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+#opportunityLifecycle > [role="status"]:empty {
+  display: none;
+}
+#opportunityCreateForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.75fr) minmax(0, 1.2fr);
+  gap: 18px;
+  align-items: end;
+  padding: 22px;
+  border: 1px solid var(--visual-border);
+  border-radius: 14px;
+  background: var(--visual-panel);
+  margin: 0 0 6px;
+}
+#opportunityCreateForm .opportunity-form-header {
+  grid-column: 1/-1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+#opportunityCreateForm .opportunity-form-header > .opportunity-icon {
+  width: 44px;
+  height: 44px;
+  padding: 11px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--brand-primary) 16%, transparent);
+  color: var(--brand-primary-text);
+}
+#opportunityCreateForm h3 {
+  font-size: 18px;
+  margin: 0 0 3px;
+  letter-spacing: -0.02em;
+}
+#opportunityCreateForm p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+#opportunityCreateForm > label {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+#opportunityCreateForm :is(input, select) {
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid var(--visual-border);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 14px;
+}
+#opportunityCreateForm > button[type="submit"] {
+  grid-column: 1/-1;
+  justify-self: end;
+  min-width: 220px;
+  padding: 10px 24px;
+  color: var(--on-primary);
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+}
+#opportunityCreateForm > button[type="submit"]:hover:not(:disabled) {
+  background: var(--brand-primary-hover);
+  color: var(--on-primary-hover);
+}
+#opportunitiesView #opportunityLifecycle > .opportunity-controls {
+  position: static;
+  inset: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+  padding: 0;
+}
+#opportunityLifecycle > .opportunity-controls button {
+  flex: 1 1 auto;
+  gap: 8px;
+  min-height: 46px;
+  padding: 9px 11px;
+  border: 1px solid var(--visual-border);
+  background: var(--visual-panel-soft);
+  color: var(--text-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+}
+#opportunityLifecycle > .opportunity-controls button[aria-pressed="true"] {
+  color: var(--brand-primary-text);
+  border-color: var(--brand-primary);
+  background: color-mix(in srgb, var(--brand-primary) 14%, var(--surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand-primary) 20%, transparent);
+}
+#opportunityLifecycle .opportunity-filter-count {
+  min-width: 28px;
+  padding: 2px 6px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--brand-primary) 10%, var(--surface));
+  font-variant-numeric: tabular-nums;
+}
+#opportunitiesView #commercialOpportunityList {
+  width: 100%;
+  margin-inline: 0;
+  max-width: none;
+  gap: 12px;
+}
+#commercialOpportunityList .commercial-opportunity-empty {
+  display: flex;
+  min-height: 164px;
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  padding: 24px;
+  border: 1px dashed var(--visual-border);
+  border-radius: 12px;
+  background: var(--visual-panel-soft);
+  text-align: center;
+}
+#commercialOpportunityList .commercial-opportunity-empty > .opportunity-icon {
+  width: 36px;
+  height: 36px;
+  color: var(--brand-primary-text);
+  margin-bottom: 12px;
+}
+#commercialOpportunityList .commercial-opportunity-empty h4 {
+  margin: 0 0 6px;
+  font-size: 16px;
+}
+#commercialOpportunityList .commercial-opportunity-empty p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+#opportunityLifecycle > p:last-child {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--visual-border);
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+  background: var(--visual-panel-soft);
+}
+#commercialOpportunityList > .management-card {
+  padding: 20px;
+  border: 1px solid var(--visual-border);
+  border-radius: 12px;
+  background: var(--surface);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+#commercialOpportunityList .commercial-opportunity-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+#commercialOpportunityList .commercial-opportunity-header h4 {
+  font-size: 17px;
+  margin: 0 0 5px;
+}
+#commercialOpportunityList .commercial-opportunity-header p {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin: 0;
+}
+#commercialOpportunityList .commercial-opportunity-badge {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--visual-panel);
+  color: var(--brand-primary-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+#commercialOpportunityList > .management-card > p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+#commercialOpportunityList details {
+  padding-top: 10px;
+  border-top: 1px solid var(--visual-border);
+  margin-bottom: 12px;
+}
+#commercialOpportunityList summary {
+  min-height: 44px;
+  align-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--brand-primary-text);
+}
+#commercialOpportunityList details[open] {
+  display: grid;
+  gap: 12px;
+}
+#commercialOpportunityList details label {
+  display: grid;
+  gap: 7px;
+  font-size: 13px;
+  min-width: 0;
+}
+#commercialOpportunityList details :is(input, select, textarea) {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  font: inherit;
+  padding: 10px 12px;
+  border: 1px solid var(--visual-border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  background: var(--surface);
+}
+#commercialOpportunityList details textarea {
+  min-height: 88px;
+  resize: vertical;
+}
+#commercialOpportunityList details .management-button {
+  justify-self: start;
+  padding-inline: 16px;
+}
+#opportunitiesView .opportunity-analysis-intro {
+  border-top: 1px solid var(--visual-border);
+  padding-top: 24px;
+}
+#opportunitiesView .opportunity-analysis-intro h3 {
+  font-size: 20px;
+  margin: 0 0 6px;
+  letter-spacing: -0.025em;
+}
+#opportunitiesView .opportunity-analysis-intro p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+#opportunitiesView .client-analysis-tabs {
+  justify-content: flex-start;
+  width: fit-content;
+  max-width: 100%;
+}
+#opportunitiesView .client-analysis-tabs button {
+  min-height: 44px;
+  padding-inline: 18px;
+  flex: 0 0 auto;
+}
+#opportunitiesView .client-analysis-tabs::before {
+  content: none;
+}
+@media (max-width: 1024px) {
+  #opportunityCreateForm {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  #opportunityCreateForm > label:last-of-type {
+    grid-column: 1/-1;
+  }
+  #opportunitiesView .management-header > div:first-child {
+    max-width: 72%;
+  }
+  #opportunitiesView .opportunity-hero-art {
+    width: 30%;
+    right: 0;
+    opacity: 0.8;
+  }
+}
+@media (max-width: 720px) {
+  #opportunitiesView .management-header {
+    padding: 4px 0 8px;
+    min-height: 0;
+  }
+  #opportunitiesView .management-header > div:first-child {
+    max-width: 100%;
+  }
+  #opportunitiesView .opportunity-hero-art {
+    display: none;
+  }
+  #opportunitiesView #opportunitySource {
+    position: relative;
+    margin-top: 4px;
+  }
+  #opportunitiesView .management-header .management-button {
+    width: 100%;
+  }
+  #opportunityCreateForm {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 16px;
+    gap: 15px;
+  }
+  #opportunityCreateForm > label:last-of-type {
+    grid-column: auto;
+  }
+  #opportunityCreateForm > button[type="submit"] {
+    width: 100%;
+    min-width: 0;
+  }
+  #opportunitiesView #opportunityLifecycle > .opportunity-controls {
+    position: static;
+    inset: auto;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  #opportunityLifecycle > .opportunity-controls button {
+    justify-content: flex-start;
+    font-size: 12px;
+    padding-inline: 8px;
+    gap: 6px;
+  }
+  #opportunityLifecycle > .opportunity-controls button:first-child {
+    grid-column: 1/-1;
+  }
+  #opportunityLifecycle .opportunity-filter-count {
+    margin-left: auto;
+  }
+  #commercialOpportunityList > .management-card {
+    padding: 16px;
+  }
+  #commercialOpportunityList .commercial-opportunity-header {
+    flex-direction: column;
+    gap: 10px;
+  }
+  #opportunitiesView .client-analysis-tabs {
+    width: 100%;
+    overflow-x: auto;
+  }
+  #opportunitiesView .client-analysis-tabs button {
+    padding-inline: 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #opportunitiesView *,
+  #opportunitiesView *::before,
+  #opportunitiesView *::after {
+    animation: none;
+    transition: none;
+    scroll-behavior: auto;
+  }
+}
+
+/* Local analysis has no shared commercial controls. */
+#opportunitiesView .opportunity-commercial-explanation[hidden],
+#opportunitiesView .management-header .management-button[hidden],
+#opportunitiesView:not(.has-commercial-followup) .opportunity-analysis-intro,
+#opportunitiesView:not(.has-commercial-followup) .opportunity-hero-art {
+  display: none;
+}
+#opportunitiesView:not(.has-commercial-followup) .management-header {
+  min-height: 0;
+  padding: 0;
+}
+#opportunitiesView:not(.has-commercial-followup) .management-header > div:first-child {
+  max-width: 100%;
+}
+
+#opportunitiesView #opportunitySource:empty {
+  display: none;
+}
+@media (max-width: 720px) {
+  #opportunitiesView:not(.has-commercial-followup) #opportunitySource {
+    position: absolute;
+    top: -10px;
+    right: 0;
+    margin: 0;
+  }
+  #opportunitiesView:not(.has-commercial-followup) .management-header h2 {
+    margin-top: 16px;
+  }
+}

@@ -1,0 +1,4 @@
+# Development configuration only. Creating this file does not create a Pages project.
+name = "socialmei-lab"
+pages_build_output_dir = "./test-results/public-demo"
+compatibility_date = "2026-10-23"

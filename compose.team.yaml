@@ -36,7 +36,10 @@ services:
         condition: service_healthy
 
   team-api:
-    build: ./python-service
+    build:
+      context: ./python-service
+      args:
+        SOCIALMEI_RELEASE_SHA: ${SOCIALMEI_RELEASE_SHA:-unknown}
     restart: unless-stopped
     environment:
       <<: *database_environment
@@ -45,6 +48,13 @@ services:
       SOCIALMEI_WORKSPACE_NAME: SocialMEI Equipe
       SOCIALMEI_N8N_READ_TOKEN: ${TEAM_N8N_READ_TOKEN:-}
       SOCIALMEI_AUTH_ENABLED: ${TEAM_AUTH_ENABLED:-false}
+      # Optional recovery; credentials stay in private server environment.
+      SOCIALMEI_RECOVERY_MODE: ${SOCIALMEI_RECOVERY_MODE:-disabled}
+      SOCIALMEI_SMTP_HOST: ${SOCIALMEI_SMTP_HOST:-}
+      SOCIALMEI_SMTP_PORT: ${SOCIALMEI_SMTP_PORT:-465}
+      SOCIALMEI_SMTP_USER: ${SOCIALMEI_SMTP_USER:-}
+      SOCIALMEI_SMTP_PASSWORD: ${SOCIALMEI_SMTP_PASSWORD:-}
+      SOCIALMEI_SMTP_FROM: ${SOCIALMEI_SMTP_FROM:-}
       # Cadastro temporariamente aberto no piloto da equipe; use invite para restringir.
       SOCIALMEI_REGISTRATION_MODE: ${TEAM_REGISTRATION_MODE:-open}
       SOCIALMEI_AUTH_ORIGIN: https://${SOCIALMEI_TEAM_HOST:?Use tools/team-admin.py init}

@@ -76,3 +76,108 @@ def database_url() -> str:
         f"postgresql://{quote(user, safe='')}:{quote(password, safe='')}"
         f"@{host}:{port}/{quote(database, safe='')}"
     )
+
+
+def message_enrichment_mode() -> str:
+    return os.getenv("SOCIALMEI_MESSAGE_ENRICHMENT_MODE", "disabled").strip().lower()
+
+
+def message_enrichment_signing_key() -> str:
+    # This isolated adapter never reuses a connector or n8n credential.
+    return os.getenv("SOCIALMEI_MESSAGE_ENRICHMENT_TEST_KEY", "")
+
+
+def channel_ingress_mode() -> str:
+    return os.getenv("SOCIALMEI_CHANNEL_INGRESS_MODE", "disabled").strip().lower()
+
+
+def channel_ingress_signing_key() -> str:
+    return os.getenv("SOCIALMEI_CHANNEL_INGRESS_TEST_KEY", "")
+
+
+def content_preparation_mode() -> str:
+    return os.getenv("SOCIALMEI_CONTENT_PREPARATION_MODE", "disabled").strip().lower()
+
+
+def instagram_provider_lab_enabled() -> bool:
+    return (
+        os.getenv("SOCIALMEI_INSTAGRAM_PROVIDER", "disabled").strip().lower() == "fake"
+        and os.getenv("SOCIALMEI_INSTAGRAM_LAB_ENVIRONMENT", "").strip().lower() == "isolated"
+    )
+
+
+def instagram_provider_lab_signing_key() -> str:
+    return os.getenv("SOCIALMEI_INSTAGRAM_LAB_TEST_KEY", "")
+
+
+def instagram_oauth_isolated_enabled() -> bool:
+    return (
+        os.getenv("SOCIALMEI_INSTAGRAM_OAUTH_MODE", "disabled").strip().lower() == "isolated"
+        and os.getenv("SOCIALMEI_INSTAGRAM_LAB_ENVIRONMENT", "").strip().lower() == "isolated"
+    )
+
+
+def instagram_ingress_isolated_enabled() -> bool:
+    return (
+        os.getenv("SOCIALMEI_INSTAGRAM_INGRESS_MODE", "disabled").strip().lower() == "isolated"
+        and os.getenv("SOCIALMEI_INSTAGRAM_LAB_ENVIRONMENT", "").strip().lower() == "isolated"
+    )
+
+
+def instagram_direct_isolated_enabled() -> bool:
+    return (
+        os.getenv("SOCIALMEI_INSTAGRAM_DIRECT_MODE", "disabled").strip().lower() == "isolated"
+        and os.getenv("SOCIALMEI_INSTAGRAM_LAB_ENVIRONMENT", "").strip().lower() == "isolated"
+    )
+
+
+def waha_ingress_isolated_enabled() -> bool:
+    return (
+        os.getenv("SOCIALMEI_WAHA_INGRESS_MODE", "disabled").strip().lower() == "isolated"
+        and os.getenv("SOCIALMEI_WAHA_LAB_ENVIRONMENT", "").strip().lower() == "isolated"
+        and shared_data_enabled()
+        and authentication_mode() == "enabled"
+    )
+
+
+def instagram_runtime_enabled() -> bool:
+    return (
+        os.getenv("SOCIALMEI_INSTAGRAM_RUNTIME_MODE", "disabled").strip().lower() == "connect"
+        and authentication_mode() == "enabled" and shared_data_enabled()
+    )
+
+
+def instagram_runtime_configuration() -> dict:
+    # Server-only values. Never return this mapping from an API or log it.
+    return {
+        key: os.getenv("SOCIALMEI_INSTAGRAM_" + suffix, "")
+        for key, suffix in {
+            "client_id": "CLIENT_ID", "client_secret": "CLIENT_SECRET",
+            "graph_version": "GRAPH_VERSION", "authorization_embed": "AUTHORIZATION_EMBED",
+            "keyring": "TOKEN_KEYRING", "active_key_id": "TOKEN_ACTIVE_KEY_ID",
+            "verify_token": "WEBHOOK_VERIFY_TOKEN", "ingress": "RUNTIME_INGRESS_ENABLED",
+            "send": "RUNTIME_SEND_ENABLED", "privacy_reviewed": "PROXY_PRIVACY_REVIEWED",
+        }.items()
+    }
+
+
+def recovery_smtp_configuration():
+    """Opt-in, TLS-only mail delivery. Values are server-side secrets."""
+    if os.getenv("SOCIALMEI_RECOVERY_MODE", "disabled") != "smtp":
+        raise ValueError("Recovery disabled")
+    values = {
+        key: os.getenv("SOCIALMEI_SMTP_" + key.upper(), "")
+        for key in ("host", "user", "password", "from")
+    }
+    if any(not value or "\r" in value or "\n" in value for value in values.values()):
+        raise ValueError("Incomplete mail configuration")
+    values["port"] = int(os.getenv("SOCIALMEI_SMTP_PORT", "465"))
+    if values["port"] not in (465, 587):
+        raise ValueError("TLS mail port required")
+    return values
+
+
+def release_sha():
+    import re
+    value = os.getenv('SOCIALMEI_RELEASE_SHA', '')
+    return value if re.fullmatch(r'[a-f0-9]{40}', value) else None

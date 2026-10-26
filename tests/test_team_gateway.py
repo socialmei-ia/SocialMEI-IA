@@ -47,6 +47,8 @@ class TeamGatewayTests(unittest.TestCase):
             """from http.server import BaseHTTPRequestHandler, HTTPServer
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
+        if self.path.startswith('/internal/'):
+            self.send_response(200); self.end_headers(); self.wfile.write(b'must-never-be-served'); return
         if self.path.startswith('/api/v1/integracoes/'):
             allowed = self.headers.get('Authorization') == 'Bearer gateway-read-test-key'
             self.send_response(200 if allowed else 401); self.end_headers()
@@ -188,6 +190,8 @@ HTTPServer(('0.0.0.0', 8000), Handler).serve_forever()
             "/frontend/../.env",
             "/api/v1/../../.env",
             "/docs/openapi.json",
+            "/internal/channel-ingress/waha",
+            "/internal/message-enrichment/results",
         ]:
             code, body = self.request(path, True)
             self.assertNotEqual(code, 200, path)
@@ -244,3 +248,90 @@ HTTPServer(('0.0.0.0', 8000), Handler).serve_forever()
                 timeout=3,
             )
         self.assertEqual(error.exception.code, 403)
+
+
+@unittest.skipUnless(
+    os.getenv("SOCIALMEI_TEAM_GATEWAY_TEST") == "true",
+    "Docker public gateway integration opt-in",
+)
+class PublicTeamGatewayTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.directory = tempfile.TemporaryDirectory()
+        cls.addClassCleanup(cls.directory.cleanup)
+        directory = Path(cls.directory.name)
+        (directory / "frontend/scripts").mkdir(parents=True)
+        (directory / "frontend/socialmei-app.html").write_text("<h1>Public landing</h1>")
+        (directory / "frontend/scripts/app.js").write_text("window.publicTest = true;")
+        (directory / ".env").write_text("must-never-be-served")
+        (directory / "mock.py").write_text('''from http.server import BaseHTTPRequestHandler, HTTPServer
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        authenticated = self.headers.get('Cookie') == 'test-session=valid'
+        known = self.path in ('/api/v1/clientes', '/api/v1/auth/me')
+        self.send_response(200 if authenticated and known else 401)
+        self.end_headers()
+        self.wfile.write(b'[]' if authenticated and known else b'{"detail":"Session required"}')
+HTTPServer(('0.0.0.0', 8000), Handler).serve_forever()
+''')
+        name = "socialmei-public-test-" + uuid4().hex[:10]
+        docker("network", "create", name)
+        cls.addClassCleanup(lambda: docker("network", "rm", name))
+        api = name + "-api"
+        docker("run", "-d", "--name", api, "--network", name,
+               "--network-alias", "team-api", "-v", str(directory) + ":/srv:ro",
+               "python:3.12-alpine", "python", "/srv/mock.py")
+        cls.addClassCleanup(lambda: docker("rm", "-f", api))
+        gateway = name + "-gateway"
+        docker("run", "-d", "--name", gateway, "--network", name,
+               "-p", "127.0.0.1::80", "-e", "SOCIALMEI_TEAM_HOST=app.example.com",
+               "-e", "NO_PROXY=team-api,127.0.0.1,localhost",
+               "-v", str(ROOT / "deploy/team/Caddyfile.public") + ":/etc/caddy/Caddyfile:ro",
+               "-v", str(directory) + ":/srv:ro", "caddy:2-alpine")
+        cls.addClassCleanup(lambda: docker("rm", "-f", gateway))
+        cls.origin = "http://127.0.0.1:" + docker("port", gateway, "80/tcp").split(":")[-1]
+        for _ in range(50):
+            try:
+                if cls.request("/")[0] == 200 and cls.request("/api/v1/auth/me")[0] == 401:
+                    break
+            except OSError:
+                pass
+            time.sleep(0.1)
+        else:
+            raise RuntimeError("Public gateway did not start")
+
+    @classmethod
+    def request(cls, path, headers=None):
+        try:
+            response = urlopen(Request(cls.origin + path, headers=headers or {}), timeout=3)
+        except HTTPError as error:
+            response = error
+        with response:
+            return response.code, response.read().decode(), response.headers
+
+    def test_public_landing_and_assets_without_basic_auth(self):
+        for path in ("/", "/frontend/socialmei-app.html", "/scripts/app.js"):
+            code, _, headers = self.request(path)
+            self.assertEqual(code, 200, path)
+            self.assertNotIn("WWW-Authenticate", headers)
+            self.assertEqual(headers["X-Content-Type-Options"], "nosniff")
+
+    def test_anonymous_api_is_401_and_session_cookie_is_preserved(self):
+        for path in ("/api/v1/clientes", "/api/v1/auth/me"):
+            code, _, headers = self.request(path)
+            self.assertEqual(code, 401)
+            self.assertNotIn("WWW-Authenticate", headers)
+            self.assertEqual(self.request(path, {"Cookie": "test-session=valid"})[0], 200)
+            self.assertEqual(self.request(path, {"Authorization": "Basic invalid"})[0], 401)
+
+    def test_private_and_unknown_paths_are_404(self):
+        for path in ("/.env", "/internal/channel-ingress", "/health/db", "/unknown", "/tools/team-admin.py"):
+            code, body, headers = self.request(path)
+            self.assertEqual(code, 404, path)
+            self.assertNotIn("must-never-be-served", body)
+            self.assertNotIn("WWW-Authenticate", headers)
+
+    def test_foreign_origin_remains_denied(self):
+        self.assertEqual(self.request("/api/v1/clientes", {
+            "Origin": "https://evil.example.com", "Cookie": "test-session=valid"
+        })[0], 403)

@@ -1,3 +1,4 @@
+const { openOpportunityAnalysis } = require("./exact-view-helpers.cjs");
 const assert = require("node:assert/strict");
 module.exports = async function uxInteractions(browser, origin) {
   const context = await browser.newContext({
@@ -162,6 +163,7 @@ module.exports = async function uxInteractions(browser, origin) {
           }));
           setView("Oportunidades");
         }, count);
+        await openOpportunityAnalysis(page);
         assert.equal(
           await page.locator(".client-analysis-list >.client-analysis-card").count(),
           count,

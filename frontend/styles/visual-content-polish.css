@@ -1,0 +1,590 @@
+/* Native Divulgação finish. Tokens follow the active application theme. */
+#contentStudioView {
+  --content-line: color-mix(in srgb, var(--tx) 15%, transparent);
+  --content-surface: color-mix(in srgb, var(--sf) 94%, var(--br));
+  --content-wash: color-mix(in srgb, var(--br) 9%, var(--sf));
+}
+#contentStudioView .content-studio {
+  max-width: 1320px;
+}
+#contentStudioView .management-header {
+  position: relative;
+  min-height: 164px;
+  padding: 24px 0;
+  gap: 20px;
+  border: 0;
+  background: none;
+}
+#contentStudioView .management-header > div {
+  position: relative;
+  z-index: 1;
+  max-width: 66%;
+}
+#contentStudioView .management-header h2 {
+  max-width: 22ch;
+  margin: 8px 0;
+  font-size: clamp(28px, 3vw, 42px);
+  line-height: 1.13;
+  letter-spacing: -0.04em;
+}
+#contentStudioView .management-header p {
+  max-width: 60ch;
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+}
+#contentStudioView .content-hero-art {
+  position: absolute;
+  width: 300px;
+  height: 180px;
+  object-fit: contain;
+  right: 120px;
+  top: 0;
+  pointer-events: none;
+}
+#contentStudioView .content-context {
+  margin-bottom: 8px;
+}
+#contentStudioView .content-local-note {
+  margin-bottom: 16px;
+  border-color: var(--content-line);
+  font-size: 13px;
+}
+#contentStudioView .content-local-note summary {
+  width: fit-content;
+}
+#contentStudioView .content-workspace-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  padding: 5px;
+  margin: 16px 0;
+  border: 1px solid var(--content-line);
+  border-radius: 13px;
+  background: var(--content-surface);
+}
+#contentStudioView .content-workspace-tabs button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  min-height: 66px;
+  padding: 12px 15px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--mt);
+  text-align: left;
+  background: transparent;
+  transition:
+    background-color 180ms,
+    border-color 180ms,
+    color 180ms;
+}
+#contentStudioView .content-workspace-tabs button::before {
+  content: none;
+}
+#contentStudioView .content-workspace-tabs .i {
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+}
+#contentStudioView .content-workspace-tabs strong {
+  display: block;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--tx);
+}
+#contentStudioView .content-workspace-tabs small {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+#contentStudioView .content-workspace-tabs button[aria-selected="true"] {
+  background: color-mix(in srgb, var(--br) 23%, var(--sf));
+  border-color: var(--br);
+  color: var(--tx);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--br) 25%, transparent);
+}
+#contentStudioView .content-workspace-tabs button[aria-selected="true"] .i {
+  color: var(--br);
+}
+#contentStudioView .content-studio-layout {
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.85fr);
+  gap: 16px;
+  align-items: start;
+}
+#contentStudioView .content-editor,
+#contentStudioView .content-preview-column,
+#contentStudioView .content-library,
+#contentStudioView #contentAgendaPanel,
+#contentStudioView #contentConnectionsPanel {
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid var(--content-line);
+  border-radius: 13px;
+  background: linear-gradient(125deg, var(--content-surface), var(--sf));
+  box-shadow: 0 8px 30px color-mix(in srgb, var(--tx) 3%, transparent);
+}
+#contentStudioView .content-step-heading {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 16px;
+  align-items: start;
+}
+#contentStudioView .content-step-heading > span,
+#contentStudioView .content-numbered-heading::before {
+  display: inline-grid;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--br) 28%, transparent);
+  border-radius: 50%;
+  background: var(--content-wash);
+  color: var(--br);
+  font-size: 16px;
+  font-weight: 700;
+}
+#contentStudioView .content-step-heading h3 {
+  font-size: 16px;
+  margin: 2px 0 4px;
+}
+#contentStudioView .content-step-heading p {
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+  color: var(--mt);
+}
+#contentStudioView .content-numbered-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 16px;
+}
+#contentStudioView .content-numbered-heading::before {
+  content: attr(data-step);
+}
+#contentStudioView .content-formats {
+  gap: 10px;
+  border: 0;
+  margin-bottom: 24px;
+}
+#contentStudioView .content-formats button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  min-height: 106px;
+  padding: 12px 6px;
+  border: 1px solid var(--content-line);
+  border-radius: 11px;
+  background: var(--sf);
+  font-size: 14px;
+  color: var(--tx);
+  transition:
+    background-color 180ms,
+    border-color 180ms;
+}
+#contentStudioView .content-formats button::before {
+  content: none;
+}
+#contentStudioView .content-formats button .i {
+  width: 26px;
+  height: 26px;
+  margin-bottom: 8px;
+  color: var(--br);
+}
+#contentStudioView .content-formats small {
+  margin-top: 3px;
+  color: var(--mt);
+}
+#contentStudioView .content-formats button[aria-selected="true"] {
+  background: var(--content-wash);
+  border-color: var(--br);
+  box-shadow: inset 0 0 0 1px var(--br);
+}
+#contentStudioView .content-format-indicator {
+  display: none;
+}
+#contentStudioView .content-preparation-workflow {
+  border-color: var(--content-line);
+}
+#contentStudioView .content-preparation-idea {
+  margin-top: 0;
+  padding-top: 0;
+}
+#contentStudioView .content-preparation-idea > p {
+  font-size: 13px;
+}
+#contentStudioView .content-preparation-fields {
+  gap: 14px;
+}
+#contentStudioView label {
+  font-size: 13px;
+  line-height: 1.5;
+}
+#contentStudioView :is(input:not([type="checkbox"]), select, textarea) {
+  min-width: 0;
+  max-width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--content-line);
+  border-radius: 9px;
+  padding: 10px 12px;
+  color: var(--tx);
+  background: var(--content-wash);
+  font: inherit;
+  font-size: 14px;
+}
+#contentStudioView :is(input, select, textarea):focus-visible,
+#contentStudioView button:focus-visible,
+#contentStudioView summary:focus-visible {
+  outline: 3px solid var(--focus-ring, var(--br));
+  outline-offset: 3px;
+}
+#contentStudioView .management-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 11px 16px;
+  border-radius: 10px;
+}
+#contentStudioView .management-button .i {
+  width: 18px;
+  height: 18px;
+}
+#contentStudioView :is(#contentNew, #contentSave, #preparationCaptions) {
+  background: var(--br);
+  color: var(--on-primary);
+  border-color: var(--br);
+  font-weight: 650;
+}
+#contentStudioView #preparationCaptions {
+  width: 100%;
+}
+#contentStudioView .content-preparation-review {
+  min-height: 44px;
+  padding-block: 10px;
+  align-items: center;
+}
+#contentStudioView .content-media-control {
+  background: var(--content-wash);
+  border-color: var(--content-line);
+}
+#contentStudioView #contentDraftForm input[type="file"] {
+  padding: 0;
+  background: none;
+}
+#contentStudioView #contentDraftForm input[type="file"]::file-selector-button {
+  min-height: 44px;
+  color: var(--tx);
+  background: var(--sf);
+  border-color: var(--content-line);
+}
+#contentStudioView .content-preview-column {
+  position: relative;
+  top: auto;
+  padding: 20px;
+}
+#contentStudioView .content-preview-heading {
+  padding-bottom: 14px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--content-line);
+}
+#contentStudioView .content-preview-heading h3 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 14px;
+}
+#contentStudioView .content-preview-heading h3 .i {
+  color: var(--br);
+  width: 22px;
+  height: 22px;
+}
+#contentStudioView #contentPreviewFormat {
+  padding: 5px 9px;
+  border-radius: 8px;
+  background: var(--content-wash);
+  font-size: 12px;
+}
+#contentStudioView .content-preview-device {
+  width: 100%;
+  max-width: 320px;
+  border: 6px solid color-mix(in srgb, var(--tx) 65%, var(--sf));
+  border-radius: 32px;
+  background: var(--sf);
+  box-shadow: 0 15px 35px #0002;
+}
+#contentStudioView .content-preview-brand {
+  padding: 18px 12px 14px;
+}
+#contentStudioView .content-preview-brand strong {
+  font-size: 12px;
+}
+#contentStudioView .content-preview-brand small {
+  font-size: 12px;
+}
+#contentStudioView .content-preview-stage {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  height: auto;
+  background: radial-gradient(
+    ellipse at 30% 20%,
+    color-mix(in srgb, var(--br) 20%, var(--sf)),
+    var(--sf) 85%
+  );
+}
+#contentStudioView [data-content-preview="story"] .content-preview-stage,
+#contentStudioView [data-content-preview="reel"] .content-preview-stage {
+  aspect-ratio: 9 / 16;
+}
+#contentStudioView .content-preview-stage :is(img, video) {
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+#contentStudioView .content-preview-placeholder {
+  padding: 28px 20px;
+  text-align: center;
+}
+#contentStudioView .content-preview-placeholder > span {
+  display: grid;
+  place-items: center;
+  margin: 0 auto 14px;
+  width: 66px;
+  height: 66px;
+  border-radius: 19px;
+  background: var(--content-wash);
+  color: var(--br);
+}
+#contentStudioView .content-preview-placeholder .i {
+  width: 34px;
+  height: 34px;
+}
+#contentStudioView .content-preview-placeholder b {
+  font-size: 20px;
+  letter-spacing: -0.03em;
+  line-height: 1.3;
+}
+#contentStudioView .content-preview-placeholder p,
+#contentStudioView .content-preview-disclosure,
+#contentStudioView #contentPublishHelp {
+  font-size: 13px;
+  line-height: 1.6;
+}
+#contentStudioView .content-preview-text {
+  padding: 16px;
+}
+#contentStudioView .content-preview-text p {
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+#contentStudioView .content-preparation {
+  padding-top: 15px;
+  border-top: 1px solid var(--content-line);
+}
+#contentStudioView .content-library-heading {
+  gap: 12px;
+  flex-wrap: wrap;
+}
+#contentStudioView #contentDraftList,
+#contentStudioView .content-preparation-history {
+  display: grid;
+  gap: 12px;
+  padding: 0;
+  list-style: none;
+}
+#contentStudioView .content-draft-row,
+#contentStudioView .content-preparation-history li {
+  padding: 18px;
+  border: 1px solid var(--content-line);
+  border-radius: 11px;
+  background: var(--sf);
+}
+#contentStudioView .content-draft-row small {
+  display: block;
+  margin-top: 6px;
+  line-height: 1.6;
+  font-size: 13px;
+}
+#contentStudioView .content-library-empty {
+  padding: 36px 20px;
+  border: 1px dashed var(--content-line);
+  border-radius: 11px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.7;
+}
+#contentStudioView #contentConnectionsPanel .content-preparation-workflow {
+  padding-top: 0;
+  margin-top: 0;
+  border-top: 0;
+}
+#contentStudioView #preparationStatus:not(:empty) {
+  padding: 14px 16px;
+  margin: 12px 0;
+  border: 1px solid var(--content-line);
+  border-left: 3px solid var(--br);
+  border-radius: 9px;
+  background: var(--content-wash);
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+#contentStudioView #preparationStatus:empty,
+#contentStudioView #contentStorageStatus:empty {
+  display: none;
+}
+@media (max-width: 1024px) {
+  #contentStudioView .content-studio-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr);
+  }
+  #contentStudioView .content-workspace-tabs button {
+    gap: 8px;
+    padding: 10px;
+  }
+  #contentStudioView .content-workspace-tabs small {
+    font-size: 12px;
+  }
+  #contentStudioView .content-hero-art {
+    opacity: 0.5;
+    right: 50px;
+  }
+}
+@media (max-width: 768px) {
+  #contentStudioView .content-studio-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #contentStudioView .management-header {
+    min-height: 0;
+    align-items: start;
+  }
+  #contentStudioView .management-header > div {
+    max-width: 100%;
+  }
+  #contentStudioView .content-hero-art {
+    display: none;
+  }
+  #contentStudioView .content-workspace-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  #contentStudioView .content-preview-device {
+    max-width: 300px;
+  }
+  #contentStudioView .content-draft-row {
+    align-items: start;
+    flex-direction: column;
+    gap: 14px;
+  }
+}
+@media (max-width: 560px) {
+  #contentStudioView .management-header {
+    flex-direction: column;
+    padding: 16px 0;
+    gap: 14px;
+  }
+  #contentStudioView .management-header h2 {
+    font-size: 29px;
+  }
+  #contentStudioView .content-workspace-tabs button {
+    min-height: 68px;
+    padding: 10px;
+    gap: 8px;
+  }
+  #contentStudioView .content-workspace-tabs .i {
+    width: 20px;
+    height: 20px;
+    flex-basis: 20px;
+  }
+  #contentStudioView .content-workspace-tabs strong {
+    font-size: 13px;
+  }
+  #contentStudioView .content-workspace-tabs small {
+    font-size: 12px;
+  }
+  #contentStudioView
+    :is(
+      .content-editor,
+      .content-preview-column,
+      .content-library,
+      #contentAgendaPanel,
+      #contentConnectionsPanel
+    ) {
+    padding: 15px;
+  }
+  #contentStudioView .content-formats {
+    gap: 7px;
+  }
+  #contentStudioView .content-formats button {
+    min-height: 96px;
+  }
+  #contentStudioView .content-preparation-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #contentStudioView .content-preparation-actions > button,
+  #contentStudioView .content-editor-actions > button {
+    flex: 1 1 160px;
+  }
+  #contentStudioView .content-preview-device {
+    max-width: 280px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #contentStudioView *,
+  #contentStudioView *::before,
+  #contentStudioView *::after {
+    animation: none;
+    transition: none;
+    scroll-behavior: auto;
+  }
+}
+
+#contentStudioView #contentDraftForm .content-native-media {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  min-height: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  padding: 0;
+  border: 0;
+}
+
+#contentStudioView #integrationSetupForm {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 20px 0;
+}
+#contentStudioView #integrationSetupForm label {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+#contentStudioView #integrationSetupForm > p,
+#contentStudioView #integrationSetupForm > button {
+  grid-column: 1 / -1;
+}
+#contentStudioView #contentConnectionsPanel p {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--mt);
+}
+@media (max-width: 560px) {
+  #contentStudioView #integrationSetupForm {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+#contentStudioView :is(#contentNew, #contentSave, #preparationCaptions):hover:not(:disabled) {
+  background: var(--brand-primary-hover);
+  border-color: var(--brand-primary-hover);
+  color: var(--on-primary-hover);
+}

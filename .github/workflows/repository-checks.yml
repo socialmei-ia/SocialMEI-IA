@@ -4,7 +4,27 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main, feat/ux-interaction-refinement]
+    branches:
+      [
+        main,
+        feat/ux-interaction-refinement,
+        release/integration-candidate-80,
+        release/integration-candidate-94-review,
+        feat/priority-integrations,
+        feat/isolated-preview,
+        feat/dashboard-functional-readiness,
+        feat/visual-opportunities-content-91,
+        feat/native-opportunities-v8-content-v4,
+        feat/instagram-provider-lab,
+        feat/instagram-meta-contract-gates,
+        feat/instagram-meta-http-adapter,
+        feat/instagram-token-vault,
+        feat/instagram-persistent-oauth,
+        feat/instagram-durable-webhook,
+        feat/instagram-direct-outbox,
+        feat/opportunity-planning-persistence,
+        feat/waha-durable-ingress,
+      ]
 
 permissions:
   contents: read
@@ -35,6 +55,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Node
         uses: actions/setup-node@v4
         with:
@@ -48,12 +70,32 @@ jobs:
         run: npm ci
       - name: Contracts and repository structure
         run: npm test
+      - name: Package isolated public candidate (no publication)
+        run: |
+          node tools/package-public-demo.mjs
+          node tools/verify-public-demo.mjs test-results/public-demo "$(git rev-parse HEAD)"
+      - name: Save static candidate artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SocialMEI-public-demo-${{ github.event.pull_request.head.sha || github.sha }}
+          path: test-results/public-demo/
+          if-no-files-found: error
+          retention-days: 14
       - name: Formatting
         run: npm run format:check
       - name: Python contracts
         run: |
           python -m pip install -r python-service/requirements.txt
           python -m unittest discover -s python-service -p 'test_*.py'
+      - name: Release candidate migrations and recovery (disposable PostgreSQL)
+        run: python tests/release-candidate-db.py --run --output test-results/release-candidate
+      - name: Save sanitized release candidate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-candidate-readiness
+          path: test-results/release-candidate/*.json
+          if-no-files-found: ignore
       - name: Backup failure and recovery scenarios
         run: python -m unittest discover -s tests -p 'test_*.py'
       - name: Protected team gateway
@@ -146,6 +188,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Node
         uses: actions/setup-node@v4
         with:
@@ -160,22 +204,57 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends poppler-utils
           command -v pdftotext
-      - name: Offline application regression
+      - name: V22 native navigation, eleven resolutions, themes, keyboard and motion
         run: npm run test:browser
-      - name: Human Basic login and account registration
-        run: node tests/signup-basic-browser.cjs
-      - name: Eleven resolutions and all theme modes
-        run: node tests/stability-browser.cjs
-      - name: Visual interactions and motion accessibility
-        run: node tests/visual-browser.cjs
-      - name: Settings sections, local and connected modes
-        run: node tests/settings-browser.cjs
-      - name: HTTPS authentication regression
-        run: node tests/team-browser.cjs
       - name: Save browser evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: frontend-regression
           path: test-results/
+          if-no-files-found: ignore
+
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install tools and Chromium
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Real isolated preview API and browser
+        run: |
+          npm run preview -- up
+          npm run test:preview
+      - name: Fake Instagram provider in disposable preview only
+        run: |
+          docker compose --project-name socialmei-preview --env-file .preview/.env -f compose.preview.yaml -f compose.preview.instagram-lab.yaml up -d --no-build --wait --wait-timeout 180 api
+          node tests/instagram-provider-lab-preview.cjs
+      - name: Preview startup diagnostics
+        if: failure()
+        run: |
+          if test -f .preview/.env; then
+            docker compose --project-name socialmei-preview --env-file .preview/.env -f compose.preview.yaml ps
+            docker compose --project-name socialmei-preview --env-file .preview/.env -f compose.preview.yaml logs --tail 80 web
+          fi
+      - name: Stop local preview
+        if: always()
+        run: |
+          if test -f .preview/.env; then npm run preview -- down; fi
+      - name: Save real preview evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: isolated-preview
+          path: |
+            test-results/preview/
+            test-results/instagram-provider-lab/
           if-no-files-found: ignore

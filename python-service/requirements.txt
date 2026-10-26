@@ -3,3 +3,4 @@ uvicorn[standard]
 psycopg[binary]
 httpx
 argon2-cffi==25.1.0
+cryptography==50.0.2

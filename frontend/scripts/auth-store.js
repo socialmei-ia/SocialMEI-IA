@@ -1,5 +1,39 @@
 /* Real accounts are opt-in; the public Pages demo keeps its local flow. */
 const SocialMEIAuth = (() => {
+  const commonPasswords = new Set([
+    "12345678",
+    "123456789",
+    "1234567890",
+    "01234567",
+    "87654321",
+    "password",
+    "password1",
+    "password123",
+    "qwertyui",
+    "qwerty123",
+    "senha123",
+    "senha1234",
+    "admin123",
+    "admin1234",
+    "iloveyou",
+    "abc12345",
+  ]);
+  function passwordPolicy(value) {
+    const length = Array.from(value).length;
+    const error =
+      length < 8 || length > 128
+        ? "Use uma senha de 8 a 128 caracteres."
+        : commonPasswords.has(value.toLowerCase()) || new Set(value).size === 1
+          ? "Esta senha é muito comum. Escolha uma senha menos previsível."
+          : "";
+    return {
+      error,
+      warning:
+        !error && length < 12
+          ? "Senha fraca: prefira uma frase mais longa e difícil de adivinhar."
+          : "",
+    };
+  }
   const config = SOCIALMEI_CONFIG.auth;
   const remote = !!config && config.mode !== "local";
   let current = null,
@@ -79,7 +113,12 @@ const SocialMEIAuth = (() => {
     }
   }
   function headers() {
-    return remote && current ? { "X-SocialMEI-CSRF": current.csrf_token } : {};
+    return remote && current
+      ? {
+          "X-SocialMEI-CSRF": current.csrf_token,
+          "X-SocialMEI-Identity": `${current.usuario.id}:${current.negocio.id}`,
+        }
+      : {};
   }
   async function signIn(path, data) {
     const value = identity(await request(path, "POST", data));
@@ -120,6 +159,7 @@ const SocialMEIAuth = (() => {
     ready,
     headers,
     request,
+    passwordPolicy,
     internalStorageKey: internal,
     get current() {
       return current;

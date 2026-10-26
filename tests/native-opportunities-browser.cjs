@@ -2,6 +2,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const http = require("node:http");
+const { openOpportunityAnalysis } = require("./exact-view-helpers.cjs");
 const { chromium } = require("playwright");
 const root = path.resolve(__dirname, "..");
 module.exports = async function nativeOpportunities(browser, origin) {
@@ -37,6 +38,7 @@ module.exports = async function nativeOpportunities(browser, origin) {
       assert(
         await page.locator("#opportunitiesView").evaluate((el) => el.classList.contains("active")),
       );
+      await openOpportunityAnalysis(page);
     };
     await navigate();
     assert.equal(await page.locator("#salesCalculator").count(), 0);
@@ -66,11 +68,77 @@ module.exports = async function nativeOpportunities(browser, origin) {
         await page.locator("[data-opportunity-demo]").click();
         for (const id of ["analysis", "chance", "attention"]) {
           await tab(id);
-          assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+          const overflow = await page.evaluate(() => {
+            const screen = innerWidth;
+            return {
+              viewport: screen,
+              document: document.documentElement.scrollWidth,
+              ancestors: (() => {
+                let el = document.querySelector("#opportunitiesView .op8-overview");
+                const nodes = [];
+                while (el && nodes.length < 10) {
+                  const rect = el.getBoundingClientRect();
+                  const style = getComputedStyle(el);
+                  nodes.push({
+                    tag: el.tagName.toLowerCase(),
+                    id: el.id,
+                    class: typeof el.className === "string" ? el.className.slice(0, 80) : "",
+                    left: Math.round(rect.left),
+                    right: Math.round(rect.right),
+                    width: Math.round(rect.width),
+                    clientWidth: el.clientWidth,
+                    scrollWidth: el.scrollWidth,
+                    minWidth: style.minWidth,
+                    boxSizing: style.boxSizing,
+                  });
+                  el = el.parentElement;
+                }
+                return nodes;
+              })(),
+              candidates: [...document.querySelectorAll("body *")]
+                .filter(
+                  (el) =>
+                    el.getClientRects().length && getComputedStyle(el).visibility !== "hidden",
+                )
+                .map((el) => ({ el, box: el.getBoundingClientRect() }))
+                .filter(({ box }) => box.right > screen + 1 && box.width > 0)
+                .sort((a, b) => b.box.right - a.box.right)
+                .slice(0, 12)
+                .map(({ el, box }) => ({
+                  tag: el.tagName.toLowerCase(),
+                  id: el.id,
+                  class: typeof el.className === "string" ? el.className.slice(0, 100) : "",
+                  right: Math.round(box.right),
+                  width: Math.round(box.width),
+                })),
+            };
+          });
+          assert(
+            overflow.document <= overflow.viewport,
+            JSON.stringify({ width, theme, id, overflow }),
+          );
           const tabState = await page
             .locator(`[data-analysis-tab="${id}"]`)
             .getAttribute("aria-selected");
           assert.equal(tabState, "true");
+          if (id === "analysis") {
+            const positions = await page.evaluate(() => ({
+              tab:
+                document.getElementById("clientAnalysisTabs").getBoundingClientRect().top -
+                document.getElementById("opportunityMessageAnalysis").getBoundingClientRect().top,
+              card:
+                document.querySelector(".client-analysis-card")?.getBoundingClientRect().top -
+                document.getElementById("opportunityMessageAnalysis").getBoundingClientRect().top,
+            }));
+            assert(
+              positions.tab < (width <= 390 ? 330 : 300),
+              JSON.stringify({ width, theme, positions }),
+            );
+            assert(
+              positions.card < (width <= 390 ? 460 : 450),
+              JSON.stringify({ width, theme, positions }),
+            );
+          }
           await page.screenshot({
             path: path.join(output, `${id}-${width}-${theme}.png`),
             fullPage: true,
@@ -99,15 +167,68 @@ module.exports = async function nativeOpportunities(browser, origin) {
       JSON.stringify({ data: appData, conversations: sessionData.conversas }),
     );
     await tab("analysis");
+    const pendingCount = Number(
+      await page.locator('[data-analysis-count="analysis"]').textContent(),
+    );
+    assert(pendingCount > 0);
+    assert.equal(await page.locator("#clientTab-analysis").getAttribute("data-pending"), "true");
+    assert.match(
+      await page.locator(".client-analysis-pending h3").textContent(),
+      new RegExp(`^${pendingCount} aguardando classificação$`),
+    );
     const lia = page.locator('[data-native-opportunity="analysis-demo-welcome"]');
     await lia.locator(".client-analysis-choice summary").click();
+    assert.deepEqual(
+      await lia
+        .locator("[data-analysis-value]")
+        .evaluateAll((els) => els.map((el) => el.dataset.analysisValue)),
+      ["frio", "morno", "quente"],
+    );
     await lia.locator('[data-analysis-value="frio"]').click();
     assert.equal(
       await page.locator('[data-analysis-tab="chance"]').getAttribute("aria-selected"),
       "true",
     );
+    assert.equal(await lia.locator("h3").evaluate((el) => el === document.activeElement), true);
+    assert.equal(
+      Number(await page.locator('[data-analysis-count="analysis"]').textContent()),
+      pendingCount - 1,
+    );
+    assert.match(
+      await page.locator("#clientAnalysisStatus").textContent(),
+      /Lia Andrade: Frio.*só nesta sessão.*sem sincronização/,
+    );
+    assert.deepEqual(
+      await page
+        .locator("[data-analysis-level]")
+        .evaluateAll((els) => els.map((el) => el.dataset.analysisLevel)),
+      ["all", "frio", "morno", "quente"],
+    );
+    const levelsByPriority = await page
+      .locator(".client-analysis-list .client-analysis-badge")
+      .allTextContents();
+    assert.equal(
+      levelsByPriority[0],
+      "Quente",
+      "Commercial queue still puts stronger evidence first",
+    );
+    assert.equal(
+      levelsByPriority.at(-1),
+      "Frio",
+      "Visual filter order must not reverse business priority",
+    );
     await page.locator('[data-analysis-level="frio"]').click();
     assert.equal(await page.locator(".client-analysis-list .client-analysis-card").count(), 1);
+    await lia.locator(".client-analysis-choice summary").click();
+    await lia.locator('[data-analysis-value="morno"]').click();
+    assert.equal(await lia.locator(".client-analysis-badge").textContent(), "Morno");
+    assert.equal(await lia.locator("h3").evaluate((el) => el === document.activeElement), true);
+    assert.equal(
+      Number(await page.locator('[data-analysis-count="analysis"]').textContent()),
+      pendingCount - 1,
+    );
+    await page.locator('[data-analysis-level="frio"]').click();
+    assert.equal(await page.locator(".client-analysis-list .client-analysis-card").count(), 0);
     await page.locator('[data-analysis-level="quente"]').click();
     assert.equal(await page.locator(".client-analysis-list .quente").count(), 1);
     for (const filter of ["morno", "all"])
@@ -123,6 +244,16 @@ module.exports = async function nativeOpportunities(browser, origin) {
     await page
       .locator('[data-native-opportunity="analysis-demo-welcome"] [data-analysis-reset]')
       .click();
+    assert.equal(
+      await page.locator('[data-analysis-tab="analysis"]').getAttribute("aria-selected"),
+      "true",
+    );
+    assert.equal(await lia.locator("h3").evaluate((el) => el === document.activeElement), true);
+    assert.equal(
+      Number(await page.locator('[data-analysis-count="analysis"]').textContent()),
+      pendingCount,
+    );
+    await tab("chance");
     await page.locator('[data-analysis-level="frio"]').click();
     assert.equal(await page.locator(".client-analysis-list .client-analysis-card").count(), 0);
     await tab("attention");
@@ -134,6 +265,11 @@ module.exports = async function nativeOpportunities(browser, origin) {
       ["critical", "high", "normal"],
     );
     const ana = page.locator('[data-native-opportunity="analysis-demo-critical"]');
+    assert.equal(
+      await ana.locator("[data-analysis-classify]").count(),
+      0,
+      "Support must not expose commercial level actions",
+    );
     await ana.locator("summary").click();
     await page.evaluate(() => {
       navigator.clipboard.writeText = async (text) => {
@@ -288,6 +424,8 @@ module.exports = async function nativeOpportunities(browser, origin) {
       await account.waitForFunction(
         () => typeof SocialMEIAuth !== "undefined" && SocialMEIAuth.current,
       );
+      // Wait for authenticated bootstrap before navigating; it now loads the scoped profile.
+      await account.waitForFunction(() => document.body?.classList.contains("experience-app"));
       await account.evaluate(() => SocialMEIExperience.enterApp("Oportunidades"));
       assert.equal(await account.evaluate(() => sessionData.conversas.length), 0);
       assert.equal(await account.locator("[data-opportunity-demo]").count(), 0);
@@ -318,6 +456,7 @@ module.exports = async function nativeOpportunities(browser, origin) {
           "Texto sintético sem identidade",
         ),
       );
+      await openOpportunityAnalysis(account);
       await account.locator(".native-opportunity-analysis > summary").click();
       await account.locator("#opportunityText").fill("Quero comprar.");
       await account.locator('#opportunityAnalyzeForm [type="submit"]').click();
@@ -326,6 +465,103 @@ module.exports = async function nativeOpportunities(browser, origin) {
         "Intenção elevada",
       );
       assert.deepEqual(writes, []);
+      // Existing commercial controls now write the shared planning contract.
+      let planningRow = {
+        workspace_id: 21,
+        id: "00000000-0000-4000-8000-000000000701",
+        client_id: 701,
+        client_name: "Cliente de planejamento",
+        title: "Interesse",
+        interest_level: "warm",
+        outcome: "open",
+        outcome_note: "",
+        revision: 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        estimated_amount: "1.23",
+        follow_up_date: null,
+        planning_note: "Nota remota",
+        contacted: false,
+        planning_initialized: true,
+      };
+      const planningWrites = [];
+      let planningConflict = false;
+      await account.route("**/api/v1/opportunities**", (route) => {
+        const request = route.request(),
+          url = new URL(request.url());
+        if (request.method() === "PATCH") {
+          const body = request.postDataJSON();
+          planningWrites.push(body);
+          if (planningConflict || body.expected_revision !== planningRow.revision)
+            return route.fulfill({ status: 409, json: { detail: "A oportunidade mudou." } });
+          planningRow = {
+            ...planningRow,
+            ...body,
+            planning_initialized: true,
+            revision: planningRow.revision + 1,
+            updated_at: new Date().toISOString(),
+          };
+          return route.fulfill({ json: planningRow });
+        }
+        return route.fulfill({
+          json: { workspace_id: 21, items: url.pathname.endsWith("/history") ? [] : [planningRow] },
+        });
+      });
+      const legacyRaw = await account.evaluate((id) => {
+        const scope = SocialMEIOpportunityV8Bridge.snapshot().scope,
+          key = "socialmei-op8-local-v1:" + encodeURIComponent(scope),
+          raw = JSON.stringify({
+            v: 1,
+            scope,
+            items: {
+              [id]: {
+                amount: 999,
+                date: "",
+                note: "Cópia local preservada",
+                contacted: false,
+                updatedAt: 1,
+                events: [],
+              },
+            },
+          });
+        localStorage.setItem(key, raw);
+        return { key, raw };
+      }, planningRow.id);
+      await account.evaluate(() => SocialMEIOpportunityV8Bridge.refresh());
+      const commercial = account.locator('[data-commercial-opportunity="' + planningRow.id + '"]');
+      await commercial.locator('[data-act="tog"]').click();
+      assert.equal(await commercial.locator(".nt").inputValue(), "Nota remota");
+      assert.equal(await commercial.locator(".vl").inputValue(), "1,23");
+      await commercial.locator(".nt").fill("Nota compartilhada");
+      await commercial.locator(".vl").fill("2,34");
+      await commercial.locator('[data-act="note"]').click();
+      await account.waitForFunction(
+        () => SocialMEIOpportunityV8Bridge.snapshot().items[0]?.revision === 2,
+      );
+      assert.equal(planningWrites[0].expected_revision, 1);
+      assert.equal(planningWrites[0].estimated_amount, 2.34);
+      assert.equal(await commercial.locator(".nt").inputValue(), "Nota compartilhada");
+      await account.locator("#v8-toast button").last().click();
+      await account.waitForFunction(
+        () => SocialMEIOpportunityV8Bridge.snapshot().items[0]?.revision === 3,
+      );
+      assert.equal(await commercial.locator(".nt").inputValue(), "Nota remota");
+      assert.equal(await commercial.locator(".vl").inputValue(), "1,23");
+      planningConflict = true;
+      await commercial.locator(".nt").fill("Edição ainda não salva");
+      await commercial.locator('[data-act="note"]').click();
+      await account.waitForFunction(() =>
+        document.getElementById("v8-toast").textContent.includes("A oportunidade mudou"),
+      );
+      assert.equal(await commercial.locator(".nt").inputValue(), "Edição ainda não salva");
+      assert.equal(
+        await account.evaluate((key) => localStorage.getItem(key), legacyRaw.key),
+        legacyRaw.raw,
+      );
+      assert.equal(
+        await account.evaluate(() => SocialMEIOpportunityV8Bridge.snapshot().items[0].revision),
+        3,
+      );
     } finally {
       await accountContext.close();
     }

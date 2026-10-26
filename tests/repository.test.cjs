@@ -24,33 +24,34 @@ function filesUnder(directory) {
   });
 }
 
-test("all scripts parse, including their shared global declarations", () => {
-  const scriptPaths = [...app.matchAll(/<script\b[^>]*src="([^"]+)"[^>]*><\/script>/g)].map(
-    ([, source]) => source,
-  );
-  const sources = scriptPaths.map((source) => read("frontend/" + source));
+test("V22 inline and external scripts parse with their shared globals in load order", () => {
+  const sources = [];
+  const scripts = [...app.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g)];
+  const external = [];
+  for (const [, attributes, body] of scripts) {
+    const source = attributes.match(/src="([^"]+)"/);
+    if (source) {
+      external.push(source[1]);
+      sources.push(read("frontend/" + source[1]));
+    } else {
+      assert(body.trim(), "Inline application source must not be empty");
+      sources.push(body);
+    }
+  }
   for (const source of sources) new vm.Script(source);
   new vm.Script(sources.join("\n"));
+  for (const file of filesUnder(path.join(root, "frontend/scripts")).filter((file) =>
+    file.endsWith(".js"),
+  ))
+    new vm.Script(fs.readFileSync(file, "utf8"), { filename: file });
   new vm.Script(read("tools/devhub.js"));
-  assert.equal(sources.length, 47);
-  assert.equal(
-    scriptPaths.indexOf("scripts/client-analysis.js") + 1,
-    scriptPaths.indexOf("scripts/opportunities.js"),
-  );
-  assert.equal(
-    scriptPaths.indexOf("scripts/report-motion.js") + 1,
-    scriptPaths.indexOf("scripts/report-ui.js"),
-  );
-  assert.deepEqual(scriptPaths.slice(-4), [
-    "scripts/password-strength.js",
-    "scripts/spotlight.js",
-    "scripts/premium-experience.js",
-    "scripts/context-help.js",
-  ]);
-  assert(
-    scriptPaths.indexOf("scripts/password-strength.js") >
-      scriptPaths.indexOf("scripts/experience.js"),
-  );
+  assert.deepEqual(external, ["config.js", "scripts/auth-store.js", "scripts/v22-bootstrap.js"]);
+  assert.equal(new Set(external).size, external.length, "Each bootstrap controller is loaded once");
+  assert.match(app, /<script type="text\/plain" id="v22-native-source">/);
+  const bootstrap = read("frontend/scripts/v22-bootstrap.js");
+  assert.match(bootstrap, /await auth.ready/);
+  assert.match(bootstrap, /original.textContent/);
+  assert.match(bootstrap, /scripts\/v22-backend\.js/);
 });
 
 test("published entries preserve paths and query/hash navigation", () => {
@@ -76,31 +77,42 @@ test("published entries preserve paths and query/hash navigation", () => {
   }
 });
 
-test("static DOM IDs stay unique and every module remains present", () => {
-  const ids = [...app.matchAll(/\bid="([^"]+)"/g)].map(([, id]) => id);
-  assert.equal(new Set(ids).size, ids.length);
-  for (const id of [
-    "experienceRoot",
-    "clientHomeView",
-    "dashboardView",
-    "salesView",
-    "clientsView",
-    "productsView",
-    "financeView",
-    "inboxView",
-    "automationsView",
-    "aiToolsView",
-    "reportsView",
-    "settingsView",
-    "xpLoginForm",
-    "xpRegisterForm",
-    "sb",
-    "nav",
-    "backupImportInput",
-    "clearInboxFilters",
+test("V22 static DOM IDs are unique and native modules remain present", () => {
+  // IDs inside JS template strings belong to alternative rendered routes, not the static document.
+  const staticHTML = app
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, "")
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/g, "");
+  const ids = [...staticHTML.matchAll(/\bid="([^"]+)"/g)].map(([, id]) => id);
+  assert.equal(new Set(ids).size, ids.length, "Static document IDs cannot collide");
+  assert(ids.includes("app"));
+  for (const fn of [
+    "inicio",
+    "caixaList",
+    "vendas",
+    "clientes",
+    "produtos",
+    "financeiro",
+    "automacoes",
+    "relatorios",
+    "config",
   ])
-    assert(ids.includes(id), id);
-  assert(app.includes("https://socialmei-ia.github.io/SocialMEI-IA/frontend/socialmei-app.html"));
+    assert(new RegExp("(?:function " + fn + "\\(|const " + fn + "=)").test(app), fn);
+  for (const route of [
+    "inicio",
+    "caixa",
+    "oport",
+    "divul",
+    "negocio",
+    "automacoes",
+    "relatorios",
+    "config",
+  ])
+    assert(new RegExp("(?:['\"]" + route + "['\"]|" + route + ":)").test(app), route);
+  assert.match(app, /telas\/oportunidades\.html/);
+  assert.match(app, /telas\/divulgacao\.html/);
+  const entry = read("frontend/entrada.html");
+  for (const id of ["fC", "fE", "cNome", "cMail", "cPass", "eMailL", "ePassL", "obCard", "stepper"])
+    assert(entry.includes('id="' + id + '"'), id);
   assert(!app.includes("seu-dominio.example"));
 });
 
