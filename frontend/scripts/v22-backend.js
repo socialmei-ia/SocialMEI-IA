@@ -1,4 +1,3 @@
-// prettier-ignore-file
 /* V22 transport bridge. Visual templates and animation code remain owned by V22. */
 window.SocialMEIV22 = (() => {
   const auth = window.SocialMEIAuth;
