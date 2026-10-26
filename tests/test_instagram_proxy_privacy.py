@@ -55,6 +55,32 @@ class LoggingPatchTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             privacy.with_logging("{\n log default { format json }\n}\n:8080 { respond ok }")
 
+    def test_only_implicit_file_server_config_hide_is_normalized(self):
+        config = {"apps": {"http": {"servers": {"srv0": {"routes": [
+            {"handle": [{"handler": "file_server", "hide": ["/dev/stdin", ".git"]}]}
+        ]}}}}}
+        normalized = privacy._normalized_auto_hidden_config(config)
+        self.assertEqual(
+            normalized["apps"]["http"]["servers"]["srv0"]["routes"][0]["handle"][0]["hide"],
+            ["/etc/caddy/Caddyfile", ".git"],
+        )
+        self.assertEqual(
+            config["apps"]["http"]["servers"]["srv0"]["routes"][0]["handle"][0]["hide"],
+            ["/dev/stdin", ".git"],
+        )
+        other = copy.deepcopy(config)
+        other["apps"]["http"]["servers"]["srv0"]["routes"][0]["handle"][0]["hide"][0] = "/different"
+        self.assertNotEqual(privacy._normalized_auto_hidden_config(other), normalized)
+
+    def test_non_file_server_hides_and_routes_never_normalized(self):
+        config = {"apps": {"http": {"servers": {"srv0": {"routes": [
+            {"handle": [{"handler": "reverse_proxy", "hide": ["/dev/stdin"]}]}
+        ]}}}}}
+        self.assertEqual(privacy._normalized_auto_hidden_config(config), config)
+        other = copy.deepcopy(config)
+        other["apps"]["http"]["servers"]["srv0"]["routes"][0]["handle"][0]["hide"][0] = "/etc/caddy/Caddyfile"
+        self.assertNotEqual(privacy._normalized_auto_hidden_config(other), config)
+
     def test_only_logging_change_is_accepted(self):
         before = {"apps": {"http": {"route": "same"}}, "admin": {"listen": "localhost:2019"}}
         after = copy.deepcopy(before)
@@ -130,7 +156,7 @@ class RealCaddyPrivacyTests(unittest.TestCase):
     def test_candidate_matches_live_disposable_caddy(self):
         with tempfile.TemporaryDirectory() as tmp:
             config = Path(tmp) / "Caddyfile"
-            config.write_text(":8080 {\n respond ok\n}\n")
+            config.write_text(":8080 {\n root * /srv\n file_server\n}\n")
             name = "socialmei-ig-candidate-" + uuid4().hex[:10]
             try:
                 subprocess.run(
@@ -151,7 +177,7 @@ class RealCaddyPrivacyTests(unittest.TestCase):
                 else:
                     self.fail("Disposable Caddy admin API unavailable")
                 original, candidate = privacy._candidate(name)
-                self.assertIn("respond ok", original)
+                self.assertIn("file_server", original)
                 self.assertIn("log default", candidate)
                 self.assertNotIn("log default", original)
             finally:
