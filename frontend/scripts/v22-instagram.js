@@ -228,13 +228,20 @@
       return { ...state };
     },
   };
-  const returned = /^#instagram=(connected|failed)$/.exec(location.hash);
-  if (returned) go("/config/integracoes");
+  // Bootstrap consumes the callback fragment before the native router starts.
+  // Use the one-time result only for a message, never as proof of a connection.
+  const legacyReturn = /^#instagram=(connected|failed)$/.exec(location.hash);
+  const callbackOutcome = legacyReturn?.[1] ||
+    (["connected", "failed"].includes(window.__socialmeiInstagramCallbackOutcome)
+      ? window.__socialmeiInstagramCallbackOutcome
+      : null);
+  delete window.__socialmeiInstagramCallbackOutcome;
+  if (legacyReturn) go("/config/integracoes");
   paintAll();
   refresh().then(() => {
-    if (returned) {
+    if (callbackOutcome) {
       details();
-      if (returned[1] === "failed")
+      if (callbackOutcome === "failed")
         toast("A última autorização não foi concluída. Confira a situação acima.");
     }
   });
