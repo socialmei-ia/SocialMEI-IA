@@ -3,9 +3,9 @@
 services:
   team-api:
     networks:
-      database: {}
-      api: {}
-      egress: {}
+      database:
+      api:
+      egress:
 
 networks:
   egress:
