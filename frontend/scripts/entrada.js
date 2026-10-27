@@ -1205,7 +1205,8 @@
     }
     $("#fE").hidden = on;
     $("#fW").hidden = !on;
-    $("#panE > .pxb").hidden = on; /* o aviso de e-mail e senha não vale no modo código */
+    var aviso = $("#panE > .pxb");
+    if (aviso) aviso.hidden = on; /* o aviso de e-mail e senha não vale no modo código */
     waEtapa = 1;
     $("#wS1").hidden = false;
     $("#wS2").hidden = true;
@@ -2221,12 +2222,10 @@
       var el = $(selector);
       if (el) el.textContent = value;
     };
-    trocar(
-      "#panC .pxb span",
-      "Sua conta e seu negócio são criados de verdade. A senha é protegida no servidor.",
-    );
-    trocar("#panE .pxb span", "Entre com o e-mail e a senha da sua conta real no SocialMEI.");
-    trocar(".hero-top .badge", "Contas e dados de negócio armazenados com segurança");
+    $$("#panC > .pxb, #panE > .pxb").forEach(function (note) {
+      note.remove();
+    });
+    trocar(".hero-top .badge", "Atendimento e gestão para o seu negócio");
     trocar(
       "#como .step:first-child p",
       "Nome, e-mail e uma senha. Sua conta e seu negócio são armazenados no SocialMEI.",
@@ -2251,10 +2250,9 @@
       "As prévias exibidas são exemplos; cada conta real possui seu espaço privado.",
     );
     var exemplo = $("#panC .chk span.m");
-    if (exemplo)
-      exemplo.textContent = "(documentos sujeitos à revisão antes do lançamento público)";
+    if (exemplo) exemplo.remove();
     var acesso = $('#demo a[href="#/cadastro"]');
-    if (acesso) acesso.textContent = "Criar conta real";
+    if (acesso) acesso.textContent = "Criar conta";
     var button = $("[data-demo-app]");
     if (button) button.textContent = "Entrar para experimentar";
   }

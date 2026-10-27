@@ -288,7 +288,7 @@
   function mountReport(view) {
     if (view.querySelector("[data-sm-reports]")) return;
     const section = panel(
-      "Dados reais do PostgreSQL",
+      "Dados do seu negócio",
       "Indicadores por negócio. As informações de demonstração não entram nesta consulta.",
     );
     section.dataset.smReports = "true";

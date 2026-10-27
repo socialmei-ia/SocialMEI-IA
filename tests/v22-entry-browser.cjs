@@ -106,9 +106,9 @@ module.exports = async function v22EntryFlow(browser, origin) {
         (mode === "onboarding" ? "comecar" : mode === "register" ? "cadastro" : "entrar"),
     );
     if (mode === "register") {
-      assert.match(await page.locator("#panC .pxb").innerText(), /conta.*verdade/i);
-      assert.doesNotMatch(await page.locator("#panC .pxb").innerText(), /nenhuma conta real/i);
-      assert.match(await page.locator(".hero-top .badge").innerText(), /dados de negócio/i);
+      assert.equal(await page.locator("#panC > .pxb, #panE > .pxb").count(), 0);
+      assert.equal(await page.locator("#panC .chk span.m").count(), 0);
+      assert.match(await page.locator(".hero-top .badge").innerText(), /negócio/i);
       assert.doesNotMatch(
         await page.locator(".steps .step").first().locator("p").textContent(),
         /nada é enviado/i,
@@ -123,7 +123,7 @@ module.exports = async function v22EntryFlow(browser, origin) {
       );
     }
     if (mode === "login") {
-      assert.match(await page.locator("#panE > .pxb").innerText(), /conta real/i);
+      assert.equal(await page.locator("#panE > .pxb").count(), 0);
       assert(await page.locator("#waOpen").isDisabled());
       assert.match(await page.locator("#waOpenUnavailable").innerText(), /não está disponível/);
     }
