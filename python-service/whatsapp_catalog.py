@@ -133,10 +133,12 @@ def revoke(channel_id: int):
 
 def product_view(row):
     stock = row["estoque"]
+    # New catalog items may start with stock=0 before inventory is verified.
+    # Never tell a WhatsApp customer that the item is sold out from this default.
     available = (
         "servico_sem_estoque"
         if row["tipo"] == "Serviço"
-        else "em_estoque" if stock is not None and stock > 0 else "indisponivel"
+        else "em_estoque" if stock is not None and stock > 0 else "nao_confirmada"
     )
     return {
         "nome": row["nome"], "tipo": row["tipo"], "preco": str(row["preco"]),
