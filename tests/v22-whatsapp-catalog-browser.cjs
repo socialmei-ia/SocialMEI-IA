@@ -89,6 +89,13 @@ module.exports = async function (browser, origin) {
         await page.goto(origin + "/frontend/socialmei-app.html#/config/integracoes");
         const panel = page.locator("[data-wa-catalog]");
         await panel.getByText(/Consulta técnica desativada/).waitFor();
+        assert.match(
+          await page
+            .locator(".sw")
+            .filter({ has: page.locator("b", { hasText: "WhatsApp" }) })
+            .innerText(),
+          /Canal cadastrado/,
+        );
         await page.getByRole("button", { name: "Ver catálogo", exact: true }).click();
         await panel.scrollIntoViewIfNeeded();
         await page.screenshot({ path: path.join(out, `${width}-${theme}.png`), fullPage: true });

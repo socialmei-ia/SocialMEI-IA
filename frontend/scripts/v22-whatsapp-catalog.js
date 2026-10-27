@@ -92,14 +92,19 @@
           (row) => row.querySelector("b")?.textContent.trim() === "WhatsApp",
         );
         if (native) {
-          const badge = native.querySelector(".chip");
-          if (badge)
-            badge.textContent = data.channels.some((channel) => channel.active)
-              ? "Canal cadastrado; conexão não verificada"
-              : "Aguardando canal autorizado";
+          const badge = native.querySelector(".chip, .st2");
+          if (badge) {
+            const value = data.channels.some((channel) => channel.active)
+              ? "Canal cadastrado"
+              : "Aguardando canal";
+            const text = [...badge.childNodes].find((child) => child.nodeType === Node.TEXT_NODE);
+            if (text) text.textContent = value;
+            else badge.appendChild(document.createTextNode(value));
+          }
           const button = native.querySelector("button");
           if (button) {
             button.disabled = false;
+            button.style.flexShrink = "0";
             button.textContent = "Ver catálogo";
             button.title = "Gerenciar acesso ao catálogo; não conecta um telefone";
             button.onclick = (event) => {
