@@ -1,0 +1,13 @@
+# Optional API internet egress. Apply only with the effective private overlays.
+# No published ports; database and API-to-gateway networks stay internal.
+services:
+  team-api:
+    networks:
+      database: {}
+      api: {}
+      egress: {}
+
+networks:
+  egress:
+    name: socialmei_team_egress
+    internal: false
