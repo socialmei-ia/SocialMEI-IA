@@ -144,6 +144,22 @@ class InstagramAdapterTests(unittest.TestCase):
                 adapter.exchange_code("synthetic-code", required_scopes=SCOPES)
             self.assertEqual(len(transport.requests), 1)
 
+    def test_permission_arrays_support_flat_and_wrapped_grants(self):
+        flat = {"access_token": TOKEN, "user_id": "9876", "permissions": list(SCOPES)}
+        for payload in (flat, {"data": [flat]}):
+            adapter, transport = self.adapter(response(payload))
+            grant = adapter.exchange_code("synthetic-code", required_scopes=SCOPES)
+            self.assertEqual(grant.scopes, frozenset(SCOPES))
+            self.assertEqual(grant.expires_at, 103600)
+            self.assertEqual(len(transport.requests), 1)
+
+    def test_permission_arrays_fail_closed_for_invalid_or_missing_scopes(self):
+        for permissions in ([], [BASIC], [BASIC, BASIC], [BASIC, None], [BASIC, "pages_read_engagement"], [[BASIC]], {}, None):
+            adapter, transport = self.adapter(response({"access_token": TOKEN, "user_id": "9876", "permissions": permissions}))
+            with self.subTest(permissions=permissions), self.assertRaises(ProviderError):
+                adapter.exchange_code("synthetic-code", required_scopes=SCOPES)
+            self.assertEqual(len(transport.requests), 1)
+
     def test_exchange_rejection_logs_schema_only_and_no_credentials(self):
         adapter, transport = self.adapter(response({"access_token": TOKEN, "user_id": "9876"}))
         with self.assertLogs("socialmei.instagram.adapter", level="WARNING") as logged:

@@ -258,6 +258,25 @@ class PersistentTests(unittest.TestCase):
         self.assertNotIn("synthetic-long-token", result.text)
         self.assertNotIn("synthetic-long-token", encrypted)
 
+    def test_flat_permission_array_persists_encrypted_connection(self):
+        provider = FakeTransport()
+        def flat_array(request):
+            result = provider(request)
+            if request.url == "https://api.instagram.com/oauth/access_token":
+                payload = json.loads(result.body)["data"][0]
+                payload["permissions"] = sorted(SCOPES)
+                payload.pop("expires_in")
+                return ProviderResponse(200, json.dumps(payload).encode())
+            return result
+        self.service = service(flat_array)
+        result = self.complete(self.begin())
+        self.assertEqual(result.status_code, 200, result.text)
+        connection = self.connection()
+        self.assertEqual(connection[4], "connected")
+        self.assertNotIn("synthetic-long-token", connection[2])
+        self.assertNotIn("synthetic-long-token", result.text)
+        self.assertEqual(len(provider.calls), 3)
+
     def test_durable_hash_ciphertext_status_and_replay(self):
         state = self.begin()
         with psycopg.connect(DB) as conn:

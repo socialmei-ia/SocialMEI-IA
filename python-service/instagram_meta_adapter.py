@@ -315,9 +315,11 @@ class InstagramAdapter:
         else:
             data = payload
         permissions = data.get("permissions")
-        if not isinstance(permissions, str):
+        if isinstance(permissions, str):
+            permissions = permissions.split(",")
+        elif not isinstance(permissions, list):
             raise ProviderError()
-        scopes = _scopes(permissions.split(","))
+        scopes = _scopes(permissions)
         if not required <= scopes:
             raise ProviderError()
         lifetime = data.get("expires_in", 3600)
