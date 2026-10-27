@@ -199,9 +199,18 @@
     }
   }
   function details() {
+    const canConnect =
+      state.phase === "ready" &&
+      state.oauth &&
+      !state.connected &&
+      ["owner", "admin"].includes(host.identity?.papel);
     info(
       "Conexão Instagram",
-      `<p>${label()}</p><p>${description()}</p><p>A autorização deve ser concluída pelo responsável pela conta. Tokens ficam no servidor. A automação do n8n não é ativada nem alterada por esta tela.</p><button type="button" class="btn o" data-ig-action="refresh">Consultar novamente</button>`,
+      `<p>${label()}</p><p>${description()}</p>${
+        canConnect
+          ? '<button type="button" class="btn" data-ig-action="connect">Conectar Instagram</button>'
+          : ""
+      }<button type="button" class="btn o" data-ig-action="refresh">Consultar novamente</button>`,
     );
   }
   document.addEventListener(

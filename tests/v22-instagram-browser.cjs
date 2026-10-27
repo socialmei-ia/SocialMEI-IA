@@ -37,7 +37,10 @@ module.exports = async function (browser, origin) {
         url = new URL(request.url());
       if (url.origin !== origin) {
         external.push(url.hostname);
-        if (url.hostname === "www.instagram.com" && ["connect", "connect-frame"].includes(mode))
+        if (
+          url.hostname === "www.instagram.com" &&
+          ["connect", "connect-frame", "failed-callback"].includes(mode)
+        )
           return route.fulfill({
             contentType: "text/html",
             body: "<h1>Autorização oficial simulada no teste</h1>",
@@ -165,6 +168,13 @@ module.exports = async function (browser, origin) {
             .count(),
           1,
         );
+        const authorize = page.locator("dialog[open] [data-ig-action=connect]");
+        assert.equal(await authorize.count(), mode === "failed-callback" ? 1 : 0);
+        if (mode === "failed-callback") {
+          await authorize.click();
+          await page.waitForURL("https://www.instagram.com/oauth/authorize?**");
+          assert.equal(posts.length, 1);
+        }
       } else if (["connect", "connect-frame", "invalid-url", "member"].includes(mode)) {
         if (mode === "connect-frame") {
           await page.evaluate(() => go("/divul"));
