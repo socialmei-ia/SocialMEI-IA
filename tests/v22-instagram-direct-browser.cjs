@@ -1,7 +1,7 @@
 /* Synthetic transport; real native inbox composer, review and receipt. */
 const assert = require("node:assert/strict");
 module.exports = async function (browser, origin) {
-  for (const mode of ["disabled", "confirmed", "uncertain"])
+  for (const mode of ["disabled", "confirmed", "uncertain", "changed"])
     for (const width of [1440, 390])
       for (const theme of ["light", "dark"]) {
         const context = await browser.newContext({
@@ -13,7 +13,8 @@ module.exports = async function (browser, origin) {
           external = [],
           writes = [];
         let jobs = [],
-          runs = 0;
+          runs = 0,
+          approvedRevision = null;
         const identity = {
           usuario: { id: 91, nome: "Operador", email: "operator@example.test" },
           negocio: { id: 17, nome: "Negócio fictício", slug: "synthetic", configuracao: {} },
@@ -94,9 +95,16 @@ module.exports = async function (browser, origin) {
                 },
               ];
             } else if (p.endsWith("/approve")) {
-              assert.equal(request.postDataJSON().expected_revision, 1);
+              approvedRevision = request.postDataJSON().expected_revision;
+              if (mode === "changed" && approvedRevision !== jobs[0].revision)
+                return route.fulfill({
+                  status: 409,
+                  json: { detail: "Rascunho alterado; revise novamente." },
+                });
+              if (mode !== "changed") assert.equal(approvedRevision, 1);
               jobs[0].status = "approved";
             } else if (p.endsWith("/run")) {
+              assert.equal(request.postDataJSON().expected_revision, 1);
               runs++;
               jobs[0].status = mode;
               jobs[0].attempts = 1;
@@ -140,6 +148,38 @@ module.exports = async function (browser, origin) {
             assert(await send.isDisabled());
             await page.keyboard.press("Escape");
             assert.equal(runs, 0);
+          } else if (mode === "changed") {
+            jobs = [{ ...jobs[0], text: "Texto alterado em outra sessão.", revision: 2 }];
+            // Reproduce an asynchronous refresh while the original review stays open.
+            await Promise.all([
+              page.waitForResponse(
+                (r) => r.url().endsWith("/instagram/direct/jobs") && r.request().method() === "GET",
+              ),
+              page.evaluate(() => {
+                [...document.querySelectorAll("[data-ig-reply] button")]
+                  .find((button) => button.textContent === "Consultar respostas")
+                  .click();
+              }),
+            ]);
+            await page.waitForFunction(() =>
+              document
+                .querySelector("[data-ig-reply] select")
+                .textContent.includes("Texto alterado"),
+            );
+            assert(
+              await dialog
+                .getByText("Prazo confirmado: cinco dias úteis.", { exact: true })
+                .isVisible(),
+            );
+            await send.click();
+            await dialog.getByText(/Rascunho alterado; revise novamente/).waitFor();
+            assert.equal(
+              approvedRevision,
+              1,
+              "Approval must use exactly the revision displayed for review",
+            );
+            assert.equal(runs, 0, "A changed draft must never be dispatched");
+            await dialog.getByRole("button", { name: "Fechar", exact: true }).click();
           } else {
             await send.click();
             await dialog

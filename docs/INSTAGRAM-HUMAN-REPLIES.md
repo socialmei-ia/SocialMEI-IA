@@ -6,6 +6,10 @@ Na conversa Instagram real, o operador prepara um rascunho no servidor. A lista 
 
 Cada aprovação/execução usa o contrato durável existente. O botão fica bloqueado durante a requisição; resultado incerto ou envio em andamento não gera nova tentativa automática. A consulta da lista é GET. Perda de confirmação exige consultar o registro antes de qualquer outra resposta. O histórico incorpora apenas saídas `confirmed` com identificador do provedor e indica confirmação pela Meta; rascunhos não viram mensagens enviadas.
 
+A revisão captura uma cópia imutável do texto e da revisão mostrados no modal. A aprovação usa essa revisão, e o envio nativo também informa `expected_revision`, conferido sob bloqueio no servidor antes de registrar uma tentativa. Alteração/reaprovação concorrente exige nova revisão humana e não envia o texto modificado. O campo é opcional somente para preservar os clientes anteriores da API.
+
+Limitação herdada: a consulta atual retorna até100 respostas recentes do negócio, filtradas por conversa na interface; não representa um arquivo completo das respostas antigas. Paginação por conversa fica pendente antes de uso com alto volume. Não interpretar ausência na lista como prova de que uma tentativa antiga não existiu.
+
 ## Remetente único
 
 `SOCIALMEI_INSTAGRAM_RUNTIME_SEND_ENABLED=true` sozinho não habilita mais dispatch. Também são exigidos ingresso ativo e `SOCIALMEI_INSTAGRAM_DIRECT_OWNER=dashboard`. Padrão: `unassigned`, envio desligado. `n8n` ou valor não reconhecido mantém o transporte de saída bloqueado, preservando OAuth e preparação.

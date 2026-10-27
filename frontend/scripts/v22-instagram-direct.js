@@ -90,8 +90,8 @@
     }
   }
   function review(state) {
-    const job = state.job;
-    if (!job || state.busy) return;
+    if (!state.job || state.busy) return;
+    const job = Object.freeze({ ...state.job });
     dialog?.close();
     const box = element("dialog");
     dialog = box;
@@ -129,7 +129,7 @@
       close.disabled = true;
       feedback.textContent = "Registrando a tentativa. Não feche esta janela.";
       try {
-        let current = state.job;
+        let current = job;
         if (current.status === "draft")
           current = await host.request(
             "/instagram/direct/jobs/" + current.id + "/approve",
@@ -137,7 +137,9 @@
             { operation_id: crypto.randomUUID(), expected_revision: current.revision },
           );
         if (identity !== scope()) return;
-        current = await host.request("/instagram/direct/jobs/" + current.id + "/run", "POST", {});
+        current = await host.request("/instagram/direct/jobs/" + current.id + "/run", "POST", {
+          expected_revision: job.revision,
+        });
         if (identity !== scope()) return;
         state.job = current;
         feedback.textContent = labels[current.status] || "Consulte o estado da resposta.";
