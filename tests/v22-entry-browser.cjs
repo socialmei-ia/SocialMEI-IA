@@ -198,6 +198,9 @@ module.exports = async function v22EntryFlow(browser, origin) {
       ]);
       assert.equal(await page.locator("#rToken").inputValue(), "");
       await page.locator("#rGo").click();
+      await page.waitForURL("**#/entrar");
+      await page.locator("#panR").waitFor({ state: "hidden" });
+      await page.waitForFunction(() => document.activeElement?.id === "ePassL");
       assert.equal(await page.locator("#panR").isVisible(), false);
       assert.equal(
         await page.locator("#ePassL").evaluate((e) => e === document.activeElement),
