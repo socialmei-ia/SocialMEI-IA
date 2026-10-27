@@ -27,7 +27,7 @@ class WhatsAppCatalogContracts(unittest.TestCase):
     def test_products_distinguish_stock_and_services(self):
         base = {"nome": "Cuscuz", "tipo": "Produto", "preco": Decimal("14.50"), "estoque": 2}
         self.assertEqual(product_view(base)["disponibilidade"], "em_estoque")
-        self.assertEqual(product_view({**base, "estoque": 0})["disponibilidade"], "indisponivel")
+        self.assertEqual(product_view({**base, "estoque": 0})["disponibilidade"], "nao_confirmada")
         self.assertEqual(
             product_view({**base, "tipo": "Serviço", "estoque": None})["disponibilidade"],
             "servico_sem_estoque",
