@@ -78,9 +78,7 @@ module.exports = async function (browser, origin) {
             status: ["connected", "successful-callback"].includes(mode)
               ? "connected"
               : "disconnected",
-            credential_available: ["connected", "successful-callback"].includes(
-              mode,
-            ),
+            credential_available: ["connected", "successful-callback"].includes(mode),
           },
         });
       if (p === "/instagram/meta/oauth/start") {
@@ -149,17 +147,9 @@ module.exports = async function (browser, origin) {
         }),
         true,
       );
-      if (
-        ["forged-callback", "successful-callback", "failed-callback"].includes(
-          mode,
-        )
-      ) {
+      if (["forged-callback", "successful-callback", "failed-callback"].includes(mode)) {
         assert(page.url().endsWith("#/config/integracoes"));
-        assert.equal(
-          await page.locator(".e404").count(),
-          0,
-          "OAuth return never renders 404",
-        );
+        assert.equal(await page.locator(".e404").count(), 0, "OAuth return never renders 404");
         await page.getByRole("heading", { name: "Configurações" }).waitFor();
         assert.equal(
           await page
