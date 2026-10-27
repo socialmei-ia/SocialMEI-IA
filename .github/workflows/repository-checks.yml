@@ -24,6 +24,7 @@ on:
         feat/instagram-durable-webhook,
         feat/instagram-direct-outbox,
         feat/instagram-posts-inbox-real,
+        release/socialmei-functional-integrations-20261026,
         feat/opportunity-planning-persistence,
         feat/waha-durable-ingress,
       ]
