@@ -9,22 +9,12 @@
         method GET
         path /api/v1/integracoes/resumo /api/v1/integracoes/clientes /api/v1/integracoes/produtos /api/v1/integracoes/vendas /api/v1/integracoes/financeiro /api/v1/integracoes/whatsapp/menu
     }
-    # Meta must reach this endpoint without the browser Basic Auth challenge.
+    # Meta webhook is public but must be verified by the API; never expose a signing secret.
     # The API authenticates POST by raw HMAC signature and GET by verify token.
     @instagram_webhook path /webhooks/instagram
-    @browser_requests {
-        not path /media/instagram/*
-        not path /webhooks/instagram
-        not {
-            method GET
-            path /api/v1/integracoes/resumo /api/v1/integracoes/clientes /api/v1/integracoes/produtos /api/v1/integracoes/vendas /api/v1/integracoes/financeiro
-        }
-    }
-    # Literal order: authorization and Origin checks precede every handler.
+    # Public site; application authentication and provider signatures remain enforced by the API.
+    # Do not restore gateway-wide HTTP Basic Auth for website visitors.
     route {
-        basic_auth @browser_requests {
-            import /etc/caddy/private/users.Caddyfile
-        }
         respond @foreign_origin "Origem não permitida." 403
         header {
             X-Content-Type-Options nosniff
@@ -60,10 +50,9 @@
                 header_up -Authorization
             }
         }
+        # Container healthchecks use the API privately; do not expose database readiness publicly.
         handle /health/db {
-            reverse_proxy team-api:8000 {
-                header_up -Authorization
-            }
+            respond "Não encontrado." 404
         }
         handle_path /frontend/* {
             root * /srv/frontend
