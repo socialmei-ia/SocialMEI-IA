@@ -5,7 +5,6 @@ download. Monetary amounts are returned as decimal strings to avoid float loss.
 """
 import csv
 import io
-from datetime import date
 
 from fastapi import APIRouter, HTTPException, Query, Response
 from psycopg.rows import dict_row
@@ -29,7 +28,7 @@ def _stats(conn, workspace, days):
         "SELECT status,COUNT(*)::bigint AS items,COALESCE(SUM(valor),0) AS total "
         "FROM socialmei.crm_vendas "
         "WHERE workspace_id=%s AND NOT excluida "
-        "AND data>=CURRENT_DATE-(%s::integer - 1) "
+        "AND data BETWEEN CURRENT_DATE-(%s::integer - 1) AND CURRENT_DATE "
         "GROUP BY status ORDER BY status",
         (workspace, days),
     ).fetchall()
@@ -40,7 +39,7 @@ def _stats(conn, workspace, days):
         "SELECT tipo,status,COUNT(*)::bigint AS items,COALESCE(SUM(valor),0) AS total "
         "FROM socialmei.crm_financeiro "
         "WHERE workspace_id=%s AND NOT excluida "
-        "AND vencimento>=CURRENT_DATE-(%s::integer - 1) "
+        "AND vencimento BETWEEN CURRENT_DATE-(%s::integer - 1) AND CURRENT_DATE "
         "GROUP BY tipo,status ORDER BY tipo,status",
         (workspace, days),
     ).fetchall()
@@ -59,7 +58,7 @@ def _stats(conn, workspace, days):
     ).fetchone()
     return {
         "period_days": days,
-        "as_of": date.today().isoformat(),
+        "as_of": conn.execute("SELECT CURRENT_DATE AS as_of").fetchone()["as_of"].isoformat(),
         "totals": dict(counts),
         "sales_by_status": sales,
         "finance_by_type_and_status": finance,
@@ -71,7 +70,7 @@ def summary(days: int):
     workspace = scope()
     with connect() as conn:
         conn.row_factory = dict_row
-        conn.execute("SET TRANSACTION READ ONLY")
+        conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
         conn.execute("SET LOCAL statement_timeout='3000ms'")
         return _stats(conn, workspace, days)
 
