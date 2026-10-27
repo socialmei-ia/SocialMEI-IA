@@ -285,14 +285,20 @@ class InstagramAdapter:
         return grant
 
     def _exchange_grant(self, payload, required):
-        data = payload.get("data")
-        if (
-            not isinstance(data, list)
-            or len(data) != 1
-            or not isinstance(data[0], dict)
-        ):
-            raise ProviderError()
-        data = data[0]
+        # Instagram Login may return the authorized short-lived token directly,
+        # or in a single-entry data array. Never guess between ambiguous grants.
+        wrapped = payload.get("data")
+        if "data" in payload:
+            if (
+                not isinstance(wrapped, list)
+                or len(wrapped) != 1
+                or not isinstance(wrapped[0], dict)
+                or any(key in payload for key in ("access_token", "user_id", "permissions"))
+            ):
+                raise ProviderError()
+            data = wrapped[0]
+        else:
+            data = payload
         permissions = data.get("permissions")
         if not isinstance(permissions, str):
             raise ProviderError()
