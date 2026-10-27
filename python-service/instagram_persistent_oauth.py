@@ -4,6 +4,7 @@ No default transport or keys, GET callback, token delivery to clients, provider
 revocation, message/publication worker, or production configuration is installed.
 """
 
+import logging
 import re
 import secrets
 from contextlib import contextmanager
@@ -24,6 +25,15 @@ from instagram_token_vault import TokenBinding, TokenVault, VaultError
 
 router = APIRouter(prefix="/api/v1/instagram/meta", tags=["prepared Instagram OAuth"])
 STATE_TTL_SECONDS = 300
+LOGGER = logging.getLogger("socialmei.instagram.oauth")
+
+
+def _log_oauth_failure(stage, status=None):
+    """Only fixed stage names and vetted HTTP status codes; never provider text."""
+    if type(status) is int and 100 <= status <= 599:
+        LOGGER.warning("instagram_oauth_failed stage=%s provider_http_status=%d", stage, status)
+    else:
+        LOGGER.warning("instagram_oauth_failed stage=%s", stage)
 
 
 def oauth_service(request: Request = None):
@@ -202,18 +212,24 @@ class InstagramOAuthService:
         # The claim commits before HTTP. A timeout must never reopen the one-use code.
         if error is not None:
             self._failed(user, state_hash)
+            _log_oauth_failure("consent_denied")
             raise HTTPException(400, "Autorização não concluída. Inicie novamente.")
         grant = identity = None
+        stage = "exchange"
+        provider_status = None
         try:
             short = self.adapter.exchange_code(
                 code, required_scopes=self.required_scopes
             )
+            stage = "extend"
             grant = self.adapter.extend_token(short)
+            stage = "identity"
             identity = self.adapter.get_identity(grant)
-        except ProviderError:
-            pass
+        except ProviderError as exc:
+            provider_status = exc.status_code
         if grant is None or identity is None:
             self._failed(user, state_hash)
+            _log_oauth_failure(stage, provider_status)
             raise HTTPException(
                 502, "Não foi possível concluir a conexão. Inicie uma nova autorização."
             )
@@ -226,6 +242,7 @@ class InstagramOAuthService:
             pass
         if encrypted is None:
             self._failed(user, state_hash)
+            _log_oauth_failure("vault")
             raise HTTPException(503, "Armazenamento seguro indisponível.")
         conflict = False
         try:
@@ -280,6 +297,7 @@ class InstagramOAuthService:
             conflict = True
         if conflict:
             self._failed(user, state_hash)
+            _log_oauth_failure("connection_conflict")
             raise HTTPException(409, "Conta Instagram indisponível para esta conexão.")
         return {
             "status": "connected",

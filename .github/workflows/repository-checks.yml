@@ -23,6 +23,7 @@ on:
         feat/instagram-persistent-oauth,
         feat/instagram-durable-webhook,
         feat/instagram-direct-outbox,
+        feat/instagram-posts-inbox-real,
         feat/opportunity-planning-persistence,
         feat/waha-durable-ingress,
       ]
