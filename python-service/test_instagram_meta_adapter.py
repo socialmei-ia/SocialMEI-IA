@@ -92,6 +92,58 @@ class InstagramAdapterTests(unittest.TestCase):
             self.assertNotIn(value, repr(grant))
             self.assertNotIn(value, repr(adapter))
 
+    def test_flat_instagram_login_grant_exchanges_and_identifies(self):
+        # Production Instagram Login can return a top-level short-lived grant.
+        flat = {
+            "access_token": TOKEN,
+            "user_id": 9876,
+            "permissions": ",".join(SCOPES),
+        }
+        long = {
+            "access_token": TOKEN + "-long",
+            "token_type": "bearer",
+            "expires_in": 5184000,
+        }
+        profile = {
+            "id": "9876",
+            "username": "synthetic_mei",
+            "account_type": "BUSINESS",
+        }
+        adapter, transport = self.adapter(
+            response(flat), response(long), response(profile)
+        )
+        short = adapter.exchange_code("synthetic-code", required_scopes=SCOPES)
+        self.assertEqual(short.kind, "short")
+        self.assertEqual(short.scopes, frozenset(SCOPES))
+        extended = adapter.extend_token(short)
+        self.assertEqual(extended.kind, "long")
+        identity = adapter.get_identity(extended)
+        self.assertEqual(identity.username, "synthetic_mei")
+        self.assertEqual(len(transport.requests), 3)
+        for request in transport.requests:
+            self.assertNotIn(TOKEN, repr(request))
+            self.assertNotIn(SECRET, repr(request))
+
+    def test_flat_missing_or_ambiguous_grants_fail_closed(self):
+        flat = {
+            "access_token": TOKEN,
+            "user_id": "9876",
+            "permissions": ",".join(SCOPES),
+        }
+        for payload in (
+            {**flat, "data": [{**flat}]},
+            {**flat, "data": []},
+            {key: val for key, val in flat.items() if key != "permissions"},
+            {**flat, "permissions": BASIC},
+            {**flat, "permissions": ",".join(SCOPES) + ",pages_read_engagement"},
+            {**flat, "user_id": "not-numeric"},
+            {"data": None, **flat},
+        ):
+            adapter, transport = self.adapter(response(payload))
+            with self.subTest(keys=sorted(payload)), self.assertRaises(ProviderError):
+                adapter.exchange_code("synthetic-code", required_scopes=SCOPES)
+            self.assertEqual(len(transport.requests), 1)
+
     def test_no_default_network_transport(self):
         with self.assertRaises(TypeError):
             InstagramAdapter(
