@@ -47,6 +47,7 @@ async function run() {
     await require("./v22-instagram-publisher-browser.cjs")(browser, origin);
     await require("./v22-knowledge-reporting-browser.cjs")(browser, origin);
     await require("./v22-report-viewer-browser.cjs")(browser, origin);
+    await require("./v22-whatsapp-catalog-browser.cjs")(browser, origin);
     const page = await browser.newPage({ reducedMotion: "reduce" });
     page.on("pageerror", (e) => errors.push(e.message));
     await page.route("**/*", (r) => {

@@ -59,6 +59,10 @@
     knowledge.src = "scripts/v22-knowledge-reporting.js";
     knowledge.onerror = () => console.warn("Gestão de conhecimento indisponível.");
     document.body.appendChild(knowledge);
+    const whatsapp = document.createElement("script");
+    whatsapp.src = "scripts/v22-whatsapp-catalog.js";
+    whatsapp.onerror = () => console.warn("Consulta de catálogo WhatsApp indisponível.");
+    document.body.appendChild(whatsapp);
     const collaborator = document.createElement("script");
     collaborator.src = "scripts/v22-report-access.js";
     collaborator.onerror = () => console.warn("Acesso aos relatórios indisponível.");
