@@ -16,7 +16,7 @@ O fluxo WAHA existente deve extrair a seleção digitada pelo cliente, identific
 
 Cabeçalho: `Authorization: Bearer <SEGREDO_PRIVADO_NO_N8N>`.
 
-Resposta limitada a no máximo 10 itens do catálogo **real**, somente no workspace vinculado ao token e à instância WAHA. Opções: 0 menu, 1 produtos, 2 preço/estoque, 3 serviços, 4 solicitar orçamento humano, 5 atendimento humano. A opção 2 sem nome pede esclarecimento. Sem produto em estoque, retorna `indisponivel`; serviços não inventam estoque. A busca é somente leitura e não altera inventário.
+Resposta limitada a no máximo 10 itens do catálogo **real**, somente no workspace vinculado ao token e à instância WAHA. Opções: 0 menu, 1 produtos, 2 preço/estoque, 3 serviços, 4 solicitar orçamento humano, 5 atendimento humano. A opção 2 sem nome pede esclarecimento. Quando o estoque de um produto estiver registrado como `0` ou indisponível sem confirmação de inventário, retorna `nao_confirmada` (não afirma que está esgotado); produtos com contagem positiva retornam `em_estoque`. O campo `estoque` mantém a quantidade registrada e precisa ser conferido pelo responsável. Serviços não inventam estoque. A busca é somente leitura e não altera inventário.
 
 ## Antes de habilitar
 
