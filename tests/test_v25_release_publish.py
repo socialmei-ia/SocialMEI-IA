@@ -122,12 +122,63 @@ class PublisherTests(unittest.TestCase):
             manifest=[{'Config':config_name,'RepoTags':['old-team-api','old-team-gateway'],'Layers':['layer.tar']}]
             archive(folder/'images.tar.gz',{'manifest.json':json.dumps(manifest).encode(),config_name:config,'layer.tar':b'fixture'})
             archive(folder/'runtime-config.tar.gz',{str(folder/'live.Caddyfile').lstrip('/'):b'protected fixture'})
+            for name in ('containers.json','image-ids.txt'):
+                (folder/name).chmod(0o600)
             p.rollback_material()
             (folder/'image-ids.txt').write_text('sha256:'+'f'*64+'\n')
             with self.assertRaises(RuntimeError):p.rollback_material()
             (folder/'image-ids.txt').write_text(good+'\n')
             archive(folder/'images.tar.gz',{'manifest.json':json.dumps(manifest).encode(),config_name:b'wrong config','layer.tar':b'fixture'})
             with self.assertRaises(RuntimeError):p.rollback_material()
+
+    def test_oci_archive_checks_index_manifest_config_chain(self):
+        import io, tarfile
+        m=self.module()
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'images.tar.gz'
+            blobs={}
+            def blob(value):
+                data=json.dumps(value).encode()
+                key='sha256:'+hashlib.sha256(data).hexdigest()
+                blobs['blobs/sha256/'+key[7:]]=data
+                return {'digest':key,'size':len(data)}
+            config=blob({'architecture':'amd64','os':'linux'})
+            layer=blob({'synthetic':'layer'})
+            manifest=blob({'schemaVersion':2,'config':config,'layers':[layer]})
+            manifest['platform']={'os':'linux','architecture':'amd64'}
+            root=blob({'schemaVersion':2,'manifests':[manifest]})
+            tag='synthetic:old'
+            def save(tamper=None):
+                entries=dict(blobs)
+                entries['index.json']=json.dumps({'manifests':[root]}).encode()
+                entries['manifest.json']=json.dumps([{
+                    'Config':'blobs/sha256/'+config['digest'][7:],
+                    'RepoTags':[tag],
+                    'Layers':['blobs/sha256/'+layer['digest'][7:]]
+                }]).encode()
+                if tamper: tamper(entries)
+                with tarfile.open(path,'w:gz') as archive:
+                    for name,data in entries.items():
+                        info=tarfile.TarInfo(name);info.size=len(data)
+                        archive.addfile(info,io.BytesIO(data))
+            save()
+            m.verify_image_archive(path,{tag:root['digest']})
+            # Classic config-addressed saves remain supported.
+            m.verify_image_archive(path,{tag:config['digest']})
+            for change in (
+                lambda e:e.pop('blobs/sha256/'+manifest['digest'][7:]),
+                lambda e:e.update({'blobs/sha256/'+root['digest'][7:]:b'{}'}),
+                lambda e:e.update({'blobs/sha256/'+manifest['digest'][7:]:b'{}'}),
+                lambda e:e.update({'blobs/sha256/'+config['digest'][7:]:b'{}'}),
+                lambda e:e.pop('blobs/sha256/'+layer['digest'][7:]),
+                lambda e:e.update({'index.json':b'{"manifests":[]}'}),
+            ):
+                save(change)
+                with self.assertRaises(RuntimeError):
+                    m.verify_image_archive(path,{tag:root['digest']})
+            save()
+            with self.assertRaises(RuntimeError):
+                m.verify_image_archive(path,{tag:'sha256:'+'f'*64})
 
     def test_dirty_checkout_is_rejected_without_mutation(self):
         m = self.module()

@@ -34,6 +34,78 @@ DISABLED_FLAGS = ('SOCIALMEI_INSTAGRAM_RUNTIME_SEND_ENABLED',
                   'SOCIALMEI_INSTAGRAM_PUBLISH_ENABLED')
 
 
+
+def verify_image_archive(path, expected):
+    """Verify classic config IDs or OCI index IDs without loading any image."""
+    members=set(); metadata={}; total=0
+    with tarfile.open(path,'r|gz') as archive:
+        for member in archive:
+            name=member.name.removeprefix('./')
+            if not member.isfile():continue
+            require(name not in members,'Duplicate image archive entry.')
+            members.add(name)
+            is_metadata=(name in ('manifest.json','index.json') or
+                         re.fullmatch(r'(?:blobs/sha256/)?[0-9a-f]{64}(?:\.json)?',name))
+            if is_metadata and member.size<=2*1024*1024:
+                total+=member.size
+                require(total<=64*1024*1024,'Oversized image archive metadata.')
+                metadata[name]=archive.extractfile(member).read()
+    def decode(name):
+        require(name in metadata,'Image metadata missing or oversized.')
+        try:return json.loads(metadata[name])
+        except (ValueError,UnicodeError):raise RuntimeError('Invalid image metadata.') from None
+    def descriptor(value):
+        require(isinstance(value,dict),'Invalid OCI descriptor.')
+        key=value.get('digest','')
+        require(isinstance(key,str) and re.fullmatch(r'sha256:[0-9a-f]{64}',key),'Invalid OCI digest.')
+        name='blobs/sha256/'+key[7:]
+        require(name in metadata,'OCI metadata blob missing.')
+        content=metadata[name]
+        require(len(content)==value.get('size') and 'sha256:'+hashlib.sha256(content).hexdigest()==key,'OCI metadata digest or size differs.')
+        return name,decode(name)
+    manifest=decode('manifest.json')
+    require(isinstance(manifest,list) and 1<=len(manifest)<=10,'Docker save manifest missing.')
+    for tag,image_id in expected.items():
+        rows=[r for r in manifest if isinstance(r,dict) and tag in (r.get('RepoTags') or [])]
+        require(len(rows)==1,'Archived image tag missing or duplicated.')
+        row=rows[0];config_name=row.get('Config')
+        require(isinstance(config_name,str) and config_name in metadata,'Archived image config missing.')
+        config_id='sha256:'+hashlib.sha256(metadata[config_name]).hexdigest()
+        layers=row.get('Layers')
+        require(isinstance(layers,list) and all(isinstance(n,str) and n in members for n in layers),'Archived image layer missing.')
+        if config_id==image_id:continue
+        index=decode('index.json')
+        require(isinstance(index,dict) and isinstance(index.get('manifests'),list),'OCI archive index missing.')
+        roots=[d for d in index['manifests'] if isinstance(d,dict) and d.get('digest')==image_id]
+        require(len(roots)==1,'Archived OCI image differs from baseline.')
+        matches=[]
+        def walk(value,depth=0):
+            require(depth<=4,'OCI image index nesting exceeds limit.')
+            name,document=descriptor(value)
+            require(isinstance(document,dict),'Invalid OCI image document.')
+            if 'manifests' in document:
+                require(isinstance(document['manifests'],list),'Invalid OCI image index.')
+                for child in document['manifests']:
+                    require(isinstance(child,dict),'Invalid OCI image child.')
+                    platform=child.get('platform',{})
+                    if platform.get('os')=='linux' and platform.get('architecture')=='amd64':
+                        walk(child,depth+1)
+                return
+            config=document.get('config')
+            cname,cdata=descriptor(config)
+            if cname!=config_name:return
+            require(isinstance(cdata,dict) and cdata.get('os')=='linux' and cdata.get('architecture')=='amd64','Unexpected rollback image platform.')
+            oci_layers=document.get('layers')
+            require(isinstance(oci_layers,list),'Invalid OCI layers.')
+            names=[]
+            for layer in oci_layers:
+                require(isinstance(layer,dict) and isinstance(layer.get('digest'),str) and re.fullmatch(r'sha256:[0-9a-f]{64}',layer['digest']),'Invalid OCI layer digest.')
+                names.append('blobs/sha256/'+layer['digest'][7:])
+            require(names==layers,'OCI layers differ from Docker manifest.')
+            matches.append(name)
+        walk(roots[0])
+        require(len(matches)==1,'Archived image config not bound to baseline OCI index.')
+
 def validate_flags(env):
     require(str(env.get('SOCIALMEI_AUTH_ENABLED', '')).lower() in ('true','1','yes','on'), 'Authentication must remain enabled.')
     require(all(str(env.get(key, 'false')).lower() in ('','false') for key in DISABLED_FLAGS), 'Provider activation is outside this release.')
@@ -184,24 +256,7 @@ class Publisher(legacy.Publisher):
             require(re.fullmatch(r'sha256:[0-9a-f]{64}',baseline['image_id']),'Invalid baseline image identity.')
             expected[image]=baseline['image_id']
         require(set(private_file(self.rollback_backup/'image-ids.txt').read_text().splitlines())==set(expected.values()),'Rollback image IDs differ.')
-        manifest=None; configs={}; members=set()
-        config_names={name for value in expected.values() for name in (value[7:]+'.json','blobs/sha256/'+value[7:])}
-        with tarfile.open(self.rollback_backup/'images.tar.gz','r|gz') as archive:
-            for member in archive:
-                name=member.name.removeprefix('./')
-                if not member.isfile():continue
-                require(name not in members,'Duplicate image archive entry.');members.add(name)
-                if name=='manifest.json' or name in config_names:
-                    require(member.size<=2*1024*1024,'Oversized image metadata.')
-                    content=archive.extractfile(member).read()
-                    if name=='manifest.json':manifest=json.loads(content)
-                    else:configs[name]='sha256:'+hashlib.sha256(content).hexdigest()
-        require(isinstance(manifest,list) and 1<=len(manifest)<=10,'Docker save manifest missing.')
-        for tag, image_id in expected.items():
-            rows=[r for r in manifest if tag in (r.get('RepoTags') or [])]
-            require(len(rows)==1 and configs.get(rows[0].get('Config'))==image_id,'Archived image differs from baseline.')
-            layers=rows[0].get('Layers')
-            require(isinstance(layers,list) and all(isinstance(name,str) and name in members for name in layers),'Archived image layer missing.')
+        verify_image_archive(self.rollback_backup/'images.tar.gz',expected)
         config_path=str(self.meta['gateway_config_source']).lstrip('/')
         found=0
         with tarfile.open(self.rollback_backup/'runtime-config.tar.gz','r|gz') as archive:

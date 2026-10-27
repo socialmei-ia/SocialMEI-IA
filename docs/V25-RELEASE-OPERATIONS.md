@@ -27,4 +27,6 @@ A janela operacional deve excluir edições concorrentes de Compose/env/Caddy. O
 
 ## Verificações desta implementação
 
-20 testes focados do publicador,141 operacionais (14 opt-in não executados na chamada geral),17 focados do preparador incluindo Caddy real e compatibilidade do parser com um Docker-save real. Os testes do publicador usam fixtures sintéticas; nenhum corte real foi executado por esses testes. SMTP/Meta/WAHA reais continuam fora dessa evidência.
+21 testes focados do publicador,142 operacionais (14 opt-in não executados na chamada geral),17 focados do preparador incluindo Caddy real e compatibilidade do parser com um Docker-save real. Os testes do publicador usam fixtures sintéticas; nenhum corte real foi executado por esses testes. SMTP/Meta/WAHA reais continuam fora dessa evidência.
+
+O backup Docker aceita IDs clássicos de configuração e índices OCI do armazenamento containerd. Para OCI, verifica o hash e tamanho do índice, manifesto linux/amd64 e configuração, além da correspondência das camadas com o manifesto Docker. Nenhum hash do backup é reescrito e nenhuma imagem é carregada durante a inspeção.
