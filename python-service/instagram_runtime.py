@@ -62,7 +62,10 @@ def build_runtime():
         if not _flag(values["privacy_reviewed"]):
             raise ValueError("Revisão de privacidade pendente.")
         incoming = _flag(values["ingress"])
-        sending = _flag(values["send"])
+        requested_send = _flag(values["send"])
+        # The existing n8n responder remains the sender until an operator has
+        # reviewed the live contract and explicitly assigned dashboard ownership.
+        sending = requested_send and incoming and os.getenv("SOCIALMEI_INSTAGRAM_DIRECT_OWNER", "unassigned") == "dashboard"
         publishing = _flag(os.getenv("SOCIALMEI_INSTAGRAM_PUBLISH_ENABLED", "false"))
         scopes = frozenset(os.getenv("SOCIALMEI_INSTAGRAM_SCOPES", "").split(","))
         if (

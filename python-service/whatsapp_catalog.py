@@ -99,6 +99,7 @@ def provision(data: ChannelAccess):
             (user["workspace_id"], data.channel_id,
              channel["instancia"], token_digest(token), user["id"]),
         )
+        conn.execute("INSERT INTO socialmei.auth_auditoria(user_id,acao) VALUES(%s,'whatsapp_catalog_rotated')", (user['id'],))
     # One-time bearer: display only once and save it in the n8n credentials vault.
     return {"instance": channel["instancia"], "token_once": token,
             "note": "Guarde este token apenas nas credenciais privadas do n8n."}
@@ -110,8 +111,13 @@ def access_status():
     with connect() as conn:
         conn.row_factory = dict_row
         rows = conn.execute(
-            "SELECT channel_id,instance,enabled,issued_at FROM socialmei.wa_catalog_access "
-            "WHERE workspace_id=%s ORDER BY channel_id LIMIT 100",
+            "SELECT c.id AS channel_id,c.instancia AS instance,c.nome AS name,c.ativo AS active,"
+            "c.envio_habilitado AS sending_enabled,c.estado_provedor AS provider_state,"
+            "c.verificado_em AS verified_at,COALESCE(a.enabled,false) AS enabled,"
+            "(a.channel_id IS NOT NULL) AS credential_configured,a.issued_at "
+            "FROM socialmei.crm_canais c LEFT JOIN socialmei.wa_catalog_access a "
+            "ON a.workspace_id=c.workspace_id AND a.channel_id=c.id "
+            "WHERE c.workspace_id=%s AND c.provedor='waha' ORDER BY c.id LIMIT 100",
             (user["workspace_id"],),
         ).fetchall()
     return {"enabled": enabled(), "channels": rows}
@@ -128,6 +134,7 @@ def revoke(channel_id: int):
         ).fetchone()
         if not row:
             raise HTTPException(404, "Canal não encontrado.")
+        conn.execute("INSERT INTO socialmei.auth_auditoria(user_id,acao) VALUES(%s,'whatsapp_catalog_revoked')", (user['id'],))
     return None
 
 

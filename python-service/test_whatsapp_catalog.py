@@ -62,6 +62,42 @@ class WhatsAppCatalogDatabaseTests(unittest.TestCase):
     invited = account_fixtures.AccountDatabaseTests.invited
     register = account_fixtures.AccountDatabaseTests.register
 
+    def test_channel_status_exposes_unprovisioned_channels_only_to_its_owner(self):
+        import psycopg
+        first = self.register("wa-manager@example.test")
+        other = self.register("wa-other@example.test")
+        with psycopg.connect(os.environ["TEST_DATABASE_URL"]) as conn:
+            channel = conn.execute(
+                "INSERT INTO socialmei.crm_canais(workspace_id,instancia,sessao,nome,ativo) "
+                "VALUES(%s,'private-instance','main','Loja',false) RETURNING id",
+                (first.identity['negocio']['id'],),
+            ).fetchone()[0]
+        data = first.get('/api/v1/whatsapp/catalog/access').json()
+        self.assertEqual([r['channel_id'] for r in data['channels']], [channel])
+        self.assertFalse(data['channels'][0]['active'])
+        self.assertFalse(data['channels'][0]['enabled'])
+        self.assertFalse(data['channels'][0]['credential_configured'])
+        self.assertEqual(other.get('/api/v1/whatsapp/catalog/access').json()['channels'], [])
+        self.assertNotIn('token', str(data))
+        self.assertEqual(first.post('/api/v1/whatsapp/catalog/access', json={'channel_id':channel}).status_code,404)
+        with psycopg.connect(os.environ['TEST_DATABASE_URL']) as conn:
+            conn.execute("UPDATE socialmei.workspace_members SET role='member' WHERE user_id=%s",(first.identity['usuario']['id'],))
+        self.assertEqual(first.get('/api/v1/whatsapp/catalog/access').status_code,403)
+
+    def test_rotation_and_revocation_are_audited_without_storing_plain_bearer(self):
+        import psycopg
+        first = self.register("wa-audited@example.test")
+        wid = first.identity['negocio']['id']
+        with psycopg.connect(os.environ['TEST_DATABASE_URL']) as conn:
+            channel = conn.execute("INSERT INTO socialmei.crm_canais(workspace_id,instancia,sessao,ativo) VALUES(%s,'audit','main',true) RETURNING id",(wid,)).fetchone()[0]
+        tokens = [first.post('/api/v1/whatsapp/catalog/access',json={'channel_id':channel}).json()['token_once'] for _ in range(2)]
+        self.assertNotEqual(*tokens)
+        self.assertNotIn(tokens[1], first.get('/api/v1/whatsapp/catalog/access').text)
+        self.assertEqual(first.delete('/api/v1/whatsapp/catalog/access/'+str(channel)).status_code,204)
+        with psycopg.connect(os.environ['TEST_DATABASE_URL']) as conn:
+            actions = [r[0] for r in conn.execute("SELECT acao FROM socialmei.auth_auditoria WHERE user_id=%s AND acao LIKE 'whatsapp_catalog_%%' ORDER BY id", (first.identity['usuario']['id'],)).fetchall()]
+        self.assertEqual(actions,['whatsapp_catalog_rotated','whatsapp_catalog_rotated','whatsapp_catalog_revoked'])
+
     def test_real_catalog_isolation_and_revocation(self):
         import psycopg
         from fastapi.testclient import TestClient

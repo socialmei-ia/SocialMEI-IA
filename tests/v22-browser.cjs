@@ -44,9 +44,11 @@ async function run() {
     const contracts = await require("./v22-contract-browser.cjs")(browser, origin);
     await require("./v22-instagram-browser.cjs")(browser, origin);
     await require("./v22-inbox-polling-browser.cjs")(browser, origin);
+    await require("./v22-instagram-direct-browser.cjs")(browser, origin);
     await require("./v22-instagram-publisher-browser.cjs")(browser, origin);
     await require("./v22-knowledge-reporting-browser.cjs")(browser, origin);
     await require("./v22-report-viewer-browser.cjs")(browser, origin);
+    await require("./v22-whatsapp-catalog-browser.cjs")(browser, origin);
     const page = await browser.newPage({ reducedMotion: "reduce" });
     page.on("pageerror", (e) => errors.push(e.message));
     await page.route("**/*", (r) => {

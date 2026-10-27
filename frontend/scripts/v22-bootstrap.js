@@ -59,6 +59,10 @@
     knowledge.src = "scripts/v22-knowledge-reporting.js";
     knowledge.onerror = () => console.warn("Gestão de conhecimento indisponível.");
     document.body.appendChild(knowledge);
+    const whatsapp = document.createElement("script");
+    whatsapp.src = "scripts/v22-whatsapp-catalog.js";
+    whatsapp.onerror = () => console.warn("Consulta de catálogo WhatsApp indisponível.");
+    document.body.appendChild(whatsapp);
     const collaborator = document.createElement("script");
     collaborator.src = "scripts/v22-report-access.js";
     collaborator.onerror = () => console.warn("Acesso aos relatórios indisponível.");
@@ -69,6 +73,10 @@
     instagram.src = "scripts/v22-instagram.js";
     instagram.onerror = () => console.warn("Controles Instagram indisponíveis.");
     instagram.onload = () => {
+      const direct = document.createElement("script");
+      direct.src = "scripts/v22-instagram-direct.js";
+      direct.onerror = () => console.warn("Respostas Instagram indisponíveis.");
+      document.body.appendChild(direct);
       const publishing = document.createElement("script");
       publishing.src = "scripts/v22-instagram-publisher.js";
       publishing.onerror = () => console.warn("Publicação Instagram indisponível.");
