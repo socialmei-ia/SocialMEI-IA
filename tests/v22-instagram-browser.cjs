@@ -75,8 +75,12 @@ module.exports = async function (browser, origin) {
       if (p === "/instagram/meta/status")
         return route.fulfill({
           json: {
-            status: ["connected", "successful-callback"].includes(mode) ? "connected" : "disconnected",
-            credential_available: ["connected", "successful-callback"].includes(mode),
+            status: ["connected", "successful-callback"].includes(mode)
+              ? "connected"
+              : "disconnected",
+            credential_available: ["connected", "successful-callback"].includes(
+              mode,
+            ),
           },
         });
       if (p === "/instagram/meta/oauth/start") {
@@ -109,7 +113,9 @@ module.exports = async function (browser, origin) {
           "/frontend/socialmei-app.html" +
           (["forged-callback", "successful-callback"].includes(mode)
             ? "#instagram=connected"
-            : mode === "failed-callback" ? "#instagram=failed" : "#/config/integracoes"),
+            : mode === "failed-callback"
+              ? "#instagram=failed"
+              : "#/config/integracoes"),
       );
       await page.waitForFunction(
         () => window.SocialMEIInstagram && SocialMEIInstagram.status.phase !== "loading",
@@ -143,16 +149,30 @@ module.exports = async function (browser, origin) {
         }),
         true,
       );
-      if (["forged-callback", "successful-callback", "failed-callback"].includes(mode)) {
+      if (
+        ["forged-callback", "successful-callback", "failed-callback"].includes(
+          mode,
+        )
+      ) {
         assert(page.url().endsWith("#/config/integracoes"));
-        assert.equal(await page.locator(".e404").count(), 0, "OAuth return never renders 404");
+        assert.equal(
+          await page.locator(".e404").count(),
+          0,
+          "OAuth return never renders 404",
+        );
         await page.getByRole("heading", { name: "Configurações" }).waitFor();
         assert.equal(
-          await page.locator("dialog").getByText(
-            mode === "forged-callback" ? "Não configurado" :
-            mode === "successful-callback" ? "Conectado" : "Não conectado",
-            { exact: true },
-          ).count(),
+          await page
+            .locator("dialog")
+            .getByText(
+              mode === "forged-callback"
+                ? "Não configurado"
+                : mode === "successful-callback"
+                  ? "Conectado"
+                  : "Não conectado",
+              { exact: true },
+            )
+            .count(),
           1,
         );
       } else if (["connect", "connect-frame", "invalid-url", "member"].includes(mode)) {
