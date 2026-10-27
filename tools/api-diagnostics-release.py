@@ -10,10 +10,10 @@ import tarfile
 
 spec=importlib.util.spec_from_file_location('api_egress_common',Path(__file__).with_name('team-api-egress.py'))
 common=importlib.util.module_from_spec(spec);spec.loader.exec_module(common)
-TARGET='041cf0b16154410adc633645662554760931c935'
-BASE='3653da7d94063c7f9cd38c234fa6430db7c4d795'
+TARGET='b411da787495d9bfc3b2eb0ba88982288b84c148'
+BASE='041cf0b16154410adc633645662554760931c935'
 TAG='socialmei-v22/team-api:'+TARGET
-CHANGED={'python-service/instagram_http_transport.py','python-service/instagram_meta_adapter.py','python-service/test_instagram_http_transport.py','python-service/test_instagram_meta_adapter.py'}
+CHANGED={'python-service/instagram_meta_adapter.py','python-service/test_instagram_meta_adapter.py','python-service/test_instagram_persistent_oauth.py'}
 require=common.require
 
 def validate(before,after):
@@ -71,7 +71,7 @@ class Update(common.Egress):
         require(self.inspect(common.NAME)['Id']==live['Id'],'API changed during build.')
         artifacts={name:common.digest(self.folder/name) for name in ('container.private.json','api-runtime-backup.tar.gz','api-rollback.tar','team-api.override.private.json','team-api.before.private.json')}
         self.write('api-diagnostic.private.json',{'sha':TARGET,'container_id':live['Id'],'image_id':live['Image'],'candidate_image_id':image['Id'],'env':live['Config']['Env'],'mounts':live['Mounts'],'others':self.others(),'before_command':command,'candidate_command':candidate,'source_hashes':{str(p):common.digest(p) for p in paths},'artifact_hashes':artifacts})
-        print('API DIAGNOSTIC PREPARED: '+str(self.folder)+'; no SQL or services changed.',flush=True)
+        print('API FIX PREPARED: '+str(self.folder)+'; no SQL or services changed.',flush=True)
     def guard(self,r):
         require(r['sha']==TARGET,'Wrong candidate.')
         live=self.inspect(common.NAME)
@@ -102,7 +102,7 @@ class Update(common.Egress):
             self.run(common.up(r['before_command']));self.verify(r,False)
             print('API IMAGE ROLLED BACK; egress preserved.',flush=True)
             raise
-        print('API DIAGNOSTICS INSTALLED: '+TARGET+'; start one NEW authorization and inspect sanitized failure markers.',flush=True)
+        print('API FIX INSTALLED: '+TARGET+'; start one NEW authorization and inspect sanitized failure markers.',flush=True)
 
 def main():
     os.umask(0o077)
