@@ -144,6 +144,16 @@ class InstagramAdapterTests(unittest.TestCase):
                 adapter.exchange_code("synthetic-code", required_scopes=SCOPES)
             self.assertEqual(len(transport.requests), 1)
 
+    def test_exchange_rejection_logs_schema_only_and_no_credentials(self):
+        adapter, transport = self.adapter(response({"access_token": TOKEN, "user_id": "9876"}))
+        with self.assertLogs("socialmei.instagram.adapter", level="WARNING") as logged:
+            with self.assertRaises(ProviderError):
+                adapter.exchange_code("synthetic-code", required_scopes=SCOPES)
+        self.assertIn("instagram_exchange_rejected", logged.output[0])
+        self.assertIn("permissions_kind=missing", logged.output[0])
+        for secret in (TOKEN, SECRET, "synthetic-code", "9876"):
+            self.assertNotIn(secret, str(logged.output))
+
     def test_no_default_network_transport(self):
         with self.assertRaises(TypeError):
             InstagramAdapter(

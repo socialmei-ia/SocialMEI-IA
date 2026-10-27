@@ -6,6 +6,7 @@ fields are for a trusted transport only, never product responses or logs.
 """
 
 import json
+import logging
 import math
 import re
 import time
@@ -216,6 +217,7 @@ class InstagramAdapter:
             # Raise outside the handler: even __context__ cannot retain provider secrets.
             pass
         if response is None:
+            logging.getLogger("socialmei.instagram.adapter").warning("instagram_transport_unavailable")
             raise ProviderError(retryable=retryable, outcome_unknown=True)
         if (
             not isinstance(response, ProviderResponse)
@@ -255,6 +257,11 @@ class InstagramAdapter:
         except (ValueError, UnicodeError, RecursionError):
             pass
         if not isinstance(result, dict) or "error" in result or "error_type" in result:
+            logging.getLogger("socialmei.instagram.adapter").warning(
+                "instagram_response_rejected http_status=%d json_object=%s error_field=%s",
+                response.status_code, isinstance(result, dict),
+                isinstance(result, dict) and ("error" in result or "error_type" in result),
+            )
             raise ProviderError(outcome_unknown=not retryable)
         return result
 
@@ -281,6 +288,14 @@ class InstagramAdapter:
         except ProviderError:
             pass
         if grant is None:
+            wrapped = payload.get("data")
+            item = wrapped[0] if isinstance(wrapped, list) and len(wrapped) == 1 and isinstance(wrapped[0], dict) else payload
+            value = item.get("permissions")
+            kind = "missing" if value is None else "text" if isinstance(value, str) else "list" if isinstance(value, list) else "other"
+            logging.getLogger("socialmei.instagram.adapter").warning(
+                "instagram_exchange_rejected http_status=200 wrapped=%s permissions_kind=%s token_present=%s identity_present=%s expires_present=%s",
+                "data" in payload, kind, "access_token" in item, "user_id" in item, "expires_in" in item,
+            )
             raise ProviderError(outcome_unknown=True)
         return grant
 

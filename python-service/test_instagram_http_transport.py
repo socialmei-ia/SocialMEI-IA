@@ -91,6 +91,15 @@ class InstagramHTTPTransportTests(unittest.TestCase):
         self.assertNotIn("private-token", str(error.exception))
         self.assertTrue(error.exception.outcome_unknown)
 
+    def test_connection_diagnostic_contains_only_fixed_reason(self):
+        def fail(request):
+            raise httpx.ConnectError("secret-code-and-token", request=request)
+        with self.assertLogs("socialmei.instagram.transport", level="WARNING") as logs:
+            with self.assertRaises(ProviderError):
+                self.transport(fail)(ProviderRequest("GET", "https://graph.instagram.com/access_token"))
+        self.assertIn("reason=connect", logs.output[0])
+        self.assertNotIn("secret-code-and-token", str(logs.output))
+
     def test_http_debug_logs_cannot_expose_tokens(self):
         records = []
 
