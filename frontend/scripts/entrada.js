@@ -1,6 +1,5 @@
-/* SocialMEI.IA · porta de entrada (demonstração local)
-   Landing, cadastro/login e onboarding. Nada é enviado a servidor:
-   o perfil fica no localStorage deste navegador (chave smei-perfil) e a senha nunca é guardada. */
+/* SocialMEI.IA · landing, native account panels and onboarding.
+   Remote accounts use the account bridge; local demonstrations never store passwords. */
 (function () {
   "use strict";
 
@@ -79,100 +78,6 @@
     }, 3200);
   }
 
-  async function showRecovery() {
-    var d = document.getElementById("v22-recovery");
-    if (!d) {
-      d = document.createElement("dialog");
-      d.id = "v22-recovery";
-      d.className = "dlg";
-      d.setAttribute("aria-label", "Recuperar acesso");
-      d.style.cssText =
-        "width:min(480px,calc(100% - 32px));margin:auto;padding:24px;border:1px solid var(--b);border-radius:20px;background:var(--w);color:var(--t);max-height:calc(100dvh - 32px);overflow:auto";
-      d.innerHTML =
-        '<form novalidate><h2>Recuperar acesso</h2><p class="m">Solicite um código por e-mail. Ele vale por 15 minutos.</p><label for="rMail">E-mail</label><input class="in" id="rMail" type="email" autocomplete="email"><button class="btn o" type="button" data-recovery-request>Enviar código</button><label for="rToken">Código recebido</label><input class="in" id="rToken" maxlength="43" autocomplete="one-time-code" spellcheck="false"><label for="rPassword">Nova senha</label><input class="in" id="rPassword" type="password" autocomplete="new-password" minlength="8" maxlength="128"><label for="rConfirm">Confirmar senha</label><input class="in" id="rConfirm" type="password" autocomplete="new-password"><p class="err" role="status" aria-live="polite" id="rStatus"></p><div class="acts"><button class="btn o" type="button" data-recovery-close>Voltar</button><button class="btn" type="submit">Redefinir senha</button></div></form>';
-      var form = d.querySelector("form");
-      form.querySelectorAll("input").forEach(function (input) {
-        var label = form.querySelector('label[for="' + input.id + '"]');
-        var fld = document.createElement("div");
-        fld.className = "fld";
-        input.before(fld);
-        if (label) fld.appendChild(label);
-        fld.appendChild(input);
-      });
-      document.body.appendChild(d);
-      d.querySelector("[data-recovery-close]").onclick = function () {
-        d.close();
-      };
-      d.addEventListener("close", function () {
-        d.querySelectorAll("input").forEach(function (i) {
-          i.value = "";
-        });
-        $("#forgot").focus();
-      });
-      var busy = false;
-      async function recoveryAction(request) {
-        if (busy) return;
-        var status = d.querySelector("#rStatus"),
-          email = d.querySelector("#rMail").value.trim(),
-          pass = d.querySelector("#rPassword").value,
-          token = d.querySelector("#rToken").value.trim();
-        if (request && !emailOk(email)) {
-          status.textContent = "Informe um e-mail válido.";
-          return;
-        }
-        if (!request) {
-          var policy = account.auth.passwordPolicy(pass);
-          if (
-            policy.error ||
-            pass !== d.querySelector("#rConfirm").value ||
-            !/^[A-Za-z0-9_-]{43}$/.test(token)
-          ) {
-            status.textContent =
-              policy.error || "Confira o código completo e a confirmação da senha.";
-            return;
-          }
-        }
-        busy = true;
-        d.querySelectorAll("button").forEach(function (b) {
-          b.disabled = true;
-        });
-        status.textContent = request ? "Solicitando código…" : "Redefinindo senha…";
-        try {
-          await account.ready;
-          var result = await account.auth.request(
-            request ? "/auth/recovery/request" : "/auth/recovery/confirm",
-            "POST",
-            request ? { email: email } : { token: token, nova: pass },
-          );
-          status.textContent = request
-            ? result.message
-            : "Senha redefinida. Entre com a nova senha.";
-          if (!request)
-            d.querySelectorAll("input[type=password],#rToken").forEach(function (i) {
-              i.value = "";
-            });
-        } catch (error) {
-          status.textContent = error.message;
-        } finally {
-          busy = false;
-          d.querySelectorAll("button").forEach(function (b) {
-            b.disabled = false;
-          });
-        }
-      }
-      d.querySelector("[data-recovery-request]").onclick = function () {
-        recoveryAction(true);
-      };
-      d.querySelector("form").onsubmit = function (e) {
-        e.preventDefault();
-        recoveryAction(false);
-      };
-    }
-    d.querySelector("#rMail").value = $("#eMailL").value;
-    d.showModal();
-    d.querySelector("#rMail").focus();
-  }
-
   /* ---------- perfil (localStorage) ---------- */
   var PERFIL = "smei-perfil",
     SESSAO = "smei-sessao",
@@ -228,10 +133,12 @@
       return;
     }
     if (r !== "comecar") aplicarMarca();
-    if (r === "cadastro" || r === "entrar") {
+    if (r === "cadastro" || r === "entrar" || r === "recuperar") {
       mostrar("auth");
       aba(r, false);
-      document.title = (r === "entrar" ? "Entrar" : "Criar conta") + " · SocialMEI.IA";
+      document.title =
+        (r === "recuperar" ? "Recuperar senha" : r === "entrar" ? "Entrar" : "Criar conta") +
+        " · SocialMEI.IA";
     } else if (r === "comecar") {
       mostrar("ob");
       iniciarOb();
@@ -250,13 +157,14 @@
       var f = $(
         r === "comecar"
           ? "#obMain"
-          : r === "cadastro" || r === "entrar"
+          : r === "cadastro" || r === "entrar" || r === "recuperar"
             ? "#authMain"
             : "#conteudo",
       );
       f && f.focus({ preventScroll: true });
     }
-    if (r === "cadastro" || r === "entrar" || r === "comecar") window.scrollTo(0, 0);
+    if (r === "cadastro" || r === "entrar" || r === "recuperar" || r === "comecar")
+      window.scrollTo(0, 0);
   }
   window.addEventListener("hashchange", function () {
     router(false);
@@ -454,30 +362,44 @@
   }
 
   /* ---------- CADASTRO / ENTRAR ---------- */
+  var ABAS = ["cadastro", "entrar"],
+    ABA_ID = { cadastro: "C", entrar: "E" };
   function aba(k, foco) {
-    var c = k === "cadastro";
-    $("#panC").hidden = !c;
-    $("#panE").hidden = c;
-    $("#tabC").setAttribute("aria-selected", c);
-    $("#tabE").setAttribute("aria-selected", !c);
-    $("#tabC").tabIndex = c ? 0 : -1;
-    $("#tabE").tabIndex = c ? -1 : 0;
+    var c = k === "cadastro",
+      r = k === "recuperar";
+    ABAS.forEach(function (x) {
+      var id = ABA_ID[x],
+        on = x === k;
+      $("#pan" + id).hidden = !on;
+      $("#tab" + id).setAttribute("aria-selected", on);
+      $("#tab" + id).tabIndex = on || (r && x === "entrar") ? 0 : -1;
+    });
+    $("#panR").hidden = !r;
+    $(".tabs").hidden =
+      r; /* na recuperação as abas somem: é uma tela só, com "Voltar para Entrar" */
     $("#artH").textContent = c
       ? "Seu espaço começa aqui."
-      : perfil && perfil.nome
-        ? "Que bom te ver, " + perfil.nome.split(/\s+/)[0] + "."
-        : "O que vamos cuidar hoje?";
+      : r
+        ? "Vamos te ajudar a voltar."
+        : perfil && perfil.nome
+          ? "Que bom te ver, " + perfil.nome.split(/\s+/)[0] + "."
+          : "O que vamos cuidar hoje?";
     $("#artP").textContent = c
       ? "Conversa, cliente e próxima ação. Tudo encontra seu lugar."
-      : "Responder clientes, registrar vendas e revisar cobranças, tudo no mesmo lugar.";
+      : r
+        ? "Em poucos passos você cria uma nova senha e volta para o seu espaço."
+        : "Responder clientes, registrar vendas e revisar cobranças, tudo no mesmo lugar.";
     var tb = $(".tabs");
-    if (tb) tb.dataset.on = k; /* auth v20: indicador deslizante */
+    if (tb && !r) tb.dataset.on = k; /* auth v20: indicador deslizante */
     var ar = $(".art");
     if (ar) ar.dataset.t = k;
+    if (k !== "recuperar") recReset(); /* v23: não deixa senha digitada para trás */
+    if (k !== "entrar") waModo(false);
     if (c) previa();
+    else if (r) recEntrar();
     else perfilNoLogin();
     if (foco) {
-      (c ? $("#cNome") : $("#eMailL")).focus();
+      (c ? $("#cNome") : r ? $("#rMail") : $("#eMailL")).focus();
     }
   }
   document.addEventListener("click", function (e) {
@@ -684,6 +606,7 @@
   [
     ["cPass", "caps_cPass"],
     ["ePassL", "caps_ePassL"],
+    ["nPass", "caps_nPass"],
   ].forEach(function (x) {
     var i = document.getElementById(x[0]),
       h = document.getElementById(x[1]);
@@ -714,7 +637,9 @@
   });
   /* envio: o botão mostra o que está acontecendo antes de seguir (sem espera no modo calmo) */
   function enviar(form, fn) {
-    var b = form.querySelector("[type=submit]");
+    var b = [].filter.call(form.querySelectorAll("[type=submit]"), function (x) {
+      return !x.closest("[hidden]");
+    })[0];
     if (calmo() || !b) {
       fn();
       return;
@@ -768,6 +693,11 @@
       bad.push("cTermos");
     if (bad.length) {
       document.getElementById(bad[0]).focus();
+      return;
+    }
+    if (!$("#cMail").dataset.visto && sugestao("cMail", "sMailC")) {
+      $("#cMail").dataset.visto = "1";
+      $("#sMailC [data-sug]").focus();
       return;
     }
     if (remote) {
@@ -869,16 +799,508 @@
       }
     });
   });
-  $("#forgot").addEventListener("click", async function () {
-    if (remote) {
-      await showRecovery();
+  /* ---------- v23 · avisos de e-mail digitado errado ---------- */
+  var DOMINIOS = [
+    "gmail.com",
+    "hotmail.com",
+    "outlook.com",
+    "outlook.com.br",
+    "yahoo.com",
+    "yahoo.com.br",
+    "icloud.com",
+    "uol.com.br",
+    "bol.com.br",
+    "live.com",
+    "msn.com",
+    "terra.com.br",
+    "globo.com",
+    "ig.com.br",
+    "protonmail.com",
+  ];
+  var DOM_TIPOS = {
+    "gmail.com.br": "gmail.com",
+    "gmail.co": "gmail.com",
+    "gmail.con": "gmail.com",
+    "gmail.cm": "gmail.com",
+    "gmial.com": "gmail.com",
+    "gmai.com": "gmail.com",
+    "gamil.com": "gmail.com",
+    "gnail.com": "gmail.com",
+    "hotmial.com": "hotmail.com",
+    "hotmai.com": "hotmail.com",
+    "hotmail.con": "hotmail.com",
+    "outlok.com": "outlook.com",
+    "outloo.com": "outlook.com",
+    "yaho.com": "yahoo.com",
+    "yahooo.com": "yahoo.com",
+  };
+  function dist(a, b) {
+    var m = a.length,
+      n = b.length,
+      d = [],
+      i,
+      j;
+    for (i = 0; i <= m; i++) {
+      d[i] = [i];
+    }
+    for (j = 1; j <= n; j++) d[0][j] = j;
+    for (i = 1; i <= m; i++)
+      for (j = 1; j <= n; j++)
+        d[i][j] = Math.min(
+          d[i - 1][j] + 1,
+          d[i][j - 1] + 1,
+          d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1),
+        );
+    return d[m][n];
+  }
+  function sugerirEmail(v) {
+    var m = /^([^\s@]+)@([^\s@]+)$/.exec(v);
+    if (!m) return "";
+    var d = m[2].toLowerCase();
+    if (DOMINIOS.indexOf(d) > -1) return "";
+    if (DOM_TIPOS[d]) return m[1] + "@" + DOM_TIPOS[d];
+    var melhor = "",
+      md = 9;
+    DOMINIOS.forEach(function (x) {
+      if (x.length < 9) return;
+      var k = dist(d, x);
+      if (k < md) {
+        md = k;
+        melhor = x;
+      }
+    });
+    return md > 0 && md <= (melhor.length >= 10 ? 2 : 1) ? m[1] + "@" + melhor : "";
+  }
+  function sugestao(campo, dica) {
+    var i = document.getElementById(campo),
+      h = document.getElementById(dica),
+      v = i.value.trim(),
+      s = emailOk(v) ? sugerirEmail(v) : "";
+    h.textContent = "";
+    if (!s) return "";
+    h.appendChild(document.createTextNode("Você quis dizer "));
+    var b = document.createElement("b");
+    b.textContent = s;
+    h.appendChild(b);
+    h.appendChild(document.createTextNode("? "));
+    var bt = document.createElement("button");
+    bt.type = "button";
+    bt.className = "lk";
+    bt.dataset.sug = campo;
+    bt.dataset.v = s;
+    bt.dataset.dica = dica;
+    bt.textContent = "Usar este e-mail";
+    h.appendChild(bt);
+    return s;
+  }
+  [
+    ["cMail", "sMailC"],
+    ["eMailL", "sMailL"],
+    ["rMail", "sMailR"],
+  ].forEach(function (x) {
+    var i = document.getElementById(x[0]);
+    /* se o foco vai para um botão, não mostra agora: o aviso empurraria o botão e o toque se perderia (o envio confere na hora certa) */
+    i.addEventListener("blur", function (e) {
+      if (e.relatedTarget && e.relatedTarget.tagName === "BUTTON") return;
+      sugestao(x[0], x[1]);
+    });
+    i.addEventListener("input", function () {
+      document.getElementById(x[1]).textContent = "";
+      delete i.dataset.visto;
+    });
+  });
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-sug]");
+    if (!b) return;
+    var i = document.getElementById(b.dataset.sug);
+    i.value = b.dataset.v;
+    i.dispatchEvent(new Event("input", { bubbles: true }));
+    erro(i.getAttribute("aria-describedby").split(" ")[0], "", i.id);
+    document.getElementById(b.dataset.dica).textContent = "Pronto, e-mail corrigido.";
+    i.focus();
+  });
+
+  /* Native recovery panels share the server account contract. */
+  var rTimer = null,
+    recoveryBusy = false,
+    recoveryGeneration = 0;
+  function rSet(n, foco) {
+    [1, 2, 3, 4].forEach(function (k) {
+      $("#rS" + k).hidden = k !== n;
+    });
+    clearInterval(rTimer);
+    if (foco) {
+      var alvo = { 1: "#rMail", 2: "#rH2", 3: remote ? "#rToken" : "#nPass", 4: "#rH4" }[n];
+      alvo && $(alvo).focus();
+    }
+  }
+  function recReset() {
+    recoveryGeneration++;
+    recoveryBusy = false;
+    $("#fR [type=submit]").disabled = false;
+    $("#fN [type=submit]").disabled = false;
+    $("#rResend").disabled = false;
+    rSet(1, false);
+    ["nPass", "nPass2", "rToken"].forEach(function (id) {
+      var field = $("#" + id);
+      if (field) {
+        field.value = "";
+        field.type = id === "rToken" ? "text" : "password";
+      }
+    });
+    $("#fN")
+      .querySelectorAll("[data-pw]")
+      .forEach(function (button) {
+        button.textContent = "Mostrar";
+        button.setAttribute("aria-pressed", "false");
+      });
+    $("#meterN").dataset.s = 0;
+    $("#hNPass").textContent =
+      "Use 8 ou mais caracteres. Uma frase longa é boa e fácil de lembrar.";
+    erro("eNPass", "", "nPass");
+    erro("eNPass2", "", "nPass2");
+    erro("eRMail", "", "rMail");
+    erro("eRToken", "", "rToken");
+    $("#sMailR").textContent = "";
+    $("#rStatus").textContent = "";
+    $("#rWait").textContent = "";
+    marca("rMail", false);
+    marca("nPass", false);
+    marca("nPass2", false);
+  }
+  function recEntrar() {
+    var m = $("#rMail");
+    if (!m.value) {
+      var d = $("#eMailL").value.trim() || (perfil && perfil.email) || "";
+      if (d) {
+        m.value = d;
+        marca("rMail", emailOk(d));
+      }
+    }
+  }
+  function esperar(btn, rot, seg) {
+    clearInterval(rTimer);
+    btn.disabled = true;
+    var t = seg;
+    function p() {
+      rot.textContent = t > 0 ? " (disponível em " + t + " s)" : "";
+      btn.disabled = t > 0;
+      if (t <= 0) clearInterval(rTimer);
+      t--;
+    }
+    p();
+    rTimer = setInterval(p, 1000);
+  }
+  var recoveryStatus = document.createElement("p");
+  recoveryStatus.id = "rStatus";
+  recoveryStatus.className = "err";
+  recoveryStatus.setAttribute("role", "status");
+  recoveryStatus.setAttribute("aria-live", "polite");
+  $("#panR").appendChild(recoveryStatus);
+  if (remote) {
+    var tokenField = document.createElement("div");
+    tokenField.className = "fld";
+    tokenField.innerHTML =
+      '<label for="rToken">Código recebido por e-mail</label><input class="in" id="rToken" type="text" minlength="43" maxlength="43" autocomplete="one-time-code" spellcheck="false" aria-describedby="eRToken"><div class="err" id="eRToken" role="alert"></div>';
+    $("#fN").prepend(tokenField);
+    $("#rS1 > p.m").textContent =
+      "Digite o e-mail da sua conta para solicitar um código de recuperação.";
+    $("#rS1 .pxb span").textContent = "O código enviado por e-mail vale por 15 minutos.";
+    $("#fR [type=submit]").textContent = "Enviar código de recuperação";
+    $("#rS2 > p.m").replaceChildren(
+      document.createTextNode("Se "),
+      $("#rSent"),
+      document.createTextNode(" tiver uma conta, enviaremos um código de recuperação."),
+    );
+    $("#rS2 .pxb span").textContent =
+      "Use o código completo recebido por e-mail para criar a nova senha.";
+    $("#rOpen").textContent = "Já tenho o código";
+    $("#rResend").textContent = "Reenviar código";
+    $("#rS4 > p.m").textContent = "Senha redefinida. Entre com a nova senha.";
+    ["waOpen", "rWa"].forEach(function (id) {
+      var button = $("#" + id);
+      button.disabled = true;
+      button.setAttribute("aria-describedby", id + "Unavailable");
+      var hint = document.createElement("p");
+      hint.id = id + "Unavailable";
+      hint.className = "hint";
+      hint.textContent = "O acesso por WhatsApp ainda não está disponível. Use e-mail e senha.";
+      button.after(hint);
+    });
+  }
+  async function requestRecovery() {
+    if (recoveryBusy) return;
+    var m = $("#rMail").value.trim();
+    if (
+      erro(
+        "eRMail",
+        !m ? "Informe o e-mail da sua conta." : !emailOk(m) ? "Esse e-mail parece incompleto." : "",
+        "rMail",
+      )
+    ) {
+      rSet(1, true);
       return;
     }
+    if (!remote) {
+      enviar($("#fR"), function () {
+        $("#rSent").textContent = m;
+        rSet(2, true);
+        esperar($("#rResend"), $("#rWait"), 20);
+      });
+      return;
+    }
+    var generation = recoveryGeneration;
+    recoveryBusy = true;
+    $("#fR [type=submit]").disabled = true;
+    $("#rResend").disabled = true;
+    $("#rStatus").textContent = "Solicitando código…";
+    try {
+      var result = await account.requestRecovery(m);
+      if (generation !== recoveryGeneration) return;
+      $("#rSent").textContent = m;
+      rSet(2, true);
+      $("#rStatus").textContent =
+        result.message || "Se houver uma conta para este e-mail, enviaremos um código.";
+      esperar($("#rResend"), $("#rWait"), 20);
+    } catch (error) {
+      if (generation === recoveryGeneration) {
+        $("#rStatus").textContent = error.message;
+        $("#rResend").disabled = false;
+      }
+    } finally {
+      if (generation === recoveryGeneration) {
+        recoveryBusy = false;
+        $("#fR [type=submit]").disabled = false;
+      }
+    }
+  }
+  $("#forgot").addEventListener("click", function () {
     var m = $("#eMailL").value.trim();
-    $("#forgotMsg").textContent = emailOk(m)
-      ? "Em uma conta de verdade, enviaríamos um link para " + m + ". Aqui é só demonstração."
-      : "Digite seu e-mail acima e mostramos como seria o aviso.";
-    if (!emailOk(m)) $("#eMailL").focus();
+    if (emailOk(m)) $("#rMail").value = m;
+    ir("#/recuperar");
+    setTimeout(function () {
+      $("#rMail").focus();
+    }, 60);
+  });
+  $("#rMail").addEventListener("input", function () {
+    marca("rMail", emailOk(this.value.trim()));
+    limpar(this);
+  });
+  $("#fR").addEventListener("submit", function (e) {
+    e.preventDefault();
+    requestRecovery();
+  });
+  $("#rResend").addEventListener("click", function () {
+    requestRecovery();
+  });
+  $("#rOther").addEventListener("click", function () {
+    recReset();
+    rSet(1, true);
+  });
+  $("#rOpen").addEventListener("click", function () {
+    rSet(3, true);
+  });
+  $("#rWa").addEventListener("click", function () {
+    if (remote) return;
+    ir("#/entrar");
+    setTimeout(function () {
+      waModo(true);
+    }, 60);
+  });
+  $("#nPass").addEventListener("input", function () {
+    var f = forca(this.value);
+    $("#meterN").dataset.s = f.s;
+    $("#hNPass").textContent = f.t;
+    marca("nPass", f.ok);
+    limpar(this);
+    marca("nPass2", !!this.value && $("#nPass2").value === this.value);
+  });
+  $("#nPass2").addEventListener("input", function () {
+    marca("nPass2", !!this.value && this.value === $("#nPass").value);
+    limpar(this);
+  });
+  $("#fN").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    if (recoveryBusy) return;
+    var p = $("#nPass").value,
+      q = $("#nPass2").value,
+      f = forca(p),
+      bad = [];
+    if (
+      remote &&
+      erro(
+        "eRToken",
+        /^[A-Za-z0-9_-]{43}$/.test($("#rToken").value.trim())
+          ? ""
+          : "Confira o código completo recebido por e-mail.",
+        "rToken",
+      )
+    )
+      bad.push("rToken");
+    if (erro("eNPass", !p ? "Crie uma nova senha." : !f.ok ? f.t : "", "nPass")) bad.push("nPass");
+    if (
+      erro(
+        "eNPass2",
+        !q ? "Repita a nova senha." : q !== p ? "As senhas não são iguais." : "",
+        "nPass2",
+      )
+    )
+      bad.push("nPass2");
+    if (bad.length) {
+      document.getElementById(bad[0]).focus();
+      return;
+    }
+    if (!remote) {
+      $("#nPass").value = "";
+      $("#nPass2").value = "";
+      enviar($("#fN"), function () {
+        rSet(4, true);
+      });
+      return;
+    }
+    var generation = recoveryGeneration;
+    recoveryBusy = true;
+    $("#fN [type=submit]").disabled = true;
+    $("#rStatus").textContent = "Redefinindo senha…";
+    try {
+      await account.confirmRecovery($("#rToken").value.trim(), p);
+      if (generation !== recoveryGeneration) return;
+      ["nPass", "nPass2", "rToken"].forEach(function (id) {
+        $("#" + id).value = "";
+      });
+      rSet(4, true);
+      $("#rStatus").textContent = "Senha redefinida. Entre com a nova senha.";
+    } catch (error) {
+      if (generation === recoveryGeneration) $("#rStatus").textContent = error.message;
+    } finally {
+      if (generation === recoveryGeneration) {
+        recoveryBusy = false;
+        $("#fN [type=submit]").disabled = false;
+      }
+    }
+  });
+  $("#rGo").addEventListener("click", function () {
+    var m = $("#rMail").value.trim();
+    ir("#/entrar");
+    setTimeout(function () {
+      if (m) {
+        $("#eMailL").value = m;
+        marca("eMailL", emailOk(m));
+      }
+      $("#whoMsg").textContent = remote
+        ? "Senha redefinida. Entre com a nova senha."
+        : "Senha atualizada (demonstração). Agora é só entrar.";
+      $("#ePassL").focus();
+    }, 60);
+  });
+
+  /* ---------- v23 · entrar com código no WhatsApp (simulado; código de teste 123456) ---------- */
+  var waEtapa = 1,
+    CODIGO_DEMO = "123456";
+  function waModo(on) {
+    if (!$("#fW")) return;
+    if (remote && on) {
+      toast("O acesso por WhatsApp ainda não está disponível. Entre com e-mail e senha.");
+      return;
+    }
+    $("#fE").hidden = on;
+    $("#fW").hidden = !on;
+    $("#panE > .pxb").hidden = on; /* o aviso de e-mail e senha não vale no modo código */
+    waEtapa = 1;
+    $("#wS1").hidden = false;
+    $("#wS2").hidden = true;
+    clearInterval(rTimer);
+    erro("eWTel", "", "wTel");
+    erro("eWCod", "", "wCod");
+    $("#wCod").value = "";
+    if (on) {
+      var t = $("#wTel");
+      if (!t.value && perfil && perfil.tel) t.value = mascaraTel(perfil.tel);
+      t.focus();
+    }
+  }
+  $("#waOpen").addEventListener("click", function () {
+    waModo(true);
+  });
+  $("#waBack").addEventListener("click", function () {
+    waModo(false);
+    $("#eMailL").focus();
+  });
+  $("#wChange").addEventListener("click", function () {
+    waEtapa = 1;
+    $("#wS1").hidden = false;
+    $("#wS2").hidden = true;
+    clearInterval(rTimer);
+    $("#wTel").focus();
+  });
+  $("#wResend").addEventListener("click", function () {
+    $("#wWait").textContent = " · código reenviado (demonstração)";
+    setTimeout(function () {
+      esperar($("#wResend"), $("#wWait"), 20);
+    }, 1500);
+  });
+  $("#fW").addEventListener("input", function (e) {
+    if (e.target.id === "wTel") e.target.value = mascaraTel(e.target.value);
+    if (e.target.id === "wCod") e.target.value = e.target.value.replace(/\D/g, "").slice(0, 6);
+    limpar(e.target);
+  });
+  $("#fW").addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (remote) return;
+    if (waEtapa === 1) {
+      var t = $("#wTel").value.trim();
+      if (
+        erro(
+          "eWTel",
+          t.replace(/\D/g, "").length < 10 ? "Use o DDD e o número, com 10 ou 11 dígitos." : "",
+          "wTel",
+        )
+      ) {
+        $("#wTel").focus();
+        return;
+      }
+      enviar($("#fW"), function () {
+        waEtapa = 2;
+        $("#wS1").hidden = true;
+        $("#wS2").hidden = false;
+        $("#wInfo").textContent =
+          "Enviamos um código de 6 números para " +
+          t +
+          " (demonstração: nenhuma mensagem foi enviada).";
+        $("#wCod").focus();
+        esperar($("#wResend"), $("#wWait"), 20);
+      });
+      return;
+    }
+    var c = $("#wCod").value;
+    if (
+      erro(
+        "eWCod",
+        c.length < 6
+          ? "Digite os 6 números do código."
+          : c !== CODIGO_DEMO
+            ? "Código incorreto. Confira e tente de novo."
+            : "",
+        "wCod",
+      )
+    ) {
+      $("#wCod").focus();
+      return;
+    }
+    var tel = $("#wTel").value.trim();
+    enviar($("#fW"), function () {
+      if (perfil && perfil.negocio) {
+        salvarPerfil({ tel: tel });
+        ls(SESSAO, "1");
+        toast("Você entrou (demonstração)");
+        setTimeout(function () {
+          location.href = "socialmei-app.html#/inicio";
+        }, 500);
+      } else {
+        salvarPerfil({ tel: tel, demo: true });
+        ir("#/comecar");
+      }
+    });
   });
 
   /* ---------- ONBOARDING ---------- */
@@ -1176,7 +1598,11 @@
       '">' +
       (ult ? "Entrar no meu espaço" : "Continuar") +
       ico("arrow", 18) +
-      "</button></div></div>";
+      "</button></div>" +
+      (ult
+        ? ""
+        : '<p class="ob-ja"><button class="lk" type="button" data-ob="ja">Já está bom: começar agora e ajustar depois</button></p>') +
+      "</div>";
     if (ult) $("#obCard .sp").hidden = true;
     sincronizar();
   }
@@ -1478,6 +1904,15 @@
     }
     return true;
   }
+  function essencialOk() {
+    if (passo === 0) lerPasso0();
+    var e = obEstado;
+    if (e.nome.trim().length >= 2 && e.negocio.trim().length >= 2 && e.area) return true;
+    passo = 0;
+    desenharOb();
+    validarPasso();
+    return false;
+  }
   function alternar(lista, v) {
     var i = lista.indexOf(v);
     i > -1 ? lista.splice(i, 1) : lista.push(v);
@@ -1569,6 +2004,10 @@
       }
       passo === PASSOS.length - 1 ? finalizar() : (passo++, desenharOb(), mover());
     } else if (ac === "fim") ocupado(b, "Salvando seu espaço…", finalizar);
+    else if (ac === "ja") {
+      if (!essencialOk()) return;
+      ocupado(b, "Salvando seu espaço…", finalizar);
+    }
   });
   /* v21: o botão final mostra o que está acontecendo antes de seguir (sem espera no modo calmo) */
   function ocupado(b, texto, fn) {
@@ -1788,6 +2227,15 @@
     );
     trocar("#panE .pxb span", "Entre com o e-mail e a senha da sua conta real no SocialMEI.");
     trocar(".hero-top .badge", "Contas e dados de negócio armazenados com segurança");
+    trocar(
+      "#como .step:first-child p",
+      "Nome, e-mail e uma senha. Sua conta e seu negócio são armazenados no SocialMEI.",
+    );
+    $$(".faq").forEach(function (item) {
+      if (item.querySelector("summary")?.textContent.includes("Meus dados vão"))
+        item.querySelector(".fa").textContent =
+          "Na demonstração local, os dados ficam neste navegador. Em uma conta real, cadastro e dados do negócio são armazenados nos servidores do SocialMEI.";
+    });
     var description = $('meta[name="description"]');
     if (description)
       description.setAttribute(

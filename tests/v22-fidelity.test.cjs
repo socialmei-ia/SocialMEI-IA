@@ -28,12 +28,12 @@ test("V22 native CSS and original reference retain the owner supplied compositio
     assert(originalStyles.join("\n").includes(declaration), declaration);
 });
 
-test("V22 entry styles, motion scripts and visual assets match the supplied ZIP bytes", () => {
+test("V25 entry styles and V22-preserved assets match the owner supplied ZIP bytes", () => {
   const manifest = {
     "frontend/styles/entrada.css":
-      "b82da8f4427bbb767d33ee31dabdd80eac922fb7a4b8b7fe3abeabe223267162",
+      "6daf78e04befe978450658c9dff38fd925658589c05b9b48687cbdaffa76a86a",
     "frontend/scripts/hero-wall.js":
-      "f76a869e91dcdbabd1fba1f2848174610def28f40f871ea2c2149b74ad1a6729",
+      "9032905fe937c6a5a7c20b368306333eab10a4c1bb5426bfa306c5fc9a28f087",
     "frontend/scripts/sections-anim.js":
       "a381dbcac34aa9e5a260237b1aa3feb38eb25af40568651ef3204c3dde6dfead",
     "frontend/assets/inter-variable.woff2":

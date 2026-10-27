@@ -109,9 +109,23 @@ module.exports = async function v22EntryFlow(browser, origin) {
       assert.match(await page.locator("#panC .pxb").innerText(), /conta.*verdade/i);
       assert.doesNotMatch(await page.locator("#panC .pxb").innerText(), /nenhuma conta real/i);
       assert.match(await page.locator(".hero-top .badge").innerText(), /dados de negócio/i);
+      assert.doesNotMatch(
+        await page.locator(".steps .step").first().locator("p").textContent(),
+        /nada é enviado/i,
+      );
+      assert.match(
+        await page
+          .locator(".faq")
+          .filter({ hasText: "Meus dados vão" })
+          .locator(".fa")
+          .textContent(),
+        /servidor|SocialMEI/,
+      );
     }
     if (mode === "login") {
-      assert.match(await page.locator("#panE .pxb").innerText(), /conta real/i);
+      assert.match(await page.locator("#panE > .pxb").innerText(), /conta real/i);
+      assert(await page.locator("#waOpen").isDisabled());
+      assert.match(await page.locator("#waOpenUnavailable").innerText(), /não está disponível/);
     }
     if (mode === "register") {
       await page.locator("#cNome").fill("Pessoa Teste");
@@ -161,22 +175,32 @@ module.exports = async function v22EntryFlow(browser, origin) {
     if (mode === "recovery") {
       await page.locator("#eMailL").fill("teste@example.test");
       await page.locator("#forgot").click();
-      await page.locator("[data-recovery-request]").click();
+      await page.locator("#fR [type=submit]").click();
       await page.waitForFunction(() =>
         document.getElementById("rStatus").textContent.includes("enviaremos"),
       );
+      await page.locator("#rOpen").click();
+      await page.locator("#nPass").fill("FlorSol!");
+      await page.locator("#nPass2").fill("FlorSol!");
+      await page.locator("#fN [type=submit]").click();
+      assert.equal(writes.length, 1, "Missing recovery token must not call confirmation API");
+      assert.match(await page.locator("#eRToken").innerText(), /código completo/);
       await page.locator("#rToken").fill("r".repeat(43));
-      await page.locator("#rPassword").fill("FlorSol!");
-      await page.locator("#rConfirm").fill("FlorSol!");
-      await page.locator("#v22-recovery [type=submit]").click();
+      await page.locator("#nPass").fill("FlorSol!");
+      await page.locator("#nPass2").fill("FlorSol!");
+      await page.locator("#fN [type=submit]").click();
       await page.waitForFunction(() =>
         document.getElementById("rStatus").textContent.includes("redefinida"),
       );
+      assert.deepEqual(writes, [
+        { email: "teste@example.test" },
+        { token: "r".repeat(43), nova: "FlorSol!" },
+      ]);
       assert.equal(await page.locator("#rToken").inputValue(), "");
-      await page.locator("[data-recovery-close]").click();
-      assert.equal(await page.locator("#v22-recovery").isVisible(), false);
+      await page.locator("#rGo").click();
+      assert.equal(await page.locator("#panR").isVisible(), false);
       assert.equal(
-        await page.locator("#forgot").evaluate((e) => e === document.activeElement),
+        await page.locator("#ePassL").evaluate((e) => e === document.activeElement),
         true,
       );
     }
