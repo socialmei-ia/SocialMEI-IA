@@ -122,6 +122,13 @@ def store_document(user, filename, raw):
         ).fetchone()
         if not workspace:
             raise HTTPException(403, "Negócio indisponível.")
+        member = conn.execute(
+            "SELECT m.role FROM socialmei.workspace_members m JOIN socialmei.auth_credenciais c ON c.user_id=m.user_id AND c.ativo "
+            "WHERE m.workspace_id=%s AND m.user_id=%s FOR SHARE OF m,c",
+            (user['workspace_id'],user['id']),
+        ).fetchone()
+        if not member or member['role'] not in {'owner','admin'}:
+            raise HTTPException(403,'Permissão para alterar documentos indisponível.')
         number = conn.execute(
             "SELECT COUNT(*) AS n FROM socialmei.kb_pdf_documents WHERE workspace_id=%s",
             (user["workspace_id"],),

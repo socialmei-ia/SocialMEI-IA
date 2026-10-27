@@ -149,3 +149,16 @@ class PdfPersistenceTests(unittest.TestCase):
         self.assertEqual(self.first.get('/api/v1/knowledge/pdf').status_code,200)
         self.assertEqual(self.first.post(url+'/reprocess',json={'sha256':replaced.json()['sha256']}).status_code,403)
         self.assertEqual(self.first.delete(url).status_code,403)
+
+    def test_permission_revoked_during_extraction_cannot_persist_document(self):
+        import psycopg
+        original = extract_chunks
+        def revoke_after_parse(raw):
+            result = original(raw)
+            with psycopg.connect(os.environ['TEST_DATABASE_URL']) as conn:
+                conn.execute("UPDATE socialmei.workspace_members SET role='viewer' WHERE user_id=%s",(self.first.identity['usuario']['id'],))
+            return result
+        with patch('pdf_knowledge.extract_chunks',side_effect=revoke_after_parse):
+            response = self.first.post('/api/v1/knowledge/pdf?filename=blocked.pdf',headers={'Content-Type':'application/pdf'},content=text_pdf())
+        self.assertEqual(response.status_code,403)
+        self.assertEqual(self.first.get('/api/v1/knowledge/pdf').json()['items'],[])
