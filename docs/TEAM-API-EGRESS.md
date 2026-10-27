@@ -18,3 +18,7 @@ Rollback: reaplicar o comando Compose anterior, sem esse overlay, recriando apen
 ## Evidência
 
 Teste sintético renderiza ambos os modelos com Docker Compose e confirma que a única diferença são a rede de saída e sua associação à API. Não executa nenhuma alteração de rede ou container. Não comprova conectividade na AWS.
+
+## Ferramenta operacional
+
+tools/team-api-egress.py exige uma pasta privada nova dentro de socialmei-backups. O padrão apenas prepara e verifica os modelos efetivos. --apply revalida o baseline, recria somente a API com a mesma imagem e testa saúde, HTTPS e isolamento. Os comandos anteriores e arquivos privados ficam preservados para rollback automático. O código não aplica SQL, não altera credenciais e não habilita flags de envio. Se o rollback deixar uma rede nova vazia, ela é preservada para revisão; redes existentes nunca são excluídas.
