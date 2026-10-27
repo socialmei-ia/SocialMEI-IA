@@ -6,18 +6,18 @@ Nenhum dado real deve ser criado/modificado como teste sem identificação do wo
 
 ## Inventário confirmado no repositório
 
-| Função | Código | O que ainda impede a declaração de funcionamento real |
-|---|---|---|
-| Cadastro/login/logout | FastAPI + PostgreSQL (migrações 010, 024–026); testes de persistência | Conferência somente leitura na VPS da versão em execução e novo teste de conta com consentimento do operador |
-| Redefinição de senha | Solicitação e confirmação com código único, fila durável e worker `recovery_worker.py --run` | SMTP privado habilitado, worker executado periodicamente e entrega real de e-mail testada |
-| Instagram OAuth | #130: grant plano + encapsulado, callback sem 404 e logs sem segredos | Deploy da imagem revisada; novo consentimento do perfil; `/meta/status` autenticado `connected` e `credential_available=true` |
-| Publicação de foto no feed | #113: criação, processamento, confirmação e recibo idempotente | Migrações 027–028, gateway com mídia GET pública por chave temporária e homologação com Meta |
-| Stories, Reels, carrossel | **Não implementados neste corte** | Definir formatos, limites de vídeo, processamento/hosting seguro, UI e fluxo de containers Meta, testes e homologação separados |
-| Direct (receber) | Webhook com HMAC, deduplicação, vínculo workspace e polling da Caixa | Definir fan-out ou cutover dos workflows ativos n8n; provar entrega real da Meta assinada e inscrição dos eventos |
-| Direct (responder) | Outbox de respostas aprovadas com mitigação de resultado incerto | Um único remetente efetivo, permissões Meta, política de janela e teste real end-to-end; enviar continua desligado |
-| WhatsApp — consulta de itens | Endpoint GET autenticado por token SHA-256 por instância/canal, migração 030 | Canal WAHA real ativo, token guardado no cofre n8n, workflow do colega enviando a consulta e devolvendo resposta real |
-| Equipe — relatórios | `report_viewer` + troca de workspace e página restrita, migração 031 | Validar 2 usuários/2 empresas e fazer concessão por owner/admin; **não** compartilhar acesso direto ao PostgreSQL |
-| PDFs de conhecimento | Banco/consulta privativa por workspace, migração 029, UI de arquivos | Ativação controlada + validação de PDFs reais; isso **não** treina nem ativa automaticamente um modelo |
+| Função                       | Código                                                                                       | O que ainda impede a declaração de funcionamento real                                                                           |
+| ---------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Cadastro/login/logout        | FastAPI + PostgreSQL (migrações 010, 024–026); testes de persistência                        | Conferência somente leitura na VPS da versão em execução e novo teste de conta com consentimento do operador                    |
+| Redefinição de senha         | Solicitação e confirmação com código único, fila durável e worker `recovery_worker.py --run` | SMTP privado habilitado, worker executado periodicamente e entrega real de e-mail testada                                       |
+| Instagram OAuth              | #130: grant plano + encapsulado, callback sem 404 e logs sem segredos                        | Deploy da imagem revisada; novo consentimento do perfil; `/meta/status` autenticado `connected` e `credential_available=true`   |
+| Publicação de foto no feed   | #113: criação, processamento, confirmação e recibo idempotente                               | Migrações 027–028, gateway com mídia GET pública por chave temporária e homologação com Meta                                    |
+| Stories, Reels, carrossel    | **Não implementados neste corte**                                                            | Definir formatos, limites de vídeo, processamento/hosting seguro, UI e fluxo de containers Meta, testes e homologação separados |
+| Direct (receber)             | Webhook com HMAC, deduplicação, vínculo workspace e polling da Caixa                         | Definir fan-out ou cutover dos workflows ativos n8n; provar entrega real da Meta assinada e inscrição dos eventos               |
+| Direct (responder)           | Outbox de respostas aprovadas com mitigação de resultado incerto                             | Um único remetente efetivo, permissões Meta, política de janela e teste real end-to-end; enviar continua desligado              |
+| WhatsApp — consulta de itens | Endpoint GET autenticado por token SHA-256 por instância/canal, migração 030                 | Canal WAHA real ativo, token guardado no cofre n8n, workflow do colega enviando a consulta e devolvendo resposta real           |
+| Equipe — relatórios          | `report_viewer` + troca de workspace e página restrita, migração 031                         | Validar 2 usuários/2 empresas e fazer concessão por owner/admin; **não** compartilhar acesso direto ao PostgreSQL               |
+| PDFs de conhecimento         | Banco/consulta privativa por workspace, migração 029, UI de arquivos                         | Ativação controlada + validação de PDFs reais; isso **não** treina nem ativa automaticamente um modelo                          |
 
 ## Ordem de homologação e proteção da produção
 
