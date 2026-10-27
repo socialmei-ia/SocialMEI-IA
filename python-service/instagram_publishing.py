@@ -273,6 +273,7 @@ class InstagramPublishingService:
 def status(request: Request):
     user, session = actor(request)
     with connect() as conn:
+        conn.row_factory = dict_row
         _authorize(conn, user, session)
         connected = conn.execute(
             "SELECT 1 FROM socialmei.ig_meta_connections WHERE workspace_id=%s "

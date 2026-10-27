@@ -14,6 +14,7 @@ module.exports = async function (browser, origin) {
     "successful-callback",
     "failed-callback",
     "invalid-url",
+    "start-error",
     "member",
   ]) {
     const page = await browser.newPage({
@@ -85,6 +86,13 @@ module.exports = async function (browser, origin) {
           },
         });
       if (p === "/instagram/meta/oauth/start") {
+        if (mode === "start-error") {
+          posts.push(p);
+          return route.fulfill({
+            status: 503,
+            json: { detail: "PRIVATE-DIAGNOSTIC-MUST-NOT-RENDER" },
+          });
+        }
         assert.equal(request.headers()["x-socialmei-csrf"], "a".repeat(64));
         posts.push(p);
         const authorization = new URL("https://www.instagram.com/oauth/authorize");
@@ -175,7 +183,9 @@ module.exports = async function (browser, origin) {
           await page.waitForURL("https://www.instagram.com/oauth/authorize?**");
           assert.equal(posts.length, 1);
         }
-      } else if (["connect", "connect-frame", "invalid-url", "member"].includes(mode)) {
+      } else if (
+        ["connect", "connect-frame", "invalid-url", "start-error", "member"].includes(mode)
+      ) {
         if (mode === "connect-frame") {
           await page.evaluate(() => go("/divul"));
           const frame = page.frameLocator("#v iframe");
@@ -193,6 +203,8 @@ module.exports = async function (browser, origin) {
               { exact: true },
             )
             .waitFor();
+          await page.locator("dialog[open] [role=alert]").waitFor();
+          assert(!(await page.locator("dialog[open]").innerText()).includes("PRIVATE-DIAGNOSTIC"));
           assert.equal(new URL(page.url()).origin, origin);
           assert.equal(posts.length, mode === "member" ? 0 : 1);
           assert.deepEqual(external, []);
