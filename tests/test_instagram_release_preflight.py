@@ -29,6 +29,18 @@ def proxy_fixture():
 
 
 class ReleasePreflightTests(unittest.TestCase):
+    def test_email_configuration_is_reported_without_claiming_delivery_or_worker_execution(self):
+        config = {'SOCIALMEI_RECOVERY_MODE':'smtp','SOCIALMEI_SMTP_HOST':'private-host',
+                  'SOCIALMEI_SMTP_USER':'private-user','SOCIALMEI_SMTP_PASSWORD':'private-secret',
+                  'SOCIALMEI_SMTP_FROM':'private-from','SOCIALMEI_SMTP_PORT':'587'}
+        def summary(env):
+            return module.container_summary({'Config':{'Env':[key+'='+value for key,value in env.items()]}})['recovery']
+        self.assertEqual(summary(config),{'smtp':'configured_not_verified','worker_execution':'not_verified'})
+        self.assertNotIn('private',json.dumps(summary(config)))
+        self.assertEqual(summary({})['smtp'],'disabled')
+        self.assertEqual(summary({**config,'SOCIALMEI_SMTP_PASSWORD':''})['smtp'],'incomplete')
+        self.assertEqual(summary({**config,'SOCIALMEI_SMTP_PORT':'25'})['smtp'],'invalid')
+        self.assertEqual(summary({**config,'SOCIALMEI_SMTP_FROM':'private\r\nheader'})['smtp'],'invalid')
     def test_default_is_prepare_only_and_cannot_run_commands(self):
         with patch.object(module.pilot, "run", side_effect=AssertionError("runtime accessed")):
             with contextlib.redirect_stdout(io.StringIO()) as output:
