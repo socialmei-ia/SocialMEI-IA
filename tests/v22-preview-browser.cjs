@@ -2,11 +2,17 @@
 const assert = require("node:assert/strict");
 const { chromium } = require("playwright");
 const { randomUUID } = require("node:crypto");
+const { waitForViewportFit, layoutSnapshot } = require("./v22-layout-ready.cjs");
 const fs = require("node:fs"),
   path = require("node:path");
 const out = path.join(__dirname, "../test-results/v22-integrated");
 async function run() {
-  const origin = "https://127.0.0.1:8443";
+  const origin = process.env.SOCIALMEI_TEST_PREVIEW_ORIGIN || "https://127.0.0.1:8443";
+  assert.match(
+    origin,
+    /^https:\/\/127\.0\.0\.1:[1-9][0-9]{3,4}$/,
+    "Only local disposable preview is accepted",
+  );
   const browser = await chromium.launch(
     process.env.CHROMIUM_EXECUTABLE ? { executablePath: process.env.CHROMIUM_EXECUTABLE } : {},
   );
@@ -90,6 +96,7 @@ async function run() {
         for (const width of [1440, 768, 390])
           for (const theme of ["claro", "escuro"]) {
             await page.setViewportSize({ width, height: 1000 });
+            await waitForViewportFit(page);
             await page.evaluate((t) => {
               S.theme = t;
               applyTheme();
@@ -98,10 +105,8 @@ async function run() {
               await page.evaluate((r) => go("/" + r), route);
               if (["oport", "divul"].includes(route))
                 await page.frameLocator("#v iframe").locator("body").waitFor();
-              assert.equal(
-                await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1),
-                false,
-              );
+              const layout = await layoutSnapshot(page);
+              assert.equal(layout.scrollWidth > layout.width + 1, false, JSON.stringify(layout));
               await page.screenshot({
                 path: path.join(out, `${route.replace("/", "-")}-${width}-${theme}.png`),
                 fullPage: true,

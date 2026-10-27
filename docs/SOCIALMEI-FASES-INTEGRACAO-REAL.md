@@ -42,6 +42,8 @@ Nenhum dado real deve ser criado/modificado como teste sem identificação do wo
 
 ## Limites dos preparadores de deploy
 
-`tools/instagram-release-prepare.py` foi concebido para a candidata 001–028, por isso **não pode ser presumido compatível com a árvore 001–031**. Não o executar em produção com este HEAD sem adaptar, revisar e retestar suas invariantes. A PR conjunta agrupa código para QA, não autoriza ativação indiscriminada de 029/030/031.
+`tools/instagram-release-prepare.py` agora valida os **nomes exatos de001–031** e o ledger instalado como prefixo contínuo com pelo menos001–026. A preparação exige `--target team`, SHA completo, imagens atuais explícitas e pasta privada nova. `--migration-stage oauth` não planeja SQL; `publishing` (padrão) planeja somente027/028; `functional` planeja até031. O recibo separa migrations selecionadas, todas as não aplicadas e as adiadas. Versões desconhecidas, gaps ou nomes divergentes continuam bloqueados.
+
+Isso é preparação, não execução: não faz backup, SQL, build, deploy ou ativação de flags. Preserva os overlays privados e as configurações existentes. O estágio escolhido não é prova de compatibilidade/backup da VPS. Antes do corte, conferir novamente drift, restauração do dump, rollback por imagem/configuração e aprovação de cada ativação. O migrador genérico aplica todos os arquivos que recebe; para uma fase parcial, usar diretório privado contendo **somente o prefixo selecionado e revisado**, nunca montar a pasta001–031 inteira por conveniência.
 
 **Acessibilidade da equipe:** use o acesso do aplicativo por usuário, workspace e permissão; não publique o PostgreSQL (porta 5432) ou pgAdmin na internet nem compartilhe a senha de administrador.

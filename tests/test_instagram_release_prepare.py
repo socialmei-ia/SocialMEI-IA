@@ -9,6 +9,7 @@ spec = importlib.util.spec_from_file_location('release_prepare',ROOT/'tools/inst
 prep = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(prep)
 SHA = 'a' * 40
+MIGRATIONS = sorted(p.name for p in (ROOT/'database/migrations').glob('*.sql'))
 
 
 def model():
@@ -31,11 +32,21 @@ class ReleasePrepareTests(unittest.TestCase):
         self.assertNotIn('SOCIALMEI_RELEASE_SHA',original['services']['team-api']['environment'])
 
     def test_only_absent_reviewed_migrations_are_planned(self):
-        files = [f'{i:03}_migration.sql' for i in range(1,27)]+['027_instagram_image_publications.sql','028_instagram_temporary_media.sql']
-        self.assertEqual(prep.missing_migrations(files[:26],files),files[26:])
+        files = MIGRATIONS
+        self.assertEqual(prep.missing_migrations(files[:26],files),files[26:28])
+        self.assertEqual(prep.missing_migrations(files[:26],files,stage='oauth'),[])
+        self.assertEqual(prep.missing_migrations(files[:26],files,stage='functional'),files[26:])
+        self.assertEqual(prep.missing_migrations(files[:29],files),[])
         self.assertEqual(prep.missing_migrations(files,files),[])
-        for installed in (files[1:26],files[:26]+[files[27]],files+['029_unreviewed.sql']):
+        for installed in (files[1:26],files[:26]+[files[27]],files+['032_unreviewed.sql'],files[:25]):
             with self.assertRaises(RuntimeError):prep.missing_migrations(installed,files)
+
+    def test_unreviewed_source_or_stage_is_rejected_without_planning(self):
+        for files in (MIGRATIONS[:-1],MIGRATIONS+['032_extra.sql'],
+                      MIGRATIONS[:29]+['030_another_change.sql']+MIGRATIONS[30:]):
+            with self.assertRaises(RuntimeError):prep.missing_migrations(MIGRATIONS[:26],files)
+        with self.assertRaises(RuntimeError):
+            prep.missing_migrations(MIGRATIONS[:26],MIGRATIONS,stage='all')
 
     def test_gateway_patch_preserves_logging_and_existing_routes(self):
         source = '{\n log default {\n format json\n }\n}\n:80 {\n route {\n handle /api/v1/* {\n reverse_proxy team-api:8000\n }\n handle / { respond landing }\n }\n}\n'
@@ -145,7 +156,7 @@ class ReleasePrepareTests(unittest.TestCase):
                     'NetworkSettings':{'Networks':{'socialmei-team_api':{}}},
                     'HostConfig':{'PortBindings':{}},
                     'Mounts':[{'Type':'bind','Source':str(private/'Caddyfile'),'Destination':'/etc/caddy/Caddyfile','RW':False}] if service=='team-gateway' else []}
-            names=[f'{i:03}_migration.sql' for i in range(1,27)]+['027_instagram_image_publications.sql','028_instagram_temporary_media.sql']
+            names=MIGRATIONS
             active={'logging':{'logs':{'default':{'encoder':prep.privacy.ENCODER}}}}
             commands=[]
             def call(args, input=None):
@@ -180,7 +191,10 @@ class ReleasePrepareTests(unittest.TestCase):
                 prep.prepare(SHA,output,'installed-api','installed-gateway')
             receipt=json.loads((output/'preparation.private.json').read_text())
             self.assertFalse(receipt['deployment_executed'])
-            self.assertEqual(receipt['missing_migrations'],names[26:])
+            self.assertEqual(receipt['missing_migrations'],names[26:28])
+            self.assertEqual(receipt['unapplied_source_migrations'],names[26:])
+            self.assertEqual(receipt['deferred_migrations'],names[28:])
+            self.assertEqual(receipt['migration_stage'],'publishing')
             self.assertNotIn('synthetic-private',stdout.getvalue())
             self.assertEqual(output.stat().st_mode & 0o777,0o700)
             for artifact in output.iterdir():self.assertEqual(artifact.stat().st_mode & 0o777,0o600)
