@@ -12,6 +12,18 @@
       location.replace("/frontend/socialmei-app.html" + location.search + location.hash);
       return;
     }
+    // Normalize the OAuth callback marker before executing the native V22 router.
+    // Otherwise "#instagram=connected|failed" briefly renders the app's 404 screen.
+    // This is an untrusted UI hint only; real connection state comes from the API.
+    const instagramReturn = /^#instagram=(connected|failed)$/.exec(location.hash);
+    if (instagramReturn) {
+      window.__socialmeiInstagramCallbackOutcome = instagramReturn[1];
+      history.replaceState(
+        history.state,
+        "",
+        location.pathname + location.search + "#/config/integracoes",
+      );
+    }
     const prefix = `smei-v22-account:${auth.current.usuario.id}:${auth.current.negocio.id}:`;
     for (const method of ["getItem", "setItem", "removeItem"]) {
       const original = Storage.prototype[method];
