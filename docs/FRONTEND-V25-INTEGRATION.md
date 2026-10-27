@@ -13,3 +13,11 @@ Os hashes de entrada.css e hero-wall.js nos testes de fidelidade passam a usar o
 475 testes backend com PostgreSQL16 descartável,337Node,286 estadosV22 e18 capturasV25 em1440/768/390 claro/escuro aprovados. Cadastro/login/onboarding e recuperação nativa testados com API controlada, incluindo ausência de token e bloqueio do login WhatsApp remoto. Confirmação de e-mail real depende de SMTP/worker; nenhum envio externo foi realizado.
 
 A revisão corrigiu a privacidade descrita na landing para o modo remoto; os textos locais demonstrativos permanecem no modo local. CI deve ser conferido no último HEAD da PR. Produção permanece inalterada.
+
+## Preparação na VPS: hotfix local preservado
+
+O operador confirmou API/gateway650ee5e, ledger001–026 e restauração do backup real em PostgreSQL temporário sem rede, limitado a384MB. Na cópia,027–031 passaram. Isso não aplica migrations no banco oficial.
+
+O preparador aceita opcionalmente `--preserved-caddy-sha256` somente para a única alteração não staged em deploy/team/Caddyfile, com hash exato e arquivo regular não montado por API/gateway/Caddy público. Qualquer outra alteração, symlink, hash divergente ou montagem continua bloqueando. O arquivo não é resetado/stashado: cópia privada verificada e política ficam no recibo. Os overlays, fonte Caddy realmente montada, credenciais e flags permanecem preservados.
+
+A candidata de aplicação continua1b28e84eacc5a782504b810114ba19775a1df58e, com CI aprovado; esta alteração adicional é operacional. Preparar não faz build, SQL ou deploy. Não usar o publicador genérico antigo para o corte: suas premissas de26 migrations/integrações desligadas não atendem este runtimeconnect e precisará de fluxo dedicado revisado.

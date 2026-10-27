@@ -212,10 +212,33 @@ def validate_gateway(name, raw, active):
     return changed, adapted
 
 
-def prepare(sha, output, expected_api, expected_gateway, *, stage='publishing'):
+def checkout_policy(preserved_caddy_sha256=None):
+    status=call(['git','status','--porcelain'])
+    if preserved_caddy_sha256 is None:
+        require(not status.strip(),'Unexpected checkout changes.')
+        return {'mode':'clean'}
+    require(re.fullmatch(r'[0-9a-f]{64}',preserved_caddy_sha256), 'Exact reviewed hotfix hash required.')
+    require(status.splitlines()==[' M deploy/team/Caddyfile'], 'Changes exceed reviewed unmounted hotfix.')
+    path=ROOT/'deploy/team/Caddyfile'
+    require(path.is_file() and not path.is_symlink() and path.resolve()==ROOT.resolve()/'deploy/team/Caddyfile','Hotfix must be a regular checkout file.')
+    require(hashlib.sha256(path.read_bytes()).hexdigest()==preserved_caddy_sha256,'Hotfix changed since inspection.')
+    return {'mode':'preserved_caddy','path':'deploy/team/Caddyfile','sha256':preserved_caddy_sha256}
+
+
+def require_unmounted_hotfix(policy, containers):
+    if policy['mode']!='preserved_caddy': return
+    path=(ROOT/'deploy/team/Caddyfile').resolve()
+    for container in containers:
+        for mount in container.get('Mounts',[]):
+            if mount.get('Type')=='bind':
+                source=Path(mount['Source']).resolve()
+                require(path!=source and not path.is_relative_to(source),'Reviewed checkout hotfix is mounted; manual review required.')
+
+
+def prepare(sha, output, expected_api, expected_gateway, *, stage='publishing', preserved_caddy_sha256=None):
     require(re.fullmatch(r'[0-9a-f]{40}', sha), 'Full candidate SHA required.')
     require(output.parent.resolve() == BACKUPS and not output.exists(), 'Use a new direct child of the private backup directory.')
-    require(not call(['git','status','--porcelain']).strip(), 'Unexpected checkout changes.')
+    policy=checkout_policy(preserved_caddy_sha256)
     require(call(['git','rev-parse',sha+'^{commit}']).strip() == sha, 'Candidate commit unavailable.')
     installed = preflight.sql_read('socialmei-team-team-postgres-1',
         "BEGIN READ ONLY; SELECT jsonb_agg(version ORDER BY version) FROM socialmei.schema_migrations; ROLLBACK;")[0]
@@ -254,7 +277,11 @@ def prepare(sha, output, expected_api, expected_gateway, *, stage='publishing'):
     require(public['source']=='active', 'Public proxy active config unavailable.')
     public_json=json.loads(call(['docker','exec','socialmei-caddy','wget','-qO-','http://127.0.0.1:2019/config/']))
     require(privacy.protected(public_json), 'Public proxy logging privacy not confirmed.')
+    if policy['mode']=='preserved_caddy':
+        public_container=json.loads(call(['docker','inspect','socialmei-caddy']))[0]
+        require_unmounted_hotfix(policy,[*containers.values(),public_container])
     call(['docker','exec','-i',name,'caddy','validate','--config','/dev/stdin','--adapter','caddyfile'],input=changed)
+    require(checkout_policy(preserved_caddy_sha256)==policy,'Checkout changed during preparation.')
     # All inspection/validation finishes before creating any artifacts.
     output.mkdir(mode=0o700)
     def write(name,value):
@@ -267,6 +294,9 @@ def prepare(sha, output, expected_api, expected_gateway, *, stage='publishing'):
         write(service+'.override.private.json',overrides[service])
     write('gateway.before.Caddyfile',raw)
     write('gateway.candidate.Caddyfile',changed)
+    if policy['mode']=='preserved_caddy':
+        write('checkout-hotfix.preserved.Caddyfile',(ROOT/policy['path']).read_text())
+        require(hashlib.sha256((output/'checkout-hotfix.preserved.Caddyfile').read_bytes()).hexdigest()==policy['sha256'],'Hotfix changed while preserving it.')
     resolved_commands={}
     for service in SERVICES:
         args=commands[service]+['-f',str(output/(service+'.override.private.json'))]
@@ -276,6 +306,7 @@ def prepare(sha, output, expected_api, expected_gateway, *, stage='publishing'):
     write('compose-commands.private.json',resolved_commands)
     for path in output.iterdir(): hashes[path.name]=hashlib.sha256(path.read_bytes()).hexdigest()
     receipt={'target':'team','candidate_sha':sha,'checkout_sha':call(['git','rev-parse','HEAD']).strip(),
+             'checkout_policy':policy,
              'missing_migrations':missing,'migration_stage':stage,
              'unapplied_source_migrations':unapplied,'deferred_migrations':deferred,
              'source_migration_sha256':migration_hashes,'gateway_config_source':str(config_path),
@@ -297,6 +328,7 @@ def main():
     parser.add_argument('--output',type=Path)
     parser.add_argument('--expected-api-image')
     parser.add_argument('--expected-gateway-image')
+    parser.add_argument('--preserved-caddy-sha256', help='Explicit hash of the sole reviewed, unstaged and unmounted checkout Caddyfile hotfix. Never resets or changes it.')
     parser.add_argument('--migration-stage',choices=tuple(MIGRATION_STAGES),default='publishing',
                         help='Plan only: oauth keeps installed schema; publishing selects027/028; functional selects027–031. No SQL is executed.')
     args=parser.parse_args()
@@ -304,7 +336,7 @@ def main():
         print('Preparation only. No runtime inspected or modified. Use --prepare with explicit SHA, baseline images and private output folder.')
         return
     require(all((args.sha,args.output,args.expected_api_image,args.expected_gateway_image)), 'Explicit preparation parameters required.')
-    prepare(args.sha,args.output,args.expected_api_image,args.expected_gateway_image,stage=args.migration_stage)
+    prepare(args.sha,args.output,args.expected_api_image,args.expected_gateway_image,stage=args.migration_stage,preserved_caddy_sha256=args.preserved_caddy_sha256)
 
 
 if __name__=='__main__':
