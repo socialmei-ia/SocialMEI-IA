@@ -16,6 +16,17 @@
       location.replace("/frontend/socialmei-app.html" + location.search + location.hash);
       return;
     }
+    // The Meta callback marker is only a UI hint, never proof of a valid token.
+    // Normalize it before the V22 router loads to avoid a transient 404.
+    const instagramReturn = /^#instagram=(connected|failed)$/.exec(location.hash);
+    if (instagramReturn) {
+      window.__socialmeiInstagramCallbackOutcome = instagramReturn[1];
+      history.replaceState(
+        history.state,
+        "",
+        location.pathname + location.search + "#/config/integracoes",
+      );
+    }
     const prefix = `smei-v22-account:${auth.current.usuario.id}:${auth.current.negocio.id}:`;
     for (const method of ["getItem", "setItem", "removeItem"]) {
       const original = Storage.prototype[method];
