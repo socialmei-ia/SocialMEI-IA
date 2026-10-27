@@ -292,9 +292,29 @@ class InstagramAdapter:
             item = wrapped[0] if isinstance(wrapped, list) and len(wrapped) == 1 and isinstance(wrapped[0], dict) else payload
             value = item.get("permissions")
             kind = "missing" if value is None else "text" if isinstance(value, str) else "list" if isinstance(value, list) else "other"
+            values = value.split(",") if isinstance(value, str) else value if isinstance(value, list) else []
+            strings = isinstance(value, (str, list)) and all(isinstance(v, str) for v in values)
+            provided = set(values) if strings else set()
+            token_valid = identity_valid = False
+            try:
+                _opaque(item.get("access_token"))
+                token_valid = True
+            except ProviderError:
+                pass
+            try:
+                _user_id(item.get("user_id"))
+                identity_valid = True
+            except ProviderError:
+                pass
+            lifetime = item.get("expires_in", 3600)
             logging.getLogger("socialmei.instagram.adapter").warning(
-                "instagram_exchange_rejected http_status=200 wrapped=%s permissions_kind=%s token_present=%s identity_present=%s expires_present=%s",
+                "instagram_exchange_rejected http_status=200 wrapped=%s permissions_kind=%s token_present=%s identity_present=%s expires_present=%s permission_count=%d permission_strings=%s required_present=%s scopes_known=%s permissions_distinct=%s extra_insights=%s token_valid=%s identity_valid=%s expires_valid=%s",
                 "data" in payload, kind, "access_token" in item, "user_id" in item, "expires_in" in item,
+                len(values), strings, strings and required <= provided,
+                strings and provided <= INSTAGRAM_LOGIN_SCOPES,
+                strings and len(provided) == len(values),
+                strings and "instagram_business_manage_insights" in provided,
+                token_valid, identity_valid, type(lifetime) is int and 1 <= lifetime <= 3600,
             )
             raise ProviderError(outcome_unknown=True)
         return grant

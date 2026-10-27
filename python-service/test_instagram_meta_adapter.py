@@ -170,6 +170,21 @@ class InstagramAdapterTests(unittest.TestCase):
         for secret in (TOKEN, SECRET, "synthetic-code", "9876"):
             self.assertNotIn(secret, str(logged.output))
 
+    def test_grant_diagnostics_distinguish_extra_missing_and_object_permissions(self):
+        cases = (
+            (list(SCOPES) + ["instagram_business_manage_insights"], "required_present=True", "scopes_known=False", "extra_insights=True"),
+            ([BASIC], "required_present=False", "scopes_known=True", "extra_insights=False"),
+            ([{"permission": BASIC, "status": "granted", "secret": TOKEN}], "permission_strings=False", "required_present=False", "extra_insights=False"),
+        )
+        for permissions, *markers in cases:
+            adapter, transport = self.adapter(response({"access_token": TOKEN, "user_id": "9876", "permissions": permissions}))
+            with self.assertLogs("socialmei.instagram.adapter", level="WARNING") as logs:
+                with self.assertRaises(ProviderError):
+                    adapter.exchange_code("synthetic-code", required_scopes=SCOPES)
+            for marker in markers:self.assertIn(marker, logs.output[0])
+            for secret in (TOKEN, SECRET, "synthetic-code", "9876"):
+                self.assertNotIn(secret, str(logs.output))
+
     def test_no_default_network_transport(self):
         with self.assertRaises(TypeError):
             InstagramAdapter(
