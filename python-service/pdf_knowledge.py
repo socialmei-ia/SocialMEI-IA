@@ -261,7 +261,11 @@ def rewrite(user, identifier, expected, raw=None, filename=None):
     with connect() as conn:
         conn.row_factory = dict_row
         conn.execute('SELECT id FROM socialmei.workspaces WHERE id=%s FOR UPDATE',(user['workspace_id'],))
-        role = conn.execute('SELECT role FROM socialmei.workspace_members WHERE workspace_id=%s AND user_id=%s FOR SHARE',(user['workspace_id'],user['id'])).fetchone()
+        role = conn.execute(
+            'SELECT m.role FROM socialmei.workspace_members m JOIN socialmei.auth_credenciais c ON c.user_id=m.user_id AND c.ativo '
+            'WHERE m.workspace_id=%s AND m.user_id=%s FOR SHARE OF m,c',
+            (user['workspace_id'],user['id']),
+        ).fetchone()
         if not role or role['role'] not in {'owner','admin'}:
             raise HTTPException(403,'Permissão para alterar documentos indisponível.')
         row = conn.execute('SELECT sha256 FROM socialmei.kb_pdf_documents WHERE workspace_id=%s AND id=%s FOR UPDATE',(user['workspace_id'],identifier)).fetchone()

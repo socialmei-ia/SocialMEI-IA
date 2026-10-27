@@ -162,3 +162,31 @@ class PdfPersistenceTests(unittest.TestCase):
             response = self.first.post('/api/v1/knowledge/pdf?filename=blocked.pdf',headers={'Content-Type':'application/pdf'},content=text_pdf())
         self.assertEqual(response.status_code,403)
         self.assertEqual(self.first.get('/api/v1/knowledge/pdf').json()['items'],[])
+
+    def test_deactivated_account_cannot_upload_replace_or_reprocess_after_extraction(self):
+        import psycopg
+        original = extract_chunks
+        row = self.upload(self.first)
+        url = '/api/v1/knowledge/pdf/' + row['id']
+        user_id = self.first.identity['usuario']['id']
+        def deactivate_after_parse(raw):
+            result = original(raw)
+            with psycopg.connect(os.environ['TEST_DATABASE_URL']) as conn:
+                conn.execute('UPDATE socialmei.auth_credenciais SET ativo=false WHERE user_id=%s',(user_id,))
+            return result
+        for operation in ('upload','reprocess','replace'):
+            with self.subTest(operation=operation):
+                try:
+                    with patch('pdf_knowledge.extract_chunks',side_effect=deactivate_after_parse):
+                        if operation == 'upload':
+                            response = self.first.post('/api/v1/knowledge/pdf?filename=blocked.pdf',headers={'Content-Type':'application/pdf'},content=text_pdf('Outro documento.'))
+                        elif operation == 'replace':
+                            response = self.first.put(url+'?filename=alterado.pdf',headers={'Content-Type':'application/pdf','If-Match':row['sha256']},content=text_pdf('Outro documento.'))
+                        else:
+                            response = self.first.post(url+'/reprocess',json={'sha256':row['sha256']})
+                    self.assertEqual(response.status_code,403,response.text)
+                finally:
+                    with psycopg.connect(os.environ['TEST_DATABASE_URL']) as conn:
+                        conn.execute('UPDATE socialmei.auth_credenciais SET ativo=true WHERE user_id=%s',(user_id,))
+                self.assertEqual(self.first.get('/api/v1/knowledge/pdf').json()['items'],[row])
+                self.assertTrue(self.first.get('/api/v1/knowledge/pdf/search?q=documentos').json()['items'])
