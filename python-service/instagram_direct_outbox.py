@@ -68,7 +68,8 @@ def fingerprint(value):
 
 def view(row):
     return {
-        key: str(row[key]) if key in {"id", "connection_id"} else row[key]
+        key: (str(row[key]) if key in {"id", "connection_id"} else
+              row[key].isoformat() if key in {"created_at", "updated_at"} else row[key])
         for key in (
             "id",
             "conversation_id",
@@ -80,6 +81,8 @@ def view(row):
             "attempts",
             "last_error",
             "provider_message_id",
+            "created_at",
+            "updated_at",
         )
     }
 

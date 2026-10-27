@@ -69,6 +69,10 @@
     instagram.src = "scripts/v22-instagram.js";
     instagram.onerror = () => console.warn("Controles Instagram indisponíveis.");
     instagram.onload = () => {
+      const direct = document.createElement("script");
+      direct.src = "scripts/v22-instagram-direct.js";
+      direct.onerror = () => console.warn("Respostas Instagram indisponíveis.");
+      document.body.appendChild(direct);
       const publishing = document.createElement("script");
       publishing.src = "scripts/v22-instagram-publisher.js";
       publishing.onerror = () => console.warn("Publicação Instagram indisponível.");
