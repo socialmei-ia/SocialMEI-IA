@@ -302,6 +302,108 @@ window.SocialMEIV22 = (() => {
       },
     );
   }
+  // Incoming Meta webhooks persist server-side. Poll while the inbox is visible
+  // so messages appear without requiring a full page reload.
+  let inboxPolling = false;
+  let inboxFingerprint = "";
+  let inboxCapabilities = null;
+  async function refreshInbox({ silent = false } = {}) {
+    if (inboxPolling || !remote || !auth.current) return;
+    inboxPolling = true;
+    const workspace = auth.current.negocio.id;
+    const scope = identityKey();
+    const sameSession = () => auth.current && identityKey() === scope;
+    try {
+      const cap = await request("/message-enrichment/capabilities");
+      if (!sameSession()) return;
+      const available = cap.mode === "stub" || cap.instagram_inbox || cap.waha_inbox;
+      const result = available
+        ? await request("/message-enrichment/conversations")
+        : { workspace_id: workspace, items: [] };
+      if (!sameSession()) return;
+      if (result.workspace_id !== workspace) throw Error("Resposta de outro negócio.");
+      inboxCapabilities = cap;
+      const fingerprint = JSON.stringify([
+        scope,
+        cap.mode,
+        !!cap.instagram_inbox,
+        !!cap.waha_inbox,
+        result.items.map((row) => [row.id, row.revision, row.messages?.at(-1)?.id]),
+      ]);
+      if (fingerprint === inboxFingerprint) return;
+      inboxFingerprint = fingerprint;
+      inbox = result.items;
+      C.splice(0, C.length);
+      for (const row of inbox) {
+        const messages = row.messages || [];
+        const last = messages.at(-1);
+        if (!last) continue;
+        C.push([
+          "me-" + row.id,
+          row.contact_name,
+          esc(ini(row.contact_name)),
+          "#e4dcff",
+          "#4a3aa8",
+          last.text || "",
+          row.channel === "instagram" ? "ig" : "wa",
+          "Aberto",
+          new Date(last.occurred_at).toLocaleTimeString("pt-BR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        ]);
+      }
+      if (silent && loaded && H.startsWith("/caixa")) render();
+    } catch (e) {
+      if (!silent && ![403, 503].includes(e.status)) throw e;
+    } finally {
+      inboxPolling = false;
+    }
+  }
+  // Never poll while hidden or without a session. No duplicate timers.
+  if (remote)
+    window.setInterval(() => {
+      if (!document.hidden && loaded && H.startsWith("/caixa")) refreshInbox({ silent: true });
+    }, 6000);
+  function paintInboxLabels() {
+    if (!H.startsWith("/caixa")) return;
+    // Replace only label text; retain the native icons, layout and motion hooks.
+    const label = (selector, value) => {
+      const element = document.querySelector(selector);
+      if (!element) return;
+      const node = [...element.childNodes].find((child) => child.nodeType === 3);
+      if (node) node.textContent = value;
+      else element.appendChild(document.createTextNode(value));
+    };
+    const receiving = inboxCapabilities?.instagram_inbox || inboxCapabilities?.waha_inbox;
+    const status = receiving
+      ? "Recebimento habilitado no servidor"
+      : inboxCapabilities?.mode === "stub"
+        ? "Mensagens sintéticas de teste"
+        : inboxCapabilities
+          ? "Recebimento não habilitado"
+          : "Recebimento não confirmado";
+    label(".pg > .row.sp.wr > .row.wr > .pill", "Caixa do negócio");
+    label(".pg > .row.sp.wr > .row.wr > .m.sm", status);
+    const dot = document.querySelector(".pg > .row.sp.wr > .row.wr > .m.sm > .dot");
+    if (dot) {
+      dot.classList.toggle("g", !!receiving);
+      dot.classList.toggle("y", !receiving);
+    }
+    const row = inbox.find((item) => H === "/caixa/me-" + item.id);
+    if (!row) return;
+    const provider = ["instagram", "waha"].includes(row.origin);
+    const channel = row.channel === "instagram" ? "Instagram" : "WhatsApp";
+    label(
+      ".ct > .hd > .row > .row > div > .m.sm",
+      `${channel} · ${provider ? "recebido no servidor" : "mensagem sintética de teste"}`,
+    );
+    label(".ct > .hd > .wn > b", "Envio indisponível");
+    label(
+      ".ct > .hd > .wn > .m",
+      provider ? "Mensagens recebidas salvas no servidor." : "Conversa sintética; nada é enviado.",
+    );
+  }
   async function initialize() {
     if (!remote) return;
     root.hidden = true;
@@ -323,39 +425,8 @@ window.SocialMEIV22 = (() => {
       if (![403, 404, 503].includes(e.status)) throw e;
     }
     S.biz.desc = "";
-    try {
-      const cap = await request("/message-enrichment/capabilities");
-      if (cap.mode === "stub" || cap.instagram_inbox || cap.waha_inbox) {
-        const result = await request("/message-enrichment/conversations");
-        if (result.workspace_id !== auth.current.negocio.id)
-          throw Error("Resposta de outro negócio.");
-        inbox = result.items;
-      }
-    } catch (e) {
-      if (![403, 503].includes(e.status)) throw e;
-    }
     C.splice(0, C.length);
-    for (const row of inbox) {
-      const messages = row.messages || [],
-        last = messages.at(-1);
-      if (!last) continue;
-      C.push([
-        "me-" + row.id,
-        row.contact_name,
-        esc(ini(row.contact_name)),
-        "#e4dcff",
-        "#4a3aa8",
-        last?.text || "",
-        row.channel === "instagram" ? "ig" : "wa",
-        "Aberto",
-        last
-          ? new Date(last.occurred_at).toLocaleTimeString("pt-BR", {
-              hour: "2-digit",
-              minute: "2-digit",
-            })
-          : "—",
-      ]);
-    }
+    await refreshInbox();
     T1.splice(0, T1.length);
     T2.splice(0, T2.length);
     preferences = await request("/auth/preferences");
@@ -571,6 +642,7 @@ window.SocialMEIV22 = (() => {
     const oldRender = render;
     render = () => {
       oldRender();
+      paintInboxLabels();
       const composer = document.querySelector("#ta");
       if (composer) {
         const button = document.querySelector('[data-a^="salvar:"]');

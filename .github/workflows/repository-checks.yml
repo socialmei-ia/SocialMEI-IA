@@ -7,6 +7,7 @@ on:
     branches:
       [
         main,
+        feat/backend-provider-readiness,
         feat/ux-interaction-refinement,
         release/integration-candidate-80,
         release/integration-candidate-94-review,
@@ -22,6 +23,7 @@ on:
         feat/instagram-persistent-oauth,
         feat/instagram-durable-webhook,
         feat/instagram-direct-outbox,
+        feat/instagram-posts-inbox-real,
         feat/opportunity-planning-persistence,
         feat/waha-durable-ingress,
       ]
@@ -98,6 +100,14 @@ jobs:
           if-no-files-found: ignore
       - name: Backup failure and recovery scenarios
         run: python -m unittest discover -s tests -p 'test_*.py'
+      - name: Caddy OAuth privacy canary (disposable container only)
+        env:
+          SOCIALMEI_INSTAGRAM_PROXY_TEST: "true"
+        run: python -m unittest discover -s tests -p 'test_instagram_proxy_privacy.py'
+      - name: Prepare Instagram gateway release without changing the installed fixture
+        env:
+          SOCIALMEI_INSTAGRAM_RELEASE_TEST: "true"
+        run: python -m unittest discover -s tests -p 'test_instagram_release_prepare.py'
       - name: Protected team gateway
         env:
           SOCIALMEI_TEAM_GATEWAY_TEST: "true"

@@ -1,0 +1,71 @@
+INSTAGRAM LIVE PILOT - OPERATIONAL HANDOFF (2026-10-26)
+=================================================
+
+Status: code staged in PR #112; nothing installed or enabled in production.
+Goal: connect one authorized Instagram professional account through OAuth in
+SocialMEI. Existing n8n flows must keep working until jointly homologated.
+
+PHASE 1: CODE REVIEW (no server action)
+- Check PR #112 and all three CI jobs.
+- The team Docker Compose now forwards Instagram settings to the API; all
+  default to disabled/false. No credentials live in GitHub.
+- The Caddy privacy preparer NEVER applies a config or reloads Caddy.
+- A real Caddy 502 canary runs in disposable Docker only.
+- The private Meta settings preparer prompts for the App Secret without echoing
+  it; it generates a durable AES-256 keyring only when no keyring already exists
+  and preserves existing keyrings.
+
+PHASE 2: ON THE UBUNTU SERVER (after safe deployment of reviewed scripts)
+  cd /home/ubuntu/socialmei-team
+  umask 077
+  python3 tools/instagram-proxy-privacy.py prepare \
+    --output-dir /home/ubuntu/socialmei-backups/instagram-pilot-inspection
+
+This reads both active Caddy configurations and prepares private copies. It
+fails closed when live and disk configuration differ or routes would change.
+Review backup, gateway, upstream logs, and all generated candidates. Apply
+log changes via a SEPARATE authorized maintenance window with rollback. Until
+confirmed active on both proxies, leave PROXY_PRIVACY_REVIEWED=false.
+
+Only then stage the values:
+  python3 tools/instagram-private-config.py
+
+This prompts for:
+  - Instagram App Secret privately (never paste it into a chat)
+  - supported Graph API version, confirmed in the Meta Dashboard
+  - full Instagram Login authorization URL from the Meta Dashboard, using the
+    registered callback and approved scopes
+The Client ID expected from the provided Meta panel is 27816981071315232.
+The callback must be:
+  https://socialmei-ia.54-94-213-7.sslip.io/api/v1/instagram/meta/oauth/return
+
+The script backs up .env.team in a restricted private folder and leaves
+Instagram runtime, ingress, sending and privacy-reviewed flag OFF.
+
+PHASE 3: CONTROLLED ACTIVATION (not done by these scripts)
+- Verify authenticated team login and provider migrations 019/020/021.
+- Only after all upstream logging has been reviewed and secured, set
+  SOCIALMEI_INSTAGRAM_PROXY_PRIVACY_REVIEWED=true.
+- First enable RUNTIME_MODE=connect with INGRESS=false and SEND=false.
+- Recreate only team-api in a controlled deployment after backup/health checks.
+- Use SocialMEI Configuracoes > Integracoes > Conectar Instagram as an
+  authenticated owner/admin, then verify the actual linked account and
+  token availability. A local demo badge is not proof.
+- Confirm whether the target is @testefacep from the real Meta identity;
+  do not assume fixed IDs in the n8n workflow identify it.
+
+PHASE 4: DIRECT (requires coordination with existing n8n operator)
+- Existing n8n Direct uses Graph Instagram v22.0, publishing uses Graph
+  Facebook v23.0 per the owner's earlier server inspection; versions must
+  be verified against currently supported Meta contracts.
+- Do not replace the active Meta webhook without a signed, byte-preserving
+  forwarding plan or a controlled cutover. Do not activate two responders.
+- Enable inbound Direct only after authenticated routing into Caixa,
+  workspace-account mapping, signature validation and duplicate tests.
+- Outgoing Direct stays disabled until a single sender is chosen and tested.
+- Feed/Stories/Reels remain separate pending durable media, authenticated
+  worker handoff, idempotency, receipts and live account approval.
+
+SAFETY
+No automated deployment, proxy reload, active workflow change, OAuth enable,
+Meta permissions change, or live message/post was performed by PR #112.

@@ -32,6 +32,17 @@
                 header_up -Authorization
             }
         }
+        # Only unguessable, expiring JPEG capabilities are delivered without a session.
+        handle /media/instagram/* {
+            @media_read method GET
+            route {
+                reverse_proxy @media_read team-api:8000 {
+                    header_up -Authorization
+                    header_up -Cookie
+                }
+                respond "Não encontrado." 404
+            }
+        }
         handle /api/v1/* {
             reverse_proxy team-api:8000 {
                 header_up -Authorization
