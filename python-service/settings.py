@@ -22,6 +22,11 @@ def authentication_mode() -> str:
     return "invalid"
 
 
+def instagram_token_refresh_enabled() -> bool:
+    # Opt-in credential maintenance; unrelated sending/ingress flags stay unchanged.
+    return os.getenv("SOCIALMEI_INSTAGRAM_TOKEN_REFRESH_ENABLED", "false").strip().lower() == "true"
+
+
 def authentication_origin() -> str:
     return os.getenv("SOCIALMEI_AUTH_ORIGIN", "").strip()
 

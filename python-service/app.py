@@ -43,6 +43,7 @@ from workspace_reporting import router as workspace_reporting_router
 from report_collaboration import router as report_collaboration_router
 from whatsapp_catalog import router as whatsapp_catalog_router
 from whatsapp_bot import router as whatsapp_bot_router
+from instagram_token_maintenance import router as instagram_token_maintenance_router
 
 app = FastAPI(title="SocialME Python Service", lifespan=runtime_lifespan)
 app.include_router(integration_readiness_router)
@@ -53,6 +54,7 @@ app.include_router(workspace_reporting_router)
 app.include_router(report_collaboration_router)
 app.include_router(whatsapp_catalog_router)
 app.include_router(whatsapp_bot_router)
+app.include_router(instagram_token_maintenance_router)
 app.add_middleware(AccountMiddleware)
 cors_origins = configured_cors_origins()
 if cors_origins:
