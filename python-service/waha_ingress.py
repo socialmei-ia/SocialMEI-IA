@@ -1,9 +1,11 @@
-"""Authenticated WAHA-shaped reception. No installed registry, HTTP or session operations."""
+"""Authenticated WAHA reception with an explicitly mounted private registry."""
 
 import hashlib
 import hmac
 import json
+import os
 import re
+import stat
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal, DecimalException
@@ -400,7 +402,52 @@ class WahaIngressService:
 
 
 def waha_service():
-    raise HTTPException(503, "Recepção WAHA ainda não configurada.")
+    """Reload operator-owned bindings; no pairing, sender or implicit defaults."""
+    try:
+        path = os.getenv("SOCIALMEI_WAHA_REGISTRY_FILE", "")
+        if not path or not os.path.isabs(path) or not hasattr(os, "O_NOFOLLOW"):
+            raise ValueError()
+        descriptor = os.open(
+            path, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC | os.O_NONBLOCK
+        )
+        with os.fdopen(descriptor, "rb") as source:
+            metadata = os.fstat(source.fileno())
+            if (
+                not stat.S_ISREG(metadata.st_mode)
+                or stat.S_IMODE(metadata.st_mode) not in {0o400, 0o600}
+                or metadata.st_uid not in {0, os.geteuid()}
+                or not 1 <= metadata.st_size <= MAX_BODY
+            ):
+                raise ValueError()
+            raw = source.read(MAX_BODY + 1)
+        if len(raw) > MAX_BODY:
+            raise ValueError()
+        value = json.loads(
+            raw.decode("utf-8"),
+            object_pairs_hook=unique_json_fields,
+            parse_constant=lambda _: (_ for _ in ()).throw(ValueError()),
+        )
+        if (
+            not isinstance(value, dict)
+            or set(value) != {"version", "bindings"}
+            or type(value["version"]) is not int
+            or value["version"] != 1
+            or not isinstance(value["bindings"], list)
+            or not 1 <= len(value["bindings"]) <= 100
+        ):
+            raise ValueError()
+        bindings = []
+        for entry in value["bindings"]:
+            if not isinstance(entry, dict):
+                raise ValueError()
+            bindings.append(WahaBinding(**entry))
+        registry = {binding.instance: binding for binding in bindings}
+        if len(registry) != len(bindings):
+            raise ValueError()
+        return WahaIngressService(registry)
+    except (OSError, ValueError, TypeError, UnicodeError, RecursionError):
+        # File paths, parser diagnostics, account IDs and HMACs remain private.
+        raise HTTPException(503, "Recepção WAHA ainda não configurada.") from None
 
 
 @router.post("/{instance}/webhook")

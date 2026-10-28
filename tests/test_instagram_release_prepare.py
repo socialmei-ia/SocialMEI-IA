@@ -9,7 +9,8 @@ spec = importlib.util.spec_from_file_location('release_prepare',ROOT/'tools/inst
 prep = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(prep)
 SHA = 'a' * 40
-MIGRATIONS = sorted(p.name for p in (ROOT/'database/migrations').glob('*.sql'))
+# This publisher is deliberately pinned to the approved V25 chain, not new bot SQL.
+MIGRATIONS = sorted(p.name for p in (ROOT/'database/migrations').glob('*.sql') if int(p.name[:3]) <= 31)
 
 
 def model():
@@ -20,6 +21,12 @@ def model():
 
 
 class ReleasePrepareTests(unittest.TestCase):
+    def test_v25_publisher_refuses_new_bot_migration(self):
+        current = sorted(p.name for p in (ROOT/'database/migrations').glob('*.sql'))
+        self.assertIn('032_whatsapp_bot_conversations.sql', current)
+        with self.assertRaises(RuntimeError):
+            prep.missing_migrations(MIGRATIONS, current, stage='functional')
+
     def test_models_change_only_target_image_and_api_release(self):
         original = model()
         for service in ('team-api','team-gateway'):

@@ -42,6 +42,7 @@ from pdf_knowledge import router as pdf_knowledge_router
 from workspace_reporting import router as workspace_reporting_router
 from report_collaboration import router as report_collaboration_router
 from whatsapp_catalog import router as whatsapp_catalog_router
+from whatsapp_bot import router as whatsapp_bot_router
 
 app = FastAPI(title="SocialME Python Service", lifespan=runtime_lifespan)
 app.include_router(integration_readiness_router)
@@ -51,6 +52,7 @@ app.include_router(pdf_knowledge_router)
 app.include_router(workspace_reporting_router)
 app.include_router(report_collaboration_router)
 app.include_router(whatsapp_catalog_router)
+app.include_router(whatsapp_bot_router)
 app.add_middleware(AccountMiddleware)
 cors_origins = configured_cors_origins()
 if cors_origins:
@@ -94,7 +96,7 @@ app.include_router(integration_setup_router)
 @app.middleware("http")
 async def internal_response_privacy(request, call_next):
     response = await call_next(request)
-    if request.url.path.startswith(("/internal/waha", "/internal/message-enrichment", "/internal/channel-ingress", "/api/v1/content/preparation", "/api/v1/channel-lab", "/api/v1/opportunities", "/api/v1/integrations/setup")):
+    if request.url.path.startswith(("/internal/waha", "/internal/whatsapp/bot", "/internal/message-enrichment", "/internal/channel-ingress", "/api/v1/content/preparation", "/api/v1/channel-lab", "/api/v1/opportunities", "/api/v1/integrations/setup")):
         response.headers["Cache-Control"] = "no-store"
     if request.url.path.startswith("/internal/waha"):
         response.headers["X-Content-Type-Options"] = "nosniff"
@@ -109,7 +111,7 @@ app.add_middleware(WebhookQueryPrivacy)
 async def private_validation_error(request, error):
     # FastAPI's default validation response includes submitted values, including passwords.
     if request.url.path.startswith(
-        ("/api/v1/auth/", "/api/v1/admin/", "/api/v1/instagram/", "/api/v1/workspace-profile", "/api/v1/message-enrichment", "/internal/message-enrichment", "/api/v1/channel-lab", "/internal/channel-ingress", "/api/v1/content/preparation", "/api/v1/opportunities", "/api/v1/integrations/setup")
+        ("/api/v1/auth/", "/api/v1/admin/", "/api/v1/instagram/", "/api/v1/whatsapp/bot", "/internal/whatsapp/bot", "/api/v1/workspace-profile", "/api/v1/message-enrichment", "/internal/message-enrichment", "/api/v1/channel-lab", "/internal/channel-ingress", "/api/v1/content/preparation", "/api/v1/opportunities", "/api/v1/integrations/setup")
     ):
         return JSONResponse(
             {"detail": "Confira os campos informados."},
