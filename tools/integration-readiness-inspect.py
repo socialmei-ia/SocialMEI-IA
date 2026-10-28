@@ -66,7 +66,7 @@ def command_allowed(args, body=None):
         return False
     if len(args) == 3 and args[:2] == ['docker', 'inspect'] and args[2] in {API, GATEWAY, N8N, WAHA}:
         return body is None
-    if args == ['docker', 'exec', '-i', API, 'python', '-']:
+    if args == ['docker', 'exec', '-i', API, 'python', '-B', '-']:
         return body == API_DATABASE_INSPECTION
     prefix = ['docker', 'exec', '-i', '--env', 'PGOPTIONS=-c default_transaction_read_only=on -c statement_timeout=5s',
               'socialmei-postgres', 'sh', '-c',
@@ -210,7 +210,7 @@ def inspect(target):
         except (RuntimeError, ValueError, TypeError, AttributeError):
             result['containers'][role] = {'status':'not_verified'}
     try:
-        raw = run(['docker', 'exec', '-i', API, 'python', '-'], input=API_DATABASE_INSPECTION)
+        raw = run(['docker', 'exec', '-i', API, 'python', '-B', '-'], input=API_DATABASE_INSPECTION)
         result['database'] = database_summary(json.loads(raw))
     except (RuntimeError, ValueError, TypeError):
         result['database'] = {'status':'not_verified'}

@@ -93,6 +93,7 @@ class IntegrationInspectionTests(unittest.TestCase):
             if args[:2] == ['docker', 'inspect']:
                 return json.dumps([fixture()])
             if 'python' in args:
+                self.assertIn('-B', args)
                 self.assertIn('SET TRANSACTION READ ONLY', kwargs['input'])
                 self.assertIn('statement_timeout', kwargs['input'])
                 return json.dumps({'status': 'verified_read_only', 'migrations': [], 'instagram_active_valid': 1})

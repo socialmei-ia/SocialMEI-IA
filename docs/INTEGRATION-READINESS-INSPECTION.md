@@ -51,7 +51,8 @@ consultas `docker exec` de formato fixo. Não há chamadas HTTP ao WAHA, Meta ou
 outros endpoints; `session_status` permanece `not_verified`. Isso evita procurar
 ou utilizar uma API key privada para declarar uma conexão que não foi testada.
 
-As consultas funcionais rodam **dentro da API** e iniciam transação somente leitura
+As consultas funcionais rodam **dentro da API**, com `python -B` para impedir
+escrita de bytecode, e iniciam transação somente leitura
 com timeout de 5 segundos. O banco do n8n usa `default_transaction_read_only=on`
 e o mesmo limite. Cada subprocesso tem limite de 30 segundos; falhas recebem
 mensagens genéricas, sem stdout/stderr bruto, caminhos ou configurações privadas.
