@@ -270,6 +270,18 @@ class Rehearsal:
                     self.check(handles[0] == handles[1] and handles[0] >= 2, '025 gives existing sessions distinct public handles without revoking tokens')
                 elif version == 26:
                     conn.execute("INSERT INTO socialmei.auth_recuperacao_envios(user_id,generation,status,started_at) VALUES(%s,%s,%s,CASE WHEN %s THEN NOW() ELSE NULL END)",(user,uuid4(),'pending' if index==0 else 'uncertain',index==1))
+                elif version == 32:
+                    channel = conn.execute("SELECT id FROM socialmei.crm_canais WHERE workspace_id=%s AND ingress_provisioned", (workspace,)).fetchone()[0]
+                    message, conversation = conn.execute("SELECT id,conversation_id FROM socialmei.me_messages WHERE workspace_id=%s AND origin='waha'", (workspace,)).fetchone()
+                    conn.execute("INSERT INTO socialmei.wa_bot_access(workspace_id,channel_id,token_hash,binding_hash,issued_by) VALUES(%s,%s,%s,%s,%s)",
+                                 (workspace,channel,digest(('synthetic-bot:'+str(index)).encode()),'a'*64,user))
+                    conn.execute("INSERT INTO socialmei.wa_bot_conversations(workspace_id,channel_id,conversation_id,state,revision,last_message_id,last_occurred_at) VALUES(%s,%s,%s,'human',1,%s,NOW())",
+                                 (workspace,channel,conversation,message))
+                    conn.execute("INSERT INTO socialmei.wa_bot_decisions(id,workspace_id,channel_id,conversation_id,source_message_id,binding_hash,state_revision,result,status,claimed_at,finished_at,provider_message_id) "
+                                 "VALUES(%s,%s,%s,%s,%s,%s,1,%s,%s,NOW(),NOW(),%s)",
+                                 (uuid4(),workspace,channel,conversation,message,'a'*64,Jsonb({'action':'human_handoff','text':'Resposta sintética sem envio'}),
+                                  'confirmed' if index==0 else 'uncertain','synthetic-receipt' if index==0 else None))
+                    self.check(True, '032 seeded bot credentials, human state and terminal receipts for isolated restore')
             if version == 24:
                 self.check(conn.execute('SELECT COUNT(*) FROM socialmei.auth_recuperacoes').fetchone()[0] == 2, '024 seeds two account recovery hashes with used and pending states')
 
@@ -380,7 +392,7 @@ class Rehearsal:
     def run(self, backend_tests):
         import psycopg
         files = sorted((ROOT/'database/migrations').glob('*.sql'))
-        self.check(len(files) == 31 and [p.name[:3] for p in files] == [f'{n:03}' for n in range(1,32)], 'exact incremental migrations001–031 present')
+        self.check(len(files) == 32 and [p.name[:3] for p in files] == [f'{n:03}' for n in range(1,33)], 'exact incremental migrations001–032 present')
         manifest = {}
         for path in files:
             committed = subprocess.run(['git','show','HEAD:database/migrations/'+path.name], cwd=ROOT, capture_output=True, check=True).stdout
@@ -430,12 +442,12 @@ class Rehearsal:
                 # requires exact preservation across each incremental migration.
                 self.check(all(all(row in [{key: item[key] for key in legacy_columns[name]} for item in current['tables'][name]] for row in rows) for name,rows in legacy.items()), f'{number:03} preserves all preexisting001–011 row values')
             baseline = self.snapshot()
-            self.migrate(folder, 'ledger replay001–031')
+            self.migrate(folder, 'ledger replay001–032')
             self.check(self.snapshot() == baseline, 'team migrator ledger replay preserves rows, schema, sequences and applied_at')
             with self.connect() as conn:
                 for path in files[11:]:
                     conn.execute(path.read_text(), prepare=False)
-            self.check(self.snapshot() == baseline, 'raw012–031 reapplication is idempotent with seeded data')
+            self.check(self.snapshot() == baseline, 'raw012–032 reapplication is idempotent with seeded data')
             with tempfile.TemporaryDirectory(prefix='socialmei-rc80-failure-') as failure:
                 (Path(failure)/'999_release_probe.sql').write_text('CREATE TABLE socialmei.rc80_rollback_probe(id INT); SELECT 1/0;')
                 try:

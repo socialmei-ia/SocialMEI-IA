@@ -1,0 +1,244 @@
+{
+  "name": "SocialMEI - Atendimento WhatsApp (homologacao pendente)",
+  "active": false,
+  "nodes": [
+    {
+      "id": "evento-ja-persistido",
+      "name": "Evento ja persistido",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    },
+    {
+      "id": "ativacao-e-entrada",
+      "name": "Ativacao e entrada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [220, 0],
+      "parameters": {
+        "jsCode": "// Deliberately disabled. An operator must review ownership and credentials first.\nconst ENABLED = false;\nif (!ENABLED) throw new Error('Bot nao homologado: fluxo desativado.');\nconst items = $input.all();\nif (items.length !== 1) throw new Error('Uma mensagem por execucao.');\nconst {instance, external_message_id} = items[0].json;\nif (!/^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$/.test(instance || '') || !/^[!-~]{1,1024}$/.test(external_message_id || '')) throw new Error('Referencia invalida.');\nreturn [{json:{instance, external_message_id}}];"
+      }
+    },
+    {
+      "id": "preparar-resposta",
+      "name": "Preparar resposta",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 0],
+      "parameters": {
+        "method": "POST",
+        "url": "http://team-api:8000/internal/whatsapp/bot/decisions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "retryOnFail": false
+    },
+    {
+      "id": "reservar-envio",
+      "name": "Reservar envio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 0],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'http://team-api:8000/internal/whatsapp/bot/decisions/' + $json.operation_id + '/claim' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {} }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "retryOnFail": false
+    },
+    {
+      "id": "reserva-exclusiva",
+      "name": "Reserva exclusiva",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [880, 0],
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.dispatch_allowed }}",
+              "value2": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "conferir-destino",
+      "name": "Conferir destino",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [1100, 0],
+      "parameters": {
+        "jsCode": "const d = $json.delivery;\nif ($json.dispatch_allowed !== true || d?.path !== '/api/sendText' || typeof d.body?.session !== 'string' || !/^(?:[0-9]{1,40}@c\\.us|[A-Za-z0-9][A-Za-z0-9_.:-]{0,79}@lid)$/.test(d.body?.chatId || '') || typeof d.body.text !== 'string' || d.body.text.length > 16000) throw new Error('Envio bloqueado.');\nreturn [{json:{session:d.body.session,chatId:d.body.chatId,text:d.body.text}}];"
+      }
+    },
+    {
+      "id": "enviar-uma-vez-waha",
+      "name": "Enviar uma vez WAHA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, 0],
+      "parameters": {
+        "method": "POST",
+        "url": "http://waha:3000/api/sendText",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "retryOnFail": false
+    },
+    {
+      "id": "validar-recibo",
+      "name": "Validar recibo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [1540, 0],
+      "parameters": {
+        "jsCode": "const id = typeof $json.id === 'string' ? $json.id : $json.id?._serialized;\nreturn [{json: typeof id === 'string' && /^[!-~]{1,1024}$/.test(id) ? {status:'confirmed', provider_message_id:id} : {status:'uncertain'}}];"
+      }
+    },
+    {
+      "id": "registrar-recibo",
+      "name": "Registrar recibo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1760, 0],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'http://team-api:8000/internal/whatsapp/bot/decisions/' + $('Preparar resposta').item.json.operation_id + '/receipt' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "retryOnFail": false
+    }
+  ],
+  "connections": {
+    "Evento ja persistido": {
+      "main": [
+        [
+          {
+            "node": "Ativacao e entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ativacao e entrada": {
+      "main": [
+        [
+          {
+            "node": "Preparar resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar resposta": {
+      "main": [
+        [
+          {
+            "node": "Reservar envio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reservar envio": {
+      "main": [
+        [
+          {
+            "node": "Reserva exclusiva",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reserva exclusiva": {
+      "main": [
+        [
+          {
+            "node": "Conferir destino",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Conferir destino": {
+      "main": [
+        [
+          {
+            "node": "Enviar uma vez WAHA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar uma vez WAHA": {
+      "main": [
+        [
+          {
+            "node": "Validar recibo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar recibo": {
+      "main": [
+        [
+          {
+            "node": "Registrar recibo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "none",
+    "saveManualExecutions": false,
+    "saveExecutionProgress": false,
+    "executionTimeout": 60
+  },
+  "pinData": {},
+  "tags": []
+}

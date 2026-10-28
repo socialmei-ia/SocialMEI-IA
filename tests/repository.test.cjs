@@ -137,7 +137,7 @@ test("workflow exports are valid, inactive and contain no literal authorization 
   const structural = files.filter((file) =>
     file.startsWith(path.join(root, "n8n-workflows", "structure") + path.sep),
   );
-  assert.equal(files.length - structural.length, 8);
+  assert.equal(files.length - structural.length, 9);
   if (structural.length) assert.equal(structural.length, 8);
   for (const file of files) {
     const workflow = JSON.parse(fs.readFileSync(file, "utf8"));
