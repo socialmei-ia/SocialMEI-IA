@@ -24,7 +24,11 @@ atualizar o checkout antigo da VPS ou recriar serviços para executar a inspeç�
 - Imagens/digests e saúde dos containers conhecidos. Tags fora dos formatos
   reconhecidos não são reproduzidas; o digest validado continua disponível.
 - Flags da API como booleanos/modos conhecidos; valores inesperados são marcados
-  como `invalid`, sem repetir a configuração fornecida.
+  como `invalid`, sem repetir a configuração fornecida. Autenticação segue seus
+  aliases existentes; ingresso/envio/publicação Instagram exigem exatamente
+  `true`/`false`/vazio. Bot, catálogo e renovação de token normalizam espaços/caixa,
+  mas nunca interpretam `yes` ou `1` como habilitados; valores não canônicos
+  permanecem `invalid` de forma conservadora.
 - Presença da variável do registry WAHA, sem caminho ou conteúdo do arquivo.
 - Nomes conhecidos das migrations instaladas; versões desconhecidas são apenas
   sinalizadas, sem impressão do valor arbitrário.

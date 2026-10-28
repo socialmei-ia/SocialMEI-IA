@@ -4,6 +4,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 
 API = 'socialmei-team-team-api-1'
 GATEWAY = 'socialmei-team-team-gateway-1'
@@ -93,14 +94,21 @@ def run(args, **kwargs):
 def environment(row):
     config = row.get('Config') if isinstance(row, dict) else None
     entries = config.get('Env', []) if isinstance(config, dict) else []
+    if not isinstance(entries, list):
+        return {}
     return dict(value.split('=', 1) for value in entries if isinstance(value, str) and '=' in value)
 
 
-def flag(value):
-    value = value.strip().lower() if isinstance(value, str) else ''
-    if value in {'true', '1', 'yes', 'on'}:
+def flag(value, contract='strict'):
+    if not isinstance(value, str):
+        return 'invalid'
+    if contract in {'auth', 'normalized'}:
+        value = value.strip().lower()
+    enabled = {'true', '1', 'yes', 'on'} if contract == 'auth' else {'true'}
+    disabled = {'false', '0', 'no', 'off', ''} if contract == 'auth' else {'false', ''}
+    if value in enabled:
         return True
-    if value in {'false', '0', 'no', 'off', ''}:
+    if value in disabled:
         return False
     return 'invalid'
 
@@ -131,13 +139,14 @@ def container_summary(row):
         'egress_network_attached': 'socialmei_team_egress' in row.get('NetworkSettings', {}).get('Networks', {}),
         'registry_file_configured': bool(env.get('SOCIALMEI_WAHA_REGISTRY_FILE')),
         'engine': env.get('WHATSAPP_DEFAULT_ENGINE') if env.get('WHATSAPP_DEFAULT_ENGINE') in {'WEBJS', 'GOWS', 'NOWEB', 'WPP'} else 'not_verified',
-        'flags': {name:flag(env.get(key, 'false')) for name,key in {
-            'authentication':'SOCIALMEI_AUTH_ENABLED',
-            'instagram_ingress':'SOCIALMEI_INSTAGRAM_RUNTIME_INGRESS_ENABLED',
-            'instagram_send':'SOCIALMEI_INSTAGRAM_RUNTIME_SEND_ENABLED',
-            'instagram_publish':'SOCIALMEI_INSTAGRAM_PUBLISH_ENABLED',
-            'whatsapp_bot':'SOCIALMEI_WHATSAPP_BOT_ENABLED',
-            'whatsapp_catalog':'SOCIALMEI_WA_CATALOG_ENABLED',
+        'flags': {name:flag(env.get(key, 'false'), contract) for name,(key,contract) in {
+            'authentication':('SOCIALMEI_AUTH_ENABLED', 'auth'),
+            'instagram_ingress':('SOCIALMEI_INSTAGRAM_RUNTIME_INGRESS_ENABLED', 'strict'),
+            'instagram_send':('SOCIALMEI_INSTAGRAM_RUNTIME_SEND_ENABLED', 'strict'),
+            'instagram_publish':('SOCIALMEI_INSTAGRAM_PUBLISH_ENABLED', 'strict'),
+            'instagram_token_refresh':('SOCIALMEI_INSTAGRAM_TOKEN_REFRESH_ENABLED', 'normalized'),
+            'whatsapp_bot':('SOCIALMEI_WHATSAPP_BOT_ENABLED', 'normalized'),
+            'whatsapp_catalog':('SOCIALMEI_WA_CATALOG_ENABLED', 'normalized'),
         }.items()},
     }
     result['modes'] = {name:env.get(key, 'disabled') if env.get(key, 'disabled') in allowed else 'invalid'
@@ -227,7 +236,7 @@ def inspect(target):
 
 class PrivateArgumentParser(argparse.ArgumentParser):
     def error(self, message):
-        self.print_usage()
+        self.print_usage(file=sys.stderr)
         self.exit(2, 'Informe somente --target team. Argumentos inválidos foram omitidos.\n')
 
 

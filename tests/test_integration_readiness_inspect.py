@@ -160,3 +160,41 @@ class IntegrationInspectionTests(unittest.TestCase):
             with contextlib.redirect_stderr(error), self.assertRaises(SystemExit):
                 m.main(args)
             self.assertNotIn(SECRET, error.getvalue())
+
+    def test_flags_follow_their_real_runtime_contracts(self):
+        m = self.module()
+        value = fixture()
+        for supplied in ('yes', '1', 'on', 'TRUE', ' true '):
+            value['Config']['Env'] = ['SOCIALMEI_AUTH_ENABLED=' + supplied,
+                                      'SOCIALMEI_INSTAGRAM_RUNTIME_INGRESS_ENABLED=' + supplied,
+                                      'SOCIALMEI_INSTAGRAM_RUNTIME_SEND_ENABLED=' + supplied,
+                                      'SOCIALMEI_INSTAGRAM_PUBLISH_ENABLED=' + supplied]
+            summary = m.container_summary(value)
+            self.assertTrue(summary['flags']['authentication'])
+            for flag in ('instagram_ingress', 'instagram_send', 'instagram_publish'):
+                self.assertEqual(summary['flags'][flag], 'invalid')
+        value['Config']['Env'] = ['SOCIALMEI_WHATSAPP_BOT_ENABLED=yes', 'SOCIALMEI_WA_CATALOG_ENABLED=1']
+        self.assertEqual(m.container_summary(value)['flags']['whatsapp_bot'], 'invalid')
+        self.assertEqual(m.container_summary(value)['flags']['whatsapp_catalog'], 'invalid')
+        value['Config']['Env'] = ['SOCIALMEI_WHATSAPP_BOT_ENABLED= TRUE ', 'SOCIALMEI_WA_CATALOG_ENABLED= true ']
+        self.assertTrue(m.container_summary(value)['flags']['whatsapp_bot'])
+        self.assertTrue(m.container_summary(value)['flags']['whatsapp_catalog'])
+
+    def test_token_refresh_flag_has_normalized_true_contract(self):
+        m = self.module()
+        value = fixture()
+        value['Config']['Env'] = ['SOCIALMEI_INSTAGRAM_TOKEN_REFRESH_ENABLED= TRUE ']
+        self.assertTrue(m.container_summary(value)['flags']['instagram_token_refresh'])
+        value['Config']['Env'] = ['SOCIALMEI_INSTAGRAM_TOKEN_REFRESH_ENABLED=yes']
+        self.assertEqual(m.container_summary(value)['flags']['instagram_token_refresh'], 'invalid')
+
+    def test_malformed_env_is_sanitized_for_container_and_n8n_lookup(self):
+        m = self.module()
+        for config in ({'Env': None}, {'Env': SECRET}, None):
+            value = fixture()
+            value['Config'] = config
+            self.assertEqual(m.environment(value), {})
+            with patch.object(m, 'run', return_value=json.dumps([value])):
+                report = m.inspect('team')
+            self.assertEqual(report['n8n']['status'], 'not_verified')
+            self.assertNotIn(SECRET, json.dumps(report))
