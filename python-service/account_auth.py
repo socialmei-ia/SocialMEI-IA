@@ -337,9 +337,14 @@ class Invite(Strict):
     _email = field_validator("email")(normalize_email)
 
 
-def throttle(address, action):
+def throttle(address, action, *, timeout_seconds=None):
     # Database counters survive process/container restart. No password or email in keys.
+    if timeout_seconds is not None and (type(timeout_seconds) is not int or not 1 <= timeout_seconds <= 10):
+        raise ValueError("Limite de espera inválido.")
     with connect() as conn:
+        if timeout_seconds is not None:
+            conn.execute("SELECT set_config('lock_timeout',%s,true),set_config('statement_timeout',%s,true)",
+                         (str(timeout_seconds) + 's', str(timeout_seconds) + 's'))
         for key, seconds, maximum in [
             ("global:" + action, 60, 30),
             (action + ":" + address, 900, 10),
