@@ -152,3 +152,11 @@ class IntegrationInspectionTests(unittest.TestCase):
         self.assertFalse(result['workflows'][0]['saved_equals_active'])
         self.assertEqual(result['workflows'][0]['published_contract'],'not_verified')
         self.assertNotIn(SECRET,json.dumps(result))
+
+    def test_invalid_cli_arguments_are_never_echoed(self):
+        m = self.module()
+        for args in (['--target', SECRET], ['--target', 'team', '--token', SECRET]):
+            error = io.StringIO()
+            with contextlib.redirect_stderr(error), self.assertRaises(SystemExit):
+                m.main(args)
+            self.assertNotIn(SECRET, error.getvalue())

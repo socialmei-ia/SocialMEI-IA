@@ -225,8 +225,14 @@ def inspect(target):
     return result
 
 
+class PrivateArgumentParser(argparse.ArgumentParser):
+    def error(self, message):
+        self.print_usage()
+        self.exit(2, 'Informe somente --target team. Argumentos inválidos foram omitidos.\n')
+
+
 def main(argv=None):
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = PrivateArgumentParser(prog='integration-readiness-inspect.py', description=__doc__)
     parser.add_argument('--target', required=True, choices=('team',))
     args = parser.parse_args(argv)
     print(json.dumps(inspect(args.target), ensure_ascii=False, indent=2))

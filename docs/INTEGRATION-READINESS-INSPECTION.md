@@ -13,7 +13,7 @@ revisado, no servidor que já hospeda os containers da equipe:
 python3 /caminho/privado/integration-readiness-inspect.py --target team
 ```
 
-Sem `--target team`, o comando para antes de executar qualquer consulta. Não
+Sem `--target team`, o comando para antes de executar qualquer consulta. Argumentos inválidos também são omitidos das mensagens de erro. Não
 existe opção `--apply`, alvo genérico, escolha de container ou comando arbitrário.
 O cliente Docker usa explicitamente `/var/run/docker.sock`; seletores herdados
 para outro daemon são removidos somente do processo de consulta. Não é necessário
