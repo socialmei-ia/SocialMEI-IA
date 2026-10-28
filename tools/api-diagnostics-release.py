@@ -10,10 +10,10 @@ import tarfile
 
 spec=importlib.util.spec_from_file_location('api_egress_common',Path(__file__).with_name('team-api-egress.py'))
 common=importlib.util.module_from_spec(spec);spec.loader.exec_module(common)
-TARGET='3be1384e95920c3d7b3905f3c56fa7f12225e5ea'
-BASE='b411da787495d9bfc3b2eb0ba88982288b84c148'
+TARGET='93163f973959493beb52ebe7fa3edfae66a87399'
+BASE='3be1384e95920c3d7b3905f3c56fa7f12225e5ea'
 TAG='socialmei-v22/team-api:'+TARGET
-CHANGED={'python-service/instagram_meta_adapter.py','python-service/test_instagram_meta_adapter.py'}
+CHANGED={'python-service/instagram_meta_adapter.py','python-service/test_instagram_meta_adapter.py','python-service/test_instagram_persistent_oauth.py'}
 require=common.require
 
 def validate(before,after):
