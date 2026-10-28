@@ -1,5 +1,24 @@
 # Changelog
 
+## Apresentação V25 e entregas recentes — 2026-10-28
+
+Registro das candidatas de desenvolvimento; **não é anúncio de merge ou de ativação em produção**.
+
+- README atualizado com capturas locais atuais, entrada V25, Oportunidades V8 e Divulgação V4; documentação de versão separa implementação, testes e runtime.
+- [PR #136](https://github.com/socialmei-ia/SocialMEI-IA/pull/136): nova entrada V25 e integração das melhorias de contas, PDFs, relatórios e Instagram; gateway público sem Basic preservado nos procedimentos anteriores.
+- OAuth Instagram corrigido para formatos reais de permissões e extra de insights; conexão confirmada pelo responsável. Direct e publicação reais ainda não comprovados.
+- [PR #137](https://github.com/socialmei-ia/SocialMEI-IA/pull/137): registry WAHA privado, menu com catálogo real, estado por conversa, handoff, credencial própria e reserva/recibo de envio; migration 032 preparada, não implantada.
+- Subworkflow WhatsApp inativo e sem credenciais; texto numerado por padrão e listas condicionadas a suporte confirmado da engine. Nenhum número ou workflow real alterado nesta preparação.
+- Candidata e8e0dc8: 513 testes de backend, 341 de frontend e 864 verificações de migrations/restauração aprovados; [CI completo aprovado](https://github.com/socialmei-ia/SocialMEI-IA/actions/runs/40720042774).
+- Recuperação de conta, PDFs privados e relatórios preparados/testados; SMTP/worker, LLM/OCR e homologação dos canais continuam identificados como pendências.
+
+## Integração funcional e frontend V25 — 2026-10-27
+
+- Entrada V25 enviada pelo proprietário integrada preservando CSS, animações, temas e responsividade.
+- Melhorias das PRs #132–135 incorporadas à candidata #136 por ancestralidade, sem merge na main: gestão de catálogo WhatsApp, processamento privado de PDFs, relatórios com leitura restrita e revisão humana de Direct.
+- Ferramentas de publicação controlada preservam imagens, overlays, autenticação, privacidade dos proxies e rollback. Migrations aditivas e restauração foram ensaiadas em ambiente isolado.
+- Correções subsequentes de conexão Instagram e estado operacional estão consolidadas em [Versão atual](docs/VERSAO-ATUAL.md). O histórico abaixo conserva as condições da época e não descreve o runtime atual.
+
 ## Correção do cadastro atrás de Basic — 2026-10-15
 
 - Bootstrap consulta sessão opcional com200/null, evitando que401 anônimo invalide o acesso Basic do navegador.

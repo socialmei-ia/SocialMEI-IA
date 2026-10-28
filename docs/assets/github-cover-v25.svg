@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="320" viewBox="0 0 1280 320" role="img" aria-labelledby="title desc">
+  <title id="title">SocialMEI.IA — versão visual V25</title>
+  <desc id="desc">Plataforma de gestão e atendimento para pequenos negócios. Identidade em azul-marinho, azul e amarelo.</desc>
+  <rect width="1280" height="320" rx="20" fill="#10182f"/>
+  <path d="M48 0H1232Q1280 0 1280 48V64H0V48Q0 0 48 0Z" fill="#182442"/>
+  <circle cx="44" cy="32" r="5" fill="#f3c743"/>
+  <text x="62" y="38" fill="#c2cde0" font-family="Arial,Helvetica,sans-serif" font-size="16" letter-spacing="2">GESTÃO E ATENDIMENTO PARA PEQUENOS NEGÓCIOS</text>
+  <rect x="48" y="100" width="5" height="92" rx="2.5" fill="#f3c743"/>
+  <text x="76" y="151" fill="#ffffff" font-family="Arial,Helvetica,sans-serif" font-size="55" font-weight="700">SocialMEI<tspan fill="#76a6ff">.IA</tspan></text>
+  <text x="78" y="192" fill="#ced8eb" font-family="Arial,Helvetica,sans-serif" font-size="24">Mais clareza para cuidar do seu negócio.</text>
+  <path d="M78 226H1200" stroke="#34415d"/>
+  <text x="78" y="269" fill="#d6e1f5" font-family="Arial,Helvetica,sans-serif" font-size="19">Conversas</text>
+  <circle cx="198" cy="263" r="3" fill="#f3c743"/>
+  <text x="221" y="269" fill="#d6e1f5" font-family="Arial,Helvetica,sans-serif" font-size="19">Clientes</text>
+  <circle cx="319" cy="263" r="3" fill="#f3c743"/>
+  <text x="342" y="269" fill="#d6e1f5" font-family="Arial,Helvetica,sans-serif" font-size="19">Vendas</text>
+  <circle cx="434" cy="263" r="3" fill="#f3c743"/>
+  <text x="457" y="269" fill="#d6e1f5" font-family="Arial,Helvetica,sans-serif" font-size="19">Divulgação</text>
+  <rect x="1030" y="110" width="170" height="74" rx="12" fill="#243e72"/>
+  <text x="1115" y="157" text-anchor="middle" fill="#ffffff" font-family="Arial,Helvetica,sans-serif" font-size="37" font-weight="700">V25</text>
+  <text x="1200" y="269" text-anchor="end" fill="#9cb0d2" font-family="Arial,Helvetica,sans-serif" font-size="17">HTML · FastAPI · PostgreSQL</text>
+</svg>

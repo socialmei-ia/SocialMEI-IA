@@ -1,0 +1,55 @@
+{
+  "source_sha": "e8e0dc8fb677a62d6b1c0b8394882aea6a7da4eb",
+  "date": "2026-10-28",
+  "environment": "local demonstration; synthetic data; no external requests",
+  "screenshots": [
+    {
+      "name": "entrada-desktop",
+      "file": "entrada.html",
+      "width": 1440,
+      "height": 960,
+      "theme": "dark",
+      "errors": [],
+      "bytes": 772412
+    },
+    {
+      "name": "entrada-mobile",
+      "file": "entrada.html",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "errors": [],
+      "bytes": 249844
+    },
+    {
+      "name": "dashboard",
+      "file": "socialmei-app.html",
+      "route": "inicio",
+      "width": 1440,
+      "height": 1000,
+      "theme": "dark",
+      "errors": [],
+      "bytes": 389448
+    },
+    {
+      "name": "oportunidades",
+      "file": "socialmei-app.html",
+      "route": "oport",
+      "width": 1440,
+      "height": 1000,
+      "theme": "dark",
+      "errors": [],
+      "bytes": 467638
+    },
+    {
+      "name": "divulgacao",
+      "file": "socialmei-app.html",
+      "route": "divul",
+      "width": 1440,
+      "height": 1000,
+      "theme": "light",
+      "errors": [],
+      "bytes": 476563
+    }
+  ]
+}
