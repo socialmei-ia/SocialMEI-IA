@@ -339,7 +339,11 @@ class InstagramAdapter:
             permissions = permissions.split(",")
         elif not isinstance(permissions, list):
             raise ProviderError()
-        scopes = _scopes(permissions)
+        if not all(isinstance(value, str) for value in permissions) or len(set(permissions)) != len(permissions):
+            raise ProviderError()
+        # Meta can return an additional grant from prior consent. Do not request,
+        # persist or enable insights; keep the supported permissions strictly scoped.
+        scopes = _scopes([value for value in permissions if value != "instagram_business_manage_insights"])
         if not required <= scopes:
             raise ProviderError()
         lifetime = data.get("expires_in", 3600)

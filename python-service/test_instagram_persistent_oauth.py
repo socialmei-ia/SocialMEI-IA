@@ -277,6 +277,27 @@ class PersistentTests(unittest.TestCase):
         self.assertNotIn("synthetic-long-token", result.text)
         self.assertEqual(len(provider.calls), 3)
 
+    def test_extra_insights_does_not_expand_persisted_capabilities(self):
+        provider = FakeTransport()
+        def actual_shape(request):
+            result = provider(request)
+            if request.url == "https://api.instagram.com/oauth/access_token":
+                payload = json.loads(result.body)["data"][0]
+                payload["permissions"] = sorted(SCOPES) + ["instagram_business_manage_insights"]
+                payload.pop("expires_in")
+                return ProviderResponse(200, json.dumps(payload).encode())
+            return result
+        self.service = service(actual_shape)
+        result = self.complete(self.begin())
+        self.assertEqual(result.status_code, 200, result.text)
+        self.assertEqual(self.connection()[4], "connected")
+        with psycopg.connect(DB) as conn:
+            scopes = conn.execute("SELECT scopes FROM socialmei.ig_meta_connections WHERE workspace_id=%s AND status='connected'", (self.identity["workspace_id"],)).fetchone()[0]
+        self.assertEqual(set(scopes), set(SCOPES))
+        self.assertNotIn("synthetic-long-token", self.connection()[2])
+        self.assertNotIn("synthetic-long-token", result.text)
+        self.assertEqual(len(provider.calls), 3)
+
     def test_durable_hash_ciphertext_status_and_replay(self):
         state = self.begin()
         with psycopg.connect(DB) as conn:
