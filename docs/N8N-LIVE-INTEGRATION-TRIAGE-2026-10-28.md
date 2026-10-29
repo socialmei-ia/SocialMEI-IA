@@ -55,7 +55,7 @@ Relatórios PDF, validação CPF/CNPJ, orçamentos, RAG e lembretes: inventariad
 
 ## Sequência de execução até 30/10
 
-1. **Sem mutação:** conferir os grafos publicados do Direct (9) e WhatsApp (21), os dois ingressos de Caixa (8/6), e os workflows candidatos inativos de sentimento; identificar webhook de entrada, destino do HTTP, credencial por *tipo*, método e fluxo de saída, sem extrair valores.
+1. **Sem mutação:** conferir os grafos publicados do Direct (9) e WhatsApp (21), os dois ingressos de Caixa (8/6), e os workflows candidatos inativos de sentimento; identificar webhook de entrada, destino do HTTP, credencial por _tipo_, método e fluxo de saída, sem extrair valores.
 2. **Preparar branch candidata e CI:** respeitar ancestralidade PR #136 → #137 → #140 e mudanças da PR #141. Codificar ponte de mensagens/resultado de IA somente após definir contrato, com testes de idempotência, isolamento, assinatura, janelas/erros.
 3. **Pré-corte AWS:** conferir saúde, versão de imagem, migrações e flags reais; backup restaurável e rollback; validar credencial Meta por rota privada e pareamento WAHA, nunca imprimir token.
 4. **Piloto Instagram:** mensagem externa real autorizada entra na Caixa; escolher único remetente; testar uma resposta, recibo e erro; desativar caminhos concorrentes antes de ligar outro.
