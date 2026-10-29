@@ -60,9 +60,7 @@ class ReleaseStageTests(unittest.TestCase):
             call("git", "config", "user.name", "Test", cwd=root)
             migrations = root / "database/migrations"
             migrations.mkdir(parents=True)
-            names = [f"{i:03}_fixture.sql" for i in range(1, 32)] + [
-                stage.MIGRATION_032, stage.MIGRATION_033,
-            ]
+            names = list(stage.REVIEWED_MIGRATIONS)
             for name in names:
                 (migrations / name).write_text("SELECT 1;\n")
             caddy = root / "deploy/team/Caddyfile"
