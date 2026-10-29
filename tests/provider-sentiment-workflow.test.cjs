@@ -13,6 +13,7 @@ test("sentiment workflow only calls the internal API; never sends messages", () 
   const requests = workflow.nodes.filter((node) => node.type === "n8n-nodes-base.httpRequest");
   assert.equal(requests.length, 2);
   const paths = requests.map((node) => new URL(node.parameters.url).pathname).sort();
+  assert(requests.every((node) => node.parameters.method === "POST"));
   assert.deepEqual(paths, [
     "/internal/message-enrichment/provider/claims",
     "/internal/message-enrichment/provider/results",
