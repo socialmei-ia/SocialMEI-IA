@@ -89,10 +89,6 @@ jobs:
           path: test-results/public-demo/
           if-no-files-found: error
           retention-days: 14
-      - name: Temporary profile test formatting diff
-        run: |
-          npx prettier --write tests/profile-sync-api-browser.cjs
-          git diff --exit-code -- tests/profile-sync-api-browser.cjs
       - name: Formatting
         run: npm run format:check
       - name: Python contracts
