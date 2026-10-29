@@ -84,7 +84,8 @@ services:
       # Same origin via gateway; no cross-origin browser access.
       SOCIALMEI_CORS_ORIGINS: ""
       TZ: America/Recife
-    networks: [database, api]
+    # Optional n8n bridge can reach only team-api, not the team PostgreSQL.
+    networks: [database, api, automation]
     depends_on:
       team-migrate:
         condition: service_completed_successfully
@@ -124,6 +125,9 @@ networks:
     internal: true
   api:
     internal: true
+  automation:
+    internal: true
+    name: socialmei_team_automation
   web:
     name: socialmei_team_web
 volumes:
