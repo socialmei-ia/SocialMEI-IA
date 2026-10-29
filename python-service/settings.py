@@ -101,6 +101,18 @@ def provider_sentiment_key() -> str:
     return os.getenv("SOCIALMEI_PROVIDER_SENTIMENT_KEY", "")
 
 
+def provider_sentiment_allowed_workspaces() -> tuple[int, ...]:
+    # Explicit pilot allowlist; empty/invalid configuration never sweeps all MEIs.
+    value = os.getenv("SOCIALMEI_PROVIDER_SENTIMENT_WORKSPACE_IDS", "").strip()
+    if not value or len(value) > 512:
+        return ()
+    parts = value.split(",")
+    if any(not part.isascii() or not part.isdecimal() or not 1 <= len(part) <= 15 for part in parts):
+        return ()
+    ids = tuple(sorted({int(part) for part in parts}))
+    return ids if all(1 <= item <= 9007199254740991 for item in ids) else ()
+
+
 def channel_ingress_mode() -> str:
     return os.getenv("SOCIALMEI_CHANNEL_INGRESS_MODE", "disabled").strip().lower()
 
