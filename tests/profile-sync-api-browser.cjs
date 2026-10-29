@@ -228,6 +228,7 @@ async function run(config) {
     for (const width of [320, 390, 768, 1440])
       for (const theme of ["claro", "escuro"]) {
         await a.setViewportSize({ width, height: 1000 });
+        await a.waitForFunction((expected) => innerWidth === expected, width);
         await waitForViewportFit(a);
         await a.evaluate((theme) => {
           S.theme = theme;
@@ -236,8 +237,10 @@ async function run(config) {
         }, theme);
         try {
           await a.waitForFunction(
-            () => Math.abs(document.body.getBoundingClientRect().width - innerWidth) <= 1,
-            null,
+            (expected) =>
+              innerWidth === expected &&
+              Math.abs(document.body.getBoundingClientRect().width - expected) <= 1,
+            width,
             { timeout: 5000 },
           );
         } catch (error) {
