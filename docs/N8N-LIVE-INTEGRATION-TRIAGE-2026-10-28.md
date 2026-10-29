@@ -43,6 +43,20 @@ Relatório sanitizado produzido pelo operador diretamente na AWS com `tools/n8n-
 
 **Aceite mínimo:** número de teste pareado e vinculado exclusivamente ao negócio; mensagem HMAC validada/persistida → menu numerado consultando produtos e estoque reais do workspace → uma resposta WAHA `sendText` com recibo → handoff humano; teste com dois negócios e erro/reenvio. Botões/listas não fazem parte do primeiro corte WEBJS.
 
+**Preparação do Team (não ativada):** `compose.team.yaml` passa as flags
+`SOCIALMEI_WAHA_INGRESS_MODE`, `SOCIALMEI_WAHA_LAB_ENVIRONMENT` e
+`SOCIALMEI_WHATSAPP_BOT_ENABLED`, todas desativadas por padrão, e monta
+`deploy/team/private` somente para leitura pela API. O arquivo
+`waha-registry.json` deve ser gerado por operador no host, com permissões
+`0600`/ `0400`, nunca comitado. O serviço exige HMAC-SHA512 verificado;
+**nenhum relay que assine esse formato foi homologado no n8n legado**.
+
+**Compatibilidade a confirmar:** o parser `waha_ingress.py` aceita explicitamente
+eventos de engine `WEBJS`, enquanto o `compose.yaml` de referência define
+`WHATSAPP_DEFAULT_ENGINE: GOWS`. Não alterar a engine no servidor nem supor
+que as cargas sejam iguais: confirmar qual está realmente em uso e validar um
+evento de teste antes de habilitar a recepção.
+
 ### 3. Publicação do Instagram (P1 após Direct+WA)
 
 **Partes existentes:** publicação de imagem única preparada no backend e Divulgação V25, workflow 40 nós com Form Trigger para Feed/Stories/Reels/agenda. **Não** unir esses dois caminhos com POST direto no formulário; revisar modelo de credencial e permissão da conta Instagram Login vs Graph Facebook.
