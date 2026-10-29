@@ -39,7 +39,8 @@ python3 tools/team-v33-migrate-guarded.py --target team \
 
 1. Confere recibo privado e hashes de backup, stage limpo e SHA esperado,
    33 migrações da fonte e ledger de produção estritamente igual ao prefixo
-   conhecido 001–031 (ou 001–033 já instalado).
+   conhecido 001–031 (ou 001–033 já instalado), conferindo também as quatro
+   tabelas novas para detectar instalações parciais ou drift do esquema.
 2. Inspeciona container da API e PostgreSQL existentes, saúde Docker,
    autenticação, redes/portas e **nega** aplicação quando ingresso/envio
    Instagram, publicação, bot WhatsApp ou sentimento estiverem ativos.
