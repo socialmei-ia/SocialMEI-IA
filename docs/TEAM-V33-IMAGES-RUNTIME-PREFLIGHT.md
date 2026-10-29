@@ -73,7 +73,6 @@ antigas**, comparação exata do Compose runtime e montagens, e
 e autenticação devem ser testadas antes da confirmação. Não ativar
 envio Direct, publicação Meta, bot WhatsApp ou sentimento nesta fase.
 
-
 ## Transferência e importação sem recriar containers
 
 O artefato do build aprovado está no workflow
@@ -89,9 +88,9 @@ O ZIP contém apenas `images.tar.gz`, `image-receipt.json` e
    scp -o IdentitiesOnly=yes -i "$HOME\.ssh\socialmei-key.pem" "$HOME\Downloads\SocialMEI-Team-v33-c19d44b6ef6b.zip" ubuntu@54.94.213.7:/home/ubuntu/socialmei-v33-images.zip
    ```
 3. No Ubuntu, use `tools/team-v33-import-images.py`, obtido do commit
-   aprovado da release, com `--target team --bundle
-   /home/ubuntu/socialmei-v33-images.zip --inspect`. Em caso de
-   aprovação, use `--apply` com o mesmo arquivo.
+   aprovado da release, com
+   `--target team --bundle /home/ubuntu/socialmei-v33-images.zip --inspect`.
+   Em caso de aprovação, use `--apply` com o mesmo arquivo.
 4. O importador só chama `docker load`, após conferir SHA256, tags,
    labels e IDs de imagem. Nunca altera containers, Compose, Caddyfile,
    PostgreSQL, WAHA, n8n ou dados de usuários.
