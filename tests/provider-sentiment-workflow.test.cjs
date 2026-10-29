@@ -37,3 +37,21 @@ test("the AI output is validated and claim identity is taken from the task", () 
       assert.doesNotThrow(() => new Function(node.parameters.jsCode));
   }
 });
+
+test("team API only receives opt-in sentiment configuration from its private environment", () => {
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const compose = fs.readFileSync(path.join(__dirname, "..", "compose.team.yaml"), "utf8");
+  assert.match(
+    compose,
+    /SOCIALMEI_PROVIDER_SENTIMENT_ENABLED: \$\{SOCIALMEI_PROVIDER_SENTIMENT_ENABLED:-false\}/,
+  );
+  assert.match(
+    compose,
+    /SOCIALMEI_PROVIDER_SENTIMENT_KEY: \$\{SOCIALMEI_PROVIDER_SENTIMENT_KEY:-\}/,
+  );
+  assert.match(
+    compose,
+    /SOCIALMEI_PROVIDER_SENTIMENT_WORKSPACE_IDS: \$\{SOCIALMEI_PROVIDER_SENTIMENT_WORKSPACE_IDS:-\}/,
+  );
+});
