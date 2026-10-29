@@ -86,6 +86,9 @@ test("team WAHA bot config remains opt-in and registry is read-only", () => {
     team,
     /SOCIALMEI_WHATSAPP_BOT_ENABLED: \$\{SOCIALMEI_WHATSAPP_BOT_ENABLED:-false\}/,
   );
-  assert.match(team, /SOCIALMEI_WAHA_REGISTRY_FILE: \/run\/socialmei\/private\/waha-registry.json/);
+  assert.match(
+    team,
+    /SOCIALMEI_WAHA_REGISTRY_FILE: \/run\/socialmei\/private\/waha-registry.json/,
+  );
   assert.match(team, /\.\/deploy\/team\/private:\/run\/socialmei\/private:ro/);
 });
