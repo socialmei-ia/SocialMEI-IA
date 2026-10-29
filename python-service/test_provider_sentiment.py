@@ -58,6 +58,7 @@ class ProviderSentimentTests(TestCase):
                 "SOCIALMEI_AUTH_ENABLED": "true",
                 "SOCIALMEI_PROVIDER_SENTIMENT_ENABLED": "true",
                 "SOCIALMEI_PROVIDER_SENTIMENT_KEY": self.key,
+                "SOCIALMEI_PROVIDER_SENTIMENT_WORKSPACE_IDS": "3",
             }
         )
         self.environment.start()
