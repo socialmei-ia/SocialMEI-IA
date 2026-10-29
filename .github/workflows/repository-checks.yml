@@ -25,6 +25,7 @@ on:
         feat/instagram-direct-outbox,
         feat/instagram-posts-inbox-real,
         release/socialmei-functional-integrations-20261026,
+        feat/team-v33-controlled-publisher,
         feat/opportunity-planning-persistence,
         feat/waha-durable-ingress,
         feat/frontend-v25-integration,
