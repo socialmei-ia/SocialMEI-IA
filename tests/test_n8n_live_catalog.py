@@ -20,6 +20,9 @@ class CatalogTests(unittest.TestCase):
         self.assertEqual(catalog.category("Publicar post no Instagram"), "instagram_publicacao")
         self.assertEqual(catalog.category("Análise de Sentimento"), "analise")
         self.assertEqual(catalog.category("whatsapp API oficial"), "whatsapp")
+        self.assertEqual(catalog.category("Instagram — Análise de Sentimento + Resposta IA"), "instagram_direct_ou_conta")
+        self.assertEqual(catalog.category("Publicar post no Instagram"), "instagram_publicacao")
+        self.assertEqual(catalog.category("Menu interativo teste"), "whatsapp")
 
     def test_somente_campos_permitidos_sem_segredos(self):
         sample = [{
