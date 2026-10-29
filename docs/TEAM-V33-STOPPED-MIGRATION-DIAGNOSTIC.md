@@ -6,6 +6,7 @@ Se `team-v33-migrate-guarded.py --apply` retornar
 se a transação PostgreSQL chegou a ser executada.
 
 O comando read-only `team-v33-diagnose-stopped.py` verifica:
+
 - O recibo e os SHA-256 do backup privado de produção.
 - A integridade do stage Git e os hashes das duas migrations.
 - Ledger real (31 ou 33) e existência das quatro tabelas novas.
