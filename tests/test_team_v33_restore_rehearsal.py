@@ -140,7 +140,7 @@ class RestoreTrialTests(unittest.TestCase):
             [restore.VERSION_032, restore.VERSION_033],
             {"crm_clientes": 4, "schema_migrations": 33,
              **{f"t{i}": 0 for i in range(10)},
-             "wa_bot_access": 0, "wa_bot_conversations": 0,
+             "wa_bot_access": 0, "wa_bot_conversations": 0, "wa_bot_decisions": 0,
              "me_provider_sentiment_jobs": 0},
         ])
         # Client cardinality changes are an error, unlike the expected ledger
@@ -175,7 +175,7 @@ class RestoreTrialTests(unittest.TestCase):
         original = {"schema_migrations": 31, "crm_clientes": 7,
                     **{f"table_{i}": i for i in range(10)}}
         advanced = {**original, "schema_migrations": 33,
-                    "wa_bot_access": 0, "wa_bot_conversations": 0,
+                    "wa_bot_access": 0, "wa_bot_conversations": 0, "wa_bot_decisions": 0,
                     "me_provider_sentiment_jobs": 0}
         responses = iter([versions[:31], original, versions, advanced])
         with tempfile.TemporaryDirectory() as tmp:
