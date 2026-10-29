@@ -57,8 +57,6 @@ class ContractInspectionTests(unittest.TestCase):
         }
         published = {**fixture, "nodes": fixture["nodes"][:1]}
         harness = """
-        const {Readable} = require("stream");
-        process.stdin = Readable.from(["fakekey"]);
         const fixture = %s;
         const published = %s;
         global.fetch = async (url, options) => {
@@ -74,7 +72,7 @@ class ContractInspectionTests(unittest.TestCase):
         %s
         """ % (json.dumps(fixture), json.dumps(published), contracts.SCRIPT)
         run = subprocess.run(
-            ["node", "-e", harness], text=True, capture_output=True, timeout=12, check=False
+            ["node", "-e", harness], input="fakekey", text=True, capture_output=True, timeout=12, check=False
         )
         self.assertEqual(run.returncode, 0, run.stderr[:500])
         report = json.loads(run.stdout)
