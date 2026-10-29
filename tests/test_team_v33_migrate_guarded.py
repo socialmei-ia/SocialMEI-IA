@@ -129,6 +129,28 @@ class GuardedMigrationTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "provedor_ativo_bloqueia_migracao"):
                     module.runtime_safety()
 
+    def test_waha_ingress_active_stops_migration(self):
+        api = {
+            "Name": "/" + module.API_CONTAINER,
+            "State": {"Running": True, "Health": {"Status": "healthy"}},
+            "HostConfig": {"PortBindings": None},
+            "NetworkSettings": {"Networks": {"team_db": {}}},
+            "Config": {"Env": ["SOCIALMEI_AUTH_ENABLED=true",
+                              "SOCIALMEI_WAHA_INGRESS_MODE=isolated"]},
+        }
+        database = {
+            "Name": "/" + module.DB_CONTAINER,
+            "State": {"Running": True, "Health": {"Status": "healthy"}},
+            "HostConfig": {"PortBindings": None},
+            "NetworkSettings": {"Networks": {"team_db": {}}},
+            "Config": {"Env": []},
+        }
+        rows = iter([api, database])
+        with patch.object(module, "docker",
+                          side_effect=lambda *a, **kw: json.dumps([next(rows)])):
+            with self.assertRaisesRegex(RuntimeError, "waha_ingress_ativo"):
+                module.runtime_safety()
+
     def test_psql_write_mode_requires_single_transaction_and_stdin(self):
         calls = []
         with patch.object(module.Path, "is_socket", return_value=True):
