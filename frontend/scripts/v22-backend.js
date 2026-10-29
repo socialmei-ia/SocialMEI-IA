@@ -695,18 +695,24 @@ window.SocialMEIV22 = (() => {
     thread(id) {
       const row = inbox.find((r) => "me-" + r.id === id);
       return row
-        ? (row.messages || []).map((m) => [
-            0,
-            m.text,
-            new Date(m.occurred_at).toLocaleTimeString("pt-BR", {
-              hour: "2-digit",
-              minute: "2-digit",
-            }),
-          ])
+        ? [...(row.messages || []), ...(window.SocialMEIInstagramDirect?.confirmed(id) || [])]
+            .sort((a, b) => new Date(a.occurred_at) - new Date(b.occurred_at))
+            .map((m) => [
+              m.direction === "outgoing" ? 1 : 0,
+              m.text,
+              new Date(m.occurred_at).toLocaleTimeString("pt-BR", {
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
+              m.direction === "outgoing" ? "Confirmada pela Meta" : "",
+            ])
         : [];
     },
     get clients() {
       return data.clients;
+    },
+    conversation(id) {
+      return inbox.find((row) => "me-" + row.id === id) || null;
     },
   };
 })();

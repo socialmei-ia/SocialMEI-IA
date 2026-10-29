@@ -36,6 +36,36 @@
     section.appendChild(node);
     return node;
   }
+  async function uploadFile(selected, previous) {
+    if (!selected || selected.size > 2097152 || !selected.name.toLowerCase().endsWith(".pdf"))
+      throw Error("Selecione um PDF de até 2 MB.");
+    const user = bridge.identity;
+    const identity = user.usuario.id + ":" + user.negocio.id;
+    const response = await fetch(
+      "/api/v1/knowledge/pdf" +
+        (previous ? "/" + encodeURIComponent(previous.id) : "") +
+        "?filename=" +
+        encodeURIComponent(selected.name),
+      {
+        method: previous ? "PUT" : "POST",
+        credentials: "same-origin",
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/pdf",
+          "X-SocialMEI-Client": "browser",
+          "X-SocialMEI-CSRF": user.csrf_token,
+          "X-SocialMEI-Identity": identity,
+          ...(previous ? { "If-Match": previous.sha256 } : {}),
+        },
+        body: selected,
+      },
+    );
+    const data = await response.json().catch(() => null);
+    if (identity !== bridge.identity?.usuario.id + ":" + bridge.identity?.negocio.id)
+      throw Error("A conta mudou. Atualize a página.");
+    if (!response.ok) throw Error(data?.detail || "Não foi possível processar o PDF.");
+    return data;
+  }
   async function knowledge(section, result, list) {
     try {
       const data = await bridge.request("/knowledge/pdf");
@@ -52,6 +82,101 @@
               (record.status === "indexed" ? "texto indexado" : "sem texto extraível"),
           ),
         );
+        if (record.size_bytes)
+          item.append(el("small", " · " + Math.ceil(record.size_bytes / 1024) + " KB"));
+        if (record.uploaded_at)
+          item.append(
+            el("small", " · " + new Date(record.uploaded_at).toLocaleDateString("pt-BR")),
+          );
+        if (record.status === "no_text")
+          item.append(
+            el(
+              "p",
+              "Sem texto extraível. Este documento precisa de OCR antes de alimentar as consultas.",
+            ),
+          );
+        if (record.sha256) {
+          const download = el("button", "Baixar PDF");
+          download.type = "button";
+          download.onclick = async () => {
+            download.disabled = true;
+            try {
+              const identity = bridge.identity.usuario.id + ":" + bridge.identity.negocio.id;
+              const response = await fetch(
+                "/api/v1/knowledge/pdf/" + encodeURIComponent(record.id) + "/download",
+                {
+                  credentials: "same-origin",
+                  cache: "no-store",
+                  headers: { "X-SocialMEI-Identity": identity },
+                },
+              );
+              if (
+                !section.isConnected ||
+                identity !== bridge.identity?.usuario.id + ":" + bridge.identity?.negocio.id
+              )
+                throw Error("A conta mudou. Atualize a página.");
+              if (!response.ok) throw Error("Download não autorizado ou indisponível.");
+              const url = URL.createObjectURL(await response.blob());
+              const link = el("a");
+              link.href = url;
+              link.download = record.filename;
+              document.body.append(link);
+              link.click();
+              window.setTimeout(() => {
+                URL.revokeObjectURL(url);
+                link.remove();
+              }, 30000);
+            } catch (error) {
+              result.textContent = error.message;
+            } finally {
+              download.disabled = false;
+            }
+          };
+          item.append(download);
+        }
+        if (canManage && record.sha256) {
+          const reprocess = el("button", "Reprocessar");
+          reprocess.type = "button";
+          reprocess.onclick = async () => {
+            reprocess.disabled = true;
+            try {
+              await bridge.request(
+                "/knowledge/pdf/" + encodeURIComponent(record.id) + "/reprocess",
+                "POST",
+                { sha256: record.sha256 },
+              );
+              await knowledge(section, result, list);
+              result.textContent = "PDF reprocessado.";
+            } catch (error) {
+              result.textContent = error.message;
+            } finally {
+              reprocess.disabled = false;
+            }
+          };
+          const replace = el("button", "Substituir PDF");
+          replace.type = "button";
+          const replacement = el("input");
+          replacement.type = "file";
+          replacement.accept = "application/pdf,.pdf";
+          replacement.hidden = true;
+          replacement.setAttribute("aria-label", "Substituir " + record.filename);
+          replace.onclick = () => replacement.click();
+          replacement.onchange = async () => {
+            if (!replacement.files?.length) return;
+            replace.disabled = true;
+            try {
+              await uploadFile(replacement.files[0], record);
+              await knowledge(section, result, list);
+              result.textContent = "PDF substituído e índice atualizado.";
+            } catch (error) {
+              result.textContent = error.message;
+            } finally {
+              replacement.value = "";
+              replace.disabled = false;
+            }
+          };
+          item.append(reprocess, replace, replacement);
+        }
         if (canManage) {
           const remove = el("button", "Excluir");
           remove.type = "button";
@@ -106,22 +231,7 @@
         upload.disabled = true;
         results.textContent = "Enviando e indexando PDF…";
         try {
-          const user = bridge.identity;
-          const url = "/api/v1/knowledge/pdf?filename=" + encodeURIComponent(selected.name);
-          const response = await fetch(url, {
-            method: "POST",
-            credentials: "same-origin",
-            cache: "no-store",
-            headers: {
-              "Content-Type": "application/pdf",
-              "X-SocialMEI-Client": "browser",
-              "X-SocialMEI-CSRF": user.csrf_token,
-              "X-SocialMEI-Identity": user.usuario.id + ":" + user.negocio.id,
-            },
-            body: selected,
-          });
-          const data = await response.json().catch(() => null);
-          if (!response.ok) throw Error(data?.detail || "Não foi possível processar o PDF.");
+          const data = await uploadFile(selected);
           file.value = "";
           await knowledge(section, results, list);
           results.textContent =
@@ -178,7 +288,7 @@
   function mountReport(view) {
     if (view.querySelector("[data-sm-reports]")) return;
     const section = panel(
-      "Dados reais do PostgreSQL",
+      "Dados do seu negócio",
       "Indicadores por negócio. As informações de demonstração não entram nesta consulta.",
     );
     section.dataset.smReports = "true";

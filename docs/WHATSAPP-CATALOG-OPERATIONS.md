@@ -27,3 +27,20 @@ Resposta limitada a no máximo 10 itens do catálogo **real**, somente no worksp
 5. Fazer testes com duas contas e dois workspaces para confirmar ausência de vazamento, e com mensagem real após autorização.
 
 Esta implementação não acrescenta conexão automática ao n8n, não acessa sua instância por conta própria e não publica nada.
+
+## Gestão no site
+
+A tela **Configurações → Integrações → WhatsApp — catálogo do negócio** permite ao proprietário/administrador consultar os canais WAHA já vinculados, gerar/trocar a credencial técnica e revogar o acesso. O estado mostrado é o registro do servidor: não é uma verificação de conexão com o telefone. Canal ausente/inativo exige preparação pelo responsável pela integração; nenhum botão cria uma conexão fictícia ou ativa envios.
+
+## Credencial por canal
+
+- `GET /api/v1/whatsapp/catalog/access`: sessão do responsável; lista somente canais do negócio, inclusive os que ainda não têm credencial. Não retorna token ou hash.
+- `POST /api/v1/whatsapp/catalog/access` com `channel_id`: sessão, Origin e CSRF; canal ativo do próprio negócio. Uma nova credencial invalida a anterior imediatamente.
+- A credencial é exibida mascarada uma única vez em diálogo. Fechar, Escape ou navegar remove seu valor do DOM; não é salva em localStorage/sessionStorage. Copiar é uma ação explícita. Guardar somente no cofre de credenciais do n8n.
+- `DELETE /api/v1/whatsapp/catalog/access/{channel_id}` revoga consultas, sem desconectar o número. Rotação e revogação registram ator e ação na auditoria de contas, sem credencial.
+
+## Verificação e limites
+
+Os testes usam duas contas/PostgreSQL descartável e API controlada no navegador, sem número real. Verificam escopo, rotação/revogação, autorização, auditoria sem segredo, diálogo, teclado e temas em desktop/mobile. Homologação WAHA/n8n e vínculo de número real continuam pendentes.
+
+Referências oficiais consultadas: [eventos e HMAC WAHA](https://waha.devlike.pro/docs/how-to/events/) e [recursos de envio por engine](https://waha.devlike.pro/docs/how-to/send-messages/). Mensagens numeradas são o contrato inicial; não pressupor suporte uniforme a botões/listas nas engines.

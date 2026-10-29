@@ -9,6 +9,7 @@ module.exports = async function v22KnowledgeReporting(browser, origin) {
   });
   const errors = [];
   const uploads = [];
+  const maintenance = [];
   const identity = {
     usuario: { id: 87, nome: "Empresa Teste", email: "teste@example.test" },
     negocio: { id: 91, slug: "empresa-teste", nome: "Negócio Teste", configuracao: {} },
@@ -53,11 +54,34 @@ module.exports = async function v22KnowledgeReporting(browser, origin) {
             filename: "cliente.pdf",
             page_count: 2,
             status: "indexed",
+            sha256: "a".repeat(64),
+            size_bytes: 1200,
+            uploaded_at: "2026-10-27T10:00:00Z",
           },
         ];
         return route.fulfill({ status: 201, json: stored[0] });
       }
       return route.fulfill({ json: { items: stored } });
+    }
+    if (endpoint.endsWith("/reprocess")) {
+      assert.equal(request.method(), "POST");
+      assert.equal(request.headers()["x-socialmei-csrf"], "b".repeat(64));
+      assert.deepEqual(request.postDataJSON(), { sha256: "a".repeat(64) });
+      maintenance.push("reprocess");
+      return route.fulfill({ json: stored[0] });
+    }
+    if (endpoint.endsWith("/download")) {
+      assert.equal(request.headers()["x-socialmei-identity"], "87:91");
+      maintenance.push("download");
+      return route.fulfill({ contentType: "application/pdf", body: "%PDF-1.7 synthetic" });
+    }
+    if (request.method() === "PUT" && endpoint.startsWith("/knowledge/pdf/")) {
+      assert.equal(request.headers()["x-socialmei-csrf"], "b".repeat(64));
+      assert.equal(request.headers()["if-match"], "a".repeat(64));
+      assert.equal(url.searchParams.get("filename"), "revisado.pdf");
+      maintenance.push("replace");
+      stored[0] = { ...stored[0], filename: "revisado.pdf", sha256: "b".repeat(64) };
+      return route.fulfill({ json: stored[0] });
     }
     if (endpoint === "/knowledge/pdf/search") {
       return route.fulfill({
@@ -105,6 +129,21 @@ module.exports = async function v22KnowledgeReporting(browser, origin) {
     await page.getByText(/Documento indexado/).waitFor();
     assert.equal(uploads.length, 1);
     assert.match(await page.locator("[data-sm-knowledge]").innerText(), /cliente.pdf/);
+    const knowledge = page.locator("[data-sm-knowledge]");
+    const [pdf] = await Promise.all([
+      page.waitForEvent("download"),
+      knowledge.getByRole("button", { name: "Baixar PDF", exact: true }).click(),
+    ]);
+    assert.equal(pdf.suggestedFilename(), "cliente.pdf");
+    await knowledge.getByRole("button", { name: "Reprocessar", exact: true }).click();
+    await knowledge.getByText("PDF reprocessado.", { exact: true }).waitFor();
+    await knowledge.locator('input[aria-label="Substituir cliente.pdf"]').setInputFiles({
+      name: "revisado.pdf",
+      mimeType: "application/pdf",
+      buffer: Buffer.from("%PDF-1.7 synthetic replacement"),
+    });
+    await knowledge.getByText("PDF substituído e índice atualizado.", { exact: true }).waitFor();
+    assert.deepEqual(maintenance, ["download", "reprocess", "replace"]);
     await page.locator("[data-sm-knowledge] input[type=search]").fill("prazo");
     await page.getByRole("button", { name: "Buscar", exact: true }).click();
     await page.getByText(/Prazo de entrega: 5 dias úteis/).waitFor();

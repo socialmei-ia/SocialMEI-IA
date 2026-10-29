@@ -1,0 +1,14 @@
+# OPTIONAL bridge for the EXISTING n8n stack only.
+# Deploy compose.team.yaml first to create the isolated automation network.
+# Never use this file alone; keep the existing n8n database, volumes and encryption key.
+# Attaches n8n to the team API without attaching it to the private team PostgreSQL.
+services:
+  n8n:
+    networks:
+      - default
+      - team_automation
+
+networks:
+  team_automation:
+    external: true
+    name: socialmei_team_automation

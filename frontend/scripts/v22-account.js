@@ -142,6 +142,18 @@
         profile: next,
       });
     },
+    async requestRecovery(email) {
+      await this.ready;
+      return auth.request("/auth/recovery/request", "POST", { email: email });
+    },
+    async confirmRecovery(token, password) {
+      await this.ready;
+      var policy = auth.passwordPolicy(password);
+      if (policy.error) throw Error(policy.error);
+      if (!/^[A-Za-z0-9_-]{43}$/.test(token))
+        throw Error("Confira o código completo recebido por e-mail.");
+      return auth.request("/auth/recovery/confirm", "POST", { token: token, nova: password });
+    },
     async register(data) {
       var policy = await auth.request("/auth/registration");
       if (policy.mode !== "open" && !data.convite)

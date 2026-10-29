@@ -1,5 +1,23 @@
 # Continuação funcional — 27/10/2026
 
+## Atualização em28/10/2026
+
+Base consolidada atual: PR136, `feat/frontend-v25-integration`, HEAD849ead4.
+O proprietário confirmou OAuth conectado após a correção93163f9; Direct e post
+reais ainda não foram comprovados e suas flags permaneciam desligadas no último
+procedimento conhecido. Não tratar os bloqueios históricos abaixo como nova
+inspeção da AWS. A imagem efetiva precisa de confirmação antes de novo corte.
+
+Preparação adicional nesta branch: bot WhatsApp com menu, consulta do catálogo,
+estado por conversa, handoff, claim único e recibos (migration032), registryWAHA
+privado e subworkflown8n inativo. Sem deploy ou envio real. O número de teste agora
+está disponível segundo o proprietário; pareamento/engine/workflow ainda precisam
+ser conferidos. [Contratos e operação](WHATSAPP-BOT-OPERATIONS.md).
+
+Os dados e as proteções existentes permanecem; migration032 não foi aplicada na
+AWS. SMTP/worker, IA generativa com fontes e homologação dos serviços externos
+continuam pendentes. A documentação abaixo registra a etapa anterior.
+
 ## Fonte e entregas
 
 Base confirmada: PR131 `8d0318bcf4262afde9798b8ad91ce4924cf046b9`. Não reimplementar115–130: a árvore já continha cadastro real, PDFs029, catálogoWhatsApp030, leitura restrita031 e as correções OAuth. O core Instagram da candidata é equivalente ao da130; HEADs de branches não ancestrais não devem ser mesclados cegamente (alguns patches já estão incorporados).

@@ -113,6 +113,7 @@ class InstagramHTTPTransport:
         token = _sensitive_request.set(True)
         _protect_http_logs()
         failed = False
+        reason = "transport"
         try:
             with self._client_factory(
                 verify=True,
@@ -153,10 +154,16 @@ class InstagramHTTPTransport:
                             if k.lower() in {"retry-after", "content-type"}
                         },
                     )
-        except Exception:
-            # Do not chain URL/body/proxy/credential-bearing transport exceptions.
+        except Exception as error:
+            # Fixed categories only; never log exception text or request objects.
+            reason = ("timeout" if isinstance(error, httpx.TimeoutException)
+                      else "connect" if isinstance(error, httpx.ConnectError)
+                      else "protocol" if isinstance(error, httpx.ProtocolError)
+                      else "response_limit" if isinstance(error, ProviderError)
+                      else "transport")
             failed = True
         finally:
             _sensitive_request.reset(token)
         if failed:
+            logging.getLogger("socialmei.instagram.transport").warning("instagram_transport_failed reason=%s", reason)
             raise ProviderError(outcome_unknown=True) from None

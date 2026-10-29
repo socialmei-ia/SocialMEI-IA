@@ -9,7 +9,8 @@ spec = importlib.util.spec_from_file_location('release_prepare',ROOT/'tools/inst
 prep = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(prep)
 SHA = 'a' * 40
-MIGRATIONS = sorted(p.name for p in (ROOT/'database/migrations').glob('*.sql'))
+# This publisher is deliberately pinned to the approved V25 chain, not new bot SQL.
+MIGRATIONS = sorted(p.name for p in (ROOT/'database/migrations').glob('*.sql') if int(p.name[:3]) <= 31)
 
 
 def model():
@@ -20,6 +21,12 @@ def model():
 
 
 class ReleasePrepareTests(unittest.TestCase):
+    def test_v25_publisher_refuses_new_bot_migration(self):
+        current = sorted(p.name for p in (ROOT/'database/migrations').glob('*.sql'))
+        self.assertIn('032_whatsapp_bot_conversations.sql', current)
+        with self.assertRaises(RuntimeError):
+            prep.missing_migrations(MIGRATIONS, current, stage='functional')
+
     def test_models_change_only_target_image_and_api_release(self):
         original = model()
         for service in ('team-api','team-gateway'):
@@ -115,6 +122,29 @@ class ReleasePrepareTests(unittest.TestCase):
                 self.assertEqual(call.call_count,1)
                 self.assertFalse(target.exists())
 
+    def test_reviewed_unmounted_caddy_exception_is_exact_and_opt_in(self):
+        import hashlib, tempfile
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory); path=root/'deploy/team/Caddyfile';path.parent.mkdir(parents=True);path.write_text('synthetic hotfix')
+            checksum=hashlib.sha256(path.read_bytes()).hexdigest()
+            with patch.object(prep,'ROOT',root), patch.object(prep,'call',return_value=' M deploy/team/Caddyfile\n'):
+                with self.assertRaises(RuntimeError): prep.checkout_policy()
+                self.assertEqual(prep.checkout_policy(checksum)['sha256'],checksum)
+                with self.assertRaises(RuntimeError): prep.checkout_policy('0'*64)
+            for status in ('M  deploy/team/Caddyfile\n',' M other\n',' M deploy/team/Caddyfile\n?? other\n',''):
+                with patch.object(prep,'ROOT',root), patch.object(prep,'call',return_value=status):
+                    with self.assertRaises(RuntimeError):prep.checkout_policy(checksum)
+            path.unlink();path.symlink_to(root/'elsewhere')
+            with patch.object(prep,'ROOT',root), patch.object(prep,'call',return_value=' M deploy/team/Caddyfile\n'):
+                with self.assertRaises(RuntimeError):prep.checkout_policy(checksum)
+
+    def test_preserved_file_cannot_be_part_of_any_active_mount(self):
+        path=str(prep.ROOT/'deploy/team/Caddyfile')
+        for source in (path,str(prep.ROOT),str(prep.ROOT/'deploy/team')):
+            with self.assertRaises(RuntimeError):prep.require_unmounted_hotfix({'mode':'preserved_caddy'}, [{'Mounts':[{'Type':'bind','Source':source}]}])
+        prep.require_unmounted_hotfix({'mode':'preserved_caddy'},[{'Mounts':[{'Type':'bind','Source':str(prep.ROOT/'deploy/team/private')}]}])
+
     def test_runtime_environment_drift_is_refused(self):
         from unittest.mock import patch
         current=model(); container={'Config':{'Image':'installed-api','Env':['SECRET=synthetic-private','SOCIALMEI_INSTAGRAM_RUNTIME_MODE=connect','SOCIALMEI_INSTAGRAM_RUNTIME_SEND_ENABLED=false']}}
@@ -133,6 +163,12 @@ class ReleasePrepareTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):prep.validate_gateway('fixture',source,active)
 
     def test_preparation_writes_only_private_artifacts_and_preserves_runtime(self):
+        self.preparation_fixture(False)
+
+    def test_preserved_hotfix_preparation_retains_bytes_and_private_receipt(self):
+        self.preparation_fixture(True)
+
+    def preparation_fixture(self, preserve_hotfix):
         import contextlib, io, json, tempfile
         from unittest.mock import patch
         with tempfile.TemporaryDirectory() as directory:
@@ -142,6 +178,8 @@ class ReleasePrepareTests(unittest.TestCase):
             raw='synthetic protected gateway source'
             (private/'Caddyfile').write_text(raw)
             (root/'compose.team.yaml').write_text('synthetic source')
+            hotfix=root/'deploy/team/Caddyfile';hotfix.write_text('synthetic unmounted hotfix')
+            checksum=prep.hashlib.sha256(hotfix.read_bytes()).hexdigest()
             baseline=model()
             baseline['services']['team-gateway']['volumes'][0]['source']=str(private/'Caddyfile')
             containers={}
@@ -161,11 +199,12 @@ class ReleasePrepareTests(unittest.TestCase):
             commands=[]
             def call(args, input=None):
                 commands.append(args)
-                if args[:2]==['git','status']:return ''
+                if args[:2]==['git','status']:return ' M deploy/team/Caddyfile\n' if preserve_hotfix else ''
                 if args[:2]==['git','rev-parse']:return SHA if args[2]!='HEAD' else 'b'*40
                 if args[:2]==['git','ls-tree']:return '\n'.join('database/migrations/'+p for p in names)
                 if args[:2]==['git','show']:return 'synthetic migration'
                 if args[:2]==['docker','inspect']:
+                    if args[2]=='socialmei-caddy':return json.dumps([{'Mounts':[{'Type':'bind','Source':str(backups/'public.Caddyfile')}]}])
                     service=next(s for s in prep.SERVICES if args[2]=='socialmei-team-'+s+'-1')
                     return json.dumps([containers[service]])
                 if args[:2]==['docker','compose']:
@@ -188,9 +227,13 @@ class ReleasePrepareTests(unittest.TestCase):
                  patch.object(prep.preflight,'inspect_proxy',return_value={'source':'active'}), \
                  patch.object(prep,'validate_gateway',return_value=(raw+' candidate',active)), \
                  contextlib.redirect_stdout(io.StringIO()) as stdout:
-                prep.prepare(SHA,output,'installed-api','installed-gateway')
+                prep.prepare(SHA,output,'installed-api','installed-gateway',preserved_caddy_sha256=checksum if preserve_hotfix else None)
             receipt=json.loads((output/'preparation.private.json').read_text())
             self.assertFalse(receipt['deployment_executed'])
+            if preserve_hotfix:
+                self.assertEqual(receipt['checkout_policy']['sha256'],checksum)
+                self.assertEqual((output/'checkout-hotfix.preserved.Caddyfile').read_bytes(),hotfix.read_bytes())
+            self.assertEqual(hotfix.read_text(),'synthetic unmounted hotfix')
             self.assertEqual(receipt['missing_migrations'],names[26:28])
             self.assertEqual(receipt['unapplied_source_migrations'],names[26:])
             self.assertEqual(receipt['deferred_migrations'],names[28:])

@@ -144,6 +144,71 @@ class InstagramAdapterTests(unittest.TestCase):
                 adapter.exchange_code("synthetic-code", required_scopes=SCOPES)
             self.assertEqual(len(transport.requests), 1)
 
+    def test_permission_arrays_support_flat_and_wrapped_grants(self):
+        flat = {"access_token": TOKEN, "user_id": "9876", "permissions": list(SCOPES)}
+        for payload in (flat, {"data": [flat]}):
+            adapter, transport = self.adapter(response(payload))
+            grant = adapter.exchange_code("synthetic-code", required_scopes=SCOPES)
+            self.assertEqual(grant.scopes, frozenset(SCOPES))
+            self.assertEqual(grant.expires_at, 103600)
+            self.assertEqual(len(transport.requests), 1)
+
+    def test_permission_arrays_fail_closed_for_invalid_or_missing_scopes(self):
+        for permissions in ([], [BASIC], [BASIC, BASIC], [BASIC, None], [BASIC, "pages_read_engagement"], [[BASIC]], {}, None):
+            adapter, transport = self.adapter(response({"access_token": TOKEN, "user_id": "9876", "permissions": permissions}))
+            with self.subTest(permissions=permissions), self.assertRaises(ProviderError):
+                adapter.exchange_code("synthetic-code", required_scopes=SCOPES)
+            self.assertEqual(len(transport.requests), 1)
+
+    def test_exchange_rejection_logs_schema_only_and_no_credentials(self):
+        adapter, transport = self.adapter(response({"access_token": TOKEN, "user_id": "9876"}))
+        with self.assertLogs("socialmei.instagram.adapter", level="WARNING") as logged:
+            with self.assertRaises(ProviderError):
+                adapter.exchange_code("synthetic-code", required_scopes=SCOPES)
+        self.assertIn("instagram_exchange_rejected", logged.output[0])
+        self.assertIn("permissions_kind=missing", logged.output[0])
+        for secret in (TOKEN, SECRET, "synthetic-code", "9876"):
+            self.assertNotIn(secret, str(logged.output))
+
+    def test_extra_insights_is_ignored_without_enabling_it(self):
+        required = (BASIC, "instagram_business_manage_messages", "instagram_business_manage_comments", "instagram_business_content_publish")
+        granted = list(required) + ["instagram_business_manage_insights"]
+        for permissions in (granted, ",".join(granted)):
+            for wrapped in (True, False):
+                payload = {"access_token": TOKEN, "user_id": "9876", "permissions": permissions}
+                adapter, transport = self.adapter(response({"data": [payload]} if wrapped else payload))
+                grant = adapter.exchange_code("synthetic-code", required_scopes=required)
+                self.assertEqual(grant.scopes, frozenset(required))
+                self.assertNotIn("instagram_business_manage_insights", grant.scopes)
+                self.assertEqual(len(transport.requests), 1)
+
+    def test_extra_insights_never_masks_missing_duplicate_or_unknown_scopes(self):
+        extra = "instagram_business_manage_insights"
+        for permissions in ([BASIC, extra], list(SCOPES)+[extra,extra], list(SCOPES)+[extra,"pages_read_engagement"], [extra]):
+            adapter, transport = self.adapter(response({"access_token": TOKEN, "user_id": "9876", "permissions": permissions}))
+            with self.subTest(permissions=permissions), self.assertRaises(ProviderError):
+                adapter.exchange_code("synthetic-code", required_scopes=SCOPES)
+        adapter, transport = self.adapter()
+        with self.assertRaises(ProviderError):
+            adapter.exchange_code("synthetic-code", required_scopes=list(SCOPES)+[extra])
+        self.assertEqual(transport.requests, [])
+
+    def test_grant_diagnostics_distinguish_extra_missing_and_object_permissions(self):
+        cases = (
+            (list(SCOPES) + ["pages_read_engagement"], "required_present=True", "scopes_known=False", "extra_insights=False"),
+            ([BASIC, "instagram_business_manage_insights"], "required_present=False", "scopes_known=False", "extra_insights=True"),
+            ([BASIC], "required_present=False", "scopes_known=True", "extra_insights=False"),
+            ([{"permission": BASIC, "status": "granted", "secret": TOKEN}], "permission_strings=False", "required_present=False", "extra_insights=False"),
+        )
+        for permissions, *markers in cases:
+            adapter, transport = self.adapter(response({"access_token": TOKEN, "user_id": "9876", "permissions": permissions}))
+            with self.assertLogs("socialmei.instagram.adapter", level="WARNING") as logs:
+                with self.assertRaises(ProviderError):
+                    adapter.exchange_code("synthetic-code", required_scopes=SCOPES)
+            for marker in markers:self.assertIn(marker, logs.output[0])
+            for secret in (TOKEN, SECRET, "synthetic-code", "9876"):
+                self.assertNotIn(secret, str(logs.output))
+
     def test_no_default_network_transport(self):
         with self.assertRaises(TypeError):
             InstagramAdapter(

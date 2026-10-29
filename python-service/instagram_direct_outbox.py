@@ -68,7 +68,8 @@ def fingerprint(value):
 
 def view(row):
     return {
-        key: str(row[key]) if key in {"id", "connection_id"} else row[key]
+        key: (str(row[key]) if key in {"id", "connection_id"} else
+              row[key].isoformat() if key in {"created_at", "updated_at"} else row[key])
         for key in (
             "id",
             "conversation_id",
@@ -80,6 +81,8 @@ def view(row):
             "attempts",
             "last_error",
             "provider_message_id",
+            "created_at",
+            "updated_at",
         )
     }
 
@@ -370,7 +373,7 @@ class InstagramDirectService:
             finally:
                 credential = None
 
-    def run(self, user, session, job_id):
+    def run(self, user, session, job_id, expected_revision=None):
         if not self.allow_dispatch:
             raise HTTPException(503, "Envio externo não autorizado neste ambiente.")
         credential = None
@@ -380,6 +383,8 @@ class InstagramDirectService:
             row = self._lock_job(conn, user, job_id)
             if not row:
                 raise HTTPException(404, "Resposta não encontrada neste negócio.")
+            if expected_revision is not None and row['revision'] != expected_revision:
+                raise HTTPException(409, "A resposta mudou. Revise novamente antes de enviar.")
             if row["status"] == "dispatching" and row["lease_until"] <= datetime.now(
                 timezone.utc
             ):
@@ -522,18 +527,19 @@ def cancel(
     return service.mutate(*identity(request), "cancelled", payload, job_id)
 
 
-class Empty(Strict):
-    pass
+class DispatchInput(Strict):
+    # Existing integrations may omit it; the native human-review UI always binds it.
+    expected_revision: StrictInt | None = Field(default=None, ge=1)
 
 
 @router.post("/jobs/{job_id}/run")
 def run(
     job_id: UUID,
-    payload: Empty,
+    payload: DispatchInput,
     request: Request,
     service: InstagramDirectService = Depends(outbox_service),
 ):
-    return service.run(*identity(request), job_id)
+    return service.run(*identity(request), job_id, expected_revision=payload.expected_revision)
 
 
 @router.get("/jobs/{job_id}/history")

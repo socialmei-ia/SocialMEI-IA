@@ -200,6 +200,27 @@ class DatabaseTests(unittest.TestCase):
     def run_job(self, row):
         return self.request("/jobs/" + row["id"] + "/run")
 
+    def test_dispatch_rejects_a_revision_changed_after_human_review(self):
+        reviewed = self.approved()
+        path = "/jobs/" + reviewed["id"]
+        edited = self.request(path, {
+            "operation_id": str(uuid4()), "source_message_id": self.source,
+            "text": "Changed in another session", "expected_revision": reviewed["revision"],
+        }, method="put")
+        self.assertEqual(edited.status_code, 200, edited.text)
+        current = edited.json()
+        approved = self.request(path + "/approve", {
+            "operation_id": str(uuid4()), "expected_revision": current["revision"],
+        })
+        self.assertEqual(approved.status_code, 200, approved.text)
+        stale = self.request(path + "/run", {"expected_revision": reviewed["revision"]})
+        self.assertEqual(stale.status_code, 409, stale.text)
+        self.assertEqual(self.send_calls, [])
+        sent = self.request(path + "/run", {"expected_revision": current["revision"]})
+        self.assertEqual(sent.status_code, 200, sent.text)
+        self.assertEqual(sent.json()["status"], "confirmed")
+        self.assertEqual(len(self.send_calls), 1)
+
     def test_approval_confirmation_replay_and_history(self):
         operation = str(uuid4())
         row = self.draft(operation_id=operation)

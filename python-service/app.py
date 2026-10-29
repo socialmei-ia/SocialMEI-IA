@@ -29,6 +29,7 @@ from instagram_direct_outbox import router as instagram_direct_router
 from instagram_meta_ingress import WebhookQueryPrivacy, router as instagram_meta_ingress_router
 from workspace_profile import router as workspace_profile_router
 from message_enrichment import router as message_enrichment_router, internal_router as enrichment_internal_router
+from provider_sentiment import router as provider_sentiment_router
 from content_preparation import router as content_preparation_router
 from channel_ingress import router as channel_ingress_router, internal_router as channel_ingress_internal_router
 from opportunities import router as opportunities_router
@@ -42,6 +43,8 @@ from pdf_knowledge import router as pdf_knowledge_router
 from workspace_reporting import router as workspace_reporting_router
 from report_collaboration import router as report_collaboration_router
 from whatsapp_catalog import router as whatsapp_catalog_router
+from whatsapp_bot import router as whatsapp_bot_router
+from instagram_token_maintenance import router as instagram_token_maintenance_router
 
 app = FastAPI(title="SocialME Python Service", lifespan=runtime_lifespan)
 app.include_router(integration_readiness_router)
@@ -51,6 +54,8 @@ app.include_router(pdf_knowledge_router)
 app.include_router(workspace_reporting_router)
 app.include_router(report_collaboration_router)
 app.include_router(whatsapp_catalog_router)
+app.include_router(whatsapp_bot_router)
+app.include_router(instagram_token_maintenance_router)
 app.add_middleware(AccountMiddleware)
 cors_origins = configured_cors_origins()
 if cors_origins:
@@ -84,6 +89,7 @@ app.include_router(waha_ingress_router)
 app.include_router(workspace_profile_router)
 app.include_router(message_enrichment_router)
 app.include_router(enrichment_internal_router)
+app.include_router(provider_sentiment_router)
 app.include_router(content_preparation_router)
 app.include_router(channel_ingress_router)
 app.include_router(channel_ingress_internal_router)
@@ -94,7 +100,7 @@ app.include_router(integration_setup_router)
 @app.middleware("http")
 async def internal_response_privacy(request, call_next):
     response = await call_next(request)
-    if request.url.path.startswith(("/internal/waha", "/internal/message-enrichment", "/internal/channel-ingress", "/api/v1/content/preparation", "/api/v1/channel-lab", "/api/v1/opportunities", "/api/v1/integrations/setup")):
+    if request.url.path.startswith(("/internal/waha", "/internal/whatsapp/bot", "/internal/message-enrichment", "/internal/channel-ingress", "/api/v1/content/preparation", "/api/v1/channel-lab", "/api/v1/opportunities", "/api/v1/integrations/setup")):
         response.headers["Cache-Control"] = "no-store"
     if request.url.path.startswith("/internal/waha"):
         response.headers["X-Content-Type-Options"] = "nosniff"
@@ -109,7 +115,7 @@ app.add_middleware(WebhookQueryPrivacy)
 async def private_validation_error(request, error):
     # FastAPI's default validation response includes submitted values, including passwords.
     if request.url.path.startswith(
-        ("/api/v1/auth/", "/api/v1/admin/", "/api/v1/instagram/", "/api/v1/workspace-profile", "/api/v1/message-enrichment", "/internal/message-enrichment", "/api/v1/channel-lab", "/internal/channel-ingress", "/api/v1/content/preparation", "/api/v1/opportunities", "/api/v1/integrations/setup")
+        ("/api/v1/auth/", "/api/v1/admin/", "/api/v1/instagram/", "/api/v1/whatsapp/bot", "/internal/whatsapp/bot", "/api/v1/workspace-profile", "/api/v1/message-enrichment", "/internal/message-enrichment", "/api/v1/channel-lab", "/internal/channel-ingress", "/api/v1/content/preparation", "/api/v1/opportunities", "/api/v1/integrations/setup")
     ):
         return JSONResponse(
             {"detail": "Confira os campos informados."},

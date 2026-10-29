@@ -6,6 +6,7 @@ fields are for a trusted transport only, never product responses or logs.
 """
 
 import json
+import logging
 import math
 import re
 import time
@@ -216,6 +217,7 @@ class InstagramAdapter:
             # Raise outside the handler: even __context__ cannot retain provider secrets.
             pass
         if response is None:
+            logging.getLogger("socialmei.instagram.adapter").warning("instagram_transport_unavailable")
             raise ProviderError(retryable=retryable, outcome_unknown=True)
         if (
             not isinstance(response, ProviderResponse)
@@ -255,6 +257,11 @@ class InstagramAdapter:
         except (ValueError, UnicodeError, RecursionError):
             pass
         if not isinstance(result, dict) or "error" in result or "error_type" in result:
+            logging.getLogger("socialmei.instagram.adapter").warning(
+                "instagram_response_rejected http_status=%d json_object=%s error_field=%s",
+                response.status_code, isinstance(result, dict),
+                isinstance(result, dict) and ("error" in result or "error_type" in result),
+            )
             raise ProviderError(outcome_unknown=not retryable)
         return result
 
@@ -281,6 +288,34 @@ class InstagramAdapter:
         except ProviderError:
             pass
         if grant is None:
+            wrapped = payload.get("data")
+            item = wrapped[0] if isinstance(wrapped, list) and len(wrapped) == 1 and isinstance(wrapped[0], dict) else payload
+            value = item.get("permissions")
+            kind = "missing" if value is None else "text" if isinstance(value, str) else "list" if isinstance(value, list) else "other"
+            values = value.split(",") if isinstance(value, str) else value if isinstance(value, list) else []
+            strings = isinstance(value, (str, list)) and all(isinstance(v, str) for v in values)
+            provided = set(values) if strings else set()
+            token_valid = identity_valid = False
+            try:
+                _opaque(item.get("access_token"))
+                token_valid = True
+            except ProviderError:
+                pass
+            try:
+                _user_id(item.get("user_id"))
+                identity_valid = True
+            except ProviderError:
+                pass
+            lifetime = item.get("expires_in", 3600)
+            logging.getLogger("socialmei.instagram.adapter").warning(
+                "instagram_exchange_rejected http_status=200 wrapped=%s permissions_kind=%s token_present=%s identity_present=%s expires_present=%s permission_count=%d permission_strings=%s required_present=%s scopes_known=%s permissions_distinct=%s extra_insights=%s token_valid=%s identity_valid=%s expires_valid=%s",
+                "data" in payload, kind, "access_token" in item, "user_id" in item, "expires_in" in item,
+                len(values), strings, strings and required <= provided,
+                strings and provided <= INSTAGRAM_LOGIN_SCOPES,
+                strings and len(provided) == len(values),
+                strings and "instagram_business_manage_insights" in provided,
+                token_valid, identity_valid, type(lifetime) is int and 1 <= lifetime <= 3600,
+            )
             raise ProviderError(outcome_unknown=True)
         return grant
 
@@ -300,9 +335,15 @@ class InstagramAdapter:
         else:
             data = payload
         permissions = data.get("permissions")
-        if not isinstance(permissions, str):
+        if isinstance(permissions, str):
+            permissions = permissions.split(",")
+        elif not isinstance(permissions, list):
             raise ProviderError()
-        scopes = _scopes(permissions.split(","))
+        if not all(isinstance(value, str) for value in permissions) or len(set(permissions)) != len(permissions):
+            raise ProviderError()
+        # Meta can return an additional grant from prior consent. Do not request,
+        # persist or enable insights; keep the supported permissions strictly scoped.
+        scopes = _scopes([value for value in permissions if value != "instagram_business_manage_insights"])
         if not required <= scopes:
             raise ProviderError()
         lifetime = data.get("expires_in", 3600)
