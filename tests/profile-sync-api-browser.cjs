@@ -4,6 +4,7 @@ const fs = require("node:fs"),
   path = require("node:path");
 const { randomUUID } = require("node:crypto");
 const { chromium } = require("playwright");
+const { waitForViewportFit, layoutSnapshot } = require("./v22-layout-ready.cjs");
 
 async function run(config) {
   const target = new URL(config.origin);
@@ -227,12 +228,14 @@ async function run(config) {
     for (const width of [320, 390, 768, 1440])
       for (const theme of ["claro", "escuro"]) {
         await a.setViewportSize({ width, height: 1000 });
+        await waitForViewportFit(a);
         await a.evaluate((theme) => {
           S.theme = theme;
           applyTheme();
           render();
         }, theme);
-        assert(await a.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+        const layout = await layoutSnapshot(a);
+        assert.equal(layout.scrollWidth > layout.width + 1, false, JSON.stringify(layout));
         await a.screenshot({
           fullPage: true,
           path: path.join(output, `profile-${width}-${theme}.png`),
