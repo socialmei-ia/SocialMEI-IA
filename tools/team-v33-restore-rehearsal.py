@@ -96,6 +96,10 @@ def stage_receipt(name):
             "stage_nao_aprovado")
     source = folder / "source"
     require(source.is_dir() and not source.is_symlink(), "fonte_stage_ausente")
+    require(command(["git", "-C", str(source), "rev-parse", "HEAD"]).strip() == sha,
+            "fonte_stage_foi_trocada")
+    require(not command(["git", "-C", str(source), "status", "--porcelain"]).strip(),
+            "fonte_stage_modificada")
     names = sorted(path.name for path in (source / "database/migrations").glob("*.sql"))
     require(len(names) == 33 and len(set(names)) == 33, "migrations_nao_revisadas")
     require(all(re.fullmatch(r"\d{3}_[a-z0-9_]+\.sql", x)
@@ -264,7 +268,10 @@ class Rehearsal:
         final_versions = json_query(self.name, LEDGER_QUERY)
         require(final_versions == versions, "ledger_033_incompativel")
         after = restore_sql(json_query(self.name, COUNTS_QUERY))
-        require(all(after.get(k) == v for k, v in before.items()),
+        # The migration ledger itself grows from 31 to 33; business tables must
+        # stay byte-for-byte equivalent in row counts.
+        require(all(after.get(k) == v for k, v in before.items()
+                    if k != "schema_migrations"),
                 "dados_originais_alterados")
         new_tables = {"wa_bot_access", "wa_bot_conversations", "me_provider_sentiment_jobs"}
         require(new_tables.issubset(after), "tabelas_032_033_incompletas")
