@@ -110,6 +110,22 @@ class RollbackLayerTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 publish.verify_image_archive(path, {'synthetic:rollback': expected})
 
+    def test_directory_headers_count_towards_archive_entry_limit(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'images.tar.gz'
+            entries, expected = fixture()
+            with tarfile.open(path, 'w:gz') as archive:
+                for index in range(10001):
+                    info = tarfile.TarInfo('directory-' + str(index))
+                    info.type = tarfile.DIRTYPE
+                    archive.addfile(info)
+                for name, data in entries.items():
+                    info = tarfile.TarInfo(name)
+                    info.size = len(data)
+                    archive.addfile(info, io.BytesIO(data))
+            with self.assertRaises(RuntimeError):
+                publish.verify_image_archive(path, {'synthetic:rollback': expected})
+
 
 if __name__ == '__main__':
     unittest.main()
