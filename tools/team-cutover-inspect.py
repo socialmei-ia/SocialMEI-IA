@@ -72,7 +72,7 @@ def inspect_summary(data, service):
     if service == "team_api":
         mode = env.get("SOCIALMEI_INSTAGRAM_RUNTIME_MODE", "disabled")
         result["flags"] = {
-            "auth_enabled": env.get("SOCIALMEI_AUTH_ENABLED", "false").strip().lower() == "true",
+            "auth_enabled": env.get("SOCIALMEI_AUTH_ENABLED", "false").strip().lower() in {"true", "1", "yes", "on"},
             "instagram_runtime": mode if mode in {"disabled", "connect"} else "other_or_invalid",
             "instagram_ingress": env.get("SOCIALMEI_INSTAGRAM_RUNTIME_INGRESS_ENABLED", "false").strip().lower() == "true",
             "instagram_send": env.get("SOCIALMEI_INSTAGRAM_RUNTIME_SEND_ENABLED", "false").strip().lower() == "true",
@@ -82,7 +82,7 @@ def inspect_summary(data, service):
             "wa_bot_enabled": env.get("SOCIALMEI_WHATSAPP_BOT_ENABLED", "false").strip().lower() == "true",
             "sentiment_enabled": env.get("SOCIALMEI_PROVIDER_SENTIMENT_ENABLED", "false").strip().lower() == "true",
             "sentiment_key_configured": len(env.get("SOCIALMEI_PROVIDER_SENTIMENT_KEY", "")) >= 32,
-            "sentiment_workspaces_configured": bool(env.get("SOCIALMEI_PROVIDER_SENTIMENT_WORKSPACE_IDS", "")),
+            "sentiment_workspaces_configured": bool(re.fullmatch(r"[1-9][0-9]{0,14}(?:,[1-9][0-9]{0,14})*", env.get("SOCIALMEI_PROVIDER_SENTIMENT_WORKSPACE_IDS", ""))),
         }
     if service == "waha":
         engine = env.get("WHATSAPP_DEFAULT_ENGINE", "unknown").strip().upper()
@@ -107,6 +107,7 @@ def migration_summary(result):
         "has_032": expected[0] in versions and result.get("bot_table") is True,
         "has_033": expected[1] in versions and result.get("sentiment_table") is True,
         "duplicate_versions": len(versions) != len(set(versions)),
+        "ledger_has_gaps": sorted(int(v[:3]) for v in versions) != list(range(1, max((int(v[:3]) for v in versions), default=0) + 1)),
         "future_or_unknown_versions": any(int(v[:3]) > 33 for v in versions),
     }
 
@@ -138,7 +139,7 @@ def assess(report, expected_sha):
     db = report["database"]
     if not db.get("available"):
         blockers.append("ledger_do_banco_indisponivel")
-    elif db.get("duplicate_versions") or db.get("future_or_unknown_versions"):
+    elif db.get("duplicate_versions") or db.get("ledger_has_gaps") or db.get("future_or_unknown_versions"):
         blockers.append("ledger_incompativel")
     if services["team_database"].get("automation_network"):
         blockers.append("postgres_conectado_a_rede_automation")
