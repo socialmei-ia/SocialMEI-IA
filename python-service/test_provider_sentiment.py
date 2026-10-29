@@ -69,9 +69,9 @@ class ProviderSentimentTests(TestCase):
 
     def test_requires_opt_in_and_does_not_use_normal_n8n_api_key(self):
         with patch.dict(os.environ, {"SOCIALMEI_PROVIDER_SENTIMENT_ENABLED": "false"}):
-            response = self.client.get("/internal/message-enrichment/provider/claims", headers=self.auth())
+            response = self.client.post("/internal/message-enrichment/provider/claims", headers=self.auth())
             self.assertEqual(response.status_code, 503)
-        response = self.client.get(
+        response = self.client.post(
             "/internal/message-enrichment/provider/claims",
             headers={"Authorization": "Bearer " + "z" * 48}
         )
@@ -87,7 +87,7 @@ class ProviderSentimentTests(TestCase):
             yield fake
 
         with patch.object(module, "database", database):
-            response = self.client.get(
+            response = self.client.post(
                 "/internal/message-enrichment/provider/claims", headers=self.auth()
             )
         self.assertEqual(response.status_code, 200, response.text)
