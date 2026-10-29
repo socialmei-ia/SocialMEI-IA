@@ -89,11 +89,6 @@ jobs:
           path: test-results/public-demo/
           if-no-files-found: error
           retention-days: 14
-      - name: Diagnostics for provider worker test formatting
-        run: |
-          ./node_modules/.bin/prettier --write tests/provider-sentiment-workflow.test.cjs
-          git diff -- tests/provider-sentiment-workflow.test.cjs
-          git checkout -- tests/provider-sentiment-workflow.test.cjs
       - name: Formatting
         run: npm run format:check
       - name: Python contracts
