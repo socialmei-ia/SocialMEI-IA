@@ -182,26 +182,55 @@
     if (busy) return;
     busy = true;
     paintAll();
+    let phase = "readiness";
     try {
       await refresh();
       if (!state.oauth || state.phase !== "ready") return details();
+      phase = "permission";
       if (!["owner", "admin"].includes(host.identity?.papel))
         throw Error("Somente responsáveis pelo negócio podem conectar a conta.");
+      phase = "request";
       const value = await host.request("/instagram/meta/oauth/start", "POST", {});
-      location.assign(authorization(value));
-    } catch {
-      toast(
-        "Não foi possível iniciar a autorização. Confira a sessão e a configuração com o responsável.",
-      );
+      phase = "validation";
+      const url = authorization(value);
+      phase = "navigation";
+      location.assign(url);
+    } catch (error) {
+      const code =
+        Number.isInteger(error?.status) && error.status >= 400 && error.status <= 599
+          ? "HTTP " + error.status
+          : {
+              readiness: "IG_READINESS",
+              permission: "IG_PERMISSION",
+              request: "IG_REQUEST",
+              validation: "IG_AUTH_URL",
+              navigation: "IG_NAVIGATION",
+            }[phase];
+      details(code);
     } finally {
       busy = false;
       paintAll();
     }
   }
-  function details() {
+  function details(errorCode) {
+    const canConnect =
+      state.phase === "ready" &&
+      state.oauth &&
+      !state.connected &&
+      ["owner", "admin"].includes(host.identity?.papel);
     info(
       "Conexão Instagram",
-      `<p>${label()}</p><p>${description()}</p><p>A autorização deve ser concluída pelo responsável pela conta. Tokens ficam no servidor. A automação do n8n não é ativada nem alterada por esta tela.</p><button type="button" class="btn o" data-ig-action="refresh">Consultar novamente</button>`,
+      `<p>${label()}</p><p>${description()}</p>${
+        typeof errorCode === "string" && /^(HTTP [45][0-9]{2}|IG_[A-Z_]+)$/.test(errorCode)
+          ? '<p role="alert">Não foi possível iniciar a autorização. Confira a sessão e a configuração com o responsável.</p><p>Referência: ' +
+            errorCode +
+            "</p>"
+          : ""
+      }${
+        canConnect
+          ? '<button type="button" class="btn" data-ig-action="connect">Conectar Instagram</button>'
+          : ""
+      }<button type="button" class="btn o" data-ig-action="refresh">Consultar novamente</button>`,
     );
   }
   document.addEventListener(
@@ -228,13 +257,21 @@
       return { ...state };
     },
   };
-  const returned = /^#instagram=(connected|failed)$/.exec(location.hash);
-  if (returned) go("/config/integracoes");
+  // Bootstrap consumes the callback fragment before the native router starts.
+  // Use the one-time result only for a message, never as proof of a connection.
+  const legacyReturn = /^#instagram=(connected|failed)$/.exec(location.hash);
+  const callbackOutcome =
+    legacyReturn?.[1] ||
+    (["connected", "failed"].includes(window.__socialmeiInstagramCallbackOutcome)
+      ? window.__socialmeiInstagramCallbackOutcome
+      : null);
+  delete window.__socialmeiInstagramCallbackOutcome;
+  if (legacyReturn) go("/config/integracoes");
   paintAll();
   refresh().then(() => {
-    if (returned) {
+    if (callbackOutcome) {
       details();
-      if (returned[1] === "failed")
+      if (callbackOutcome === "failed")
         toast("A última autorização não foi concluída. Confira a situação acima.");
     }
   });

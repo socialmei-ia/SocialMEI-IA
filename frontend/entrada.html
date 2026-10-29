@@ -86,9 +86,9 @@ var c=localStorage.getItem('smei-brand'),m={v:'#0e7a43',r:'#6a46d9',k:'#c2185b',
     </div>
     <div class="cta2 hr" style="--d:440ms">
      <a class="btn o" href="socialmei-app.html#/inicio" data-demo-app>Experimentar sem cadastro</a>
-     <label class="ramo"><span>Seu ramo</span><span class="ramo-s"><select id="ramo">
-      <option value="presentes">Presentes e artesanato</option><option value="comida">Alimentação e confeitaria</option><option value="beleza">Beleza e estética</option><option value="moda">Moda e acessórios</option><option value="casa">Casa, reparos e limpeza</option>
-     </select></span></label>
+     <div class="ramo"><span id="ramoL">Seu ramo</span><span class="ramo-s"><select id="ramo" aria-labelledby="ramoL">
+      <option value="presentes" data-d="Peças feitas à mão">Presentes e artesanato</option><option value="comida" data-d="Bolos, doces, marmitas">Alimentação e confeitaria</option><option value="beleza" data-d="Cabelo, unhas, maquiagem">Beleza e estética</option><option value="moda" data-d="Roupas, bolsas, bijuterias">Moda e acessórios</option><option value="casa" data-d="Pequenas obras e serviços">Casa, reparos e limpeza</option>
+     </select></span></div>
     </div>
     <p class="sub-cta hr" style="--d:470ms">Plano Grátis, sem cartão. <a href="#precos" data-go="precos">Ver os planos</a></p>
     <p class="sr">Exemplo ilustrativo: a Lia pergunta sobre um kit, a IA sugere uma resposta que você revisa antes de enviar, a venda é registrada e o recibo fica pronto. Nada é enviado de verdade.</p>
@@ -260,14 +260,12 @@ var c=localStorage.getItem('smei-brand'),m={v:'#0e7a43',r:'#6a46d9',k:'#c2185b',
      <div class="fld"><label for="cNome">Seu nome</label><input class="in" id="cNome" autocomplete="name" placeholder="Como te chamamos?" aria-describedby="eNome"><div class="err" id="eNome" role="alert"></div></div>
      <div class="fld"><label for="cTel">WhatsApp <small>(opcional)</small></label><input class="in" id="cTel" type="tel" inputmode="tel" autocomplete="tel" placeholder="(81) 99999-0000" maxlength="16" aria-describedby="eTel"><div class="err" id="eTel" role="alert"></div></div>
      </div>
-     <div class="fld"><label for="cMail">E-mail</label><input class="in" id="cMail" type="email" autocomplete="email" placeholder="voce@exemplo.com" aria-describedby="eMail"><div class="err" id="eMail" role="alert"></div></div>
+     <div class="fld"><label for="cMail">E-mail</label><input class="in" id="cMail" type="email" autocomplete="email" placeholder="voce@exemplo.com" aria-describedby="eMail sMailC"><div class="hint mailhint" id="sMailC" role="status" aria-live="polite"></div><div class="err" id="eMail" role="alert"></div></div>
      <div class="fld"><label for="cPass">Senha</label><div class="pw"><input class="in" id="cPass" type="password" autocomplete="new-password" placeholder="8 caracteres ou mais" aria-describedby="ePass hPass"><button type="button" data-pw="cPass" aria-controls="cPass" aria-pressed="false">Mostrar</button></div>
       <div class="hint caps" id="caps_cPass" role="status" hidden>Caps Lock está ligado: as letras saem em maiúsculas.</div>
       <div class="meter" id="meter" data-s="0" aria-hidden="true"><i></i><i></i><i></i><i></i></div><div class="hint" id="hPass" aria-live="polite">Use 8 ou mais caracteres. Uma frase longa é boa e fácil de lembrar.</div><div class="err" id="ePass" role="alert"></div></div>
      <label class="chk"><input type="checkbox" id="cTermos" aria-describedby="eTermos"><span>Aceito os termos de uso e a política de privacidade <span class="m">(exemplo)</span></span></label><div class="err" id="eTermos" role="alert"></div>
      <button class="btn lg form-b" type="submit" data-busy="Criando seu espaço…">Continuar</button>
-     <div class="or">ou</div>
-     <button class="btn o form-b" type="button" disabled aria-disabled="true" style="margin-top:0">Continuar com Google · em breve</button>
     </form>
     <p class="m" style="margin-top:20px;text-align:center">Já tem conta? <button class="lk" type="button" data-tab="entrar">Entrar</button></p>
    </section>
@@ -279,15 +277,70 @@ var c=localStorage.getItem('smei-brand'),m={v:'#0e7a43',r:'#6a46d9',k:'#c2185b',
     <div class="hint" id="whoMsg" role="status" aria-live="polite"></div>
     <div class="pxb"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-info"/></svg><span>Nesta demonstração, qualquer e-mail e senha válidos abrem o app.</span></div>
     <form id="fE" novalidate>
-     <div class="fld"><label for="eMailL">E-mail</label><input class="in" id="eMailL" type="email" autocomplete="email" placeholder="voce@exemplo.com" aria-describedby="eMailLe"><div class="err" id="eMailLe" role="alert"></div></div>
+     <div class="fld"><label for="eMailL">E-mail</label><input class="in" id="eMailL" type="email" autocomplete="email" placeholder="voce@exemplo.com" aria-describedby="eMailLe sMailL"><div class="hint mailhint" id="sMailL" role="status" aria-live="polite"></div><div class="err" id="eMailLe" role="alert"></div></div>
      <div class="fld"><label for="ePassL">Senha</label><div class="pw"><input class="in" id="ePassL" type="password" autocomplete="current-password" placeholder="Sua senha" aria-describedby="ePassLe"><button type="button" data-pw="ePassL" aria-controls="ePassL" aria-pressed="false">Mostrar</button></div><div class="hint caps" id="caps_ePassL" role="status" hidden>Caps Lock está ligado: as letras saem em maiúsculas.</div><div class="err" id="ePassLe" role="alert"></div></div>
      <div style="margin-top:8px;text-align:right"><button class="lk" type="button" id="forgot">Esqueci minha senha</button></div>
      <div class="hint" id="forgotMsg" role="status" aria-live="polite"></div>
-     <button class="btn lg form-b" type="submit" data-busy="Entrando…">Entrar no SocialMEI</button>
-     <div class="or">ou</div>
-     <button class="btn o form-b" type="button" disabled aria-disabled="true" style="margin-top:0">Continuar com Google · em breve</button>
+      <button class="btn lg form-b" type="submit" data-busy="Entrando…">Entrar no SocialMEI</button>
+     <button class="btn o form-b" type="button" id="waOpen" style="margin-top:12px">Entrar com código no WhatsApp</button>
+    </form>
+    <form id="fW" novalidate hidden>
+     <div class="pxb"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-info"/></svg><span>Demonstração: nenhuma mensagem é enviada. O código de teste é <b>123456</b>.</span></div>
+     <div id="wS1">
+      <div class="fld"><label for="wTel">Seu WhatsApp</label><input class="in" id="wTel" type="tel" inputmode="tel" autocomplete="tel" placeholder="(81) 99999-0000" maxlength="16" aria-describedby="eWTel"><div class="err" id="eWTel" role="alert"></div></div>
+      <button class="btn lg form-b" type="submit" data-busy="Enviando código…">Enviar código</button>
+     </div>
+     <div id="wS2" hidden>
+      <p class="m" id="wInfo" tabindex="-1"></p>
+      <div class="fld"><label for="wCod">Código de 6 números</label><input class="in" id="wCod" inputmode="numeric" autocomplete="one-time-code" placeholder="000000" aria-describedby="eWCod"><div class="err" id="eWCod" role="alert"></div></div>
+      <button class="btn lg form-b" type="submit" data-busy="Conferindo…">Entrar</button>
+      <div class="wa-r"><button class="lk" type="button" id="wResend">Reenviar código</button><span id="wWait" aria-live="polite"></span><span aria-hidden="true">·</span><button class="lk" type="button" id="wChange">Trocar número</button></div>
+     </div>
+     <p class="m" style="margin-top:18px;text-align:center"><button class="lk" type="button" id="waBack">Voltar para e-mail e senha</button></p>
     </form>
     <p class="m" style="margin-top:20px;text-align:center">Ainda não tem conta? <button class="lk" type="button" data-tab="cadastro">Criar conta grátis</button></p>
+   </section>
+
+   <section id="panR" aria-label="Recuperar senha" hidden>
+    <div id="rS1">
+     <h1>Esqueceu a senha?</h1>
+     <p class="m">Digite o e-mail da sua conta. Mostramos como seria o link para criar uma nova senha.</p>
+     <div class="pxb"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-info"/></svg><span>Demonstração: nenhum e-mail é enviado de verdade.</span></div>
+     <form id="fR" novalidate>
+      <div class="fld"><label for="rMail">E-mail da conta</label><input class="in" id="rMail" type="email" autocomplete="email" placeholder="voce@exemplo.com" aria-describedby="eRMail sMailR"><div class="hint mailhint" id="sMailR" role="status" aria-live="polite"></div><div class="err" id="eRMail" role="alert"></div></div>
+      <button class="btn lg form-b" type="submit" data-busy="Enviando…">Enviar link de recuperação</button>
+     </form>
+     <p class="m" style="margin-top:20px;text-align:center">Prefere entrar sem senha? <button class="lk" type="button" id="rWa">Use um código no WhatsApp</button></p>
+     <p class="m" style="margin-top:6px;text-align:center">Lembrou? <button class="lk" type="button" data-tab="entrar">Voltar para Entrar</button></p>
+    </div>
+    <div id="rS2" hidden>
+     <div class="rok" aria-hidden="true"><svg class="i" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg></div>
+     <h1 id="rH2" tabindex="-1">Verifique seu e-mail</h1>
+     <p class="m">Se <b id="rSent"></b> tiver uma conta, enviamos um link para criar uma nova senha.</p>
+     <ul class="rtips"><li>Olhe também em spam e promoções.</li><li>Confira se o e-mail está escrito certo.</li></ul>
+     <div class="pxb"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-info"/></svg><span>Demonstração: nenhum e-mail foi enviado. O botão abaixo mostra a tela que o link abriria.</span></div>
+     <button class="btn lg form-b" type="button" id="rOpen">Ver a tela de nova senha</button>
+     <div class="wa-r"><button class="lk" type="button" id="rResend">Reenviar link</button><span id="rWait" aria-live="polite"></span><span aria-hidden="true">·</span><button class="lk" type="button" id="rOther">Usar outro e-mail</button></div>
+     <p class="m" style="margin-top:14px;text-align:center">Lembrou a senha? <button class="lk" type="button" data-tab="entrar">Voltar para Entrar</button></p>
+    </div>
+    <div id="rS3" hidden>
+     <h1 id="rH3" tabindex="-1">Crie uma nova senha</h1>
+     <p class="m">Escolha uma senha que você ainda não usa em outros lugares.</p>
+     <form id="fN" novalidate>
+      <div class="fld"><label for="nPass">Nova senha</label><div class="pw"><input class="in" id="nPass" type="password" autocomplete="new-password" placeholder="8 caracteres ou mais" aria-describedby="eNPass hNPass"><button type="button" data-pw="nPass" aria-controls="nPass" aria-pressed="false">Mostrar</button></div>
+       <div class="hint caps" id="caps_nPass" role="status" hidden>Caps Lock está ligado: as letras saem em maiúsculas.</div>
+       <div class="meter" id="meterN" data-s="0" aria-hidden="true"><i></i><i></i><i></i><i></i></div><div class="hint" id="hNPass" aria-live="polite">Use 8 ou mais caracteres. Uma frase longa é boa e fácil de lembrar.</div><div class="err" id="eNPass" role="alert"></div></div>
+      <div class="fld"><label for="nPass2">Repita a nova senha</label><div class="pw"><input class="in" id="nPass2" type="password" autocomplete="new-password" aria-describedby="eNPass2"><button type="button" data-pw="nPass2" aria-controls="nPass2" aria-pressed="false">Mostrar</button></div><div class="err" id="eNPass2" role="alert"></div></div>
+      <button class="btn lg form-b" type="submit" data-busy="Salvando…">Salvar nova senha</button>
+     </form>
+     <p class="m" style="margin-top:18px;text-align:center"><button class="lk" type="button" data-tab="entrar">Cancelar e voltar para Entrar</button></p>
+    </div>
+    <div id="rS4" hidden>
+     <div class="rok" aria-hidden="true"><svg class="i" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg></div>
+     <h1 id="rH4" tabindex="-1">Senha atualizada</h1>
+     <p class="m">Na demonstração nada é alterado de verdade. Em uma conta real, você já poderia entrar com a nova senha.</p>
+     <button class="btn lg form-b" type="button" id="rGo">Entrar agora</button>
+    </div>
    </section>
   </main>
 

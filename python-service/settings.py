@@ -22,6 +22,11 @@ def authentication_mode() -> str:
     return "invalid"
 
 
+def instagram_token_refresh_enabled() -> bool:
+    # Opt-in credential maintenance; unrelated sending/ingress flags stay unchanged.
+    return os.getenv("SOCIALMEI_INSTAGRAM_TOKEN_REFRESH_ENABLED", "false").strip().lower() == "true"
+
+
 def authentication_origin() -> str:
     return os.getenv("SOCIALMEI_AUTH_ORIGIN", "").strip()
 
@@ -85,6 +90,27 @@ def message_enrichment_mode() -> str:
 def message_enrichment_signing_key() -> str:
     # This isolated adapter never reuses a connector or n8n credential.
     return os.getenv("SOCIALMEI_MESSAGE_ENRICHMENT_TEST_KEY", "")
+
+
+def provider_sentiment_enabled() -> bool:
+    # Opt-in service-to-service analysis; never enables provider sending.
+    return os.getenv("SOCIALMEI_PROVIDER_SENTIMENT_ENABLED", "false").strip().lower() == "true"
+
+
+def provider_sentiment_key() -> str:
+    return os.getenv("SOCIALMEI_PROVIDER_SENTIMENT_KEY", "")
+
+
+def provider_sentiment_allowed_workspaces() -> tuple[int, ...]:
+    # Explicit pilot allowlist; empty/invalid configuration never sweeps all MEIs.
+    value = os.getenv("SOCIALMEI_PROVIDER_SENTIMENT_WORKSPACE_IDS", "").strip()
+    if not value or len(value) > 512:
+        return ()
+    parts = value.split(",")
+    if any(not part.isascii() or not part.isdecimal() or not 1 <= len(part) <= 15 for part in parts):
+        return ()
+    ids = tuple(sorted({int(part) for part in parts}))
+    return ids if all(1 <= item <= 9007199254740991 for item in ids) else ()
 
 
 def channel_ingress_mode() -> str:

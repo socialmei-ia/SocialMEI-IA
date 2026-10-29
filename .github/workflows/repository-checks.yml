@@ -24,8 +24,14 @@ on:
         feat/instagram-durable-webhook,
         feat/instagram-direct-outbox,
         feat/instagram-posts-inbox-real,
+        release/socialmei-functional-integrations-20261026,
         feat/opportunity-planning-persistence,
         feat/waha-durable-ingress,
+        feat/frontend-v25-integration,
+        feat/whatsapp-interactive-bot,
+        feat/instagram-token-maintenance,
+        feat/n8n-live-inventory-20261028,
+        feat/provider-sentiment-inbox-20261029,
       ]
 
 permissions:
@@ -178,6 +184,7 @@ jobs:
       - name: Compose configuration without starting services
         run: |
           docker compose --env-file .env.example config --quiet
+          docker compose --env-file .env.example -f compose.yaml -f compose.team-n8n-bridge.yaml config --quiet
           docker compose --env-file .env.development.example -f compose.dev.yaml config --quiet
           TEAM_POSTGRES_PASSWORD=ci-team-only SOCIALMEI_TEAM_HOST=app.example.com docker compose -f compose.team.yaml config --quiet
           docker compose --env-file .env.example -f compose.yaml -f compose.team-proxy.yaml config --quiet

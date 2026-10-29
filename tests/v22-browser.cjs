@@ -4,6 +4,7 @@ const assert = require("node:assert/strict"),
   path = require("node:path"),
   http = require("node:http");
 const { chromium } = require("playwright");
+const { waitForViewportFit } = require("./v22-layout-ready.cjs");
 const root = path.resolve(__dirname, ".."),
   out = path.join(root, "test-results/v22");
 const server = http.createServer((req, res) => {
@@ -38,11 +39,17 @@ async function run() {
     external = [];
   let states = 0;
   try {
+    await require("./v22-layout-browser.cjs")(browser, origin);
     const entry = await require("./v22-entry-browser.cjs")(browser, origin);
+    await require("./v25-entry-browser.cjs")(browser, origin);
     const contracts = await require("./v22-contract-browser.cjs")(browser, origin);
     await require("./v22-instagram-browser.cjs")(browser, origin);
     await require("./v22-inbox-polling-browser.cjs")(browser, origin);
+    await require("./v22-instagram-direct-browser.cjs")(browser, origin);
     await require("./v22-instagram-publisher-browser.cjs")(browser, origin);
+    await require("./v22-knowledge-reporting-browser.cjs")(browser, origin);
+    await require("./v22-report-viewer-browser.cjs")(browser, origin);
+    await require("./v22-whatsapp-catalog-browser.cjs")(browser, origin);
     const page = await browser.newPage({ reducedMotion: "reduce" });
     page.on("pageerror", (e) => errors.push(e.message));
     await page.route("**/*", (r) => {
@@ -72,6 +79,7 @@ async function run() {
     ];
     for (const width of [320, 360, 390, 560, 640, 768, 900, 1024, 1180, 1440, 1600]) {
       await page.setViewportSize({ width, height: 1000 });
+      await waitForViewportFit(page);
       for (const theme of ["claro", "escuro"]) {
         await page.evaluate((t) => {
           S.theme = t;

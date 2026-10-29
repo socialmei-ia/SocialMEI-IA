@@ -1,4 +1,4 @@
-"""Real Caddy boundary tests, opt-in only; never touches an existing stack."""
+"""Isolated public and legacy Caddy boundary tests; never touch an installed stack."""
 
 import base64
 import json
@@ -115,7 +115,7 @@ HTTPServer(('0.0.0.0', 8000), Handler).serve_forever()
             "-e",
             "NO_PROXY=team-api,127.0.0.1,localhost",
             "-v",
-            str(ROOT / "deploy/team/Caddyfile") + ":/etc/caddy/Caddyfile:ro",
+            str(ROOT / "tests/fixtures/legacy-basic.Caddyfile") + ":/etc/caddy/Caddyfile:ro",
             "-v",
             str(directory / "private") + ":/etc/caddy/private:ro",
             "-v",
@@ -296,7 +296,7 @@ HTTPServer(('0.0.0.0', 8000), Handler).serve_forever()
         docker("run", "-d", "--name", gateway, "--network", name,
                "-p", "127.0.0.1::80", "-e", "SOCIALMEI_TEAM_HOST=app.example.com",
                "-e", "NO_PROXY=team-api,127.0.0.1,localhost",
-               "-v", str(ROOT / "deploy/team/Caddyfile.public") + ":/etc/caddy/Caddyfile:ro",
+               "-v", str(ROOT / "deploy/team/Caddyfile") + ":/etc/caddy/Caddyfile:ro",
                "-v", str(directory) + ":/srv:ro", "caddy:2-alpine")
         cls.addClassCleanup(lambda: docker("rm", "-f", gateway))
         cls.origin = "http://127.0.0.1:" + docker("port", gateway, "80/tcp").split(":")[-1]

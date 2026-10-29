@@ -57,6 +57,16 @@ def configuration():
 
 
 class RuntimeConfigurationTests(unittest.TestCase):
+    def test_live_direct_requires_explicit_dashboard_sender_ownership(self):
+        for owner, expected in [('unassigned',False),('n8n',False),('dashboard',True)]:
+            with self.subTest(owner=owner), patch.dict(os.environ,{**configuration(),
+                'SOCIALMEI_INSTAGRAM_RUNTIME_SEND_ENABLED':'true',
+                'SOCIALMEI_INSTAGRAM_DIRECT_OWNER':owner},clear=True), patch('instagram_runtime.InstagramHTTPTransport',return_value=FakeTransport()):
+                runtime=build_runtime()
+                self.assertEqual(runtime.status,'configured')
+                self.assertEqual(runtime.send,expected)
+                self.assertEqual(runtime.direct.allow_dispatch,expected)
+
     def test_disabled_ignores_unused_secrets_and_never_constructs_transport(self):
         with patch.dict(
             os.environ, {"SOCIALMEI_INSTAGRAM_CLIENT_SECRET": SECRET}, clear=True

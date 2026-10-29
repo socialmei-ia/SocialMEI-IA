@@ -678,7 +678,7 @@ html.calm .sg-d,html.calm .hero .sg .sg-d{display:none}
 #v-auth .wsx-r b{display:block;font-size:13.5px}#v-auth .wsx-r small{color:var(--m);font-size:12px}
 #v-auth .wsx-tag{font-size:11px;color:var(--m);text-align:center;margin-top:2px}
 @keyframes sbIn{from{opacity:0;transform:translateY(10px) scale(.97)}}
-#v-auth .art[data-t=entrar] .pv,#v-auth .art[data-t=entrar] .prog{display:none}
+#v-auth .art[data-t=entrar] .pv,#v-auth .art[data-t=entrar] .prog,#v-auth .art[data-t=recuperar] .pv,#v-auth .art[data-t=recuperar] .prog{display:none}
 #v-auth .pv{margin-top:16px;gap:8px;max-width:440px}
 #v-auth .pv-i,#v-auth .pv-i:nth-child(2),#v-auth .pv-i:nth-child(3){transform:none;padding:10px 14px;box-shadow:none;border-radius:14px}
 #v-auth .pv-i .ic{width:36px;height:36px;border-radius:11px}
@@ -766,3 +766,55 @@ html.calm #v-ob .pvc.in,html.calm #v-ob .btn.busy::before{animation:none!importa
 @media (max-width:980px){.plans{grid-template-columns:1fr;max-width:560px;margin-left:auto;margin-right:auto}}
 /* fim do v22 */
 
+/* =====================================================================
+   v23 · tela "Recuperar senha" (sem aba), código no WhatsApp, aviso de e-mail errado, "Começar já"
+   (bloco reversível: apague daqui até "fim do v23") */
+
+.hint.mailhint:empty{display:none}
+.hint.mailhint{color:var(--t);background:var(--yl);border-radius:10px;padding:4px 6px 4px 12px;margin-top:8px;line-height:1.5}
+.hint.mailhint .lk{min-height:36px;padding:0 6px}
+.hint.mailhint b{overflow-wrap:anywhere}
+
+.wa-r{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:0 8px;margin-top:14px;color:var(--m);font-size:14px}
+.rok{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:var(--gl);color:var(--g);margin-bottom:14px}
+.rtips{margin:12px 0 0;padding-left:20px;color:var(--m);font-size:14.5px;display:grid;gap:4px}
+#v-auth #panR h1,#v-auth #panR h1:focus{outline:none}
+#v-auth #rS2 .btn,#v-auth #rS4 .btn{margin-top:14px}
+#v-auth #wInfo{outline:none;margin-top:14px}
+
+.ob-ja{margin:14px 0 0;text-align:center}
+#v-auth .tabs[hidden]{display:none}
+/* fim do v23 */
+
+/* =====================================================================
+   v24 · lista de ramos própria (no lugar da lista padrão do navegador)
+   (bloco reversível: apague daqui até "fim do v24") */
+.hero .cta2{position:relative;z-index:40}
+.ramo-s.rs-on{position:relative}
+.ramo-s.rs-on::after{display:none}
+.ramo-s.rs-on select{position:absolute;left:0;top:0;width:1px;height:1px;min-height:0;padding:0;border:0;opacity:0;pointer-events:none}
+.rs-b{display:inline-flex;align-items:center;justify-content:space-between;gap:14px;min-height:44px;padding:0 16px 0 18px;border:1px solid var(--b);border-radius:99px;background:var(--w);color:var(--t);font-weight:600;font-size:15px;cursor:pointer;white-space:nowrap;transition:border-color .2s,box-shadow .2s}
+.rs-b:hover{border-color:var(--bl)}
+.rs-b:focus-visible{outline:3px solid var(--pb);outline-offset:2px}
+.rs-b[aria-expanded=true]{border-color:var(--pb);box-shadow:0 0 0 4px color-mix(in srgb,var(--pb) 18%,transparent)}
+.rs-b::after{content:"";width:7px;height:7px;margin-top:-3px;border-right:2px solid var(--m);border-bottom:2px solid var(--m);transform:rotate(45deg);transition:transform .2s var(--ease),margin .2s var(--ease)}
+.rs-b[aria-expanded=true]::after{transform:rotate(225deg);margin-top:3px}
+.rs-l{position:absolute;left:0;top:calc(100% + 10px);z-index:90;min-width:max(100%,320px);max-width:calc(100vw - 32px);margin:0;padding:8px;list-style:none;background:var(--w);border:1px solid var(--b);border-radius:20px;box-shadow:0 18px 50px rgba(11,18,64,.22),0 2px 8px rgba(11,18,64,.08);transform-origin:top left;animation:rsIn .16s var(--ease)}
+[data-theme=dark] .rs-l{box-shadow:0 18px 50px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.04)}
+.rs-l[hidden]{display:none}
+.rs-l.rs-up{top:auto;bottom:calc(100% + 10px);transform-origin:bottom left;animation-name:rsInUp}
+@keyframes rsInUp{from{opacity:0;transform:translateY(6px) scale(.98)}}
+@keyframes rsIn{from{opacity:0;transform:translateY(-6px) scale(.98)}}
+.rs-o{display:flex;align-items:center;gap:12px;min-height:52px;padding:8px 14px;border-radius:13px;cursor:pointer;text-align:left}
+.rs-o[data-on=true]{background:var(--h2)}
+.rs-x{display:grid;gap:1px;flex:1;min-width:0}
+.rs-t{font-weight:600;font-size:15px;color:var(--t)}
+.rs-x small{font-size:12.5px;color:var(--m);font-weight:500}
+.rs-ck{flex:none;color:var(--p);opacity:0;transform:scale(.6);transition:opacity .15s,transform .2s var(--ease)}
+.rs-o[aria-selected=true] .rs-t{color:var(--p)}
+.rs-o[aria-selected=true] .rs-ck{opacity:1;transform:none}
+[data-theme=dark] .rs-o[aria-selected=true] .rs-t,[data-theme=dark] .rs-ck{color:#8fb4ff}
+@media (max-width:640px){.ramo{position:relative}.ramo-s.rs-on{position:static}.rs-b{width:100%}.rs-l{left:0;right:0;min-width:0;max-width:none}}
+html.calm .rs-l{animation:none}
+@media (prefers-reduced-motion:reduce){.rs-l{animation:none}.rs-b::after,.rs-ck{transition:none}}
+/* fim do v24 */

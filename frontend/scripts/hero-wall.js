@@ -223,6 +223,77 @@
     });
   }
 
+  /* ---------- lista de ramos própria (v24): o seletor do navegador não aceita estilo ----------
+     O <select> continua no HTML como base (e funciona sozinho se este script falhar);
+     aqui ele ganha uma lista bonita por cima e os dois ficam sincronizados. */
+  if (selRamo) (function () {
+    var wrap = selRamo.parentNode, ops = [].slice.call(selRamo.options), ativo = 0, aberto = false, busca = '', buscaT = 0;
+    wrap.classList.add('rs-on'); selRamo.tabIndex = -1; selRamo.setAttribute('aria-hidden', 'true');
+    var cb = document.createElement('div');
+    cb.className = 'rs-b'; cb.tabIndex = 0; cb.setAttribute('role', 'combobox'); cb.setAttribute('aria-haspopup', 'listbox');
+    cb.setAttribute('aria-expanded', 'false'); cb.setAttribute('aria-controls', 'ramoList'); cb.setAttribute('aria-labelledby', 'ramoL ramoV');
+    var val = document.createElement('span'); val.id = 'ramoV'; val.className = 'rs-v'; cb.appendChild(val);
+    var ul = document.createElement('ul');
+    ul.id = 'ramoList'; ul.className = 'rs-l'; ul.setAttribute('role', 'listbox'); ul.setAttribute('aria-labelledby', 'ramoL'); ul.hidden = true;
+    ops.forEach(function (o, i) {
+      var li = document.createElement('li');
+      li.id = 'ramoO' + i; li.className = 'rs-o'; li.setAttribute('role', 'option'); li.dataset.i = i;
+      var tx = document.createElement('span'); tx.className = 'rs-x';
+      var t = document.createElement('span'); t.className = 'rs-t'; t.textContent = o.text; tx.appendChild(t);
+      if (o.dataset.d) { var d = document.createElement('small'); d.textContent = o.dataset.d; tx.appendChild(d); }
+      li.appendChild(tx);
+      li.insertAdjacentHTML('beforeend', '<svg class="i rs-ck" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>');
+      ul.appendChild(li);
+    });
+    wrap.appendChild(cb); wrap.appendChild(ul);
+    var lis = [].slice.call(ul.children);
+
+    function atual() { return Math.max(0, selRamo.selectedIndex); }
+    function pintar() {
+      var a = atual(); val.textContent = ops[a].text;
+      lis.forEach(function (li, i) { li.setAttribute('aria-selected', i === a); li.dataset.on = (aberto && i === ativo) ? 'true' : 'false'; });
+      if (aberto) { cb.setAttribute('aria-activedescendant', 'ramoO' + ativo); var el = lis[ativo]; if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' }); }
+      else cb.removeAttribute('aria-activedescendant');
+    }
+    function abrir() {
+      if (aberto) return; aberto = true; ativo = atual(); ul.hidden = false; ul.classList.remove('rs-up'); cb.setAttribute('aria-expanded', 'true'); pintar();
+      /* sem espaço embaixo (a tela ou o herói acabam antes), abre para cima */
+      var hero = wrap.closest('.hero') || document.documentElement, r = ul.getBoundingClientRect(), c = cb.getBoundingClientRect();
+      var limite = Math.min(window.innerHeight, hero.getBoundingClientRect().bottom) - 10;
+      if (r.bottom > limite && c.top - 10 - r.height >= 8) ul.classList.add('rs-up');
+    }
+    function fechar() { if (!aberto) return; aberto = false; ul.hidden = true; cb.setAttribute('aria-expanded', 'false'); pintar(); }
+    function escolher(i) {
+      if (i !== atual()) { selRamo.selectedIndex = i; selRamo.dispatchEvent(new Event('change', { bubbles: true })); }
+      fechar(); pintar();
+    }
+    selRamo.addEventListener('change', pintar);                 /* o seletor original manda: tudo que mudar nele aparece aqui */
+
+    cb.addEventListener('click', function () { aberto ? fechar() : abrir(); });
+    ul.addEventListener('mousedown', function (e) { e.preventDefault(); });   /* o foco fica no campo, a lista não "rouba" */
+    ul.addEventListener('click', function (e) { var li = e.target.closest('.rs-o'); if (li) escolher(+li.dataset.i); });
+    ul.addEventListener('mousemove', function (e) { var li = e.target.closest('.rs-o'); if (li && ativo !== +li.dataset.i) { ativo = +li.dataset.i; pintar(); } });
+    cb.addEventListener('blur', fechar);
+    document.addEventListener('pointerdown', function (e) { if (aberto && !wrap.contains(e.target)) fechar(); });
+    cb.addEventListener('keydown', function (e) {
+      var k = e.key, n = ops.length;
+      if (k === 'ArrowDown' || k === 'ArrowUp') {
+        e.preventDefault();
+        if (!aberto) { abrir(); if (k === 'ArrowUp') { ativo = n - 1; pintar(); } return; }
+        ativo = (ativo + (k === 'ArrowDown' ? 1 : -1) + n) % n; pintar();
+      } else if (k === 'Home' || k === 'End') { if (!aberto) abrir(); e.preventDefault(); ativo = k === 'Home' ? 0 : n - 1; pintar(); }
+      else if (k === 'Enter' || k === ' ') { e.preventDefault(); aberto ? escolher(ativo) : abrir(); }
+      else if (k === 'Escape') { if (aberto) { e.preventDefault(); fechar(); } }
+      else if (k === 'Tab') { fechar(); }
+      else if (k.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {                 /* digitar a inicial salta para o ramo */
+        clearTimeout(buscaT); busca += k.toLowerCase(); buscaT = setTimeout(function () { busca = ''; }, 600);
+        var i = ops.findIndex(function (o) { return o.text.toLowerCase().indexOf(busca) === 0; });
+        if (i > -1) { if (!aberto) abrir(); ativo = i; pintar(); }
+      }
+    });
+    pintar();
+  })();
+
   /* ---------- reação ao mouse, rolagem e visibilidade ---------- */
   if (hero && matchMedia('(pointer:fine)').matches) {
     var raf = 0;

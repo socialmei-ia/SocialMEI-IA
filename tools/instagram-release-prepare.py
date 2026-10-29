@@ -11,6 +11,41 @@ import subprocess
 ROOT = Path('/home/ubuntu/socialmei-team')
 BACKUPS = Path('/home/ubuntu/socialmei-backups')
 SERVICES = ('team-api', 'team-gateway')
+REVIEWED_MIGRATIONS = (
+    '001_initial_socialmei_schema.sql',
+    '002_shared_crm_foundation.sql',
+    '003_client_contract.sql',
+    '004_client_import.sql',
+    '005_shared_catalog.sql',
+    '006_shared_sales.sql',
+    '007_shared_finance.sql',
+    '008_workspace_transfer.sql',
+    '009_shared_channel_foundation.sql',
+    '010_account_authentication.sql',
+    '011_crm_workspace_links.sql',
+    '012_instagram_simulation.sql',
+    '013_workspace_profile_sync.sql',
+    '014_message_enrichment.sql',
+    '015_content_preparation.sql',
+    '016_opportunity_lifecycle.sql',
+    '017_integration_setup.sql',
+    '018_instagram_provider_lab.sql',
+    '019_instagram_persistent_oauth.sql',
+    '020_instagram_durable_webhook.sql',
+    '021_instagram_direct_outbox.sql',
+    '022_opportunity_planning.sql',
+    '023_waha_durable_ingress.sql',
+    '024_account_recovery.sql',
+    '025_session_management.sql',
+    '026_recovery_delivery_queue.sql',
+    '027_instagram_image_publications.sql',
+    '028_instagram_temporary_media.sql',
+    '029_workspace_pdf_knowledge.sql',
+    '030_whatsapp_catalog_access.sql',
+    '031_report_viewer_role.sql',
+)
+MIGRATION_STAGES = {'oauth': 26, 'publishing': 28, 'functional': 31}
+
 
 
 def sibling(name, filename):
@@ -48,16 +83,17 @@ def candidate_model(before, service, sha):
     return after, override
 
 
-def missing_migrations(installed, source):
+def missing_migrations(installed, source, *, stage='publishing'):
     source = sorted(source)
     installed = sorted(installed)
-    require(len(source) == 28 and [name[:3] for name in source] == [f'{i:03}' for i in range(1,29)], 'Expected reviewed source migrations001–028.')
-    require(len(source) == len(set(source)) and len(installed) == len(set(installed)), 'Duplicate migrations.')
+    require(stage in MIGRATION_STAGES, 'Unknown migration stage.')
+    require(source == list(REVIEWED_MIGRATIONS), 'Expected exact reviewed source migrations001–031.')
+    require(len(installed) == len(set(installed)), 'Duplicate installed migrations.')
     require(installed == source[:len(installed)], 'Installed ledger is not a source prefix.')
-    missing = source[len(installed):]
-    require(set(missing) <= {'027_instagram_image_publications.sql', '028_instagram_temporary_media.sql'},
-            'Migrations beyond reviewed 027/028 require review.')
-    return missing
+    require(len(installed) >= 26, 'Foundational schema001–026 must already be installed.')
+    # Source compatibility and selected activation are separate. This preparer
+    # never applies SQL; later phases remain explicitly deferred in the receipt.
+    return source[len(installed):MIGRATION_STAGES[stage]]
 
 
 MEDIA = '''        handle /media/instagram/* {
@@ -176,16 +212,41 @@ def validate_gateway(name, raw, active):
     return changed, adapted
 
 
-def prepare(sha, output, expected_api, expected_gateway):
+def checkout_policy(preserved_caddy_sha256=None):
+    status=call(['git','status','--porcelain'])
+    if preserved_caddy_sha256 is None:
+        require(not status.strip(),'Unexpected checkout changes.')
+        return {'mode':'clean'}
+    require(re.fullmatch(r'[0-9a-f]{64}',preserved_caddy_sha256), 'Exact reviewed hotfix hash required.')
+    require(status.splitlines()==[' M deploy/team/Caddyfile'], 'Changes exceed reviewed unmounted hotfix.')
+    path=ROOT/'deploy/team/Caddyfile'
+    require(path.is_file() and not path.is_symlink() and path.resolve()==ROOT.resolve()/'deploy/team/Caddyfile','Hotfix must be a regular checkout file.')
+    require(hashlib.sha256(path.read_bytes()).hexdigest()==preserved_caddy_sha256,'Hotfix changed since inspection.')
+    return {'mode':'preserved_caddy','path':'deploy/team/Caddyfile','sha256':preserved_caddy_sha256}
+
+
+def require_unmounted_hotfix(policy, containers):
+    if policy['mode']!='preserved_caddy': return
+    path=(ROOT/'deploy/team/Caddyfile').resolve()
+    for container in containers:
+        for mount in container.get('Mounts',[]):
+            if mount.get('Type')=='bind':
+                source=Path(mount['Source']).resolve()
+                require(path!=source and not path.is_relative_to(source),'Reviewed checkout hotfix is mounted; manual review required.')
+
+
+def prepare(sha, output, expected_api, expected_gateway, *, stage='publishing', preserved_caddy_sha256=None):
     require(re.fullmatch(r'[0-9a-f]{40}', sha), 'Full candidate SHA required.')
     require(output.parent.resolve() == BACKUPS and not output.exists(), 'Use a new direct child of the private backup directory.')
-    require(not call(['git','status','--porcelain']).strip(), 'Unexpected checkout changes.')
+    policy=checkout_policy(preserved_caddy_sha256)
     require(call(['git','rev-parse',sha+'^{commit}']).strip() == sha, 'Candidate commit unavailable.')
     installed = preflight.sql_read('socialmei-team-team-postgres-1',
         "BEGIN READ ONLY; SELECT jsonb_agg(version ORDER BY version) FROM socialmei.schema_migrations; ROLLBACK;")[0]
     source = call(['git','ls-tree','-r','--name-only',sha,'database/migrations/']).splitlines()
     names = [Path(p).name for p in source if p.endswith('.sql')]
-    missing = missing_migrations(installed,names)
+    missing = missing_migrations(installed,names,stage=stage)
+    unapplied = sorted(names)[len(installed):]
+    deferred = [name for name in unapplied if name not in missing]
     migration_hashes = {name:hashlib.sha256(call(['git','show',sha+':database/migrations/'+name]).encode()).hexdigest() for name in names}
     containers, models, commands, candidates, overrides = {}, {}, {}, {}, {}
     for service, expected in zip(SERVICES,(expected_api,expected_gateway)):
@@ -216,7 +277,11 @@ def prepare(sha, output, expected_api, expected_gateway):
     require(public['source']=='active', 'Public proxy active config unavailable.')
     public_json=json.loads(call(['docker','exec','socialmei-caddy','wget','-qO-','http://127.0.0.1:2019/config/']))
     require(privacy.protected(public_json), 'Public proxy logging privacy not confirmed.')
+    if policy['mode']=='preserved_caddy':
+        public_container=json.loads(call(['docker','inspect','socialmei-caddy']))[0]
+        require_unmounted_hotfix(policy,[*containers.values(),public_container])
     call(['docker','exec','-i',name,'caddy','validate','--config','/dev/stdin','--adapter','caddyfile'],input=changed)
+    require(checkout_policy(preserved_caddy_sha256)==policy,'Checkout changed during preparation.')
     # All inspection/validation finishes before creating any artifacts.
     output.mkdir(mode=0o700)
     def write(name,value):
@@ -229,6 +294,9 @@ def prepare(sha, output, expected_api, expected_gateway):
         write(service+'.override.private.json',overrides[service])
     write('gateway.before.Caddyfile',raw)
     write('gateway.candidate.Caddyfile',changed)
+    if policy['mode']=='preserved_caddy':
+        write('checkout-hotfix.preserved.Caddyfile',(ROOT/policy['path']).read_text())
+        require(hashlib.sha256((output/'checkout-hotfix.preserved.Caddyfile').read_bytes()).hexdigest()==policy['sha256'],'Hotfix changed while preserving it.')
     resolved_commands={}
     for service in SERVICES:
         args=commands[service]+['-f',str(output/(service+'.override.private.json'))]
@@ -238,7 +306,10 @@ def prepare(sha, output, expected_api, expected_gateway):
     write('compose-commands.private.json',resolved_commands)
     for path in output.iterdir(): hashes[path.name]=hashlib.sha256(path.read_bytes()).hexdigest()
     receipt={'target':'team','candidate_sha':sha,'checkout_sha':call(['git','rev-parse','HEAD']).strip(),
-             'missing_migrations':missing,'source_migration_sha256':migration_hashes,'gateway_config_source':str(config_path),
+             'checkout_policy':policy,
+             'missing_migrations':missing,'migration_stage':stage,
+             'unapplied_source_migrations':unapplied,'deferred_migrations':deferred,
+             'source_migration_sha256':migration_hashes,'gateway_config_source':str(config_path),
              'installed_images':{s:{'image_id':containers[s]['Image'],'container_id':containers[s]['Id']} for s in SERVICES},
              'hashes':hashes,'deployment_executed':False,'provider_flags_changed':False,
              'required_before_apply':['current CI approval','verified fresh backup + saved images',
@@ -246,7 +317,7 @@ def prepare(sha, output, expected_api, expected_gateway):
                  'explicit publishing activation after OAuth','separate n8n webhook decision']}
     write('preparation.private.json',receipt)
     print(json.dumps({'prepared':True,'folder':str(output),'candidate_sha':sha,
-                      'missing_migrations':missing,'deployment_executed':False,'integrations_activated':False},indent=2))
+                      'missing_migrations':missing,'migration_stage':stage,'deferred_migrations':deferred,'deployment_executed':False,'integrations_activated':False},indent=2))
 
 
 def main():
@@ -257,12 +328,15 @@ def main():
     parser.add_argument('--output',type=Path)
     parser.add_argument('--expected-api-image')
     parser.add_argument('--expected-gateway-image')
+    parser.add_argument('--preserved-caddy-sha256', help='Explicit hash of the sole reviewed, unstaged and unmounted checkout Caddyfile hotfix. Never resets or changes it.')
+    parser.add_argument('--migration-stage',choices=tuple(MIGRATION_STAGES),default='publishing',
+                        help='Plan only: oauth keeps installed schema; publishing selects027/028; functional selects027–031. No SQL is executed.')
     args=parser.parse_args()
     if not args.prepare:
         print('Preparation only. No runtime inspected or modified. Use --prepare with explicit SHA, baseline images and private output folder.')
         return
     require(all((args.sha,args.output,args.expected_api_image,args.expected_gateway_image)), 'Explicit preparation parameters required.')
-    prepare(args.sha,args.output,args.expected_api_image,args.expected_gateway_image)
+    prepare(args.sha,args.output,args.expected_api_image,args.expected_gateway_image,stage=args.migration_stage,preserved_caddy_sha256=args.preserved_caddy_sha256)
 
 
 if __name__=='__main__':

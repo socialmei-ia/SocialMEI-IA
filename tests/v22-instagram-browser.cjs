@@ -11,7 +11,10 @@ module.exports = async function (browser, origin) {
     "connect-frame",
     "connected",
     "forged-callback",
+    "successful-callback",
+    "failed-callback",
     "invalid-url",
+    "start-error",
     "member",
   ]) {
     const page = await browser.newPage({
@@ -35,7 +38,10 @@ module.exports = async function (browser, origin) {
         url = new URL(request.url());
       if (url.origin !== origin) {
         external.push(url.hostname);
-        if (url.hostname === "www.instagram.com" && ["connect", "connect-frame"].includes(mode))
+        if (
+          url.hostname === "www.instagram.com" &&
+          ["connect", "connect-frame", "failed-callback"].includes(mode)
+        )
           return route.fulfill({
             contentType: "text/html",
             body: "<h1>Autorização oficial simulada no teste</h1>",
@@ -73,11 +79,20 @@ module.exports = async function (browser, origin) {
       if (p === "/instagram/meta/status")
         return route.fulfill({
           json: {
-            status: mode === "connected" ? "connected" : "disconnected",
-            credential_available: mode === "connected",
+            status: ["connected", "successful-callback"].includes(mode)
+              ? "connected"
+              : "disconnected",
+            credential_available: ["connected", "successful-callback"].includes(mode),
           },
         });
       if (p === "/instagram/meta/oauth/start") {
+        if (mode === "start-error") {
+          posts.push(p);
+          return route.fulfill({
+            status: 503,
+            json: { detail: "PRIVATE-DIAGNOSTIC-MUST-NOT-RENDER" },
+          });
+        }
         assert.equal(request.headers()["x-socialmei-csrf"], "a".repeat(64));
         posts.push(p);
         const authorization = new URL("https://www.instagram.com/oauth/authorize");
@@ -105,7 +120,11 @@ module.exports = async function (browser, origin) {
       await page.goto(
         origin +
           "/frontend/socialmei-app.html" +
-          (mode === "forged-callback" ? "#instagram=connected" : "#/config/integracoes"),
+          (["forged-callback", "successful-callback"].includes(mode)
+            ? "#instagram=connected"
+            : mode === "failed-callback"
+              ? "#instagram=failed"
+              : "#/config/integracoes"),
       );
       await page.waitForFunction(
         () => window.SocialMEIInstagram && SocialMEIInstagram.status.phase !== "loading",
@@ -116,7 +135,7 @@ module.exports = async function (browser, origin) {
       await row.waitFor();
       assert.equal(
         await page.evaluate(() => SocialMEIInstagram.status.connected),
-        mode === "connected",
+        ["connected", "successful-callback"].includes(mode),
       );
       // Permissions beyond the explicitly supported contract are rejected.
       assert.equal(
@@ -139,13 +158,34 @@ module.exports = async function (browser, origin) {
         }),
         true,
       );
-      if (mode === "forged-callback") {
+      if (["forged-callback", "successful-callback", "failed-callback"].includes(mode)) {
         assert(page.url().endsWith("#/config/integracoes"));
+        assert.equal(await page.locator(".e404").count(), 0, "OAuth return never renders 404");
+        await page.getByRole("heading", { name: "Configurações" }).waitFor();
         assert.equal(
-          await page.locator("dialog").getByText("Não configurado", { exact: true }).count(),
+          await page
+            .locator("dialog")
+            .getByText(
+              mode === "forged-callback"
+                ? "Não configurado"
+                : mode === "successful-callback"
+                  ? "Conectado"
+                  : "Não conectado",
+              { exact: true },
+            )
+            .count(),
           1,
         );
-      } else if (["connect", "connect-frame", "invalid-url", "member"].includes(mode)) {
+        const authorize = page.locator("dialog[open] [data-ig-action=connect]");
+        assert.equal(await authorize.count(), mode === "failed-callback" ? 1 : 0);
+        if (mode === "failed-callback") {
+          await authorize.click();
+          await page.waitForURL("https://www.instagram.com/oauth/authorize?**");
+          assert.equal(posts.length, 1);
+        }
+      } else if (
+        ["connect", "connect-frame", "invalid-url", "start-error", "member"].includes(mode)
+      ) {
         if (mode === "connect-frame") {
           await page.evaluate(() => go("/divul"));
           const frame = page.frameLocator("#v iframe");
@@ -163,6 +203,8 @@ module.exports = async function (browser, origin) {
               { exact: true },
             )
             .waitFor();
+          await page.locator("dialog[open] [role=alert]").waitFor();
+          assert(!(await page.locator("dialog[open]").innerText()).includes("PRIVATE-DIAGNOSTIC"));
           assert.equal(new URL(page.url()).origin, origin);
           assert.equal(posts.length, mode === "member" ? 0 : 1);
           assert.deepEqual(external, []);
@@ -221,5 +263,5 @@ module.exports = async function (browser, origin) {
       await page.close();
     }
   }
-  return "Instagram native: disabled/configured/connected/member/forged callback/invalid URL passed; no real provider requests";
+  return "Instagram native: disabled/configured/connected/member/forged, successful and failed callbacks/invalid URL passed; no real provider requests";
 };

@@ -51,6 +51,22 @@ def safe_count(value):
     return value if type(value) is int and value >= 0 else None
 
 
+def recovery_summary(env):
+    mode = env.get('SOCIALMEI_RECOVERY_MODE','disabled')
+    if mode == 'disabled':
+        state = 'disabled'
+    elif mode != 'smtp':
+        state = 'invalid'
+    else:
+        fields = [env.get('SOCIALMEI_SMTP_'+key,'') for key in ('HOST','USER','PASSWORD','FROM')]
+        if any('\r' in value or '\n' in value for value in fields) or env.get('SOCIALMEI_SMTP_PORT','465') not in {'465','587'}:
+            state = 'invalid'
+        else:
+            state = 'configured_not_verified' if all(fields) else 'incomplete'
+    # Environment presence is not evidence that a worker ran or mail arrived.
+    return {'smtp':state,'worker_execution':'not_verified'}
+
+
 def container_summary(value):
     config, state = value.get("Config", {}), value.get("State", {})
     env = dict(item.split("=", 1) for item in config.get("Env", []) if "=" in item)
@@ -64,6 +80,7 @@ def container_summary(value):
         "health": health if health in {"healthy", "unhealthy", "starting"} else "unknown",
         "flags": {key: env.get(key, "").strip().lower() == "true" for key in FLAGS},
         "runtime_connect_mode": env.get("SOCIALMEI_INSTAGRAM_RUNTIME_MODE", "").strip().lower() == "connect",
+        "recovery": recovery_summary(env),
     }
 
 

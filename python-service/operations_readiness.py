@@ -35,6 +35,11 @@ EXPECTED_MIGRATIONS = (
     "026_recovery_delivery_queue.sql",
     "027_instagram_image_publications.sql",
     "028_instagram_temporary_media.sql",
+    "029_workspace_pdf_knowledge.sql",
+    "030_whatsapp_catalog_access.sql",
+    "031_report_viewer_role.sql",
+    "032_whatsapp_bot_conversations.sql",
+    "033_provider_sentiment_jobs.sql",
 )
 
 

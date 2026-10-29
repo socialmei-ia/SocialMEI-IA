@@ -66,6 +66,16 @@ class ImageFlowTests(unittest.TestCase):
         app.dependency_overrides[service] = lambda: self.publisher
         self.addCleanup(app.dependency_overrides.clear)
 
+    def test_status_uses_real_session_and_reports_connection_without_sending(self):
+        with patch('instagram_publishing.permitted', return_value=False):
+            result = self.client.get(PREFIX+'/status')
+        self.assertEqual(result.status_code, 200, result.text)
+        self.assertEqual(result.json(), {
+            'available': False, 'connected': True,
+            'format': 'local_image_or_public_url', 'upload_available': False,
+        })
+        self.assertEqual(self.meta.calls, [])
+
     def image_payload(self):
         return {'request_id': str(uuid4()), 'image_url': 'https://cdn.example.org/photo.jpg', 'caption': 'Foto de teste'}
 

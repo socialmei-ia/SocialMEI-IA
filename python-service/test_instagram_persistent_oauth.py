@@ -235,6 +235,69 @@ class PersistentTests(unittest.TestCase):
                 (self.identities[0]["workspace_id"],),
             ).fetchone()
 
+    def test_flat_instagram_grant_persists_only_encrypted_connection(self):
+        provider = FakeTransport()
+
+        def flat_grant(request):
+            result = provider(request)
+            if request.url == "https://api.instagram.com/oauth/access_token":
+                payload = json.loads(result.body)
+                return ProviderResponse(200, json.dumps(payload["data"][0]).encode())
+            return result
+
+        self.service = service(flat_grant)
+        state = self.begin()
+        with self.assertNoLogs("socialmei.instagram.oauth", level="WARNING"):
+            result = self.complete(state)
+        self.assertEqual(result.status_code, 200, result.text)
+        connection_id, account, encrypted, revision, status = self.connection()
+        self.assertIsNotNone(connection_id)
+        self.assertEqual(account, provider.account)
+        self.assertEqual(status, "connected")
+        self.assertNotIn("synthetic-short-token", result.text)
+        self.assertNotIn("synthetic-long-token", result.text)
+        self.assertNotIn("synthetic-long-token", encrypted)
+
+    def test_flat_permission_array_persists_encrypted_connection(self):
+        provider = FakeTransport()
+        def flat_array(request):
+            result = provider(request)
+            if request.url == "https://api.instagram.com/oauth/access_token":
+                payload = json.loads(result.body)["data"][0]
+                payload["permissions"] = sorted(SCOPES)
+                payload.pop("expires_in")
+                return ProviderResponse(200, json.dumps(payload).encode())
+            return result
+        self.service = service(flat_array)
+        result = self.complete(self.begin())
+        self.assertEqual(result.status_code, 200, result.text)
+        connection = self.connection()
+        self.assertEqual(connection[4], "connected")
+        self.assertNotIn("synthetic-long-token", connection[2])
+        self.assertNotIn("synthetic-long-token", result.text)
+        self.assertEqual(len(provider.calls), 3)
+
+    def test_extra_insights_does_not_expand_persisted_capabilities(self):
+        provider = FakeTransport()
+        def actual_shape(request):
+            result = provider(request)
+            if request.url == "https://api.instagram.com/oauth/access_token":
+                payload = json.loads(result.body)["data"][0]
+                payload["permissions"] = sorted(SCOPES) + ["instagram_business_manage_insights"]
+                payload.pop("expires_in")
+                return ProviderResponse(200, json.dumps(payload).encode())
+            return result
+        self.service = service(actual_shape)
+        result = self.complete(self.begin())
+        self.assertEqual(result.status_code, 200, result.text)
+        self.assertEqual(self.connection()[4], "connected")
+        with psycopg.connect(DB) as conn:
+            scopes = conn.execute("SELECT scopes FROM socialmei.ig_meta_connections WHERE workspace_id=%s AND status='connected'", (self.identity["workspace_id"],)).fetchone()[0]
+        self.assertEqual(set(scopes), set(SCOPES))
+        self.assertNotIn("synthetic-long-token", self.connection()[2])
+        self.assertNotIn("synthetic-long-token", result.text)
+        self.assertEqual(len(provider.calls), 3)
+
     def test_durable_hash_ciphertext_status_and_replay(self):
         state = self.begin()
         with psycopg.connect(DB) as conn:
@@ -530,10 +593,14 @@ class PersistentTests(unittest.TestCase):
 
     def test_denial_consumes_state_without_http_and_status_is_read_only(self):
         state = self.begin()
-        denied = self.post(
-            "/oauth/callback",
-            {"state": state, "error": "access_denied", "callback_uri": CALLBACK},
-        )
+        with self.assertLogs("socialmei.instagram.oauth", level="WARNING") as logged:
+            denied = self.post(
+                "/oauth/callback",
+                {"state": state, "error": "access_denied", "callback_uri": CALLBACK},
+            )
+        self.assertEqual(len(logged.output), 1)
+        self.assertIn("stage=consent_denied", logged.output[0])
+        self.assertNotIn(state, logged.output[0])
         self.assertEqual(denied.status_code, 400, denied.text)
         self.assertEqual(self.complete(state).status_code, 409)
         self.assertEqual(self.transport.calls, [])
@@ -656,8 +723,8 @@ class PersistentTests(unittest.TestCase):
         self.assertEqual(self.client.get(PREFIX + "/status").status_code, 401)
         self.assertEqual(self.transport.calls, [])
 
-    def test_provider_unauthorized_in_extend_and_identity_never_persists(self):
-        for failed_stage in (2, 3):
+    def test_provider_unauthorized_in_each_stage_logs_no_secrets(self):
+        for failed_stage, stage_name in ((1, "exchange"), (2, "extend"), (3, "identity")):
             with self.subTest(failed_stage=failed_stage):
                 state = self.begin()
                 calls = []
@@ -672,7 +739,13 @@ class PersistentTests(unittest.TestCase):
                     return fake(request)
 
                 self.service = service(unauthorized)
-                result = self.complete(state)
+                with self.assertLogs("socialmei.instagram.oauth", level="WARNING") as logged:
+                    result = self.complete(state)
+                self.assertEqual(len(logged.output), 1)
+                self.assertIn("stage=" + stage_name, logged.output[0])
+                self.assertIn("provider_http_status=401", logged.output[0])
+                for secret in ("synthetic-secret", "synthetic-code", state, TOKEN):
+                    self.assertNotIn(secret, logged.output[0])
                 self.assertEqual(result.status_code, 502, result.text)
                 self.assertNotIn("synthetic-secret", result.text)
                 self.assertEqual(len(calls), failed_stage)
