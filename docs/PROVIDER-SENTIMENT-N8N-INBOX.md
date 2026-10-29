@@ -24,6 +24,11 @@ Na API, a ponte exige **todas** estas condições:
 - `SOCIALMEI_SHARED_DATA_ENABLED=true` e `SOCIALMEI_AUTH_ENABLED=true`.
 - Migration 033 aplicada **somente após backup + ensaio isolado**. Migrations anteriores não são alteradas.
 
+O arquivo `compose.team.yaml` já encaminha as três flags ao container `team-api`,
+mas mantém valores vazios e `false` por padrão. Não é necessário inserir a chave
+no código nem alterar a imagem; o operador deverá configurá-las apenas no
+`.env.team` privado durante o piloto aprovado.
+
 As rotas `/internal/*` devem ser acessíveis **somente por rede privada**, e nunca encaminhadas pelo Caddy público. n8n usa credencial HTTP Header Auth exclusiva com nome `Authorization` e valor `Bearer <segredo>`. O navegador nunca recebe essa chave. A consulta e os recibos também são limitados aos negócios da allowlist, mesmo com chave de serviço válida.
 
 ## Workflow preparado (não ativo)
