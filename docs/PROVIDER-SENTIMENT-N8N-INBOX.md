@@ -20,10 +20,11 @@ Na API, a ponte exige **todas** estas condições:
 
 - `SOCIALMEI_PROVIDER_SENTIMENT_ENABLED=true` (padrão desligado)
 - `SOCIALMEI_PROVIDER_SENTIMENT_KEY` exclusivo, com no mínimo 32 caracteres. Não usar chave pública n8n nem token Meta/WAHA.
+- `SOCIALMEI_PROVIDER_SENTIMENT_WORKSPACE_IDS` com os IDs internos dos negócios explicitamente autorizados no piloto, separados por vírgulas, sem espaços. Vazio/inválido bloqueia o serviço (não varre todos os MEIs).
 - `SOCIALMEI_SHARED_DATA_ENABLED=true` e `SOCIALMEI_AUTH_ENABLED=true`.
 - Migration 033 aplicada **somente após backup + ensaio isolado**. Migrations anteriores não são alteradas.
 
-As rotas `/internal/*` devem ser acessíveis **somente por rede privada**, e nunca encaminhadas pelo Caddy público. n8n usa credencial HTTP Header Auth exclusiva com nome `Authorization` e valor `Bearer <segredo>`. O navegador nunca recebe essa chave.
+As rotas `/internal/*` devem ser acessíveis **somente por rede privada**, e nunca encaminhadas pelo Caddy público. n8n usa credencial HTTP Header Auth exclusiva com nome `Authorization` e valor `Bearer <segredo>`. O navegador nunca recebe essa chave. A consulta e os recibos também são limitados aos negócios da allowlist, mesmo com chave de serviço válida.
 
 ## Workflow preparado (não ativo)
 
