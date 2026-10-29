@@ -20,6 +20,19 @@ NAMES = [f"{i:03}_fixture.sql" for i in range(1, 32)] + [
 
 
 class GuardedMigrationTests(unittest.TestCase):
+    def setUp(self):
+        self.empty_tables = {
+            "wa_bot_access": False,
+            "wa_bot_conversations": False,
+            "wa_bot_decisions": False,
+            "me_provider_sentiment_jobs": False,
+        }
+        self.table_patch = patch.object(
+            module, "live_new_tables", return_value=self.empty_tables
+        )
+        self.table_patch.start()
+        self.addCleanup(self.table_patch.stop)
+
     def source_fixture(self):
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
@@ -56,12 +69,16 @@ class GuardedMigrationTests(unittest.TestCase):
         source = self.source_fixture()
         calls = []
         ledger = iter([NAMES[:31], NAMES[:31], NAMES])
-        with patch.object(module, "restore_module", return_value=self.helper(source)):
-            with patch.object(module, "live_ledger", side_effect=lambda: next(ledger)):
-                with patch.object(module, "runtime_safety", return_value=True):
-                    with patch.object(module, "restore_trial", side_effect=lambda *a: calls.append("restore")):
-                        with patch.object(module, "pgsql", side_effect=lambda sql, **kw: calls.append((sql, kw))):
-                            result = module.run("team-auto-stub", "team-v33-stub", apply=True)
+        with patch.object(module, "live_new_tables", side_effect=[
+            self.empty_tables, self.empty_tables,
+            {key: True for key in self.empty_tables}
+        ]):
+            with patch.object(module, "restore_module", return_value=self.helper(source)):
+                with patch.object(module, "live_ledger", side_effect=lambda: next(ledger)):
+                    with patch.object(module, "runtime_safety", return_value=True):
+                        with patch.object(module, "restore_trial", side_effect=lambda *a: calls.append("restore")):
+                            with patch.object(module, "pgsql", side_effect=lambda sql, **kw: calls.append((sql, kw))):
+                                result = module.run("team-auto-stub", "team-v33-stub", apply=True)
         self.assertTrue(result["production_changed"])
         self.assertEqual(result["migration_count_after"], 33)
         self.assertFalse(result["api_restarted"])
@@ -91,13 +108,33 @@ class GuardedMigrationTests(unittest.TestCase):
 
     def test_already_at_033_never_reapplies_schema(self):
         source = self.source_fixture()
-        with patch.object(module, "restore_module", return_value=self.helper(source)):
-            with patch.object(module, "live_ledger", return_value=NAMES):
-                with patch.object(module, "runtime_safety", return_value=True):
-                    with patch.object(module, "restore_trial", side_effect=AssertionError("no need")):
-                        result = module.run("backup-stub", "stage-stub", apply=True)
+        with patch.object(module, "live_new_tables",
+                          return_value={key: True for key in self.empty_tables}):
+            with patch.object(module, "restore_module", return_value=self.helper(source)):
+                with patch.object(module, "live_ledger", return_value=NAMES):
+                    with patch.object(module, "runtime_safety", return_value=True):
+                        with patch.object(module, "restore_trial", side_effect=AssertionError("no need")):
+                            result = module.run("backup-stub", "stage-stub", apply=True)
         self.assertEqual(result["action"], "already_at_033")
         self.assertFalse(result["production_changed"])
+
+    def test_untracked_new_tables_block_ledger_31(self):
+        source = self.source_fixture()
+        with patch.object(module, "live_new_tables",
+                          return_value={**self.empty_tables, "wa_bot_access": True}):
+            with patch.object(module, "restore_module",
+                              return_value=self.helper(source)):
+                with patch.object(module, "live_ledger", return_value=NAMES[:31]):
+                    with self.assertRaisesRegex(RuntimeError, "tabelas_novas_sem_ledger"):
+                        module.check_inputs("backup", "stage")
+
+    def test_ledger_33_rejects_missing_tables(self):
+        source = self.source_fixture()
+        with patch.object(module, "restore_module",
+                          return_value=self.helper(source)):
+            with patch.object(module, "live_ledger", return_value=NAMES):
+                with self.assertRaisesRegex(RuntimeError, "ledger_033_sem_tabelas"):
+                    module.check_inputs("backup", "stage")
 
     def test_unexpected_ledger_version_fails_closed(self):
         source = self.source_fixture()
