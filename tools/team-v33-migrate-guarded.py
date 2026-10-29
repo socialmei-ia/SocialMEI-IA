@@ -86,6 +86,32 @@ def live_ledger():
     return ledger
 
 
+def live_new_tables():
+    """Verify every 032/033 table, including partially created schema drift."""
+    sql = (
+        "BEGIN TRANSACTION READ ONLY;\n"
+        "SELECT json_build_object("
+        "'wa_bot_access',to_regclass('socialmei.wa_bot_access') IS NOT NULL,"
+        "'wa_bot_conversations',to_regclass('socialmei.wa_bot_conversations') IS NOT NULL,"
+        "'wa_bot_decisions',to_regclass('socialmei.wa_bot_decisions') IS NOT NULL,"
+        "'me_provider_sentiment_jobs',to_regclass('socialmei.me_provider_sentiment_jobs') IS NOT NULL"
+        ")::text;\nROLLBACK;\n"
+    )
+    rows = [s.strip() for s in pgsql(sql).splitlines() if s.strip().startswith("{")]
+    require(len(rows) == 1, "estado_tabelas_indisponivel")
+    payload = json.loads(rows[0])
+    require(
+        isinstance(payload, dict)
+        and set(payload) == {
+            "wa_bot_access", "wa_bot_conversations",
+            "wa_bot_decisions", "me_provider_sentiment_jobs",
+        }
+        and all(type(v) is bool for v in payload.values()),
+        "estado_tabelas_invalido",
+    )
+    return payload
+
+
 def runtime_safety():
     data = {}
     for name in (API_CONTAINER, DB_CONTAINER):
@@ -141,9 +167,12 @@ def check_inputs(backup_name, stage_name):
     live = live_ledger()
     require(live == names[:len(live)], "ledger_nao_e_prefixo")
     require(len(live) in (31, 33), "baseline_nao_revisada")
+    tables = live_new_tables()
     if len(live) == 33:
+        require(all(tables.values()), "ledger_033_sem_tabelas")
         pending = []
     else:
+        require(not any(tables.values()), "tabelas_novas_sem_ledger")
         pending = names[31:]
     return helper, backup, source, names, sha, live, pending
 
@@ -225,8 +254,10 @@ def run(backup_name, stage_name, *, apply=False):
     # Guard again after the potentially long restore, before any real DB write.
     runtime_safety()
     require(live_ledger() == names[:31], "ledger_mudou_antes_da_aplicacao")
+    require(not any(live_new_tables().values()), "tabelas_novas_sem_ledger")
     pgsql(guarded_sql(source, names), write=True, timeout=180)
     require(live_ledger() == names, "ledger_final_nao_confirmado")
+    require(all(live_new_tables().values()), "tabelas_finais_nao_confirmadas")
     report.update({
         "action": "applied_032_033",
         "production_changed": True,
