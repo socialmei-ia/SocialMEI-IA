@@ -156,3 +156,21 @@ A pasta contém ambientes e arquivos privados: **não anexar seu conteúdo, dump
 arquivos tar ou recibos privados ao chat/GitHub**. Compartilhar somente a saída
 JSON sanitizada. Um ensaio local com fixtures não comprova compatibilidade com a
 AWS: a auditoria real, a importação e a inspeção continuam sendo gates obrigatórios.
+
+## Diferença entre IDs Docker clássico e containerd
+
+O recibo produzido no runner pode identificar a imagem pelo digest de sua
+configuração. O Docker com containerd pode apresentar um digest de manifesto
+ou índice OCI no campo `Id`. Não comparar esses valores como se fossem o mesmo
+objeto nem aceitar apenas uma label de revisão correspondente.
+
+Quando os IDs diferem, o importador exporta a imagem local para uma pasta privada
+temporária, sem fazer `load`, iniciar ou recriar containers. Confere os digests e
+tamanhos dos descritores OCI, a configuração vinculada ao recibo, a plataforma,
+a tag e as camadas. O conteúdo descomprimido de cada camada deve corresponder aos
+`diff_ids` da configuração. O arquivo temporário é removido e a tag é conferida
+novamente para detectar troca concorrente.
+
+`--inspect` já realiza essa prova para imagens presentes. Com ambas verificadas,
+`--apply` retorna `images_already_verified` sem repetir o carregamento. Falhas
+continuam interrompendo a preparação; o recibo original não é reescrito.
