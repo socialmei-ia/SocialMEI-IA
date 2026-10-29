@@ -65,10 +65,19 @@ services:
       SOCIALMEI_INSTAGRAM_PROXY_PRIVACY_REVIEWED: ${SOCIALMEI_INSTAGRAM_PROXY_PRIVACY_REVIEWED:-false}
       SOCIALMEI_INSTAGRAM_PUBLISH_ENABLED: ${SOCIALMEI_INSTAGRAM_PUBLISH_ENABLED:-false}
       SOCIALMEI_INSTAGRAM_TOKEN_REFRESH_ENABLED: ${SOCIALMEI_INSTAGRAM_TOKEN_REFRESH_ENABLED:-false}
+      # Internal-only n8n sentiment worker: OFF unless enabled for listed workspaces.
+      SOCIALMEI_PROVIDER_SENTIMENT_ENABLED: ${SOCIALMEI_PROVIDER_SENTIMENT_ENABLED:-false}
+      SOCIALMEI_PROVIDER_SENTIMENT_KEY: ${SOCIALMEI_PROVIDER_SENTIMENT_KEY:-}
+      SOCIALMEI_PROVIDER_SENTIMENT_WORKSPACE_IDS: ${SOCIALMEI_PROVIDER_SENTIMENT_WORKSPACE_IDS:-}
       # Optional recovery; credentials stay in private server environment.
       SOCIALMEI_RECOVERY_MODE: ${SOCIALMEI_RECOVERY_MODE:-disabled}
       SOCIALMEI_KNOWLEDGE_PDF_ENABLED: ${SOCIALMEI_KNOWLEDGE_PDF_ENABLED:-false}
       SOCIALMEI_WA_CATALOG_ENABLED: ${SOCIALMEI_WA_CATALOG_ENABLED:-false}
+      # WAHA bot and signed ingress remain opt-in; registry is a server-only file.
+      SOCIALMEI_WAHA_INGRESS_MODE: ${SOCIALMEI_WAHA_INGRESS_MODE:-disabled}
+      SOCIALMEI_WAHA_LAB_ENVIRONMENT: ${SOCIALMEI_WAHA_LAB_ENVIRONMENT:-disabled}
+      SOCIALMEI_WHATSAPP_BOT_ENABLED: ${SOCIALMEI_WHATSAPP_BOT_ENABLED:-false}
+      SOCIALMEI_WAHA_REGISTRY_FILE: /run/socialmei/private/waha-registry.json
       SOCIALMEI_SMTP_HOST: ${SOCIALMEI_SMTP_HOST:-}
       SOCIALMEI_SMTP_PORT: ${SOCIALMEI_SMTP_PORT:-465}
       SOCIALMEI_SMTP_USER: ${SOCIALMEI_SMTP_USER:-}
@@ -80,7 +89,10 @@ services:
       # Same origin via gateway; no cross-origin browser access.
       SOCIALMEI_CORS_ORIGINS: ""
       TZ: America/Recife
-    networks: [database, api]
+    # Optional n8n bridge can reach only team-api, not the team PostgreSQL.
+    volumes:
+      - ./deploy/team/private:/run/socialmei/private:ro
+    networks: [database, api, automation]
     depends_on:
       team-migrate:
         condition: service_completed_successfully
@@ -120,6 +132,9 @@ networks:
     internal: true
   api:
     internal: true
+  automation:
+    internal: true
+    name: socialmei_team_automation
   web:
     name: socialmei_team_web
 volumes:

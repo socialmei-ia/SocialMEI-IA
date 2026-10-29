@@ -39,6 +39,7 @@ EXPECTED_MIGRATIONS = (
     "030_whatsapp_catalog_access.sql",
     "031_report_viewer_role.sql",
     "032_whatsapp_bot_conversations.sql",
+    "033_provider_sentiment_jobs.sql",
 )
 
 

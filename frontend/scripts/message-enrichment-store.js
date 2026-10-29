@@ -84,6 +84,17 @@
         /^synthetic:[A-Za-z0-9_.:-]{1,100}$/.test(row.contact_ref)
       );
     }
+    function validProviderAnalysis(value) {
+      return (
+        value == null ||
+        (typeof value === "object" &&
+          ["positive", "negative", "neutral", "uncertain"].includes(value.sentiment) &&
+          ["low", "medium", "high"].includes(value.confidence) &&
+          typeof value.explanation === "string" &&
+          value.explanation.length <= 500 &&
+          value.source === "automation")
+      );
+    }
     function validateRows(items) {
       if (
         !Array.isArray(items) ||
@@ -95,7 +106,12 @@
             !validOrigin(r) ||
             typeof r.contact_name !== "string" ||
             !Array.isArray(r.messages) ||
-            r.messages.some((m) => !Number.isSafeInteger(m.id) || typeof m.text !== "string"),
+            r.messages.some(
+              (m) =>
+                !Number.isSafeInteger(m.id) ||
+                typeof m.text !== "string" ||
+                !validProviderAnalysis(m.provider_analysis),
+            ),
         )
       )
         throw new Error("A API retornou conversas incompatíveis. Nenhum dado foi importado.");

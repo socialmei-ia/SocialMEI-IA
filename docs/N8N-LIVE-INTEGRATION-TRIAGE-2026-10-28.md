@@ -6,15 +6,13 @@ Relatório sanitizado produzido pelo operador diretamente na AWS com `tools/n8n-
 
 ### Achados P0 (dados atuais da AWS)
 
-| Fluxo / ID | Salvo | Publicado | Ativo | Ação recomendada |
-| --- | ---: | ---: | --- | --- |
-| Instagram Direct `LHlqroY2xzvpYAmD` | 17 | 9 | Sim | Manter a publicação de 9 nós; não publicar o rascunho duplicado; resolver 403 e definir ingresso único. Rascunho contém Bearer estático; o token é material sensível. |
-| Cópia segura `gu1meyWuQMJcVB8i` | 8 | — | Não | Candidato para validação isolada: remetente desabilitado, sem token fixo nem credencial configurada. Não ativar nem enviar durante auditoria. |
-| WhatsApp WAHA/Groq/CPF `NFcJfjvpaUsjh1x1` | 42 | 21 | Sim | Inspecionar a **versão publicada de 21 nós** antes de afirmar que CPF/CNPJ, sentimento ou menus estão vivos. Rascunho recente não equivale à produção. |
-| Publicador Instagram `A0EcNxcRvfWnMwKI` | 40 | 40 | Sim | Form Trigger independente. Não converter formulário em API do site sem adaptar autenticação/workspace, mídia, recibo e idempotência. |
-| Caixa PostgreSQL `BtvlHv4mt90tn70z` | 8 | 8 | Sim | Verificar consumo/rotas de webhook e se grava no legado. Não confundir com inbox multitenant do team. |
-| Caixa local `WWzhvmdPh9LrpuYy` | 6 | 6 | Sim | Convive com PostgreSQL; evitar duplicar entrada e não promover para backend team. |
-| Atendimento `DDrphANXE8QdxoWy` | 7 | 7 | Sim | Preservar dependências dos três subworkflows de consulta/registro/confirmação. Os contratos legados podem usar planilhas. |
+- **Instagram Direct** (`LHlqroY2xzvpYAmD`): ativo, 17 nós salvos e 9 publicados. Manter o fluxo publicado, não publicar o rascunho duplicado, resolver 403 e corrigir o Bearer estático.
+- **Cópia segura** (`gu1meyWuQMJcVB8i`): inativa, 8 nós salvos, sem versão publicada; envio bloqueado e credencial ainda pendente.
+- **WhatsApp WAHA/Groq/CPF** (`NFcJfjvpaUsjh1x1`): ativo, 42 nós informados no inventário inicial e 21 publicados; comparar a versão publicada antes de prometer CPF/CNPJ, sentimento ou menu.
+- **Publicação Instagram** (`A0EcNxcRvfWnMwKI`): ativa, 40 nós salvos/publicados; possui Form Trigger e exige contrato autenticado do site antes de qualquer integração multi-MEI.
+- **Caixa PostgreSQL** (`BtvlHv4mt90tn70z`): ativa, 8 nós salvos/publicados; verificar webhooks e evitar mistura com a Caixa multitenant.
+- **Caixa local** (`WWzhvmdPh9LrpuYy`): ativa, 6 nós salvos/publicados; evitar envio/ingresso concorrente e não promover o legado diretamente.
+- **Atendimento** (`DDrphANXE8QdxoWy`): ativo, 7 nós salvos/publicados; preservar referências às ferramentas de consulta, registro e confirmação de pedidos.
 
 ### Candidatos novos, ainda não publicados
 
@@ -45,6 +43,20 @@ Relatório sanitizado produzido pelo operador diretamente na AWS com `tools/n8n-
 
 **Aceite mínimo:** número de teste pareado e vinculado exclusivamente ao negócio; mensagem HMAC validada/persistida → menu numerado consultando produtos e estoque reais do workspace → uma resposta WAHA `sendText` com recibo → handoff humano; teste com dois negócios e erro/reenvio. Botões/listas não fazem parte do primeiro corte WEBJS.
 
+**Preparação do Team (não ativada):** `compose.team.yaml` passa as flags
+`SOCIALMEI_WAHA_INGRESS_MODE`, `SOCIALMEI_WAHA_LAB_ENVIRONMENT` e
+`SOCIALMEI_WHATSAPP_BOT_ENABLED`, todas desativadas por padrão, e monta
+`deploy/team/private` somente para leitura pela API. O arquivo
+`waha-registry.json` deve ser gerado por operador no host, com permissões
+`0600`/ `0400`, nunca comitado. O serviço exige HMAC-SHA512 verificado;
+**nenhum relay que assine esse formato foi homologado no n8n legado**.
+
+**Compatibilidade a confirmar:** o parser `waha_ingress.py` aceita explicitamente
+eventos de engine `WEBJS`, enquanto o `compose.yaml` de referência define
+`WHATSAPP_DEFAULT_ENGINE: GOWS`. Não alterar a engine no servidor nem supor
+que as cargas sejam iguais: confirmar qual está realmente em uso e validar um
+evento de teste antes de habilitar a recepção.
+
 ### 3. Publicação do Instagram (P1 após Direct+WA)
 
 **Partes existentes:** publicação de imagem única preparada no backend e Divulgação V25, workflow 40 nós com Form Trigger para Feed/Stories/Reels/agenda. **Não** unir esses dois caminhos com POST direto no formulário; revisar modelo de credencial e permissão da conta Instagram Login vs Graph Facebook.
@@ -57,7 +69,7 @@ Relatórios PDF, validação CPF/CNPJ, orçamentos, RAG e lembretes: inventariad
 
 ## Sequência de execução até 30/10
 
-1. **Sem mutação:** conferir os grafos publicados do Direct (9) e WhatsApp (21), os dois ingressos de Caixa (8/6), e os workflows candidatos inativos de sentimento; identificar webhook de entrada, destino do HTTP, credencial por *tipo*, método e fluxo de saída, sem extrair valores.
+1. **Sem mutação:** conferir os grafos publicados do Direct (9) e WhatsApp (21), os dois ingressos de Caixa (8/6), e os workflows candidatos inativos de sentimento; identificar webhook de entrada, destino do HTTP, credencial por _tipo_, método e fluxo de saída, sem extrair valores.
 2. **Preparar branch candidata e CI:** respeitar ancestralidade PR #136 → #137 → #140 e mudanças da PR #141. Codificar ponte de mensagens/resultado de IA somente após definir contrato, com testes de idempotência, isolamento, assinatura, janelas/erros.
 3. **Pré-corte AWS:** conferir saúde, versão de imagem, migrações e flags reais; backup restaurável e rollback; validar credencial Meta por rota privada e pareamento WAHA, nunca imprimir token.
 4. **Piloto Instagram:** mensagem externa real autorizada entra na Caixa; escolher único remetente; testar uma resposta, recibo e erro; desativar caminhos concorrentes antes de ligar outro.
