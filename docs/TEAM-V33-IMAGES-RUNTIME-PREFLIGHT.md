@@ -133,7 +133,13 @@ Sequência após receber e revisar a auditoria do servidor:
 1. Transferir o ZIP e inspecionar/importar pelo importador acima. Essa etapa
    carrega imagens; não troca containers.
 2. Obter os scripts do commit operacional revisado, incluindo os helpers irmãos.
-   Não copiar apenas o publicador isoladamente. Criar uma pasta nova com modo
+   Não copiar apenas o publicador isoladamente. Os nove scripts irmãos necessários
+   são: `team-v33-publish.py`, `team-v33-runtime-audit.py`,
+   `team-v33-import-images.py`, `instagram-proxy-privacy.py`,
+   `v25-release-publish.py`, `team-publish-prepared.py`,
+   `instagram-release-prepare.py`, `instagram-release-preflight.py` e
+   `instagram-pilot-inspect.py`, todos em `tools/` do mesmo commit.
+   Criar uma pasta nova com modo
    `0700`, diretamente em `/home/ubuntu/socialmei-backups`.
 3. Executar o publicador com `--target team --folder PASTA --bundle ZIP --prepare`.
    A preparação cria snapshots privados, tags e arquivo das imagens antigas;
@@ -174,3 +180,16 @@ novamente para detectar troca concorrente.
 `--inspect` já realiza essa prova para imagens presentes. Com ambas verificadas,
 `--apply` retorna `images_already_verified` sem repetir o carregamento. Falhas
 continuam interrompendo a preparação; o recibo original não é reescrito.
+
+## Prova do arquivo de rollback
+
+A preparação e a inspeção validam o conteúdo das camadas do arquivo de imagens
+antigas, além das tags e da cadeia de descritores OCI. O SHA-256 de cada camada
+OCI deve corresponder ao descritor e ao tamanho registrado. Para formatos
+clássico e OCI, o conteúdo descomprimido de camadas raw ou gzip deve corresponder
+aos `rootfs.diff_ids` da configuração, na mesma ordem. Arquivos com links,
+entradas duplicadas, caminhos inseguros ou limites excedidos são recusados.
+A verificação usa duas passagens em streaming, sem extrair arquivos, iniciar
+containers ou carregar imagens; limita dados arquivados e expandidos a 4 GiB.
+Isso comprova integridade do arquivo, sem substituir o ensaio de recuperação
+isolado ou os gates do runtime real.

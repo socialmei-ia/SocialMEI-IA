@@ -107,7 +107,7 @@ class PublisherTests(unittest.TestCase):
         m=self.module()
         with tempfile.TemporaryDirectory() as directory:
             folder=Path(directory)
-            config=b'{"synthetic":true}';good='sha256:'+hashlib.sha256(config).hexdigest()
+            config=json.dumps({'architecture':'amd64','os':'linux','rootfs':{'type':'layers','diff_ids':['sha256:'+hashlib.sha256(b'fixture').hexdigest()]}}).encode();good='sha256:'+hashlib.sha256(config).hexdigest()
             p=m.Publisher.__new__(m.Publisher);p.folder=folder;p.rollback_backup=folder
             p.meta={'installed_images':{s:{'image_id':good,'container_id':'old-'+s} for s in m.SERVICES},'gateway_config_source':str(folder/'live.Caddyfile')}
             p.model=Mock(side_effect=lambda s,mode:{'services':{s:{'image':'old-'+s}}})
@@ -142,8 +142,8 @@ class PublisherTests(unittest.TestCase):
                 key='sha256:'+hashlib.sha256(data).hexdigest()
                 blobs['blobs/sha256/'+key[7:]]=data
                 return {'digest':key,'size':len(data)}
-            config=blob({'architecture':'amd64','os':'linux'})
             layer=blob({'synthetic':'layer'})
+            config=blob({'architecture':'amd64','os':'linux','rootfs':{'type':'layers','diff_ids':[layer['digest']]}})
             manifest=blob({'schemaVersion':2,'config':config,'layers':[layer]})
             manifest['platform']={'os':'linux','architecture':'amd64'}
             root=blob({'schemaVersion':2,'manifests':[manifest]})
