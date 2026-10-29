@@ -9,7 +9,7 @@ As mensagens externas validadas já entram no banco pelas rotas preparadas de in
 ## Backend e banco
 
 - `database/migrations/033_provider_sentiment_jobs.sql`: tabela própria por `(workspace_id,message_id)`, FK ao mesmo workspace da mensagem, lease por mensagem, até 3 tentativas, saída imutável quando concluída.
-- `GET /internal/message-enrichment/provider/claims`: seleciona até 10 mensagens de texto já persistidas por ingressos oficiais e com `origin in ('instagram','waha')`, dos últimos sete dias. Cada mensagem recebe um `claim_id` aleatório e lease de cinco minutos. Duas consultas simultâneas não reservam a mesma mensagem. Resposta contém somente `claim_id,message_id,origin,text,attempt`; não transfere ID de workspace ao n8n. A repetição após vencimento do lease pode gastar uma nova chamada ao modelo, mas não registra dois resultados.
+- `POST /internal/message-enrichment/provider/claims`: seleciona até 10 mensagens de texto já persistidas por ingressos oficiais e com `origin in ('instagram','waha')`, dos últimos sete dias. Cada mensagem recebe um `claim_id` aleatório e lease de cinco minutos. Duas consultas simultâneas não reservam a mesma mensagem. Resposta contém somente `claim_id,message_id,origin,text,attempt`; não transfere ID de workspace ao n8n. A repetição após vencimento do lease pode gastar uma nova chamada ao modelo, mas não registra dois resultados.
 - `POST /internal/message-enrichment/provider/results`: aceita `claim_id,sentiment,confidence,explanation` com valores fechados. Grava somente para claim atual. Repetição exata retorna `replayed:true`; alteração do resultado concluído retorna 409. Claim antiga após novo lease retorna 404.
 - `GET /api/v1/message-enrichment/conversations`: a sessão do negócio correspondente recebe `provider_analysis` somente nas mensagens de origem Instagram ou WAHA, nunca por conta/nome fornecido pelo n8n; no frontend aparece rótulo discreto **sentimento positivo/negativo/neutro/indefinido (automação)**. A mensagem original não é modificada.
 - Não há geração de respostas, alteração da outbox, callback externo público ou envio para Meta/WAHA.
@@ -32,7 +32,7 @@ As rotas `/internal/*` devem ser acessíveis **somente por rede privada**, e nun
 
 1. Schedule Trigger (proposto 1 minuto).
 2. Code com `ENABLED=false` até homologação, sem processamento.
-3. GET das claims pela rede interna.
+3. POST das claims pela rede interna.
 4. Desdobramento de até dez itens.
 5. AI Agent Groq em português, somente classificação JSON estrita — texto do cliente tratado como dado, sem instruções.
 6. Code de validação do formato, com ligação explícita ao claim da mensagem.
