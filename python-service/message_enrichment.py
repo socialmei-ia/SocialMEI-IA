@@ -372,6 +372,8 @@ def capabilities(request: Request, response: Response):
         result['instagram_inbox'] = True
     if settings.waha_ingress_isolated_enabled():
         result['waha_inbox'] = True
+    if settings.provider_sentiment_enabled():
+        result['provider_sentiment'] = True
     return result
 
 
@@ -427,6 +429,17 @@ def conversations(request: Request, response: Response):
             for message in messages:
                 job = conn.execute('SELECT * FROM socialmei.me_jobs WHERE workspace_id=%s AND message_id=%s ORDER BY message_revision DESC,id DESC LIMIT 1', (workspace, message['id'])).fetchone() if conversation['origin'] == 'synthetic' else None
                 message['enrichment'] = envelope(job) if job else None
+                if conversation['origin'] in {'instagram', 'waha'} and settings.provider_sentiment_enabled():
+                    analysis = conn.execute(
+                        "SELECT sentiment,confidence,explanation FROM socialmei.me_provider_sentiment_jobs WHERE workspace_id=%s AND message_id=%s AND status='completed'",
+                        (workspace, message['id']),
+                    ).fetchone()
+                    message['provider_analysis'] = {
+                        'sentiment': analysis['sentiment'],
+                        'confidence': analysis['confidence'],
+                        'explanation': analysis['explanation'],
+                        'source': 'automation',
+                    } if analysis else None
             conversation['messages'] = list(reversed(messages))
             if conversation['origin'] == 'synthetic':
                 del conversation['origin']
