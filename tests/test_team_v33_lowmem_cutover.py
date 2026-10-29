@@ -2,6 +2,7 @@
 import importlib.util
 import json
 from pathlib import Path
+import tempfile
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
@@ -130,15 +131,17 @@ class OneOffMigrationTests(unittest.TestCase):
         self.assertNotIn("private message", json.dumps(report))
 
     def test_checkout_only_known_caddy_hotfix(self):
-        command_output = iter([
-            cutover.LIVE_BASE_SHA + "\n", " M deploy/team/Caddyfile\n"
-        ])
-        with patch.object(cutover.ROOT, "is_dir", return_value=True):
-            with patch.object(cutover.ROOT, "is_symlink", return_value=False):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "tools").mkdir()
+            (root / "tools/team-maintenance.py").write_text("# fixture\n")
+            command_output = iter([
+                cutover.LIVE_BASE_SHA + "\n", " M deploy/team/Caddyfile\n"
+            ])
+            with patch.object(cutover, "ROOT", root):
                 with patch.object(cutover, "local",
                                   side_effect=lambda *a, **k: next(command_output)):
-                    with patch.object(cutover.Path, "is_file", return_value=True):
-                        cutover.checkout_guard()
+                    cutover.checkout_guard()
 
     def test_available_ram_limit_is_lower_because_no_trial(self):
         mem = "MemTotal: 1980000 kB\nMemAvailable: 139000 kB\n"
