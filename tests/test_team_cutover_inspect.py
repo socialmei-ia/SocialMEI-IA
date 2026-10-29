@@ -40,7 +40,7 @@ def container(*, health="healthy", ports=False, engine=None, api=False,
 
 class TeamCutoverTests(unittest.TestCase):
     def test_sanitizer_never_prints_secret_or_actual_env_values(self):
-        c = container(api=True, exposed_secret="ABC_ROOT_SECRET_123456")
+        c = container(api=True, exposed_secret="ABC_ROOT_SECRET_123456" + "x" * 40)
         result = cutover.inspect_summary(c, "team_api")
         serialized = json.dumps(result)
         self.assertNotIn("ABC_ROOT_SECRET_123456", serialized)
