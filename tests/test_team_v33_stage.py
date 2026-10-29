@@ -34,9 +34,7 @@ class ReleaseStageTests(unittest.TestCase):
         self.assertFalse(stage.dirty_summary(b"R  renamed\x00oldname\x00")["only_caddy_hotfix"])
 
     def test_migrations_are_exact_prefix_and_do_not_write_db(self):
-        names = [f"{i:03}_fixture.sql" for i in range(1, 32)] + [
-            stage.MIGRATION_032, stage.MIGRATION_033,
-        ]
+        names = list(stage.REVIEWED_MIGRATIONS)
         self.assertEqual(stage.reviewed_source(names), names)
         p = stage.plan(names[:31], names)
         self.assertEqual(p["pending"], [stage.MIGRATION_032, stage.MIGRATION_033])
