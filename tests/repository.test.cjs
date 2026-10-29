@@ -139,7 +139,9 @@ test("workflow exports are valid, inactive and contain no literal authorization 
   );
   assert.equal(files.length - structural.length, 10);
   assert(
-    files.some((file) => file.endsWith(path.join("experimental", "provider-sentiment-worker.json"))),
+    files.some((file) =>
+      file.endsWith(path.join("experimental", "provider-sentiment-worker.json")),
+    ),
     "provider sentiment template must be tracked",
   );
   if (structural.length) assert.equal(structural.length, 8);
