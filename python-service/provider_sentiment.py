@@ -77,7 +77,7 @@ def fingerprint(result):
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
-@router.get("/claims")
+@router.post("/claims")
 def claim_messages(request: Request, response: Response):
     """Lease at most 10 verified provider messages; never include synthetic data."""
     authorize(request, response)
