@@ -103,10 +103,13 @@ class RestoreTrialTests(unittest.TestCase):
             "Name": "/" + name,
             "Config": {"Labels": {restore.LABEL: token}},
             "HostConfig": {"NetworkMode": "none", "PortBindings": None, "Privileged": False},
-            "NetworkSettings": {"Ports": {"5432/tcp": None}},
+            "NetworkSettings": {"Ports": {"5432/tcp": None},
+                                "Networks": {"none": {}}},
             "Mounts": [
                 {"Type": "volume", "Name": volume,
-                 "Destination": "/var/lib/postgresql/data"}
+                 "Destination": "/var/lib/postgresql/data"},
+                {"Type": "bind", "Destination": "/backup/equipe.dump"},
+                {"Type": "bind", "Destination": "/candidate/migrations"},
             ],
         }
         restore.validate_trial([base], name, volume, token)
