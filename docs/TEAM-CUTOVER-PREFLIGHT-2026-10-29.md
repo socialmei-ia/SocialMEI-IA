@@ -9,9 +9,9 @@ commit 4e374aa4772221e8869ccc0dda1e5394fbc46207.
 ## Inspeção automatizada somente leitura
 
 Na instância Ubuntu, no checkout /home/ubuntu/socialmei-team, com o candidato
-Git já presente, use:
+Git já presente e depois de conferir o SHA final aprovado para release, use:
 
-    python3 tools/team-cutover-inspect.py --target team --expected-sha 4e374aa4772221e8869ccc0dda1e5394fbc46207
+    python3 tools/team-cutover-inspect.py --target team --expected-sha SHA_COMPLETO_REVISAO_APROVADA
 
 A ferramenta usa apenas Git read-only, Docker inspect e SELECT em transação
 PostgreSQL read-only. Não lê mensagens, prompts, tokens, n8n executions ou
