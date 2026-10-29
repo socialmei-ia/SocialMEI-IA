@@ -62,10 +62,10 @@ test("n8n bridge uses a private team automation network only, never team Postgre
   const root = path.join(__dirname, "..");
   const team = fs.readFileSync(path.join(root, "compose.team.yaml"), "utf8");
   const bridge = fs.readFileSync(path.join(root, "compose.team-n8n-bridge.yaml"), "utf8");
-  assert.match(team, /automation:\\n    internal: true\\n    name: socialmei_team_automation/);
-  assert.match(team, /networks: \\[database, api, automation\\]/);
+  assert.match(team, /automation:\n    internal: true\n    name: socialmei_team_automation/);
+  assert.match(team, /networks: \[database, api, automation\]/);
   assert.match(bridge, /external: true/);
   assert.match(bridge, /name: socialmei_team_automation/);
-  assert.match(bridge, /networks:\\n      - default\\n      - team_automation/);
+  assert.match(bridge, /networks:\n      - default\n      - team_automation/);
   assert.doesNotMatch(bridge, /team-postgres|POSTGRES_PASSWORD|ports:/);
 });
