@@ -322,9 +322,8 @@ function messageHTML(m, prev = null, animate = false) {
     neutral: "neutro",
     uncertain: "indefinido",
   };
-  const sentimentLabel = m.remoteId && m.de === "cliente"
-    ? sentimentLabels[m.providerSentiment]
-    : null;
+  const sentimentLabel =
+    m.remoteId && m.de === "cliente" ? sentimentLabels[m.providerSentiment] : null;
   return /* HTML */ `<div
           class="msg ${cls}${grouped}${animate ? " new-message" : ""}"
           data-message-text="${escapeHtml(m.texto).toLowerCase()}"
