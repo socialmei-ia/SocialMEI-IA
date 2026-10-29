@@ -25,6 +25,7 @@ on:
         feat/instagram-direct-outbox,
         feat/instagram-posts-inbox-real,
         release/socialmei-functional-integrations-20261026,
+        feat/team-v33-controlled-publisher,
         feat/opportunity-planning-persistence,
         feat/waha-durable-ingress,
         feat/frontend-v25-integration,
@@ -251,6 +252,31 @@ jobs:
         run: |
           npm run preview -- up
           npm run test:preview
+      - name: Profile and preferences across real authenticated sessions
+        run: |
+          node - <<'NODE'
+          const assert = require("node:assert/strict");
+          const { request } = require("playwright");
+          const run = require("./tests/profile-sync-api-browser.cjs");
+          (async () => {
+            const origin = "https://127.0.0.1:8443";
+            const probe = await request.newContext({ ignoreHTTPSErrors: true });
+            try {
+              const response = await probe.get(origin + "/__preview");
+              assert.equal(response.status(), 200);
+              assert.deepEqual(await response.json(), {
+                environment: "local-disposable-preview",
+                transport: "none",
+              });
+            } finally {
+              await probe.dispose();
+            }
+            await run({ origin });
+          })().catch((error) => {
+            console.error(error);
+            process.exitCode = 1;
+          });
+          NODE
       - name: Fake Instagram provider in disposable preview only
         run: |
           docker compose --project-name socialmei-preview --env-file .preview/.env -f compose.preview.yaml -f compose.preview.instagram-lab.yaml up -d --no-build --wait --wait-timeout 180 api
@@ -273,5 +299,6 @@ jobs:
           name: isolated-preview
           path: |
             test-results/preview/
+            test-results/profile-sync-real/
             test-results/instagram-provider-lab/
           if-no-files-found: ignore
