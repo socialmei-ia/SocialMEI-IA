@@ -115,6 +115,8 @@ def runtime_safety():
             env[k] = v
     require(env.get("SOCIALMEI_AUTH_ENABLED", "").strip().lower()
             in {"true", "1", "yes", "on"}, "autenticacao_desligada")
+    require(env.get("SOCIALMEI_WAHA_INGRESS_MODE", "disabled").strip().lower()
+            in {"", "disabled"}, "waha_ingress_ativo_bloqueia_migracao")
     for key in (
         "SOCIALMEI_INSTAGRAM_RUNTIME_INGRESS_ENABLED",
         "SOCIALMEI_INSTAGRAM_RUNTIME_SEND_ENABLED",
