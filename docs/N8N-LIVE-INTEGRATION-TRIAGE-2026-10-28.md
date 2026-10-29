@@ -6,15 +6,13 @@ Relatório sanitizado produzido pelo operador diretamente na AWS com `tools/n8n-
 
 ### Achados P0 (dados atuais da AWS)
 
-| Fluxo / ID | Salvo | Publicado | Ativo | Ação recomendada |
-| --- | ---: | ---: | --- | --- |
-| Instagram Direct `LHlqroY2xzvpYAmD` | 17 | 9 | Sim | Manter a publicação de 9 nós; não publicar o rascunho duplicado; resolver 403 e definir ingresso único. Rascunho contém Bearer estático; o token é material sensível. |
-| Cópia segura `gu1meyWuQMJcVB8i` | 8 | — | Não | Candidato para validação isolada: remetente desabilitado, sem token fixo nem credencial configurada. Não ativar nem enviar durante auditoria. |
-| WhatsApp WAHA/Groq/CPF `NFcJfjvpaUsjh1x1` | 42 | 21 | Sim | Inspecionar a **versão publicada de 21 nós** antes de afirmar que CPF/CNPJ, sentimento ou menus estão vivos. Rascunho recente não equivale à produção. |
-| Publicador Instagram `A0EcNxcRvfWnMwKI` | 40 | 40 | Sim | Form Trigger independente. Não converter formulário em API do site sem adaptar autenticação/workspace, mídia, recibo e idempotência. |
-| Caixa PostgreSQL `BtvlHv4mt90tn70z` | 8 | 8 | Sim | Verificar consumo/rotas de webhook e se grava no legado. Não confundir com inbox multitenant do team. |
-| Caixa local `WWzhvmdPh9LrpuYy` | 6 | 6 | Sim | Convive com PostgreSQL; evitar duplicar entrada e não promover para backend team. |
-| Atendimento `DDrphANXE8QdxoWy` | 7 | 7 | Sim | Preservar dependências dos três subworkflows de consulta/registro/confirmação. Os contratos legados podem usar planilhas. |
+- **Instagram Direct** (`LHlqroY2xzvpYAmD`): ativo, 17 nós salvos e 9 publicados. Manter o fluxo publicado, não publicar o rascunho duplicado, resolver 403 e corrigir o Bearer estático.
+- **Cópia segura** (`gu1meyWuQMJcVB8i`): inativa, 8 nós salvos, sem versão publicada; envio bloqueado e credencial ainda pendente.
+- **WhatsApp WAHA/Groq/CPF** (`NFcJfjvpaUsjh1x1`): ativo, 42 nós informados no inventário inicial e 21 publicados; comparar a versão publicada antes de prometer CPF/CNPJ, sentimento ou menu.
+- **Publicação Instagram** (`A0EcNxcRvfWnMwKI`): ativa, 40 nós salvos/publicados; possui Form Trigger e exige contrato autenticado do site antes de qualquer integração multi-MEI.
+- **Caixa PostgreSQL** (`BtvlHv4mt90tn70z`): ativa, 8 nós salvos/publicados; verificar webhooks e evitar mistura com a Caixa multitenant.
+- **Caixa local** (`WWzhvmdPh9LrpuYy`): ativa, 6 nós salvos/publicados; evitar envio/ingresso concorrente e não promover o legado diretamente.
+- **Atendimento** (`DDrphANXE8QdxoWy`): ativo, 7 nós salvos/publicados; preservar referências às ferramentas de consulta, registro e confirmação de pedidos.
 
 ### Candidatos novos, ainda não publicados
 
