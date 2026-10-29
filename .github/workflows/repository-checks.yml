@@ -89,6 +89,11 @@ jobs:
           path: test-results/public-demo/
           if-no-files-found: error
           retention-days: 14
+      - name: Show exact Prettier differences for integration files
+        run: |
+          ./node_modules/.bin/prettier --write docs/N8N-LIVE-INTEGRATION-TRIAGE-2026-10-28.md frontend/scripts/message-enrichment-store.js
+          git diff -- docs/N8N-LIVE-INTEGRATION-TRIAGE-2026-10-28.md frontend/scripts/message-enrichment-store.js
+          git checkout -- docs/N8N-LIVE-INTEGRATION-TRIAGE-2026-10-28.md frontend/scripts/message-enrichment-store.js
       - name: Formatting
         run: npm run format:check
       - name: Python contracts
