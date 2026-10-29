@@ -44,6 +44,7 @@ def service_enabled():
         and settings.authentication_mode() == "enabled"
         and settings.provider_sentiment_enabled()
         and len(settings.provider_sentiment_key()) >= 32
+        and bool(settings.provider_sentiment_allowed_workspaces())
     )
 
 
@@ -89,6 +90,7 @@ def claim_messages(request: Request, response: Response):
             LEFT JOIN socialmei.me_provider_sentiment_jobs AS j
               ON j.workspace_id=m.workspace_id AND j.message_id=m.id
             WHERE m.origin IN ('instagram','waha')
+              AND m.workspace_id = ANY(%s)
               AND m.occurred_at >= NOW()-INTERVAL '7 days'
               AND (
                 j.message_id IS NULL
@@ -97,7 +99,7 @@ def claim_messages(request: Request, response: Response):
             ORDER BY m.id ASC
             LIMIT %s FOR UPDATE OF m SKIP LOCKED
             """,
-            (MAX_BATCH,),
+            (list(settings.provider_sentiment_allowed_workspaces()), MAX_BATCH),
         ).fetchall()
         tasks = []
         for message in messages:
@@ -150,7 +152,7 @@ def save_result(payload: ResultInput, request: Request, response: Response):
             """,
             (payload.claim_id,),
         ).fetchone()
-        if not row:
+        if not row or row["workspace_id"] not in settings.provider_sentiment_allowed_workspaces():
             # Rotating a lease invalidates stale claims; no other workspace ID
             # or user-supplied account reference is trusted.
             raise HTTPException(404, "Operação não encontrada.")
