@@ -55,7 +55,7 @@ NODE_SCRIPT = r"""
         if (Array.isArray(headers) && headers.some(h =>
           String(h.name || "").toLowerCase() === "authorization" &&
           typeof h.value === "string" &&
-          /^Bearer\\s+/i.test(h.value) &&
+          /^Bearer\s+/i.test(h.value) &&
           !h.value.startsWith("=")
         )) fixedBearer = true;
       }
