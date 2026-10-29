@@ -97,9 +97,7 @@ async function run(config) {
         new URL(response.url()).pathname === "/api/v1/workspace-profile" &&
         response.request().method() === "GET",
     );
-    await page.goto(
-      origin + "/frontend/entrada.html?setup=1&qa78=" + randomUUID() + "#/comecar",
-    );
+    await page.goto(origin + "/frontend/entrada.html?setup=1&qa78=" + randomUUID() + "#/comecar");
     await loaded;
     await page.locator("#obCard").waitFor();
     if (!(await page.locator("#oNeg").isVisible()))
