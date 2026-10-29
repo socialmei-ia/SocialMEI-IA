@@ -29,6 +29,9 @@ on:
         feat/waha-durable-ingress,
         feat/frontend-v25-integration,
         feat/whatsapp-interactive-bot,
+        feat/instagram-token-maintenance,
+        feat/n8n-live-inventory-20261028,
+        feat/provider-sentiment-inbox-20261029,
       ]
 
 permissions:
