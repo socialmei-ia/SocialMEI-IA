@@ -89,11 +89,6 @@ jobs:
           path: test-results/public-demo/
           if-no-files-found: error
           retention-days: 14
-      - name: Inspect markdown format delta
-        run: |
-          ./node_modules/.bin/prettier --write docs/TEAM-CUTOVER-PREFLIGHT-2026-10-29.md
-          git diff -- docs/TEAM-CUTOVER-PREFLIGHT-2026-10-29.md
-          git checkout -- docs/TEAM-CUTOVER-PREFLIGHT-2026-10-29.md
       - name: Formatting
         run: npm run format:check
       - name: Python contracts
