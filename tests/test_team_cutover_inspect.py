@@ -63,6 +63,7 @@ class TeamCutoverTests(unittest.TestCase):
         self.assertTrue(good["has_032"] and good["has_033"])
         self.assertEqual(good["max_prefix"], 33)
         self.assertFalse(good["future_or_unknown_versions"])
+        self.assertTrue(good["ledger_has_gaps"])
         data["versions"].append("034_unreviewed_change.sql")
         self.assertTrue(cutover.migration_summary(data)["future_or_unknown_versions"])
         data["versions"] = ["032_whatsapp_bot_conversations.sql"] * 2
@@ -86,8 +87,10 @@ class TeamCutoverTests(unittest.TestCase):
             if args[:3] == ["docker", "exec", "-i"]:
                 assert kwargs["input_text"].startswith("BEGIN TRANSACTION READ ONLY;")
                 return json.dumps({
-                    "versions": ["032_whatsapp_bot_conversations.sql",
-                                 "033_provider_sentiment_jobs.sql"],
+                    "versions": [f"{i:03}_fixture.sql" for i in range(1, 32)] + [
+                        "032_whatsapp_bot_conversations.sql",
+                        "033_provider_sentiment_jobs.sql"
+                    ],
                     "bot_table": True,
                     "sentiment_table": True,
                 }) + "\n"
@@ -100,6 +103,7 @@ class TeamCutoverTests(unittest.TestCase):
         self.assertFalse(report["decision"]["provider_message_sent"])
         self.assertEqual(report["containers"]["waha"]["default_engine"], "WEBJS")
         self.assertTrue(report["database"]["has_033"])
+        self.assertFalse(report["database"]["ledger_has_gaps"])
         self.assertTrue(all(
             a[:2] in (["git", "-C"], ["docker", "inspect"], ["docker", "exec"])
             for a, _ in used
