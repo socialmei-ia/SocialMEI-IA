@@ -16,11 +16,12 @@ class EgressTests(unittest.TestCase):
             return json.loads(subprocess.check_output(args+['config','--format','json'],cwd=ROOT,env=env,stderr=subprocess.PIPE))
         before=model()
         after=model(True)
-        self.assertEqual(set(after['services']['team-api']['networks']),{'database','api','egress'})
+        self.assertEqual(set(after['services']['team-api']['networks']),{'database','api','automation','egress'})
         self.assertEqual(after['networks']['egress']['name'],'socialmei_team_egress')
         self.assertFalse(after['networks']['egress'].get('internal',False))
         self.assertTrue(after['networks']['database']['internal'])
         self.assertTrue(after['networks']['api']['internal'])
+        self.assertTrue(after['networks']['automation']['internal'])
         self.assertNotIn('ports',after['services']['team-api'])
         del after['services']['team-api']['networks']['egress']
         del after['networks']['egress']
