@@ -78,7 +78,13 @@ def target_environment(live):
 
 def invariant(row):
     config = row['Config']
-    return {'host': row['HostConfig'], 'mounts': sorted(row.get('Mounts') or [], key=lambda m: m['Destination']),
+    host = copy.deepcopy(row['HostConfig'])
+    # Docker may return the same bind mounts in a different order after a
+    # container recreation. Keep every bind string (including duplicates and
+    # mode/options) and every other security field unchanged.
+    if isinstance(host.get('Binds'), list):
+        host['Binds'] = sorted(host['Binds'])
+    return {'host': host, 'mounts': sorted(row.get('Mounts') or [], key=lambda m: m['Destination']),
             'networks': {name: {'aliases': sorted(set(info.get('Aliases') or []) - {row.get('Id'), str(row.get('Id', ''))[:12]}), 'ipam': info.get('IPAMConfig'), 'links': info.get('Links')} for name, info in row['NetworkSettings']['Networks'].items()},
             'config': {k: config.get(k) for k in ('Cmd', 'Entrypoint', 'WorkingDir', 'User', 'Healthcheck', 'ExposedPorts', 'StopSignal')}}
 
