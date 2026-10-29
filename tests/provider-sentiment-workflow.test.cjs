@@ -69,3 +69,23 @@ test("n8n bridge uses a private team automation network only, never team Postgre
   assert.match(bridge, /networks:\n      - default\n      - team_automation/);
   assert.doesNotMatch(bridge, /team-postgres|POSTGRES_PASSWORD|ports:/);
 });
+
+test("team WAHA bot config remains opt-in and registry is read-only", () => {
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const team = fs.readFileSync(path.join(__dirname, "..", "compose.team.yaml"), "utf8");
+  assert.match(
+    team,
+    /SOCIALMEI_WAHA_INGRESS_MODE: \$\{SOCIALMEI_WAHA_INGRESS_MODE:-disabled\}/,
+  );
+  assert.match(
+    team,
+    /SOCIALMEI_WAHA_LAB_ENVIRONMENT: \$\{SOCIALMEI_WAHA_LAB_ENVIRONMENT:-disabled\}/,
+  );
+  assert.match(
+    team,
+    /SOCIALMEI_WHATSAPP_BOT_ENABLED: \$\{SOCIALMEI_WHATSAPP_BOT_ENABLED:-false\}/,
+  );
+  assert.match(team, /SOCIALMEI_WAHA_REGISTRY_FILE: \/run\/socialmei\/private\/waha-registry.json/);
+  assert.match(team, /\.\/deploy\/team\/private:\/run\/socialmei\/private:ro/);
+});
