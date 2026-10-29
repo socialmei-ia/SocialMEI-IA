@@ -167,6 +167,12 @@ def validate_trial(inspect, name, volume, label):
                 and m.get("Destination") == "/var/lib/postgresql/data"
                 for m in mounts), "trial_volume_invalido")
     require(host.get("Privileged") is not True, "trial_privilegio_invalido")
+    require(set((networks.get("Networks") or {"none": {}})) == {"none"},
+            "trial_rede_invalida")
+    require({m.get("Destination") for m in mounts} == {
+        "/var/lib/postgresql/data", "/backup/equipe.dump",
+        "/candidate/migrations",
+    }, "trial_montagem_inesperada")
 
 
 def restore_sql(sql):
@@ -305,9 +311,12 @@ def main():
         require(args.run, "execucao_requer_run")
         report.update(trial.execute(backup, source, versions))
         report["candidate_sha"] = sha
+    except RuntimeError as exc:
+        report["restore_verified"] = False
+        report["error_code"] = str(exc)
     except Exception:
         report["restore_verified"] = False
-        report["error"] = "validacao_interrompida_sem_alterar_producao"
+        report["error_code"] = "erro_interno_sanitizado"
     finally:
         try:
             problems = trial.cleanup()
