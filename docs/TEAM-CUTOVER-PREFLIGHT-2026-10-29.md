@@ -20,6 +20,7 @@ NÃO compartilhar saídas completas de docker inspect, variáveis de ambiente
 ou arquivos privados. Somente o JSON sanitizado é seguro para a revisão.
 
 Inspeciona automaticamente:
+
 - checkout limpo e SHA completo esperado;
 - Team API, Team gateway, Team PostgreSQL, n8n e WAHA ativos;
 - saúde da API, portas privadas e redes Docker;
@@ -42,6 +43,7 @@ nem usar o workflow genérico manual-production-deploy.yml: ele atualiza o
 stack legado compose.yaml, não o Team compose.team.yaml.
 
 Antes de publicar:
+
 1. Conferir o runtime instalado, labels, imagens, Caddy ativo, redes e flags.
 2. Fazer backup verificado do banco e das imagens/configurações, com
    restauração ensaiada e rollback planejado.
