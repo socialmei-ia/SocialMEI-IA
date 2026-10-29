@@ -92,6 +92,15 @@ def message_enrichment_signing_key() -> str:
     return os.getenv("SOCIALMEI_MESSAGE_ENRICHMENT_TEST_KEY", "")
 
 
+def provider_sentiment_enabled() -> bool:
+    # Opt-in service-to-service analysis; never enables provider sending.
+    return os.getenv("SOCIALMEI_PROVIDER_SENTIMENT_ENABLED", "false").strip().lower() == "true"
+
+
+def provider_sentiment_key() -> str:
+    return os.getenv("SOCIALMEI_PROVIDER_SENTIMENT_KEY", "")
+
+
 def channel_ingress_mode() -> str:
     return os.getenv("SOCIALMEI_CHANNEL_INGRESS_MODE", "disabled").strip().lower()
 
