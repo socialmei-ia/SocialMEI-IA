@@ -122,7 +122,7 @@ def safe_name(raw):
 def category(name):
     normalized = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode().lower()
     if re.search(r"instagram|direct|reels|stories|feed", normalized):
-        if re.search(r"\\b(?:publica\\w*|post(?:s|agem)?|reels?|stori(?:es|e)?|feed)\\b", normalized):
+        if re.search(r"\b(?:publica\w*|post(?:s|agem)?|reels?|stori(?:es|e)?|feed)\b", normalized):
             return "instagram_publicacao"
         return "instagram_direct_ou_conta"
     if re.search(r"whats|waha|whatza|menu interativo", normalized):
