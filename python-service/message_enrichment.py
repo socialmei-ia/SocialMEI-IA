@@ -426,14 +426,18 @@ def conversations(request: Request, response: Response):
         items = conn.execute('SELECT id,channel,account_ref,contact_ref,contact_name,revision,origin FROM socialmei.me_conversations WHERE workspace_id=%s AND origin=ANY(%s) ORDER BY id DESC LIMIT 100', (workspace, origins)).fetchall()
         for conversation in items:
             messages = conn.execute('SELECT id,external_message_id,text,occurred_at,revision FROM socialmei.me_messages WHERE workspace_id=%s AND conversation_id=%s ORDER BY occurred_at DESC,id DESC LIMIT 100', (workspace, conversation['id'])).fetchall()
+            provider_analysis = {}
+            if messages and conversation['origin'] in {'instagram', 'waha'} and settings.provider_sentiment_enabled():
+                rows = conn.execute(
+                    "SELECT message_id,sentiment,confidence,explanation FROM socialmei.me_provider_sentiment_jobs WHERE workspace_id=%s AND message_id=ANY(%s) AND status='completed'",
+                    (workspace, [m['id'] for m in messages]),
+                ).fetchall()
+                provider_analysis = {row['message_id']: row for row in rows}
             for message in messages:
                 job = conn.execute('SELECT * FROM socialmei.me_jobs WHERE workspace_id=%s AND message_id=%s ORDER BY message_revision DESC,id DESC LIMIT 1', (workspace, message['id'])).fetchone() if conversation['origin'] == 'synthetic' else None
                 message['enrichment'] = envelope(job) if job else None
                 if conversation['origin'] in {'instagram', 'waha'} and settings.provider_sentiment_enabled():
-                    analysis = conn.execute(
-                        "SELECT sentiment,confidence,explanation FROM socialmei.me_provider_sentiment_jobs WHERE workspace_id=%s AND message_id=%s AND status='completed'",
-                        (workspace, message['id']),
-                    ).fetchone()
+                    analysis = provider_analysis.get(message['id'])
                     message['provider_analysis'] = {
                         'sentiment': analysis['sentiment'],
                         'confidence': analysis['confidence'],
