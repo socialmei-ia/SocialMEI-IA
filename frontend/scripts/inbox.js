@@ -316,12 +316,21 @@ function messageHTML(m, prev = null, animate = false) {
   const grouped =
     prev && prev.de === m.de && messageDateKey(prev) === messageDateKey(m) ? " grouped" : "";
   const suffix = m.localOnly ? " · local" : m.de === "nota" ? " · nota interna" : "";
+  const sentimentLabels = {
+    positive: "positivo",
+    negative: "negativo",
+    neutral: "neutro",
+    uncertain: "indefinido",
+  };
+  const sentimentLabel = m.remoteId && m.de === "cliente"
+    ? sentimentLabels[m.providerSentiment]
+    : null;
   return /* HTML */ `<div
           class="msg ${cls}${grouped}${animate ? " new-message" : ""}"
           data-message-text="${escapeHtml(m.texto).toLowerCase()}"
         >
           <span class="message-copy">${escapeHtml(m.texto)}</span
-          ><small>${escapeHtml(m.hora)}${suffix}</small>
+          ><small>${escapeHtml(m.hora)}${suffix}${sentimentLabel ? ` · sentimento ${sentimentLabel} (automação)` : ""}</small>
         </div>`;
 }
 function renderMessages(c, { preserveScroll = false } = {}) {
