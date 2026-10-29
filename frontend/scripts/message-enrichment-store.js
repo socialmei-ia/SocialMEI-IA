@@ -85,13 +85,15 @@
       );
     }
     function validProviderAnalysis(value) {
-      return value == null ||
+      return (
+        value == null ||
         (typeof value === "object" &&
           ["positive", "negative", "neutral", "uncertain"].includes(value.sentiment) &&
           ["low", "medium", "high"].includes(value.confidence) &&
           typeof value.explanation === "string" &&
           value.explanation.length <= 500 &&
-          value.source === "automation");
+          value.source === "automation")
+      );
     }
     function validateRows(items) {
       if (
