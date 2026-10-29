@@ -72,3 +72,37 @@ antigas**, comparação exata do Compose runtime e montagens, e
 `team-api` e `team-gateway` quando os gates passarem. A URL pública
 e autenticação devem ser testadas antes da confirmação. Não ativar
 envio Direct, publicação Meta, bot WhatsApp ou sentimento nesta fase.
+
+
+## Transferência e importação sem recriar containers
+
+O artefato do build aprovado está no workflow
+[GitHub Actions — Team v33 images](https://github.com/socialmei-ia/SocialMEI-IA/actions/runs/40815471116).
+O ZIP contém apenas `images.tar.gz`, `image-receipt.json` e
+`SHA256SUMS` e é destinado à importação manual controlada, não ao deploy.
+
+1. Faça download do artefato `SocialMEI-Team-v33-c19d44b6ef6b` na
+   interface GitHub Actions, na seção **Artifacts**. Não é preciso
+   obter tokens nem colocar segredos GitHub na VPS.
+2. No PowerShell Windows, transfira o ZIP:
+   ```powershell
+   scp -o IdentitiesOnly=yes -i "$HOME\.ssh\socialmei-key.pem" "$HOME\Downloads\SocialMEI-Team-v33-c19d44b6ef6b.zip" ubuntu@54.94.213.7:/home/ubuntu/socialmei-v33-images.zip
+   ```
+3. No Ubuntu, use `tools/team-v33-import-images.py`, obtido do commit
+   aprovado da release, com `--target team --bundle
+   /home/ubuntu/socialmei-v33-images.zip --inspect`. Em caso de
+   aprovação, use `--apply` com o mesmo arquivo.
+4. O importador só chama `docker load`, após conferir SHA256, tags,
+   labels e IDs de imagem. Nunca altera containers, Compose, Caddyfile,
+   PostgreSQL, WAHA, n8n ou dados de usuários.
+
+O pacote é disponibilizado pelo GitHub por **14 dias**; baixar
+diretamente via API geralmente exige autenticação GitHub, por isso
+não instruir a colocar um Personal Access Token ou senha na VPS.
+O build foi feito na própria infraestrutura GitHub, sem consumir RAM
+da AWS.
+
+**Depois da importação** ainda é necessário preparar snapshot de
+rollback e validar o Compose real antes de substituir API/gateway.
+A importação é reversível no sentido de que não muda o serviço em
+execução; não apagar nem limpar as imagens antigas.
