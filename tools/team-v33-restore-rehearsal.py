@@ -279,7 +279,8 @@ class Rehearsal:
         require(all(after.get(k) == v for k, v in before.items()
                     if k != "schema_migrations"),
                 "dados_originais_alterados")
-        new_tables = {"wa_bot_access", "wa_bot_conversations", "me_provider_sentiment_jobs"}
+        new_tables = {"wa_bot_access", "wa_bot_conversations", "wa_bot_decisions",
+                      "me_provider_sentiment_jobs"}
         require(new_tables.issubset(after), "tabelas_032_033_incompletas")
         return {
             "restore_verified": True,
