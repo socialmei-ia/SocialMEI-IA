@@ -76,7 +76,7 @@ envio Direct, publicação Meta, bot WhatsApp ou sentimento nesta fase.
 ## Transferência e importação sem recriar containers
 
 O artefato do build aprovado está no workflow
-[GitHub Actions — Team v33 images](https://github.com/socialmei-ia/SocialMEI-IA/actions/runs/40815471116).
+[GitHub Actions — Team v33 images](https://github.com/socialmei-ia/SocialMEI-IA/actions/runs/40815988201).
 O ZIP contém apenas `images.tar.gz`, `image-receipt.json` e
 `SHA256SUMS` e é destinado à importação manual controlada, não ao deploy.
 
@@ -105,3 +105,72 @@ da AWS.
 rollback e validar o Compose real antes de substituir API/gateway.
 A importação é reversível no sentido de que não muda o serviço em
 execução; não apagar nem limpar as imagens antigas.
+
+## Artefato confirmado em 29/10/2026
+
+O run `40815988201` terminou com sucesso. A API do GitHub confirmou o
+artefato `12872705807`, nome `SocialMEI-Team-v33-c19d44b6ef6b`,
+118.225.605 bytes, disponível até **12/11/2026**. Digest do ZIP:
+
+```text
+sha256:4f2d43f9f56bc52f9dd8e7ce9e99c112520c4fe83ad1ec9c1cc9d86d3c2a5515
+```
+
+Esta confirmação verifica disponibilidade e metadados do GitHub, não comprova
+transferência, carregamento das imagens ou atualização da AWS. O recibo do
+pacote continua vinculado à fonte `c19d44b6ef6b8f125e6cafe60a7adfc0477cf454`;
+o HEAD operacional da release pode avançar sem alterar essas imagens.
+
+## Publicador específico 033
+
+`tools/team-v33-publish.py` prepara e compara o Compose efetivo de cada serviço,
+com os overlays registrados nos containers. Não utiliza o Compose novo como
+substituto da topologia instalada. A fonte das imagens permanece fixada no SHA
+`c19d44b6ef6b8f125e6cafe60a7adfc0477cf454`.
+
+Sequência após receber e revisar a auditoria do servidor:
+
+1. Transferir o ZIP e inspecionar/importar pelo importador acima. Essa etapa
+   carrega imagens; não troca containers.
+2. Obter os scripts do commit operacional revisado, incluindo os helpers irmãos.
+   Não copiar apenas o publicador isoladamente. Criar uma pasta nova com modo
+   `0700`, diretamente em `/home/ubuntu/socialmei-backups`.
+3. Executar o publicador com `--target team --folder PASTA --bundle ZIP --prepare`.
+   A preparação cria snapshots privados, tags e arquivo das imagens antigas;
+   não reinicia serviços. O arquivo de rollback é validado antes de ser aceito.
+4. Conferir novamente com `--target team --folder PASTA --inspect`.
+5. **Somente após autorização específica**, usar o mesmo publicador e pasta com
+   `--apply`. Ele cria e verifica backup fresco antes de substituir somente
+   `team-api` e `team-gateway`, sem dependências, build ou pull.
+6. Confirmar login e navegação manualmente. A checagem automática de HTTP não
+   autentica um usuário, não publica conteúdo e não homologa a Meta.
+
+O modo `--rollback` usa a mesma pasta e exige aprovação operacional. Recria os
+serviços com imagens anteriores e configurações preservadas. Não restaura o banco
+nem remove 032/033. Durante falha no corte, o retorno automático fica limitado
+aos serviços cuja atualização foi tentada. Se configurações ou outros serviços
+mudarem, a ferramenta pode recusar o retorno automático e exigir intervenção;
+ela não sobrescreve alterações concorrentes para tentar forçar recuperação.
+
+A pasta contém ambientes e arquivos privados: **não anexar seu conteúdo, dumps,
+arquivos tar ou recibos privados ao chat/GitHub**. Compartilhar somente a saída
+JSON sanitizada. Um ensaio local com fixtures não comprova compatibilidade com a
+AWS: a auditoria real, a importação e a inspeção continuam sendo gates obrigatórios.
+
+## Diferença entre IDs Docker clássico e containerd
+
+O recibo produzido no runner pode identificar a imagem pelo digest de sua
+configuração. O Docker com containerd pode apresentar um digest de manifesto
+ou índice OCI no campo `Id`. Não comparar esses valores como se fossem o mesmo
+objeto nem aceitar apenas uma label de revisão correspondente.
+
+Quando os IDs diferem, o importador exporta a imagem local para uma pasta privada
+temporária, sem fazer `load`, iniciar ou recriar containers. Confere os digests e
+tamanhos dos descritores OCI, a configuração vinculada ao recibo, a plataforma,
+a tag e as camadas. O conteúdo descomprimido de cada camada deve corresponder aos
+`diff_ids` da configuração. O arquivo temporário é removido e a tag é conferida
+novamente para detectar troca concorrente.
+
+`--inspect` já realiza essa prova para imagens presentes. Com ambas verificadas,
+`--apply` retorna `images_already_verified` sem repetir o carregamento. Falhas
+continuam interrompendo a preparação; o recibo original não é reescrito.
