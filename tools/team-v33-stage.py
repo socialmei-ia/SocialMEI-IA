@@ -21,6 +21,41 @@ TRACKED_REF = "refs/remotes/origin/release/socialmei-functional-integrations-202
 DB_CONTAINER = "socialmei-team-team-postgres-1"
 MIGRATION_032 = "032_whatsapp_bot_conversations.sql"
 MIGRATION_033 = "033_provider_sentiment_jobs.sql"
+REVIEWED_MIGRATIONS = (
+    "001_initial_socialmei_schema.sql",
+    "002_shared_crm_foundation.sql",
+    "003_client_contract.sql",
+    "004_client_import.sql",
+    "005_shared_catalog.sql",
+    "006_shared_sales.sql",
+    "007_shared_finance.sql",
+    "008_workspace_transfer.sql",
+    "009_shared_channel_foundation.sql",
+    "010_account_authentication.sql",
+    "011_crm_workspace_links.sql",
+    "012_instagram_simulation.sql",
+    "013_workspace_profile_sync.sql",
+    "014_message_enrichment.sql",
+    "015_content_preparation.sql",
+    "016_opportunity_lifecycle.sql",
+    "017_integration_setup.sql",
+    "018_instagram_provider_lab.sql",
+    "019_instagram_persistent_oauth.sql",
+    "020_instagram_durable_webhook.sql",
+    "021_instagram_direct_outbox.sql",
+    "022_opportunity_planning.sql",
+    "023_waha_durable_ingress.sql",
+    "024_account_recovery.sql",
+    "025_session_management.sql",
+    "026_recovery_delivery_queue.sql",
+    "027_instagram_image_publications.sql",
+    "028_instagram_temporary_media.sql",
+    "029_workspace_pdf_knowledge.sql",
+    "030_whatsapp_catalog_access.sql",
+    "031_report_viewer_role.sql",
+    "032_whatsapp_bot_conversations.sql",
+    "033_provider_sentiment_jobs.sql",
+)
 READ_ONLY_SQL = (
     "BEGIN READ ONLY; "
     "SELECT COALESCE(json_agg(version ORDER BY version), '[]'::json) "
@@ -88,7 +123,7 @@ def dirty_summary(raw):
 def reviewed_source(names):
     require(isinstance(names, list), "origem_invalida")
     require(len(names) == 33, "origem_migrations_nao_revisada")
-    require(names == sorted(names) and len(set(names)) == 33, "origem_migrations_nao_revisada")
+    require(names == list(REVIEWED_MIGRATIONS), "origem_migrations_nao_revisada")
     for i, name in enumerate(names, 1):
         require(re.fullmatch(r"[0-9]{3}_[a-z0-9_]+\.sql", name), "origem_migrations_nao_revisada")
         require(name[:3] == f"{i:03}", "origem_migrations_nao_revisada")
