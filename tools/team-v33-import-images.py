@@ -12,6 +12,7 @@ import json
 import os
 from pathlib import Path
 import re
+import stat
 import shutil
 import subprocess
 import tempfile
@@ -55,8 +56,9 @@ def valid_stage():
 
 
 def read_bundle(path):
+    require(not path.is_symlink(), "pacote_simbolico_proibido")
     path = path.resolve(strict=True)
-    require(path.is_file() and not path.is_symlink() and
+    require(path.is_file() and
             (path == Path("/home/ubuntu/socialmei-v33-images.zip") or
              path.parent == BACKUPS), "arquivo_de_imagens_fora_da_pasta_autorizada")
     require(1_000 <= path.stat().st_size <= 1024**3,
@@ -66,7 +68,7 @@ def read_bundle(path):
         require({entry.filename for entry in entries} == NAMES
                 and len(entries) == 3, "pacote_com_entradas_inesperadas")
         require(all(not entry.is_dir() and
-                    not (entry.external_attr >> 16) & 0o170000 == 0o120000
+                    stat.S_IFMT(entry.external_attr >> 16) != stat.S_IFLNK
                     and 0 < entry.file_size <= 1024**3
                     for entry in entries), "pacote_com_arquivos_invalidos")
         hashes = {}
@@ -141,6 +143,11 @@ def execute(bundle, *, apply=False):
         return report
     free = shutil.disk_usage("/").free
     require(free >= 4 * 1024**3, "disco_insuficiente")
+    available_kib = next(
+        (int(line.split()[1]) for line in Path("/proc/meminfo").read_text().splitlines()
+         if line.startswith("MemAvailable:")), 0,
+    )
+    require(available_kib >= 384 * 1024, "memoria_insuficiente_para_importacao")
     with tempfile.TemporaryDirectory(prefix="team-v33-image-load-", dir=BACKUPS) as dir_name:
         staging = Path(dir_name)
         staging.chmod(0o700)
