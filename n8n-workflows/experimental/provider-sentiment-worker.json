@@ -45,7 +45,7 @@
         0
       ],
       "parameters": {
-        "method": "GET",
+        "method": "POST",
         "url": "http://team-api:8000/internal/message-enrichment/provider/claims",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
