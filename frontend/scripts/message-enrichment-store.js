@@ -106,9 +106,12 @@
             !validOrigin(r) ||
             typeof r.contact_name !== "string" ||
             !Array.isArray(r.messages) ||
-            r.messages.some((m) =>
-              !Number.isSafeInteger(m.id) || typeof m.text !== "string" ||
-              !validProviderAnalysis(m.provider_analysis)),
+            r.messages.some(
+              (m) =>
+                !Number.isSafeInteger(m.id) ||
+                typeof m.text !== "string" ||
+                !validProviderAnalysis(m.provider_analysis),
+            ),
         )
       )
         throw new Error("A API retornou conversas incompatíveis. Nenhum dado foi importado.");
