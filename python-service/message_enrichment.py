@@ -372,7 +372,7 @@ def capabilities(request: Request, response: Response):
         result['instagram_inbox'] = True
     if settings.waha_ingress_isolated_enabled():
         result['waha_inbox'] = True
-    if settings.provider_sentiment_enabled():
+    if settings.provider_sentiment_enabled() and user['workspace_id'] in settings.provider_sentiment_allowed_workspaces():
         result['provider_sentiment'] = True
     return result
 
@@ -427,7 +427,7 @@ def conversations(request: Request, response: Response):
         for conversation in items:
             messages = conn.execute('SELECT id,external_message_id,text,occurred_at,revision FROM socialmei.me_messages WHERE workspace_id=%s AND conversation_id=%s ORDER BY occurred_at DESC,id DESC LIMIT 100', (workspace, conversation['id'])).fetchall()
             provider_analysis = {}
-            if messages and conversation['origin'] in {'instagram', 'waha'} and settings.provider_sentiment_enabled():
+            if messages and conversation['origin'] in {'instagram', 'waha'} and settings.provider_sentiment_enabled() and workspace in settings.provider_sentiment_allowed_workspaces():
                 rows = conn.execute(
                     "SELECT message_id,sentiment,confidence,explanation FROM socialmei.me_provider_sentiment_jobs WHERE workspace_id=%s AND message_id=ANY(%s) AND status='completed'",
                     (workspace, [m['id'] for m in messages]),
@@ -436,7 +436,7 @@ def conversations(request: Request, response: Response):
             for message in messages:
                 job = conn.execute('SELECT * FROM socialmei.me_jobs WHERE workspace_id=%s AND message_id=%s ORDER BY message_revision DESC,id DESC LIMIT 1', (workspace, message['id'])).fetchone() if conversation['origin'] == 'synthetic' else None
                 message['enrichment'] = envelope(job) if job else None
-                if conversation['origin'] in {'instagram', 'waha'} and settings.provider_sentiment_enabled():
+                if conversation['origin'] in {'instagram', 'waha'} and settings.provider_sentiment_enabled() and workspace in settings.provider_sentiment_allowed_workspaces():
                     analysis = provider_analysis.get(message['id'])
                     message['provider_analysis'] = {
                         'sentiment': analysis['sentiment'],
