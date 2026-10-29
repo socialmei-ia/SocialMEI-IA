@@ -234,6 +234,25 @@ async function run(config) {
           applyTheme();
           render();
         }, theme);
+        try {
+          await a.waitForFunction(
+            () => Math.abs(document.body.getBoundingClientRect().width - innerWidth) <= 1,
+            null,
+            { timeout: 5000 },
+          );
+        } catch (error) {
+          console.log("QA78: geometria não estabilizou", await layoutSnapshot(a));
+          console.log(
+            await a.evaluate(() => ({
+              inlineWidth: document.body.style.width,
+              computedWidth: getComputedStyle(document.body).width,
+              minWidth: getComputedStyle(document.body).minWidth,
+              transform: getComputedStyle(document.body).transform,
+              transition: getComputedStyle(document.body).transition,
+            })),
+          );
+          throw error;
+        }
         const layout = await layoutSnapshot(a);
         assert.equal(layout.scrollWidth > layout.width + 1, false, JSON.stringify(layout));
         await a.screenshot({
