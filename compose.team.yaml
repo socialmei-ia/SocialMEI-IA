@@ -73,6 +73,11 @@ services:
       SOCIALMEI_RECOVERY_MODE: ${SOCIALMEI_RECOVERY_MODE:-disabled}
       SOCIALMEI_KNOWLEDGE_PDF_ENABLED: ${SOCIALMEI_KNOWLEDGE_PDF_ENABLED:-false}
       SOCIALMEI_WA_CATALOG_ENABLED: ${SOCIALMEI_WA_CATALOG_ENABLED:-false}
+      # WAHA bot and signed ingress remain opt-in; registry is a server-only file.
+      SOCIALMEI_WAHA_INGRESS_MODE: ${SOCIALMEI_WAHA_INGRESS_MODE:-disabled}
+      SOCIALMEI_WAHA_LAB_ENVIRONMENT: ${SOCIALMEI_WAHA_LAB_ENVIRONMENT:-disabled}
+      SOCIALMEI_WHATSAPP_BOT_ENABLED: ${SOCIALMEI_WHATSAPP_BOT_ENABLED:-false}
+      SOCIALMEI_WAHA_REGISTRY_FILE: /run/socialmei/private/waha-registry.json
       SOCIALMEI_SMTP_HOST: ${SOCIALMEI_SMTP_HOST:-}
       SOCIALMEI_SMTP_PORT: ${SOCIALMEI_SMTP_PORT:-465}
       SOCIALMEI_SMTP_USER: ${SOCIALMEI_SMTP_USER:-}
@@ -85,6 +90,8 @@ services:
       SOCIALMEI_CORS_ORIGINS: ""
       TZ: America/Recife
     # Optional n8n bridge can reach only team-api, not the team PostgreSQL.
+    volumes:
+      - ./deploy/team/private:/run/socialmei/private:ro
     networks: [database, api, automation]
     depends_on:
       team-migrate:
