@@ -31,6 +31,39 @@ no código nem alterar a imagem; o operador deverá configurá-las apenas no
 
 As rotas `/internal/*` devem ser acessíveis **somente por rede privada**, e nunca encaminhadas pelo Caddy público. n8n usa credencial HTTP Header Auth exclusiva com nome `Authorization` e valor `Bearer <segredo>`. O navegador nunca recebe essa chave. A consulta e os recibos também são limitados aos negócios da allowlist, mesmo com chave de serviço válida.
 
+## Acesso n8n à API privada
+
+No host da AWS, o stack legado `compose.yaml` (contêiner `socialmei-n8n`)
+e o stack `compose.team.yaml` estão em redes Docker separadas. Portanto,
+`http://team-api:8000` **não resolve** no n8n antigo sem uma ponte de rede.
+
+A PR prepara uma rede Docker `socialmei_team_automation` marcada
+`internal: true`, ligada **somente** ao serviço `team-api` no stack team.
+O overlay `compose.team-n8n-bridge.yaml` conecta opcionalmente o serviço
+`n8n` do stack legado a essa rede, mantendo a rede padrão existente. Nenhum
+serviço publica portas adicionais; `team-postgres` continua fora da rede.
+
+A ponte **não foi aplicada**. Sequência de homologação operacional (após
+aprovação específica e backup):
+
+1. Subir a versão aprovada do stack team, conferindo o nome da rede
+   `socialmei_team_automation`, o acesso privado e a ausência de novas
+   portas. Não utilizar `up --build` automaticamente.
+2. Simular a composição legada, na pasta e com `.env` original:
+   `docker compose --env-file .env -f compose.yaml -f compose.team-n8n-bridge.yaml config --quiet`.
+3. Em janela de manutenção aprovada, conectar **somente o serviço n8n**
+   usando o overlay, sem recriar PostgreSQL, WAHA ou gateway.
+4. Verificar resolução `team-api` por DNS e `/health` **a partir do n8n**,
+   sem guardar nem exibir tokens. Testar que `team-postgres` não resolve a
+   partir da rede de automação.
+5. Só depois instalar a credencial interna no n8n, ensaiar com mensagens
+   sintéticas da conta de teste e permitir ativação do piloto limitado.
+
+**Avisos:** esse overlay não liga o WhatsApp, não muda a URL de callback
+Instagram da Meta e não desliga o remetente do n8n antigo. São decisões
+separadas que exigem validação e corte. Não conectar o n8n diretamente à
+rede `database` nem abrir `team-api:8000` publicamente.
+
 ## Workflow preparado (não ativo)
 
 `n8n-workflows/experimental/provider-sentiment-worker.json` possui oito nós:
