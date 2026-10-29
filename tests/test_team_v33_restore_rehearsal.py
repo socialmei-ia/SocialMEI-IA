@@ -167,6 +167,36 @@ class RestoreTrialTests(unittest.TestCase):
             self.assertTrue(any("pg_restore" in str(x) for x in commands))
             self.assertTrue(any("032_whatsapp_bot_conversations" in str(x) for x in commands))
 
+    def test_successful_rehearsal_advances_ledger_but_keeps_business_counts(self):
+        trial = restore.Rehearsal()
+        versions = [f"{i:03}_fixture.sql" for i in range(1, 32)] + [
+            restore.VERSION_032, restore.VERSION_033
+        ]
+        original = {"schema_migrations": 31, "crm_clientes": 7,
+                    **{f"table_{i}": i for i in range(10)}}
+        advanced = {**original, "schema_migrations": 33,
+                    "wa_bot_access": 0, "wa_bot_conversations": 0,
+                    "me_provider_sentiment_jobs": 0}
+        responses = iter([versions[:31], original, versions, advanced])
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp)
+            backup = source / "backup"
+            backup.mkdir()
+            (backup / "equipe.dump").write_bytes(b"fake")
+            migrations = source / "database/migrations"
+            migrations.mkdir(parents=True)
+            for name in versions[-2:]:
+                (migrations / name).write_text("SELECT 1;")
+            with patch.object(trial, "start", return_value=None):
+                with patch.object(restore, "docker", return_value=""):
+                    with patch.object(restore, "json_query",
+                                      side_effect=lambda *args: next(responses)):
+                        report = trial.execute(backup, source, versions)
+        self.assertTrue(report["restore_verified"])
+        self.assertTrue(report["original_rowcounts_preserved"])
+        self.assertEqual(report["migration_ledger"], 33)
+        self.assertFalse(report["production_modified"])
+
     def test_cleanup_only_operates_on_owned_resources(self):
         trial = restore.Rehearsal()
         trial.created_container = True
