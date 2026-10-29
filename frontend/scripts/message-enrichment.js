@@ -51,6 +51,9 @@
           data: remoteDate(m.occurred_at),
           hora: remoteHour(m.occurred_at),
           remoteId: `${provider ? row.origin : "synthetic"}:${state.scope}:${m.id}`,
+          providerSentiment: provider && m.provider_analysis?.source === "automation"
+            ? m.provider_analysis.sentiment
+            : null,
         })),
       });
     }
