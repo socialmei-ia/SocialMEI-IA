@@ -84,14 +84,18 @@ class RestoreTrialTests(unittest.TestCase):
 
     def test_restore_requires_clean_reviewed_stage_and_exact_hash(self):
         _, name = self.fixtures()
-        source, names, sha = restore.stage_receipt(name)
-        self.assertEqual(len(names), 33)
-        self.assertTrue(sha.startswith("c19d44b6ef6b"))
-        self.assertTrue(source.is_dir())
-        target = source / "database/migrations" / restore.VERSION_033
-        target.write_text("DROP DATABASE live;")
-        with self.assertRaises(RuntimeError):
-            restore.stage_receipt(name)
+        sha = "c19d44b6ef6b8f125e6cafe60a7adfc0477cf454"
+        def fake_git(args, **kw):
+            return sha + "\n" if args[-1] == "HEAD" else ""
+        with patch.object(restore, "command", side_effect=fake_git):
+            source, names, actual = restore.stage_receipt(name)
+            self.assertEqual(len(names), 33)
+            self.assertEqual(actual, sha)
+            self.assertTrue(source.is_dir())
+            target = source / "database/migrations" / restore.VERSION_033
+            target.write_text("DROP DATABASE live;")
+            with self.assertRaises(RuntimeError):
+                restore.stage_receipt(name)
 
     def test_unsafe_temporary_container_is_rejected(self):
         name, volume, token = "socialmei-restore-a", "socialmei-restore-data-a", "a"
@@ -131,13 +135,13 @@ class RestoreTrialTests(unittest.TestCase):
              **{f"t{i}": 0 for i in range(10)}},
             [f"{i:03}_fixture.sql" for i in range(1, 32)] +
             [restore.VERSION_032, restore.VERSION_033],
-            {"crm_clientes": 3, "schema_migrations": 33,
+            {"crm_clientes": 4, "schema_migrations": 33,
              **{f"t{i}": 0 for i in range(10)},
              "wa_bot_access": 0, "wa_bot_conversations": 0,
              "me_provider_sentiment_jobs": 0},
         ])
-        # The ledger is intentionally expected to grow, unlike the user-data tables.
-        # A separate check below proves no mutation reaches the live database.
+        # Client cardinality changes are an error, unlike the expected ledger
+        # advance from 31 to 33. The live Team database must not be contacted.
         with tempfile.TemporaryDirectory() as t:
             source = Path(t)
             backup = source / "backup"
