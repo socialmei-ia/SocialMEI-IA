@@ -58,10 +58,11 @@ async function run(config) {
     assert.equal(await page.locator("#app").getAttribute("hidden"), null);
   }
   const api = (page, url, method = "GET", value) =>
-    page.evaluate(
-      async ({ url, method, value }) => SocialMEIAuth.request(url, method, value),
-      { url, method, value },
-    );
+    page.evaluate(async ({ url, method, value }) => SocialMEIAuth.request(url, method, value), {
+      url,
+      method,
+      value,
+    });
   async function review(page, extraOffer = false) {
     await page.locator("#oNeg").waitFor();
     await page.waitForFunction(() => document.getElementById("oNeg").value.length > 0);
@@ -74,8 +75,7 @@ async function run(config) {
       const extra = page.locator('[data-of="Manicure e pedicure"]');
       if ((await extra.getAttribute("aria-pressed")) !== "true") await extra.click();
     }
-    for (let step = 0; step < 3; step++)
-      await page.locator('[data-ob="prox"]').click();
+    for (let step = 0; step < 3; step++) await page.locator('[data-ob="prox"]').click();
     await page.locator('[data-ob="fim"]').waitFor();
   }
   async function register(page, email) {
@@ -92,7 +92,18 @@ async function run(config) {
     await ready(page);
   }
   async function edit(page) {
-    await page.goto(origin + "/frontend/entrada.html?setup=1#/comecar");
+    const loaded = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === "/api/v1/workspace-profile" &&
+        response.request().method() === "GET",
+    );
+    await page.goto(
+      origin + "/frontend/entrada.html?setup=1&qa78=" + randomUUID() + "#/comecar",
+    );
+    await loaded;
+    await page.locator("#obCard").waitFor();
+    if (!(await page.locator("#oNeg").isVisible()))
+      await page.locator('[data-ir="0"]').first().click();
     await review(page, true);
   }
   function profileResponse(response) {
@@ -144,7 +155,7 @@ async function run(config) {
     await a.screenshot({ path: path.join(output, "conflict-preserved.png"), fullPage: true });
     console.log("QA78: conflito 409 preserva a revisão do onboarding V22");
 
-    // Reload is an explicit discard of the stale proposal, not an automatic retry.
+    // Explicit reload gets the current revision; the user reviews before saving again.
     await edit(a);
     await a.route("**/api/v1/workspace-profile", (route) =>
       route.request().method() === "PATCH" ? route.abort("failed") : route.continue(),
@@ -171,10 +182,7 @@ async function run(config) {
     await ready(b);
     const reloaded = await api(b, "/workspace-profile");
     assert(reloaded.profile.services.includes("Manicure e pedicure"));
-    assert.equal(
-      await b.evaluate(() => S.biz.seg),
-      "Atualização da outra sessão",
-    );
+    assert.equal(await b.evaluate(() => S.biz.seg), "Atualização da outra sessão");
     console.log("QA78: falha de rede preservada; outra sessão lê perfil após recarga");
 
     await a.goto(origin + "/frontend/socialmei-app.html#/config/aparencia");
@@ -260,9 +268,7 @@ async function run(config) {
     for (const [index, context] of contexts.entries()) {
       const page = context.pages()[0];
       if (page)
-        await page
-          .screenshot({ path: path.join(output, `failure-${index}.png`) })
-          .catch(() => {});
+        await page.screenshot({ path: path.join(output, `failure-${index}.png`) }).catch(() => {});
     }
     throw error;
   } finally {
