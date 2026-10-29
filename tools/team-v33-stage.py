@@ -149,14 +149,10 @@ def trusted_remote(root):
 
 def ensure_git_object(root, sha):
     require(trusted_remote(root), "remote_nao_confiavel")
-    try:
-        present = git(root, "cat-file", "-t", sha).strip() == "commit"
-    except RuntimeError:
-        present = False
-    if not present:
-        # Updates refs/objects/FETCH_HEAD only. No checkout, stash or reset.
-        git(root, "fetch", "--no-tags", "origin",
-            "+" + RELEASE_REF + ":" + TRACKED_REF, timeout=90)
+    # Refresh the remote tracking ref for ancestry verification. Only Git
+    # metadata changes; the live checkout and its hotfixes remain untouched.
+    git(root, "fetch", "--no-tags", "origin",
+        "+" + RELEASE_REF + ":" + TRACKED_REF, timeout=90)
     require(git(root, "cat-file", "-t", sha).strip() == "commit", "sha_nao_disponivel")
     # The pinned object must belong to the intended upstream release lineage.
     git(root, "merge-base", "--is-ancestor", sha, TRACKED_REF)
