@@ -1,0 +1,89 @@
+name: Team v33 candidate images (off-VPS)
+
+on:
+  pull_request:
+    branches: [release/socialmei-functional-integrations-20261026]
+    paths:
+      - ".github/workflows/team-v33-candidate-images.yml"
+      - "tools/team-v33-runtime-audit.py"
+      - "tests/test_team_v33_runtime_audit.py"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feat/team-v33-runtime-image-audit-20261029'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CANDIDATE_SHA: c19d44b6ef6b8f125e6cafe60a7adfc0477cf454
+    steps:
+      - name: Checkout exact already-staged functional candidate
+        uses: actions/checkout@v4
+        with:
+          ref: c19d44b6ef6b8f125e6cafe60a7adfc0477cf454
+          persist-credentials: false
+      - name: Verify pinned source, migrator and images
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+          test -f python-service/Dockerfile
+          test -f deploy/team/Dockerfile
+          test -f frontend/socialmei-app.html
+          test -f database/migrations/033_provider_sentiment_jobs.sql
+          test "$(find database/migrations -maxdepth 1 -type f -name '*.sql' | wc -l)" -eq 33
+      - name: Build API image outside production VPS
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker build --pull --build-arg "SOCIALMEI_RELEASE_SHA=$CANDIDATE_SHA" \
+            --label "org.opencontainers.image.revision=$CANDIDATE_SHA" \
+            -t "socialmei-v33/team-api:$CANDIDATE_SHA" \
+            -f python-service/Dockerfile python-service
+      - name: Build frontend/gateway image outside production VPS
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker build --pull \
+            --label "org.opencontainers.image.revision=$CANDIDATE_SHA" \
+            -t "socialmei-v33/team-gateway:$CANDIDATE_SHA" \
+            -f deploy/team/Dockerfile .
+      - name: Record image identity and create offline archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p candidate-images
+          python3 - <<'PY'
+          import json, os, subprocess
+          sha = os.environ["CANDIDATE_SHA"]
+          result = {"source_sha": sha, "images": {}}
+          for service in ("team-api", "team-gateway"):
+              tag = f"socialmei-v33/{service}:{sha}"
+              image = json.loads(subprocess.check_output(
+                  ["docker", "image", "inspect", tag]))[0]
+              assert image["Config"]["Labels"].get(
+                  "org.opencontainers.image.revision") == sha
+              result["images"][service] = {
+                  "tag": tag, "image_id": image["Id"]
+              }
+          with open("candidate-images/image-receipt.json", "w") as f:
+              json.dump(result, f, indent=2)
+              f.write("\n")
+          PY
+          docker save \
+            "socialmei-v33/team-api:$CANDIDATE_SHA" \
+            "socialmei-v33/team-gateway:$CANDIDATE_SHA" \
+            | gzip -1 > candidate-images/images.tar.gz
+          test -s candidate-images/images.tar.gz
+          cd candidate-images
+          sha256sum images.tar.gz image-receipt.json > SHA256SUMS
+      - name: Upload image bundle without live credentials
+        uses: actions/upload-artifact@v4
+        with:
+          name: SocialMEI-Team-v33-c19d44b6ef6b
+          path: candidate-images/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
