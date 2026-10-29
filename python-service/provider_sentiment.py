@@ -24,7 +24,7 @@ MAX_BATCH = 10
 
 class ResultInput(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
-    claim_id: uuid.UUID
+    claim_id: str = Field(pattern=r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
     sentiment: Literal["positive", "negative", "neutral", "uncertain"]
     confidence: Literal["low", "medium", "high"]
     explanation: str = Field(min_length=1, max_length=500)
