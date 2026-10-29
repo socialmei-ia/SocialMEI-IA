@@ -12,7 +12,6 @@ from pathlib import Path
 import re
 import secrets
 import shutil
-import socket
 import stat
 import subprocess
 import time
@@ -159,7 +158,7 @@ def validate_trial(inspect, name, volume, label):
             and instance.get("Name") == "/" + name, "trial_identidade_invalida")
     require(host.get("NetworkMode") == "none"
             and not host.get("PortBindings")
-            and not (networks.get("Ports") or {}), "trial_rede_invalida")
+            and all(not v for v in (networks.get("Ports") or {}).values()), "trial_rede_invalida")
     require(any(m.get("Type") == "volume" and m.get("Name") == volume
                 and m.get("Destination") == "/var/lib/postgresql/data"
                 for m in mounts), "trial_volume_invalido")
@@ -197,7 +196,7 @@ class Rehearsal:
         self.created_volume = True
         self.assert_owned_volume()
         docker(
-            "run", "-d", "--pull", "never", "--name", self.name,
+            "create", "--name", self.name,
             "--label", LABEL + "=" + self.token,
             "--network", "none", "--memory", "512m", "--memory-swap", "512m",
             "--cpus", "1", "--pids-limit", "128", "--security-opt", "no-new-privileges",
@@ -210,13 +209,8 @@ class Rehearsal:
         )
         self.created_container = True
         self.assert_owned_container()
+        docker("start", self.name, timeout=25)
         for _ in range(80):
-            result = command(
-                ["docker", "--host=unix:///var/run/docker.sock", "exec", self.name,
-                 "pg_isready", "-h", "/var/run/postgresql", "-U", "restore_trial",
-                 "-d", "restore_trial"],
-                timeout=3,
-            ) if False else None
             # Poll without printing status or logs from the temporary server.
             try:
                 docker("exec", self.name, "pg_isready", "-h", "/var/run/postgresql",
