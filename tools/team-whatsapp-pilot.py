@@ -256,6 +256,8 @@ def main():
         raise Blocked("--prepare-channel exige --confirm TEAM-1")
     if not db["workspace_exists"] or db["channel_count"]:
         raise Blocked("Workspace inexistente ou canal WAHA ja cadastrado")
+    if db["manager_count"] < 1:
+        raise Blocked("Workspace da equipe ainda nao tem owner/admin; associe um responsavel antes de preparar")
     if (private / "waha-registry.json").exists():
         raise Blocked("Registry ja existe; revisao manual necessaria")
     # An inert row is reserved first: it cannot receive or send anything.
