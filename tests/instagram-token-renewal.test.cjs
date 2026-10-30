@@ -9,7 +9,7 @@ const script = fs.readFileSync(
   "utf8",
 );
 const start = script.indexOf("  async function renew() {");
-const end = script.indexOf("  function details(errorCode) {", start);
+const end = script.indexOf("  function details(", start);
 assert(start > 0 && end > start);
 const functionSource = script.slice(start, end);
 
