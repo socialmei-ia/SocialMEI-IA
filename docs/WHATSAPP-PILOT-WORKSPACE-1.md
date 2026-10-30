@@ -63,11 +63,8 @@ recuperação segura. Não copiar nem mostrar o registry.
    pela gestão autenticada antes de emitir credenciais.
 2. Anexar n8n/WAHA à rede privada `socialmei_team_automation` por Compose
    efetivo e revisado, preservando a rede/volumes/banco legados.
-   `docker network connect` improvisado não é implantação persistente.
-3. Homologar o encaminhamento de **corpo bruto e HMAC SHA512** do WAHA
-   para `/internal/waha/{instance}/webhook`. O n8n não pode serializar
-   novamente o JSON e fingir que a assinatura continua válida.
-4. Alterar e ativar flags isoladas somente após o receptor responder com
+   Usar `compose.team-n8n-bridge.yaml` para n8n e\n   `compose.team-waha-bridge.yaml` para WAHA, preservando os serviços atuais.\n   `docker network connect` improvisado não é implantação persistente.
+3. Preferir um **segundo webhook WAHA direto** pela rede privada para\n   `http://team-api:8000/internal/waha/{instance}/webhook`, mantendo\n   temporariamente o webhook n8n existente. Assim a assinatura HMAC SHA512\n   valida os bytes originais, sem reserialização pelo n8n. Antes da mudança,\n   conferir suporte a múltiplos webhooks e se alterar a sessão causa reinício.\n4. Alterar e ativar flags isoladas somente após o receptor responder com
    compromisso de gravação na Caixa Unificada e validação de negócio.
 5. Usar um único sender, com claim/recibo; verificar se o bot antigo ainda
    envia mensagens, preservar opção de atendimento humano. Não ativar
