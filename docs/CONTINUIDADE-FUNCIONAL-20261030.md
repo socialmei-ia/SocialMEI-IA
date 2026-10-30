@@ -13,7 +13,9 @@ Uma tela ou endpoint existente não é prova de funcionamento. Classificar separ
 3. **#161** (`feat/recovery-link-and-worker-readiness-20261030` → #160) — link HTTPS no fragmento, token removido do histórico, código manual mantido, testes de TLS e browser; configuração SMTP/worker permanece pendente.
 4. **#162** (`feat/whatsapp-catalog-honest-empty-20261030` → #161) — mensagens de catálogo sem produtos reais não inventam estoque, preços ou serviços; testes sintéticos.
 
-As branches estão empilhadas, portanto o mesmo arquivo deve ser alterado preferencialmente no topo da cadeia e os merges devem respeitar a ordem. **Não confundir commits em branches Draft com deploy em produção.** Conferir testes CI de cada HEAD; neste ciclo não houve CI verificado para #160–#162. Os novos testes não foram executados por acesso local/runner nesta sessão.
+5. **#163** (`feat/instagram-owner-token-renewal-20261030` → #162) — conexão Instagram passa a informar disponibilidade de renovação do token somente com runtime OAuth e flag explícita; responsáveis podem renovar pelo diálogo sem enviar Direct ou publicar conteúdo. Inclui testes sintéticos de permissão, método POST e falha do provedor.
+
+As branches estão empilhadas, portanto o mesmo arquivo deve ser alterado preferencialmente no topo da cadeia e os merges devem respeitar a ordem. **Não confundir commits em branches Draft com deploy em produção.** Conferir testes CI de cada HEAD; neste ciclo não houve CI verificado para #160–#163. Os novos testes unitários não foram executados por falta de runner local/CI nesta sessão. A sintaxe dos scripts JavaScript de entrada, integração WAHA/Meta e testes novos foi verificada em um parser JavaScript sem execução.
 
 ## Estado operacional conhecido e ações prioritárias
 
