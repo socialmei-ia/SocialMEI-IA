@@ -3,6 +3,15 @@
 (function () {
   "use strict";
 
+  // Read the one-use recovery token from the URL fragment and erase it from
+  // browser history before any UI, analytics, or navigation code runs.
+  var recoveryLinkToken = null;
+  if (location.hash.indexOf("#/recuperar/") === 0) {
+    var linkMatch = /^#\/recuperar\/([A-Za-z0-9_-]{43})$/.exec(location.hash);
+    if (linkMatch) recoveryLinkToken = linkMatch[1];
+    history.replaceState(history.state, "", location.pathname + location.search + "#/recuperar");
+  }
+
   var account = window.SocialMEIV22Account,
     remote = !!account && account.remote;
   var authSettled = !remote,
@@ -1028,6 +1037,13 @@
       button.after(hint);
     });
   }
+  if (remote && recoveryLinkToken) {
+    $("#rToken").value = recoveryLinkToken;
+    recoveryLinkToken = null;
+    rSet(3, false);
+    $("#rStatus").textContent = "Insira sua nova senha para concluir a recuperação.";
+  }
+
   async function requestRecovery() {
     if (recoveryBusy) return;
     var m = $("#rMail").value.trim();
