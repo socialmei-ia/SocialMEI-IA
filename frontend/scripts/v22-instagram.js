@@ -2,7 +2,7 @@
 (() => {
   const host = window.SocialMEIV22;
   if (!host?.remote || window.SocialMEIInstagram) return;
-  const state = { phase: "loading", oauth: false, incoming: false, connected: false };
+  const state = { phase: "loading", oauth: false, incoming: false, connected: false, renewAvailable: false };
   let pending = null,
     busy = false;
   const bound = new WeakSet(),
@@ -78,7 +78,10 @@
         event.preventDefault();
         event.stopImmediatePropagation();
         if (busy) return;
-        button.dataset.igAction === "connect" ? connect() : details();
+        if (button.dataset.igAction === "connect") connect();
+        else if (button.dataset.igAction === "renew") renew();
+        else if (button.dataset.igAction === "refresh") refresh().then(details);
+        else details();
       },
       true,
     );
@@ -123,10 +126,11 @@
           phase: "ready",
           oauth: ready.instagram.oauth_available,
           incoming: ready.instagram.incoming_available === true,
+          renewAvailable: ready.instagram.token_refresh_available === true,
           connected,
         });
       } catch {
-        Object.assign(state, { phase: "error", oauth: false, incoming: false, connected: false });
+        Object.assign(state, { phase: "error", oauth: false, incoming: false, connected: false, renewAvailable: false });
       } finally {
         pending = null;
         paintAll();
@@ -212,17 +216,49 @@
       paintAll();
     }
   }
+  async function renew() {
+    if (busy) return;
+    busy = true;
+    paintAll();
+    try {
+      await refresh();
+      if (!state.renewAvailable || !state.connected || state.phase !== "ready") {
+        details("IG_REFRESH_UNAVAILABLE");
+        return;
+      }
+      if (!["owner", "admin"].includes(host.identity?.papel)) {
+        details("IG_PERMISSION");
+        return;
+      }
+      const result = await host.request("/instagram/meta/connection/refresh-token", "POST", {});
+      if (result?.status !== "refreshed") throw Error("Unexpected renewal response");
+      await refresh();
+      details();
+      toast("Credencial do Instagram renovada. Confira a validade na conexão.");
+    } catch (error) {
+      const code =
+        Number.isInteger(error?.status) && error.status >= 400 && error.status <= 599
+          ? "HTTP " + error.status
+          : "IG_REFRESH";
+      details(code);
+    } finally {
+      busy = false;
+      paintAll();
+    }
+  }
   function details(errorCode) {
     const canConnect =
       state.phase === "ready" &&
       state.oauth &&
       !state.connected &&
       ["owner", "admin"].includes(host.identity?.papel);
+    const canRenew = state.connected && state.renewAvailable && state.phase === "ready" &&
+      ["owner", "admin"].includes(host.identity?.papel);
     info(
       "Conexão Instagram",
       `<p>${label()}</p><p>${description()}</p>${
         typeof errorCode === "string" && /^(HTTP [45][0-9]{2}|IG_[A-Z_]+)$/.test(errorCode)
-          ? '<p role="alert">Não foi possível iniciar a autorização. Confira a sessão e a configuração com o responsável.</p><p>Referência: ' +
+          ? '<p role="alert">Não foi possível concluir a operação. Confira a sessão e a configuração com o responsável.</p><p>Referência: ' +
             errorCode +
             "</p>"
           : ""
@@ -230,7 +266,9 @@
         canConnect
           ? '<button type="button" class="btn" data-ig-action="connect">Conectar Instagram</button>'
           : ""
-      }<button type="button" class="btn o" data-ig-action="refresh">Consultar novamente</button>`,
+      }${canRenew
+        ? '<button type="button" class="btn" data-ig-action="renew">Renovar credencial</button><p class="m sm">A renovação exige token válido emitido há pelo menos 24 horas. Não ativa publicações ou respostas.</p>'
+        : ""}<button type="button" class="btn o" data-ig-action="refresh">Consultar novamente</button>`,
     );
   }
   document.addEventListener(
@@ -252,6 +290,7 @@
   window.SocialMEIInstagram = {
     refresh,
     connect,
+    renew,
     authorization,
     get status() {
       return { ...state };
