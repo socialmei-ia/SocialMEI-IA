@@ -74,6 +74,97 @@ class PilotPrivateMountTests(unittest.TestCase):
         with self.assertRaises(mount.Blocked):
             mount.check_candidate(old, new, source)
 
+class SecretSeparationTests(unittest.TestCase):
+    def test_registry_is_outside_gateway_private_mount(self):
+        gateway = {'Mounts': [{'Type': 'bind', 'Source': '/home/ubuntu/socialmei-team/deploy/team/private'}]}
+        source = mount.private_source(gateway)
+        self.assertEqual(source, mount.BACKUPS / 'registry')
+        with self.assertRaises(mount.Blocked):
+            mount.private_source({'Mounts': [{'Type': 'bind', 'Source': '/var/lib'}]})
+
+
+class RuntimeSafetyTests(unittest.TestCase):
+    def test_docker_commands_always_select_local_daemon(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        with patch.object(mount.subprocess, 'run', return_value=SimpleNamespace(
+                returncode=0, stdout='safe')) as run:
+            self.assertEqual(mount.call(['docker', 'inspect', mount.API]), 'safe')
+        self.assertEqual(run.call_args.args[0], [
+            'docker', '--host=unix:///var/run/docker.sock', 'inspect', mount.API])
+
+    def test_network_environment_health_and_mount_drift_are_refused(self):
+        mutations = (
+            lambda row: row['NetworkSettings']['Networks'].update({'unexpected': {}}),
+            lambda row: row['Config']['Env'].append('SOCIALMEI_AUTH_ENABLED=false'),
+            lambda row: row['State']['Health'].update({'Status': 'unhealthy'}),
+            lambda row: row['Mounts'].append({'Type': 'bind', 'Source': '/tmp',
+                        'Destination': '/unexpected', 'RW': True}),
+        )
+        for mutate in mutations:
+            with self.subTest(mutation=mutate):
+                model, api = fixture()
+                mutate(api)
+                with self.assertRaises(mount.Blocked):
+                    mount.assert_current(api, model)
+
+    def test_rollback_is_checked_for_health_after_failed_cutover(self):
+        import io
+        import json
+        import tempfile
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            backup = root / 'backups'
+            backup.mkdir(mode=0o700)
+            original = root / mount.OVERRIDE
+            previous = json.dumps({'services': {'team-api': {'image': 'pin'}}}).encode()
+            original.write_bytes(previous)
+            model, api = fixture()
+            api['Image'] = 'sha256:' + 'a' * 64
+            def render(command, wd):
+                result = copy.deepcopy(model)
+                if any('.wa-candidate-' in part for part in command):
+                    result['services']['team-api']['volumes'] = [{
+                        'type': 'bind', 'source': str(backup / 'registry'),
+                        'target': mount.TARGET, 'read_only': True,
+                        'bind': {'create_host_path': False}}]
+                return result
+            original_stat = Path.stat
+            def stat_as_root(path, **kwargs):
+                result = original_stat(path, **kwargs)
+                if path == backup:
+                    import os
+                    fields = list(result)
+                    fields[4] = 0
+                    return os.stat_result(fields)
+                return result
+            def call(command, **kwargs):
+                if command[1:3] == ['image', 'inspect']:
+                    return json.dumps([{'Id': api['Image']}])
+                if command[1] == 'inspect':
+                    return '[{"Mounts": []}]'
+                return ''
+            with patch.object(mount, 'BACKUPS', backup), \
+                 patch.object(Path, 'stat', stat_as_root), \
+                 patch.object(mount.os, 'geteuid', return_value=0), \
+                 patch.object(mount, 'get_api', return_value=api), \
+                 patch.object(mount, 'invocation', return_value=(root, [original], original, ['docker', 'compose', '-f', str(original)])), \
+                 patch.object(mount, 'render', side_effect=render), \
+                 patch.object(mount, 'call', side_effect=call) as invoke, \
+                 patch.object(mount, 'healthy', side_effect=[False, True]) as healthy, \
+                 patch.object(mount, 'open', return_value=io.StringIO(), create=True), \
+                 patch.object(mount.fcntl, 'flock'), \
+                 patch.object(mount.sys, 'argv', ['mount.py', '--apply']), \
+                 patch('sys.stdout', new_callable=io.StringIO) as output:
+                with self.assertRaises(mount.Blocked) as failure:
+                    mount.main()
+            self.assertEqual(str(failure.exception), 'API nao ficou saudavel apos ajuste do volume')
+            self.assertEqual(original.read_bytes(), previous)
+            self.assertEqual(healthy.call_count, 2)
+            self.assertEqual(sum('up' in c.args[0] for c in invoke.call_args_list), 2)
+            self.assertIn('ROLLBACK_COMPOSE: APLICADO_E_SAUDE_CONFERIDA', output.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -29,7 +29,7 @@ class Blocked(Exception):
 
 def docker(*args, data=None, timeout=40):
     try:
-        p = subprocess.run(["docker", *args], input=data, capture_output=True,
+        p = subprocess.run(["docker", "--host=unix:///var/run/docker.sock", *args], input=data, capture_output=True,
                            text=True, timeout=timeout, check=False)
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise Blocked("Docker inacessivel: " + type(exc).__name__) from None
@@ -187,7 +187,7 @@ def private_dir(api, *, required=False):
             raise Blocked("Montagem privada ausente na API. Corrigir Compose efetivo e recriar somente a API, apos backup, antes de cadastrar o canal.")
         return None
     path = Path(mounts[0]["Source"])
-    if not path.is_dir() or path.is_symlink():
+    if mounts[0].get("RW") is not False or not path.is_dir() or path.is_symlink():
         raise Blocked("Diretorio privado ausente/invalido")
     if os.stat(path).st_mode & 0o077:
         raise Blocked("Diretorio privado deve ser inacessivel a grupo/outros")

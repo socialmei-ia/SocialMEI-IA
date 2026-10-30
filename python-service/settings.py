@@ -166,6 +166,27 @@ def waha_ingress_isolated_enabled() -> bool:
     )
 
 
+def waha_ingress_team_pilot_enabled() -> bool:
+    return (
+        os.getenv("SOCIALMEI_WAHA_INGRESS_MODE", "disabled").strip().lower() == "team-pilot"
+        and os.getenv("SOCIALMEI_WAHA_LAB_ENVIRONMENT", "").strip().lower() == "team-pilot"
+        and os.getenv("SOCIALMEI_WAHA_REGISTRY_FILE", "") == "/run/socialmei/private/waha-registry.json"
+        and shared_data_enabled()
+        and authentication_mode() == "enabled"
+    )
+
+
+def waha_ingress_enabled() -> bool:
+    return waha_ingress_isolated_enabled() or waha_ingress_team_pilot_enabled()
+
+
+def waha_inbox_enabled(workspace_id: int) -> bool:
+    return waha_ingress_isolated_enabled() or (
+        type(workspace_id) is int and workspace_id == 1
+        and waha_ingress_team_pilot_enabled()
+    )
+
+
 def instagram_runtime_enabled() -> bool:
     return (
         os.getenv("SOCIALMEI_INSTAGRAM_RUNTIME_MODE", "disabled").strip().lower() == "connect"

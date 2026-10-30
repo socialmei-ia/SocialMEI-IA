@@ -9,6 +9,7 @@ Read-only by default; --apply requires root. Never print config/env values.
 import argparse
 import copy
 import datetime
+import fcntl
 import json
 import os
 from pathlib import Path
@@ -32,6 +33,8 @@ class Blocked(Exception):
 
 def call(args, *, cwd=None, timeout=60):
     try:
+        if args and args[0] == 'docker':
+            args = ['docker', '--host=unix:///var/run/docker.sock', *args[1:]]
         result = subprocess.run(args, cwd=cwd, text=True, capture_output=True, timeout=timeout)
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise Blocked("Docker/Compose indisponivel: " + type(exc).__name__) from None
@@ -74,8 +77,23 @@ def invocation(api):
     return wd, files, original, cmd
 
 
+def private_source(gateway):
+    source = BACKUPS / 'registry'
+    for item in gateway.get('Mounts') or []:
+        if item.get('Type') == 'bind':
+            parent = Path(item['Source']).resolve()
+            if source.resolve().is_relative_to(parent):
+                raise Blocked('Segredo do piloto compartilharia montagem do gateway')
+    return source
+
+
 def render(cmd, wd):
-    return json.loads(call(cmd + ["config", "--format", "json"], cwd=wd))
+    model = json.loads(call(cmd + ["config", "--format", "json"], cwd=wd))
+    for service in model.get('services', {}).values():
+        for key, value in (service.get('environment') or {}).items():
+            if isinstance(value, str):
+                service['environment'][key] = value.replace('$$', '$')
+    return model
 
 
 def model_mounts(model):
@@ -169,6 +187,12 @@ def main():
     parser.add_argument("--apply", action="store_true",
                         help="Change private Compose file, recreate only Team API; rollback on error")
     args = parser.parse_args()
+    lock = None
+    if args.apply:
+        if os.geteuid() != 0:
+            raise Blocked('Aplicacao exige sudo')
+        lock = open('/run/lock/socialmei-whatsapp-mount.lock', 'a')
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     api = get_api()
     wd, files, original, command = invocation(api)
     model = render(command, wd)
@@ -184,9 +208,8 @@ def main():
         raise Blocked("Override nao configura a Team API")
     if service.get("volumes"):
         raise Blocked("Override ja define volumes: exige revisao manual")
-    source = wd / "deploy/team/private/whatsapp-pilot"
-    if not source.parent.is_dir():
-        raise Blocked("Pasta privada base nao existe")
+    gateway = json.loads(call(['docker', 'inspect', 'socialmei-team-team-gateway-1']))[0]
+    source = private_source(gateway)
     # Never share files used by gateway or expose a secret through existing mounts.
     new = copy.deepcopy(override)
     new["services"]["team-api"]["volumes"] = [{
@@ -215,6 +238,9 @@ def main():
         return
     if os.geteuid() != 0:
         raise Blocked("Aplicacao exige sudo para manter segredo HMAC root-owned")
+    BACKUPS.mkdir(mode=0o700, parents=True, exist_ok=True)
+    if BACKUPS.is_symlink() or BACKUPS.stat().st_uid != 0 or stat.S_IMODE(BACKUPS.stat().st_mode) != 0o700:
+        raise Blocked('Diretorio privado inseguro')
     if source.exists():
         if (not source.is_dir() or source.is_symlink()
                 or source.stat().st_uid != 0
@@ -230,12 +256,22 @@ def main():
     if backup.exists():
         raise Blocked("Backup ja existe")
     previous = original.read_bytes()
+    if json.loads(previous) != override:
+        raise Blocked('Override mudou durante preparacao')
     backup.touch(mode=0o600, exist_ok=False)
     os.chmod(backup, 0o600)
     backup.write_bytes(previous)
+    image_rows = json.loads(call(['docker', 'image', 'inspect', api['Config']['Image']]))
+    if len(image_rows) != 1 or image_rows[0]['Id'] != api['Image']:
+        raise Blocked('Tag da imagem nao corresponde a API em execucao')
     state = original.stat()
     # Recheck runtime immediately before applying to avoid stale candidate.
-    assert_current(get_api(), render(command, wd))
+    current = get_api()
+    assert_current(current, render(command, wd))
+    if current['Image'] != api['Image'] or sorted(current['Config']['Env']) != sorted(api['Config']['Env']):
+        raise Blocked('Runtime mudou durante preparacao')
+    if original.read_bytes() != previous:
+        raise Blocked('Override mudou antes da gravacao')
     replaced = False
     try:
         write_private(original, encoded, state)
@@ -245,6 +281,9 @@ def main():
         if not healthy():
             raise Blocked("API nao ficou saudavel apos ajuste do volume")
         live = get_api()
+        if (live['Image'] != api['Image'] or sorted(live['Config']['Env']) != sorted(api['Config']['Env'])
+                or set(live['NetworkSettings']['Networks']) != set(api['NetworkSettings']['Networks'])):
+            raise Blocked('Imagem, ambiente ou redes alterados')
         m = [x for x in (live.get("Mounts") or []) if x.get("Destination") == TARGET]
         if len(m) != 1 or m[0].get("RW") is not False or m[0].get("Source") != str(source):
             raise Blocked("Volume novo nao confirmado no runtime")
@@ -254,7 +293,9 @@ def main():
                 write_private(original, previous, state)
                 call(command + ["up", "-d", "--no-deps", "--no-build", "--pull",
                                 "never", "team-api"], cwd=wd, timeout=180)
-                print("ROLLBACK_COMPOSE: APLICADO")
+                if not healthy():
+                    raise Blocked('API sem saude apos rollback')
+                print("ROLLBACK_COMPOSE: APLICADO_E_SAUDE_CONFERIDA")
             except Exception:
                 print("ROLLBACK_COMPOSE: FALHOU; consultar backup root-owned em /var/lib/socialmei-wa-pilot")
         raise
