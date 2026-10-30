@@ -84,6 +84,33 @@ class SecretSeparationTests(unittest.TestCase):
 
 
 class RuntimeSafetyTests(unittest.TestCase):
+    def test_invocation_selects_last_private_api_overlay_in_compose_order(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            old = root / "older"
+            current = root / "current"
+            old.mkdir()
+            current.mkdir()
+            compose = root / "compose.team.yaml"
+            (root / ".env.team").write_text("", encoding="utf-8")
+            old_override = old / mount.OVERRIDE
+            current_override = current / mount.OVERRIDE
+            for path in (compose, old_override, current_override):
+                path.write_text("{}", encoding="utf-8")
+            api = {"Config": {"Labels": {
+                "com.docker.compose.project.working_dir": str(root),
+                "com.docker.compose.project.config_files": ",".join(map(str, (
+                    compose, old_override, current_override
+                ))),
+            }}}
+
+            _, files, selected, command = mount.invocation(api)
+
+            self.assertEqual(files, [compose, old_override, current_override])
+            self.assertEqual(selected, current_override.resolve())
+            self.assertIn(str(current_override.resolve()), command)
+
     def test_docker_commands_always_select_local_daemon(self):
         from types import SimpleNamespace
         from unittest.mock import patch
