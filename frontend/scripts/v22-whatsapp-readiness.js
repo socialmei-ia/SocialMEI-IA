@@ -28,9 +28,13 @@
       receiving = false;
     }
     const label =
-      phase === "loading" ? "Consultando…" :
-      phase === "error" ? "Estado não verificado" :
-      receiving ? "Recebimento configurado" : "Não configurado";
+      phase === "loading"
+        ? "Consultando…"
+        : phase === "error"
+          ? "Estado não verificado"
+          : receiving
+            ? "Recebimento configurado"
+            : "Não configurado";
 
     for (const row of document.querySelectorAll(".sw, #cg .cn")) {
       if (row.querySelector("b")?.textContent.trim() !== "WhatsApp") continue;
@@ -40,24 +44,31 @@
         badge.classList.remove("s-g", "s-ok", "c-ok", "c-mu", "c-er");
         badge.classList.add(
           badge.matches(".st2")
-            ? receiving && phase === "ready" ? "s-ok" : "s-g"
-            : receiving && phase === "ready" ? "c-ok" : "c-mu",
+            ? receiving && phase === "ready"
+              ? "s-ok"
+              : "s-g"
+            : receiving && phase === "ready"
+              ? "c-ok"
+              : "c-mu",
         );
-        badge.title = receiving && phase === "ready"
-          ? "Canal de recebimento registrado. Sessão WAHA e envio não verificados por esta tela."
-          : "Não foi possível confirmar um canal de recebimento autorizado.";
+        badge.title =
+          receiving && phase === "ready"
+            ? "Canal de recebimento registrado. Sessão WAHA e envio não verificados por esta tela."
+            : "Não foi possível confirmar um canal de recebimento autorizado.";
       }
       if (row.matches(".cn")) {
         const description = row.querySelector("p");
-        if (description) description.textContent =
-          receiving && phase === "ready"
-            ? "Recebimento cadastrado no servidor. A sessão atual e as respostas automáticas ainda precisam de verificação."
-            : "O recebimento real ainda não foi confirmado para este negócio.";
+        if (description)
+          description.textContent =
+            receiving && phase === "ready"
+              ? "Recebimento cadastrado no servidor. A sessão atual e as respostas automáticas ainda precisam de verificação."
+              : "O recebimento real ainda não foi confirmado para este negócio.";
       }
       const button = row.querySelector("button");
       if (button && button.disabled) {
         button.textContent = "Gerenciado pela equipe";
-        button.title = "A conexão WhatsApp depende de provisionamento seguro; este botão não inicia pareamento.";
+        button.title =
+          "A conexão WhatsApp depende de provisionamento seguro; este botão não inicia pareamento.";
       }
     }
   }
@@ -76,7 +87,8 @@
           typeof status?.configured !== "boolean" ||
           typeof status?.receiving_configured !== "boolean" ||
           status?.sending_available !== false
-        ) throw Error("WAHA readiness inválida");
+        )
+          throw Error("WAHA readiness inválida");
         if (scope() !== previousOwner) return;
         receiving = status.configured && status.receiving_configured;
         phase = "ready";

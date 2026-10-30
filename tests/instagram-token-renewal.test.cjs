@@ -27,12 +27,19 @@ function sandbox({ renewAvailable = true, connected = true, role = "owner", resp
     },
   };
   const ctx = {
-    state, host, busy: false,
+    state,
+    host,
+    busy: false,
     paintAll() {},
     async refresh() {},
-    details(code) { details.push(code); },
-    toast(message) { notices.push(message); },
-    Number, Error,
+    details(code) {
+      details.push(code);
+    },
+    toast(message) {
+      notices.push(message);
+    },
+    Number,
+    Error,
   };
   vm.createContext(ctx);
   vm.runInContext(functionSource, ctx);

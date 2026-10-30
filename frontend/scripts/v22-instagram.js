@@ -2,7 +2,13 @@
 (() => {
   const host = window.SocialMEIV22;
   if (!host?.remote || window.SocialMEIInstagram) return;
-  const state = { phase: "loading", oauth: false, incoming: false, connected: false, renewAvailable: false };
+  const state = {
+    phase: "loading",
+    oauth: false,
+    incoming: false,
+    connected: false,
+    renewAvailable: false,
+  };
   let pending = null,
     busy = false;
   const bound = new WeakSet(),
@@ -130,7 +136,13 @@
           connected,
         });
       } catch {
-        Object.assign(state, { phase: "error", oauth: false, incoming: false, connected: false, renewAvailable: false });
+        Object.assign(state, {
+          phase: "error",
+          oauth: false,
+          incoming: false,
+          connected: false,
+          renewAvailable: false,
+        });
       } finally {
         pending = null;
         paintAll();
@@ -252,7 +264,10 @@
       state.oauth &&
       !state.connected &&
       ["owner", "admin"].includes(host.identity?.papel);
-    const canRenew = state.connected && state.renewAvailable && state.phase === "ready" &&
+    const canRenew =
+      state.connected &&
+      state.renewAvailable &&
+      state.phase === "ready" &&
       ["owner", "admin"].includes(host.identity?.papel);
     info(
       "Conexão Instagram",
@@ -266,9 +281,11 @@
         canConnect
           ? '<button type="button" class="btn" data-ig-action="connect">Conectar Instagram</button>'
           : ""
-      }${canRenew
-        ? '<button type="button" class="btn" data-ig-action="renew">Renovar credencial</button><p class="m sm">A renovação exige token válido emitido há pelo menos 24 horas. Não ativa publicações ou respostas.</p>'
-        : ""}<button type="button" class="btn o" data-ig-action="refresh">Consultar novamente</button>`,
+      }${
+        canRenew
+          ? '<button type="button" class="btn" data-ig-action="renew">Renovar credencial</button><p class="m sm">A renovação exige token válido emitido há pelo menos 24 horas. Não ativa publicações ou respostas.</p>'
+          : ""
+      }<button type="button" class="btn o" data-ig-action="refresh">Consultar novamente</button>`,
     );
   }
   document.addEventListener(

@@ -36,8 +36,12 @@ function open(fragment, remote = true) {
       },
     },
     remote,
-    $(selector) { return fields[selector]; },
-    rSet(stage, focus) { stages.push([stage, focus]); },
+    $(selector) {
+      return fields[selector];
+    },
+    rSet(stage, focus) {
+      stages.push([stage, focus]);
+    },
   };
   vm.createContext(ctx);
   vm.runInContext(parse + "\n" + fill, ctx);

@@ -14,15 +14,27 @@ function browser(result) {
   const badge = {
     childNodes: [text],
     classList: {
-      add(...names) { names.forEach((name) => classes.add(name)); },
-      remove(...names) { names.forEach((name) => classes.delete(name)); },
+      add(...names) {
+        names.forEach((name) => classes.add(name));
+      },
+      remove(...names) {
+        names.forEach((name) => classes.delete(name));
+      },
     },
-    matches(selector) { return selector === ".st2"; },
-    ownerDocument: { createTextNode(value) { return { nodeType: 3, textContent: value }; } },
+    matches(selector) {
+      return selector === ".st2";
+    },
+    ownerDocument: {
+      createTextNode(value) {
+        return { nodeType: 3, textContent: value };
+      },
+    },
   };
   const button = { disabled: true, textContent: "Conectar" };
   const row = {
-    matches() { return false; },
+    matches() {
+      return false;
+    },
     querySelector(selector) {
       if (selector === "b") return { textContent: "WhatsApp" };
       if (selector === ".st2, .chip") return badge;
@@ -36,15 +48,25 @@ function browser(result) {
   const host = {
     remote: true,
     identity,
-    async request(route) { calls.push(route); if (result instanceof Error) throw result; return result; },
+    async request(route) {
+      calls.push(route);
+      if (result instanceof Error) throw result;
+      return result;
+    },
   };
   const window = {
     SocialMEIV22: host,
-    addEventListener(event, callback) { events[event] = callback; },
+    addEventListener(event, callback) {
+      events[event] = callback;
+    },
   };
   const context = {
     window,
-    document: { querySelectorAll() { return [row]; } },
+    document: {
+      querySelectorAll() {
+        return [row];
+      },
+    },
     location: { hash: "#/config/integracoes" },
     Node: { TEXT_NODE: 3 },
     render() {},
@@ -75,8 +97,14 @@ function browser(result) {
   assert.equal(unconfigured.classes.has("s-ok"), false);
 
   for (const response of [
-    { source: "server", whatsapp: { configured: true, receiving_configured: true, sending_available: true } },
-    { source: "local", whatsapp: { configured: true, receiving_configured: true, sending_available: false } },
+    {
+      source: "server",
+      whatsapp: { configured: true, receiving_configured: true, sending_available: true },
+    },
+    {
+      source: "local",
+      whatsapp: { configured: true, receiving_configured: true, sending_available: false },
+    },
     new Error("provider-secret"),
   ]) {
     const failure = browser(response);
