@@ -277,8 +277,7 @@
       "Conexão Instagram",
       `<p>${label()}</p><p>${description()}</p>${
         typeof errorCode === "string" && /^(HTTP [45][0-9]{2}|IG_[A-Z_]+)$/.test(errorCode)
-          ? '<p role="alert">' + failureText + '</p><p>Referência: ' + errorCode +
-            "</p>"
+          ? '<p role="alert">' + failureText + "</p><p>Referência: " + errorCode + "</p>"
           : ""
       }${
         canConnect
