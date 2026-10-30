@@ -512,6 +512,15 @@ def operate(sha, bundle, backup, db_backup, *, apply=False):
             "rollback_backup": backup.name, "database_backup": db_backup.name}
 
 
+def fresh_database_backup():
+    # The legacy backup chooses its destination from Path.home(). Keep the original operator identity.
+    output = run(["sudo", "-u", "ubuntu", "-H", "python3", str(ROOT / "tools/team-maintenance.py"), "backup"],
+                 cwd=ROOT, timeout=300).decode()
+    matches = set(re.findall(r"/home/ubuntu/socialmei-backups/(team-auto-[0-9]{8}-[0-9]{6}-[a-z0-9]+)", output))
+    require(len(matches) == 1, "backup_db_nao_identificado")
+    return BACKUPS / matches.pop()
+
+
 def prepare(sha, bundle):
     require(os.geteuid() == 0, "root_necessario")
     require(re.fullmatch(r"[0-9a-f]{40}", sha), "sha_invalido")
@@ -528,10 +537,7 @@ def prepare(sha, bundle):
     baseline_image_identity(api, gateway)
     validate_migrations_unchanged()
     require(shutil.disk_usage(PRIVATE).free >= 1024 ** 3, "espaco_de_backup_insuficiente")
-    output = run(["python3", str(ROOT / "tools/team-maintenance.py"), "backup"], cwd=ROOT, timeout=300).decode()
-    matches = set(re.findall(r"/home/ubuntu/socialmei-backups/(team-auto-[0-9]{8}-[0-9]{6}-[a-z0-9]+)", output))
-    require(len(matches) == 1, "backup_db_nao_identificado")
-    db_backup = BACKUPS / matches.pop()
+    db_backup = fresh_database_backup()
     receipt = json.loads((db_backup / "concluido.json").read_text())
     require({"equipe.dump", "configuracao.tar.gz", "conteudo.txt"} <= set(receipt.get("sha256", {})), "backup_db_incompleto")
     for name, value in receipt["sha256"].items():

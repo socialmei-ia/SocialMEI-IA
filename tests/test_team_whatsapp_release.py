@@ -87,3 +87,13 @@ class PilotReleaseTests(unittest.TestCase):
             m.restore_services(['docker', 'compose'], Path('synthetic'), list(m.SERVICES))
         self.assertEqual([call.args[0][-1] for call in run.call_args_list], ['team-api', 'team-gateway'])
         wait.assert_called_once_with('team-gateway')
+
+    def test_backup_runs_in_original_operator_home_and_rejects_other_locations(self):
+        m = self.module
+        name = 'team-auto-20261030-120000-synthetic'
+        with patch.object(m, 'run', return_value=('Backup: '+str(m.BACKUPS / name)).encode()) as run:
+            self.assertEqual(m.fresh_database_backup(), m.BACKUPS / name)
+        self.assertEqual(run.call_args.args[0][:5], ['sudo', '-u', 'ubuntu', '-H', 'python3'])
+        for output in (b'Backup: /root/socialmei-backups/' + name.encode(), b'no receipt'):
+            with patch.object(m, 'run', return_value=output), self.assertRaises(m.Blocked):
+                m.fresh_database_backup()
