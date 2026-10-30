@@ -1,6 +1,8 @@
 """Configuração da API. Lê o ambiente sem guardar ou registrar segredos."""
 
 import os
+import json
+import re
 from urllib.parse import quote
 
 ENABLED_VALUES = {"1", "true", "yes", "on"}
@@ -178,6 +180,22 @@ def waha_ingress_team_pilot_enabled() -> bool:
 
 def waha_ingress_enabled() -> bool:
     return waha_ingress_isolated_enabled() or waha_ingress_team_pilot_enabled()
+
+
+def whatsapp_bot_allowed_contacts():
+    """Unrestricted fixtures only in isolated mode; live pilot needs explicit contacts."""
+    if waha_ingress_isolated_enabled():
+        return None
+    try:
+        values = json.loads(os.getenv("SOCIALMEI_WHATSAPP_BOT_ALLOWED_CONTACTS", "[]"))
+    except (ValueError, TypeError):
+        return frozenset()
+    if (not isinstance(values, list) or len(values) > 20
+            or any(not isinstance(value, str) or not re.fullmatch(
+                r"(?:[0-9]{1,40}@c\.us|[A-Za-z0-9][A-Za-z0-9_.:-]{0,79}@lid)", value
+            ) for value in values)):
+        return frozenset()
+    return frozenset("waha:" + value for value in values)
 
 
 def waha_inbox_enabled(workspace_id: int) -> bool:

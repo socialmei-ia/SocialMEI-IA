@@ -17,6 +17,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from account_auth import require_enabled
 from database import connect
 from whatsapp_catalog import ChannelAccess, _TOKEN, issue_secret, product_view, require_owner, token_digest
+import settings
 
 router = APIRouter(tags=['WhatsApp conversation planning'])
 INTERNAL = '/internal/whatsapp/bot'
@@ -207,13 +208,62 @@ def revoke(channel_id: int):
 @router.post('/api/v1/whatsapp/bot/conversations/{conversation_id}/resume', status_code=204)
 def resume(conversation_id: int, payload: ChannelAccess):
     user = require_owner()
-    with connect() as conn:
+    with operation_database() as conn:
+        if conversation_channel(conn, user['workspace_id'], conversation_id) != payload.channel_id:
+            raise HTTPException(404, 'Canal não encontrado nesta conversa.')
         row = conn.execute("UPDATE socialmei.wa_bot_conversations SET state='menu',revision=revision+1,updated_at=NOW() "
                            "WHERE workspace_id=%s AND channel_id=%s AND conversation_id=%s RETURNING conversation_id",
                            (user['workspace_id'], payload.channel_id, conversation_id)).fetchone()
         if not row:
             raise HTTPException(404, 'Conversa não encontrada.')
         conn.execute("INSERT INTO socialmei.auth_auditoria(user_id,acao) VALUES(%s,'whatsapp_bot_resumed')", (user['id'],))
+
+
+def conversation_channel(conn, workspace, conversation_id):
+    rows = conn.execute(
+        "SELECT c.id AS channel_id FROM socialmei.crm_canais c "
+        "JOIN socialmei.me_conversations v ON v.workspace_id=c.workspace_id "
+        "AND v.account_ref='waha:' || c.identificador_conta "
+        "WHERE c.workspace_id=%s AND v.id=%s AND v.origin='waha' "
+        "AND c.provedor='waha' AND c.ativo AND c.ingress_provisioned "
+        "FOR SHARE OF c,v", (workspace, conversation_id),
+    ).fetchall()
+    if len(rows) != 1:
+        raise HTTPException(404, 'Conversa WhatsApp ativa não encontrada neste negócio.')
+    return rows[0]['channel_id']
+
+
+@router.get('/api/v1/whatsapp/bot/conversations/{conversation_id}/status')
+def conversation_status(conversation_id: int):
+    user = require_owner()
+    with operation_database() as conn:
+        workspace = user['workspace_id']
+        cid = conversation_channel(conn, workspace, conversation_id)
+        state = conn.execute("SELECT state FROM socialmei.wa_bot_conversations "
+                             "WHERE workspace_id=%s AND channel_id=%s AND conversation_id=%s",
+                             (workspace, cid, conversation_id)).fetchone()
+        claimed = conn.execute("SELECT EXISTS(SELECT 1 FROM socialmei.wa_bot_decisions "
+                               "WHERE workspace_id=%s AND channel_id=%s AND conversation_id=%s "
+                               "AND status='claimed') AS pending",
+                               (workspace, cid, conversation_id)).fetchone()['pending']
+    return {'channel_id': cid, 'state': state['state'] if state else 'menu',
+            'enabled': enabled(), 'claimed_in_flight': claimed}
+
+
+@router.post('/api/v1/whatsapp/bot/conversations/{conversation_id}/pause', status_code=204)
+def pause(conversation_id: int, payload: ChannelAccess):
+    user = require_owner()
+    with operation_database() as conn:
+        workspace = user['workspace_id']
+        cid = conversation_channel(conn, workspace, conversation_id)
+        if cid != payload.channel_id:
+            raise HTTPException(404, 'Canal não encontrado nesta conversa.')
+        # Same unique row/lock as prepare(), including pause before the first decision.
+        conn.execute("INSERT INTO socialmei.wa_bot_conversations(workspace_id,channel_id,conversation_id,state,revision) "
+                     "VALUES(%s,%s,%s,'human',1) ON CONFLICT(workspace_id,channel_id,conversation_id) "
+                     "DO UPDATE SET state='human',revision=wa_bot_conversations.revision+1,updated_at=NOW()",
+                     (workspace, cid, conversation_id))
+        conn.execute("INSERT INTO socialmei.auth_auditoria(user_id,acao) VALUES(%s,'whatsapp_bot_paused')", (user['id'],))
 
 
 @router.get('/api/v1/whatsapp/bot/conversations')
@@ -237,6 +287,31 @@ def history():
     return {'items': [{**view(row), 'provider_message_id': row['provider_message_id']} for row in rows]}
 
 
+@router.get(INTERNAL + '/sources')
+def sources(request: Request):
+    require_bot()
+    with operation_database() as conn:
+        channel = authorize(conn, request)
+        contacts = settings.whatsapp_bot_allowed_contacts()
+        rows = conn.execute(
+            "SELECT e.mensagem_externa_id AS external_message_id FROM socialmei.crm_eventos_canal e "
+            "JOIN socialmei.me_messages m ON m.workspace_id=e.workspace_id AND m.id=e.inbox_message_id "
+            "AND m.origin='waha' JOIN socialmei.me_conversations v "
+            "ON v.workspace_id=m.workspace_id AND v.id=m.conversation_id "
+            "LEFT JOIN socialmei.wa_bot_decisions d ON d.workspace_id=e.workspace_id "
+            "AND d.channel_id=e.canal_id AND d.source_message_id=m.id "
+            "WHERE e.workspace_id=%s AND e.canal_id=%s AND e.tipo='message' AND e.status='processado' "
+            "AND e.waha_account_snapshot=%s AND v.account_ref=%s "
+            "AND (%s OR v.contact_ref=ANY(%s)) "
+            "AND m.occurred_at>=NOW()-INTERVAL '15 minutes' AND m.occurred_at<=NOW()+INTERVAL '1 minute' "
+            "AND (d.id IS NULL OR (d.status='planned' AND d.created_at>NOW()-INTERVAL '2 minutes')) "
+            "ORDER BY m.occurred_at,m.id LIMIT 50",
+            (channel['workspace_id'], channel['channel_id'], channel['identificador_conta'],
+             'waha:' + channel['identificador_conta'], contacts is None, list(contacts or [])),
+        ).fetchall()
+    return {'sources': [{'instance': channel['instancia'], **row} for row in rows]}
+
+
 @router.post(INTERNAL + '/decisions')
 def prepare(payload: Source, request: Request):
     require_bot()
@@ -255,6 +330,9 @@ def prepare(payload: Source, request: Request):
         ).fetchone()
         if not message:
             raise HTTPException(404, 'Mensagem recebida não encontrada neste canal.')
+        contacts = settings.whatsapp_bot_allowed_contacts()
+        if contacts is not None and message['contact_ref'] not in contacts:
+            raise HTTPException(403, 'Contato não autorizado para este piloto.')
         conv = message['conversation_id']
         conn.execute("INSERT INTO socialmei.wa_bot_conversations(workspace_id,channel_id,conversation_id) VALUES(%s,%s,%s) "
                      "ON CONFLICT DO NOTHING", (workspace, cid, conv))
@@ -313,6 +391,8 @@ def claim(decision_id: UUID, payload: Strict, request: Request):
                              "WHERE s.workspace_id=%s AND s.channel_id=%s AND s.conversation_id=%s FOR SHARE OF s",
                              (channel['workspace_id'], channel['channel_id'], row['conversation_id'])).fetchone()
         permitted = row['status'] == 'planned' and row['created_at'] > datetime.now(timezone.utc) - timedelta(minutes=2) and row['state_revision'] == state['revision']
+        contacts = settings.whatsapp_bot_allowed_contacts()
+        permitted = permitted and (contacts is None or state['contact_ref'] in contacts)
         if not permitted:
             return {'operation_id': str(row['id']), 'dispatch_allowed': False, 'status': row['status']}
         conn.execute("UPDATE socialmei.wa_bot_decisions SET status='claimed',claimed_at=NOW() WHERE id=%s", (decision_id,))
