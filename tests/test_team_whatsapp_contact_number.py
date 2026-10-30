@@ -3,6 +3,8 @@ import copy
 import importlib.util
 from pathlib import Path
 import unittest
+import tempfile
+from unittest.mock import patch
 
 PATH = Path(__file__).resolve().parents[1] / 'tools/team-whatsapp-contact-number.py'
 
@@ -58,3 +60,26 @@ class ContactNumberTests(unittest.TestCase):
                            ('account_ref', 'waha:other@c.us'), ('contact_ref', 'waha:12345@c.us')]:
             b = self.binding(); b[key] = value
             with self.subTest(key=key), self.assertRaises(self.module.Blocked): self.module.validate_binding(b)
+
+    def runtime(self):
+        return {'State': {'Health': {'Status': 'healthy'}}, 'Config': {'Env': [
+            'SOCIALMEI_AUTH_ENABLED=true', 'SOCIALMEI_SHARED_DATA_ENABLED=true',
+            'SOCIALMEI_WAHA_INGRESS_MODE=team-pilot', 'SOCIALMEI_WAHA_LAB_ENVIRONMENT=team-pilot',
+            'SOCIALMEI_WAHA_REGISTRY_FILE=/run/socialmei/private/waha-registry.json',
+            'SOCIALMEI_WHATSAPP_BOT_ENABLED=false']}}
+
+    def test_personal_number_update_requires_authenticated_receive_only_pilot(self):
+        self.module.validate_runtime(self.runtime())
+        for value in ('SOCIALMEI_AUTH_ENABLED=false', 'SOCIALMEI_WAHA_LAB_ENVIRONMENT=disabled',
+                      'SOCIALMEI_WHATSAPP_BOT_ENABLED= true '):
+            api = self.runtime()
+            key = value.split('=', 1)[0]
+            api['Config']['Env'] = [x for x in api['Config']['Env'] if not x.startswith(key+'=')] + [value]
+            with self.subTest(key=key), self.assertRaises(self.module.Blocked): self.module.validate_runtime(api)
+
+    def test_private_snapshot_checksum_detects_tampering_before_rollback(self):
+        with tempfile.TemporaryDirectory() as folder, patch.object(self.module, 'ROOT', Path(folder)), patch.object(self.module, 'private'):
+            snapshot = self.module.save_snapshot(self.binding(), '+5511990001234', 'a'*40)
+            self.assertEqual(self.module.read_snapshot(snapshot)['before'], self.binding())
+            (snapshot/'snapshot.json').write_bytes(b'changed')
+            with self.assertRaises(self.module.Blocked): self.module.read_snapshot(snapshot)

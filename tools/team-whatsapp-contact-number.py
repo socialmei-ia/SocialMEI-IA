@@ -124,6 +124,17 @@ def needs_update(binding, phone):
     return True
 
 
+def validate_runtime(api):
+    env = dict(item.split('=', 1) for item in api['Config'].get('Env', []) if '=' in item)
+    require(api['State'].get('Health', {}).get('Status') == 'healthy'
+            and env.get('SOCIALMEI_AUTH_ENABLED', '').strip().lower() in {'1', 'true', 'yes', 'on'}
+            and env.get('SOCIALMEI_SHARED_DATA_ENABLED', '').lower() in {'1', 'true', 'yes', 'on'}
+            and env.get('SOCIALMEI_WAHA_INGRESS_MODE') == 'team-pilot'
+            and env.get('SOCIALMEI_WAHA_LAB_ENVIRONMENT') == 'team-pilot'
+            and env.get('SOCIALMEI_WAHA_REGISTRY_FILE') == '/run/socialmei/private/waha-registry.json'
+            and env.get('SOCIALMEI_WHATSAPP_BOT_ENABLED', 'false').strip().lower() != 'true', 'receive_only_runtime_required')
+
+
 def private(path, mode, directory=False):
     require(not path.is_symlink() and (path.is_dir() if directory else path.is_file()), 'private_path_invalid')
     info = path.stat()
@@ -165,10 +176,7 @@ def operate(args):
     git = subprocess.run(['git', '-C', str(source), 'status', '--porcelain=v1', '--untracked-files=all'], capture_output=True, timeout=15)
     require(git.returncode == 0 and not git.stdout.strip(), 'source_stage_modified')
     api = json.loads(docker('inspect', API))[0]
-    env = dict(item.split('=', 1) for item in api['Config'].get('Env', []) if '=' in item)
-    require(api['State'].get('Health', {}).get('Status') == 'healthy'
-            and env.get('SOCIALMEI_WAHA_INGRESS_MODE') == 'team-pilot'
-            and env.get('SOCIALMEI_WHATSAPP_BOT_ENABLED', 'false').strip().lower() != 'true', 'receive_only_runtime_required')
+    validate_runtime(api)
     if args.rollback:
         require(args.confirm == 'TEAM-1', 'explicit_confirmation_required')
         snap = read_snapshot(args.rollback)
@@ -186,6 +194,9 @@ def operate(args):
         return {'action': 'read_only' if not args.apply else 'already_identified',
                 'conversation_id': binding['id'], 'phone_verified': True, 'would_change': change, 'personal_identifiers_printed': False}
     require(args.confirm == 'TEAM-1', 'explicit_confirmation_required')
+    current_api = json.loads(docker('inspect', API))[0]
+    require(current_api['Id'] == api['Id'], 'api_changed_during_inspection')
+    validate_runtime(current_api)
     saved = save_snapshot(binding, phone, args.source_sha)
     result = database('apply', args.conversation_id, expected=binding, desired_name=phone)
     return {'action': 'verified_contact_number_displayed', 'conversation_id': result['id'], 'revision': result['revision'],
