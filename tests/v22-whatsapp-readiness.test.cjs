@@ -113,6 +113,25 @@ function browser(result) {
     assert.equal(failure.classes.has("s-ok"), false);
     assert(!failure.badge.title.includes("provider-secret"));
   }
+  const registeredOnly = browser({
+    source: "server",
+    whatsapp: { configured: false, receiving_configured: false, sending_available: false },
+  });
+  registeredOnly.text.textContent = "Canal cadastrado";
+  await registeredOnly.window.SocialMEIWhatsAppReadiness.refresh();
+  assert.equal(registeredOnly.text.textContent, "Canal cadastrado");
+  assert.equal(registeredOnly.classes.has("s-ok"), false);
+  assert(registeredOnly.badge.title.includes("não foi verificada"));
+
+  const registeredButUnverified = browser({
+    source: "local",
+    instagram: { oauth_available: false },
+  });
+  registeredButUnverified.text.textContent = "Canal cadastrado";
+  await registeredButUnverified.window.SocialMEIWhatsAppReadiness.refresh();
+  assert.equal(registeredButUnverified.text.textContent, "Canal cadastrado");
+  assert.equal(registeredButUnverified.classes.has("s-ok"), false);
+
   console.log("v22 WhatsApp readiness: synthetic UI checks passed");
 })().catch((error) => {
   console.error(error);
