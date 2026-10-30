@@ -55,7 +55,9 @@ def valid_stage():
     ).strip(), "source_modificado")
 
 
-def read_bundle(path):
+def read_bundle(path, expected_sha=EXPECTED_SHA):
+    require(re.fullmatch(r"[0-9a-f]{40}", str(expected_sha)) is not None,
+            "source_sha_invalido")
     require(not path.is_symlink(), "pacote_simbolico_proibido")
     path = path.resolve(strict=True)
     require(path.is_file() and
@@ -90,20 +92,22 @@ def read_bundle(path):
                 and all(hashes[name] == checksum for name, checksum in expected.items()),
                 "sha256_do_pacote_divergente")
         receipt = json.loads(archive.read("image-receipt.json"))
-        require(receipt.get("source_sha") == EXPECTED_SHA
+        require(receipt.get("source_sha") == expected_sha
                 and set(receipt.get("images", {})) == set(SERVICES),
                 "origem_das_imagens_divergente")
         for service in SERVICES:
             entry = receipt["images"][service]
             require(isinstance(entry, dict) and entry.get("tag") ==
-                    f"socialmei-v33/{service}:{EXPECTED_SHA}"
+                    f"socialmei-v33/{service}:{expected_sha}"
                     and re.fullmatch("sha256:[0-9a-f]{64}",
                                      str(entry.get("image_id", ""))),
                     "imagem_de_recibo_invalida")
     return receipt
 
 
-def local_image_status(receipt):
+def local_image_status(receipt, expected_sha=EXPECTED_SHA):
+    require(re.fullmatch(r"[0-9a-f]{40}", str(expected_sha)) is not None,
+            "source_sha_invalido")
     found = {}
     for service in SERVICES:
         details = receipt["images"][service]
@@ -114,19 +118,21 @@ def local_image_status(receipt):
             continue
         require(len(objects) == 1 and objects[0].get("Id") == details["image_id"]
                 and (objects[0].get("Config") or {}).get("Labels", {}).get(
-                    "org.opencontainers.image.revision") == EXPECTED_SHA,
+                    "org.opencontainers.image.revision") == expected_sha,
                 "tag_de_imagem_ja_existe_mas_diverge")
         found[service] = True
     return found
 
 
-def execute(bundle, *, apply=False):
+def execute(bundle, *, apply=False, expected_sha=EXPECTED_SHA):
+    require(re.fullmatch(r"[0-9a-f]{40}", str(expected_sha)) is not None,
+            "source_sha_invalido")
     valid_stage()
-    receipt = read_bundle(bundle)
-    before = local_image_status(receipt)
+    receipt = read_bundle(bundle, expected_sha=expected_sha)
+    before = local_image_status(receipt, expected_sha=expected_sha)
     report = {
         "mode": "image_archive_inspection" if not apply else "image_archive_import",
-        "candidate_sha": EXPECTED_SHA,
+        "candidate_sha": expected_sha,
         "bundle_sha256_verified": True,
         "image_identity_verified": True,
         "images_present_before": before,
@@ -157,7 +163,7 @@ def execute(bundle, *, apply=False):
                 shutil.copyfileobj(source, dest, 1024**2)
         image_file.chmod(0o600)
         docker("load", "-i", str(image_file), timeout=360)
-    after = local_image_status(receipt)
+    after = local_image_status(receipt, expected_sha=expected_sha)
     require(all(after.values()), "imagens_carregadas_mas_identidade_diverge")
     report["images_present_after"] = after
     report["action"] = "images_loaded_without_container_recreation"
@@ -168,13 +174,16 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--target", choices=["team"], required=True)
     parser.add_argument("--bundle", type=Path, required=True)
+    parser.add_argument("--source-sha", default=EXPECTED_SHA,
+                        help="Require this exact 40-character source commit from the receipt")
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--inspect", action="store_true")
     mode.add_argument("--apply", action="store_true")
     args = parser.parse_args()
     os.umask(0o077)
     try:
-        result = execute(args.bundle, apply=args.apply)
+        result = execute(args.bundle, apply=args.apply,
+                         expected_sha=args.source_sha)
     except Exception:
         print(json.dumps({
             "status": "stopped", "error": "falha_de_verificacao_ou_importacao",
