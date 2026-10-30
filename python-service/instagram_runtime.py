@@ -314,6 +314,9 @@ def readiness(request: Request):
         "instagram": {
             "configuration": runtime.status,
             "oauth_available": runtime.oauth is not None and schema_ready("oauth"),
+            "token_refresh_available": runtime.oauth is not None
+            and settings.instagram_token_refresh_enabled()
+            and schema_ready("oauth"),
             "incoming_available": runtime.ingress is not None
             and schema_ready("ingress"),
             "reply_preparation_available": runtime.direct is not None

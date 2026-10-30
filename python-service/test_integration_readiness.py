@@ -162,5 +162,42 @@ class WhatsappReadinessTests(unittest.TestCase):
         self.assertFalse(response["whatsapp"]["sending_available"])
 
 
+class InstagramRenewalReadinessTests(unittest.TestCase):
+    def test_renewal_requires_valid_oauth_runtime_schema_and_explicit_flag(self):
+        request = SimpleNamespace(
+            app=SimpleNamespace(
+                state=SimpleNamespace(
+                    instagram_runtime=InstagramRuntime("configured", oauth=object())
+                )
+            )
+        )
+        with patch("instagram_runtime.require_enabled"), patch(
+            "instagram_runtime.current", return_value={"workspace_id": 2}
+        ), patch(
+            "instagram_runtime.settings.waha_ingress_team_pilot_enabled",
+            return_value=False,
+        ), patch(
+            "instagram_runtime.schema_ready", return_value=True
+        ), patch(
+            "instagram_runtime.settings.instagram_token_refresh_enabled",
+            return_value=False,
+        ):
+            self.assertFalse(readiness(request)["instagram"]["token_refresh_available"])
+        with patch("instagram_runtime.require_enabled"), patch(
+            "instagram_runtime.current", return_value={"workspace_id": 2}
+        ), patch(
+            "instagram_runtime.settings.waha_ingress_team_pilot_enabled",
+            return_value=False,
+        ), patch(
+            "instagram_runtime.schema_ready", return_value=True
+        ), patch(
+            "instagram_runtime.settings.instagram_token_refresh_enabled",
+            return_value=True,
+        ):
+            self.assertTrue(readiness(request)["instagram"]["token_refresh_available"])
+            request.app.state.instagram_runtime = InstagramRuntime("configuration_invalid")
+            self.assertFalse(readiness(request)["instagram"]["token_refresh_available"])
+
+
 if __name__ == "__main__":
     unittest.main()
