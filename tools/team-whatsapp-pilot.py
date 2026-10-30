@@ -178,12 +178,14 @@ def database(operation, **fields):
         raise Blocked("API retornou formato inesperado") from None
 
 
-def private_dir(api):
+def private_dir(api, *, required=False):
     mounts = [m for m in api.get("Mounts", [])
               if m.get("Destination") == "/run/socialmei/private"
               and m.get("Type") == "bind"]
     if len(mounts) != 1:
-        raise Blocked("Mount privado da API nao encontrado")
+        if required:
+            raise Blocked("Montagem privada ausente na API. Corrigir Compose efetivo e recriar somente a API, apos backup, antes de cadastrar o canal.")
+        return None
     path = Path(mounts[0]["Source"])
     if not path.is_dir() or path.is_symlink():
         raise Blocked("Diretorio privado ausente/invalido")
@@ -233,7 +235,7 @@ def main():
     n8n = inspect(N8N)
     session = session_info(wa, a.number_suffix)
     db = database("inspect", workspace_id=a.workspace_id)
-    private = private_dir(api)
+    private = private_dir(api, required=a.prepare_channel)
     api_networks = set(api["NetworkSettings"].get("Networks", {}))
     n8n_networks = set(n8n["NetworkSettings"].get("Networks", {}))
     wa_networks = set(wa["NetworkSettings"].get("Networks", {}))
@@ -246,7 +248,9 @@ def main():
     print("WAHA_WORKING_E_NUMERO_VALIDADO: SIM")
     print("ENGINE_WEBJS: SIM")
     print("HMAC_NOVO: GERADO_APENAS_NO_PROVISIONAMENTO")
-    print("REGISTRY_EXISTENTE:", (private / "waha-registry.json").exists())
+    print("VOLUME_PRIVADO_API:", "MONTADO" if private else "AUSENTE")
+    print("REGISTRY_EXISTENTE:",
+          (private / "waha-registry.json").exists() if private else "NAO_VERIFICAVEL")
     print("REDE_API_N8N:", "CONECTADA" if shared_api_n8n else "PENDENTE")
     print("REDE_API_WAHA:", "CONECTADA" if shared_api_wa else "PENDENTE")
     print("WEBHOOK_ATUAL: TESTE_N8N")
