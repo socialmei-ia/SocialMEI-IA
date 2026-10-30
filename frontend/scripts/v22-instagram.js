@@ -235,11 +235,11 @@
     try {
       await refresh();
       if (!state.renewAvailable || !state.connected || state.phase !== "ready") {
-        details("IG_REFRESH_UNAVAILABLE");
+        details("IG_REFRESH_UNAVAILABLE", "renew");
         return;
       }
       if (!["owner", "admin"].includes(host.identity?.papel)) {
-        details("IG_PERMISSION");
+        details("IG_PERMISSION", "renew");
         return;
       }
       const result = await host.request("/instagram/meta/connection/refresh-token", "POST", {});
@@ -252,13 +252,13 @@
         Number.isInteger(error?.status) && error.status >= 400 && error.status <= 599
           ? "HTTP " + error.status
           : "IG_REFRESH";
-      details(code);
+      details(code, "renew");
     } finally {
       busy = false;
       paintAll();
     }
   }
-  function details(errorCode) {
+  function details(errorCode, operation) {
     const canConnect =
       state.phase === "ready" &&
       state.oauth &&
@@ -269,12 +269,15 @@
       state.renewAvailable &&
       state.phase === "ready" &&
       ["owner", "admin"].includes(host.identity?.papel);
+    const failureText =
+      operation === "renew"
+        ? "Não foi possível renovar a credencial. Confira a sessão e tente novamente."
+        : "Não foi possível iniciar a autorização. Confira a sessão e a configuração com o responsável.";
     info(
       "Conexão Instagram",
       `<p>${label()}</p><p>${description()}</p>${
         typeof errorCode === "string" && /^(HTTP [45][0-9]{2}|IG_[A-Z_]+)$/.test(errorCode)
-          ? '<p role="alert">Não foi possível concluir a operação. Confira a sessão e a configuração com o responsável.</p><p>Referência: ' +
-            errorCode +
+          ? '<p role="alert">' + failureText + '</p><p>Referência: ' + errorCode +
             "</p>"
           : ""
       }${
