@@ -152,10 +152,14 @@ def write_private(path, content, owner=None):
 
 
 def healthy():
-    for _ in range(18):
-        api = get_api()
-        if api.get("State", {}).get("Health", {}).get("Status") == "healthy":
-            return True
+    for _ in range(24):
+        try:
+            api = get_api()
+            if api.get("State", {}).get("Health", {}).get("Status") == "healthy":
+                return True
+        except Blocked:
+            # A short gap during container replacement is expected.
+            pass
         time.sleep(5)
     return False
 
@@ -242,7 +246,7 @@ def main():
             raise Blocked("API nao ficou saudavel apos ajuste do volume")
         live = get_api()
         m = [x for x in (live.get("Mounts") or []) if x.get("Destination") == TARGET]
-        if len(m) != 1 or not m[0].get("RW") is False or m[0].get("Source") != str(source):
+        if len(m) != 1 or m[0].get("RW") is not False or m[0].get("Source") != str(source):
             raise Blocked("Volume novo nao confirmado no runtime")
     except Exception:
         if replaced:
