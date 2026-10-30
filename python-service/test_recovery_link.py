@@ -27,7 +27,7 @@ class RecoveryLinkTests(unittest.TestCase):
         args, kwargs = tls.call_args
         self.assertEqual(args[:2], ("smtp.example.test", 465))
         self.assertIsNotNone(kwargs["context"])
-        smtp = tls.return_value.__enter__.return_value
+        smtp = tls.return_value
         smtp.send_message.assert_called_once()
         message = smtp.send_message.call_args.args[0]
         body = message.get_content()
@@ -47,7 +47,7 @@ class RecoveryLinkTests(unittest.TestCase):
             account_recovery.send_recovery_mail(
                 "owner@example.test", TOKEN, config
             )
-        server = smtp.return_value.__enter__.return_value
+        server = smtp.return_value
         server.starttls.assert_called_once()
         self.assertEqual(server.method_calls[0][0], "starttls")
         self.assertEqual(server.method_calls[1][0], "login")
