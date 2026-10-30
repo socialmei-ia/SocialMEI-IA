@@ -66,5 +66,6 @@ test("local demonstration does not use remote recovery links", () => {
   const result = open("#/recuperar/" + "T".repeat(43), false);
   assert.equal(result.location.hash, "#/recuperar");
   assert.equal(result.fields["#rToken"].value, "");
+  assert.equal(result.ctx.recoveryLinkToken, null);
   assert.equal(result.stages.length, 0);
 });
