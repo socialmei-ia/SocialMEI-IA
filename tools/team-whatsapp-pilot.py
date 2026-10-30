@@ -248,6 +248,16 @@ def main():
     print("WAHA_WORKING_E_NUMERO_VALIDADO: SIM")
     print("ENGINE_WEBJS: SIM")
     print("HMAC_NOVO: GERADO_APENAS_NO_PROVISIONAMENTO")
+    labels = (api.get("Config") or {}).get("Labels") or {}
+    compose_sources = labels.get("com.docker.compose.project.config_files", "")
+    compose_dir = labels.get("com.docker.compose.project.working_dir", "")
+    compose_names = [Path(item.strip()).name for item in compose_sources.split(",")
+                     if item.strip()]
+    print("COMPOSE_API_ARQUIVOS:", ",".join(compose_names) or "NAO_INFORMADO")
+    host_private = (Path(compose_dir) / "deploy/team/private") if compose_dir else None
+    print("DIRETORIO_PRIVADO_NO_COMPOSE:",
+          "PRESENTE" if host_private and host_private.is_dir()
+          else "AUSENTE_OU_INDEFINIDO")
     print("VOLUME_PRIVADO_API:", "MONTADO" if private else "AUSENTE")
     print("REGISTRY_EXISTENTE:",
           (private / "waha-registry.json").exists() if private else "NAO_VERIFICAVEL")
