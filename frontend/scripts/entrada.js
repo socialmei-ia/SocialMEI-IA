@@ -1044,6 +1044,9 @@
     $("#rStatus").textContent = "Insira sua nova senha para concluir a recuperação.";
   }
 
+  // No remote account exists in the browser-only demo.
+  if (!remote) recoveryLinkToken = null;
+
   async function requestRecovery() {
     if (recoveryBusy) return;
     var m = $("#rMail").value.trim();
