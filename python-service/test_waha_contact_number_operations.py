@@ -60,6 +60,16 @@ class ContactNumberDatabaseTests(unittest.TestCase):
             self.assertEqual(c.execute('SELECT count(*) FROM socialmei.me_messages WHERE workspace_id=1').fetchone()[0], 1)
             self.assertEqual(c.execute('SELECT count(*) FROM socialmei.crm_eventos_canal WHERE workspace_id=1').fetchone()[0], 1)
 
+    def test_candidates_exclude_identified_human_labels_and_inactive_channels(self):
+        self.assertEqual(self.operation('candidates'), [self.cid])
+        with self.db() as c:
+            c.execute('UPDATE socialmei.me_conversations SET contact_name=%s WHERE id=%s', ('Human label', self.cid))
+        self.assertEqual(self.operation('candidates'), [])
+        with self.db() as c:
+            c.execute('UPDATE socialmei.me_conversations SET contact_name=%s WHERE id=%s', (tool.GENERIC, self.cid))
+            c.execute('UPDATE socialmei.crm_canais SET ativo=false WHERE id=%s', (self.binding.channel_id,))
+        self.assertEqual(self.operation('candidates'), [])
+
     def test_concurrent_message_and_wrong_workspace_expectations_refuse_the_update(self):
         self.incoming()
         with self.assertRaises(ValueError):

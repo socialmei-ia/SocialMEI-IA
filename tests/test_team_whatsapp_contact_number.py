@@ -55,6 +55,13 @@ class ContactNumberTests(unittest.TestCase):
         b['contact_name'] = 'Human selected name'
         with self.assertRaises(self.module.Blocked): self.module.needs_update(b, '+5511990001234')
 
+    def test_phone_reference_uses_signed_ingress_identity_and_verified_session(self):
+        b = self.binding(); b['contact_ref'] = 'waha:5511990001234@c.us'
+        self.assertEqual(self.module.verified_phone(b, {'session': self.mapping()['session']}), '+5511990001234')
+        b['contact_ref'] = 'waha:9915976@c.us'
+        with self.assertRaises(self.module.Blocked):
+            self.module.verified_phone(b, {'session': self.mapping()['session']})
+
     def test_binding_is_restricted_to_existing_pilot_without_changing_account_or_contact(self):
         for key, value in [('workspace_id', 2), ('instance', 'other'), ('session', 'other'),
                            ('account_ref', 'waha:other@c.us'), ('contact_ref', 'waha:12345@c.us')]:

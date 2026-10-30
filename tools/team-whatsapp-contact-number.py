@@ -26,12 +26,19 @@ from psycopg.rows import dict_row
 
 def operate(data):
  op=data['operation']; cid=data['conversation_id']
- if op not in ('inspect','apply','rollback') or type(cid) is not int or cid<1: raise ValueError('operation')
+ if op not in ('inspect','apply','rollback','candidates'): raise ValueError('operation')
+ if op!='candidates' and (type(cid) is not int or cid<1): raise ValueError('operation')
  with connect() as c:
   c.row_factory=dict_row
   c.execute("SET LOCAL lock_timeout='3s'")
   c.execute("SET LOCAL statement_timeout='10s'")
-  if op=='inspect': c.execute('SET TRANSACTION READ ONLY')
+  if op in ('inspect','candidates'): c.execute('SET TRANSACTION READ ONLY')
+  if op=='candidates':
+   return [r['id'] for r in c.execute("SELECT v.id FROM socialmei.me_conversations v WHERE v.workspace_id=1 "
+    "AND v.origin='waha' AND v.contact_name='Contato do WhatsApp' AND EXISTS (SELECT 1 FROM socialmei.crm_canais c "
+    "WHERE c.workspace_id=v.workspace_id AND v.account_ref='waha:'||c.identificador_conta "
+    "AND c.provedor='waha' AND c.ativo AND c.ingress_provisioned AND c.instancia='socialmei-equipe-piloto' "
+    "AND c.sessao='01') ORDER BY v.id LIMIT 200").fetchall()]
   lock='' if op=='inspect' else ' FOR SHARE OF c FOR UPDATE OF v'
   rows=c.execute("SELECT v.id,v.workspace_id,v.account_ref,v.contact_ref,v.contact_name,v.revision,"
    "c.id AS channel_id,c.versao AS channel_revision,c.instancia AS instance,c.sessao AS session,c.identificador_conta AS account_id "
@@ -64,6 +71,7 @@ if(!key)throw Error('auth');
 const get=async path=>{const r=await fetch('http://127.0.0.1:3000'+path,{headers:{'X-Api-Key':key},signal:AbortSignal.timeout(10000)});if(!r.ok)throw Error('lookup');return await r.json()};
 const session=await get('/api/sessions/'+encodeURIComponent(b.session));
 const lid=b.contact_ref.replace(/^waha:/,'');
+if(lid.endsWith('@c.us')){process.stdout.write(JSON.stringify({session}));return;}
 const forward=await get('/api/'+encodeURIComponent(b.session)+'/lids/'+encodeURIComponent(lid));
 const reverse=typeof forward.pn==='string'?await get('/api/'+encodeURIComponent(b.session)+'/lids/pn/'+encodeURIComponent(forward.pn)):null;
 process.stdout.write(JSON.stringify({session,forward,reverse}));
@@ -95,7 +103,7 @@ def validate_binding(binding):
     require(binding.get('workspace_id') == 1 and binding.get('instance') == 'socialmei-equipe-piloto'
             and binding.get('session') == '01' and re.fullmatch(r'[0-9]+5976@c\.us', binding.get('account_id', ''))
             and binding.get('account_ref') == 'waha:' + binding['account_id']
-            and re.fullmatch(r'waha:[A-Za-z0-9][A-Za-z0-9_.:-]{0,79}@lid', binding.get('contact_ref', '')),
+            and re.fullmatch(r'waha:(?:[A-Za-z0-9][A-Za-z0-9_.:-]{0,79}@lid|[1-9][0-9]{6,14}@c\.us)', binding.get('contact_ref', '')),
             'pilot_binding_invalid')
 
 
@@ -109,6 +117,9 @@ def verified_phone(binding, mapping):
             'session_identity_not_verified')
     forward, reverse = mapping.get('forward') or {}, mapping.get('reverse') or {}
     lid = binding['contact_ref'].removeprefix('waha:')
+    if lid.endswith('@c.us'):
+        require(lid != binding['account_id'], 'own_account_not_contact')
+        return '+' + lid.removesuffix('@c.us')
     pn = forward.get('pn')
     require(isinstance(pn, str) and re.fullmatch(r'[1-9][0-9]{6,14}@c\.us', pn)
             and pn != binding['account_id'] and forward.get('lid') == lid
@@ -166,17 +177,26 @@ def read_snapshot(folder):
     return value
 
 
-def operate(args):
+def validate_source(source_sha):
     require(os.geteuid() == 0, 'root_required_for_private_snapshot')
     private(ROOT, 0o700, True)
     source = Path(__file__).resolve().parents[1]
     require(source.name == 'source' and source.parent.parent == Path('/home/ubuntu/socialmei-backups'), 'source_stage_invalid')
     git = subprocess.run(['git', '-C', str(source), 'rev-parse', 'HEAD'], capture_output=True, timeout=15)
-    require(git.returncode == 0 and git.stdout.decode().strip() == args.source_sha, 'source_sha_diverged')
+    require(re.fullmatch(r'[a-f0-9]{40}', source_sha) and git.returncode == 0 and git.stdout.decode().strip() == source_sha, 'source_sha_diverged')
     git = subprocess.run(['git', '-C', str(source), 'status', '--porcelain=v1', '--untracked-files=all'], capture_output=True, timeout=15)
     require(git.returncode == 0 and not git.stdout.strip(), 'source_stage_modified')
+
+
+def validate_source_runtime(source_sha):
+    validate_source(source_sha)
     api = json.loads(docker('inspect', API))[0]
     validate_runtime(api)
+    return api
+
+
+def operate(args):
+    api = validate_source_runtime(args.source_sha)
     if args.rollback:
         require(args.confirm == 'TEAM-1', 'explicit_confirmation_required')
         snap = read_snapshot(args.rollback)
