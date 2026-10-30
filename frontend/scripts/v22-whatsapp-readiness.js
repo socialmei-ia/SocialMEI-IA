@@ -39,7 +39,17 @@
     for (const row of document.querySelectorAll(".sw, #cg .cn")) {
       if (row.querySelector("b")?.textContent.trim() !== "WhatsApp") continue;
       const badge = row.querySelector(".st2, .chip");
-      setLabel(badge, label);
+      // The catalog panel can verify that a channel is registered without
+      // proving that the WAHA receiver is working. Preserve that narrower
+      // evidence when the separate readiness endpoint cannot be verified.
+      const catalogLabel = badge
+        ? [...badge.childNodes]
+            .filter((child) => child.nodeType === Node.TEXT_NODE)
+            .map((child) => child.textContent.trim())
+            .find((value) => value === "Canal cadastrado" || value === "Aguardando canal")
+        : null;
+      const preserveCatalogLabel = phase === "error" && !!catalogLabel;
+      if (!preserveCatalogLabel) setLabel(badge, label);
       if (badge) {
         badge.classList.remove("s-g", "s-ok", "c-ok", "c-mu", "c-er");
         badge.classList.add(
@@ -54,7 +64,9 @@
         badge.title =
           receiving && phase === "ready"
             ? "Canal de recebimento registrado. Sessão WAHA e envio não verificados por esta tela."
-            : "Não foi possível confirmar um canal de recebimento autorizado.";
+            : preserveCatalogLabel
+              ? "O cadastro do canal é conhecido; a recepção WAHA não foi verificada por esta consulta."
+              : "Não foi possível confirmar um canal de recebimento autorizado.";
       }
       if (row.matches(".cn")) {
         const description = row.querySelector("p");
