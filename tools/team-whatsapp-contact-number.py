@@ -143,7 +143,7 @@ def validate_runtime(api):
             and env.get('SOCIALMEI_WAHA_INGRESS_MODE') == 'team-pilot'
             and env.get('SOCIALMEI_WAHA_LAB_ENVIRONMENT') == 'team-pilot'
             and env.get('SOCIALMEI_WAHA_REGISTRY_FILE') == '/run/socialmei/private/waha-registry.json'
-            and env.get('SOCIALMEI_WHATSAPP_BOT_ENABLED', 'false').strip().lower() != 'true', 'receive_only_runtime_required')
+            and env.get('SOCIALMEI_WHATSAPP_BOT_ENABLED', 'false').strip().lower() in {'', '0', 'false', 'no', 'off'}, 'receive_only_runtime_required')
 
 
 def private(path, mode, directory=False):

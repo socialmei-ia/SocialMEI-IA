@@ -78,7 +78,9 @@ class ContactNumberTests(unittest.TestCase):
     def test_personal_number_update_requires_authenticated_receive_only_pilot(self):
         self.module.validate_runtime(self.runtime())
         for value in ('SOCIALMEI_AUTH_ENABLED=false', 'SOCIALMEI_WAHA_LAB_ENVIRONMENT=disabled',
-                      'SOCIALMEI_WHATSAPP_BOT_ENABLED= true '):
+                      'SOCIALMEI_WHATSAPP_BOT_ENABLED= true ', 'SOCIALMEI_WHATSAPP_BOT_ENABLED=1',
+                      'SOCIALMEI_WHATSAPP_BOT_ENABLED=yes', 'SOCIALMEI_WHATSAPP_BOT_ENABLED=on',
+                      'SOCIALMEI_WHATSAPP_BOT_ENABLED=unexpected'):
             api = self.runtime()
             key = value.split('=', 1)[0]
             api['Config']['Env'] = [x for x in api['Config']['Env'] if not x.startswith(key+'=')] + [value]
