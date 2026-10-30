@@ -66,10 +66,13 @@ def invocation(api):
     files = [p if p.is_absolute() else wd / p for p in sources]
     if not all(p.is_file() for p in files):
         raise Blocked("Arquivo Compose original nao encontrado")
-    choices = {str(p.resolve()) for p in files if p.name == OVERRIDE}
-    if len(choices) != 1:
-        raise Blocked("Override privado da API ambiguo ou ausente")
-    original = Path(next(iter(choices)))
+    choices = [p.resolve() for p in files if p.name == OVERRIDE]
+    if not choices:
+        raise Blocked("Override privado da API ausente")
+    # Compose applies files in order; the last matching private API overlay is
+    # the layer that can safely receive this additive mount. The rendered-model
+    # comparison below still refuses any other effective change.
+    original = choices[-1]
     # Keep the exact original list, including repeated private overlays.
     cmd = ["docker", "compose", "-p", "socialmei-team", "--env-file", str(wd / ".env.team")]
     for p in files:
