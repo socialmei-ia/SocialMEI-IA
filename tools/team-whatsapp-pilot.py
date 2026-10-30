@@ -10,6 +10,7 @@ import json
 import os
 from pathlib import Path
 import re
+import secrets
 import subprocess
 import sys
 from urllib.parse import quote, urlsplit
@@ -113,10 +114,10 @@ def session_info(waha, suffix):
               and "message" in (h.get("events") or [])]
     if len(active) != 1:
         raise Blocked("Esperado um webhook de teste WAHA com evento message")
-    secret = (active[0].get("hmac") or {}).get("key")
-    if not isinstance(secret, str) or not 32 <= len(secret.encode()) <= 4096:
-        raise Blocked("Segredo HMAC da sessao nao satisfaz o contrato do receptor")
-    return {"name": name, "account": identity, "hmac": secret,
+    # Existing n8n webhook secrets are unrelated and must not be copied to
+    # the future API webhook. A new independent secret is generated ONLY when
+    # the operator explicitly provisions a private registry.
+    return {"name": name, "account": identity,
             "hook_test": True, "engine": engine}
 
 
@@ -244,7 +245,7 @@ def main():
     print("CANAIS_WAHA_EXISTENTES:", db["channel_count"])
     print("WAHA_WORKING_E_NUMERO_VALIDADO: SIM")
     print("ENGINE_WEBJS: SIM")
-    print("HMAC_PRESENTE: SIM")
+    print("HMAC_NOVO: GERADO_APENAS_NO_PROVISIONAMENTO")
     print("REGISTRY_EXISTENTE:", (private / "waha-registry.json").exists())
     print("REDE_API_N8N:", "CONECTADA" if shared_api_n8n else "PENDENTE")
     print("REDE_API_WAHA:", "CONECTADA" if shared_api_wa else "PENDENTE")
@@ -263,9 +264,12 @@ def main():
     # An inert row is reserved first: it cannot receive or send anything.
     reserved = database("reserve", workspace_id=a.workspace_id, instance=ALIAS,
                         session=session["name"], account=session["account"])
+    # Independent HMAC secret for an additional direct WAHA-to-Team webhook.
+    # Never alter or reuse the existing n8n webhook configuration.
+    independent_hmac = secrets.token_urlsafe(48)
     binding = dict(instance=ALIAS, session=session["name"],
                    account_id=session["account"], workspace_id=a.workspace_id,
-                   channel_id=reserved["channel_id"], hmac_key=session["hmac"],
+                   channel_id=reserved["channel_id"], hmac_key=independent_hmac,
                    revision=reserved["revision"])
     try:
         registry_file(private, binding)
@@ -282,6 +286,8 @@ def main():
     print("CANAL_PILOTO_ID:", reserved["channel_id"])
     print("CANAL_REGISTRADO: SIM")
     print("REGISTRY_PRIVADO_CRIADO: SIM")
+    print("HMAC_INDEPENDENTE: GUARDADO_APENAS_NO_REGISTRY")
+    print("NOVO_WEBHOOK_HMAC: AINDA_NAO_CONFIGURADO")
     print("FLAGS_DA_API_MODIFICADAS: NAO")
     print("WORKFLOWS_WEBHOOKS_REDES_MODIFICADOS: NAO")
     print("MENSAGENS_ENVIADAS: 0")
