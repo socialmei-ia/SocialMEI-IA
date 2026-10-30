@@ -159,7 +159,15 @@ def answer(conn, workspace, state, text):
     return 'menu', {**result, 'action': 'services' if choice == '3' else 'availability' if query else 'products',
                     'items': items, 'choices': [], 'text': ('\n'.join(lines) +
                     '\n\nConfirme os detalhes antes de fechar o pedido. Digite 0 para o menu ou 5 para atendente.')
-                    if items else 'Não encontrei esse item no catálogo ativo. Digite 5 para atendente ou 0 para o menu.'}
+                    if items else (
+                        'Não encontrei um produto com esse nome no catálogo ativo. '
+                        'Digite 5 para falar com atendente ou 0 para o menu.'
+                        if query else
+                        ('Ainda não há serviços ativos disponíveis para consulta por aqui. '
+                         if choice == '3' else
+                         'Ainda não há produtos ativos disponíveis para consulta por aqui. ')
+                        + 'Digite 5 para falar com atendente ou 0 para o menu.'
+                    )}
 
 
 @router.post('/api/v1/whatsapp/bot/access')
