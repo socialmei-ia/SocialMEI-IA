@@ -7,22 +7,24 @@ on:
       - ".github/workflows/team-v33-candidate-images.yml"
       - "tools/team-v33-runtime-audit.py"
       - "tests/test_team_v33_runtime_audit.py"
+      - "tools/team-whatsapp-private-mount.py"
+      - "tests/test_team_whatsapp_private_mount.py"
 
 permissions:
   contents: read
 
 jobs:
   build:
-    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feat/team-v33-runtime-image-audit-20261029'
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
-      CANDIDATE_SHA: c19d44b6ef6b8f125e6cafe60a7adfc0477cf454
+      CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
     steps:
       - name: Checkout exact already-staged functional candidate
         uses: actions/checkout@v4
         with:
-          ref: c19d44b6ef6b8f125e6cafe60a7adfc0477cf454
+          ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
       - name: Verify pinned source, migrator and images
         shell: bash
@@ -82,7 +84,7 @@ jobs:
       - name: Upload image bundle without live credentials
         uses: actions/upload-artifact@v4
         with:
-          name: SocialMEI-Team-v33-c19d44b6ef6b
+          name: SocialMEI-Team-${{ github.event.pull_request.head.sha }}
           path: candidate-images/
           if-no-files-found: error
           retention-days: 14
