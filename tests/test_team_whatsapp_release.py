@@ -91,7 +91,7 @@ class PilotReleaseTests(unittest.TestCase):
     def test_backup_runs_in_original_operator_home_and_rejects_other_locations(self):
         m = self.module
         name = 'team-auto-20261030-120000-synthetic'
-        with patch.object(m, 'run', return_value=('Backup: '+str(m.BACKUPS / name)).encode()) as run:
+        with patch.object(m, 'run', return_value=('Backup: '+(m.BACKUPS / name).as_posix()).encode()) as run:
             self.assertEqual(m.fresh_database_backup(), m.BACKUPS / name)
         self.assertEqual(run.call_args.args[0][:5], ['sudo', '-u', 'ubuntu', '-H', 'python3'])
         for output in (b'Backup: /root/socialmei-backups/' + name.encode(), b'no receipt'):
