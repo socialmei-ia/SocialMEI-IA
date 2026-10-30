@@ -17,6 +17,14 @@ Uma tela ou endpoint existente não é prova de funcionamento. Classificar separ
 
 As branches estão empilhadas, portanto o mesmo arquivo deve ser alterado preferencialmente no topo da cadeia e os merges devem respeitar a ordem. **Não confundir commits em branches Draft com deploy em produção.** Conferir testes CI de cada HEAD; neste ciclo não houve CI verificado para #160–#163. Os novos testes unitários não foram executados por falta de runner local/CI nesta sessão. A sintaxe dos scripts JavaScript de entrada, integração WAHA/Meta e testes novos foi verificada em um parser JavaScript sem execução.
 
+## Verificações isoladas desta continuação
+
+- Os scripts `frontend/scripts/v22-instagram.js`, `frontend/scripts/v22-whatsapp-readiness.js`, `frontend/scripts/entrada.js` e os três testes JavaScript novos foram analisados pelo parser V8: sintaxe válida.
+- O método real de renovação do Instagram, extraído da branch via GitHub, passou **5 cenários sintéticos em V8**: responsável autorizado; flag desligada; viewer; conta desconectada; erro do provedor. Somente o cenário permitido acionou o POST.
+- O trecho real do link de recuperação passou **3 cenários sintéticos em V8**: token válido, token inválido e demonstração local. O fragmento foi limpo e apenas o modo remoto preencheu o código.
+- O controlador real de readiness WAHA passou **3 cenários sintéticos em V8**: canal registrado; não configurado; resposta de API inválida com envio habilitado. Não acionou envios.
+- **Limite:** estas verificações executaram funções/trechos com mocks sem servidor/browser completo. Testes Python, Node/Playwright completos e CI ainda **não** foram executados/confirmados neste ambiente; não são evidência de funcionamento AWS.
+
 ## Estado operacional conhecido e ações prioritárias
 
 | Área | Evidência anterior | Estado presente deste registro | Próxima ação verificável |
