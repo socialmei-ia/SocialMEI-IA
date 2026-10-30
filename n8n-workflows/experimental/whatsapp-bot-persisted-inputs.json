@@ -1,0 +1,93 @@
+{
+  "name": "SocialMEI - Referencias WhatsApp persistidas (piloto inativo)",
+  "active": false,
+  "nodes": [
+    {
+      "id": "schedule",
+      "name": "Consultar a cada 15 segundos",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0],
+      "parameters": { "rule": { "interval": [{ "field": "seconds", "secondsInterval": 15 }] } }
+    },
+    {
+      "id": "gate",
+      "name": "Piloto protegido",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0],
+      "parameters": {
+        "jsCode": "// Review the single responder, contact allowlist and credentials before enabling.\nconst ENABLED = false;\nconst PLANNER_WORKFLOW_ID = 'REVIEW_REQUIRED';\nif (!ENABLED) throw new Error('Piloto desativado.');\nif (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/.test(PLANNER_WORKFLOW_ID) || PLANNER_WORKFLOW_ID.startsWith('REVIEW_')) throw new Error('Configurar o planner revisado antes de consultar referencias.');\nreturn [{json:{planner_workflow_id:PLANNER_WORKFLOW_ID}}];"
+      }
+    },
+    {
+      "id": "sources",
+      "name": "Consultar referencias persistidas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 0],
+      "parameters": {
+        "method": "GET",
+        "url": "http://team-api:8000/internal/whatsapp/bot/sources",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": { "timeout": 10000 }
+      },
+      "retryOnFail": false
+    },
+    {
+      "id": "references",
+      "name": "Separar referencias",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 0],
+      "parameters": {
+        "jsCode": "const sources = $json.sources;\nif (!Array.isArray(sources) || sources.length > 50) throw new Error('Referencias persistidas invalidas.');\nconst seen = new Set();\nconst items = [];\nfor (const row of sources) {\n  if (!row || typeof row !== 'object' || Array.isArray(row) || Object.keys(row).sort().join(',') !== 'external_message_id,instance' || typeof row.instance !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$/.test(row.instance) || typeof row.external_message_id !== 'string' || !/^[!-~]{1,1024}$/.test(row.external_message_id)) throw new Error('Referencia persistida invalida.');\n  const key = JSON.stringify([row.instance,row.external_message_id]);\n  if (seen.has(key)) continue;\n  seen.add(key);\n  items.push({json:{instance:row.instance,external_message_id:row.external_message_id}});\n}\nreturn items;"
+      }
+    },
+    {
+      "id": "planner",
+      "name": "Executar planner uma mensagem",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [880, 0],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "={{ $('Piloto protegido').first().json.planner_workflow_id }}",
+          "mode": "id"
+        },
+        "mode": "each",
+        "options": { "waitForSubWorkflow": true }
+      },
+      "retryOnFail": false,
+      "notes": "One reference per child execution; wait for completion. Schema verified against official n8n ExecuteWorkflow node and GenericFunctions source. The child trigger must accept all data. Never retry claimed or uncertain sends."
+    }
+  ],
+  "connections": {
+    "Consultar a cada 15 segundos": {
+      "main": [[{ "node": "Piloto protegido", "type": "main", "index": 0 }]]
+    },
+    "Piloto protegido": {
+      "main": [[{ "node": "Consultar referencias persistidas", "type": "main", "index": 0 }]]
+    },
+    "Consultar referencias persistidas": {
+      "main": [[{ "node": "Separar referencias", "type": "main", "index": 0 }]]
+    },
+    "Separar referencias": {
+      "main": [[{ "node": "Executar planner uma mensagem", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "none",
+    "saveManualExecutions": false,
+    "saveExecutionProgress": false,
+    "executionTimeout": 180,
+    "timezone": "America/Fortaleza"
+  },
+  "pinData": {},
+  "tags": []
+}
