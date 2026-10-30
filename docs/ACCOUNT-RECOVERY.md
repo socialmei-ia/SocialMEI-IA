@@ -1,6 +1,6 @@
 # Recuperação de conta por e-mail
 
-Implementação opcional na candidata #111. Não instalada na AWS e nenhum e-mail real enviado nesta rodada.
+Implementação opcional iniciada na candidata #111, ampliada na PR de recuperação por link de 30/10/2026. A validação em AWS e o envio real continuam pendentes até configurar SMTP e worker.
 
 ## Fluxo
 
@@ -11,6 +11,14 @@ POST `/api/v1/auth/recovery/request`: `{email}`; resposta202 genérica para cont
 Código aleatório de256bits,15 minutos, somente hash em PostgreSQL, um por conta, uso único transacional. Nova solicitação substitui o anterior; somente o código mais recente vale. Troca normal de senha também invalida códigos anteriores. A confirmação revoga todas as sessões da conta, preservando outras contas/negócios. Política Argon2id,8–128 caracteres e bloqueio de senhas extremamente comuns preservados. Senhas curtas aceitas recebem aviso no frontend.
 
 Limites persistentes por e-mail/par socket e limite global. Cabeçalhos X-Forwarded-For não são confiados. Atrás de proxy, o limite por peer pode ser compartilhado pelos usuários e requer homologação de capacidade, sem passar a confiar em cabeçalhos arbitrários.
+
+## Link de redefinição (30/10/2026)
+
+O e-mail agora oferece **link HTTPS de uso único** para `/frontend/entrada.html#/recuperar/{token}` e preserva o código manual como alternativa para leitores de e-mail que não abrem fragmentos. A origem vem exclusivamente da configuração HTTPS validada do backend. O token não é enviado em query string, path HTTP ou logs do servidor: o fragmento só chega ao navegador.
+
+Ao abrir a página, `entrada.js` captura o token com formato exato de 43 caracteres, substitui o fragmento no histórico **antes do restante da interface** e preenche o campo de confirmação apenas no modo remoto. Um fragmento malformado é eliminado e não gera tentativa automática. A página solicita uma nova senha; **não** redefine a senha automaticamente, não autentica o usuário e não envia o token a terceiros. A segurança de 15 minutos, utilização única, última solicitação válida e revogação de sessões permanece no servidor.
+
+**Ainda não é recurso ativo em produção:** além de publicar API e frontend em uma mesma release, configurar SMTP privado e instalar/agendar `python-service/recovery_worker.py --run --limit 10` em ambiente autorizado. Confirmar com destinatário de teste sob controle e sem registrar o código em logs. Não habilitar recuperação se a fila não estiver sendo consumida, pois o endpoint retornaria 202 sem entregar o e-mail.
 
 ## Configuração Gmail/SMTP
 
