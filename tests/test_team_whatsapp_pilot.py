@@ -92,12 +92,39 @@ class PilotTests(unittest.TestCase):
                 ["inspect", "reserve", "finalize"]
             )
             self.assertIn("MENSAGENS_ENVIADAS: 0", stdout.getvalue())
-            self.assertNotIn(sess["hmac"], stdout.getvalue())
+            self.assertNotIn("558192475976@c.us", stdout.getvalue())
             registry = json.loads((Path(d) / "waha-registry.json").read_text())
             binding = registry["bindings"][0]
             self.assertEqual(binding["channel_id"], 22)
             self.assertGreaterEqual(len(binding["hmac_key"].encode()), 32)
             self.assertNotIn(binding["hmac_key"], stdout.getvalue())
+
+    def test_missing_mount_is_reported_in_readonly_mode(self):
+        with tempfile.TemporaryDirectory() as d:
+            ins, sess, db = self.mocked(Path(d))
+            with patch.object(pilot, "inspect", side_effect=ins), \
+                 patch.object(pilot, "session_info", return_value=sess), \
+                 patch.object(pilot, "database", side_effect=db) as dbmock, \
+                 patch.object(pilot, "private_dir", return_value=None), \
+                 patch.object(sys, "argv", ["script"]), \
+                 contextlib.redirect_stdout(io.StringIO()) as stdout:
+                pilot.main()
+            self.assertIn("VOLUME_PRIVADO_API: AUSENTE", stdout.getvalue())
+            self.assertIn("MODO: LEITURA", stdout.getvalue())
+            self.assertEqual([call.args[0] for call in dbmock.call_args_list], ["inspect"])
+
+    def test_missing_mount_blocks_prepare_before_db_write(self):
+        with tempfile.TemporaryDirectory() as d:
+            ins, sess, db = self.mocked(Path(d))
+            with patch.object(pilot, "inspect", side_effect=ins), \
+                 patch.object(pilot, "session_info", return_value=sess), \
+                 patch.object(pilot, "database", side_effect=db) as dbmock, \
+                 patch.object(pilot, "private_dir", side_effect=pilot.Blocked("sem mount")), \
+                 patch.object(sys, "argv", ["script", "--prepare-channel",
+                                            "--confirm", "TEAM-1"]):
+                with self.assertRaises(pilot.Blocked):
+                    pilot.main()
+            self.assertEqual([call.args[0] for call in dbmock.call_args_list], ["inspect"])
 
     def test_prepare_requires_exact_confirmation(self):
         with tempfile.TemporaryDirectory() as d:
