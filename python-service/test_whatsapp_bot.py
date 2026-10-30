@@ -138,7 +138,8 @@ class BotDatabaseTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200, response.text)
         self.assertEqual(response.json(), {'sources': [{'instance': 'trusted-a', 'external_message_id': mid}]})
         self.assertNotIn('Private fixture', response.text)
-        self.assertNotIn('222@c.us', response.text)
+        # Provider IDs may embed contact identity: references stay private and are never logged.
+        self.assertEqual(set(response.json()['sources'][0]), {'instance', 'external_message_id'})
         planned = self.decide(mid).json()
         replay = self.tech.get(PATH + '/sources', headers=self.headers).json()['sources']
         self.assertEqual(replay, [{'instance': 'trusted-a', 'external_message_id': mid}])

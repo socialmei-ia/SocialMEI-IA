@@ -74,3 +74,34 @@ JSON com até 20 contatos expressamente autorizados. Ausência, lista vazia ou
 valor inválido bloqueiam planejamento e claims para todos os contatos; ingressos
 continuam sendo persistidos. A autorização é conferida novamente no claim.
 Não preencher com contatos presumidos nem ativar o sender antes da homologação.
+
+## Atualização da API mantendo o piloto de recebimento
+
+`tools/team-whatsapp-release.py` é o perfil específico para atualizar a instalação
+`f836e2a` já em modo `team-pilot`. Os publicadores de ingressos desligados continuam
+recusando esse runtime. Este perfil exige um checkout Git limpo da candidata em
+`/home/ubuntu/socialmei-backups/ETAPA/source`, importador irmão do mesmo commit,
+imagens compiladas e verificadas no CI, ambiente autenticado, bot/provedores sem
+envio e o registry montado somente leitura.
+
+Com `--sha SHA --bundle PACOTE --prepare`, cria backup fresco do banco e configuração,
+snapshot privado do override efetivo e runtime, registry e configuração WAHA e
+arquivo das duas imagens antigas por tags exatas. Compara a identidade das tags
+ao runtime e verifica os bytes exportados reutilizando o importador. As cópias e
+hashes dos arquivos grandes usam streaming para limitar memória na VPS.
+
+`--inspect` e `--apply` exigem os caminhos `--backup` e `--db-backup` retornados na
+preparação. O diff resolvido aceita somente as duas imagens e o SHA de release,
+preservando as flags já existentes do piloto. Redes, volumes, configuração e
+segurança precisam corresponder ao runtime. Não executa migrations, builds ou
+atualizações dos serviços dependentes.
+
+Falha durante o corte restaura o override anterior e tenta recuperar **todos** os
+serviços afetados, mesmo se um deles falhar. Confere saúde, segurança e arquivos
+servidos contra os hashes capturados antes do corte. O snapshot preserva o dump,
+mas a recuperação de código não restaura o banco. Se a recuperação não ficar
+saudável, a ferramenta relata falha e preserva os arquivos para conciliação.
+
+As referências WAHA podem conter a identidade do contato dentro do ID do provedor;
+devem permanecer privadas, com histórico de execução desabilitado e sem logs de
+payload. O poller não aceita texto ou destino escolhidos pelo caller.
