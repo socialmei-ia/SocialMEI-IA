@@ -40,8 +40,11 @@ WAHA, não entrega ou leitura. Não compartilhar registry, .env, QR ou dumps.
 
 ## Recebimento isolado e atendimento humano
 
-`tools/team-whatsapp-persistence-only.py` inspeciona a sessão sem imprimir URLs,
-telefone ou chaves. Com `--apply --confirm TEAM-1 --expected-config-sha256 HASH`,
+`tools/team-whatsapp-persistence-only.py --legacy-backup DIRETORIO_PRIVADO` inspeciona
+a sessão sem imprimir URLs, telefone ou chaves. O backup original deve conter
+`waha-session.before.json` e seu checksum em `SHA256SUMS.private.json`, ambos
+verificados antes de comparar o destino legado exato. Com
+`--apply --confirm TEAM-1 --expected-config-sha256 HASH`,
 retira somente o webhook legado e preserva o webhook HMAC direto. Exige a API
 saudável com bot desligado e o hash exato da configuração inspecionada. Salva
 snapshot privado com checksum e restaura em caso de falha de configuração/saúde.

@@ -36,7 +36,7 @@ def config_digest(config):
     return hashlib.sha256(json.dumps(config, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
 
 
-def persistence_config(config, binding):
+def persistence_config(config, binding, legacy_hooks=None):
     """Validate both destinations and return only the already configured signed hook."""
     require(isinstance(config, dict), 'session_config_invalid')
     hooks = config.get('webhooks')
@@ -47,6 +47,9 @@ def persistence_config(config, binding):
     require(direct[0].get('events') == ['message']
             and (direct[0].get('hmac') or {}).get('key') == binding['hmac_key'], 'signed_hook_diverged')
     legacy = [h for h in hooks if h is not direct[0]]
+    if legacy:
+        require(isinstance(legacy_hooks, list) and len(legacy_hooks) == 1
+                and legacy == legacy_hooks, 'legacy_hook_differs_from_verified_backup')
     for hook in legacy:
         require(isinstance(hook, dict), 'legacy_hook_invalid')
         path = urlsplit(str(hook.get('url', ''))).path
@@ -104,6 +107,21 @@ def load_snapshot(folder):
     return json.loads(data)
 
 
+def load_legacy(folder):
+    require(folder.parent == ROOT, 'legacy_backup_outside_private_root')
+    private(folder, 0o700, directory=True)
+    name = 'waha-session.before.json'
+    private(folder / name, 0o600)
+    private(folder / 'SHA256SUMS.private.json', 0o600)
+    sums = json.loads((folder / 'SHA256SUMS.private.json').read_text())
+    data = (folder / name).read_bytes()
+    require(hashlib.sha256(data).hexdigest() == sums.get(name), 'legacy_backup_digest_mismatch')
+    before = json.loads(data)
+    hooks = (before.get('config') or {}).get('webhooks')
+    require(isinstance(hooks, list) and len(hooks) == 1, 'legacy_backup_ambiguous')
+    return before
+
+
 def operate(args):
     require(os.geteuid() == 0, 'root_required_for_private_inspection')
     private(ROOT, 0o700, directory=True)
@@ -118,8 +136,12 @@ def operate(args):
     api, waha = inspect(API), inspect(WAHA)
     require(api['State'].get('Health', {}).get('Status') == 'healthy', 'api_not_healthy')
     api_env = dict(x.split('=', 1) for x in api['Config'].get('Env', []) if '=' in x)
-    require(api_env.get('SOCIALMEI_WAHA_INGRESS_MODE') == 'team-pilot'
-            and api_env.get('SOCIALMEI_WHATSAPP_BOT_ENABLED', 'false').lower() != 'true', 'receive_only_flags_required')
+    require(api_env.get('SOCIALMEI_WAHA_INGRESS_MODE', '').strip().lower() == 'team-pilot'
+            and api_env.get('SOCIALMEI_WAHA_LAB_ENVIRONMENT', '').strip().lower() == 'team-pilot'
+            and api_env.get('SOCIALMEI_WAHA_REGISTRY_FILE') == '/run/socialmei/private/waha-registry.json'
+            and api_env.get('SOCIALMEI_SHARED_DATA_ENABLED', '').lower() in {'1', 'true', 'yes', 'on'}
+            and api_env.get('SOCIALMEI_AUTH_ENABLED', '').strip().lower() in {'1', 'true', 'yes', 'on'}
+            and api_env.get('SOCIALMEI_WHATSAPP_BOT_ENABLED', 'false').strip().lower() != 'true', 'receive_only_flags_required')
     mounts = [m for m in api.get('Mounts', []) if m.get('Destination') == '/run/socialmei/private']
     require(len(mounts) == 1 and mounts[0].get('RW') is False
             and mounts[0].get('Source') == str(REGISTRY.parent), 'registry_mount_diverged')
@@ -152,19 +174,27 @@ def operate(args):
             if session.get('status') == 'WORKING':
                 require(validate(session) == expected, 'session_config_changed')
                 require(inspect(WAHA)['Id'] == waha['Id'], 'waha_container_changed')
-                require(inspect(API)['Id'] == api['Id'], 'api_container_changed')
+                updated_api = inspect(API)
+                require(updated_api['Id'] == api['Id'], 'api_container_changed')
+                require(updated_api['State'].get('Health', {}).get('Status') == 'healthy', 'api_health_changed')
                 return
             time.sleep(3)
         raise Blocked('session_recovery_timeout')
 
     current = request()
     config = validate(current)
-    target = persistence_config(config, binding)
+    original = load_legacy(args.legacy_backup)
+    validate(original)
+    original_shape = copy.deepcopy(config)
+    original_shape['webhooks'] = original['config']['webhooks']
+    require(original_shape == original['config'], 'non_webhook_session_config_drift')
+    legacy_hooks = original['config']['webhooks']
+    target = persistence_config(config, binding, legacy_hooks)
     if args.restore:
         before = load_snapshot(Path(args.restore))
         require(validate(before) is not None, 'snapshot_session_invalid')
         target = before['config']
-        require(config == persistence_config(target, binding), 'restore_current_config_drifted')
+        require(config == persistence_config(target, binding, legacy_hooks), 'restore_current_config_drifted')
     elif not args.apply:
         return {'action': 'read_only', 'already_persistence_only': target == config,
                 'legacy_hook_count': len(config['webhooks']) - 1,
@@ -197,6 +227,8 @@ def main():
     modes.add_argument('--restore', metavar='PRIVATE_SNAPSHOT_DIRECTORY')
     parser.add_argument('--expected-config-sha256')
     parser.add_argument('--confirm')
+    parser.add_argument('--legacy-backup', type=Path, required=True,
+                        help='Verified root-only backup directory containing the original WAHA hook and checksum manifest')
     args = parser.parse_args()
     os.umask(0o077)
     try:
