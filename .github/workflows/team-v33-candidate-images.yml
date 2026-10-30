@@ -9,6 +9,8 @@ on:
       - "tests/test_team_v33_runtime_audit.py"
       - "tools/team-whatsapp-private-mount.py"
       - "tests/test_team_whatsapp_private_mount.py"
+      - "tools/team-v33-import-images.py"
+      - "tests/test_team_v33_import_images.py"
 
 permissions:
   contents: read
