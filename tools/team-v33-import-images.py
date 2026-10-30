@@ -11,11 +11,13 @@ import hashlib
 import json
 import os
 from pathlib import Path
+from pathlib import PurePosixPath
 import re
 import stat
 import shutil
 import subprocess
 import tempfile
+import tarfile
 import zipfile
 
 EXPECTED_SHA = "c19d44b6ef6b8f125e6cafe60a7adfc0477cf454"
@@ -65,44 +67,109 @@ def read_bundle(path, expected_sha=EXPECTED_SHA):
              path.parent == BACKUPS), "arquivo_de_imagens_fora_da_pasta_autorizada")
     require(1_000 <= path.stat().st_size <= 1024**3,
             "tamanho_de_pacote_invalido")
-    with zipfile.ZipFile(path) as archive:
-        entries = archive.infolist()
-        require({entry.filename for entry in entries} == NAMES
-                and len(entries) == 3, "pacote_com_entradas_inesperadas")
-        require(all(not entry.is_dir() and
-                    stat.S_IFMT(entry.external_attr >> 16) != stat.S_IFLNK
-                    and 0 < entry.file_size <= 1024**3
-                    for entry in entries), "pacote_com_arquivos_invalidos")
-        hashes = {}
-        for entry in entries:
-            hash_value = hashlib.sha256()
-            with archive.open(entry) as stream:
-                for chunk in iter(lambda: stream.read(1024**2), b""):
-                    hash_value.update(chunk)
-            hashes[entry.filename] = hash_value.hexdigest()
-        checksum_text = archive.read("SHA256SUMS").decode("utf-8")
-        match = [
-            re.fullmatch(r"([0-9a-f]{64})\s+([a-zA-Z0-9._-]+)", line)
-            for line in checksum_text.strip().splitlines()
-        ]
-        require(len(match) == 2 and all(m for m in match),
-                "manifesto_sha256_invalido")
-        expected = {m[2]: m[1] for m in match}
-        require(set(expected) == NAMES - {"SHA256SUMS"}
-                and all(hashes[name] == checksum for name, checksum in expected.items()),
-                "sha256_do_pacote_divergente")
-        receipt = json.loads(archive.read("image-receipt.json"))
-        require(receipt.get("source_sha") == expected_sha
-                and set(receipt.get("images", {})) == set(SERVICES),
-                "origem_das_imagens_divergente")
-        for service in SERVICES:
-            entry = receipt["images"][service]
-            require(isinstance(entry, dict) and entry.get("tag") ==
-                    f"socialmei-v33/{service}:{expected_sha}"
-                    and re.fullmatch("sha256:[0-9a-f]{64}",
-                                     str(entry.get("image_id", ""))),
-                    "imagem_de_recibo_invalida")
-    return receipt
+    with tempfile.TemporaryDirectory(prefix="team-v33-verify-") as temp_dir:
+        image_archive = Path(temp_dir) / "images.tar.gz"
+        with zipfile.ZipFile(path) as archive:
+            entries = archive.infolist()
+            require({entry.filename for entry in entries} == NAMES
+                    and len(entries) == 3, "pacote_com_entradas_inesperadas")
+            require(all(not entry.is_dir() and
+                        stat.S_IFMT(entry.external_attr >> 16) != stat.S_IFLNK
+                        and 0 < entry.file_size <= 1024**3
+                        for entry in entries), "pacote_com_arquivos_invalidos")
+            hashes = {}
+            for entry in entries:
+                hash_value = hashlib.sha256()
+                with archive.open(entry) as stream:
+                    if entry.filename == "images.tar.gz":
+                        with image_archive.open("xb") as image_file:
+                            for chunk in iter(lambda: stream.read(1024**2), b""):
+                                hash_value.update(chunk)
+                                image_file.write(chunk)
+                    else:
+                        for chunk in iter(lambda: stream.read(1024**2), b""):
+                            hash_value.update(chunk)
+                hashes[entry.filename] = hash_value.hexdigest()
+            checksum_text = archive.read("SHA256SUMS").decode("utf-8")
+            match = [
+                re.fullmatch(r"([0-9a-f]{64})\s+([a-zA-Z0-9._-]+)", line)
+                for line in checksum_text.strip().splitlines()
+            ]
+            require(len(match) == 2 and all(m for m in match),
+                    "manifesto_sha256_invalido")
+            expected = {m[2]: m[1] for m in match}
+            require(set(expected) == NAMES - {"SHA256SUMS"}
+                    and all(hashes[name] == checksum for name, checksum in expected.items()),
+                    "sha256_do_pacote_divergente")
+            receipt = json.loads(archive.read("image-receipt.json"))
+            require(receipt.get("source_sha") == expected_sha
+                    and set(receipt.get("images", {})) == set(SERVICES),
+                    "origem_das_imagens_divergente")
+            for service in SERVICES:
+                entry = receipt["images"][service]
+                require(isinstance(entry, dict) and entry.get("tag") ==
+                        f"socialmei-v33/{service}:{expected_sha}"
+                        and re.fullmatch("sha256:[0-9a-f]{64}",
+                                         str(entry.get("image_id", ""))),
+                        "imagem_de_recibo_invalida")
+            verify_archive_config_digests(image_archive, receipt["images"], expected_sha,
+                                          "bundle")
+            return receipt
+
+
+def verify_archive_config_digests(image_archive, expected_images, expected_sha, context):
+    """Verify tag -> manifest row -> exact SHA-256 config bytes and source label."""
+    expected = {entry["tag"]: entry for entry in expected_images.values()}
+    with tarfile.open(image_archive, "r:*") as archive:
+        members = archive.getmembers()
+        require(0 < len(members) <= 10000
+                and all(not member.issym() and not member.islnk()
+                        and "\\" not in member.name
+                        and not PurePosixPath(member.name).is_absolute()
+                        and ".." not in PurePosixPath(member.name).parts
+                        and (member.isfile() or member.isdir())
+                        for member in members),
+                "arquivo_de_imagem_invalido")
+        by_name = {member.name: member for member in members}
+        require(len(by_name) == len(members), "arquivo_de_imagem_duplicado")
+        manifests = [member for member in members
+                     if member.name == "manifest.json" and member.isfile()]
+        require(len(manifests) == 1 and manifests[0].size <= 8 * 1024**2,
+                "manifesto_de_imagem_invalido")
+        manifest_stream = archive.extractfile(manifests[0])
+        rows = json.load(manifest_stream)
+        require(isinstance(rows, list) and len(rows) == len(expected),
+                "manifesto_de_imagem_divergente")
+        seen = set()
+        for row in rows:
+            require(isinstance(row, dict) and isinstance(row.get("RepoTags"), list)
+                    and len(row["RepoTags"]) == 1,
+                    "tag_de_manifesto_invalida")
+            tag = row["RepoTags"][0]
+            require(tag in expected and tag not in seen
+                    and isinstance(row.get("Config"), str),
+                    "tag_de_manifesto_divergente")
+            seen.add(tag)
+            config_name = row["Config"]
+            config_member = by_name.get(config_name)
+            require(config_member is not None and config_member.isfile()
+                    and config_member.size <= 32 * 1024**2,
+                    "config_de_manifesto_invalido")
+            config_stream = archive.extractfile(config_member)
+            config_bytes = config_stream.read(32 * 1024**2 + 1)
+            digest_error = ("tag_de_imagem_config_digest_diverge"
+                            if context == "tag" else "bundle_config_digest_diverge")
+            origin_error = ("tag_de_imagem_config_origem_diverge"
+                            if context == "tag" else "bundle_config_origem_diverge")
+            require(len(config_bytes) == config_member.size
+                    and hashlib.sha256(config_bytes).hexdigest()
+                    == expected[tag]["image_id"].removeprefix("sha256:"),
+                    digest_error)
+            config = json.loads(config_bytes)
+            labels = (config.get("config") or {}).get("Labels") or {}
+            require(labels.get("org.opencontainers.image.revision") == expected_sha,
+                    origin_error)
+        require(seen == set(expected), "tags_de_imagem_incompletas")
 
 
 def local_image_status(receipt, expected_sha=EXPECTED_SHA):
@@ -116,10 +183,20 @@ def local_image_status(receipt, expected_sha=EXPECTED_SHA):
         except RuntimeError:
             found[service] = False
             continue
-        require(len(objects) == 1 and objects[0].get("Id") == details["image_id"]
+        require(len(objects) == 1
+                and details["tag"] in (objects[0].get("RepoTags") or [])
                 and (objects[0].get("Config") or {}).get("Labels", {}).get(
                     "org.opencontainers.image.revision") == expected_sha,
                 "tag_de_imagem_ja_existe_mas_diverge")
+        fd, archive_path = tempfile.mkstemp(prefix="team-image-verify-", suffix=".tar")
+        os.close(fd)
+        try:
+            docker("image", "save", "-o", archive_path, details["tag"], timeout=360)
+            verify_archive_config_digests(
+                Path(archive_path), {service: details}, expected_sha, "tag"
+            )
+        finally:
+            Path(archive_path).unlink(missing_ok=True)
         found[service] = True
     return found
 
