@@ -68,6 +68,31 @@ class ImportImagesTests(unittest.TestCase):
         self.assertFalse(result["production_container_changed"])
         self.assertFalse(result["provider_messages_sent"])
 
+    def test_inspection_accepts_exact_sha_from_new_candidate_receipt(self):
+        candidate_sha = "8b60410ba0709a7bff5892c93988eb7af878516c"
+        self.receipt = {
+            "source_sha": candidate_sha,
+            "images": {
+                service: {
+                    "tag": f"socialmei-v33/{service}:{candidate_sha}",
+                    "image_id": "sha256:" + char * 64,
+                }
+                for service, char in (("team-api", "a"), ("team-gateway", "b"))
+            },
+        }
+        self.write_bundle()
+        with patch.object(importer, "valid_stage"):
+            with patch.object(importer, "local_image_status",
+                              return_value={"team-api": False, "team-gateway": False}):
+                with patch.object(importer, "docker",
+                                  side_effect=AssertionError("docker touched")):
+                    result = importer.execute(
+                        self.path, apply=False, expected_sha=candidate_sha
+                    )
+        self.assertEqual(result["candidate_sha"], candidate_sha)
+        self.assertEqual(result["action"], "inspection_passed")
+        self.assertTrue(result["bundle_sha256_verified"])
+
     def test_import_only_uses_docker_load_and_preserves_containers(self):
         commands = []
         with patch.object(importer, "valid_stage"):
