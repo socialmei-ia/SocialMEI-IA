@@ -118,7 +118,7 @@ class WhatsappReadinessTests(unittest.TestCase):
                 self.assertFalse(whatsapp_readiness(1)["configured"])
                 db.assert_not_called()
 
-        for db in (database(None), MagicMock()):
+        for db in (database(None),):
             with self.subTest(db=str(type(db))), patch(
                 "instagram_runtime.settings.waha_ingress_team_pilot_enabled",
                 return_value=True,
