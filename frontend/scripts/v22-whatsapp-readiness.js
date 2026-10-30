@@ -48,7 +48,7 @@
             .map((child) => child.textContent.trim())
             .find((value) => value === "Canal cadastrado" || value === "Aguardando canal")
         : null;
-      const preserveCatalogLabel = phase === "error" && !!catalogLabel;
+      const preserveCatalogLabel = !!catalogLabel && !(phase === "ready" && receiving);
       if (!preserveCatalogLabel) setLabel(badge, label);
       if (badge) {
         badge.classList.remove("s-g", "s-ok", "c-ok", "c-mu", "c-er");
