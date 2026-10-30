@@ -8,7 +8,7 @@ import stat
 import sys
 import tempfile
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -48,7 +48,7 @@ class PilotTests(unittest.TestCase):
         def ins(name):
             return {pilot.API: api, pilot.WAHA: waha, pilot.N8N: n8n}[name]
         session = {"name": "default", "account": "558192475976@c.us",
-                   "hmac": "K" * 48, "engine": "WEBJS"}
+                   "engine": "WEBJS"}
         def db(op, **data):
             if op == "inspect":
                 return {"workspace_exists": True, "channel_count": 0,
@@ -74,7 +74,7 @@ class PilotTests(unittest.TestCase):
             self.assertEqual([c.args[0] for c in dbmock.call_args_list], ["inspect"])
             writer.assert_not_called()
             self.assertIn("MODO: LEITURA", stdout.getvalue())
-            self.assertNotIn(sess["hmac"], stdout.getvalue())
+            self.assertNotIn("558192475976@c.us", stdout.getvalue())
 
     def test_explicit_prepare_creates_registry_and_channel_without_enabling_send(self):
         with tempfile.TemporaryDirectory() as d:
@@ -93,8 +93,11 @@ class PilotTests(unittest.TestCase):
             )
             self.assertIn("MENSAGENS_ENVIADAS: 0", stdout.getvalue())
             self.assertNotIn(sess["hmac"], stdout.getvalue())
-            self.assertEqual(json.loads((Path(d) / "waha-registry.json").read_text())
-                             ["bindings"][0]["channel_id"], 22)
+            registry = json.loads((Path(d) / "waha-registry.json").read_text())
+            binding = registry["bindings"][0]
+            self.assertEqual(binding["channel_id"], 22)
+            self.assertGreaterEqual(len(binding["hmac_key"].encode()), 32)
+            self.assertNotIn(binding["hmac_key"], stdout.getvalue())
 
     def test_prepare_requires_exact_confirmation(self):
         with tempfile.TemporaryDirectory() as d:
