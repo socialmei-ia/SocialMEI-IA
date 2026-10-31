@@ -45,6 +45,7 @@ async function run() {
     const contracts = await require("./v22-contract-browser.cjs")(browser, origin);
     await require("./v22-instagram-browser.cjs")(browser, origin);
     await require("./v22-inbox-polling-browser.cjs")(browser, origin);
+    await require("./v22-provider-analysis-browser.cjs")(browser, origin);
     await require("./v22-instagram-direct-browser.cjs")(browser, origin);
     await require("./v22-instagram-publisher-browser.cjs")(browser, origin);
     await require("./v22-knowledge-reporting-browser.cjs")(browser, origin);

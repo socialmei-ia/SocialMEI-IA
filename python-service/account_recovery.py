@@ -21,6 +21,7 @@ from account_auth import (
     hash_password,
     throttle,
     COOKIE,
+    origin,
 )
 
 router = APIRouter(prefix="/api/v1", tags=["accounts"])
@@ -64,9 +65,15 @@ def send_recovery_mail(address, token, config):
     message["From"] = config["from"]
     message["To"] = address
     message["Subject"] = "SocialMEI — recuperar acesso"
+    # Fragment is never sent in the HTTP request; the browser consumes it and
+    # replaces the URL before rendering the reset form. The code remains a
+    # fallback for mail providers that strip URL fragments.
+    reset_link = origin().rstrip("/") + "/frontend/entrada.html#/recuperar/" + token
     message.set_content(
         "Recebemos um pedido para redefinir sua senha no SocialMEI.\n\n"
-        "No site em que você solicitou a recuperação, cole este código:\n\n"
+        "Abra o link para definir uma nova senha:\n"
+        + reset_link
+        + "\n\nOu copie este código na tela de recuperação:\n\n"
         + token
         + "\n\nVálido por 15 minutos e uma única utilização. "
         "Se não foi você, ignore este e-mail e não compartilhe o código.\n"

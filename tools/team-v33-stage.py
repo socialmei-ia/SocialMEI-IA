@@ -18,6 +18,10 @@ ROOT = Path("/home/ubuntu/socialmei-team")
 BACKUPS = Path("/home/ubuntu/socialmei-backups")
 RELEASE_REF = "refs/heads/release/socialmei-functional-integrations-20261026"
 TRACKED_REF = "refs/remotes/origin/release/socialmei-functional-integrations-20261026"
+ALLOWED_CANDIDATE_BRANCHES = frozenset({
+    "feat/whatsapp-bot-readonly-preview-20261030",
+    "feat/team-release-candidate-stage-20261030",
+})
 DB_CONTAINER = "socialmei-team-team-postgres-1"
 MIGRATION_032 = "032_whatsapp_bot_conversations.sql"
 MIGRATION_033 = "033_provider_sentiment_jobs.sql"
@@ -182,16 +186,35 @@ def trusted_remote(root):
     ))
 
 
-def ensure_git_object(root, sha):
+def ensure_git_object(root, sha, *, candidate_branch=None):
     require(trusted_remote(root), "remote_nao_confiavel")
-    # Refresh the remote tracking ref for ancestry verification. Only Git
-    # metadata changes; the live checkout and its hotfixes remain untouched.
+    # Always resolve the reviewed release and verify 33 unchanged migrations.
     git(root, "fetch", "--no-tags", "origin",
         "+" + RELEASE_REF + ":" + TRACKED_REF, timeout=90)
-    require(git(root, "cat-file", "-t", sha).strip() == "commit", "sha_nao_disponivel")
-    # The pinned object must belong to the intended upstream release lineage.
-    git(root, "merge-base", "--is-ancestor", sha, TRACKED_REF)
-    require(git(root, "rev-parse", sha + "^{commit}").strip() == sha, "sha_nao_disponivel")
+    if candidate_branch is None:
+        # Historical release-only staging path, unchanged.
+        require(git(root, "cat-file", "-t", sha).strip() == "commit",
+                "sha_nao_disponivel")
+        git(root, "merge-base", "--is-ancestor", sha, TRACKED_REF)
+    else:
+        require(candidate_branch in ALLOWED_CANDIDATE_BRANCHES,
+                "branch_candidata_nao_autorizada")
+        remote_ref = "refs/heads/" + candidate_branch
+        tracking_ref = "refs/remotes/origin/" + candidate_branch
+        git(root, "fetch", "--no-tags", "origin",
+            "+" + remote_ref + ":" + tracking_ref, timeout=90)
+        require(git(root, "rev-parse", tracking_ref).strip() == sha,
+                "sha_nao_e_head_da_candidata")
+        require(git(root, "cat-file", "-t", sha).strip() == "commit",
+                "sha_nao_disponivel")
+        # Stage only an exact remote branch HEAD descended from the trusted
+        # release. Never silently accept commits from a fork or unrelated ref.
+        git(root, "merge-base", "--is-ancestor", TRACKED_REF, sha)
+        require(not git(root, "diff", "--name-only", TRACKED_REF, sha,
+                        "--", "database/migrations/").strip(),
+                "migrations_da_release_modificadas")
+    require(git(root, "rev-parse", sha + "^{commit}").strip() == sha,
+            "sha_nao_disponivel")
 
 
 def git_audit(root):
@@ -205,13 +228,13 @@ def git_audit(root):
     }
 
 
-def stage(root, backup, sha, *, name=None):
+def stage(root, backup, sha, *, name=None, candidate_branch=None):
     candidate(sha)
     require(root == ROOT, "checkout_nao_autorizado")
     require(root.exists() and root.is_dir() and not root.is_symlink(), "checkout_invalido")
     private_root(backup)
     before = git_audit(root)
-    ensure_git_object(root, sha)
+    ensure_git_object(root, sha, candidate_branch=candidate_branch)
     names = source_migrations(root, sha)
     schema = plan(read_ledger(), names)
     name = name or "team-v33-" + sha[:12]
@@ -235,6 +258,8 @@ def stage(root, backup, sha, *, name=None):
     }
     report = {
         "candidate_sha": sha,
+        "candidate_branch": candidate_branch or "reviewed_release",
+        "candidate_workflow_ci_verified": False,
         "checkout_original_sha": before["head"],
         "checkout_original_preservado": True,
         "checkout_original_dirty": before["dirty"],
@@ -282,13 +307,17 @@ def main():
     mode.add_argument("--inspect", action="store_true")
     mode.add_argument("--stage", action="store_true")
     parser.add_argument("--candidate-sha")
+    parser.add_argument("--candidate-branch", choices=sorted(ALLOWED_CANDIDATE_BRANCHES),
+                        help="Explicit reviewed PR head, not a merge or deployment")
     args = parser.parse_args()
     if args.stage:
         if not args.candidate_sha:
             parser.error("--candidate-sha obrigatório para --stage")
-        report = stage(ROOT, BACKUPS, args.candidate_sha)
+        report = stage(ROOT, BACKUPS, args.candidate_sha,
+                       candidate_branch=args.candidate_branch)
     else:
-        require(not args.candidate_sha, "--candidate-sha apenas em --stage")
+        require(not args.candidate_sha and not args.candidate_branch,
+                "--candidate-sha e --candidate-branch apenas em --stage")
         report = inspect()
     # Only controlled, sanitized report fields. No raw git status or docker output.
     print(json.dumps(report, ensure_ascii=False, indent=2))

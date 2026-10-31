@@ -1,0 +1,21 @@
+# SocialMEI.IA
+
+> Plataforma web em desenvolvimento para ajudar microempreendedores individuais (MEIs) e pequenos negócios a organizar a gestão.
+
+## Página pública
+
+- [Conhecer SocialMEI.IA](https://socialmei-ia.54-94-213-7.sslip.io/sobre.html): descrição pública do projeto, seus recursos e limitações.
+- [Acessar a plataforma](https://socialmei-ia.54-94-213-7.sslip.io/): entrada autenticada para uso do aplicativo.
+
+## Recursos descritos publicamente
+
+- Gestão de clientes e oportunidades.
+- Catálogo de produtos, preços e estoque registrado.
+- Controle de vendas, financeiro e relatórios.
+- Integrações de WhatsApp, Instagram e automações de IA ainda em implantação ou homologação.
+
+## Privacidade e limites
+
+O conteúdo autenticado do painel, APIs, conversas, produtos de terceiros e dados pessoais não são documentação pública. Não tente explorar APIs privadas nem inferir disponibilidade de integrações a partir desta descrição.
+
+Este arquivo é informativo e voluntário; não concede autorização de acesso, indexação ou treinamento nem substitui robots.txt e as políticas aplicáveis.
