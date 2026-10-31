@@ -13,6 +13,10 @@
 
 Os antigos arquivos `error.json`, `my-workflow.json`, `integracao-n8n-insta.json` e `teste-python.json` foram movidos para nomes descritivos. Seus grafos úteis foram preservados; metadados da instância, dados fixados e autenticação literal foram retirados.
 
+## Análise de sentimento de mensagens recebidas (30/10/2026)
+
+O export `equipe/02-sentimento-mensagens-verificadas.json` reúne seis nós: agendamento (inativo), claims autenticadas da API, validação de lote, classificação pela API Groq, validação estrita de JSON e gravação de resultados autenticada. Não envia mensagens, não cria um segundo webhook e não interage diretamente com provedores de mensagens. Os URLs da API privada e as credenciais **precisam ser configurados no n8n** antes de qualquer tentativa de ativação. O fluxo novo não foi importado ou ligado na instância viva. Detalhes de segurança, custo/privacidade e homologação: [N8N-PROVIDER-SENTIMENT.md](../docs/N8N-PROVIDER-SENTIMENT.md).
+
 ## Workflows recentes — 15/10/2026
 
 O [catálogo atual](../docs/N8N-WORKFLOW-CATALOG.md) registra a coleta inicial de 33 workflows e a organização posterior confirmada na AWS: 31 permaneceram após renomeação e exclusão de dois vazios arquivados. O histórico de sete exports nas seções abaixo descreve a rodada anterior; são oito exports de exemplo/configuração e oito templates estruturais em `structure/`. A organização no Git e a operação no painel são etapas distintas.
