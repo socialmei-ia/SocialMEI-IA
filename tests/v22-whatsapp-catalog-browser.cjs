@@ -79,7 +79,7 @@ module.exports = async function (browser, origin) {
               action: choice === "0" ? "menu" : "availability",
               text:
                 choice === "0"
-                  ? "Olá! Como podemos ajudar?\\n\\n1 - Ver produtos\\n2 - Preço e disponibilidade"
+                  ? "Olá! Como podemos ajudar?\n\n1 - Ver produtos\n2 - Preço e disponibilidade"
                   : "Bolo fictício — R$ 18,50 — estoque: 7 registrado(s)",
               choices: choice === "0" ? [{ id: "1", title: "Ver produtos" }] : [],
               items: choice === "0" ? [] : [{ nome: "Bolo fictício", preco: "18.50", estoque: 7 }],
@@ -124,7 +124,7 @@ module.exports = async function (browser, origin) {
         await panel.getByLabel("Opção para demonstrar").selectOption("2");
         await panel.getByLabel("Nome do produto a consultar").fill("bolo");
         await panel.getByRole("button", { name: "Ver resposta do bot" }).click();
-        await panel.getByText(/Bolo fictício — R\\$ 18,50 — estoque: 7/).waitFor();
+        await panel.getByText(/Bolo fictício — R\$ 18,50 — estoque: 7/).waitFor();
         assert.deepEqual(previewQueries, [["0", ""], ["2", "bolo"]]);
         assert.equal(writes.length, 0);
         await page.screenshot({ path: path.join(out, `${width}-${theme}.png`), fullPage: true });
