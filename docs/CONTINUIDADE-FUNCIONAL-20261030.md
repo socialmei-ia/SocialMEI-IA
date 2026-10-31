@@ -15,7 +15,9 @@ Uma tela ou endpoint existente não é prova de funcionamento. Classificar separ
 
 5. **#163** (`feat/instagram-owner-token-renewal-20261030` → #162) — conexão Instagram passa a informar disponibilidade de renovação do token somente com runtime OAuth e flag explícita; responsáveis podem renovar pelo diálogo sem enviar Direct ou publicar conteúdo. Inclui testes sintéticos de permissão, método POST e falha do provedor.
 
-As branches estão empilhadas, portanto o mesmo arquivo deve ser alterado preferencialmente no topo da cadeia e os merges devem respeitar a ordem. **Não confundir commits em branches Draft com deploy em produção.** Conferir testes CI de cada HEAD; neste ciclo não houve CI verificado para #160–#163. Os novos testes unitários não foram executados por falta de runner local/CI nesta sessão. A sintaxe dos scripts JavaScript de entrada, integração WAHA/Meta e testes novos foi verificada em um parser JavaScript sem execução.
+6. **#165** (`feat/n8n-provider-sentiment-20261030` → #163) — reforço do template n8n **existente** de oito nós (`experimental/provider-sentiment-worker.json`) com validação estrita de claims e classificação, preservando a trava `ENABLED=false` e o agente Groq; nenhum segundo workflow foi criado. API recusa resultado de lease expirado. Documentação de ativação privada em `docs/N8N-PROVIDER-SENTIMENT.md`; integração real **ainda não homologada**.
+
+As branches estão empilhadas, portanto o mesmo arquivo deve ser alterado preferencialmente no topo da cadeia e os merges devem respeitar a ordem. **Não confundir commits em branches Draft com deploy em produção.** Conferir testes CI de cada HEAD; a PR de integração #164 passou no CI para o HEAD eba0ff5859850ea27f17912dc1ca33bebdb2cc1b; o acréscimo #165 ainda requer CI próprio. Os novos testes unitários não foram executados por falta de runner local/CI nesta sessão. A sintaxe dos scripts JavaScript de entrada, integração WAHA/Meta e testes novos foi verificada em um parser JavaScript sem execução.
 
 ## Verificações isoladas desta continuação
 
