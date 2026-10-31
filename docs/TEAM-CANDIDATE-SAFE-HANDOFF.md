@@ -4,7 +4,7 @@
 
 ## Objetivo
 
-A candidata das PRs #159–#169 inclui o bot de WhatsApp em modo prévia, controle de recebimento, recuperação por link, renovação de token Instagram e classificação de sentimento inativa. O código pode ser testado antes de publicar no site. O repositório já tem `tools/team-v33-stage.py` e `tools/team-v33-import-images.py`, além de `tools/team-v33-runtime-audit.py`: esta etapa amplia **esses mesmos scripts**, sem inventar outro Compose ou instalador.
+A candidata das PRs #159–#172 inclui o bot de WhatsApp em modo prévia, controle de recebimento, recuperação por link, renovação de token Instagram, classificação de sentimento inativa e a página pública com SEO/consentimento de métricas. O código pode ser testado antes de publicar no site. O repositório já tem `tools/team-v33-stage.py` e `tools/team-v33-import-images.py`, além de `tools/team-v33-runtime-audit.py`: esta etapa amplia **esses mesmos scripts**, sem inventar outro Compose ou instalador.
 
 ### Condições obrigatórias
 
@@ -21,10 +21,12 @@ Usar a versão revisada do script `tools/team-v33-stage.py` desta mesma candidat
 CANDIDATE_SHA='<SHA_COMPLETA_DE_40_CARACTERES_VALIDADA_NO_CI>'
 python3 /tmp/team-v33-stage-reviewed.py --target team --stage \
   --candidate-sha "$CANDIDATE_SHA" \
-  --candidate-branch feat/team-release-candidate-stage-20261030
+  --candidate-branch feat/public-seo-discovery-consent-20261031
 ```
 
 O script só aceita branches revisadas, confere que `origin` é o repositório oficial, faz fetch de objetos Git e _refs remotas_, exige que o SHA seja o HEAD remoto exato, verifica que é descendente da release e que `database/migrations/` não divergiu, registra checkout original limpo/sujo **sem revelar caminhos sensíveis** e cria worktree privado `/home/ubuntu/socialmei-backups/team-v33-<12_DIGITOS_SHA>/source` com recibo `stage-receipt.json`.
+
+A branch de #171/#172 deve estar permitida **tanto no preparador quanto no importador**. As branches anteriores de prévia e handoff continuam aceitas; nenhuma branch arbitrária ou padrão curinga foi liberado. A correção dessas listas muda o HEAD: verificar novamente os dois workflows e baixar imagens da **nova SHA**, sem reaproveitar o bundle histórico `f556ef579451304cba6aef9ef537baf0c36714e2`. Não editar o worktree preparado para corrigir ferramentas, pois isso invalida sua fonte limpa.
 
 A indicação `candidate_workflow_ci_verified:false` no recibo é deliberada: o preparador **não consulta o GitHub Actions** e não deve alegar aprovação apenas com base na branch. O operador deve validar os checks por fora, antes de prosseguir.
 
@@ -47,6 +49,8 @@ Uma importação opcional posterior, **sem tocar containers**, exige trocar apen
 ## 3. Instalação funcional (etapa separada, ainda pendente)
 
 **Não aplicar Compose novo por cima do existente automaticamente.** Antes de liberar a versão do site: conferir o Caddyfile privado, `config.js`, mount de registro WAHA/HMAC, rede de saída Meta, saúde da API, proteção HTTP, variáveis atuais e backups com restauração. Mapear explicitamente os containers antigos e novos, o plano de rollback e a evidência de que apenas API/gateway seriam recriados mantendo bind mounts e redes originais. Se alguma dessas condições falhar, **parar** sem mudar produção.
+
+`tools/team-v33-runtime-audit.py` ainda referencia a candidata histórica `c19d44b6ef6b8f125e6cafe60a7adfc0477cf454` e um backup anterior; seu resultado não certifica a candidata #172. Reconciliar o alvo da auditoria e o backup com o inventário atual antes do cutover, sem remover suas verificações. Se o gateway usa um Caddyfile privado montado, atualizar apenas a imagem não aplica as rotas SEO: revisar e preservar o hotfix, acrescentando as rotas públicas de `deploy/team/Caddyfile` conforme `docs/SOCIALMEI-PUBLIC-SEO-ANALYTICS.md`.
 
 Após deploy autorizado e verificado: confirmar login/cadastro, tela Integracões, prévia do menu WhatsApp no workspace 1, catálogo real, ingressos HMAC, WhatsApp com bot ainda desligado, Instagram OAuth, Direct e mensagens na Caixa. Não ativar envios/provedores sem fluxo único, destinatário de teste permitido e comprovação de que n8n/WAHA usam versão publicada correta.
 

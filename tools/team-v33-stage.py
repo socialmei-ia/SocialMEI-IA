@@ -21,6 +21,7 @@ TRACKED_REF = "refs/remotes/origin/release/socialmei-functional-integrations-202
 ALLOWED_CANDIDATE_BRANCHES = frozenset({
     "feat/whatsapp-bot-readonly-preview-20261030",
     "feat/team-release-candidate-stage-20261030",
+    "feat/public-seo-discovery-consent-20261031",
 })
 DB_CONTAINER = "socialmei-team-team-postgres-1"
 MIGRATION_032 = "032_whatsapp_bot_conversations.sql"

@@ -86,6 +86,7 @@ def valid_stage(expected_sha=EXPECTED_SHA):
             and receipt.get("candidate_branch") in {
                 "feat/whatsapp-bot-readonly-preview-20261030",
                 "feat/team-release-candidate-stage-20261030",
+                "feat/public-seo-discovery-consent-20261031",
             },
             "recibo_do_stage_invalido",
         )
