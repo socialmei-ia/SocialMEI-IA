@@ -31,7 +31,7 @@ test("the AI output is validated and claim identity is taken from the task", () 
   assert.equal(validate.parameters.mode, "runOnceForEachItem");
   assert.match(validate.parameters.jsCode, /Individualizar classificacoes/);
   assert.match(validate.parameters.jsCode, /JSON\.parse\(raw\)/);
-  assert.match(validate.parameters.jsCode, /claim_id:task\.claim_id/);
+  assert.match(validate.parameters.jsCode, /claim_id:\s*task\.claim_id/);
   for (const node of workflow.nodes) {
     if (node.type === "n8n-nodes-base.code")
       assert.doesNotThrow(() => new Function(node.parameters.jsCode));
