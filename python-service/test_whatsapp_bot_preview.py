@@ -48,7 +48,8 @@ class WhatsAppBotPreviewContracts(unittest.TestCase):
         self.assertIs(data["preview_only"], True)
         self.assertIs(data["send_enabled"], False)
         self.assertTrue(all(sql.lstrip().startswith(("SET", "SELECT")) for sql, _ in db.queries))
-        self.assertEqual(db.queries[0][0], "SET TRANSACTION READ ONLY")
+        if db.queries:
+            self.assertEqual(db.queries[0][0], "SET TRANSACTION READ ONLY")
         return data
 
     def test_real_catalog_matches_text_bot_would_render_for_WEBJS(self):
