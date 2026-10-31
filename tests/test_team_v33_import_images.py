@@ -293,5 +293,71 @@ class ImportImagesTests(unittest.TestCase):
         self.assertEqual(result["action"], "images_already_verified")
 
 
+    def test_new_candidate_image_requires_its_own_clean_stage_receipt(self):
+        sha = "b" * 40
+        source = self.folder / ("team-v33-" + sha[:12]) / "source"
+        source.mkdir(parents=True)
+        proof = {
+            "candidate_sha": sha,
+            "candidate_branch": "feat/team-release-candidate-stage-20261030",
+            "stage_source": str(source),
+            "stage_clean": True,
+            "checkout_original_preservado": True,
+            "deployment_executed": False,
+            "docker_commands_executed": False,
+            "provider_messages_sent": False,
+            "migration_plan": {
+                "source_reviewed": True, "migration_apply_executed": False
+            },
+        }
+        receipt_path = source.parent / "stage-receipt.json"
+        receipt_path.write_text(json.dumps(proof), encoding="utf-8")
+
+        def git_response(argv, **kwargs):
+            if argv[-2:] == ["rev-parse", "HEAD"]:
+                return sha + "\\n"
+            if argv[-3:] == ["status", "--porcelain=v1", "--untracked-files=all"]:
+                return ""
+            raise AssertionError(argv)
+
+        with patch.object(importer, "command", side_effect=git_response):
+            importer.valid_stage(sha)
+            with patch.object(importer, "local_image_status", return_value={
+                "team-api": False, "team-gateway": False
+            }), patch.object(importer, "docker",
+                            side_effect=AssertionError("Never load during dry-run")):
+                self.set_receipt_source(sha)
+                self.write_bundle()
+                report = importer.execute(self.path, apply=False, expected_sha=sha)
+        self.assertEqual(report["candidate_sha"], sha)
+        self.assertFalse(report["production_container_changed"])
+        self.assertEqual(report["action"], "inspection_passed")
+
+        bad_proofs = (
+            {"candidate_sha": "a" * 40},
+            {"stage_source": "/tmp/unrelated-source"},
+            {"stage_clean": False},
+            {"provider_messages_sent": True},
+            {"candidate_branch": "feat/unknown-unsafe"},
+            {"migration_plan": {"source_reviewed": False}},
+        )
+        for change in bad_proofs:
+            with self.subTest(change=change):
+                receipt_path.write_text(json.dumps({**proof, **change}),
+                                        encoding="utf-8")
+                with patch.object(importer, "command", side_effect=git_response):
+                    with self.assertRaisesRegex(RuntimeError, "recibo_do_stage_invalido"):
+                        importer.valid_stage(sha)
+        receipt_path.write_text(json.dumps(proof), encoding="utf-8")
+        with patch.object(importer, "command", return_value="bad-status"):
+            with self.assertRaisesRegex(RuntimeError, "source_sha_divergente"):
+                importer.valid_stage(sha)
+        with patch.object(importer, "command", side_effect=[
+            sha + "\\n", " M hidden-secret-file"
+        ]):
+            with self.assertRaisesRegex(RuntimeError, "source_modificado"):
+                importer.valid_stage(sha)
+
+
 if __name__ == "__main__":
     unittest.main()
