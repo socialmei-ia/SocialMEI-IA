@@ -11,6 +11,7 @@ from psycopg.rows import dict_row
 
 from account_auth import current, require_enabled
 from database import connect
+import settings
 
 router = APIRouter(prefix="/api/v1/reporting", tags=["workspace reporting"])
 
@@ -68,10 +69,15 @@ def _stats(conn, workspace, days):
 
 def summary(days: int):
     workspace = scope()
+    try:
+        zone = settings.business_timezone().key
+    except ValueError:
+        raise HTTPException(503, "Confira o fuso horário configurado para o negócio.") from None
     with connect() as conn:
         conn.row_factory = dict_row
         conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
         conn.execute("SET LOCAL statement_timeout='3000ms'")
+        conn.execute("SELECT set_config('TimeZone', %s, true)", (zone,))
         return _stats(conn, workspace, days)
 
 

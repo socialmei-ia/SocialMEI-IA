@@ -8,6 +8,7 @@ window.SocialMEIV22 = (() => {
   let inbox = [];
   let inboxScope = null;
   let preferences = null;
+  let operationBusy = false;
   let data = { clients: [], products: [], sales: [], finance: [] };
   const date = (value) =>
     value ? new Date(String(value).slice(0, 10) + "T12:00:00").toLocaleDateString("pt-BR") : "—";
@@ -150,28 +151,140 @@ window.SocialMEIV22 = (() => {
       return false;
     }
   }
+  const operationKey = () => "socialmei-v22-operation:" + identityKey();
+  function pendingOperation() {
+    const raw = localStorage.getItem(operationKey());
+    if (!raw) return null;
+    try {
+      const pending = JSON.parse(raw);
+      const { path, method, payload } = JSON.parse(pending.signature);
+      if (
+        !/^\/(vendas|financeiro)(\/[1-9]\d*(\/(registrar|pagar|cancelar|excluir))?)?$/.test(path) ||
+        !["POST", "PATCH"].includes(method) ||
+        !payload ||
+        !/^[a-f0-9-]{36}$/i.test(pending.packet?.operation_id) ||
+        JSON.stringify({ ...payload, operation_id: pending.packet.operation_id }) !==
+          JSON.stringify(pending.packet)
+      )
+        throw Error();
+      return { ...pending, path, method, stored: raw };
+    } catch (_) {
+      throw Error("Não foi possível ler a operação pendente. Preserve os dados e peça suporte.");
+    }
+  }
+  function paintPendingOperation() {
+    const view = document.getElementById("v");
+    if (!view) return;
+    view.querySelectorAll("[data-operation-recovery]").forEach((notice) => notice.remove());
+    if (operationBusy || !localStorage.getItem(operationKey())) return;
+    const section = document.createElement("section");
+    section.dataset.operationRecovery = "true";
+    section.className = "pg row wr";
+    section.setAttribute("aria-label", "Operação sem confirmação");
+    const message = document.createElement("p");
+    message.textContent =
+      "Há uma venda ou lançamento sem confirmação. Confira o resultado antes de registrar outra operação.";
+    message.setAttribute("role", "status");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "btn o";
+    button.textContent = "Conferir operação pendente";
+    button.onclick = () => {
+      try {
+        const pending = pendingOperation();
+        if (!pending) return render();
+        const identity = identityKey();
+        const key = operationKey();
+        const title = pending.path.startsWith("/vendas") ? "Venda" : "Lançamento financeiro";
+        info(
+          "Conferir operação pendente",
+          "<p>" +
+            title +
+            ": a consulta repetirá o pedido original com o mesmo identificador, mesmo se a data ou os dados exibidos mudaram.</p><p>O servidor devolverá o resultado já registrado ou concluirá o pedido se ele ainda não foi aceito.</p>",
+        );
+        const confirm = document.createElement("button");
+        confirm.type = "button";
+        confirm.className = "btn";
+        confirm.textContent = "Confirmar consulta da operação";
+        confirm.onclick = async () => {
+          if (operationBusy) return;
+          if (identity !== identityKey() || localStorage.getItem(key) !== pending.stored) {
+            dlg().close();
+            render();
+            toast("A sessão ou a operação pendente mudou. Confira novamente antes de continuar.");
+            return;
+          }
+          operationBusy = true;
+          confirm.disabled = true;
+          try {
+            await request(pending.path, pending.method, pending.packet);
+            if (identity !== identityKey()) return;
+            if (localStorage.getItem(key) === pending.stored) localStorage.removeItem(key);
+            dlg().close();
+            loaded = true;
+            if (await refreshConfirmed()) toast("Operação confirmada no servidor.");
+          } catch (e) {
+            if (identity !== identityKey()) return;
+            if ([400, 403, 404, 409, 422].includes(e.status)) {
+              if (localStorage.getItem(key) === pending.stored) localStorage.removeItem(key);
+              dlg().close();
+              await refreshConfirmed();
+            }
+            error(e);
+          } finally {
+            operationBusy = false;
+            confirm.disabled = false;
+            if (identity === identityKey()) paintPendingOperation();
+          }
+        };
+        dlg().append(confirm);
+      } catch (e) {
+        error(e);
+      }
+    };
+    section.append(message, button);
+    view.prepend(section);
+  }
   async function write(path, method, payload, operation = false) {
     if (!loaded) throw Error("Aguarde o carregamento dos dados.");
     let key,
+      stored,
       packet = payload;
     if (operation) {
-      key = "socialmei-v22-operation:" + identityKey();
-      const pending = JSON.parse(localStorage.getItem(key) || "null");
+      if (operationBusy) throw Error("Aguarde a confirmação da operação em andamento.");
+      key = operationKey();
+      const pending = pendingOperation();
       const signature = JSON.stringify({ path, method, payload });
       if (pending && pending.signature !== signature)
         throw Error(
-          "Existe uma operação sem confirmação. Repita os mesmos dados antes de iniciar outra.",
+          "Existe uma operação sem confirmação. Use Conferir operação pendente antes de iniciar outra.",
         );
       packet = pending?.packet || { ...payload, operation_id: crypto.randomUUID() };
-      localStorage.setItem(key, JSON.stringify({ signature, packet }));
+      stored = JSON.stringify({ signature, packet });
+      localStorage.setItem(key, stored);
+      operationBusy = true;
     }
     try {
       const result = await request(path, method, packet);
-      if (key) localStorage.removeItem(key);
+      if (key && localStorage.getItem(key) === stored) localStorage.removeItem(key);
       return result;
     } catch (e) {
-      if (key && [400, 403, 404, 409, 422].includes(e.status)) localStorage.removeItem(key);
+      if (
+        key &&
+        [400, 403, 404, 409, 422].includes(e.status) &&
+        localStorage.getItem(key) === stored
+      )
+        localStorage.removeItem(key);
       throw e;
+    } finally {
+      if (key) {
+        operationBusy = false;
+        if (localStorage.getItem(key)) {
+          const dialog = document.querySelector("dialog[open]");
+          dialog?.close();
+          render();
+        }
+      }
     }
   }
   function form(title, fields, submit, label = "Salvar") {
@@ -289,7 +402,9 @@ window.SocialMEIV22 = (() => {
           preco: money(v.p),
           custo: money(v.k || "0"),
           status: v.a ? "Ativo" : "Inativo",
-          ...(v.t === "Produto" ? { estoque: Number(v.e), minimo: Number(v.m) } : {}),
+          ...(v.t === "Produto"
+            ? { estoque: Number(v.e), minimo: Number(v.m) }
+            : { estoque: null, minimo: null }),
         };
         if (
           v.t === "Produto" &&
@@ -302,6 +417,18 @@ window.SocialMEIV22 = (() => {
         });
       },
     );
+    const dialog = dlg(),
+      type = dialog.querySelector("#f_t");
+    const inventory = () => {
+      const service = type.value === "Serviço";
+      for (const id of ["#f_e", "#f_m"]) {
+        const input = dialog.querySelector(id);
+        input.disabled = service;
+        input.title = service ? "Serviços não possuem estoque." : "";
+      }
+    };
+    type.addEventListener("change", inventory);
+    inventory();
   }
   // Incoming Meta webhooks persist server-side. Poll while the inbox is visible
   // so messages appear without requiring a full page reload.
@@ -656,6 +783,7 @@ window.SocialMEIV22 = (() => {
     const oldRender = render;
     render = () => {
       oldRender();
+      paintPendingOperation();
       paintInboxLabels();
       const composer = document.querySelector("#ta");
       if (composer) {

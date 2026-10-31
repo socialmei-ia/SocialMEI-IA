@@ -4,6 +4,7 @@ import os
 import json
 import re
 from urllib.parse import quote
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 ENABLED_VALUES = {"1", "true", "yes", "on"}
 DISABLED_VALUES = {"0", "false", "no", "off", ""}
@@ -59,6 +60,14 @@ def workspace_name() -> str:
         os.getenv("SOCIALMEI_WORKSPACE_NAME", "SocialMEI Development").strip()
         or "SocialMEI Development"
     )
+
+
+def business_timezone() -> ZoneInfo:
+    name = os.getenv("TZ", "America/Recife").strip() or "America/Recife"
+    try:
+        return ZoneInfo(name)
+    except (ValueError, ZoneInfoNotFoundError):
+        raise ValueError("Fuso horário do negócio inválido.") from None
 
 
 def n8n_read_token() -> str:

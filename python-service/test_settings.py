@@ -2,6 +2,7 @@
 
 import os
 import unittest
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 from fastapi import HTTPException
@@ -138,6 +139,29 @@ class SettingsTests(unittest.TestCase):
         ):
             self.assertEqual("development", settings.workspace_slug())
             self.assertEqual("SocialMEI Development", settings.workspace_name())
+
+    def test_business_timezone_defaults_to_brazil_and_honors_configuration(self):
+        instant = datetime(2026, 11, 1, 1, 30, tzinfo=timezone.utc)
+        self.assertEqual(
+            instant.astimezone(settings.business_timezone()).isoformat(),
+            "2026-10-31T22:30:00-03:00",
+        )
+        with patch.dict(os.environ, {"TZ": "America/Manaus"}):
+            self.assertEqual(
+                instant.astimezone(settings.business_timezone()).utcoffset(),
+                timedelta(hours=-4),
+            )
+        with patch.dict(os.environ, {"TZ": "UTC"}):
+            self.assertEqual(
+                instant.astimezone(settings.business_timezone()).utcoffset(),
+                timedelta(0),
+            )
+
+    def test_invalid_business_timezone_does_not_silently_use_server_time(self):
+        with patch.dict(os.environ, {"TZ": "private-invalid-timezone"}):
+            with self.assertRaises(ValueError) as error:
+                settings.business_timezone()
+            self.assertNotIn("private-invalid-timezone", str(error.exception))
 
     def test_cors_is_explicit_and_rejects_wildcard(self):
         self.assertEqual([], settings.cors_origins())

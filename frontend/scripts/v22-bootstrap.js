@@ -102,6 +102,9 @@
     document.body.appendChild(profile);
   }
 })().catch(() => {
-  document.getElementById("app").textContent =
+  const app = document.getElementById("app");
+  app.hidden = false;
+  app.setAttribute("role", "alert");
+  app.textContent =
     "Não foi possível carregar sua sessão. Atualize a página para tentar novamente.";
 });

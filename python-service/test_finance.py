@@ -1,12 +1,17 @@
 import os
 import unittest
 from concurrent.futures import ThreadPoolExecutor
+from datetime import date, datetime, timezone
 from pathlib import Path
+from unittest.mock import patch
 from uuid import uuid4
 
 import psycopg
 from app import app
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
+
+import finance_data
 
 DB = os.getenv("TEST_DATABASE_URL", "").strip()
 
@@ -72,6 +77,21 @@ class FinanceValidationTests(unittest.TestCase):
             self.assertEqual(response.status_code, 422)
 
 
+class PaymentDateTests(unittest.TestCase):
+    def test_payment_uses_business_day_across_utc_midnight(self):
+        instant = datetime(2026, 11, 1, 1, 30, tzinfo=timezone.utc)
+        with patch.dict(os.environ, {}, clear=True), patch("finance_data.datetime") as clock:
+            clock.now.side_effect = lambda zone: instant.astimezone(zone)
+            self.assertEqual(finance_data.payment_date(), date(2026, 10, 31))
+
+    def test_invalid_timezone_is_an_explicit_configuration_error(self):
+        with patch.dict(os.environ, {"TZ": "invalid-business-timezone"}):
+            with self.assertRaises(HTTPException) as error:
+                finance_data.payment_date()
+        self.assertEqual(error.exception.status_code, 503)
+        self.assertNotIn("invalid-business-timezone", str(error.exception.detail))
+
+
 @unittest.skipUnless(DB, "TEST_DATABASE_URL não configurado")
 class FinanceIntegrationTests(unittest.TestCase):
     @classmethod
@@ -110,6 +130,34 @@ class FinanceIntegrationTests(unittest.TestCase):
         return self.client.post(
             f"/api/v1/financeiro/{entry['id']}/{kind}", json=payload
         ), payload
+
+    def test_paid_creation_and_settlement_use_the_same_business_day(self):
+        instant = datetime(2026, 11, 1, 1, 30, tzinfo=timezone.utc)
+        with patch.dict(os.environ, {"TZ": "America/Recife"}), patch(
+            "finance_data.datetime"
+        ) as clock:
+            clock.now.side_effect = lambda zone: instant.astimezone(zone)
+            created, _ = self.create(status="pago")
+            opened, _ = self.create()
+            settled, _ = self.action(opened, "pagar")
+        self.assertEqual(created["data_pagamento"], "2026-10-31")
+        self.assertEqual(settled.status_code, 200, settled.text)
+        self.assertEqual(settled.json()["data_pagamento"], "2026-10-31")
+
+    def test_invalid_timezone_rolls_back_paid_creation(self):
+        payload = fields(operation_id=str(uuid4()), status="pago")
+        with patch.dict(os.environ, {"TZ": "invalid-business-timezone"}):
+            response = self.client.post("/api/v1/financeiro", json=payload)
+        self.assertEqual(response.status_code, 503, response.text)
+        with psycopg.connect(DB) as conn:
+            self.assertEqual(
+                conn.execute("SELECT COUNT(*) FROM socialmei.crm_financeiro").fetchone()[0],
+                0,
+            )
+            self.assertEqual(
+                conn.execute("SELECT COUNT(*) FROM socialmei.crm_financeiro_operacoes").fetchone()[0],
+                0,
+            )
 
     def test_lifecycle_exact_money_snapshots_and_logical_delete(self):
         entry, _ = self.create(cliente_id=self.customer["id"])

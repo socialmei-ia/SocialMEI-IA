@@ -35,6 +35,7 @@ Thumbs.db
 
 # Dependências, testes e ferramentas locais
 node_modules/
+.npm-cache/
 .pytest_cache/
 .coverage
 htmlcov/
