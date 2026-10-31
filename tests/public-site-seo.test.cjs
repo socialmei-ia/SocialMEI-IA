@@ -14,12 +14,19 @@ const host = "https://socialmei-ia.54-94-213-7.sslip.io";
 
 function headMeta(name, attr = "name") {
   const escaped = name.replace(/[.*+?^$()|[\]{}]/g, "\\$&");
-  return new RegExp('<meta\\s+' + attr + '="' + escaped + '"[^>]*>', "i").test(html);
+  return new RegExp("<meta\\s+" + attr + '="' + escaped + '"[^>]*>', "i").test(html);
 }
 
 test("Search metadata identifies only the public page, with working OG and favicon", () => {
   assert.match(html, /<html lang="pt-BR">/);
-  for (const n of ["description", "robots", "twitter:card", "twitter:title", "twitter:description", "twitter:image"]) {
+  for (const n of [
+    "description",
+    "robots",
+    "twitter:card",
+    "twitter:title",
+    "twitter:description",
+    "twitter:image",
+  ]) {
     assert(headMeta(n), "missing " + n);
   }
   for (const n of ["og:title", "og:description", "og:type", "og:url", "og:image", "og:locale"]) {
@@ -39,7 +46,10 @@ test("JSON-LD claims only verified site/app identity (no fake prices or ratings)
   assert(raw, "JSON-LD missing");
   const data = JSON.parse(raw[1]);
   assert.equal(data["@context"], "https://schema.org");
-  assert.deepEqual(data["@graph"].map((x) => x["@type"]), ["WebSite", "Organization", "WebApplication"]);
+  assert.deepEqual(
+    data["@graph"].map((x) => x["@type"]),
+    ["WebSite", "Organization", "WebApplication"],
+  );
   assert(data["@graph"].every((x) => x.url.startsWith(host)));
   assert(!raw[1].includes("aggregateRating"));
   assert(!raw[1].includes('"offers"'));
@@ -55,7 +65,10 @@ test("robots and sitemap only reveal public introduction; Caddy serves exact fil
   assert(siteMap.includes("<loc>" + host + "/sobre.html</loc>"));
   assert(!siteMap.includes("<loc>" + host + "/api/"));
   assert.match(llms, /ainda em implantação ou homologação/i);
-  assert.match(gateway, /@public_discovery path \/sobre\.html \/robots\.txt \/sitemap\.xml \/llms\.txt/);
+  assert.match(
+    gateway,
+    /@public_discovery path \/sobre\.html \/robots\.txt \/sitemap\.xml \/llms\.txt/,
+  );
   assert.match(gateway, /handle @public_discovery\s*\{[^}]*file_server/s);
   assert(!/handle_path\s+\/api\/v1/.test(gateway), "API gateway rules must not be rewritten");
 });
@@ -65,12 +78,21 @@ function simulate(config, pref = null, pathname = "/sobre.html") {
   const listeners = {};
   const storage = new Map(pref === null ? [] : [["socialmei-public-metrics-consent-v1", pref]]);
   let reloaded = false;
-  const nodes = Object.fromEntries(["metrics-consent", "metrics-accept", "metrics-decline", "privacy-preferences"]
-    .map((id) => [id, {
-      hidden: true, title: "", dataset: {},
-      addEventListener: (name, handler) => { listeners[id + ":" + name] = handler; },
-      setAttribute() {}, focus() {},
-    }]));
+  const nodes = Object.fromEntries(
+    ["metrics-consent", "metrics-accept", "metrics-decline", "privacy-preferences"].map((id) => [
+      id,
+      {
+        hidden: true,
+        title: "",
+        dataset: {},
+        addEventListener: (name, handler) => {
+          listeners[id + ":" + name] = handler;
+        },
+        setAttribute() {},
+        focus() {},
+      },
+    ]),
+  );
   const window = {};
   const ctx = {
     document: {
@@ -80,31 +102,57 @@ function simulate(config, pref = null, pathname = "/sobre.html") {
       getElementById: (id) => nodes[id],
       cookie: "",
     },
-    location: { pathname, reload: () => { reloaded = true; } },
+    location: {
+      pathname,
+      reload: () => {
+        reloaded = true;
+      },
+    },
     localStorage: {
       getItem: (k) => storage.get(k) || null,
       setItem: (k, v) => storage.set(k, v),
     },
     SOCIALMEI_CONFIG: { siteMetrics: config },
-    window, Date, encodeURIComponent,
+    window,
+    Date,
+    encodeURIComponent,
   };
   vm.runInNewContext(metrics, ctx, { timeout: 1000 });
   return {
-    urls, nodes, storage, listeners, window,
+    urls,
+    nodes,
+    storage,
+    listeners,
+    window,
     reloaded: () => reloaded,
-    click: (id) => { assert(listeners[id + ":click"]); listeners[id + ":click"](); },
+    click: (id) => {
+      assert(listeners[id + ":click"]);
+      listeners[id + ":click"]();
+    },
   };
 }
 
 test("analytics is disabled by default, rejects invalid IDs, never loads on dashboard", () => {
-  const disabled = simulate({ enabled: false, ga4MeasurementId: "G-ABC12345", clarityProjectId: "abcdefgh" });
+  const disabled = simulate({
+    enabled: false,
+    ga4MeasurementId: "G-ABC12345",
+    clarityProjectId: "abcdefgh",
+  });
   disabled.click("privacy-preferences");
   assert.equal(disabled.urls.length, 0);
   assert.equal(disabled.nodes["metrics-consent"].hidden, true);
-  const invalid = simulate({ enabled: true, ga4MeasurementId: "fake", clarityProjectId: "<script>" });
+  const invalid = simulate({
+    enabled: true,
+    ga4MeasurementId: "fake",
+    clarityProjectId: "<script>",
+  });
   invalid.click("metrics-accept");
   assert.equal(invalid.urls.length, 0);
-  const privateSite = simulate({ enabled: true, ga4MeasurementId: "G-ABC12345", clarityProjectId: "abcdefgh" }, "accepted", "/");
+  const privateSite = simulate(
+    { enabled: true, ga4MeasurementId: "G-ABC12345", clarityProjectId: "abcdefgh" },
+    "accepted",
+    "/",
+  );
   assert.equal(privateSite.urls.length, 0);
 });
 

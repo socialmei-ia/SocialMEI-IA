@@ -3,14 +3,18 @@
 (() => {
   "use strict";
   if (document.body?.dataset?.socialmeiAuthenticatedApp === "true") return;
-  if (location.pathname !== "/sobre.html" && !location.pathname.endsWith("/frontend/sobre.html")) return;
-  const settings =
-    typeof SOCIALMEI_CONFIG !== "undefined" ? SOCIALMEI_CONFIG.siteMetrics : null;
+  if (location.pathname !== "/sobre.html" && !location.pathname.endsWith("/frontend/sobre.html"))
+    return;
+  const settings = typeof SOCIALMEI_CONFIG !== "undefined" ? SOCIALMEI_CONFIG.siteMetrics : null;
   const enabled = settings?.enabled === true;
-  const ga = enabled && /^G-[A-Z0-9]{6,16}$/.test(settings.ga4MeasurementId || "")
-    ? settings.ga4MeasurementId : null;
-  const clarity = enabled && /^[a-z0-9]{8,32}$/i.test(settings.clarityProjectId || "")
-    ? settings.clarityProjectId : null;
+  const ga =
+    enabled && /^G-[A-Z0-9]{6,16}$/.test(settings.ga4MeasurementId || "")
+      ? settings.ga4MeasurementId
+      : null;
+  const clarity =
+    enabled && /^[a-z0-9]{8,32}$/i.test(settings.clarityProjectId || "")
+      ? settings.clarityProjectId
+      : null;
   const active = !!(ga || clarity);
   const key = "socialmei-public-metrics-consent-v1";
   const banner = document.getElementById("metrics-consent");
@@ -20,10 +24,18 @@
   if (!banner || !accept || !decline || !preferences) return;
   let granted = false;
   const stored = () => {
-    try { return localStorage.getItem(key); } catch { return null; }
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    }
   };
   const save = (value) => {
-    try { localStorage.setItem(key, value); } catch { /* private browsing */ }
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      /* private browsing */
+    }
   };
   function loadScript(src, label) {
     const script = document.createElement("script");
@@ -37,10 +49,14 @@
     granted = true;
     if (ga) {
       window.dataLayer = window.dataLayer || [];
-      window.gtag = function () { window.dataLayer.push(arguments); };
+      window.gtag = function () {
+        window.dataLayer.push(arguments);
+      };
       window.gtag("consent", "default", {
-        analytics_storage: "denied", ad_storage: "denied",
-        ad_user_data: "denied", ad_personalization: "denied",
+        analytics_storage: "denied",
+        ad_storage: "denied",
+        ad_user_data: "denied",
+        ad_personalization: "denied",
       });
       window.gtag("consent", "update", { analytics_storage: "granted" });
       window.gtag("js", new Date());
@@ -52,9 +68,11 @@
       loadScript("https://www.googletagmanager.com/gtag/js?id=" + encodeURIComponent(ga), "ga4");
     }
     if (clarity) {
-      window.clarity = window.clarity || function () {
-        (window.clarity.q = window.clarity.q || []).push(arguments);
-      };
+      window.clarity =
+        window.clarity ||
+        function () {
+          (window.clarity.q = window.clarity.q || []).push(arguments);
+        };
       loadScript("https://www.clarity.ms/tag/" + encodeURIComponent(clarity), "clarity");
     }
   }
