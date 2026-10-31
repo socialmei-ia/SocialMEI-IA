@@ -9,7 +9,7 @@ from typing import Literal
 from uuid import UUID, uuid4
 
 import psycopg
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Query, Request, Response
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -168,6 +168,33 @@ def answer(conn, workspace, state, text):
                          'Ainda não há produtos ativos disponíveis para consulta por aqui. ')
                         + 'Digite 5 para falar com atendente ou 0 para o menu.'
                     )}
+
+
+@router.get('/api/v1/whatsapp/bot/preview')
+def preview(response: Response, opcao: Literal['0', '1', '2', '3', '4', '5'] = Query('0'),
+            produto: str = Query('', max_length=160)):
+    """Preview the existing bot logic with this owner's real catalog; never send or persist."""
+    user = require_owner()
+    response.headers['Cache-Control'] = 'no-store'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    query = produto.strip()
+    if '\\x00' in query or (query and opcao != '2'):
+        raise HTTPException(422, 'Consulta inválida.')
+    with connect() as conn:
+        conn.row_factory = dict_row
+        conn.execute("SET TRANSACTION READ ONLY")
+        conn.execute("SET LOCAL statement_timeout='3000ms'")
+        _, result = answer(
+            conn, user['workspace_id'],
+            'ask_product' if opcao == '2' and query else 'menu',
+            query if opcao == '2' and query else opcao,
+        )
+    return {
+        'preview_only': True, 'send_enabled': False,
+        'action': result['action'], 'text': result['text'],
+        'choices': result['choices'], 'items': result['items'],
+        'handoff': result['handoff'],
+    }
 
 
 @router.post('/api/v1/whatsapp/bot/access')
