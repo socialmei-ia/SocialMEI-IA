@@ -5,6 +5,8 @@
         not header Origin https://{$SOCIALMEI_TEAM_HOST}
     }
     @app_assets path /scripts/* /styles/* /assets/* /config.js
+    # Public informational/SEO resources. Never serve private app data as crawlable pages.
+    @public_discovery path /sobre.html /robots.txt /sitemap.xml /llms.txt
     @technical_reads {
         method GET
         path /api/v1/integracoes/resumo /api/v1/integracoes/clientes /api/v1/integracoes/produtos /api/v1/integracoes/vendas /api/v1/integracoes/financeiro /api/v1/integracoes/whatsapp/menu
@@ -68,6 +70,10 @@
         }
         # Relative assets also work when the application is opened at /.
         handle @app_assets {
+            root * /srv/frontend
+            file_server
+        }
+        handle @public_discovery {
             root * /srv/frontend
             file_server
         }

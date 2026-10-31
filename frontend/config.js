@@ -13,4 +13,12 @@ const SOCIALMEI_CONFIG = Object.freeze({
   //        approvedOrigin: "https://SUA-INSTANCIA" }. Nunca incluir tokens ou credenciais.
   // Ativar somente em desenvolvimento/staging com API e workspace conferidos.
   clientes: { mode: "local", apiBaseUrl: "", workspaceKey: "" },
+  // Optional identifiers for the PUBLIC informational page (/sobre.html).
+  // Do not enable until the owner has configured GA4/Clarity, privacy settings
+  // and the explicit opt-in banner. Never add CRM/customer identifiers here.
+  siteMetrics: {
+    enabled: false,
+    ga4MeasurementId: "",
+    clarityProjectId: "",
+  },
 });
