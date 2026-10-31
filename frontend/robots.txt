@@ -7,6 +7,5 @@ Disallow: /internal/
 Disallow: /webhooks/
 Disallow: /media/
 Disallow: /frontend/
-Disallow: /scripts/
 
 Sitemap: https://socialmei-ia.54-94-213-7.sslip.io/sitemap.xml
