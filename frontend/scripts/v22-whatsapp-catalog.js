@@ -85,7 +85,10 @@
     previewBox.dataset.waBotPreview = "true";
     previewBox.append(
       node("h3", "Prévia do menu do WhatsApp"),
-      node("p", "Confira como o bot responderia com os dados reais deste negócio. A consulta não envia mensagens, não ativa o bot nem altera conversas ou estoque."),
+      node(
+        "p",
+        "Confira como o bot responderia com os dados reais deste negócio. A consulta não envia mensagens, não ativa o bot nem altera conversas ou estoque.",
+      ),
     );
     const choiceLabel = node("label", "Opção para demonstrar");
     const choice = node("select");
@@ -110,10 +113,15 @@
     product.placeholder = "Ex.: bolo de milho";
     productLabel.append(product);
     productLabel.hidden = true;
-    choice.onchange = () => { productLabel.hidden = choice.value !== "2"; };
+    choice.onchange = () => {
+      productLabel.hidden = choice.value !== "2";
+    };
     const previewButton = node("button", "Ver resposta do bot");
     previewButton.type = "button";
-    const reply = node("p", "Escolha uma opção para visualizar uma resposta, sem contato com o WAHA.");
+    const reply = node(
+      "p",
+      "Escolha uma opção para visualizar uma resposta, sem contato com o WAHA.",
+    );
     reply.setAttribute("role", "status");
     reply.setAttribute("aria-live", "polite");
     previewBox.append(choiceLabel, productLabel, previewButton, reply);
@@ -125,15 +133,21 @@
       previewButton.disabled = true;
       reply.textContent = "Consultando o catálogo deste negócio…";
       try {
-        const query = "?opcao=" + encodeURIComponent(choice.value) +
+        const query =
+          "?opcao=" +
+          encodeURIComponent(choice.value) +
           (choice.value === "2" && product.value.trim()
             ? "&produto=" + encodeURIComponent(product.value.trim())
             : "");
         const data = await host.request("/whatsapp/bot/preview" + query);
         if (!current()) return;
-        if (data?.preview_only !== true || data?.send_enabled !== false ||
-            typeof data.text !== "string" || !Array.isArray(data.items) ||
-            !Array.isArray(data.choices))
+        if (
+          data?.preview_only !== true ||
+          data?.send_enabled !== false ||
+          typeof data.text !== "string" ||
+          !Array.isArray(data.items) ||
+          !Array.isArray(data.choices)
+        )
           throw Error("Resposta da prévia inválida.");
         reply.textContent = data.text || "Nenhuma resposta automática seria enviada.";
       } catch (error) {

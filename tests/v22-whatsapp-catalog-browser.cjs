@@ -125,7 +125,10 @@ module.exports = async function (browser, origin) {
         await panel.getByLabel("Nome do produto a consultar").fill("bolo");
         await panel.getByRole("button", { name: "Ver resposta do bot" }).click();
         await panel.getByText(/Bolo fictício — R\$ 18,50 — estoque: 7/).waitFor();
-        assert.deepEqual(previewQueries, [["0", ""], ["2", "bolo"]]);
+        assert.deepEqual(previewQueries, [
+          ["0", ""],
+          ["2", "bolo"],
+        ]);
         assert.equal(writes.length, 0);
         await page.screenshot({ path: path.join(out, `${width}-${theme}.png`), fullPage: true });
         await panel.getByRole("button", { name: "Gerar credencial", exact: true }).click();
