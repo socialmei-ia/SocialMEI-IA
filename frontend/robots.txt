@@ -1,0 +1,12 @@
+# SocialMEI.IA — robots for the public introduction; private APIs stay closed.
+User-agent: *
+Allow: /sobre.html
+Allow: /assets/
+Disallow: /api/
+Disallow: /internal/
+Disallow: /webhooks/
+Disallow: /media/
+Disallow: /frontend/
+Disallow: /scripts/
+
+Sitemap: https://socialmei-ia.54-94-213-7.sslip.io/sitemap.xml
