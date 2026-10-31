@@ -7,10 +7,7 @@
       "name": "Consultar mensagens",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [
-        0,
-        0
-      ],
+      "position": [0, 0],
       "parameters": {
         "rule": {
           "interval": [
@@ -27,10 +24,7 @@
       "name": "Piloto protegido",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        210,
-        0
-      ],
+      "position": [210, 0],
       "parameters": {
         "jsCode": "// Homologar acesso privado, credenciais e deploy da migration 033 antes de permitir processamento.\nconst ENABLED = false;\nreturn ENABLED ? $input.all() : [];"
       }
@@ -40,10 +34,7 @@
       "name": "Buscar mensagens para classificar",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        430,
-        0
-      ],
+      "position": [430, 0],
       "parameters": {
         "method": "POST",
         "url": "http://team-api:8000/internal/message-enrichment/provider/claims",
@@ -60,10 +51,7 @@
       "name": "Individualizar classificacoes",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        650,
-        0
-      ],
+      "position": [650, 0],
       "parameters": {
         "jsCode": "const payload = $input.first()?.json;\nif (!payload || payload.schema_version !== 1 || payload.send_enabled !== false ||\n    !Array.isArray(payload.items) || payload.items.length > 10) {\n  throw new Error(\"Lote de análise inválido.\");\n}\nreturn payload.items.map((task) => {\n  if (!task || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(task.claim_id) ||\n      !Number.isSafeInteger(task.message_id) || task.message_id < 1 ||\n      ![\"instagram\", \"waha\"].includes(task.origin) ||\n      typeof task.text !== \"string\" || !task.text.trim() || task.text.length > 8192 ||\n      !Number.isInteger(task.attempt) || task.attempt < 1 || task.attempt > 3) {\n    throw new Error(\"Item de análise inválido.\");\n  }\n  return { json: { claim_id: task.claim_id, text: task.text }, pairedItem: { item: 0 } };\n});"
       }
@@ -73,10 +61,7 @@
       "name": "Classificar sentimento",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
-      "position": [
-        880,
-        0
-      ],
+      "position": [880, 0],
       "parameters": {
         "promptType": "define",
         "text": "={{ $json.text }}",
@@ -90,10 +75,7 @@
       "name": "Groq — credencial privada",
       "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
       "typeVersion": 1,
-      "position": [
-        880,
-        220
-      ],
+      "position": [880, 220],
       "parameters": {
         "model": "llama-3.3-70b-versatile",
         "options": {}
@@ -104,10 +86,7 @@
       "name": "Validar classificacao",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        1120,
-        0
-      ],
+      "position": [1120, 0],
       "parameters": {
         "jsCode": "const task = $(\"Individualizar classificacoes\").item.json;\nconst raw = $json.output;\nif (typeof raw !== \"string\" || raw.length > 4096) {\n  throw new Error(\"Classificação de IA inválida.\");\n}\nlet data;\ntry { data = JSON.parse(raw); } catch { throw new Error(\"A IA não retornou JSON estrito.\"); }\nif (!data || typeof data !== \"object\" || Array.isArray(data) ||\n    Object.keys(data).sort().join(\",\") !== \"confidence,explanation,sentiment\" ||\n    ![\"positive\", \"negative\", \"neutral\", \"uncertain\"].includes(data.sentiment) ||\n    ![\"low\", \"medium\", \"high\"].includes(data.confidence) ||\n    typeof data.explanation !== \"string\") {\n  throw new Error(\"Resultado fora do contrato de sentimento.\");\n}\nconst explanation = [...data.explanation.trim()].slice(0, 120).join(\"\");\nif (!explanation || /[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F]/.test(explanation)) {\n  throw new Error(\"Explicação inválida.\");\n}\nreturn { json: {\n  claim_id: task.claim_id,\n  sentiment: data.sentiment,\n  confidence: data.confidence,\n  explanation\n} };",
         "mode": "runOnceForEachItem"
@@ -118,10 +97,7 @@
       "name": "Gravar resultado sem envio",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        1340,
-        0
-      ],
+      "position": [1340, 0],
       "parameters": {
         "method": "POST",
         "url": "http://team-api:8000/internal/message-enrichment/provider/results",

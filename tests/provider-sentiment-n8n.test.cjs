@@ -15,7 +15,11 @@ const resultNode = byName.get("Validar classificacao");
 const claimId = "11111111-2222-4333-8444-555555555555";
 
 function claims(payload) {
-  const input = { first() { return { json: payload }; } };
+  const input = {
+    first() {
+      return { json: payload };
+    },
+  };
   return new Function("$input", claimNode.parameters.jsCode)(input);
 }
 function result(job, modelResponse) {
@@ -31,11 +35,11 @@ test("existing n8n sentiment workflow stays uniquely tracked, inactive and indep
   assert.equal(workflow.settings.saveDataSuccessExecution, "none");
   assert.equal(workflow.settings.saveDataErrorExecution, "none");
   assert.equal(workflow.settings.saveManualExecutions, false);
+  assert.equal(byName.get("Groq — credencial privada").type, "@n8n/n8n-nodes-langchain.lmChatGroq");
   assert.equal(
-    byName.get("Groq — credencial privada").type,
-    "@n8n/n8n-nodes-langchain.lmChatGroq",
+    workflow.nodes.filter((node) => node.type === "n8n-nodes-base.httpRequest").length,
+    2,
   );
-  assert.equal(workflow.nodes.filter((node) => node.type === "n8n-nodes-base.httpRequest").length, 2);
   for (const node of workflow.nodes) {
     assert.equal(node.credentials, undefined);
     if (node.type === "n8n-nodes-base.httpRequest") {
@@ -43,9 +47,7 @@ test("existing n8n sentiment workflow stays uniquely tracked, inactive and indep
       assert.equal(node.parameters.genericAuthType, "httpHeaderAuth");
       assert.equal(node.parameters.method, "POST");
       assert(
-        /\/internal\/message-enrichment\/provider\/(claims|results)$/.test(
-          node.parameters.url,
-        ),
+        /\/internal\/message-enrichment\/provider\/(claims|results)$/.test(node.parameters.url),
       );
     }
     for (const edges of Object.values(workflow.connections[node.name] || {}))
@@ -56,7 +58,13 @@ test("existing n8n sentiment workflow stays uniquely tracked, inactive and indep
 });
 
 test("claim validation checks the version, provider ownership and send-disabled gate", () => {
-  const job = { claim_id: claimId, message_id: 3, origin: "waha", text: "Qual o preço?", attempt: 1 };
+  const job = {
+    claim_id: claimId,
+    message_id: 3,
+    origin: "waha",
+    text: "Qual o preço?",
+    attempt: 1,
+  };
   const payload = { schema_version: 1, send_enabled: false, items: [job] };
   assert.equal(claims(payload)[0].json.claim_id, claimId);
   assert.equal(claims(payload)[0].json.text, job.text);
@@ -69,7 +77,8 @@ test("claim validation checks the version, provider ownership and send-disabled 
     { ...payload, items: [{ ...job, claim_id: "wrong" }] },
     { ...payload, items: [{ ...job, text: "" }] },
     { ...payload, items: [{ ...job, attempt: 4 }] },
-  ]) assert.throws(() => claims(invalid));
+  ])
+    assert.throws(() => claims(invalid));
 });
 
 test("AI response is strict, bounded, and only recorded against the original claim", () => {
@@ -86,7 +95,8 @@ test("AI response is strict, bounded, and only recorded against the original cla
     { ...good, confidence: "extreme" },
     { ...good, explanation: "" },
     { ...good, suggested_reply: "Enviar ao cliente" },
-  ]) assert.throws(() => result(task, { output: JSON.stringify(invalid) }));
+  ])
+    assert.throws(() => result(task, { output: JSON.stringify(invalid) }));
   assert.throws(() => result(task, { output: "not json" }));
   assert.equal(
     result(task, { output: JSON.stringify({ ...good, explanation: "x".repeat(600) }) }).json
