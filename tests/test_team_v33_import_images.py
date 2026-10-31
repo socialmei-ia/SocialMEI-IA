@@ -315,7 +315,7 @@ class ImportImagesTests(unittest.TestCase):
 
         def git_response(argv, **kwargs):
             if argv[-2:] == ["rev-parse", "HEAD"]:
-                return sha + "\\n"
+                return sha + "\n"
             if argv[-3:] == ["status", "--porcelain=v1", "--untracked-files=all"]:
                 return ""
             raise AssertionError(argv)
@@ -353,7 +353,7 @@ class ImportImagesTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "source_sha_divergente"):
                 importer.valid_stage(sha)
         with patch.object(importer, "command", side_effect=[
-            sha + "\\n", " M hidden-secret-file"
+            sha + "\n", " M hidden-secret-file"
         ]):
             with self.assertRaisesRegex(RuntimeError, "source_modificado"):
                 importer.valid_stage(sha)
