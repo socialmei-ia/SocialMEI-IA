@@ -154,6 +154,36 @@ class ProviderSentimentTests(TestCase):
             )
         self.assertEqual(response.status_code, 422)
 
+    def test_expired_lease_is_excluded_from_result_claim(self):
+        claim_id = "11111111-2222-4333-8444-555555555555"
+        fake = FakeConnection(claim=None)
+
+        @contextmanager
+        def database():
+            yield fake
+
+        with patch.object(module, "database", database):
+            response = self.client.post(
+                "/internal/message-enrichment/provider/results",
+                headers=self.auth(),
+                json={
+                    "claim_id": claim_id,
+                    "sentiment": "neutral",
+                    "confidence": "low",
+                    "explanation": "Mensagem ambígua.",
+                },
+            )
+        self.assertEqual(response.status_code, 404)
+        queries = [sql for sql, _ in fake.queries if
+                   "SELECT * FROM socialmei.me_provider_sentiment_jobs" in sql]
+        self.assertEqual(len(queries), 1)
+        self.assertIn("lease_until > NOW()", queries[0])
+        self.assertIn("status='completed'", queries[0])
+        self.assertFalse(any(
+            "UPDATE socialmei.me_provider_sentiment_jobs" in sql
+            for sql, _ in fake.queries
+        ))
+
     def test_hash_ignores_field_order(self):
         first = {"sentiment": "neutral", "confidence": "low", "explanation": "Sem contexto"}
         second = {"explanation": "Sem contexto", "confidence": "low", "sentiment": "neutral"}

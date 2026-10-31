@@ -6,6 +6,7 @@ window.SocialMEIV22 = (() => {
   const request = (...args) => auth.request(...args);
   let loaded = false;
   let inbox = [];
+  let inboxScope = null;
   let preferences = null;
   let data = { clients: [], products: [], sales: [], finance: [] };
   const date = (value) =>
@@ -328,11 +329,24 @@ window.SocialMEIV22 = (() => {
         cap.mode,
         !!cap.instagram_inbox,
         !!cap.waha_inbox,
-        result.items.map((row) => [row.id, row.revision, row.messages?.at(-1)?.id]),
+        result.items.map((row) => [
+          row.id,
+          row.revision,
+          row.origin,
+          row.account_ref,
+          row.messages?.map((message) => [
+            message.id,
+            message.provider_analysis?.source,
+            message.provider_analysis?.sentiment,
+            message.provider_analysis?.confidence,
+            message.provider_analysis?.explanation,
+          ]),
+        ]),
       ]);
       if (fingerprint === inboxFingerprint) return;
       inboxFingerprint = fingerprint;
       inbox = result.items;
+      inboxScope = scope;
       C.splice(0, C.length);
       for (const row of inbox) {
         const messages = row.messages || [];
@@ -693,7 +707,10 @@ window.SocialMEIV22 = (() => {
       return auth.current;
     },
     thread(id) {
-      const row = inbox.find((r) => "me-" + r.id === id);
+      const row =
+        auth.current && inboxScope === identityKey()
+          ? inbox.find((r) => "me-" + r.id === id)
+          : null;
       return row
         ? [...(row.messages || []), ...(window.SocialMEIInstagramDirect?.confirmed(id) || [])]
             .sort((a, b) => new Date(a.occurred_at) - new Date(b.occurred_at))
@@ -712,7 +729,9 @@ window.SocialMEIV22 = (() => {
       return data.clients;
     },
     conversation(id) {
-      return inbox.find((row) => "me-" + row.id === id) || null;
+      return auth.current && inboxScope === identityKey()
+        ? inbox.find((row) => "me-" + row.id === id) || null
+        : null;
     },
   };
 })();

@@ -11,7 +11,7 @@
   };
   const style = node("style");
   style.textContent =
-    ".sm-wa{margin:18px 0;padding:18px;border:1px solid var(--b);border-radius:16px;background:var(--w);color:var(--t);overflow-wrap:anywhere}.sm-wa h2{font-size:20px}.sm-wa p{margin:10px 0;color:var(--m)}.sm-wa button,.sm-wa input{min-height:44px;font:inherit;border:1px solid var(--b);border-radius:10px;padding:9px 14px;background:var(--w);color:var(--t);max-width:100%}.sm-wa button{cursor:pointer}.sm-wa button:disabled{opacity:.6}.sm-wa li{padding:12px 0;border-top:1px solid var(--b)}.sm-wa .wa-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}.sm-wa-secret{margin:auto;width:min(540px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;border:1px solid var(--b);border-radius:16px;padding:20px;background:var(--w);color:var(--t)}.sm-wa-secret::backdrop{background:#0008}.sm-wa-secret input{width:100%;min-width:0}.sm-wa-secret button{margin:8px 8px 0 0}";
+    ".sm-wa{margin:18px 0;padding:18px;border:1px solid var(--b);border-radius:16px;background:var(--w);color:var(--t);overflow-wrap:anywhere}.sm-wa h2{font-size:20px}.sm-wa p{margin:10px 0;color:var(--m)}.sm-wa button,.sm-wa input,.sm-wa select{min-height:44px;font:inherit;border:1px solid var(--b);border-radius:10px;padding:9px 14px;background:var(--w);color:var(--t);max-width:100%}.sm-wa button{cursor:pointer}.sm-wa button:disabled{opacity:.6}.sm-wa li{padding:12px 0;border-top:1px solid var(--b)}.sm-wa .wa-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}.sm-wa-secret{margin:auto;width:min(540px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;border:1px solid var(--b);border-radius:16px;padding:20px;background:var(--w);color:var(--t)}.sm-wa-secret::backdrop{background:#0008}.sm-wa-secret input{width:100%;min-width:0}.sm-wa-secret button{margin:8px 8px 0 0}.sm-wa-preview{padding:16px;margin:16px 0;border:1px solid var(--b);border-radius:12px}.sm-wa-preview label{display:block;margin:10px 0 6px}.sm-wa-preview [role=status]{white-space:pre-wrap}.sm-wa-preview select,.sm-wa-preview input{width:100%}";
   document.head.append(style);
   let credentialDialog;
   function showOnce(value) {
@@ -80,9 +80,83 @@
     const refresh = node("button", "Atualizar canais");
     refresh.type = "button";
     const list = node("ul");
-    section.append(feedback, refresh, list);
+    const previewBox = node("section");
+    previewBox.className = "sm-wa-preview";
+    previewBox.dataset.waBotPreview = "true";
+    previewBox.append(
+      node("h3", "Prévia do menu do WhatsApp"),
+      node(
+        "p",
+        "Confira como o bot responderia com os dados reais deste negócio. A consulta não envia mensagens, não ativa o bot nem altera conversas ou estoque.",
+      ),
+    );
+    const choiceLabel = node("label", "Opção para demonstrar");
+    const choice = node("select");
+    for (const [value, name] of [
+      ["0", "0 — Menu inicial"],
+      ["1", "1 — Ver produtos"],
+      ["2", "2 — Consultar preço e disponibilidade"],
+      ["3", "3 — Conhecer serviços"],
+      ["4", "4 — Solicitar orçamento"],
+      ["5", "5 — Falar com atendente"],
+    ]) {
+      const option = node("option", name);
+      option.value = value;
+      choice.append(option);
+    }
+    choiceLabel.append(choice);
+    const productLabel = node("label", "Nome do produto a consultar");
+    const product = node("input");
+    product.type = "text";
+    product.maxLength = 160;
+    product.autocomplete = "off";
+    product.placeholder = "Ex.: bolo de milho";
+    productLabel.append(product);
+    productLabel.hidden = true;
+    choice.onchange = () => {
+      productLabel.hidden = choice.value !== "2";
+    };
+    const previewButton = node("button", "Ver resposta do bot");
+    previewButton.type = "button";
+    const reply = node(
+      "p",
+      "Escolha uma opção para visualizar uma resposta, sem contato com o WAHA.",
+    );
+    reply.setAttribute("role", "status");
+    reply.setAttribute("aria-live", "polite");
+    previewBox.append(choiceLabel, productLabel, previewButton, reply);
+    section.append(feedback, refresh, previewBox, list);
     (view.querySelector(".pg > .g2 > .fl") || view).append(section);
     const current = () => section.isConnected && scope() === expected;
+    previewButton.onclick = async () => {
+      if (!current()) return;
+      previewButton.disabled = true;
+      reply.textContent = "Consultando o catálogo deste negócio…";
+      try {
+        const query =
+          "?opcao=" +
+          encodeURIComponent(choice.value) +
+          (choice.value === "2" && product.value.trim()
+            ? "&produto=" + encodeURIComponent(product.value.trim())
+            : "");
+        const data = await host.request("/whatsapp/bot/preview" + query);
+        if (!current()) return;
+        if (
+          data?.preview_only !== true ||
+          data?.send_enabled !== false ||
+          typeof data.text !== "string" ||
+          !Array.isArray(data.items) ||
+          !Array.isArray(data.choices)
+        )
+          throw Error("Resposta da prévia inválida.");
+        reply.textContent = data.text || "Nenhuma resposta automática seria enviada.";
+      } catch (error) {
+        if (current()) reply.textContent = error.message || "Não foi possível consultar o menu.";
+      } finally {
+        if (current()) previewButton.disabled = false;
+      }
+    };
+
     async function load() {
       refresh.disabled = true;
       try {
