@@ -178,7 +178,7 @@ def preview(response: Response, opcao: Literal['0', '1', '2', '3', '4', '5'] = Q
     response.headers['Cache-Control'] = 'no-store'
     response.headers['X-Content-Type-Options'] = 'nosniff'
     query = produto.strip()
-    if '\\x00' in query or (query and opcao != '2'):
+    if '\x00' in query or (query and opcao != '2'):
         raise HTTPException(422, 'Consulta inválida.')
     with connect() as conn:
         conn.row_factory = dict_row
