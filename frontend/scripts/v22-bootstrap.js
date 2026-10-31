@@ -63,6 +63,18 @@
     whatsapp.src = "scripts/v22-whatsapp-catalog.js";
     whatsapp.onerror = () => console.warn("Consulta de catálogo WhatsApp indisponível.");
     document.body.appendChild(whatsapp);
+    const whatsappBot = document.createElement("script");
+    whatsappBot.src = "scripts/v22-whatsapp-bot.js";
+    whatsappBot.onerror = () => console.warn("Controle de atendimento WhatsApp indisponível.");
+    document.body.appendChild(whatsappBot);
+    const whatsappReadiness = document.createElement("script");
+    whatsappReadiness.src = "scripts/v22-whatsapp-readiness.js";
+    whatsappReadiness.onerror = () => console.warn("Estado WhatsApp indisponível.");
+    document.body.appendChild(whatsappReadiness);
+    const providerAnalysis = document.createElement("script");
+    providerAnalysis.src = "scripts/v22-provider-analysis.js";
+    providerAnalysis.onerror = () => console.warn("Exibição da análise de mensagens indisponível.");
+    document.body.appendChild(providerAnalysis);
     const collaborator = document.createElement("script");
     collaborator.src = "scripts/v22-report-access.js";
     collaborator.onerror = () => console.warn("Acesso aos relatórios indisponível.");

@@ -54,7 +54,12 @@ module.exports = async function (browser, origin) {
       if (p === "/workspace-profile") return route.fulfill({ json: { profile: {} } });
       if (p === "/message-enrichment/capabilities")
         return route.fulfill({
-          json: { mode: "disabled", workspace_id: 17, instagram_inbox: enabled },
+          json: {
+            mode: "disabled",
+            workspace_id: 17,
+            instagram_inbox: enabled,
+            waha_inbox: enabled,
+          },
         });
       if (p === "/message-enrichment/conversations") {
         reads++;
@@ -105,6 +110,30 @@ module.exports = async function (browser, origin) {
         2,
         "New conversations also arrive through polling",
       );
+      items.push({
+        id: 3,
+        revision: 1,
+        channel: "whatsapp",
+        origin: "waha",
+        contact_name: "Contato do WhatsApp",
+        messages: [message(31, "Mensagem WhatsApp sintetica")],
+      });
+      await page.clock.fastForward(6001);
+      await page.evaluate(() => go("/caixa/me-3"));
+      await page.locator(".ct .hd b").first().filter({ hasText: "Contato do WhatsApp" }).waitFor();
+      items = items.map((row) =>
+        row.id === 3 ? { ...row, revision: 2, contact_name: "+5511990001234" } : row,
+      );
+      await page.clock.fastForward(6001);
+      await page.waitForFunction(
+        () => document.querySelector(".ct .hd b")?.textContent === "+5511990001234",
+      );
+      assert.equal(
+        await page.locator(".ct .ms .bb").count(),
+        1,
+        "Resolving identity never creates another message",
+      );
+      assert.equal(documents, documentCount, "A verified contact label updates without reloading");
       await page.evaluate(() => go("/caixa"));
       await page.getByRole("link", { name: "Contato Direct B", exact: true }).waitFor();
       assert.match(await page.locator("#v").innerText(), /Recebimento habilitado no servidor/);

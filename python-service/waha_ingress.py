@@ -22,7 +22,7 @@ from message_enrichment import _append_inbox_message, unique_json_fields, finger
 
 MAX_BODY = 65536
 DIRECT = re.compile(r"(?:[0-9]{1,40}@c\.us|[A-Za-z0-9][A-Za-z0-9_.:-]{0,79}@lid)\Z")
-router = APIRouter(prefix="/internal/waha", tags=["isolated WAHA reception"])
+router = APIRouter(prefix="/internal/waha", tags=["authenticated WAHA reception"])
 
 
 @dataclass(frozen=True)
@@ -333,8 +333,15 @@ class WahaIngressService:
         if binding is None:
             raise HTTPException(403, "Autenticação do webhook indisponível.")
         incoming = parse_event(raw, signature, algorithm, binding)
-        if not settings.waha_ingress_isolated_enabled():
-            raise HTTPException(503, "Recepção WAHA isolada não habilitada.")
+        if settings.waha_ingress_team_pilot_enabled() and (
+            len(self.registry) != 1
+            or binding.workspace_id != 1
+            or binding.instance != "socialmei-equipe-piloto"
+            or not binding.account_id.endswith("5976@c.us")
+        ):
+            raise HTTPException(503, "Vínculo WAHA fora do piloto autorizado.")
+        if not settings.waha_ingress_enabled():
+            raise HTTPException(503, "Recepção WAHA não habilitada.")
         failed = False
         result = None
         try:
@@ -436,6 +443,8 @@ def waha_service():
             or not 1 <= len(value["bindings"]) <= 100
         ):
             raise ValueError()
+        if settings.waha_ingress_team_pilot_enabled() and metadata.st_uid != 0:
+            raise ValueError()
         bindings = []
         for entry in value["bindings"]:
             if not isinstance(entry, dict):
@@ -454,8 +463,8 @@ def waha_service():
 async def webhook(
     instance: str, request: Request, service: WahaIngressService = Depends(waha_service)
 ):
-    if not settings.waha_ingress_isolated_enabled():
-        raise HTTPException(503, "Recepção WAHA isolada não habilitada.")
+    if not settings.waha_ingress_enabled():
+        raise HTTPException(503, "Recepção WAHA não habilitada.")
     if (
         request.query_params
         or len(request.headers.getlist("content-type")) != 1
