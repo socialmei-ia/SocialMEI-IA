@@ -189,9 +189,10 @@ def preview(response: Response, opcao: Literal['0', '1', '2', '3', '4', '5'] = Q
             'ask_product' if opcao == '2' and query else 'menu',
             query if opcao == '2' and query else opcao,
         )
+    rendered = render_waha('preview', 'preview@c.us', result['text'], result['choices'])
     return {
         'preview_only': True, 'send_enabled': False,
-        'action': result['action'], 'text': result['text'],
+        'action': result['action'], 'text': rendered['body']['text'],
         'choices': result['choices'], 'items': result['items'],
         'handoff': result['handoff'],
     }
