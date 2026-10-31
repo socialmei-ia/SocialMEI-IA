@@ -24,7 +24,7 @@ python3 /tmp/team-v33-stage-reviewed.py --target team --stage \
   --candidate-branch feat/team-release-candidate-stage-20261030
 ```
 
-O script só aceita branches revisadas, confere que `origin` é o repositório oficial, faz fetch de objetos Git e *refs remotas*, exige que o SHA seja o HEAD remoto exato, verifica que é descendente da release e que `database/migrations/` não divergiu, registra checkout original limpo/sujo **sem revelar caminhos sensíveis** e cria worktree privado `/home/ubuntu/socialmei-backups/team-v33-<12_DIGITOS_SHA>/source` com recibo `stage-receipt.json`.
+O script só aceita branches revisadas, confere que `origin` é o repositório oficial, faz fetch de objetos Git e _refs remotas_, exige que o SHA seja o HEAD remoto exato, verifica que é descendente da release e que `database/migrations/` não divergiu, registra checkout original limpo/sujo **sem revelar caminhos sensíveis** e cria worktree privado `/home/ubuntu/socialmei-backups/team-v33-<12_DIGITOS_SHA>/source` com recibo `stage-receipt.json`.
 
 A indicação `candidate_workflow_ci_verified:false` no recibo é deliberada: o preparador **não consulta o GitHub Actions** e não deve alegar aprovação apenas com base na branch. O operador deve validar os checks por fora, antes de prosseguir.
 
