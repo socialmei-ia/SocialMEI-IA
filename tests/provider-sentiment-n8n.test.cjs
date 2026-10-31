@@ -5,111 +5,93 @@ const test = require("node:test");
 
 const workflow = JSON.parse(
   fs.readFileSync(
-    path.join(__dirname, "../n8n-workflows/equipe/02-sentimento-mensagens-verificadas.json"),
+    path.join(__dirname, "../n8n-workflows/experimental/provider-sentiment-worker.json"),
     "utf8",
   ),
 );
 const byName = new Map(workflow.nodes.map((node) => [node.name, node]));
-const claimNode = byName.get("Validar lote");
-const receiptNode = byName.get("Validar classificação");
-const id = "11111111-2222-4333-8444-555555555555";
+const claimNode = byName.get("Individualizar classificacoes");
+const resultNode = byName.get("Validar classificacao");
+const claimId = "11111111-2222-4333-8444-555555555555";
 
 function claims(payload) {
-  const input = {
-    first() {
-      return { json: payload };
-    },
-  };
+  const input = { first() { return { json: payload }; } };
   return new Function("$input", claimNode.parameters.jsCode)(input);
 }
-
-function result(rows, items) {
-  const lookup = () => ({ all: () => rows.map((json) => ({ json })) });
-  const input = { all: () => items.map((json) => ({ json })) };
-  return new Function("$", "$input", receiptNode.parameters.jsCode)(lookup, input);
+function result(job, modelResponse) {
+  const lookup = () => ({ item: { json: job } });
+  return new Function("$", "$json", resultNode.parameters.jsCode)(lookup, modelResponse);
 }
 
-test("export is inactive, no webhook or sends, and uses private bearer credentials only", () => {
+test("existing n8n sentiment workflow stays uniquely tracked, inactive and independently gated", () => {
   assert.equal(workflow.active, false);
-  assert.equal(workflow.nodes.length, 6);
+  assert.equal(workflow.nodes.length, 8);
   assert.equal(workflow.nodes[0].type, "n8n-nodes-base.scheduleTrigger");
+  assert.match(byName.get("Piloto protegido").parameters.jsCode, /const ENABLED = false;/);
   assert.equal(workflow.settings.saveDataSuccessExecution, "none");
   assert.equal(workflow.settings.saveDataErrorExecution, "none");
-  assert.deepEqual(workflow.pinData, {});
-  const all = JSON.stringify(workflow);
-  assert(
-    !/api\/sendText|graph\.instagram\.com|sendMessage|twilio|authorization.*Bearer /i.test(all),
+  assert.equal(workflow.settings.saveManualExecutions, false);
+  assert.equal(
+    byName.get("Groq — credencial privada").type,
+    "@n8n/n8n-nodes-langchain.lmChatGroq",
   );
-  assert(!/api_key|sk-proj-|gsk_/i.test(all));
-  assert(!/webhook(?:Trigger)?/i.test(workflow.nodes.map((n) => n.type).join(" ")));
-  const http = workflow.nodes.filter((node) => node.type === "n8n-nodes-base.httpRequest");
-  assert.equal(http.length, 3);
-  assert(
-    http.every(
-      (node) =>
-        node.parameters.authentication === "genericCredentialType" &&
-        node.parameters.genericAuthType === "httpHeaderAuth" &&
-        node.credentials === undefined,
-    ),
-  );
-  assert.equal(http[0].parameters.method, "POST");
-  assert.match(http[0].parameters.url, /\/claims$/);
-  assert.match(http[1].parameters.url, /^https:\/\/api\.groq\.com\//);
-  assert.equal(http[2].parameters.method, "POST");
-  assert.match(http[2].parameters.url, /\/results$/);
-  for (const [name, edges] of Object.entries(workflow.connections)) {
-    assert(byName.has(name));
-    for (const target of edges.main.flat()) assert(byName.has(target.node));
+  assert.equal(workflow.nodes.filter((node) => node.type === "n8n-nodes-base.httpRequest").length, 2);
+  for (const node of workflow.nodes) {
+    assert.equal(node.credentials, undefined);
+    if (node.type === "n8n-nodes-base.httpRequest") {
+      assert.equal(node.parameters.authentication, "genericCredentialType");
+      assert.equal(node.parameters.genericAuthType, "httpHeaderAuth");
+      assert.equal(node.parameters.method, "POST");
+      assert(
+        /\/internal\/message-enrichment\/provider\/(claims|results)$/.test(
+          node.parameters.url,
+        ),
+      );
+    }
+    for (const edges of Object.values(workflow.connections[node.name] || {}))
+      for (const target of edges.flat()) assert(byName.has(target.node));
   }
+  const urls = workflow.nodes.map((node) => node.parameters.url || "");
+  assert(!urls.some((url) => /sendText|graph.instagram|messages\//i.test(url)));
 });
 
-test("claim validator accepts only a limited verified, send-disabled batch", () => {
-  const item = { claim_id: id, message_id: 3, origin: "waha", text: "Vocês têm bolo?", attempt: 1 };
-  const payload = { schema_version: 1, send_enabled: false, items: [item] };
-  assert.equal(claims(payload)[0].json.claim_id, id);
+test("claim validation checks the version, provider ownership and send-disabled gate", () => {
+  const job = { claim_id: claimId, message_id: 3, origin: "waha", text: "Qual o preço?", attempt: 1 };
+  const payload = { schema_version: 1, send_enabled: false, items: [job] };
+  assert.equal(claims(payload)[0].json.claim_id, claimId);
+  assert.equal(claims(payload)[0].json.text, job.text);
   assert.equal(claims({ ...payload, items: [] }).length, 0);
-  for (const bad of [
+  for (const invalid of [
     { ...payload, send_enabled: true },
     { ...payload, schema_version: 2 },
-    { ...payload, items: Array(11).fill(item) },
-    { ...payload, items: [{ ...item, origin: "synthetic" }] },
-    { ...payload, items: [{ ...item, text: "" }] },
-    { ...payload, items: [{ ...item, claim_id: "not-a-claim" }] },
-  ])
-    assert.throws(() => claims(bad));
+    { ...payload, items: Array(11).fill(job) },
+    { ...payload, items: [{ ...job, origin: "synthetic" }] },
+    { ...payload, items: [{ ...job, claim_id: "wrong" }] },
+    { ...payload, items: [{ ...job, text: "" }] },
+    { ...payload, items: [{ ...job, attempt: 4 }] },
+  ]) assert.throws(() => claims(invalid));
 });
 
-test("AI JSON is validated, capped, paired with original claim and never treated as a reply", () => {
-  const claim = { claim_id: id, message_id: 3, origin: "waha", text: "Estou insatisfeito" };
-  const pred = (v) => ({ choices: [{ message: { content: JSON.stringify(v) } }] });
+test("AI response is strict, bounded, and only recorded against the original claim", () => {
+  const task = { claim_id: claimId, text: "Estou insatisfeito" };
   const good = {
     sentiment: "negative",
     confidence: "medium",
-    explanation: "Mensagem demonstra insatisfação.",
+    explanation: "Cliente demonstra insatisfação.",
   };
-  const output = result([claim], [pred(good)]);
-  assert.equal(output.length, 1);
-  assert.equal(output[0].json.claim_id, id);
-  assert.equal(output[0].json.sentiment, "negative");
-  assert.equal(output[0].json.confidence, "medium");
-  assert.equal(output[0].json.explanation, good.explanation);
-  assert.deepEqual(Object.keys(output[0].json).sort(), [
-    "claim_id",
-    "confidence",
-    "explanation",
-    "sentiment",
-  ]);
-  const bad = [
-    { ...good, sentiment: "urgent-send" },
+  const output = result(task, { output: JSON.stringify(good) });
+  assert.deepEqual(output.json, { claim_id: claimId, ...good });
+  for (const invalid of [
+    { ...good, sentiment: "send-now" },
+    { ...good, confidence: "extreme" },
     { ...good, explanation: "" },
-    { ...good, message: "send to client" },
-    { ...good, confidence: "ultra" },
-  ];
-  for (const value of bad) assert.throws(() => result([claim], [pred(value)]));
-  assert.throws(() => result([claim], [pred(good), pred(good)]));
-  assert.throws(() => result([claim], [{ choices: [{ message: { content: "not json" } }] }]));
+    { ...good, suggested_reply: "Enviar ao cliente" },
+  ]) assert.throws(() => result(task, { output: JSON.stringify(invalid) }));
+  assert.throws(() => result(task, { output: "not json" }));
   assert.equal(
-    result([claim], [pred({ ...good, explanation: "x".repeat(600) })])[0].json.explanation.length,
+    result(task, { output: JSON.stringify({ ...good, explanation: "x".repeat(600) }) }).json
+      .explanation.length,
     120,
   );
+  assert.equal(resultNode.parameters.mode, "runOnceForEachItem");
 });
