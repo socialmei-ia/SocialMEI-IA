@@ -1,0 +1,48 @@
+name: One-time format sentiment candidate
+on:
+  push:
+    branches:
+      - feat/n8n-provider-sentiment-20261030
+permissions:
+  contents: write
+jobs:
+  format-candidate:
+    if: github.repository == 'socialmei-ia/SocialMEI-IA' && github.actor == 'socialmei-ia'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked formatter
+        run: npm ci
+      - name: Format changed files only
+        run: |
+          npx prettier --write \
+            n8n-workflows/equipe/02-sentimento-mensagens-verificadas.json \
+            tests/provider-sentiment-n8n.test.cjs \
+            docs/N8N-PROVIDER-SENTIMENT.md \
+            docs/CONTINUIDADE-FUNCIONAL-20261030.md \
+            n8n-workflows/README.md
+          git diff --check
+      - name: Commit format-only
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- \
+            n8n-workflows/equipe/02-sentimento-mensagens-verificadas.json \
+            tests/provider-sentiment-n8n.test.cjs \
+            docs/N8N-PROVIDER-SENTIMENT.md \
+            docs/CONTINUIDADE-FUNCIONAL-20261030.md \
+            n8n-workflows/README.md
+          if git diff --cached --quiet; then
+            echo 'Formatter already clean.'
+            exit 0
+          fi
+          git commit -m 'style: format sentiment workflow and contract tests'
+          git push origin HEAD:refs/heads/feat/n8n-provider-sentiment-20261030
