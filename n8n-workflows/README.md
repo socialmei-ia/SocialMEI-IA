@@ -15,7 +15,7 @@ Os antigos arquivos `error.json`, `my-workflow.json`, `integracao-n8n-insta.json
 
 ## Análise de sentimento de mensagens recebidas (30/10/2026)
 
-O export `equipe/02-sentimento-mensagens-verificadas.json` reúne seis nós: agendamento (inativo), claims autenticadas da API, validação de lote, classificação pela API Groq, validação estrita de JSON e gravação de resultados autenticada. Não envia mensagens, não cria um segundo webhook e não interage diretamente com provedores de mensagens. Os URLs da API privada e as credenciais **precisam ser configurados no n8n** antes de qualquer tentativa de ativação. O fluxo novo não foi importado ou ligado na instância viva. Detalhes de segurança, custo/privacidade e homologação: [N8N-PROVIDER-SENTIMENT.md](../docs/N8N-PROVIDER-SENTIMENT.md).
+O export já existente `experimental/provider-sentiment-worker.json` (oito nós, incluindo gatilho e proteção de piloto) foi **reforçado sem duplicar**. Mantém a trava `ENABLED=false`, o agente/Groq nativo, a consulta autenticada de claims e o registro estrito de resultados. Valida esquema, origem, lote e classificação antes da escrita. Não envia mensagens, não cria um segundo webhook e não interage diretamente com provedores de mensagens. A conectividade privada e as credenciais **precisam ser confirmadas no n8n** antes de qualquer ativação. O template não foi importado ou ligado na instância viva. Detalhes de segurança, custo/privacidade e homologação: [N8N-PROVIDER-SENTIMENT.md](../docs/N8N-PROVIDER-SENTIMENT.md).
 
 ## Workflows recentes — 15/10/2026
 
