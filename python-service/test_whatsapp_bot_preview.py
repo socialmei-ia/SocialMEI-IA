@@ -123,6 +123,8 @@ class WhatsAppBotPreviewDatabaseTests(unittest.TestCase):
     setUpClass = classmethod(auth_fixtures.AccountDatabaseTests.setUpClass.__func__)
     setUp = auth_fixtures.AccountDatabaseTests.setUp
     register = auth_fixtures.AccountDatabaseTests.register
+    login = auth_fixtures.AccountDatabaseTests.login
+    invited = auth_fixtures.AccountDatabaseTests.invited
 
     def test_owner_sees_only_own_real_catalog_with_bot_disabled(self):
         import psycopg
