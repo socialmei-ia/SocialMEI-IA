@@ -48,13 +48,47 @@ def docker(*args, timeout=90):
                    timeout=timeout)
 
 
-def valid_stage():
-    require(SOURCE.is_dir() and not SOURCE.is_symlink(), "stage_ausente")
-    require(command(["git", "-C", str(SOURCE), "rev-parse", "HEAD"]).strip()
-            == EXPECTED_SHA, "source_sha_divergente")
+def valid_stage(expected_sha=EXPECTED_SHA):
+    require(re.fullmatch(r"[0-9a-f]{40}", str(expected_sha)) is not None,
+            "source_sha_invalido")
+    # Historical candidate keeps its previous, immutable staging location.
+    # New CI candidates use the exact private stage path created by the
+    # reviewed team-v33-stage.py script, without touching the live checkout.
+    source = (SOURCE if expected_sha == EXPECTED_SHA
+              else BACKUPS / ("team-v33-" + expected_sha[:12]) / "source")
+    require(source.is_dir() and not source.is_symlink(), "stage_ausente")
+    require(command(["git", "-C", str(source), "rev-parse", "HEAD"]).strip()
+            == expected_sha, "source_sha_divergente")
     require(not command(
-        ["git", "-C", str(SOURCE), "status", "--porcelain=v1", "--untracked-files=all"]
+        ["git", "-C", str(source), "status", "--porcelain=v1", "--untracked-files=all"]
     ).strip(), "source_modificado")
+    if expected_sha != EXPECTED_SHA:
+        receipt_file = source.parent / "stage-receipt.json"
+        require(receipt_file.is_file() and not receipt_file.is_symlink()
+                and receipt_file.stat().st_size <= 65536,
+                "recibo_do_stage_ausente")
+        try:
+            receipt = json.loads(receipt_file.read_text(encoding="utf-8"))
+        except (ValueError, UnicodeError, OSError):
+            raise RuntimeError("recibo_do_stage_invalido") from None
+        require(
+            isinstance(receipt, dict)
+            and receipt.get("candidate_sha") == expected_sha
+            and receipt.get("stage_source") == str(source)
+            and receipt.get("stage_clean") is True
+            and receipt.get("checkout_original_preservado") is True
+            and receipt.get("deployment_executed") is False
+            and receipt.get("docker_commands_executed") is False
+            and receipt.get("provider_messages_sent") is False
+            and isinstance(receipt.get("migration_plan"), dict)
+            and receipt["migration_plan"].get("source_reviewed") is True
+            and receipt["migration_plan"].get("migration_apply_executed") is False
+            and receipt.get("candidate_branch") in {
+                "feat/whatsapp-bot-readonly-preview-20261030",
+                "feat/team-release-candidate-stage-20261030",
+            },
+            "recibo_do_stage_invalido",
+        )
 
 
 def read_bundle(path, expected_sha=EXPECTED_SHA):
@@ -204,7 +238,7 @@ def local_image_status(receipt, expected_sha=EXPECTED_SHA):
 def execute(bundle, *, apply=False, expected_sha=EXPECTED_SHA):
     require(re.fullmatch(r"[0-9a-f]{40}", str(expected_sha)) is not None,
             "source_sha_invalido")
-    valid_stage()
+    valid_stage(expected_sha=expected_sha)
     receipt = read_bundle(bundle, expected_sha=expected_sha)
     before = local_image_status(receipt, expected_sha=expected_sha)
     report = {

@@ -113,5 +113,69 @@ class ReleaseStageTests(unittest.TestCase):
             self.assertEqual(stage.private_root(folder), folder)
 
 
+    def test_candidate_branch_requires_exact_remote_head_and_release_ancestry(self):
+        sha = "8" * 40
+        calls = []
+        branch = "feat/team-release-candidate-stage-20261030"
+        tracking = "refs/remotes/origin/" + branch
+
+        def git(*args, **kwargs):
+            calls.append(args[1:])
+            command = args[1:]
+            if command[:2] == ("remote", "get-url"):
+                return "https://github.com/socialmei-ia/SocialMEI-IA.git"
+            if command[:2] == ("rev-parse", tracking):
+                return sha
+            if command[:2] == ("rev-parse", sha + "^{commit}"):
+                return sha
+            if command[:2] == ("cat-file", "-t"):
+                return "commit"
+            return ""
+
+        with patch.object(stage, "git", side_effect=git):
+            stage.ensure_git_object(Path("/tmp/fixture"), sha,
+                                    candidate_branch=branch)
+        self.assertIn(
+            ("merge-base", "--is-ancestor", stage.TRACKED_REF, sha), calls
+        )
+        self.assertIn(
+            ("diff", "--name-only", stage.TRACKED_REF, sha,
+             "--", "database/migrations/"), calls
+        )
+        self.assertIn(
+            ("fetch", "--no-tags", "origin",
+             "+refs/heads/" + branch + ":" + tracking), calls
+        )
+
+        with patch.object(stage, "git", side_effect=git):
+            with self.assertRaisesRegex(RuntimeError, "branch_candidata_nao_autorizada"):
+                stage.ensure_git_object(
+                    Path("/tmp/fixture"), sha,
+                    candidate_branch="refs/heads/evil/release",
+                )
+
+        def different_head(*args, **kwargs):
+            if args[1:3] == ("rev-parse", tracking):
+                return "0" * 40
+            return git(*args, **kwargs)
+
+        with patch.object(stage, "git", side_effect=different_head):
+            with self.assertRaisesRegex(RuntimeError, "sha_nao_e_head_da_candidata"):
+                stage.ensure_git_object(
+                    Path("/tmp/fixture"), sha, candidate_branch=branch
+                )
+
+        def altered_migrations(*args, **kwargs):
+            if args[1:3] == ("diff", "--name-only"):
+                return "database/migrations/033_modified.sql"
+            return git(*args, **kwargs)
+
+        with patch.object(stage, "git", side_effect=altered_migrations):
+            with self.assertRaisesRegex(RuntimeError, "migrations_da_release_modificadas"):
+                stage.ensure_git_object(
+                    Path("/tmp/fixture"), sha, candidate_branch=branch
+                )
+
+
 if __name__ == "__main__":
     unittest.main()
