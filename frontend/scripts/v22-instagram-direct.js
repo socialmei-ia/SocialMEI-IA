@@ -388,13 +388,12 @@
     }
     select.value = state.job?.id || "";
     select.disabled = state.busy || !!state.pending || state.storageError;
-    section.querySelector("[data-ig-reply-status]").textContent =
-      state.storageError
-        ? "Operação pendente não pode ser validada neste navegador. Nenhuma nova resposta será criada."
-        : state.message ||
-          (state.pending
-            ? "Registro sem confirmação. Recupere a mesma operação antes de outra resposta."
-            : "Rascunhos e aprovação ficam no servidor. Nada é enviado automaticamente.");
+    section.querySelector("[data-ig-reply-status]").textContent = state.storageError
+      ? "Operação pendente não pode ser validada neste navegador. Nenhuma nova resposta será criada."
+      : state.message ||
+        (state.pending
+          ? "Registro sem confirmação. Recupere a mesma operação antes de outra resposta."
+          : "Rascunhos e aprovação ficam no servidor. Nada é enviado automaticamente.");
     section.querySelector("[data-ig-review]").disabled =
       state.busy || !!state.pending || state.storageError || !state.job;
     const warning = document.querySelector(".ct .hd .wn");
