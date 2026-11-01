@@ -2,15 +2,27 @@ name: Team v33 candidate images (off-VPS)
 
 on:
   pull_request:
-    branches: [release/socialmei-functional-integrations-20261026]
+    branches:
+      - release/socialmei-functional-integrations-20261026
+      - feat/public-seo-discovery-consent-20261031
     paths:
       - ".github/workflows/team-v33-candidate-images.yml"
+      - "python-service/**"
+      - "frontend/**"
+      - "deploy/team/**"
+      - "database/migrations/**"
+      - "tools/team-v33-stage.py"
+      - "tests/test_team_v33_stage.py"
       - "tools/team-v33-runtime-audit.py"
       - "tests/test_team_v33_runtime_audit.py"
       - "tools/team-whatsapp-private-mount.py"
       - "tests/test_team_whatsapp_private_mount.py"
       - "tools/team-v33-import-images.py"
       - "tests/test_team_v33_import_images.py"
+      - "tools/team-release-profile.py"
+      - "tests/test_team_release_profile.py"
+      - "tools/release-migration-rehearsal.mjs"
+      - "tests/release-migration-rehearsal.test.cjs"
 
 permissions:
   contents: read
@@ -36,8 +48,11 @@ jobs:
           test -f python-service/Dockerfile
           test -f deploy/team/Dockerfile
           test -f frontend/socialmei-app.html
-          test -f database/migrations/033_provider_sentiment_jobs.sql
-          test "$(find database/migrations -maxdepth 1 -type f -name '*.sql' | wc -l)" -eq 33
+          python3 tools/team-release-profile.py --profile 035
+      - name: Set up Node for the isolated migration and restore rehearsal
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
       - name: Build API image outside production VPS
         shell: bash
         run: |
@@ -46,6 +61,15 @@ jobs:
             --label "org.opencontainers.image.revision=$CANDIDATE_SHA" \
             -t "socialmei-v33/team-api:$CANDIDATE_SHA" \
             -f python-service/Dockerfile python-service
+      - name: Verify real PostgreSQL 16 upgrade and isolated backup restore
+        shell: bash
+        run: |
+          set -euo pipefail
+          api_image_id="$(docker image inspect --format '{{.Id}}' "socialmei-v33/team-api:$CANDIDATE_SHA")"
+          node tools/release-migration-rehearsal.mjs --run \
+            --source-sha "$CANDIDATE_SHA" \
+            --api-image "$api_image_id" \
+            --receipt migration-rehearsal.json
       - name: Build frontend/gateway image outside production VPS
         shell: bash
         run: |
@@ -61,8 +85,15 @@ jobs:
           mkdir -p candidate-images
           python3 - <<'PY'
           import json, os, subprocess
+          import importlib.util
           sha = os.environ["CANDIDATE_SHA"]
-          result = {"source_sha": sha, "images": {}}
+          spec = importlib.util.spec_from_file_location("release_profile", "tools/team-release-profile.py")
+          profile = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(profile)
+          with open("migration-rehearsal.json") as f:
+              proof = profile.rehearsal(json.load(f), sha)
+          result = {"source_sha": sha, "release_profile": "035", "migration_sha256": profile.MIGRATIONS,
+                    "migration_rehearsal": proof, "images": {}}
           for service in ("team-api", "team-gateway"):
               tag = f"socialmei-v33/{service}:{sha}"
               image = json.loads(subprocess.check_output(
@@ -72,6 +103,8 @@ jobs:
               result["images"][service] = {
                   "tag": tag, "image_id": image["Id"]
               }
+          assert proof["api_image_id"] == result["images"]["team-api"]["image_id"]
+          assert proof["api_image_revision"] == sha
           with open("candidate-images/image-receipt.json", "w") as f:
               json.dump(result, f, indent=2)
               f.write("\n")

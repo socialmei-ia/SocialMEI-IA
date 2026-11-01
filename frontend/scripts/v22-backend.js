@@ -559,6 +559,7 @@ window.SocialMEIV22 = (() => {
     S.biz.nome = auth.current.negocio.nome;
     S.biz.email = "";
     S.biz.tel = auth.current.negocio.configuracao?.telefone || "";
+    S.biz.horario = auth.current.negocio.configuracao?.horario || "";
     try {
       const business = await request("/workspace-profile");
       S.biz.seg = business.profile?.activity || "";
@@ -750,12 +751,17 @@ window.SocialMEIV22 = (() => {
       (async () => {
         try {
           const nome = document.getElementById("b_nome").value.trim(),
-            telefone = document.getElementById("b_tel").value.trim();
-          await auth.saveProfile({ nome_negocio: nome, configuracao_negocio: { telefone } });
+            telefone = document.getElementById("b_tel").value.trim(),
+            horario = (document.getElementById("b_horario")?.value ?? S.biz.horario ?? "").trim();
+          await auth.saveProfile({
+            nome_negocio: nome,
+            configuracao_negocio: { telefone, horario },
+          });
           S.biz.nome = auth.current.negocio.nome;
           S.biz.tel = telefone;
+          S.biz.horario = horario;
           render();
-          toast("Nome e telefone salvos no negócio.");
+          toast("Dados e horário de funcionamento salvos no negócio.");
         } catch (e) {
           error(e);
         }
@@ -784,6 +790,22 @@ window.SocialMEIV22 = (() => {
     render = () => {
       oldRender();
       paintPendingOperation();
+      const phone = document.getElementById("b_tel");
+      if (phone && !document.getElementById("b_horario")) {
+        const field = document.createElement("div"),
+          label = document.createElement("label"),
+          input = document.createElement("input");
+        label.htmlFor = "b_horario";
+        label.textContent = "Horário de funcionamento";
+        input.id = "b_horario";
+        input.className = "in";
+        input.type = "text";
+        input.maxLength = 160;
+        input.value = S.biz.horario || "";
+        input.placeholder = "Ex.: segunda a sexta, 09:00–18:00";
+        field.append(label, input);
+        phone.insertAdjacentElement("afterend", field);
+      }
       paintInboxLabels();
       const composer = document.querySelector("#ta");
       if (composer) {
@@ -840,7 +862,11 @@ window.SocialMEIV22 = (() => {
           ? inbox.find((r) => "me-" + r.id === id)
           : null;
       return row
-        ? [...(row.messages || []), ...(window.SocialMEIInstagramDirect?.confirmed(id) || [])]
+        ? [
+            ...(row.messages || []),
+            ...(window.SocialMEIInstagramDirect?.confirmed(id) || []),
+            ...(window.SocialMEIWhatsAppReplies?.confirmed(id) || []),
+          ]
             .sort((a, b) => new Date(a.occurred_at) - new Date(b.occurred_at))
             .map((m) => [
               m.direction === "outgoing" ? 1 : 0,
@@ -849,7 +875,11 @@ window.SocialMEIV22 = (() => {
                 hour: "2-digit",
                 minute: "2-digit",
               }),
-              m.direction === "outgoing" ? "Confirmada pela Meta" : "",
+              m.direction === "outgoing"
+                ? m.provider === "waha"
+                  ? "Aceita pelo WAHA; entrega não verificada"
+                  : "Confirmada pela Meta"
+                : "",
             ])
         : [];
     },

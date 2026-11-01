@@ -1,0 +1,9 @@
+.pn .row:has(> [data-a="edit:cli"]) {
+  flex-wrap: wrap;
+}
+
+.pn .row:has(> [data-a="edit:cli"]) > .btn {
+  flex-basis: auto !important;
+  min-width: max-content;
+  min-height: 44px;
+}

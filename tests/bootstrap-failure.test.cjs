@@ -19,6 +19,7 @@ function browser(failBackend) {
     },
   };
   const requests = [];
+  const styles = [];
   const redirects = [];
   const storage = { getItem() {}, setItem() {}, removeItem() {} };
   const window = {
@@ -30,6 +31,11 @@ function browser(failBackend) {
     SocialMEIV22: { ready: Promise.resolve() },
   };
   const document = {
+    head: {
+      appendChild(link) {
+        styles.push(link.href);
+      },
+    },
     getElementById(id) {
       return id === "app" ? app : { textContent: "" };
     },
@@ -60,7 +66,7 @@ function browser(failBackend) {
     },
   });
   context.Storage.prototype = storage;
-  return { app, requests, redirects, ready: vm.runInContext(source, context) };
+  return { app, requests, styles, redirects, ready: vm.runInContext(source, context) };
 }
 
 test("backend script outage exposes a visible accessible error instead of a hidden app", async () => {
@@ -80,5 +86,6 @@ test("successful bootstrap keeps the backend-controlled app and loads existing i
   assert.equal(page.app.attributes.role, undefined);
   assert(page.requests.includes("scripts/v22-whatsapp-bot.js"));
   assert(page.requests.includes("scripts/v22-instagram.js"));
+  assert.deepEqual(page.styles, ["styles/v22-client-details.css"]);
   assert.deepEqual(page.redirects, []);
 });

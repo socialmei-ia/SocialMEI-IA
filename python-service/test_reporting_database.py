@@ -88,3 +88,31 @@ class ReportDatabaseTests(unittest.TestCase):
         self.assertEqual(again.identity['negocio']['id'],original)
         self.assertEqual(again.get('/api/v1/auth/workspaces').json()['items'][0]['role'],'owner')
         self.assertEqual(len(again.get('/api/v1/auth/workspaces').json()['items']),1)
+
+    def test_attendance_counts_are_scoped_dated_and_do_not_expose_message_content(self):
+        owner = self.register('attendance@example.test')
+        other = self.register('attendance-other@example.test')
+        for user in (owner, other):
+            workspace = user.identity['negocio']['id']
+            with psycopg.connect(accounts.DB) as conn:
+                conn.execute("SELECT set_config('TimeZone', %s, true)", (settings.business_timezone().key,))
+                conversation = conn.execute(
+                    "INSERT INTO socialmei.me_conversations(workspace_id,channel,account_ref,contact_ref,contact_name) "
+                    "VALUES(%s,'whatsapp','synthetic:report','synthetic:contact','Private contact') RETURNING id",
+                    (workspace,),
+                ).fetchone()[0]
+                for index, offset in enumerate((0, 0, 3, -1)):
+                    conn.execute(
+                        "INSERT INTO socialmei.me_messages(workspace_id,conversation_id,external_message_id,fingerprint,conversation_revision,text,occurred_at) "
+                        "VALUES(%s,%s,%s,%s,1,'Private message',CURRENT_DATE-(%s::integer)+INTERVAL '1 hour')",
+                        (workspace, conversation, str(index), 'a'*64, offset),
+                    )
+        report = owner.get('/api/v1/reporting/overview?days=1')
+        self.assertEqual(report.status_code, 200, report.text)
+        self.assertEqual(report.json()['attendance'], [
+            {'channel': 'whatsapp', 'origin': 'synthetic', 'conversations': 1, 'messages': 2}
+        ])
+        csv = owner.get('/api/v1/reporting/overview.csv?days=1')
+        self.assertIn('Mensagens recebidas,whatsapp,synthetic,2,', csv.text)
+        self.assertNotIn('Private contact', csv.text)
+        self.assertNotIn('Private message', csv.text)

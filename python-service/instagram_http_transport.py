@@ -16,6 +16,7 @@ from instagram_meta_adapter import (
 )
 
 _sensitive_request = ContextVar("instagram_sensitive_http", default=False)
+ACCOUNT_MEDIA_FIELDS = 'id,caption,media_type,media_url,thumbnail_url,permalink,timestamp'
 
 
 class _PrivateHTTPLogs(logging.Filter):
@@ -103,7 +104,20 @@ class InstagramHTTPTransport:
                     url.path,
                 )))
             )
-            if not trusted or not (oauth or sending or publishing):
+            parameters = dict(request.params)
+            listing = (
+                url.hostname == 'graph.instagram.com' and request.method == 'GET'
+                and re.fullmatch(r'/v[1-9][0-9]{0,2}\.0/[0-9]{1,40}/media', url.path)
+                and set(parameters) in ({'fields', 'limit'}, {'fields', 'limit', 'after'})
+                and parameters.get('fields') == ACCOUNT_MEDIA_FIELDS
+                and parameters.get('limit') == '5'
+                and ('after' not in parameters or (
+                    isinstance(parameters['after'], str)
+                    and len(parameters['after']) <= 2048
+                    and re.fullmatch(r'[A-Za-z0-9_+/-]{1,2048}={0,2}', parameters['after'])
+                ))
+            )
+            if not trusted or not (oauth or sending or publishing or listing):
                 raise ProviderError()
         except (TypeError, ValueError, AttributeError):
             raise ProviderError() from None

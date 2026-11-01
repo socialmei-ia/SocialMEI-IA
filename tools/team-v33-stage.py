@@ -6,6 +6,7 @@ provider calls, activation, deploy, reset, stash, cleanup, or secret output.
 """
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -22,10 +23,12 @@ ALLOWED_CANDIDATE_BRANCHES = frozenset({
     "feat/whatsapp-bot-readonly-preview-20261030",
     "feat/team-release-candidate-stage-20261030",
     "feat/public-seo-discovery-consent-20261031",
+    "fix/functional-audit-20261031",
 })
 DB_CONTAINER = "socialmei-team-team-postgres-1"
 MIGRATION_032 = "032_whatsapp_bot_conversations.sql"
 MIGRATION_033 = "033_provider_sentiment_jobs.sql"
+ADDITIVE_035 = ("034_workspace_agenda.sql", "035_whatsapp_human_outbox.sql")
 REVIEWED_MIGRATIONS = (
     "001_initial_socialmei_schema.sql",
     "002_shared_crm_foundation.sql",
@@ -71,6 +74,15 @@ READ_ONLY_SQL = (
 def require(ok, code):
     if not ok:
         raise RuntimeError(code)
+
+
+def release_profile():
+    path = Path(__file__).with_name('team-release-profile.py')
+    require(path.is_file() and not path.is_symlink(), 'helper_de_perfil_ausente')
+    spec = importlib.util.spec_from_file_location('team_release_profile', path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def invoke(argv, *, stdin=None, timeout=30, binary=False):
@@ -127,19 +139,20 @@ def dirty_summary(raw):
 
 def reviewed_source(names):
     require(isinstance(names, list), "origem_invalida")
-    require(len(names) == 33, "origem_migrations_nao_revisada")
-    require(names == list(REVIEWED_MIGRATIONS), "origem_migrations_nao_revisada")
+    require(names in (list(REVIEWED_MIGRATIONS), list(REVIEWED_MIGRATIONS + ADDITIVE_035)),
+            "origem_migrations_nao_revisada")
     for i, name in enumerate(names, 1):
         require(re.fullmatch(r"[0-9]{3}_[a-z0-9_]+\.sql", name), "origem_migrations_nao_revisada")
         require(name[:3] == f"{i:03}", "origem_migrations_nao_revisada")
-    require(names[-2:] == [MIGRATION_032, MIGRATION_033], "origem_migrations_nao_revisada")
     return names
 
 
 def plan(versions, names):
     require(isinstance(versions, list) and all(isinstance(v, str) for v in versions), "ledger_invalido")
     require(versions == names[:len(versions)], "ledger_fora_da_ordem")
-    require(31 <= len(versions) <= 33, "ledger_base_incompativel")
+    reviewed_source(names)
+    require((31 <= len(versions) <= 33) if len(names) == 33 else (33 <= len(versions) <= 35),
+            "ledger_base_incompativel")
     return {
         "installed": len(versions),
         "pending": names[len(versions):],
@@ -163,7 +176,11 @@ def private_root(path):
 def source_migrations(root, sha):
     paths = git(root, "ls-tree", "-r", "--name-only", sha, "database/migrations/")
     names = [p.removeprefix("database/migrations/") for p in paths.splitlines() if p.endswith(".sql")]
-    return reviewed_source(names)
+    reviewed_source(names)
+    if len(names) == 35:
+        release_profile().verify(names, lambda name: git(
+            root, 'show', f'{sha}:database/migrations/{name}', binary=True))
+    return names
 
 
 def read_ledger():
@@ -211,9 +228,13 @@ def ensure_git_object(root, sha, *, candidate_branch=None):
         # Stage only an exact remote branch HEAD descended from the trusted
         # release. Never silently accept commits from a fork or unrelated ref.
         git(root, "merge-base", "--is-ancestor", TRACKED_REF, sha)
-        require(not git(root, "diff", "--name-only", TRACKED_REF, sha,
-                        "--", "database/migrations/").strip(),
-                "migrations_da_release_modificadas")
+        changed = git(root, "diff", "--name-only", TRACKED_REF, sha,
+                      "--", "database/migrations/").strip().splitlines()
+        require(not changed or set(changed) == {
+            'database/migrations/' + name for name in ADDITIVE_035
+        }, "migrations_da_release_modificadas")
+        if changed:
+            require(len(source_migrations(root, sha)) == 35, 'origem_migrations_nao_revisada')
     require(git(root, "rev-parse", sha + "^{commit}").strip() == sha,
             "sha_nao_disponivel")
 
@@ -229,7 +250,7 @@ def git_audit(root):
     }
 
 
-def stage(root, backup, sha, *, name=None, candidate_branch=None):
+def stage(root, backup, sha, *, name=None, candidate_branch=None, migration_rehearsal=None):
     candidate(sha)
     require(root == ROOT, "checkout_nao_autorizado")
     require(root.exists() and root.is_dir() and not root.is_symlink(), "checkout_invalido")
@@ -237,6 +258,13 @@ def stage(root, backup, sha, *, name=None, candidate_branch=None):
     before = git_audit(root)
     ensure_git_object(root, sha, candidate_branch=candidate_branch)
     names = source_migrations(root, sha)
+    proof = None
+    if len(names) == 35:
+        require(candidate_branch == 'fix/functional-audit-20261031', 'branch_035_nao_autorizada')
+        require(isinstance(migration_rehearsal, Path) and migration_rehearsal.is_file()
+                and not migration_rehearsal.is_symlink() and migration_rehearsal.stat().st_size <= 65536,
+                'ensaio_035_ausente')
+        proof = release_profile().rehearsal(json.loads(migration_rehearsal.read_text(encoding='utf-8-sig')), sha)
     schema = plan(read_ledger(), names)
     name = name or "team-v33-" + sha[:12]
     require(re.fullmatch(r"team-v33-[a-z0-9-]{8,42}", name), "nome_da_pasta_invalido")
@@ -273,6 +301,10 @@ def stage(root, backup, sha, *, name=None, candidate_branch=None):
         "provider_messages_sent": False,
         "next_stage": "backup_restauravel_e_preparacao_privada_da_release",
     }
+    if proof is not None:
+        report['release_profile'] = '035'
+        report['migration_rehearsal'] = proof
+        report['migration_sha256'] = dict(release_profile().MIGRATIONS)
     receipt = folder / "stage-receipt.json"
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
     fd = os.open(receipt, flags, 0o600)
@@ -308,6 +340,8 @@ def main():
     mode.add_argument("--inspect", action="store_true")
     mode.add_argument("--stage", action="store_true")
     parser.add_argument("--candidate-sha")
+    parser.add_argument('--migration-rehearsal', type=Path,
+                        help='Required clean-source 033→035 isolated restore receipt for profile035')
     parser.add_argument("--candidate-branch", choices=sorted(ALLOWED_CANDIDATE_BRANCHES),
                         help="Explicit reviewed PR head, not a merge or deployment")
     args = parser.parse_args()
@@ -315,9 +349,9 @@ def main():
         if not args.candidate_sha:
             parser.error("--candidate-sha obrigatório para --stage")
         report = stage(ROOT, BACKUPS, args.candidate_sha,
-                       candidate_branch=args.candidate_branch)
+                       candidate_branch=args.candidate_branch, migration_rehearsal=args.migration_rehearsal)
     else:
-        require(not args.candidate_sha and not args.candidate_branch,
+        require(not args.candidate_sha and not args.candidate_branch and not args.migration_rehearsal,
                 "--candidate-sha e --candidate-branch apenas em --stage")
         report = inspect()
     # Only controlled, sanitized report fields. No raw git status or docker output.

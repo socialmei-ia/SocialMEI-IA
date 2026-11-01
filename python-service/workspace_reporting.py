@@ -57,12 +57,29 @@ def _stats(conn, workspace, days):
         "AND status='Ativo' AND tipo='Produto' AND estoque<=minimo) AS estoque_baixo",
         (workspace, workspace, workspace),
     ).fetchone()
+    attendance = None
+    channel_schema = conn.execute(
+        "SELECT COUNT(*) AS columns FROM information_schema.columns "
+        "WHERE table_schema='socialmei' AND table_name IN ('me_conversations','me_messages') "
+        "AND column_name='origin'"
+    ).fetchone()['columns']
+    if channel_schema == 2:
+        attendance = [dict(row) for row in conn.execute(
+            "SELECT c.channel,m.origin,COUNT(DISTINCT c.id)::bigint AS conversations, "
+            "COUNT(m.id)::bigint AS messages FROM socialmei.me_conversations c "
+            "JOIN socialmei.me_messages m ON m.workspace_id=c.workspace_id AND m.conversation_id=c.id "
+            "WHERE c.workspace_id=%s AND m.occurred_at>=CURRENT_DATE-(%s::integer-1) "
+            "AND m.occurred_at<CURRENT_DATE+1 GROUP BY c.channel,m.origin ORDER BY c.channel,m.origin",
+            (workspace, days),
+        ).fetchall()]
     return {
         "period_days": days,
         "as_of": conn.execute("SELECT CURRENT_DATE AS as_of").fetchone()["as_of"].isoformat(),
         "totals": dict(counts),
         "sales_by_status": sales,
         "finance_by_type_and_status": finance,
+        "attendance": attendance,
+        "attendance_description": "Mensagens recebidas persistidas por canal e origem. Dados de laboratório não comprovam tráfego real; entrega e resolução não são medidas.",
         "description": "Vendas por data de venda; lançamentos por vencimento, sem duplicar saldos.",
     }
 
@@ -94,6 +111,9 @@ def csv_rows(report):
     for record in report["finance_by_type_and_status"]:
         yield ("Financeiro", record["tipo"], record["status"],
                record["quantidade"], record["valor"])
+    for record in report.get('attendance') or []:
+        yield ('Mensagens recebidas', record['channel'], record['origin'], record['messages'], '')
+        yield ('Conversas com recebimento', record['channel'], record['origin'], record['conversations'], '')
     for key, value in report["totals"].items():
         yield ("Resumo", "", key, value, "")
 

@@ -27,6 +27,7 @@ module.exports = async function (browser, origin) {
     page.on("pageerror", (error) => errors.push(error.message));
     await page.addInitScript(() => localStorage.setItem("socialmei-auth-browser-scope", "91:17"));
     const state = "s".repeat(43);
+    let enabled = false;
     const identity = {
       usuario: { id: 91, nome: "Teste", email: "test@example.test" },
       negocio: { id: 17, nome: "Negócio de teste", slug: "teste", configuracao: {} },
@@ -71,8 +72,9 @@ module.exports = async function (browser, origin) {
             source: "server",
             instagram: {
               oauth_available: !["disabled", "forged-callback"].includes(mode),
-              incoming_available: false,
-              publishing_available: false,
+              incoming_available: enabled,
+              send_enabled: enabled,
+              publishing_available: enabled,
             },
           },
         });
@@ -225,6 +227,21 @@ module.exports = async function (browser, origin) {
         );
         await card.locator("button[data-ig-action]").click();
         await page.locator("dialog[open]").waitFor();
+        if (mode === "connected") {
+          assert.match(
+            await page.locator("dialog[open]").innerText(),
+            /Respostas pelo painel desativadas/,
+          );
+          await page.keyboard.press("Escape");
+          enabled = true;
+          await page.evaluate(() => SocialMEIInstagram.refresh());
+          await card.locator("button[data-ig-action]").click();
+          const details = await page.locator("dialog[open]").innerText();
+          assert.match(details, /Recebimento de Direct habilitado no servidor/);
+          assert.match(details, /Respostas pelo painel habilitadas/);
+          assert.match(details, /Publicações pelo site habilitadas/);
+          assert(!details.includes("Publicações pelo site desativadas"));
+        }
         await page.keyboard.press("Escape");
         assert.equal(posts.length, 0);
         for (const width of [390, 1440])

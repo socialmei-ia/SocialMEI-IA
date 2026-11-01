@@ -3,6 +3,7 @@
 import os
 import json
 import re
+from dataclasses import dataclass
 from urllib.parse import quote
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -212,6 +213,60 @@ def waha_inbox_enabled(workspace_id: int) -> bool:
         type(workspace_id) is int and workspace_id == 1
         and waha_ingress_team_pilot_enabled()
     )
+
+
+@dataclass(frozen=True, repr=False)
+class WhatsAppHumanConfiguration:
+    workspace_id: int
+    instance: str
+    session: str
+    account_id: str
+    contacts: frozenset[str]
+    base_url: str
+    api_key: str
+
+    def __repr__(self):
+        return 'WhatsAppHumanConfiguration(private=<redacted>)'
+
+
+def whatsapp_human_configuration():
+    """Server-owned opt-in for one reviewed WhatsApp human sender; never performs I/O."""
+    if os.getenv('SOCIALMEI_WHATSAPP_HUMAN_SEND_ENABLED', 'false').strip().lower() != 'true':
+        return None
+    from waha_ingress import DIRECT
+    try:
+        raw_workspace = os.getenv('SOCIALMEI_WHATSAPP_HUMAN_WORKSPACE_ID', '')
+        if not re.fullmatch(r'[1-9][0-9]{0,15}', raw_workspace):
+            raise ValueError()
+        workspace = int(raw_workspace)
+        instance = os.getenv('SOCIALMEI_WHATSAPP_HUMAN_INSTANCE', '')
+        session = os.getenv('SOCIALMEI_WHATSAPP_HUMAN_SESSION', '')
+        account = os.getenv('SOCIALMEI_WHATSAPP_HUMAN_ACCOUNT_ID', '')
+        base_url = os.getenv('SOCIALMEI_WAHA_PRIVATE_BASE_URL', '')
+        api_key = os.getenv('SOCIALMEI_WAHA_PRIVATE_API_KEY', '')
+        raw_contacts = os.getenv('SOCIALMEI_WHATSAPP_HUMAN_CONTACTS', '')
+        if len(raw_contacts) > 4096:
+            raise ValueError()
+        contacts = json.loads(raw_contacts)
+        if (
+            os.getenv('SOCIALMEI_WHATSAPP_HUMAN_OWNER', '') != 'dashboard'
+            or not waha_inbox_enabled(workspace)
+            or not 1 <= workspace <= 9007199254740991
+            or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,79}', instance)
+            or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,159}', session)
+            or not re.fullmatch(r'[0-9]{1,40}@c\.us', account)
+            or base_url not in {'http://waha:3000', 'http://socialmei-waha:3000'}
+            or not re.fullmatch(r'[!-~]{16,4096}', api_key)
+            or not isinstance(contacts, list) or not 1 <= len(contacts) <= 20
+            or any(not isinstance(item, str) or not DIRECT.fullmatch(item) for item in contacts)
+            or len(set(contacts)) != len(contacts)
+        ):
+            raise ValueError()
+        return WhatsAppHumanConfiguration(
+            workspace, instance, session, account, frozenset(contacts), base_url, api_key,
+        )
+    except (TypeError, ValueError):
+        raise ValueError('Configuração privada de envio WhatsApp indisponível.') from None
 
 
 def instagram_runtime_enabled() -> bool:

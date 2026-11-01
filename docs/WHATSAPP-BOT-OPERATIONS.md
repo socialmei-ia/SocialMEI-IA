@@ -1,5 +1,7 @@
 # WhatsApp: menu e atendimento por negócio
 
+Para a implementação local posterior de resposta humana e seu estado de implantação, consultar [WHATSAPP-HUMAN-REPLIES.md](WHATSAPP-HUMAN-REPLIES.md). O histórico abaixo descreve a etapa original do planner.
+
 Código preparado em28/10/2026. Não implantado. Nenhum número, QR, webhook ou
 workflow ativo foi alterado. A primeira versão responde com catálogo estruturado;
 não há LLM inventando preços, disponibilidade ou orçamento.
