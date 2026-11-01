@@ -4,6 +4,7 @@ import hmac
 import json
 import re
 import time
+from dataclasses import dataclass, field
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from starlette.concurrency import run_in_threadpool
@@ -11,12 +12,31 @@ from starlette.concurrency import run_in_threadpool
 import settings
 from instagram_meta_contract import MAX_WEBHOOK_BYTES, MetaContractError
 from instagram_meta_ingress import (
+    MessageEvent,
     parse_message_events,
     persist_authenticated_events,
 )
 
 PATH = "/webhooks/instagram/n8n"
 router = APIRouter(tags=["authenticated Instagram n8n ingress"])
+
+
+@dataclass(frozen=True)
+class BoundMessageEvent(MessageEvent):
+    source_fingerprint: str = field(default="", repr=False)
+
+    @property
+    def canonical_fingerprint(self):
+        # FK/inbox use the OAuth ID; replay integrity keeps the signed source IDs.
+        return self.source_fingerprint
+
+
+def bound_event(event, account):
+    return BoundMessageEvent(
+        account_id=account, sender_id=event.sender_id, recipient_id=event.recipient_id,
+        mid=event.mid, occurred_at=event.occurred_at, kind=event.kind, text=event.text,
+        content_hash=event.content_hash, source_fingerprint=event.canonical_fingerprint,
+    )
 
 
 def _unique(pairs):
@@ -35,14 +55,27 @@ class InstagramN8NIngressService:
                 or not isinstance(meta_app_secret, str) or not 32 <= len(meta_app_secret) <= 256
                 or not re.fullmatch(r"[!-~]+", meta_app_secret)
                 or key == meta_app_secret
-                or not isinstance(bindings, dict) or not 1 <= len(bindings) <= 100
-                or any(not isinstance(account, str) or not re.fullmatch(r"[0-9]{1,40}", account)
-                       or type(workspace) is not int or not 1 <= workspace <= 9223372036854775807
-                       for account, workspace in bindings.items())):
+                or not isinstance(bindings, dict) or not 1 <= len(bindings) <= 100):
             raise ValueError("Configuração de ingresso n8n indisponível.")
+        normalized = {}
+        targets = set()
+        for source, binding in bindings.items():
+            if type(binding) is int:
+                workspace, account = binding, source
+            elif isinstance(binding, dict) and set(binding) == {"workspace_id", "connection_account_id"}:
+                workspace, account = binding["workspace_id"], binding["connection_account_id"]
+            else:
+                raise ValueError("Vínculo de ingresso n8n inválido.")
+            if (not isinstance(source, str) or not re.fullmatch(r"[0-9]{1,40}", source)
+                    or not isinstance(account, str) or not re.fullmatch(r"[0-9]{1,40}", account)
+                    or type(workspace) is not int or not 1 <= workspace <= 9223372036854775807
+                    or account in targets):
+                raise ValueError("Vínculo de ingresso n8n inválido.")
+            targets.add(account)
+            normalized[source] = (workspace, account)
         self._key = key.encode("ascii")
         self._meta_app_secret = meta_app_secret
-        self._bindings = dict(bindings)
+        self._bindings = normalized
         self._clock = clock
 
     def receive(self, raw, timestamp, signature, meta_signature):
@@ -62,7 +95,9 @@ class InstagramN8NIngressService:
             raise HTTPException(403, "Evento Instagram inválido ou não autenticado.") from None
         if any(event.account_id not in self._bindings for event in events):
             raise HTTPException(403, "Conta Instagram não autorizada para esta integração.")
-        result = persist_authenticated_events(events, self._bindings)
+        canonical_bindings = {account: workspace for workspace, account in self._bindings.values()}
+        events = [bound_event(event, self._bindings[event.account_id][1]) for event in events]
+        result = persist_authenticated_events(events, canonical_bindings)
         # Retries/mixed batches must not trigger duplicate or speculative replies.
         result["continue_automation"] = (
             result["processed"] > 0 and result["duplicates"] == 0 and result["ignored"] == 0

@@ -13,8 +13,8 @@ from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from app import app
-from instagram_n8n_ingress import PATH, InstagramN8NIngressService, ingress_service
-from instagram_meta_ingress import InstagramIngressService
+from instagram_n8n_ingress import PATH, InstagramN8NIngressService, bound_event, ingress_service
+from instagram_meta_ingress import InstagramIngressService, parse_message_events
 import settings
 import test_instagram_persistent_oauth as oauth
 from test_instagram_meta_ingress import encoded, payload, signature as meta_signature, KEY as META_KEY, VERIFY
@@ -77,6 +77,25 @@ class ContractTests(unittest.TestCase):
         for secret in ('', 'short', KEY):
             with self.assertRaises(ValueError):
                 InstagramN8NIngressService(key=KEY,meta_app_secret=secret,bindings={'987654321':1})
+
+    def test_alias_mapping_is_strict_and_not_supplied_by_the_payload(self):
+        invalid = [
+            {'111': {'workspace_id': True, 'connection_account_id': '987654321'}},
+            {'111': {'workspace_id': 1, 'connection_account_id': 987654321}},
+            {'111': {'workspace_id': 1, 'connection_account_id': '987654321', 'extra': 1}},
+            {'111': {'workspace_id': 1}},
+            {'111': {'workspace_id': 1, 'connection_account_id': '987654321'}, '987654321': 1},
+        ]
+        for bindings in invalid:
+            with self.subTest(bindings=bindings), self.assertRaises(ValueError):
+                InstagramN8NIngressService(key=KEY,meta_app_secret=META_KEY,bindings=bindings)
+        raw=encoded(payload(account='111'))
+        original=parse_message_events(raw,meta_signature(raw),META_KEY)[0]
+        canonical=bound_event(original,'987654321')
+        self.assertEqual(canonical.account_ref,'instagram:987654321')
+        self.assertEqual(canonical.contact_ref,original.contact_ref)
+        self.assertEqual(canonical.event_key,original.event_key)
+        self.assertEqual(canonical.canonical_fingerprint,original.canonical_fingerprint)
 
     def test_authenticated_bad_envelope_and_workspace_injection_are_refused(self):
         spoofed=payload()
@@ -159,6 +178,56 @@ class DatabaseTests(unittest.TestCase):
     def counts(self):
         with psycopg.connect(DB) as conn:
             return tuple(conn.execute('SELECT (SELECT count(*) FROM socialmei.ig_meta_ingress_events WHERE workspace_id=%s),(SELECT count(*) FROM socialmei.me_messages WHERE workspace_id=%s)',(self.identity['workspace_id'],)*2).fetchone())
+
+    def alias_bridge(self,workspace=None):
+        self.bridge=InstagramN8NIngressService(
+            key=KEY,meta_app_secret=META_KEY,clock=lambda:NOW,
+            bindings={'555444333':{'workspace_id':self.identity['workspace_id'] if workspace is None else workspace,
+                                    'connection_account_id':'987654321'}},
+        )
+
+    def test_verified_source_alias_persists_canonical_account_and_original_fingerprint(self):
+        self.alias_bridge()
+        value=payload(account='555444333')
+        raw=encoded(value)
+        original=parse_message_events(raw,meta_signature(raw),META_KEY)[0]
+        response=self.receive(value)
+        self.assertEqual(response.status_code,200,response.text)
+        self.assertEqual(response.json()['processed'],1)
+        self.assertTrue(response.json()['continue_automation'])
+        self.assertEqual(self.receive(value).json()['duplicates'],1)
+        with psycopg.connect(DB) as conn:
+            row=conn.execute('SELECT external_account_id,event_key,fingerprint FROM socialmei.ig_meta_ingress_events WHERE workspace_id=%s',(self.identity['workspace_id'],)).fetchone()
+        self.assertEqual(row,('987654321',original.event_key,original.canonical_fingerprint))
+        rows=self.client.get('/api/v1/message-enrichment/conversations').json()['items']
+        self.assertEqual(len(rows),1)
+        self.assertEqual(rows[0]['account_ref'],'instagram:987654321')
+        self.assertEqual(rows[0]['messages'][0]['text'],value['entry'][0]['messaging'][0]['message']['text'])
+        self.assertEqual(self.counts(),(1,1))
+
+    def test_alias_unknown_source_and_wrong_workspace_are_refused(self):
+        self.alias_bridge()
+        self.assertEqual(self.receive(payload(account='111')).status_code,403)
+        # Canonical OAuth ID is not automatically a permitted webhook alias.
+        self.assertEqual(self.receive(payload(account='987654321')).status_code,403)
+        self.alias_bridge(self.identities[1]['workspace_id'])
+        self.assertEqual(self.receive(payload(account='555444333')).status_code,403)
+        self.assertEqual(self.counts(),(0,0))
+
+    def test_alias_concurrent_replay_and_canonical_source_conflict_do_not_duplicate(self):
+        self.alias_bridge()
+        raw=encoded(payload(account='555444333'))
+        relay=signed(raw)['X-SocialMEI-Signature']
+        with ThreadPoolExecutor(max_workers=3) as pool:
+            results=list(pool.map(lambda _:self.bridge.receive(raw,str(NOW),relay,meta_signature(raw)),range(3)))
+        self.assertEqual(sum(row['processed'] for row in results),1)
+        self.assertEqual(sum(row['duplicates'] for row in results),2)
+        canonical_raw=encoded(payload())
+        meta=InstagramIngressService(app_secret=META_KEY,verify_token=VERIFY)
+        with self.assertRaises(HTTPException) as caught:
+            meta.receive(canonical_raw,meta_signature(canonical_raw))
+        self.assertEqual(caught.exception.status_code,409)
+        self.assertEqual(self.counts(),(1,1))
 
     def test_message_is_durable_and_visible_without_ai_or_provider_calls(self):
         self.transport.fail=True

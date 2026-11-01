@@ -25,6 +25,10 @@ A API exige também `X-Hub-Signature-256` original e segredo do aplicativo Meta 
 realmente assinou o webhook. Assim, n8n não transforma um POST público forjado em
 mensagem confiável. Nunca reconstruir JSON para verificar a assinatura Meta.
 Conta→workspace vem da configuração privada e deve coincidir com o OAuth no banco.
+O evento real usa `user_id` e a conexão existente guarda `id`; GET autenticado à
+Meta confirmou ambos no mesmo perfil de teste. A configuração aceita um vínculo
+explícito entre esses IDs, conferido contra a conexão ativa na transação, sem
+reescrever a conexão OAuth nem confiar em um workspace enviado pelo n8n.
 Retries exatos são idempotentes e não repetem IA/resposta. Lotes mistos são persistidos,
 mas não retomam a automação. Uma resposta perdida pode deixar a automação sem execução;
 o histórico fica preservado para atendimento humano.
@@ -72,8 +76,11 @@ no Code: a assinatura usa o nó Crypto existente.
    `SOCIALMEI_INSTAGRAM_N8N_INGRESS_ENABLED=false`,
    `SOCIALMEI_INSTAGRAM_N8N_INGRESS_KEY` (32–256 caracteres ASCII sem espaços),
    `SOCIALMEI_INSTAGRAM_N8N_META_APP_SECRET` (segredo do aplicativo **assinante**),
-   `SOCIALMEI_INSTAGRAM_N8N_ACCOUNT_BINDINGS` (JSON com ID da conta profissional
-   existente→workspace 1, obtido do servidor). Chaves de relay e Meta devem diferir.
+   `SOCIALMEI_INSTAGRAM_N8N_ACCOUNT_BINDINGS` (JSON privado:
+   `{"ID_WEBHOOK":{"workspace_id":1,"connection_account_id":"ID_OAUTH_EXISTENTE"}}`).
+   Conferir a relação `user_id`/`id` por GET à Meta usando a conexão existente;
+   nunca aproximar IDs ou aceitar aliases do navegador. Para IDs já iguais, o
+   formato `{"ID":1}` continua aceito. Chaves de relay e Meta devem diferir.
    A chave do relay também será disponibilizada privadamente ao nó Crypto no n8n;
    o segredo Meta fica somente na API. Não alterar credenciais de IA/OAuth.
    O Compose versionado repassa essas variáveis, mas os overlays privados efetivos
