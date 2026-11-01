@@ -288,6 +288,14 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(200 if authenticated and known else 401)
         self.end_headers()
         self.wfile.write(b'[]' if authenticated and known else b'{"detail":"Session required"}')
+    def do_POST(self):
+        # The protected technical route is GET-only: Caddy must strip the
+        # Bearer before forwarding any mutation.
+        authorized = self.headers.get('Authorization') == 'Bearer gateway-read-test-key'
+        self.send_response(200 if authorized else 401)
+        self.end_headers()
+    do_PUT = do_POST
+    do_DELETE = do_POST
 HTTPServer(('0.0.0.0', 8000), Handler).serve_forever()
 ''')
         name = "socialmei-public-test-" + uuid4().hex[:10]
