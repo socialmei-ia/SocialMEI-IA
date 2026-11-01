@@ -98,6 +98,7 @@ def valid_stage(expected_sha=EXPECTED_SHA):
                 "feat/team-release-candidate-stage-20261030",
                 "feat/public-seo-discovery-consent-20261031",
                 "fix/functional-audit-20261031",
+                "feat/instagram-direct-durable-recovery-20261101",
             },
             "recibo_do_stage_invalido",
         )
