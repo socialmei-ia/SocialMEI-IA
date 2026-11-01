@@ -33,6 +33,9 @@ on:
         feat/n8n-live-inventory-20261028,
         feat/provider-sentiment-inbox-20261029,
         feat/public-seo-discovery-consent-20261031,
+        fix/functional-audit-20261031,
+        fix/oci-release035-image-identity-20261101,
+        feat/n8n-readonly-team-report-20261101,
       ]
 
 permissions:
