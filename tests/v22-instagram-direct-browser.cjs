@@ -248,7 +248,9 @@ module.exports = async function (browser, origin) {
         return route.fulfill({ json: { preferences: { theme: "dark" }, revision: 0 } });
       if (p === "/workspace-profile") return route.fulfill({ json: { profile: {} } });
       if (p === "/message-enrichment/capabilities")
-        return route.fulfill({ json: { mode: "disabled", workspace_id: 17, instagram_inbox: true } });
+        return route.fulfill({
+          json: { mode: "disabled", workspace_id: 17, instagram_inbox: true },
+        });
       if (p === "/message-enrichment/conversations")
         return route.fulfill({ json: { workspace_id: 17, items: [incoming] } });
       if (p === "/integrations/readiness")
