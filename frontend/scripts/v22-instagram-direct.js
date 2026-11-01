@@ -306,7 +306,8 @@
     }
     input.value = state.job?.text || state.pending?.text || state.text;
     section.setAttribute("aria-busy", String(state.busy));
-    input.disabled = !canWrite() || state.busy || !!state.job || !!state.pending || state.storageError;
+    input.disabled =
+      !canWrite() || state.busy || !!state.job || !!state.pending || state.storageError;
     input.oninput = () => {
       state.text = input.value;
       paintButtons();
