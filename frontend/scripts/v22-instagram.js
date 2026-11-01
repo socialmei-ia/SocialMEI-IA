@@ -6,6 +6,8 @@
     phase: "loading",
     oauth: false,
     incoming: false,
+    sending: false,
+    publishing: false,
     connected: false,
     renewAvailable: false,
   };
@@ -30,9 +32,18 @@
   }
   function description() {
     if (state.connected)
-      return state.incoming
-        ? "Conta conectada. Recebimento habilitado no servidor; valide um Direct de teste. Publicação pelo site ainda não habilitada."
-        : "Conta conectada. Recebimento de Direct e publicação pelo site ainda precisam ser habilitados.";
+      return (
+        "Conta conectada. " +
+        (state.incoming
+          ? "Recebimento de Direct habilitado no servidor. "
+          : "Recebimento de Direct desativado. ") +
+        (state.sending
+          ? "Respostas pelo painel habilitadas; exigem confirmação. "
+          : "Respostas pelo painel desativadas. ") +
+        (state.publishing
+          ? "Publicações pelo site habilitadas; exigem revisão e confirmação."
+          : "Publicações pelo site desativadas.")
+      );
     if (state.phase === "error")
       return "Não foi possível confirmar a conexão. Confira a sessão e consulte novamente.";
     return state.oauth
@@ -132,6 +143,8 @@
           phase: "ready",
           oauth: ready.instagram.oauth_available,
           incoming: ready.instagram.incoming_available === true,
+          sending: ready.instagram.send_enabled === true,
+          publishing: ready.instagram.publishing_available === true,
           renewAvailable: ready.instagram.token_refresh_available === true,
           connected,
         });
@@ -140,6 +153,8 @@
           phase: "error",
           oauth: false,
           incoming: false,
+          sending: false,
+          publishing: false,
           connected: false,
           renewAvailable: false,
         });

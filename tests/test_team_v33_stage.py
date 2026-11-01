@@ -119,9 +119,31 @@ class ReleaseStageTests(unittest.TestCase):
             "feat/whatsapp-bot-readonly-preview-20261030",
             "feat/team-release-candidate-stage-20261030",
             "feat/public-seo-discovery-consent-20261031",
+            "fix/functional-audit-20261031",
         ):
             with self.subTest(branch=branch):
                 self.assert_candidate_branch_guards(branch)
+
+    def test_035_requires_both_exact_additions_and_a_verified_restore_before_staging(self):
+        names = list(stage.REVIEWED_MIGRATIONS + stage.ADDITIVE_035)
+        self.assertEqual(stage.reviewed_source(names), names)
+        self.assertEqual(stage.plan(names[:33], names)['pending'], list(stage.ADDITIVE_035))
+        self.assertEqual(stage.plan(names[:35], names)['pending'], [])
+        with self.assertRaisesRegex(RuntimeError, 'ledger_base_incompativel'):
+            stage.plan(names[:31], names)
+        with self.assertRaises(RuntimeError):
+            stage.reviewed_source(names[:34])
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            with patch.object(stage, 'ROOT', root), patch.object(stage, 'private_root'), \
+                 patch.object(stage, 'git_audit'), patch.object(stage, 'ensure_git_object'), \
+                 patch.object(stage, 'source_migrations', return_value=names), \
+                 patch.object(stage, 'read_ledger') as ledger:
+                with self.assertRaisesRegex(RuntimeError, 'ensaio_035_ausente'):
+                    stage.stage(root, root, 'b' * 40, candidate_branch='fix/functional-audit-20261031')
+                ledger.assert_not_called()
+                with self.assertRaisesRegex(RuntimeError, 'branch_035_nao_autorizada'):
+                    stage.stage(root, root, 'b' * 40, candidate_branch='feat/public-seo-discovery-consent-20261031')
 
     def assert_candidate_branch_guards(self, branch):
         sha = "8" * 40

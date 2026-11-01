@@ -42,11 +42,16 @@ async function run() {
     await require("./v22-layout-browser.cjs")(browser, origin);
     const entry = await require("./v22-entry-browser.cjs")(browser, origin);
     await require("./v25-entry-browser.cjs")(browser, origin);
+    await require("./frontend-recovery-browser.cjs")(browser, origin);
+    await require("./agenda-browser.cjs")(browser, origin);
+    await require("./functional-recovery-browser.cjs")(browser, origin);
     const contracts = await require("./v22-contract-browser.cjs")(browser, origin);
     await require("./v22-instagram-browser.cjs")(browser, origin);
+    await require("./v22-instagram-media-browser.cjs")(browser, origin);
     await require("./v22-inbox-polling-browser.cjs")(browser, origin);
     await require("./v22-provider-analysis-browser.cjs")(browser, origin);
     await require("./v22-instagram-direct-browser.cjs")(browser, origin);
+    await require("./v22-whatsapp-replies-browser.cjs")(browser, origin);
     await require("./v22-instagram-publisher-browser.cjs")(browser, origin);
     await require("./v22-knowledge-reporting-browser.cjs")(browser, origin);
     await require("./v22-report-viewer-browser.cjs")(browser, origin);

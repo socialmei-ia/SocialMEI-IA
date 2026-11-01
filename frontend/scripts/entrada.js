@@ -2277,6 +2277,32 @@
   }
 
   /* ---------- início ---------- */
+  if (
+    typeof SOCIALMEI_CONFIG !== "undefined" &&
+    SOCIALMEI_CONFIG.environment === "local-disposable-preview"
+  ) {
+    ["fE", "fC", "fR", "fN"].forEach(function (id) {
+      var form = document.getElementById(id);
+      if (!form) return;
+      var note = document.createElement("p");
+      note.id = "preview-note-" + id;
+      note.className = "hint";
+      note.setAttribute("role", "note");
+      var title = document.createElement("strong");
+      title.textContent = "Ambiente de demonstração local";
+      note.append(title, document.createElement("br"));
+      note.append(
+        document.createTextNode(
+          "As contas do site público não existem neste banco. Use uma conta de teste deste ambiente.",
+        ),
+      );
+      form.prepend(note);
+      form.setAttribute(
+        "aria-describedby",
+        [form.getAttribute("aria-describedby"), note.id].filter(Boolean).join(" "),
+      );
+    });
+  }
   atualizarTextosDeContaReal();
   aplicarTema();
   aplicarCalmo();

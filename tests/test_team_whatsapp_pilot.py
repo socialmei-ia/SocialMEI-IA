@@ -20,6 +20,35 @@ SPEC.loader.exec_module(pilot)
 
 
 class PilotTests(unittest.TestCase):
+    def test_session_accepts_one_published_or_test_hook_and_reports_its_kind(self):
+        for prefix in ('/webhook/', '/webhook-test/'):
+            session = {'name': 'default', 'status': 'WORKING',
+                       'me': {'id': '551199998888@c.us'},
+                       'config': {'engine': 'WEBJS', 'webhooks': [{
+                           'url': 'http://n8n:5678' + prefix + 'synthetic',
+                           'events': ['message'], 'hmac': {'key': 'synthetic'},
+                       }]}}
+            with self.subTest(prefix=prefix), \
+                 patch.object(pilot, 'container_env', return_value={'WAHA_API_KEY': 'synthetic'}), \
+                 patch.object(pilot, 'endpoint', return_value='http://127.0.0.1:3000'), \
+                 patch.object(pilot, 'read_url', return_value=[session]):
+                result = pilot.session_info({}, '8888')
+                self.assertEqual(result['hook_test'], prefix == '/webhook-test/')
+                self.assertEqual(result['account'], '551199998888@c.us')
+
+    def test_session_rejects_two_candidate_receivers(self):
+        session = {'name': 'default', 'status': 'WORKING',
+                   'me': {'id': '551199998888@c.us'},
+                   'config': {'webhooks': [
+                       {'url': 'http://n8n:5678' + path + 'synthetic', 'events': ['message']}
+                       for path in ('/webhook/', '/webhook-test/')
+                   ]}}
+        with patch.object(pilot, 'container_env', return_value={'WAHA_API_KEY': 'synthetic'}), \
+             patch.object(pilot, 'endpoint', return_value='http://127.0.0.1:3000'), \
+             patch.object(pilot, 'read_url', return_value=[session]), \
+             self.assertRaises(pilot.Blocked):
+            pilot.session_info({}, '8888')
+
     def test_account_identity_requires_valid_direct_jid(self):
         self.assertEqual(pilot.account_id({"id": "551199998888@c.us"}),
                          "551199998888@c.us")

@@ -1,5 +1,6 @@
 /* Public configuration for the isolated localhost preview; no secrets. */
 const SOCIALMEI_CONFIG = Object.freeze({
+  environment: "local-disposable-preview",
   n8nMessagesUrl: null,
   n8nAuthHeader: null,
   auth: { mode: "remote", apiBaseUrl: "/api/v1" },

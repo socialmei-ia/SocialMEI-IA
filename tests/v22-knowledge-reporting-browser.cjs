@@ -16,7 +16,9 @@ module.exports = async function v22KnowledgeReporting(browser, origin) {
     papel: "owner",
     csrf_token: "b".repeat(64),
   };
-  let stored = [];
+  let stored = [],
+    delayedReport;
+  const csvPeriods = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.addInitScript(() => {
     localStorage.setItem("socialmei-auth-browser-scope", "87:91");
@@ -98,11 +100,25 @@ module.exports = async function v22KnowledgeReporting(browser, origin) {
       });
     }
     if (endpoint === "/reporting/overview") {
+      const days = Number(url.searchParams.get("days"));
+      if (days === 1) {
+        delayedReport = () =>
+          route.fulfill({
+            json: { period_days: 1, totals: { clientes: 99, itens_ativos: 3, estoque_baixo: 1 } },
+          });
+        return;
+      }
+      if (days === 90)
+        return route.fulfill({
+          status: 503,
+          json: { detail: "Fonte temporariamente indisponível." },
+        });
       return route.fulfill({
-        json: { period_days: 30, totals: { clientes: 6, itens_ativos: 3, estoque_baixo: 1 } },
+        json: { period_days: days, totals: { clientes: 6, itens_ativos: 3, estoque_baixo: 1 } },
       });
     }
     if (endpoint === "/reporting/overview.csv") {
+      csvPeriods.push(url.searchParams.get("days"));
       return route.fulfill({
         status: 200,
         contentType: "text/csv",
@@ -156,6 +172,34 @@ module.exports = async function v22KnowledgeReporting(browser, origin) {
       page.locator("[data-sm-reports]").getByRole("button", { name: "Exportar CSV" }).click(),
     ]);
     assert.equal(download.suggestedFilename(), "socialmei-relatorio.csv");
+    const reports = page.locator("[data-sm-reports]");
+    const period = reports.getByLabel("Período do relatório online");
+    const firstRequest = page.waitForRequest((request) =>
+      request.url().endsWith("/reporting/overview?days=1"),
+    );
+    await period.selectOption("1");
+    await firstRequest;
+    await period.selectOption("7");
+    await reports
+      .getByText("Consulta concluída para os últimos 7 dias.", { exact: true })
+      .waitFor();
+    await delayedReport();
+    assert.equal(await reports.getByText("99 clientes", { exact: true }).count(), 0);
+    const filteredDownload = page.waitForEvent("download");
+    await reports.getByRole("button", { name: "Exportar CSV", exact: true }).click();
+    await filteredDownload;
+    assert.deepEqual(csvPeriods, ["30", "7"]);
+    await period.selectOption("90");
+    await reports.getByText("Fonte temporariamente indisponível.", { exact: true }).waitFor();
+    assert(await reports.getByRole("button", { name: "Exportar CSV", exact: true }).isDisabled());
+    assert(
+      await reports
+        .getByRole("button", { name: "Salvar PDF / imprimir", exact: true })
+        .isDisabled(),
+    );
+    assert.equal(await reports.getByText("6 clientes", { exact: true }).count(), 0);
+    await period.selectOption("30");
+    await reports.getByText("6 clientes", { exact: true }).waitFor();
     assert.deepEqual(errors, []);
   } finally {
     await page.close();
