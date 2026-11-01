@@ -88,6 +88,29 @@ def summary(response: Response):
     }
 
 
+@router.get("/relatorio")
+def report_for_team_automation(
+    response: Response, days: int = Query(30, ge=1, le=366),
+):
+    """Aggregated, team-only, read-only data for the existing n8n report workflow."""
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    try:
+        zone = business_timezone().key
+    except ValueError:
+        raise HTTPException(503, "Fuso horário do negócio indisponível.") from None
+    with connect() as conn:
+        conn.row_factory = dict_row
+        conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+        conn.execute("SET LOCAL statement_timeout='3000ms'")
+        conn.execute("SELECT set_config('TimeZone', %s, true)", (zone,))
+        row = conn.execute(
+            "SELECT id FROM socialmei.workspaces WHERE slug=%s", ("team",)
+        ).fetchone()
+        report = _stats(conn, row["id"] if row else None, days)
+    return {"workspace": "team", "acesso": "leitura", **report}
+
+
 @router.get("/clientes", response_model=Page[ClienteOut])
 def clients(
     response: Response,
