@@ -253,6 +253,20 @@ class InstagramDirectService:
             )
         return result
 
+    def recover_operation(self, user, session, operation_id):
+        """Read the immutable receipt of a draft request after an HTTP response is lost."""
+        with connect() as conn:
+            conn.row_factory = dict_row
+            self._authorize(conn, user, session)
+            row = conn.execute(
+                "SELECT response FROM socialmei.ig_direct_operations "
+                "WHERE workspace_id=%s AND operation_id=%s",
+                (user["workspace_id"], operation_id),
+            ).fetchone()
+        if not row or not isinstance(row["response"], dict):
+            raise HTTPException(404, "Registro de resposta não encontrado neste negócio.")
+        return row["response"]
+
     def read(self, user, session):
         with connect() as conn:
             conn.row_factory = dict_row
@@ -486,6 +500,14 @@ def identity(request):
 @router.get("/jobs")
 def jobs(request: Request, service: InstagramDirectService = Depends(outbox_service)):
     return service.read(*identity(request))
+
+@router.get("/operations/{operation_id}")
+def operation_receipt(
+    operation_id: UUID, request: Request,
+    service: InstagramDirectService = Depends(outbox_service),
+):
+    return service.recover_operation(*identity(request), operation_id)
+
 
 
 @router.post("/jobs")
