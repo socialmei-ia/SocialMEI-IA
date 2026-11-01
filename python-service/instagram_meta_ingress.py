@@ -43,7 +43,7 @@ class WebhookQueryPrivacy:
         self.app = app
 
     async def __call__(self, scope, receive, send):
-        if scope.get("type") == "http" and scope.get("path", "").rstrip("/") in {PATH, PUBLIC_PATH, OAUTH_RETURN_PATH}:
+        if scope.get("type") == "http" and scope.get("path", "").rstrip("/") in {PATH, PUBLIC_PATH, OAUTH_RETURN_PATH, "/webhooks/instagram/n8n"}:
             raw = scope.get("query_string", b"")
             scope["query_string"] = b""
             state = scope.setdefault("state", {})
@@ -328,89 +328,96 @@ class InstagramIngressService:
             pass
         if events is None:
             raise HTTPException(403, "Evento Instagram inválido ou não autenticado.")
-        accounts = sorted({event.account_id for event in events})
-        result = {"received": True, "processed": 0, "ignored": 0, "duplicates": 0}
-        failed = False
-        try:
-            with connect() as conn:
-                conn.row_factory = dict_row
-                conn.execute("SET LOCAL lock_timeout='3s'")
-                conn.execute("SET LOCAL statement_timeout='10s'")
-                for account in accounts:
-                    conn.execute(
-                        "SELECT pg_advisory_xact_lock(hashtextextended(%s,0))",
-                        ("instagram-ingress:" + account,),
+        return persist_authenticated_events(events)
+
+
+def persist_authenticated_events(events, account_bindings=None):
+    """Persist authenticated ingress atomically, independently of AI and sends."""
+    accounts = sorted({event.account_id for event in events})
+    result = {"received": True, "processed": 0, "ignored": 0, "duplicates": 0}
+    failed = False
+    try:
+        with connect() as conn:
+            conn.row_factory = dict_row
+            conn.execute("SET LOCAL lock_timeout='3s'")
+            conn.execute("SET LOCAL statement_timeout='10s'")
+            for account in accounts:
+                conn.execute(
+                    "SELECT pg_advisory_xact_lock(hashtextextended(%s,0))",
+                    ("instagram-ingress:" + account,),
+                )
+            bindings = {}
+            for account in accounts:
+                row = conn.execute(
+                    "SELECT id,workspace_id,external_account_id FROM socialmei.ig_meta_connections WHERE external_account_id=%s AND status='connected' AND expires_at>NOW() AND scopes @> ARRAY['instagram_business_basic','instagram_business_manage_messages']::text[]",
+                    (account,),
+                ).fetchone()
+                if not row:
+                    raise HTTPException(
+                        404, "Conta Instagram não disponível para recebimento."
                     )
-                bindings = {}
-                for account in accounts:
-                    row = conn.execute(
-                        "SELECT id,workspace_id,external_account_id FROM socialmei.ig_meta_connections WHERE external_account_id=%s AND status='connected' AND expires_at>NOW() AND scopes @> ARRAY['instagram_business_basic','instagram_business_manage_messages']::text[]",
-                        (account,),
-                    ).fetchone()
-                    if not row:
-                        raise HTTPException(
-                            404, "Conta Instagram não disponível para recebimento."
-                        )
-                    bindings[account] = row
-                for workspace in sorted({r["workspace_id"] for r in bindings.values()}):
-                    lock_oauth_workspace(conn, workspace)
-                for account, row in bindings.items():
-                    current = conn.execute(
-                        "SELECT id FROM socialmei.ig_meta_connections WHERE id=%s AND workspace_id=%s AND external_account_id=%s AND status='connected' AND expires_at>NOW() AND scopes @> ARRAY['instagram_business_basic','instagram_business_manage_messages']::text[] FOR SHARE",
-                        (row["id"], row["workspace_id"], account),
-                    ).fetchone()
-                    if not current:
-                        raise HTTPException(
-                            404, "Conta Instagram não disponível para recebimento."
-                        )
-                for event in events:
-                    binding = bindings[event.account_id]
-                    prior = conn.execute(
-                        "SELECT fingerprint FROM socialmei.ig_meta_ingress_events WHERE external_account_id=%s AND event_key=%s",
-                        (event.account_id, event.event_key),
-                    ).fetchone()
-                    if prior:
-                        if prior["fingerprint"] != event.canonical_fingerprint:
-                            raise HTTPException(
-                                409,
-                                "Identidade de evento já recebida com outro conteúdo.",
-                            )
-                        result["duplicates"] += 1
-                        continue
-                    message_id = None
-                    if event.kind == "message":
-                        persisted = _append_inbox_message(
-                            conn,
-                            binding["workspace_id"],
-                            event,
-                            event.canonical_fingerprint,
-                            origin="instagram",
-                        )
-                        message_id = persisted["message_id"]
-                    conn.execute(
-                        "INSERT INTO socialmei.ig_meta_ingress_events(external_account_id,event_key,workspace_id,connection_id,kind,fingerprint,status,message_id) VALUES(%s,%s,%s,%s,%s,%s,%s,%s)",
-                        (
-                            event.account_id,
-                            event.event_key,
-                            binding["workspace_id"],
-                            binding["id"],
-                            event.kind,
-                            event.canonical_fingerprint,
-                            "processed" if message_id else "ignored",
-                            message_id,
-                        ),
+                if account_bindings is not None and account_bindings.get(account) != row["workspace_id"]:
+                    raise HTTPException(403, "Vínculo Instagram não autorizado para esta integração.")
+                bindings[account] = row
+            for workspace in sorted({r["workspace_id"] for r in bindings.values()}):
+                lock_oauth_workspace(conn, workspace)
+            for account, row in bindings.items():
+                current = conn.execute(
+                    "SELECT id FROM socialmei.ig_meta_connections WHERE id=%s AND workspace_id=%s AND external_account_id=%s AND status='connected' AND expires_at>NOW() AND scopes @> ARRAY['instagram_business_basic','instagram_business_manage_messages']::text[] FOR SHARE",
+                    (row["id"], row["workspace_id"], account),
+                ).fetchone()
+                if not current:
+                    raise HTTPException(
+                        404, "Conta Instagram não disponível para recebimento."
                     )
-                    result["processed" if message_id else "ignored"] += 1
-        except HTTPException:
-            raise
-        except (psycopg.Error, RuntimeError):
-            failed = True
-        if failed:
-            raise HTTPException(
-                503,
-                "Recepção temporariamente indisponível; nenhum lote foi confirmado.",
-            )
-        return result
+            for event in events:
+                binding = bindings[event.account_id]
+                prior = conn.execute(
+                    "SELECT fingerprint FROM socialmei.ig_meta_ingress_events WHERE external_account_id=%s AND event_key=%s",
+                    (event.account_id, event.event_key),
+                ).fetchone()
+                if prior:
+                    if prior["fingerprint"] != event.canonical_fingerprint:
+                        raise HTTPException(
+                            409,
+                            "Identidade de evento já recebida com outro conteúdo.",
+                        )
+                    result["duplicates"] += 1
+                    continue
+                message_id = None
+                if event.kind == "message":
+                    persisted = _append_inbox_message(
+                        conn,
+                        binding["workspace_id"],
+                        event,
+                        event.canonical_fingerprint,
+                        origin="instagram",
+                    )
+                    message_id = persisted["message_id"]
+                conn.execute(
+                    "INSERT INTO socialmei.ig_meta_ingress_events(external_account_id,event_key,workspace_id,connection_id,kind,fingerprint,status,message_id) VALUES(%s,%s,%s,%s,%s,%s,%s,%s)",
+                    (
+                        event.account_id,
+                        event.event_key,
+                        binding["workspace_id"],
+                        binding["id"],
+                        event.kind,
+                        event.canonical_fingerprint,
+                        "processed" if message_id else "ignored",
+                        message_id,
+                    ),
+                )
+                result["processed" if message_id else "ignored"] += 1
+    except HTTPException:
+        raise
+    except (psycopg.Error, RuntimeError):
+        failed = True
+    if failed:
+        raise HTTPException(
+            503,
+            "Recepção temporariamente indisponível; nenhum lote foi confirmado.",
+        )
+    return result
 
 
 @router.get(PUBLIC_PATH)

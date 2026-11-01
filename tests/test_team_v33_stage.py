@@ -121,6 +121,7 @@ class ReleaseStageTests(unittest.TestCase):
             "feat/public-seo-discovery-consent-20261031",
             "fix/functional-audit-20261031",
             "feat/instagram-direct-durable-recovery-20261101",
+    "feat/instagram-persist-before-ai-20261101",
         ):
             with self.subTest(branch=branch):
                 self.assert_candidate_branch_guards(branch)

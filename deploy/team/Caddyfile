@@ -14,6 +14,10 @@
     # Meta webhook is public but must be verified by the API; never expose a signing secret.
     # The API authenticates POST by raw HMAC signature and GET by verify token.
     @instagram_webhook path /webhooks/instagram
+    @instagram_n8n_ingress {
+        method POST
+        path /webhooks/instagram/n8n
+    }
     # Public site; application authentication and provider signatures remain enforced by the API.
     # Do not restore gateway-wide HTTP Basic Auth for website visitors.
     route {
@@ -25,6 +29,16 @@
         }
         request_body {
             max_size 3MB
+        }
+        # Dedicated relay: own timestamp HMAC AND original Meta signature are required.
+        handle @instagram_n8n_ingress {
+            request_body {
+                max_size 65536
+            }
+            reverse_proxy team-api:8000 {
+                header_up -Authorization
+                header_up -Cookie
+            }
         }
         # Signature-verified Meta webhook (no n8n flow is replaced here).
         handle @instagram_webhook {

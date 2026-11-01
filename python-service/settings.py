@@ -293,10 +293,26 @@ def instagram_runtime_configuration() -> dict:
 def instagram_live_ingress_enabled() -> bool:
     """Enable workspace inbox visibility only after production webhook ingress is active."""
     return (
-        instagram_runtime_enabled()
-        and os.getenv("SOCIALMEI_INSTAGRAM_RUNTIME_INGRESS_ENABLED", "false")
-        .strip().lower() == "true"
+        (instagram_runtime_enabled()
+         and os.getenv("SOCIALMEI_INSTAGRAM_RUNTIME_INGRESS_ENABLED", "false")
+         .strip().lower() == "true") or instagram_n8n_ingress_enabled()
     )
+
+
+def instagram_n8n_ingress_enabled() -> bool:
+    return (
+        os.getenv("SOCIALMEI_INSTAGRAM_N8N_INGRESS_ENABLED", "false") == "true"
+        and authentication_mode() == "enabled" and shared_data_enabled()
+    )
+
+
+def instagram_n8n_ingress_configuration() -> dict:
+    """Private server-only bridge configuration, never returned by API responses."""
+    return {
+        "key": os.getenv("SOCIALMEI_INSTAGRAM_N8N_INGRESS_KEY", ""),
+        "meta_app_secret": os.getenv("SOCIALMEI_INSTAGRAM_N8N_META_APP_SECRET", ""),
+        "bindings": os.getenv("SOCIALMEI_INSTAGRAM_N8N_ACCOUNT_BINDINGS", ""),
+    }
 
 
 def recovery_smtp_configuration():
