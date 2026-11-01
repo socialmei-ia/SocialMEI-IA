@@ -46,7 +46,7 @@ python3 tools/team-v33-stage.py --target team --inspect
 
 Validar previamente no provedor, sem postar e sem responder:
 
-- `SOCIALMEI_INSTAGRAM_RUNTIME_MODE=connect`, `SOCIALMEI_INSTAGRAM_RUNTIME_ENABLED` conforme contrato de `settings.py` e `SOCIALMEI_INSTAGRAM_PROXY_PRIVACY_REVIEWED=true` **somente se a revisão foi feita de fato**.
+- `SOCIALMEI_INSTAGRAM_RUNTIME_MODE=connect`, autenticação do team habilitada (`TEAM_AUTH_ENABLED=true`) e dados compartilhados ativos e `SOCIALMEI_INSTAGRAM_PROXY_PRIVACY_REVIEWED=true` **somente se a revisão foi feita de fato**.
 - OAuth: cliente, segredo, URL HTTPS de callback, versão Graph, escopos, keyring criptográfico, id da chave ativa e token de verificação Meta, todos **privados** e já cadastrados na conta correta.
 - `SOCIALMEI_INSTAGRAM_SCOPES` deve incluir `instagram_business_basic`, `instagram_business_manage_messages` e, para feed/publicação, `instagram_business_content_publish`. Verificar a concessão real no token persistido; alterar apenas a variável não concede permissão.
 - Deixar inicialmente **desligados** `SOCIALMEI_INSTAGRAM_RUNTIME_INGRESS_ENABLED`, `SOCIALMEI_INSTAGRAM_RUNTIME_SEND_ENABLED` e `SOCIALMEI_INSTAGRAM_PUBLISH_ENABLED`. Ligar recepção isoladamente, após conferir assinatura, inscrição correta de webhooks e ausência de outro consumidor concorrente.
