@@ -96,3 +96,27 @@ test("live constraint rehearsal covers tenant boundaries and uncertain send stat
   ])
     assert(CONTRACT.includes(expected));
 });
+
+test("schema comparison accepts only the known lossless PostgreSQL dump rewrites", async () => {
+  const { canonicalExpression } = await modulePromise;
+  const before =
+    "CHECK ((status)::text = ANY ((ARRAY['pending'::character varying, 'done'::character varying])::text[]))";
+  const after =
+    "CHECK ((status)::text = ANY (ARRAY[('pending'::character varying)::text, ('done'::character varying)::text]))";
+  assert.equal(canonicalExpression(before), after);
+  assert.equal(canonicalExpression(after), after);
+  for (const expression of [
+    "(ARRAY['a'::character varying(1)])::text[]",
+    "(ARRAY[status::character varying])::text[]",
+    "(ARRAY[1::integer])::text[]",
+    "CHECK (status='done')",
+  ])
+    assert.equal(canonicalExpression(expression), expression);
+  assert.notEqual(canonicalExpression(before.replace("'done'", "'sent'")), after);
+  const nested =
+    "CHECK ((((octet_length(text) >= 1) AND (octet_length(text) <= 1000)) AND (length(btrim(text)) > 0)))";
+  const flat =
+    "CHECK (((octet_length(text) >= 1) AND (octet_length(text) <= 1000) AND (length(btrim(text)) > 0)))";
+  assert.equal(canonicalExpression(nested), flat);
+  assert.notEqual(canonicalExpression(nested.replace("1000", "2000")), flat);
+});

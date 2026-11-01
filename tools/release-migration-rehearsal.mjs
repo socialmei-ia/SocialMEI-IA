@@ -69,6 +69,33 @@ export function localDocker(endpoint) {
   );
 }
 
+export function canonicalExpression(expression) {
+  // The existing Direct check is flattened by PostgreSQL when its dump is parsed.
+  const nestedTextCheck =
+    "CHECK ((((octet_length(text) >= 1) AND (octet_length(text) <= 1000)) AND (length(btrim(text)) > 0)))";
+  if (expression === nestedTextCheck)
+    return "CHECK (((octet_length(text) >= 1) AND (octet_length(text) <= 1000) AND (length(btrim(text)) > 0)))";
+  // pg_dump/restore distributes this lossless cast over varchar literal arrays.
+  const literal = "'(?:[^']|'')*'::character varying";
+  const array = new RegExp(
+    "\\(ARRAY\\[(" + literal + "(?:,\\s*" + literal + ")*)\\]\\)::text\\[\\]",
+    "g",
+  );
+  return expression.replace(
+    array,
+    (_, items) =>
+      "ARRAY[" + items.replace(new RegExp("(" + literal + ")", "g"), "($1)::text") + "]",
+  );
+}
+
+function canonicalSchema(raw) {
+  const value = JSON.parse(raw);
+  for (const constraint of value.constraints || [])
+    constraint[2] = canonicalExpression(constraint[2]);
+  for (const index of value.indexes || []) index.indexdef = canonicalExpression(index.indexdef);
+  return JSON.stringify(value);
+}
+
 const SEED = `
 INSERT INTO socialmei.workspaces(id,slug,nome,configuracao) VALUES
  (1001,'release35-synthetic-a','Empresa fictícia A','{"horario":"09:00–18:00"}'),
@@ -139,7 +166,20 @@ function command(binary, args, { input, binaryOutput = false, timeout = 120000 }
     timeout,
     maxBuffer: 32 * 1024 * 1024,
   });
-  if (result.error || result.status !== 0) fail("rehearsal_command_failed");
+  if (result.error || result.status !== 0) {
+    const phase = args.includes("/workspace/tools/team_migrate.py")
+      ? "migrator"
+      : args.includes("pg_restore")
+        ? "backup_restore"
+        : args.includes("pg_dump")
+          ? "backup_dump"
+          : args.includes("psql")
+            ? "database_check"
+            : args.includes("pg_isready")
+              ? "database_startup"
+              : "command";
+    fail("rehearsal_" + phase + "_failed");
+  }
   return result.stdout;
 }
 
@@ -250,20 +290,21 @@ export async function rehearse(options, root = ROOT) {
   const snapshot = (name, tables, schema = false) => {
     const names = tables.map((table) => "'" + table.replace(/'/g, "''") + "'").join(",");
     if (schema)
-      return sql(
-        name,
-        `SELECT jsonb_build_object('columns',(SELECT jsonb_agg(to_jsonb(c) ORDER BY table_name,ordinal_position) FROM information_schema.columns c WHERE table_schema='socialmei' AND table_name IN (${names})),'constraints',(SELECT jsonb_agg(jsonb_build_array(t.relname,c.conname,pg_get_constraintdef(c.oid)) ORDER BY t.relname,c.conname) FROM pg_constraint c JOIN pg_class t ON t.oid=c.conrelid JOIN pg_namespace n ON n.oid=t.relnamespace WHERE n.nspname='socialmei' AND t.relname IN (${names})),'indexes',(SELECT jsonb_agg(to_jsonb(i) ORDER BY tablename,indexname) FROM pg_indexes i WHERE schemaname='socialmei' AND tablename IN (${names})))::text;`,
+      return canonicalSchema(
+        sql(
+          name,
+          `SELECT jsonb_build_object('columns',(SELECT jsonb_agg(to_jsonb(c) ORDER BY table_name,ordinal_position) FROM information_schema.columns c WHERE table_schema='socialmei' AND table_name IN (${names})),'constraints',(SELECT jsonb_agg(jsonb_build_array(t.relname,c.conname,pg_get_constraintdef(c.oid)) ORDER BY t.relname,c.conname) FROM pg_constraint c JOIN pg_class t ON t.oid=c.conrelid JOIN pg_namespace n ON n.oid=t.relnamespace WHERE n.nspname='socialmei' AND t.relname IN (${names})),'indexes',(SELECT jsonb_agg(to_jsonb(i) ORDER BY tablename,indexname) FROM pg_indexes i WHERE schemaname='socialmei' AND tablename IN (${names})))::text;`,
+        ),
       );
-    return JSON.stringify(
-      tables
-        .filter((table) => table !== "schema_migrations")
-        .map((table) => [
-          table,
-          sql(
-            name,
-            `SELECT COALESCE(jsonb_agg(value ORDER BY value::text),'[]'::jsonb)::text FROM (SELECT to_jsonb(t) AS value FROM socialmei."${table.replace(/"/g, '""')}" t) x;`,
-          ),
-        ]),
+    const rows = tables
+      .filter((table) => table !== "schema_migrations")
+      .map(
+        (table) =>
+          `SELECT '${table.replace(/'/g, "''")}' AS table_name,COALESCE(jsonb_agg(value ORDER BY value::text),'[]'::jsonb) AS rows FROM (SELECT to_jsonb(t) AS value FROM socialmei."${table.replace(/"/g, '""')}" t) x`,
+      );
+    return sql(
+      name,
+      `SELECT jsonb_object_agg(table_name,rows)::text FROM (${rows.join(" UNION ALL ")}) snapshots;`,
     );
   };
   let apiRuns = 0;
@@ -327,7 +368,17 @@ export async function rehearse(options, root = ROOT) {
       let ready = false;
       for (let attempt = 0; attempt < 60; attempt++) {
         try {
-          docker("exec", name, "pg_isready", "-U", "rehearsal", "-d", "rehearsal35");
+          docker(
+            "exec",
+            name,
+            "pg_isready",
+            "-h",
+            "127.0.0.1",
+            "-U",
+            "rehearsal",
+            "-d",
+            "rehearsal35",
+          );
           ready = true;
           break;
         } catch {
