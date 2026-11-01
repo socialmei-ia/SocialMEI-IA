@@ -34,7 +34,8 @@ o histórico fica preservado para atendimento humano.
 `tools/prepare-instagram-persistence.mjs` recebe um export **privado da revisão
 publicada**, hash SHA-256 e versionId conferidos. Não consulta nem altera n8n.
 Mantém ID, webhook, nós, credenciais/referências e expressões anteriores; insere
-a barreira de persistência. Produz um pacote de atualização para **o mesmo** workflow
+a barreira de persistência e remove a cópia binária bruta do webhook antes de retomar a IA, preservando seu
+JSON anterior. Produz um pacote de atualização para **o mesmo** workflow
 `LHlqroY2xzvpYAmD`, não um novo receptor/respondedor. Recusa transformação repetida,
 origem sem HTTPS e caminho legado com outro ACK alcançável.
 

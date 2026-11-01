@@ -99,7 +99,15 @@ if (receipt.continue_automation !== (receipt.processed > 0 && receipt.duplicates
 return $input.all();`;
   const resume = `const receipt = ${persisted};
 if (receipt.continue_automation !== true || !Number.isInteger(receipt.processed) || receipt.processed < 1 || receipt.duplicates !== 0 || receipt.ignored !== 0) return [];
-return $(${JSON.stringify(hook.name)}).all();`;
+return $(${JSON.stringify(hook.name)}).all().map(item => {
+  const restored = {...item};
+  if (item.binary) {
+    const {data: rawIngress, ...remaining} = item.binary;
+    if (Object.keys(remaining).length) restored.binary = remaining;
+    else delete restored.binary;
+  }
+  return restored;
+});`;
   candidate.nodes.push(
     make(
       "prepare",

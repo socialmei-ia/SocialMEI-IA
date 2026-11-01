@@ -209,6 +209,28 @@ test("refuses drift, duplicate transform, unsafe origin, and reachable old ACK",
   assert.throws(() => prepare({ ...w, ...once.candidate }, options));
 });
 
+test("raw webhook binary is not forwarded to the legacy AI", async () => {
+  const { prepare, NAMES } = await load();
+  const graph = prepare(fixture(), options).candidate;
+  const resume = new Function(
+    "$",
+    graph.nodes.find((n) => n.name === NAMES.resume).parameters.jsCode,
+  );
+  const receipt = {
+    received: true,
+    continue_automation: true,
+    processed: 1,
+    duplicates: 0,
+    ignored: 0,
+  };
+  const original = [
+    { json: { body: { original: true } }, binary: { data: { data: "RAW_ENVELOPE" } } },
+  ];
+  const result = resume((name) => ({ first: () => ({ json: receipt }), all: () => original }));
+  assert.deepEqual(result, [{ json: { body: { original: true } } }]);
+  assert.equal(original[0].binary.data.data, "RAW_ENVELOPE");
+});
+
 test("offline CLI pins export bytes, refuses overwrite, prints no private workflow", async () => {
   const { main } = await load();
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), "ig-persist-"));
