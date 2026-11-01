@@ -139,6 +139,7 @@
       const changed = JSON.stringify(state.jobs) !== JSON.stringify(rows);
       state.jobs = rows;
       if (state.job) state.job = rows.find((job) => job.id === state.job.id) || state.job;
+      let recovered = false;
       if (state.pending && !state.storageError) {
         try {
           const receipt = await host.request(
@@ -149,6 +150,7 @@
             throw Error("Registro do servidor difere do rascunho salvo. Não repita.");
           state.job = receipt;
           state.text = receipt.text;
+          recovered = true;
           state.message = "Rascunho recuperado do servidor. Nenhuma mensagem foi enviada.";
         } catch (error) {
           if (error.status !== 404) {
@@ -159,11 +161,12 @@
           }
         }
       }
-      if ((changed || state.job) && selected()?.id === state.conversation) window.render();
+      if ((changed || recovered) && selected()?.id === state.conversation) window.render();
     } catch (error) {
       message(state, error.message || "Não foi possível consultar as respostas.");
     } finally {
       state.reading = false;
+      if (selected()?.id === state.conversation) paint();
     }
   }
   function review(state) {
