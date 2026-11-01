@@ -36,8 +36,8 @@
   }
   function stateFor(row) {
     const key = scope() + ":" + row.id;
-    if (!states.has(key))
-      states.set(key, {
+    if (!states.has(key)) {
+      const state = {
         scope: scope(),
         conversation: row.id,
         text: "",
@@ -46,8 +46,55 @@
         busy: false,
         pending: null,
         lastRead: 0,
-      });
+        storageKey: "socialmei-instagram-direct-pending-v1:" + key,
+      };
+      try {
+        const raw = sessionStorage.getItem(state.storageKey);
+        if (raw) {
+          const pending = JSON.parse(raw);
+          if (
+            !pending ||
+            !/^[a-f0-9-]{36}$/i.test(pending.operation_id) ||
+            !Number.isSafeInteger(pending.source_message_id) ||
+            pending.source_message_id < 1 ||
+            typeof pending.text !== "string" ||
+            !pending.text.trim() ||
+            new TextEncoder().encode(pending.text).length > 1000
+          )
+            throw Error("Registro pendente inválido.");
+          state.pending = pending;
+          state.text = pending.text;
+        }
+      } catch {
+        state.storageError = true;
+      }
+      states.set(key, state);
+    }
     return states.get(key);
+  }
+  function matchesReceipt(state, row) {
+    return (
+      row &&
+      typeof row.id === "string" &&
+      /^[a-f0-9-]{36}$/i.test(row.id) &&
+      row.conversation_id === state.conversation &&
+      row.source_message_id === state.pending?.source_message_id &&
+      row.text === state.pending?.text &&
+      Object.hasOwn(labels, row.status)
+    );
+  }
+  function clearPending(state, row) {
+    if (!matchesReceipt(state, row)) return false;
+    try {
+      if (sessionStorage.getItem(state.storageKey) !== JSON.stringify(state.pending))
+        throw Error("Registro local mudou.");
+      sessionStorage.removeItem(state.storageKey);
+      state.pending = null;
+      return true;
+    } catch {
+      state.storageError = true;
+      return false;
+    }
   }
   function message(state, text) {
     state.message = text;
@@ -92,7 +139,27 @@
       const changed = JSON.stringify(state.jobs) !== JSON.stringify(rows);
       state.jobs = rows;
       if (state.job) state.job = rows.find((job) => job.id === state.job.id) || state.job;
-      if (changed && selected()?.id === state.conversation) window.render();
+      if (state.pending && !state.storageError) {
+        try {
+          const receipt = await host.request(
+            "/instagram/direct/operations/" + state.pending.operation_id,
+          );
+          if (state.scope !== scope()) return;
+          if (!clearPending(state, receipt))
+            throw Error("Registro do servidor difere do rascunho salvo. Não repita.");
+          state.job = receipt;
+          state.text = receipt.text;
+          state.message = "Rascunho recuperado do servidor. Nenhuma mensagem foi enviada.";
+        } catch (error) {
+          if (error.status !== 404) {
+            state.message = error.message || "Não foi possível conferir a operação pendente.";
+            if (state.storageError) state.message += " Não crie outra resposta.";
+          } else {
+            state.message = "Registro ainda não confirmado. Recupere usando o mesmo identificador.";
+          }
+        }
+      }
+      if ((changed || state.job) && selected()?.id === state.conversation) window.render();
     } catch (error) {
       message(state, error.message || "Não foi possível consultar as respostas.");
     } finally {
@@ -199,7 +266,7 @@
       const select = element("select");
       select.setAttribute("aria-label", "Respostas registradas desta conversa");
       select.onchange = () => {
-        if (state.busy) return;
+        if (state.busy || state.pending || state.storageError) return;
         if (
           !select.value &&
           state.jobs.some((j) => ["uncertain", "dispatching", "confirmed"].includes(j.status)) &&
@@ -211,7 +278,6 @@
           return;
         }
         state.job = state.jobs.find((j) => j.id === select.value) || null;
-        state.pending = null;
         state.text = state.job?.text || "";
         paint();
       };
@@ -235,9 +301,9 @@
         el.style.display = "none";
       });
     }
-    input.value = state.job?.text || state.text;
+    input.value = state.job?.text || state.pending?.text || state.text;
     section.setAttribute("aria-busy", String(state.busy));
-    input.disabled = !canWrite() || state.busy || !!state.job || !!state.pending;
+    input.disabled = !canWrite() || state.busy || !!state.job || !!state.pending || state.storageError;
     input.oninput = () => {
       state.text = input.value;
       paintButtons();
@@ -247,43 +313,58 @@
     if (button) {
       button.removeAttribute("data-a");
       button.dataset.igPrepare = "true";
-      button.textContent = "Preparar resposta no servidor";
+      button.textContent = state.pending
+        ? "Recuperar registro pendente"
+        : "Preparar resposta no servidor";
       button.onclick = async (event) => {
         event.preventDefault();
         event.stopImmediatePropagation();
-        if (state.busy || state.job || state.pending || !canWrite()) return;
-        const source = row.messages?.at(-1)?.id,
-          text = input.value;
-        if (
-          !Number.isSafeInteger(source) ||
-          !text.trim() ||
-          new TextEncoder().encode(text).length > 1000
-        ) {
-          message(state, "Informe uma resposta de até 1000 bytes.");
-          return;
-        }
-        state.busy = true;
-        state.pending = crypto.randomUUID();
-        paint();
-        try {
-          const job = await host.request("/instagram/direct/jobs", "POST", {
-            operation_id: state.pending,
+        if (state.busy || state.job || state.storageError || !canWrite()) return;
+        if (!state.pending) {
+          const source = row.messages?.at(-1)?.id,
+            text = input.value;
+          if (
+            !Number.isSafeInteger(source) ||
+            !text.trim() ||
+            new TextEncoder().encode(text).length > 1000
+          ) {
+            message(state, "Informe uma resposta de até 1000 bytes.");
+            return;
+          }
+          const pending = {
+            operation_id: crypto.randomUUID(),
             source_message_id: source,
             text,
-          });
+          };
+          try {
+            sessionStorage.setItem(state.storageKey, JSON.stringify(pending));
+          } catch {
+            state.storageError = true;
+            message(state, "Não foi possível preservar a operação. Nenhum registro foi enviado.");
+            paint();
+            return;
+          }
+          state.pending = pending;
+        }
+        state.busy = true;
+        paint();
+        try {
+          // A lost response must be recovered by GET or by replaying this exact UUID.
+          const job = await host.request("/instagram/direct/jobs", "POST", state.pending);
           if (state.scope !== scope()) return;
+          if (!clearPending(state, job))
+            throw Error("Registro divergente. Não prepare outra resposta.");
           state.job = job;
-          state.pending = null;
-          state.text = text;
+          state.text = job.text;
           message(state, "Rascunho salvo no servidor. Nenhuma mensagem foi enviada.");
           await refresh(state, true);
         } catch (error) {
-          if (Number.isInteger(error.status) && error.status < 500) state.pending = null;
-          message(
-            state,
-            (error.message || "Resultado da preparação não confirmado.") +
-              " Consulte a lista de respostas antes de continuar.",
-          );
+          if (state.scope === scope())
+            message(
+              state,
+              (error.message || "Resultado da preparação não confirmado.") +
+                " A mesma operação será usada para recuperar o registro.",
+            );
         } finally {
           state.busy = false;
           paint();
@@ -302,10 +383,16 @@
       select.append(option);
     }
     select.value = state.job?.id || "";
-    select.disabled = state.busy;
+    select.disabled = state.busy || !!state.pending || state.storageError;
     section.querySelector("[data-ig-reply-status]").textContent =
-      state.message || "Rascunhos e aprovação ficam no servidor. Nada é enviado automaticamente.";
-    section.querySelector("[data-ig-review]").disabled = state.busy || !state.job;
+      state.storageError
+        ? "Operação pendente não pode ser validada neste navegador. Nenhuma nova resposta será criada."
+        : state.message ||
+          (state.pending
+            ? "Registro sem confirmação. Recupere a mesma operação antes de outra resposta."
+            : "Rascunhos e aprovação ficam no servidor. Nada é enviado automaticamente.");
+    section.querySelector("[data-ig-review]").disabled =
+      state.busy || !!state.pending || state.storageError || !state.job;
     const warning = document.querySelector(".ct .hd .wn");
     if (warning)
       warning.textContent = canSend()
@@ -324,7 +411,11 @@
     function paintButtons() {
       if (button)
         button.disabled =
-          state.busy || !!state.job || !!state.pending || !canWrite() || !input.value.trim();
+          state.busy ||
+          !!state.job ||
+          state.storageError ||
+          !canWrite() ||
+          (!state.pending && !input.value.trim());
     }
     paintButtons();
   }
