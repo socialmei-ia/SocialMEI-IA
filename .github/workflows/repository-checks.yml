@@ -91,12 +91,7 @@ jobs:
           if-no-files-found: error
           retention-days: 14
       - name: Formatting
-        run: |
-          if ! npm run format:check; then
-            npx prettier --write frontend/scripts/v22-instagram-direct.js tests/v22-instagram-direct-browser.cjs
-            git diff -- frontend/scripts/v22-instagram-direct.js tests/v22-instagram-direct-browser.cjs
-            exit 1
-          fi
+        run: npm run format:check
       - name: Python contracts
         run: |
           python -m pip install -r python-service/requirements.txt
