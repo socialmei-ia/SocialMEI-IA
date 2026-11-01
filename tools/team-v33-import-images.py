@@ -209,6 +209,19 @@ def verify_archive_config_digests(image_archive, expected_images, expected_sha, 
         rows = json.load(manifest_stream)
         require(isinstance(rows, list) and len(rows) == len(expected),
                 "manifesto_de_imagem_divergente")
+        # Docker Engine may export OCI indices with provenance attestations.
+        # An image's Docker Id then hashes its OCI index, not its config JSON.
+        # Verify every digest edge rather than weakening the identity check.
+        if "index.json" in by_name or "oci-layout" in by_name:
+            helper = Path(__file__).with_name("team-oci-image-identity.py")
+            require(helper.is_file() and not helper.is_symlink(),
+                    "verificador_oci_ausente")
+            spec = importlib.util.spec_from_file_location("team_oci_identity", helper)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            module.verify_oci_archive_identity(
+                archive, by_name, rows, expected, expected_sha)
+            return
         seen = set()
         for row in rows:
             require(isinstance(row, dict) and isinstance(row.get("RepoTags"), list)

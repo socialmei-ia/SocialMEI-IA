@@ -18,6 +18,8 @@ on:
       - "tools/team-whatsapp-private-mount.py"
       - "tests/test_team_whatsapp_private_mount.py"
       - "tools/team-v33-import-images.py"
+      - "tools/team-oci-image-identity.py"
+      - "tests/test_team_oci_image_identity.py"
       - "tests/test_team_v33_import_images.py"
       - "tools/team-release-profile.py"
       - "tests/test_team_release_profile.py"
@@ -116,6 +118,27 @@ jobs:
           test -s candidate-images/images.tar.gz
           cd candidate-images
           sha256sum images.tar.gz image-receipt.json > SHA256SUMS
+      - name: Verify exact exported Docker/OCI image identity before upload
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import importlib.util, json, os
+          from pathlib import Path
+          importer_path = Path("tools/team-v33-import-images.py")
+          spec = importlib.util.spec_from_file_location("team_image_import", importer_path)
+          importer = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(importer)
+          receipt = json.loads(Path("candidate-images/image-receipt.json").read_text())
+          assert receipt["source_sha"] == os.environ["CANDIDATE_SHA"]
+          importer.verify_archive_config_digests(
+              Path("candidate-images/images.tar.gz"),
+              receipt["images"],
+              receipt["source_sha"],
+              "bundle",
+          )
+          print("Docker/OCI image identity verified for exact candidate SHA")
+          PY
       - name: Upload image bundle without live credentials
         uses: actions/upload-artifact@v4
         with:
