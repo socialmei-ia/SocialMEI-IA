@@ -30,7 +30,7 @@ class ReadAuthorizationTests(unittest.TestCase):
         with patch("n8n_read.connect", side_effect=AssertionError("must not connect")):
             for value in [None, "Bearer wrong", "Basic " + TOKEN]:
                 headers = {} if value is None else {"Authorization": value}
-                for path in ["resumo", "clientes", "produtos", "vendas", "financeiro"]:
+                for path in ["resumo", "relatorio", "clientes", "produtos", "vendas", "financeiro"]:
                     self.assertEqual(
                         self.client.get(
                             "/api/v1/integracoes/" + path, headers=headers
@@ -58,9 +58,28 @@ class ReadAuthorizationTests(unittest.TestCase):
                     503,
                 )
 
+    def test_invalid_timezone_rejects_report_without_database_access(self):
+        with patch.dict(os.environ, {"TZ": "invalid-business-timezone"}), patch(
+            "n8n_read.connect", side_effect=AssertionError("Database must not open")
+        ):
+            result = self.client.get(
+                "/api/v1/integracoes/relatorio",
+                headers={"Authorization": "Bearer " + TOKEN},
+            )
+        self.assertEqual(result.status_code, 503)
+
+    def test_report_period_validation_is_bounded(self):
+        with patch("n8n_read.connect", side_effect=AssertionError("Invalid request")):
+            for value in ("0", "367", "abc", "-1"):
+                result = self.client.get(
+                    "/api/v1/integracoes/relatorio?days=" + value,
+                    headers={"Authorization": "Bearer " + TOKEN},
+                )
+                self.assertEqual(result.status_code, 422)
+
     def test_no_write_routes_exist(self):
         for method in ["POST", "PATCH", "DELETE", "PUT"]:
-            for path in ["clientes", "produtos", "vendas", "financeiro"]:
+            for path in ["relatorio", "clientes", "produtos", "vendas", "financeiro"]:
                 self.assertEqual(
                     self.client.request(
                         method,
@@ -113,11 +132,61 @@ class ReadDatabaseTests(unittest.TestCase):
             dict.fromkeys(["clientes", "produtos", "vendas", "financeiro"], 0),
         )
         self.assertEqual(self.read("clientes")["itens"], [])
+        self.assertEqual(self.read("relatorio")["totals"]["clientes"], 0)
         with psycopg.connect(DB) as conn:
             self.assertEqual(
                 conn.execute("SELECT COUNT(*) FROM socialmei.workspaces").fetchone()[0],
                 0,
             )
+
+    def test_report_uses_team_only_and_never_returns_customer_rows(self):
+        self.assertEqual(
+            self.client.post("/api/v1/clientes", json={"nome": "Equipe Privada"}).status_code,
+            201,
+        )
+        with patch.dict(os.environ, {"SOCIALMEI_WORKSPACE_SLUG": "development"}):
+            self.assertEqual(
+                self.client.post("/api/v1/clientes", json={"nome": "Cliente Outra Empresa"}).status_code,
+                201,
+            )
+        with psycopg.connect(DB) as conn:
+            conn.execute("SELECT set_config('TimeZone', %s, true)", ("America/Recife",))
+            team = conn.execute(
+                "SELECT id FROM socialmei.workspaces WHERE slug=%s", ("team",),
+            ).fetchone()[0]
+            other = conn.execute(
+                "SELECT id FROM socialmei.workspaces WHERE slug=%s", ("development",),
+            ).fetchone()[0]
+            for workspace, amount in ((team, 12), (other, 900)):
+                conn.execute(
+                    "INSERT INTO socialmei.crm_vendas("
+                    "workspace_id,cliente,item,data,quantidade,preco,valor,pagamento,status"
+                    ") VALUES(%s,'Cliente privado','Item privado',CURRENT_DATE,1,%s,%s,'Pix','Pago')",
+                    (workspace, amount, amount),
+                )
+                conn.execute(
+                    "INSERT INTO socialmei.crm_financeiro("
+                    "workspace_id,descricao,tipo,valor,vencimento,status"
+                    ") VALUES(%s,'Descrição privada','receita',%s,CURRENT_DATE,'pago')",
+                    (workspace, amount),
+                )
+        response = self.client.get(
+            "/api/v1/integracoes/relatorio?days=30", headers=self.headers
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.headers["cache-control"], "no-store")
+        self.assertEqual(response.headers["x-content-type-options"], "nosniff")
+        report = response.json()
+        self.assertEqual(report["workspace"], "team")
+        self.assertEqual(report["acesso"], "leitura")
+        self.assertEqual(report["totals"]["clientes"], 1)
+        self.assertEqual(report["sales_by_status"]["Pago"], {
+            "quantidade": 1, "valor": "12.00",
+        })
+        self.assertEqual(report["finance_by_type_and_status"][0]["valor"], "12.00")
+        self.assertNotIn("Cliente privado", response.text)
+        self.assertNotIn("Descrição privada", response.text)
+        self.assertNotIn("900.00", response.text)
 
     def test_pagination_workspace_isolation_and_no_stock_or_version_changes(self):
         for i in range(3):
