@@ -94,7 +94,12 @@ jobs:
           if-no-files-found: error
           retention-days: 14
       - name: Formatting
-        run: npm run format:check
+        run: |
+          if ! npm run format:check; then
+            npx prettier --write docs/INSTAGRAM-GO-LIVE-035.md
+            git diff -- docs/INSTAGRAM-GO-LIVE-035.md
+            exit 1
+          fi
       - name: Python contracts
         run: |
           python -m pip install -r python-service/requirements.txt
