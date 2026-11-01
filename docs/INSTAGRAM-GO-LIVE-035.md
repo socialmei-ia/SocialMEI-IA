@@ -4,14 +4,14 @@ Este documento acompanha a **branch consolidada** `feat/instagram-direct-durable
 
 ## Escopo e critérios de funcionamento
 
-| Recurso | Contrato e prova necessária |
-| --- | --- |
-| Conexão profissional | Sessão autenticada, OAuth ligado à empresa certa e token não expirado, com `instagram_business_basic` |
-| Feed | Configurações → Integrações → Instagram → Ver publicações; dados da Meta, não de uma fixture |
-| Recepção Direct | GET do desafio Meta, webhook POST assinado, mensagem de uma **conta de teste autorizada** na Caixa Unificada, persistência no workspace certo e idempotência de eventos |
-| Resposta Direct | Rascunho preservado, aprovação explícita, somente um respondedor n8n/dashboard, confirmação do ID da Meta e nenhuma repetição em caso incerto |
-| Publicar foto | Perfil confirmado, permissão `instagram_business_content_publish`, foto armazenada temporariamente e acessível à Meta, legenda e confirmação humana, recibo da Meta e publicação visível no feed |
-| Segurança | Nenhuma credencial no frontend/log; autenticação, CSRF, assinatura Meta, separação de empresas e backup comprovados |
+| Recurso              | Contrato e prova necessária                                                                                                                                                                      |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Conexão profissional | Sessão autenticada, OAuth ligado à empresa certa e token não expirado, com `instagram_business_basic`                                                                                            |
+| Feed                 | Configurações → Integrações → Instagram → Ver publicações; dados da Meta, não de uma fixture                                                                                                     |
+| Recepção Direct      | GET do desafio Meta, webhook POST assinado, mensagem de uma **conta de teste autorizada** na Caixa Unificada, persistência no workspace certo e idempotência de eventos                          |
+| Resposta Direct      | Rascunho preservado, aprovação explícita, somente um respondedor n8n/dashboard, confirmação do ID da Meta e nenhuma repetição em caso incerto                                                    |
+| Publicar foto        | Perfil confirmado, permissão `instagram_business_content_publish`, foto armazenada temporariamente e acessível à Meta, legenda e confirmação humana, recibo da Meta e publicação visível no feed |
+| Segurança            | Nenhuma credencial no frontend/log; autenticação, CSRF, assinatura Meta, separação de empresas e backup comprovados                                                                              |
 
 O Instagram exige conta profissional e escopos específicos, conforme a coleção de documentação da Meta: https://www.postman.com/meta/instagram/documentation/6yqw8pt/instagram-api .
 
@@ -59,7 +59,7 @@ Validar previamente no provedor, sem postar e sem responder:
 ## Aceite depois do deploy — conta de teste e autorização
 
 1. Abrir o site real em janela anônima; entrar como usuário autorizado. A conta Instagram deve estar conectada e o perfil profissional certo deve aparecer.
-2. **Feed:** abrir *Ver publicações* e conferir imagem, legenda, data, link e paginação com publicações que já existiam, sem criar posts.
+2. **Feed:** abrir _Ver publicações_ e conferir imagem, legenda, data, link e paginação com publicações que já existiam, sem criar posts.
 3. **Direct recebido:** a conta de teste envia uma mensagem original; conferir **uma** conversa e **uma** mensagem recebida na Caixa. Reentregar o mesmo evento assinado e confirmar que a mensagem não duplica.
 4. **Direct enviado:** depois de consentimento específico e exclusividade do respondedor, preparar, revisar e confirmar **uma** resposta para a conta de teste; conferir o recibo no painel e no aplicativo Instagram. Falhas incertas devem permanecer bloqueadas, nunca ser reenviadas automaticamente.
 5. **Publicação:** depois de consentimento específico, preparar e confirmar **uma** foto/legenda de teste no perfil previamente identificado; confirmar ID da Meta e aparição no feed, evitando repetições.
