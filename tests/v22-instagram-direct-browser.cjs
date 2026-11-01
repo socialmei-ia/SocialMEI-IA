@@ -204,5 +204,133 @@ module.exports = async function (browser, origin) {
           await context.close();
         }
       }
-  return "Native Instagram Direct: draft, explicit review, sender disabled, receipt and uncertain/no-retry";
+
+  // An HTTP response can be lost after the API has committed the draft, or
+  // before it reached the database. Both cases must reuse the original UUID.
+  for (const committedBeforeFailure of [true, false]) {
+    const context = await browser.newContext({
+      viewport: { width: 390, height: 880 },
+      reducedMotion: "reduce",
+    });
+    const page = await context.newPage();
+    const problems = [];
+    page.on("pageerror", (error) => problems.push(error.message));
+    await page.addInitScript(() => localStorage.setItem("socialmei-auth-browser-scope", "91:17"));
+    const identity = {
+      usuario: { id: 91, nome: "Operador", email: "operator@example.test" },
+      negocio: { id: 17, nome: "Negócio fictício", slug: "synthetic", configuracao: {} },
+      papel: "owner",
+      csrf_token: "a".repeat(64),
+    };
+    const incoming = {
+      id: 1,
+      revision: 1,
+      channel: "instagram",
+      origin: "instagram",
+      contact_name: "Contato Instagram teste",
+      messages: [{ id: 11, text: "Qual é o prazo?", occurred_at: "2026-10-27T09:00:00Z" }],
+    };
+    const operations = [];
+    let jobs = [];
+    await page.route("**/*", (route) => {
+      const request = route.request(),
+        url = new URL(request.url());
+      if (url.origin !== origin) return route.abort();
+      if (url.pathname.endsWith("/config.js"))
+        return route.fulfill({
+          contentType: "text/javascript",
+          body: 'const SOCIALMEI_CONFIG={auth:{mode:"remote",apiBaseUrl:"/api/v1"}};',
+        });
+      if (!url.pathname.startsWith("/api/v1/")) return route.continue();
+      const p = url.pathname.replace("/api/v1", "");
+      if (p === "/auth/session") return route.fulfill({ json: identity });
+      if (p === "/auth/preferences")
+        return route.fulfill({ json: { preferences: { theme: "dark" }, revision: 0 } });
+      if (p === "/workspace-profile") return route.fulfill({ json: { profile: {} } });
+      if (p === "/message-enrichment/capabilities")
+        return route.fulfill({ json: { mode: "disabled", workspace_id: 17, instagram_inbox: true } });
+      if (p === "/message-enrichment/conversations")
+        return route.fulfill({ json: { workspace_id: 17, items: [incoming] } });
+      if (p === "/integrations/readiness")
+        return route.fulfill({
+          json: {
+            instagram: {
+              oauth_available: true,
+              reply_preparation_available: true,
+              incoming_available: true,
+              send_enabled: false,
+            },
+          },
+        });
+      if (p === "/instagram/meta/status")
+        return route.fulfill({ json: { status: "connected", credential_available: true } });
+      if (p === "/instagram/direct/jobs" && request.method() === "GET")
+        return route.fulfill({ json: { items: jobs } });
+      if (p.startsWith("/instagram/direct/operations/")) {
+        const op = p.split("/").at(-1);
+        if (!jobs.length || operations[0]?.operation_id !== op)
+          return route.fulfill({ status: 404, json: { detail: "Not found" } });
+        return route.fulfill({ json: jobs[0] });
+      }
+      if (p === "/instagram/direct/jobs" && request.method() === "POST") {
+        const packet = request.postDataJSON();
+        assert.equal(packet.source_message_id, 11);
+        operations.push(packet);
+        if (committedBeforeFailure || operations.length > 1)
+          jobs = [{
+            id: "11111111-1111-4111-8111-111111111111",
+            conversation_id: 1,
+            source_message_id: 11,
+            text: packet.text,
+            revision: 1,
+            status: "draft",
+            attempts: 0,
+            provider_message_id: null,
+            created_at: "2026-10-27T10:00:00Z",
+            updated_at: "2026-10-27T10:00:00Z",
+          }];
+        if (operations.length === 1) return route.abort("failed");
+        return route.fulfill({ json: jobs[0] });
+      }
+      return route.fulfill({ json: [] });
+    });
+    try {
+      const key = "socialmei-instagram-direct-pending-v1:91:17:1";
+      await page.goto(origin + "/frontend/socialmei-app.html#/caixa/me-1");
+      await page.locator('[data-ig-prepare]').waitFor();
+      await page.locator("#ta").fill("O prazo é de cinco dias úteis.");
+      await page.locator('[data-ig-prepare]').click();
+      await page.waitForFunction(
+        (key) => !!sessionStorage.getItem(key), key,
+      );
+      const original = await page.evaluate((key) => JSON.parse(sessionStorage.getItem(key)), key);
+      assert.equal(operations.length, 1);
+      await page.reload();
+      await page.locator('[data-ig-prepare]').waitFor();
+      if (committedBeforeFailure) {
+        await page.getByText(
+          "Rascunho recuperado do servidor. Nenhuma mensagem foi enviada.",
+          { exact: true },
+        ).waitFor();
+        assert.equal(operations.length, 1, "Recovery GET must not POST again");
+      } else {
+        const retry = page.getByRole("button", { name: "Recuperar registro pendente" });
+        await retry.waitFor();
+        await retry.click();
+        await page.getByText(
+          "Rascunho salvo no servidor. Nenhuma mensagem foi enviada.",
+          { exact: true },
+        ).waitFor();
+        assert.equal(operations.length, 2);
+        assert.deepEqual(operations[1], original, "Replay must use exact same operation id");
+      }
+      assert.equal(await page.evaluate((key) => sessionStorage.getItem(key), key), null);
+      assert.equal(await page.locator('[data-ig-reply] select option').count(), 2);
+      assert.deepEqual(problems, []);
+    } finally {
+      await context.close();
+    }
+  }
+
+  return "Native Instagram Direct: draft, explicit review, sender disabled, receipt and uncertain/no-retry, durable recovery";
 };
