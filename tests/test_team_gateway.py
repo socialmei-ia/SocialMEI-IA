@@ -277,6 +277,12 @@ class Handler(BaseHTTPRequestHandler):
         if self.path.startswith('/media/instagram/'):
             self.send_response(400 if self.headers.get('Cookie') or self.headers.get('Authorization') else 200)
             self.end_headers(); self.wfile.write(b'jpeg-fixture'); return
+        if self.path.startswith('/api/v1/integracoes/relatorio'):
+            accepted = self.headers.get('Authorization') == 'Bearer gateway-read-test-key'
+            self.send_response(200 if accepted else 401)
+            self.end_headers()
+            self.wfile.write(b'{"workspace":"team","acesso":"leitura"}' if accepted else b'{}')
+            return
         authenticated = self.headers.get('Cookie') == 'test-session=valid'
         known = self.path in ('/api/v1/clientes', '/api/v1/auth/me')
         self.send_response(200 if authenticated and known else 401)
@@ -340,6 +346,26 @@ HTTPServer(('0.0.0.0', 8000), Handler).serve_forever()
             self.assertEqual(code, 404, path)
             self.assertNotIn("must-never-be-served", body)
             self.assertNotIn("WWW-Authenticate", headers)
+
+    def test_n8n_report_bearer_is_forwarded_only_for_reviewed_get(self):
+        path = "/api/v1/integracoes/relatorio?days=30"
+        token = {"Authorization": "Bearer gateway-read-test-key"}
+        self.assertEqual(self.request(path)[0], 401)
+        status, body, headers = self.request(path, token)
+        self.assertEqual(status, 200, body)
+        self.assertEqual(json.loads(body)["workspace"], "team")
+        self.assertEqual(headers["X-Content-Type-Options"], "nosniff")
+        self.assertEqual(self.request("/api/v1/integracoes/relatorio/extra", token)[0], 401)
+        self.assertEqual(self.request("/api/v1/integracoes/unknown", token)[0], 401)
+        self.assertEqual(self.request("/api/v1/clientes", token)[0], 401)
+        self.assertEqual(self.request(path, {
+            **token, "Origin": "https://evil.example.com"
+        })[0], 403)
+        for method in ("POST", "PUT", "DELETE"):
+            request = Request(self.origin + path, headers=token, method=method)
+            with self.assertRaises(HTTPError) as rejected:
+                urlopen(request, timeout=3)
+            self.assertEqual(rejected.exception.code, 401)
 
     def test_foreign_origin_remains_denied(self):
         self.assertEqual(self.request("/api/v1/clientes", {
