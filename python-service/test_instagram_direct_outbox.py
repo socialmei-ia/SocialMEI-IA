@@ -221,6 +221,26 @@ class DatabaseTests(unittest.TestCase):
         self.assertEqual(sent.json()["status"], "confirmed")
         self.assertEqual(len(self.send_calls), 1)
 
+    def test_draft_operation_can_be_recovered_without_another_provider_send(self):
+        operation = str(uuid4())
+        first = self.draft(operation_id=operation, text="Resposta a recuperar")
+        result = self.client.get(
+            PREFIX + "/operations/" + operation, headers=self.headers,
+        )
+        self.assertEqual(result.status_code, 200, result.text)
+        self.assertEqual(result.json(), first)
+        self.assertEqual(self.draft(operation_id=operation, text="Resposta a recuperar"), first)
+        self.assertEqual(len(self.send_calls), 0)
+        self.assertEqual(
+            self.client.get(PREFIX + "/operations/" + str(uuid4()), headers=self.headers).status_code,
+            404,
+        )
+        other_identity = {**self.identity, "workspace_id": self.identity["workspace_id"] + 100000}
+        from fastapi import HTTPException
+        with self.assertRaises(HTTPException) as denied:
+            self.direct.recover_operation(other_identity, digest(TOKEN), UUID(operation))
+        self.assertIn(denied.exception.status_code, {401, 403, 404})
+
     def test_approval_confirmation_replay_and_history(self):
         operation = str(uuid4())
         row = self.draft(operation_id=operation)

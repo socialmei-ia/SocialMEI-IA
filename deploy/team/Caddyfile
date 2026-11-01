@@ -9,7 +9,7 @@
     @public_discovery path /sobre.html /robots.txt /sitemap.xml /llms.txt
     @technical_reads {
         method GET
-        path /api/v1/integracoes/resumo /api/v1/integracoes/clientes /api/v1/integracoes/produtos /api/v1/integracoes/vendas /api/v1/integracoes/financeiro /api/v1/integracoes/whatsapp/menu
+        path /api/v1/integracoes/resumo /api/v1/integracoes/relatorio /api/v1/integracoes/clientes /api/v1/integracoes/produtos /api/v1/integracoes/vendas /api/v1/integracoes/financeiro /api/v1/integracoes/whatsapp/menu
     }
     # Meta webhook is public but must be verified by the API; never expose a signing secret.
     # The API authenticates POST by raw HMAC signature and GET by verify token.

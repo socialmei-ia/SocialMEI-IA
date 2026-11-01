@@ -331,6 +331,7 @@ class ImportImagesTests(unittest.TestCase):
                 "feat/team-release-candidate-stage-20261030",
                 "feat/public-seo-discovery-consent-20261031",
                 "fix/functional-audit-20261031",
+            "feat/instagram-direct-durable-recovery-20261101",
             ):
                 with self.subTest(branch=branch):
                     receipt_path.write_text(json.dumps({**proof, "candidate_branch": branch}),
