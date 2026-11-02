@@ -38,6 +38,7 @@ on:
         feat/n8n-readonly-team-report-20261101,
         feat/instagram-direct-durable-recovery-20261101,
         feat/instagram-gate9-receive-proof-20261101,
+        feat/instagram-persist-before-ai-20261101,
       ]
 
 permissions:
