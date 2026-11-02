@@ -309,6 +309,7 @@ def instagram_n8n_ingress_enabled() -> bool:
 def instagram_n8n_ingress_configuration() -> dict:
     """Private server-only bridge configuration, never returned by API responses."""
     return {
+        "auth_mode": os.getenv("SOCIALMEI_INSTAGRAM_N8N_AUTH_MODE", "hmac"),
         "key": os.getenv("SOCIALMEI_INSTAGRAM_N8N_INGRESS_KEY", ""),
         "meta_app_secret": os.getenv("SOCIALMEI_INSTAGRAM_N8N_META_APP_SECRET", ""),
         "bindings": os.getenv("SOCIALMEI_INSTAGRAM_N8N_ACCOUNT_BINDINGS", ""),

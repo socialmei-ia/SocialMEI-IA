@@ -291,7 +291,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path == '/webhooks/instagram/n8n':
             body = self.rfile.read(int(self.headers.get('Content-Length', '0')))
-            accepted = not self.headers.get('Cookie') and not self.headers.get('Authorization') and self.headers.get('X-SocialMEI-Signature') == 'sha256=relay-fixture' and self.headers.get('X-Hub-Signature-256') == 'sha256=meta-fixture' and body == b'{"fixture":1}'
+            accepted = not self.headers.get('Cookie') and self.headers.get('Authorization') == 'Bearer relay-fixture' and not self.headers.get('X-SocialMEI-Signature') and self.headers.get('X-Hub-Signature-256') == 'sha256=meta-fixture' and body == b'{"fixture":1}'
             self.send_response(200 if accepted else 400)
             self.end_headers(); self.wfile.write(b'{"received":true}'); return
         # The protected technical route is GET-only: Caddy must strip the
@@ -398,10 +398,10 @@ HTTPServer(('0.0.0.0', 8000), Handler).serve_forever()
             self.assertEqual(response.code,404,method)
             response.close()
 
-    def test_n8n_ingress_forwards_raw_body_and_signatures_without_browser_credentials(self):
+    def test_n8n_ingress_forwards_relay_auth_and_raw_body_without_cookies(self):
         request = Request(self.origin + '/webhooks/instagram/n8n', data=b'{"fixture":1}', headers={
-            'Content-Type': 'application/json', 'Authorization': 'Bearer must-not-forward',
-            'Cookie': 'test-session=valid', 'X-SocialMEI-Signature': 'sha256=relay-fixture',
+            'Content-Type': 'application/json', 'Authorization': 'Bearer relay-fixture',
+            'Cookie': 'test-session=valid',
             'X-Hub-Signature-256': 'sha256=meta-fixture', 'X-SocialMEI-Timestamp': '1793550000',
         })
         with urlopen(request, timeout=3) as response:

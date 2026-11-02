@@ -6,7 +6,6 @@ import { pathToFileURL } from "node:url";
 export const WORKFLOW = "LHlqroY2xzvpYAmD";
 export const NAMES = {
   prepare: "SocialMEI preparar ingresso",
-  sign: "SocialMEI assinar ingresso",
   persist: "SocialMEI persistir antes da IA",
   validate: "SocialMEI validar recibo",
   ack: "SocialMEI confirmar persistencia",
@@ -25,13 +24,18 @@ if (!Buffer.from(body, 'utf8').equals(raw)) throw new Error('UTF-8 invalido.');
 const parsed = JSON.parse(body);
 if (!parsed || parsed.object !== 'instagram' || !Array.isArray(parsed.entry)) throw new Error('Envelope Instagram invalido.');
 const timestamp = String(Math.floor(Date.now() / 1000));
-return [{json:{timestamp, body_text:body, meta_signature:signature, signing_input:timestamp+'\\n'+body}}];`;
+return [{json:{timestamp, meta_signature:signature}, binary:input.binary}];`;
 
 function edge(name) {
   return { node: name, type: "main", index: 0 };
 }
 
-export function prepare(source, { sourceSha, publishedVersion, apiOrigin }) {
+export function prepare(
+  source,
+  { sourceSha, publishedVersion, apiOrigin, credentialId, webhookNodeId },
+) {
+  if (typeof credentialId !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(credentialId))
+    throw new Error("Credencial nativa de ingresso obrigatoria.");
   if (!/^[a-f0-9]{64}$/.test(sourceSha || "")) throw new Error("Hash de origem obrigatorio.");
   const origin = new URL(apiOrigin);
   if (
@@ -46,9 +50,9 @@ export function prepare(source, { sourceSha, publishedVersion, apiOrigin }) {
   if (!Array.isArray(source.nodes) || !source.connections || typeof source.connections !== "object")
     throw new Error("Grafo invalido.");
   const candidate = structuredClone(source);
-  const hooks = candidate.nodes.filter(
-    (n) => n.type === "n8n-nodes-base.webhook" && n.parameters?.httpMethod === "POST",
-  );
+  const hooks = candidate.nodes
+    .filter((n) => n.type === "n8n-nodes-base.webhook" && n.parameters?.httpMethod === "POST")
+    .filter((n) => webhookNodeId === undefined || n.id === webhookNodeId);
   if (hooks.length !== 1) throw new Error("Esperado um unico webhook POST.");
   const hook = hooks[0];
   if (hook.parameters.multipleMethods || hook.parameters.options?.binaryData)
@@ -117,40 +121,24 @@ return $(${JSON.stringify(hook.name)}).all().map(item => {
       true,
     ),
     make(
-      "sign",
-      "n8n-nodes-base.crypto",
-      1,
-      {
-        action: "hmac",
-        type: "SHA256",
-        binaryData: false,
-        value: "={{ $json.signing_input }}",
-        dataPropertyName: "signature",
-        encoding: "hex",
-        secret:
-          "={{ (() => { const key = $env.SOCIALMEI_INSTAGRAM_N8N_INGRESS_KEY; if (typeof key !== 'string' || key.length < 32) throw new Error('Chave privada de ingresso indisponivel.'); return key; })() }}",
-      },
-      true,
-    ),
-    make(
       "persist",
       "n8n-nodes-base.httpRequest",
       4.2,
       {
+        authentication: "genericCredentialType",
+        genericAuthType: "httpBearerAuth",
         method: "POST",
         url: apiOrigin + "/webhooks/instagram/n8n",
         sendHeaders: true,
         headerParameters: {
           parameters: [
             { name: "X-SocialMEI-Timestamp", value: `={{ ${prepared}.timestamp }}` },
-            { name: "X-SocialMEI-Signature", value: "={{ 'sha256=' + $json.signature }}" },
             { name: "X-Hub-Signature-256", value: `={{ ${prepared}.meta_signature }}` },
           ],
         },
         sendBody: true,
-        contentType: "raw",
-        rawContentType: "application/json",
-        body: `={{ ${prepared}.body_text }}`,
+        contentType: "binaryData",
+        inputDataFieldName: "data",
         options: {
           timeout: 10000,
           redirect: { redirect: { followRedirects: false } },
@@ -178,10 +166,12 @@ return $(${JSON.stringify(hook.name)}).all().map(item => {
     }),
     make("resume", "n8n-nodes-base.code", 2, { mode: "runOnceForAllItems", jsCode: resume }),
   );
+  candidate.nodes.find((node) => node.name === NAMES.persist).credentials = {
+    httpBearerAuth: { id: credentialId, name: "SocialMEI Instagram ingresso" },
+  };
   candidate.connections[hook.name] = { main: [[edge(NAMES.prepare)]] };
   for (const [key, next] of [
-    ["prepare", "sign"],
-    ["sign", "persist"],
+    ["prepare", "persist"],
     ["persist", "validate"],
     ["validate", "ack"],
   ])
@@ -204,11 +194,18 @@ return $(${JSON.stringify(hook.name)}).all().map(item => {
 }
 
 export async function main(args) {
-  const names = ["input", "output", "expected-sha256", "published-version", "api-origin"];
+  const names = [
+    "input",
+    "output",
+    "expected-sha256",
+    "published-version",
+    "api-origin",
+    "credential-id",
+  ];
   const options = {};
   for (let i = 0; i < args.length; i += 2) {
     const key = args[i]?.replace(/^--/, "");
-    if (!names.includes(key) || !args[i + 1] || options[key])
+    if (![...names, "webhook-node-id"].includes(key) || !args[i + 1] || options[key])
       throw new Error("Argumentos invalidos.");
     options[key] = args[i + 1];
   }
@@ -220,6 +217,8 @@ export async function main(args) {
     sourceSha: hash,
     publishedVersion: options["published-version"],
     apiOrigin: options["api-origin"],
+    credentialId: options["credential-id"],
+    webhookNodeId: options["webhook-node-id"],
   });
   await writeFile(options.output, JSON.stringify(result, null, 2) + "\n", {
     flag: "wx",

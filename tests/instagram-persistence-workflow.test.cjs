@@ -10,6 +10,7 @@ const options = {
   sourceSha: "a".repeat(64),
   publishedVersion: "published-fixture",
   apiOrigin: "https://app.example.com",
+  credentialId: "fixture-ingress-credential",
 };
 function fixture() {
   return {
@@ -85,7 +86,6 @@ test("no acknowledgement or AI path bypasses persistence or failure handling", a
   const route = [
     "Original webhook",
     NAMES.prepare,
-    NAMES.sign,
     NAMES.persist,
     NAMES.validate,
     NAMES.ack,
@@ -96,7 +96,7 @@ test("no acknowledgement or AI path bypasses persistence or failure handling", a
   ];
   for (let i = 0; i < route.length - 1; i++)
     assert.equal(graph.connections[route[i]].main[0][0].node, route[i + 1]);
-  for (const key of ["prepare", "sign", "persist", "validate"]) {
+  for (const key of ["prepare", "persist", "validate"]) {
     assert.equal(graph.connections[NAMES[key]].main[1][0].node, NAMES.fail);
     assert.equal(graph.nodes.find((n) => n.name === NAMES[key]).onError, "continueErrorOutput");
   }
@@ -105,7 +105,9 @@ test("no acknowledgement or AI path bypasses persistence or failure handling", a
   const http = graph.nodes.find((n) => n.name === NAMES.persist).parameters;
   assert.equal(http.options.redirect.redirect.followRedirects, false);
   assert.equal(http.options.response.response.neverError, false);
-  assert.equal(http.contentType, "raw");
+  assert.equal(http.contentType, "binaryData");
+  assert.equal(http.inputDataFieldName, "data");
+  assert.equal(http.body, undefined);
   assert.equal(http.headerParameters.parameters.at(-1).name, "X-Hub-Signature-256");
 });
 
@@ -113,7 +115,8 @@ test("original bytes and original signature survive signing, including Unicode a
   const { PREPARE } = await load();
   const body = Buffer.from('{ "object":"instagram", "entry": [], "text":"Olá ☕" }\n');
   const signature = "sha256=" + "b".repeat(64);
-  const input = [{ json: { headers: { "x-hub-signature-256": signature } } }];
+  const binary = { data: { data: body.toString("base64"), mimeType: "application/json" } };
+  const input = [{ json: { headers: { "x-hub-signature-256": signature } }, binary }];
   const execute = new (Object.getPrototypeOf(async function () {}).constructor)(
     "$input",
     "Buffer",
@@ -124,19 +127,11 @@ test("original bytes and original signature survive signing, including Unicode a
     { all: () => input },
     Buffer,
   );
-  assert.equal(result[0].json.body_text, body.toString());
+  assert.deepEqual(Buffer.from(result[0].binary.data.data, "base64"), body);
+  assert.equal(result[0].binary, binary);
   assert.equal(result[0].json.meta_signature, signature);
-  const key = "isolated-key-".repeat(4);
-  const actual = crypto
-    .createHmac("sha256", key)
-    .update(result[0].json.signing_input)
-    .digest("hex");
-  const expected = crypto
-    .createHmac("sha256", key)
-    .update(result[0].json.timestamp + "\n")
-    .update(body)
-    .digest("hex");
-  assert.equal(actual, expected);
+  assert.match(result[0].json.timestamp, /^[0-9]{10}$/);
+  assert.ok(!PREPARE.includes("$env"));
   assert.ok(!PREPARE.includes("JSON.stringify"));
   await assert.rejects(
     execute.call(
@@ -231,6 +226,29 @@ test("raw webhook binary is not forwarded to the legacy AI", async () => {
   assert.equal(original[0].binary.data.data, "RAW_ENVELOPE");
 });
 
+test("multiple receivers require exact node selection and preserve the other receiver", async () => {
+  const { prepare, NAMES } = await load();
+  const source = fixture();
+  const other = {
+    ...structuredClone(source.nodes[0]),
+    id: "other-hook",
+    name: "Other receiver",
+    webhookId: "other-private-path",
+  };
+  source.nodes.push(other);
+  source.connections[other.name] = { main: [[{ node: "AI", type: "main", index: 0 }]] };
+  assert.throws(() => prepare(source, options));
+  assert.throws(() => prepare(source, { ...options, webhookNodeId: "missing" }));
+  const result = prepare(source, { ...options, webhookNodeId: "hook-id" }).candidate;
+  assert.deepEqual(
+    result.nodes.find((n) => n.id === "other-hook"),
+    other,
+  );
+  assert.deepEqual(result.connections[other.name], source.connections[other.name]);
+  assert.equal(result.connections["Original webhook"].main[0][0].node, NAMES.prepare);
+  assert.equal(result.nodes.filter((n) => n.type === "n8n-nodes-base.webhook").length, 2);
+});
+
 test("offline CLI pins export bytes, refuses overwrite, prints no private workflow", async () => {
   const { main } = await load();
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), "ig-persist-"));
@@ -250,6 +268,8 @@ test("offline CLI pins export bytes, refuses overwrite, prints no private workfl
       options.publishedVersion,
       "--api-origin",
       options.apiOrigin,
+      "--credential-id",
+      options.credentialId,
     ];
     const result = await main(args);
     assert.ok(!JSON.stringify(result).includes("PRIVATE"));

@@ -49,13 +49,14 @@ def _unique(pairs):
 
 
 class InstagramN8NIngressService:
-    def __init__(self, *, key, meta_app_secret, bindings, clock=time.time):
+    def __init__(self, *, key, meta_app_secret, bindings, clock=time.time, auth_mode="hmac"):
         if (not isinstance(key, str) or not 32 <= len(key) <= 256
                 or not re.fullmatch(r"[!-~]+", key)
                 or not isinstance(meta_app_secret, str) or not 32 <= len(meta_app_secret) <= 256
                 or not re.fullmatch(r"[!-~]+", meta_app_secret)
                 or key == meta_app_secret
-                or not isinstance(bindings, dict) or not 1 <= len(bindings) <= 100):
+                or not isinstance(bindings, dict) or not 1 <= len(bindings) <= 100
+                or not isinstance(auth_mode, str) or auth_mode not in {"hmac", "header"}):
             raise ValueError("Configuração de ingresso n8n indisponível.")
         normalized = {}
         targets = set()
@@ -77,17 +78,29 @@ class InstagramN8NIngressService:
         self._meta_app_secret = meta_app_secret
         self._bindings = normalized
         self._clock = clock
+        self.auth_mode = auth_mode
 
-    def receive(self, raw, timestamp, signature, meta_signature):
+    def receive(self, raw, timestamp, signature, meta_signature, relay_key=None):
         # Relay authentication is not source authentication: both must succeed.
         if (not isinstance(raw, bytes) or not 1 <= len(raw) <= MAX_WEBHOOK_BYTES
-                or not isinstance(timestamp, str) or not re.fullmatch(r"[1-9][0-9]{9}", timestamp)
-                or not isinstance(signature, str) or not re.fullmatch(r"sha256=[0-9a-f]{64}", signature)):
+                or not isinstance(timestamp, str) or not re.fullmatch(r"[1-9][0-9]{9}", timestamp)):
             raise HTTPException(403, "Ingresso n8n não autenticado.")
-        expected = "sha256=" + hmac.new(
-            self._key, timestamp.encode("ascii") + b"\n" + raw, hashlib.sha256,
-        ).hexdigest()
-        if not hmac.compare_digest(expected, signature) or abs(self._clock() - int(timestamp)) > 300:
+        if abs(self._clock() - int(timestamp)) > 300:
+            raise HTTPException(403, "Ingresso n8n não autenticado.")
+        if self.auth_mode == "hmac":
+            if not isinstance(signature, str) or not re.fullmatch(r"sha256=[0-9a-f]{64}", signature):
+                raise HTTPException(403, "Ingresso n8n não autenticado.")
+            expected = "sha256=" + hmac.new(
+                self._key, timestamp.encode("ascii") + b"\n" + raw, hashlib.sha256,
+            ).hexdigest()
+            authenticated = hmac.compare_digest(expected, signature)
+        else:
+            # Native n8n Bearer Auth keeps the relay key encrypted in its credential store.
+            # TLS protects the credential/timestamp; the Meta HMAC still authenticates the body.
+            authenticated = (isinstance(relay_key, str) and 32 <= len(relay_key) <= 256
+                             and bool(re.fullmatch(r"[!-~]+", relay_key))
+                             and hmac.compare_digest(self._key, relay_key.encode("ascii")))
+        if not authenticated:
             raise HTTPException(403, "Ingresso n8n não autenticado.")
         try:
             events = parse_message_events(raw, meta_signature, self._meta_app_secret)
@@ -111,7 +124,8 @@ def ingress_service():
     try:
         config = settings.instagram_n8n_ingress_configuration()
         bindings = json.loads(config["bindings"], object_pairs_hook=_unique)
-        return InstagramN8NIngressService(key=config["key"], meta_app_secret=config["meta_app_secret"], bindings=bindings)
+        return InstagramN8NIngressService(key=config["key"], meta_app_secret=config["meta_app_secret"],
+                                         bindings=bindings, auth_mode=config["auth_mode"])
     except (ValueError, TypeError, KeyError, RecursionError):
         raise HTTPException(503, "Configuração de ingresso n8n indisponível.") from None
 
@@ -124,14 +138,27 @@ async def webhook(request: Request, service=Depends(ingress_service)):
     if (len(request.headers.getlist("content-type")) != 1
             or request.headers.get("content-type", "").split(";", 1)[0].lower() != "application/json"):
         raise HTTPException(415, "Utilize JSON.")
-    names = ("x-socialmei-timestamp", "x-socialmei-signature", "x-hub-signature-256")
+    relay_header = "authorization" if service.auth_mode == "header" else "x-socialmei-signature"
+    other_header = "x-socialmei-signature" if service.auth_mode == "header" else "authorization"
+    names = ("x-socialmei-timestamp", relay_header, "x-hub-signature-256")
     if any(len(request.headers.getlist(name)) != 1 for name in names):
         raise HTTPException(403, "Ingresso n8n não autenticado.")
+    if request.headers.getlist(other_header):
+        raise HTTPException(403, "Ingresso n8n não autenticado.")
+    relay_key = None
+    if service.auth_mode == "header":
+        authorization = request.headers[relay_header]
+        if not authorization.startswith("Bearer "):
+            raise HTTPException(403, "Ingresso n8n não autenticado.")
+        relay_key = authorization[len("Bearer "):]
     raw = bytearray()
     async for chunk in request.stream():
         if len(raw) + len(chunk) > MAX_WEBHOOK_BYTES:
             raise HTTPException(413, "Evento Instagram muito grande.")
         raw.extend(chunk)
     return await run_in_threadpool(
-        service.receive, bytes(raw), request.headers[names[0]], request.headers[names[1]], request.headers[names[2]],
+        service.receive, bytes(raw), request.headers[names[0]],
+        request.headers[relay_header] if service.auth_mode == "hmac" else None,
+        request.headers[names[2]],
+        relay_key,
     )

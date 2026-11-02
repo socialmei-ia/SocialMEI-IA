@@ -35,7 +35,7 @@
                 max_size 65536
             }
             reverse_proxy team-api:8000 {
-                header_up -Authorization
+                # Dedicated relay credentials are verified by the API.
                 header_up -Cookie
             }
         }

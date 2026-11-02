@@ -30,13 +30,13 @@
         request_body {
             max_size 3MB
         }
-        # Dedicated relay: own timestamp HMAC AND original Meta signature are required.
+        # Dedicated relay: server-selected authentication AND original Meta signature.
         handle @instagram_n8n_ingress {
             request_body {
                 max_size 65536
             }
             reverse_proxy team-api:8000 {
-                header_up -Authorization
+                # Dedicated relay credentials are verified by the API.
                 header_up -Cookie
             }
         }

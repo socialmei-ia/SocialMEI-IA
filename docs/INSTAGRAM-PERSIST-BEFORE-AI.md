@@ -1,126 +1,126 @@
-# Direct persistido antes da IA — candidata da issue #177
+# Instagram Direct antes da IA — preparo e cutover da PR #180
 
-## Mudança e evidência
+## Contrato
 
-No teste autorizado, Meta→n8n recebeu o marcador, mas a API/Caixa não recebeu
-mensagens. A inspeção estrutural da **versão publicada** confirmou webhook→switch→IA→envio,
-sem chamada de persistência Team. O webhook respondia imediatamente. A versão
-salva difere da publicada: não publicar o rascunho inadvertidamente.
+O webhook existente passa por persistência autenticada antes da IA e do envio.
+`POST /webhooks/instagram/n8n` permanece desligado por padrão. Não há migrations.
+A transação, o ledger e a listagem da Caixa são os existentes; texto é suportado,
+anexos ainda não suportados permanecem ignorados. Não declarar Direct de imagens pronto.
 
-Esta candidata acrescenta `POST /webhooks/instagram/n8n`, desabilitado por padrão.
-Não depende de IA, Groq/Gemini ou permissão de envio. Reutiliza a transação,
-deduplicação e listagem da Caixa existentes; nenhuma migration nova.
-Neste incremento, Direct de **texto** é persistido. Anexos não suportados continuam
-ignorados pelo contrato existente; não declarar suporte a imagens recebidas.
+A candidata usa `SOCIALMEI_INSTAGRAM_N8N_AUTH_MODE=header`: credencial nativa
+**httpBearerAuth** criptografada do n8n, restrita ao nó HTTP, mais assinatura Meta
+original obrigatória sobre os bytes originais. Timestamp tem janela de 300s;
+o ledger evita reprocessamento. O modo HMAC anterior continua como padrão da API,
+sem alteração retroativa. A escolha do modo vem exclusivamente da configuração privada.
+
+O corpo é enviado como `binaryData`, não texto: no n8n 2.40.5 o parâmetro textual
+removeu o newline final e invalidou assinaturas. Não reconstruir JSON na entrega.
+A cópia binária é removida antes de retomar a IA. Segredos não entram em parâmetros
+textuais do workflow, Code, Git ou logs; não liberar `$env` globalmente.
+
+Conta → workspace vem do registro privado. Meta confirmou que o webhook usa
+`user_id`, enquanto o OAuth existente guarda `id`, para o mesmo perfil. Usar vínculo
+explícito: `{"ID_WEBHOOK":{"workspace_id":1,"connection_account_id":"ID_OAUTH"}}`.
+A conexão OAuth ativa e o workspace são conferidos na transação. O formato
+`{"ID":1}` continua aceito quando os IDs são iguais. Não alterar registros OAuth.
+Fingerprint original é preservado: retry exato deduplica; mesmo MID com identidade
+de origem diferente retorna 409, sem segundo append.
 
 ```text
-Webhook existente (bytes originais + assinatura Meta)
-  → HMAC próprio com timestamp → API: autenticar ambos → transação PostgreSQL
-  → validar recibo → HTTP 200 → fluxo anterior, somente para mensagens novas
-Falha antes da confirmação → HTTP 503, sem IA/envio; retry não duplica mensagem.
+Webhook existente → preparar bytes → HTTP autenticado → transação da API
+→ validar recibo → ACK 200 → IA anterior, somente quando tudo for novo
+Falha de API/autenticação → 503, sem IA; retry não duplica mensagem/resposta.
 ```
 
-A assinatura própria cobre `timestamp + "\n" + corpo original`, janela de 300s.
-A API exige também `X-Hub-Signature-256` original e segredo do aplicativo Meta que
-realmente assinou o webhook. Assim, n8n não transforma um POST público forjado em
-mensagem confiável. Nunca reconstruir JSON para verificar a assinatura Meta.
-Conta→workspace vem da configuração privada e deve coincidir com o OAuth no banco.
-O evento real usa `user_id` e a conexão existente guarda `id`; GET autenticado à
-Meta confirmou ambos no mesmo perfil de teste. A configuração aceita um vínculo
-explícito entre esses IDs, conferido contra a conexão ativa na transação, sem
-reescrever a conexão OAuth nem confiar em um workspace enviado pelo n8n.
-Retries exatos são idempotentes e não repetem IA/resposta. Lotes mistos são persistidos,
-mas não retomam a automação. Uma resposta perdida pode deixar a automação sem execução;
-o histórico fica preservado para atendimento humano.
+## Evidências de preparação
 
-## Preparar o workflow existente, sem publicar
+- O segredo OAuth atual validou criptograficamente a assinatura do evento real
+  registrado no n8n, em memória, sem revelar/alterar valores. Pode ser provisionado
+  privadamente como segredo Meta dedicado; não solicitar novo segredo em chat.
+- O app Meta informado é `1062521390004147`. O produto Instagram informado é
+  `2781698107131523`, mas o cliente real do runtime é `27816981071315232`.
+  Confirmar a transcrição completa com o administrador. `18118497451741626` foi
+  retornado por `subscribed_apps`; não inferir equivalência numérica entre eles.
+  Confirmar também o modo Publicado versus desenvolvimento, sem mudar por tentativa.
+- Backup atual 035 restaurado manualmente em PostgreSQL 16 local: 35 migrations,
+  71 tabelas legíveis, zero constraints não validadas. Dump SHA-256:
+  `8a395ed9c088c09709ae9bee85b3dccc4886b2f1d67968bac4a437bcf0139d8c`.
+  Transferência binária de pg_dump sem arquivo criado na AWS; restauração em tmpfs,
+  sem rede/portas. Roles/grants não restaurados. Renovar antes de cutover posterior
+  se houver novas escritas. Dump/logs privados com ACL individual, fora de Git/OneDrive.
+- Ensaio com n8n **2.40.5 real**, mesma imagem da produção, credencial nativa cifrada,
+  sem liberação de `$env`: primeiro evento 200/uma gravação; IA falhou depois;
+  retry 200 sem segunda gravação/IA; API fora 503 sem IA. Bytes/newline e assinatura
+  Meta preservados. API desse ensaio era SQLite simulada; FastAPI/PostgreSQL real
+  foi validado separadamente. HTTP só na rede interna descartável, sem provedores.
+- O publicado mudou durante a preparação: agora 17 nós e dois webhooks POST.
+  Atual versão observada: `d141350e-4074-4cfe-8084-154811259287`.
+  O receptor do teste tem node ID `f21afb01-56c0-4998-8dfc-9e69c6746d96`.
+  Preparação privada seleciona somente esse receptor: 17 → 23 nós, outro webhook
+  intacto. Revalidar versão/hash imediatamente antes de atualizar; preservar rascunho.
 
-`tools/prepare-instagram-persistence.mjs` recebe um export **privado da revisão
-publicada**, hash SHA-256 e versionId conferidos. Não consulta nem altera n8n.
-Mantém ID, webhook, nós, credenciais/referências e expressões anteriores; insere
-a barreira de persistência e remove a cópia binária bruta do webhook antes de retomar a IA, preservando seu
-JSON anterior. Produz um pacote de atualização para **o mesmo** workflow
-`LHlqroY2xzvpYAmD`, não um novo receptor/respondedor. Recusa transformação repetida,
-origem sem HTTPS e caminho legado com outro ACK alcançável.
+## Preparador offline
+
+`tools/prepare-instagram-persistence.mjs` não acessa/publica/importa n8n. Exige export
+**publicado**, hash, versão e ID da credencial nativa; com múltiplos POSTs exige
+seleção inequívoca do node. Preserva o mesmo workflow `LHlqroY2xzvpYAmD`, credenciais
+anteriores, expressões e demais receptores. O resultado é pacote de atualização,
+nunca um novo receptor/respondedor. A credencial contém só a chave do relay, não o
+segredo Meta, e deve pertencer ao projeto autorizado do workflow.
 
 ```powershell
 node tools/prepare-instagram-persistence.mjs `
-  --input 'CAMINHO_PRIVADO\instagram-publicado.json' `
-  --output 'CAMINHO_PRIVADO\instagram-candidato.json' `
-  --expected-sha256 HASH_SHA256_DO_EXPORT `
-  --published-version VERSION_ID_PUBLICADO `
+  --input 'PASTA_PRIVADA\workflow.published.json' `
+  --output 'PASTA_PRIVADA\workflow.candidate.json' `
+  --expected-sha256 HASH_DO_EXPORT `
+  --published-version VERSION_ID_ATUAL `
+  --webhook-node-id f21afb01-56c0-4998-8dfc-9e69c6746d96 `
+  --credential-id ID_DA_CREDENCIAL_NATIVA `
   --api-origin https://socialmei-ia.54-94-213-7.sslip.io
 ```
 
-Não usar `n8n export:workflow` sem verificar se exportou a revisão **salva** em vez
-da publicada. Guardar ambas as revisões separadamente. Export/candidato podem conter
-dados privados: pasta com ACL individual no Windows, fora do Git/OneDrive; `0600`
-do Node não substitui ACL Windows. A ferramenta não imprime o conteúdo do workflow.
+Guardar publicado/rascunho/candidato fora do Git/OneDrive, com ACL individual.
+`mode:0600` do Node não substitui ACL Windows. Não usar export da versão salva
+como se fosse a publicada. Candidato privado com `REVIEW_REQUIRED...` como ID de
+credencial é apenas revisão: precisa ser refeito com a referência real autorizada.
 
-Foi validada em memória contra o grafo publicado real: 9→16 nós, ID preservado,
-sem salvar/publicar nada na AWS. Crypto v1 existe no n8n instalado. Isso não prova
-execução completa dos nós no n8n: testar rawBody, saída de erro e ACK em ambiente
-isolado da mesma versão antes do cutover. Não é necessário liberar `require('crypto')`
-no Code: a assinatura usa o nó Crypto existente.
+## Plano operacional — somente após autorização final
 
-## Implantação proposta — exige autorização específica
-
-1. Escolher a SHA integral desta PR com **Repository checks e imagens aprovados**
-   para a mesma SHA. Usar stage/bundle/recibos correspondentes, perfil 035. As
-   allowlists aceitam somente a branch exata; gates de origem, hashes, restauração
-   e migrations permanecem. Não reaplicar 034/035 nem alterar migrations.
-2. Registrar imagens/configuração atuais `266e59b…`, backup atual com restauração
-   isolada e export privado de **publicado e rascunho** do n8n. Preservar overlays,
-   mounts, volumes, Caddy privado, dados e alterações não commitadas do host.
-3. Preparar configuração privada adicional da API, inicialmente desligada:
+1. Usar SHA integral aprovada da PR #180 com checks/imagens da mesma SHA. O HEAD
+   `a22c1a9` foi superado pelas correções descobertas no ensaio; não misturar artefatos.
+   Conferir bundle/recibos, perfil 035, hashes e restauração. Nenhuma migration nova.
+2. Registrar estado anterior e backup recente. Preservar todos os Compose privados
+   (12 arquivos API, 11 gateway e 2 legado n8n observados), imagens anteriores,
+   mounts, PostgreSQL, WAHA, redes e volumes. Não restaurar dump para rollback de código.
+3. Provisionar chave nova e distinta para relay: privada na API e em UMA credencial
+   `httpBearerAuth` cifrada no n8n, com permissão do projeto correto. Não trocar
+   credenciais existentes de IA/OAuth, liberar ambiente global ou inserir chave em
+   parâmetro do workflow. N8n não precisa reiniciar nem trocar imagem para isso.
+4. Configurar somente API: `SOCIALMEI_INSTAGRAM_N8N_AUTH_MODE=header`,
    `SOCIALMEI_INSTAGRAM_N8N_INGRESS_ENABLED=false`,
-   `SOCIALMEI_INSTAGRAM_N8N_INGRESS_KEY` (32–256 caracteres ASCII sem espaços),
-   `SOCIALMEI_INSTAGRAM_N8N_META_APP_SECRET` (segredo do aplicativo **assinante**),
-   `SOCIALMEI_INSTAGRAM_N8N_ACCOUNT_BINDINGS` (JSON privado:
-   `{"ID_WEBHOOK":{"workspace_id":1,"connection_account_id":"ID_OAUTH_EXISTENTE"}}`).
-   Conferir a relação `user_id`/`id` por GET à Meta usando a conexão existente;
-   nunca aproximar IDs ou aceitar aliases do navegador. Para IDs já iguais, o
-   formato `{"ID":1}` continua aceito. Chaves de relay e Meta devem diferir.
-   A chave do relay também será disponibilizada privadamente ao nó Crypto no n8n;
-   o segredo Meta fica somente na API. Não alterar credenciais de IA/OAuth.
-   O Compose versionado repassa essas variáveis, mas os overlays privados efetivos
-   devem ser reconciliados. Não colocar valores em chat, CLI, logs ou PR.
-4. O ID inscrito observado foi `18118497451741626`, diferente do app administrador
-   informado `1062521390004147`. Confirmar o aplicativo que assina o evento antes
-   de configurar seu segredo. Sem essa confirmação, manter ingresso desligado;
-   não usar o segredo OAuth por aproximação, nem reinscrever Meta por tentativa.
-5. Atualizar somente API/gateway necessários, preservando configuração privada.
-   Reconciliar a rota POST `/webhooks/instagram/n8n` no Caddy **efetivamente montado**
-   e proxy público. Limite 65.536 bytes, sem Cookie/Authorization encaminhados;
-   assinatura Meta e do relay preservadas. Usar HTTPS existente: não unir bancos,
-   publicar 5432 ou abrir `/internal/*`. Revisar logs para não registrar bodies/headers.
-6. Em ambiente isolado da mesma versão n8n, provar: assinatura/bytes intactos,
-   API indisponível→503 sem IA, IA indisponível após gravação→mensagem preservada,
-   replay→uma mensagem e nenhuma segunda resposta. Ambiente privado deve permitir
-   acesso do Crypto à variável específica; não relaxar proteções globais às cegas.
-7. Após aprovação do plano e credenciais privadas prontas, habilitar somente a
-   nova recepção da API. Conferir rota protegida. Preparar e revisar o candidato
-   sobre a revisão publicada atual; se o versionId mudou, interromper e reconciliar.
-   Publicar atualização no workflow existente apenas sob autorização, preservando
-   o rascunho divergente e todas as referências. Sem segundo respondedor.
-   Dashboard send e publicações permanecem OFF.
-8. Só então pedir **um novo teste real autorizado com marcador novo**. Conferir
-   baseline zero, depois um evento/mensagem/conversa em team/1, zero em outro
-   workspace, replay sem duplicação e login→Caixa→Instagram com a mensagem. Não
-   reutilizar nem reproduzir o marcador anterior. Falha de IA não invalida recepção.
+   `SOCIALMEI_INSTAGRAM_N8N_INGRESS_KEY`, `SOCIALMEI_INSTAGRAM_N8N_META_APP_SECRET`
+   (segredo atual comprovado) e `SOCIALMEI_INSTAGRAM_N8N_ACCOUNT_BINDINGS` verificado.
+   Renovar somente API/gateway necessários usando imagens exatas; deixar envios e
+   publicações OFF. Não depender de interpolação de segredo antigo possivelmente
+   sobrescrito por overlays: o valor provisionado deve ser o atual comprovado.
+5. Aplicar patch mínimo no Caddy **privado montado**, após conferir hash da origem.
+   Rota POST exata `/webhooks/instagram/n8n`, limite 65.536 bytes, preservar
+   Authorization e assinatura Meta, remover Cookie. Demais rotas continuam com
+   política anterior. O proxy público observado preserva Authorization e não
+   precisa ser alterado. Conferir redação de headers/bodies em logs.
+   Não publicar `/internal/*`, abrir 5432 ou unir redes de bancos.
+6. Habilitar somente ingresso novo após verificar saúde/autenticação. Revalidar
+   versão publicada, hash e receptor selecionado. Refazer pacote com ID real da
+   credencial; publicar no MESMO workflow somente se estado esperado coincidir.
+   Preservar cópias privadas de publicado e rascunho divergente. Nenhum novo bot.
+7. Sob autorização, solicitar mensagem nova com marcador novo de conta autorizada.
+   Conferir baseline zero → uma mensagem/evento/conversa em team/1, zero em outro
+   workspace e exibição em login → Caixa → Instagram. IA indisponível não pode
+   impedir a persistência. Não reutilizar/reproduzir o marcador anterior.
 
-Rollback: restaurar primeiro a revisão publicada anterior do mesmo workflow (assim
-cessam chamadas novas); desligar o relay da API e reverter apenas imagens/configuração
-alteradas se necessário. Preservar mensagens novas: não restaurar dump sobre o banco
-nem apagar ledger para repetir respostas. A revisão 035 anterior lê o mesmo schema.
-Mensagens recebidas apenas no n8n legado durante rollback exigem conciliação própria;
-não prometer recuperação automática. Nenhuma dessas operações foi executada.
-
-## Testes e limites
-
-Testes API em PostgreSQL descartável cobrem assinatura dupla, corpo alterado,
-timestamp, binding, autorização, concorrência, replay, conflito, rollback e leitura
-da Caixa sem IA. Testes do preparador cobrem bytes originais, ordem de persistência,
-ACK, erro da API, retries, credenciais preservadas e recusa de drift. Gateway é
-testado em contêineres descartáveis. CI e imagem não equivalem a implantação ou
-homologação real. A prova real de Direct na Caixa continua pendente de cutover autorizado.
+Rollback: restaurar primeiro a versão publicada anterior do mesmo workflow,
+desligar relay, restaurar Caddy/imagens/configuração afetados. Não apagar ledger,
+mensagens, volumes ou restaurar dump sobre escritas novas. A revisão 035 anterior
+usa o mesmo schema. Eventos recebidos só no legado durante rollback exigem
+conciliação própria; não prometer recuperação automática. WhatsApp #179 permanece
+separado, com seu mount/registro/flags preservados. Nenhuma ação acima foi executada.

@@ -25,6 +25,7 @@ NOW = int(time.time())
 CONFIG = {
     **ENV,
     "SOCIALMEI_INSTAGRAM_N8N_INGRESS_ENABLED": "true",
+    "SOCIALMEI_INSTAGRAM_N8N_AUTH_MODE": "hmac",
     "SOCIALMEI_INSTAGRAM_N8N_INGRESS_KEY": KEY,
     "SOCIALMEI_INSTAGRAM_N8N_META_APP_SECRET": META_KEY,
     "SOCIALMEI_INSTAGRAM_N8N_ACCOUNT_BINDINGS": '{"987654321":1}',
@@ -37,6 +38,68 @@ def signed(raw, timestamp=NOW, key=KEY):
             "X-SocialMEI-Signature": "sha256=" + hmac.new(
                 key.encode(), timestamp.encode() + b"\n" + raw, hashlib.sha256,
             ).hexdigest()}
+
+
+def header_authenticated(raw, timestamp=NOW, key=KEY):
+    headers = signed(raw, timestamp)
+    headers.pop("X-SocialMEI-Signature")
+    headers["Authorization"] = "Bearer " + key
+    return headers
+
+
+class HeaderContractTests(unittest.TestCase):
+    def setUp(self):
+        self.service = InstagramN8NIngressService(
+            key=KEY, meta_app_secret=META_KEY, bindings={"987654321": 1},
+            clock=lambda: NOW, auth_mode="header",
+        )
+
+    def test_native_credential_and_source_signature_are_both_required(self):
+        raw = encoded(payload())
+        for key, timestamp in ((None, NOW), ("wrong-credential-"*3, NOW),
+                               (KEY, NOW-301), (KEY, NOW+301), ("é"*40, NOW)):
+            with self.subTest(key_present=key is not None), patch(
+                    "instagram_n8n_ingress.parse_message_events", side_effect=AssertionError("Parser accessed")):
+                with self.assertRaises(HTTPException) as caught:
+                    self.service.receive(raw, str(timestamp), None, meta_signature(raw), key)
+                self.assertEqual(caught.exception.status_code, 403)
+        for signature in ('', 'sha256='+'0'*64):
+            with patch("instagram_n8n_ingress.persist_authenticated_events", side_effect=AssertionError("DB accessed")):
+                with self.assertRaises(HTTPException) as caught:
+                    self.service.receive(raw, str(NOW), None, signature, KEY)
+                self.assertEqual(caught.exception.status_code, 403)
+
+    def test_valid_native_auth_preserves_receipt_and_replay_behavior(self):
+        raw = encoded(payload())
+        for processed, duplicates in ((1, 0), (0, 1)):
+            with patch("instagram_n8n_ingress.persist_authenticated_events", return_value=dict(
+                    received=True, processed=processed, ignored=0, duplicates=duplicates)):
+                result = self.service.receive(raw, str(NOW), None, meta_signature(raw), KEY)
+                self.assertEqual(result['continue_automation'], bool(processed))
+        with patch("instagram_n8n_ingress.persist_authenticated_events", side_effect=AssertionError("DB accessed")):
+            with self.assertRaises(HTTPException):
+                self.service.receive(raw+b' ', str(NOW), None, meta_signature(raw), KEY)
+
+    def test_http_mode_is_server_owned_and_rejects_ambiguous_headers(self):
+        raw = encoded(payload())
+        with patch.dict(os.environ, {**CONFIG, "SOCIALMEI_INSTAGRAM_N8N_AUTH_MODE": "header"}), patch(
+                "instagram_n8n_ingress.parse_message_events", return_value=[]), patch(
+                "instagram_n8n_ingress.persist_authenticated_events", return_value=dict(
+                    received=True, processed=0, ignored=0, duplicates=0)):
+            client = TestClient(app)
+            self.assertEqual(client.post(PATH, content=raw, headers=header_authenticated(raw)).status_code, 200)
+            bad = [list(header_authenticated(raw).items())+[("Authorization", "Bearer " + KEY)],
+                   list(header_authenticated(raw).items())+[("X-Hub-Signature-256", meta_signature(raw))],
+                   {**header_authenticated(raw), "X-SocialMEI-Signature": signed(raw)['X-SocialMEI-Signature']},
+                   signed(raw), header_authenticated(raw, key='bad'),
+                   {**header_authenticated(raw), 'Authorization': KEY},
+                   {**header_authenticated(raw), 'Authorization': 'Basic '+KEY}]
+            for headers in bad:
+                response = client.post(PATH, content=raw, headers=headers)
+                self.assertEqual(response.status_code, 403)
+                self.assertNotIn(KEY, response.text)
+        with patch.dict(os.environ, {**CONFIG, "SOCIALMEI_INSTAGRAM_N8N_AUTH_MODE": "browser-selected"}):
+            self.assertEqual(TestClient(app).post(PATH, content=raw, headers=header_authenticated(raw)).status_code, 503)
 
 
 class ContractTests(unittest.TestCase):
@@ -178,6 +241,57 @@ class DatabaseTests(unittest.TestCase):
     def counts(self):
         with psycopg.connect(DB) as conn:
             return tuple(conn.execute('SELECT (SELECT count(*) FROM socialmei.ig_meta_ingress_events WHERE workspace_id=%s),(SELECT count(*) FROM socialmei.me_messages WHERE workspace_id=%s)',(self.identity['workspace_id'],)*2).fetchone())
+
+    def test_native_header_alias_is_visible_and_replays_once_without_ai(self):
+        self.transport.fail = True
+        self.bridge = InstagramN8NIngressService(key=KEY, meta_app_secret=META_KEY,
+            bindings={'111': {'workspace_id': self.identity['workspace_id'],
+                              'connection_account_id': '987654321'}}, clock=lambda:NOW, auth_mode='header')
+        raw = encoded(payload(account='111'))
+        response = self.client.post(PATH, content=raw, headers=header_authenticated(raw))
+        self.assertEqual(response.status_code,200,response.text)
+        self.assertTrue(response.json()['continue_automation'])
+        self.assertEqual(self.counts(),(1,1))
+        rows=self.client.get('/api/v1/message-enrichment/conversations').json()['items']
+        self.assertEqual(len(rows),1)
+        self.assertEqual(rows[0]['origin'],'instagram')
+        retry=self.client.post(PATH,content=raw,headers=header_authenticated(raw))
+        self.assertEqual(retry.json()['duplicates'],1)
+        self.assertFalse(retry.json()['continue_automation'])
+        self.assertEqual(self.counts(),(1,1))
+        self.identity=self.identities[1]
+        self.client.cookies.set(COOKIE,'c'*64)
+        self.assertEqual(self.client.get('/api/v1/message-enrichment/conversations').json()['items'],[])
+
+    def test_native_header_rejects_wrong_workspace_and_forged_source(self):
+        raw=encoded(payload())
+        self.bridge=InstagramN8NIngressService(key=KEY,meta_app_secret=META_KEY,
+            bindings={'987654321':self.identities[1]['workspace_id']},clock=lambda:NOW,auth_mode='header')
+        self.assertEqual(self.client.post(PATH,content=raw,headers=header_authenticated(raw)).status_code,403)
+        headers=header_authenticated(raw)
+        headers['X-Hub-Signature-256']='sha256='+'0'*64
+        self.assertEqual(self.client.post(PATH,content=raw,headers=headers).status_code,403)
+        self.assertEqual(self.counts(),(0,0))
+
+    def test_native_header_persistence_failure_is_atomic_and_retry_recovers(self):
+        self.bridge=InstagramN8NIngressService(key=KEY,meta_app_secret=META_KEY,
+            bindings={'987654321':self.identity['workspace_id']},clock=lambda:NOW,auth_mode='header')
+        value=payload(mid='native-first')
+        value['entry'][0]['messaging'].append(payload(mid='native-second')['entry'][0]['messaging'][0])
+        raw=encoded(value)
+        from instagram_meta_ingress import _append_inbox_message
+        calls=[]
+        def fail_second(*args,**kwargs):
+            calls.append(1)
+            if len(calls)==2: raise RuntimeError('private persistence failure')
+            return _append_inbox_message(*args,**kwargs)
+        with patch('instagram_meta_ingress._append_inbox_message',side_effect=fail_second):
+            response=self.client.post(PATH,content=raw,headers=header_authenticated(raw))
+        self.assertEqual(response.status_code,503)
+        self.assertNotIn('private persistence failure',response.text)
+        self.assertEqual(self.counts(),(0,0))
+        self.assertEqual(self.client.post(PATH,content=raw,headers=header_authenticated(raw)).json()['processed'],2)
+        self.assertEqual(self.counts(),(2,2))
 
     def alias_bridge(self,workspace=None):
         self.bridge=InstagramN8NIngressService(
