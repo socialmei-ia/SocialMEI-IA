@@ -202,7 +202,17 @@ class V01ReleaseTests(unittest.TestCase):
                 (folder / 'v01-backup-receipt.json').write_text(json.dumps(receipt))
                 for p in folder.iterdir(): p.chmod(0o600)
             save()
-            with patch.object(m.legacy, 'PRIVATE', parent), patch.object(m, 'sibling', return_value=SimpleNamespace(verify_archive_config_digests=MagicMock())):
+            actual_stat = Path.stat
+            def root_owned_fixture(path, *args, **kwargs):
+                result = actual_stat(path, *args, **kwargs)
+                if path.is_relative_to(folder):
+                    fields = list(result)
+                    fields[4] = 0
+                    return os.stat_result(fields)
+                return result
+            # The runner may be unprivileged; virtualize only fixture ownership, not production gates.
+            with patch.object(Path, 'stat', root_owned_fixture), \
+                 patch.object(m.legacy, 'PRIVATE', parent), patch.object(m, 'sibling', return_value=SimpleNamespace(verify_archive_config_digests=MagicMock())):
                 self.assertEqual(m.backup_gate(folder, plans)['source_sha'], m.CANDIDATE_SHA)
                 restore['migrations_executed'] = True; save()
                 with self.assertRaises(m.legacy.Blocked): m.backup_gate(folder, plans)
