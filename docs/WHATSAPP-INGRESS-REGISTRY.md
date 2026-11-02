@@ -36,6 +36,28 @@ Para trocar o arquivo, manter as mesmas proteções de propriedade e permissão
 e conferir como o bind mount escolhido reflete sua substituição no container.
 O loader não mantém cache: a próxima requisição relê os bytes visíveis no mount.
 
+## Recebimento gerenciado por negócio
+
+O modo opt-in `workspace-inbox` prepara recebimento de contas próprias autorizadas
+em negócios distintos. Exige simultaneamente `SOCIALMEI_WAHA_INGRESS_MODE=workspace-inbox`,
+`SOCIALMEI_WAHA_WORKSPACE_INBOX_ENABLED=true`, autenticação e dados compartilhados
+habilitados, além do registry em `/run/socialmei/private/waha-registry.json`.
+Nesse modo o arquivo deve pertencer a root, manter modo0400/0600 e mount read-only.
+O payload nunca escolhe o negócio: HMAC, conta, sessão e alias selecionam o binding
+privado, revalidado contra o canal ativo e sua revisão no PostgreSQL.
+
+O modo não provisiona contas, canais ou sessões, não troca credenciais e não
+habilita envios. Bot e transporte humano ficam bloqueados mesmo se flags antigas
+de envio estiverem ligadas. `team-pilot`, `isolated` e `disabled` mantêm seus
+contratos; não usar o modo isolado como atalho de produção. Não reatribuir a conta
+do piloto ao negócio fictício. Cada conta ativa só pode pertencer a um negócio.
+
+A leitura da Caixa permanece filtrada pelo negócio da sessão autenticada.
+Capacidade de leitura não comprova sessão WAHA WORKING nem recebimento real;
+o readiness de provisionamento do piloto continua restrito ao workspace1.
+A implantação deste modo e a preparação de cada binding exigem aprovação
+operacional própria, backup e homologação de recebimento, sem automatizar respostas.
+
 ## Proteções que continuam obrigatórias
 
 Carregar o registry não inicia sessão, não pareia número, não cria canal,

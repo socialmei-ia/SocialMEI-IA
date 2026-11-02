@@ -443,7 +443,8 @@ def waha_service():
             or not 1 <= len(value["bindings"]) <= 100
         ):
             raise ValueError()
-        if settings.waha_ingress_team_pilot_enabled() and metadata.st_uid != 0:
+        if (settings.waha_ingress_team_pilot_enabled()
+                or settings.waha_workspace_inbox_requested()) and metadata.st_uid != 0:
             raise ValueError()
         bindings = []
         for entry in value["bindings"]:

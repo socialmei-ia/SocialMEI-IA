@@ -52,7 +52,10 @@ class Receipt(Strict):
 
 
 def enabled():
-    return os.getenv('SOCIALMEI_WHATSAPP_BOT_ENABLED', 'false').strip().lower() == 'true'
+    return (
+        not settings.waha_workspace_inbox_requested()
+        and os.getenv('SOCIALMEI_WHATSAPP_BOT_ENABLED', 'false').strip().lower() == 'true'
+    )
 
 
 def require_bot():
