@@ -298,6 +298,21 @@ class RecoveryTests(unittest.TestCase):
             self.assertTrue(process_one())
             mail.assert_not_called()
 
+    def test_abandoned_delivery_token_is_rejected_without_resending(self):
+        from account_recovery import process_one
+        self.client.post('/api/v1/auth/recovery/request', json={'email': 'owner@example.test'})
+        with patch('account_recovery.send_recovery_mail', side_effect=KeyboardInterrupt) as mail:
+            with self.assertRaises(KeyboardInterrupt):
+                process_one()
+        token = mail.call_args.args[1]
+        with psycopg.connect(accounts.DB) as conn:
+            conn.execute("UPDATE socialmei.auth_recuperacao_envios SET started_at=NOW()-INTERVAL '3 minutes'")
+        with patch('account_recovery.send_recovery_mail') as resend:
+            self.assertFalse(process_one())
+            resend.assert_not_called()
+        self.assertEqual(self.confirm(token).status_code, 400)
+        self.assertIsNotNone(self.owner.get('/api/v1/auth/session').json())
+
 
 class MailTransportTests(unittest.TestCase):
     def test_tls_before_credentials_and_no_debug_logging(self):
