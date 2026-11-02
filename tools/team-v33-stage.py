@@ -25,6 +25,7 @@ ALLOWED_CANDIDATE_BRANCHES = frozenset({
     "feat/public-seo-discovery-consent-20261031",
     "fix/functional-audit-20261031",
     "feat/instagram-direct-durable-recovery-20261101",
+    "feat/instagram-persist-before-ai-20261101",
 })
 DB_CONTAINER = "socialmei-team-team-postgres-1"
 MIGRATION_032 = "032_whatsapp_bot_conversations.sql"
@@ -264,6 +265,7 @@ def stage(root, backup, sha, *, name=None, candidate_branch=None, migration_rehe
         require(candidate_branch in {
             'fix/functional-audit-20261031',
             'feat/instagram-direct-durable-recovery-20261101',
+            'feat/instagram-persist-before-ai-20261101',
         }, 'branch_035_nao_autorizada')
         require(isinstance(migration_rehearsal, Path) and migration_rehearsal.is_file()
                 and not migration_rehearsal.is_symlink() and migration_rehearsal.stat().st_size <= 65536,
