@@ -10,6 +10,7 @@ window.SocialMEIV22 = (() => {
   let preferences = null;
   let operationBusy = false;
   let data = { clients: [], products: [], sales: [], finance: [] };
+  let dataScope = null;
   const date = (value) =>
     value ? new Date(String(value).slice(0, 10) + "T12:00:00").toLocaleDateString("pt-BR") : "—";
   const money = (value) => {
@@ -46,11 +47,16 @@ window.SocialMEIV22 = (() => {
   }
   const identityKey = () => `${auth.current.usuario.id}:${auth.current.negocio.id}`;
   async function refresh() {
+    if (!auth.current) throw Error("Sua sessão mudou. Entre novamente.");
+    const expectedScope = identityKey();
     const [clients, products, sales, finance] = await Promise.all(
       ["/clientes", "/produtos", "/vendas", "/financeiro"].map((p) => request(p)),
     );
+    if (!auth.current || identityKey() !== expectedScope)
+      throw Error("Sua sessão mudou. Atualize os dados do negócio atual.");
     if (![clients, products, sales, finance].every(Array.isArray))
       throw Error("Resposta de gestão inválida.");
+    dataScope = expectedScope;
     data = {
       clients,
       products,
@@ -246,7 +252,10 @@ window.SocialMEIV22 = (() => {
     view.prepend(section);
   }
   async function write(path, method, payload, operation = false) {
+    if (!auth.current || dataScope !== identityKey())
+      throw Error("Sua sessão mudou. Recarregue os dados antes de salvar.");
     if (!loaded) throw Error("Aguarde o carregamento dos dados.");
+    const expectedScope = identityKey();
     let key,
       stored,
       packet = payload;
@@ -266,6 +275,8 @@ window.SocialMEIV22 = (() => {
     }
     try {
       const result = await request(path, method, packet);
+      if (!auth.current || identityKey() !== expectedScope)
+        throw Error("Sua sessão mudou. Confira a operação no negócio de origem antes de repetir.");
       if (key && localStorage.getItem(key) === stored) localStorage.removeItem(key);
       return result;
     } catch (e) {
@@ -279,7 +290,7 @@ window.SocialMEIV22 = (() => {
     } finally {
       if (key) {
         operationBusy = false;
-        if (localStorage.getItem(key)) {
+        if (auth.current && identityKey() === expectedScope && localStorage.getItem(key)) {
           const dialog = document.querySelector("dialog[open]");
           dialog?.close();
           render();
@@ -884,7 +895,7 @@ window.SocialMEIV22 = (() => {
         : [];
     },
     get clients() {
-      return data.clients;
+      return auth.current && dataScope === identityKey() ? data.clients : [];
     },
     conversation(id) {
       return auth.current && inboxScope === identityKey()
