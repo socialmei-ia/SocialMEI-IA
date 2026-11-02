@@ -8,6 +8,7 @@ on:
       - fix/functional-audit-20261031
       - fix/oci-release035-image-identity-20261101
       - feat/n8n-readonly-team-report-20261101
+      - feat/instagram-direct-durable-recovery-20261101
     paths:
       - ".github/workflows/team-v33-candidate-images.yml"
       - "python-service/**"

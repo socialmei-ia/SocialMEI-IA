@@ -191,7 +191,8 @@ def confirm_recovery(payload: RecoveryConfirm, request: Request, response: Respo
         valid = (
             row
             and conn.execute(
-                "SELECT 1 FROM socialmei.auth_recuperacoes r JOIN socialmei.auth_credenciais c ON c.user_id=r.user_id WHERE r.user_id=%s AND r.token_hash=%s AND r.usado_em IS NULL AND r.expira_em>NOW() AND c.ativo AND c.senha_alterada_em=r.senha_alterada_em FOR UPDATE OF r",
+                "SELECT 1 FROM socialmei.auth_recuperacoes r JOIN socialmei.auth_credenciais c ON c.user_id=r.user_id WHERE r.user_id=%s AND r.token_hash=%s AND r.usado_em IS NULL AND r.expira_em>NOW() AND c.ativo AND c.senha_alterada_em=r.senha_alterada_em "
+                "AND EXISTS (SELECT 1 FROM socialmei.auth_recuperacao_envios e WHERE e.user_id=r.user_id AND e.status IN ('processing','sent')) FOR UPDATE OF r",
                 (row[0], digest(payload.token)),
             ).fetchone()
         )
