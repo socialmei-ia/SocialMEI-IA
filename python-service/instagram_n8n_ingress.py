@@ -80,6 +80,12 @@ class InstagramN8NIngressService:
         self._clock = clock
         self.auth_mode = auth_mode
 
+    def has_workspace(self, workspace_id):
+        """Only report configured ingress for the authenticated workspace."""
+        return type(workspace_id) is int and any(
+            workspace == workspace_id for workspace, _ in self._bindings.values()
+        )
+
     def receive(self, raw, timestamp, signature, meta_signature, relay_key=None):
         # Relay authentication is not source authentication: both must succeed.
         if (not isinstance(raw, bytes) or not 1 <= len(raw) <= MAX_WEBHOOK_BYTES
