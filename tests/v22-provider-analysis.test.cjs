@@ -112,6 +112,23 @@ test("CRM hides previously loaded clients after logout or workspace switch", asy
   assert.equal(app.context.SocialMEIV22.clients.length, 0);
 });
 
+test("CRM ignores a write completion after changing workspace or logging out", async () => {
+  for (const logout of [false, true]) {
+    const app = bridge();
+    await app.context.SocialMEIV22.ready;
+    let release;
+    app.context.SocialMEIAuth.request = () =>
+      new Promise((resolve) => {
+        release = resolve;
+      });
+    const saving = app.context.SocialMEIV22.write("/clientes", "POST", { nome: "Original scope" });
+    if (logout) app.context.SocialMEIAuth.current = null;
+    else app.context.SocialMEIAuth.current.negocio.id = 18;
+    release({ id: 99 });
+    await assert.rejects(saving, /sessão/i);
+  }
+});
+
 test("CRM refuses stale-form writes before contacting the new workspace", async () => {
   const app = bridge();
   await app.context.SocialMEIV22.ready;
@@ -132,6 +149,32 @@ test("CRM refuses stale-form writes before contacting the new workspace", async 
     /sessão/i,
   );
   assert.equal(writes, 0);
+});
+
+test("CRM preserves the original pending receipt when a write finishes after a scope change", async () => {
+  const app = bridge();
+  await app.context.SocialMEIV22.ready;
+  const storage = new Map();
+  app.context.localStorage = {
+    getItem: (key) => storage.get(key) || null,
+    setItem: (key, value) => storage.set(key, value),
+    removeItem: (key) => storage.delete(key),
+  };
+  app.context.crypto = { randomUUID: () => "11111111-1111-4111-8111-111111111111" };
+  let release;
+  app.context.SocialMEIAuth.request = () =>
+    new Promise((resolve) => {
+      release = resolve;
+    });
+  const saving = app.context.SocialMEIV22.write("/vendas", "POST", { valor: 10 }, true);
+  const key = "socialmei-v22-operation:1:17";
+  const before = storage.get(key);
+  assert.ok(before);
+  app.context.SocialMEIAuth.current.negocio.id = 18;
+  release({ id: 99 });
+  await assert.rejects(saving, /sessão/i);
+  assert.equal(storage.get(key), before);
+  assert.equal(storage.has("socialmei-v22-operation:1:18"), false);
 });
 
 test("late, changed and removed analysis refreshes V22 without a new message", async () => {

@@ -255,6 +255,7 @@ window.SocialMEIV22 = (() => {
     if (!auth.current || dataScope !== identityKey())
       throw Error("Sua sessão mudou. Recarregue os dados antes de salvar.");
     if (!loaded) throw Error("Aguarde o carregamento dos dados.");
+    const expectedScope = identityKey();
     let key,
       stored,
       packet = payload;
@@ -274,6 +275,8 @@ window.SocialMEIV22 = (() => {
     }
     try {
       const result = await request(path, method, packet);
+      if (!auth.current || identityKey() !== expectedScope)
+        throw Error("Sua sessão mudou. Confira a operação no negócio de origem antes de repetir.");
       if (key && localStorage.getItem(key) === stored) localStorage.removeItem(key);
       return result;
     } catch (e) {
@@ -287,7 +290,7 @@ window.SocialMEIV22 = (() => {
     } finally {
       if (key) {
         operationBusy = false;
-        if (localStorage.getItem(key)) {
+        if (auth.current && identityKey() === expectedScope && localStorage.getItem(key)) {
           const dialog = document.querySelector("dialog[open]");
           dialog?.close();
           render();
