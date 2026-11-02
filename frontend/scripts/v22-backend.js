@@ -252,6 +252,8 @@ window.SocialMEIV22 = (() => {
     view.prepend(section);
   }
   async function write(path, method, payload, operation = false) {
+    if (!auth.current || dataScope !== identityKey())
+      throw Error("Sua sessão mudou. Recarregue os dados antes de salvar.");
     if (!loaded) throw Error("Aguarde o carregamento dos dados.");
     let key,
       stored,

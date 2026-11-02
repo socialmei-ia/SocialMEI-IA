@@ -112,6 +112,28 @@ test("CRM hides previously loaded clients after logout or workspace switch", asy
   assert.equal(app.context.SocialMEIV22.clients.length, 0);
 });
 
+test("CRM refuses stale-form writes before contacting the new workspace", async () => {
+  const app = bridge();
+  await app.context.SocialMEIV22.ready;
+  let writes = 0;
+  app.context.SocialMEIAuth.request = async () => {
+    writes++;
+    return {};
+  };
+  app.context.SocialMEIAuth.current.negocio.id = 18;
+  await assert.rejects(
+    app.context.SocialMEIV22.write("/clientes", "POST", { nome: "Old form" }),
+    /sessão/i,
+  );
+  assert.equal(writes, 0);
+  app.context.SocialMEIAuth.current = null;
+  await assert.rejects(
+    app.context.SocialMEIV22.write("/produtos", "POST", { nome: "Old product" }),
+    /sessão/i,
+  );
+  assert.equal(writes, 0);
+});
+
 test("late, changed and removed analysis refreshes V22 without a new message", async () => {
   const app = bridge();
   app.set([row(null)]);
