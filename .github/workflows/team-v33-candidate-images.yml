@@ -9,6 +9,7 @@ on:
       - fix/oci-release035-image-identity-20261101
       - feat/n8n-readonly-team-report-20261101
       - feat/instagram-gate9-receive-proof-20261101
+      - feat/instagram-persist-before-ai-20261101
     paths:
       - ".github/workflows/team-v33-candidate-images.yml"
       - "python-service/**"
