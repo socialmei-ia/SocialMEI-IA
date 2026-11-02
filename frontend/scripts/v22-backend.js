@@ -10,6 +10,7 @@ window.SocialMEIV22 = (() => {
   let preferences = null;
   let operationBusy = false;
   let data = { clients: [], products: [], sales: [], finance: [] };
+  let dataScope = null;
   const date = (value) =>
     value ? new Date(String(value).slice(0, 10) + "T12:00:00").toLocaleDateString("pt-BR") : "—";
   const money = (value) => {
@@ -46,11 +47,16 @@ window.SocialMEIV22 = (() => {
   }
   const identityKey = () => `${auth.current.usuario.id}:${auth.current.negocio.id}`;
   async function refresh() {
+    if (!auth.current) throw Error("Sua sessão mudou. Entre novamente.");
+    const expectedScope = identityKey();
     const [clients, products, sales, finance] = await Promise.all(
       ["/clientes", "/produtos", "/vendas", "/financeiro"].map((p) => request(p)),
     );
+    if (!auth.current || identityKey() !== expectedScope)
+      throw Error("Sua sessão mudou. Atualize os dados do negócio atual.");
     if (![clients, products, sales, finance].every(Array.isArray))
       throw Error("Resposta de gestão inválida.");
+    dataScope = expectedScope;
     data = {
       clients,
       products,
@@ -884,7 +890,7 @@ window.SocialMEIV22 = (() => {
         : [];
     },
     get clients() {
-      return data.clients;
+      return auth.current && dataScope === identityKey() ? data.clients : [];
     },
     conversation(id) {
       return auth.current && inboxScope === identityKey()

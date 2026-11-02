@@ -83,6 +83,35 @@ const row = (provider_analysis) => ({
   messages: [{ id: 11, text: "Recebida", occurred_at: "2026-10-30T10:00:00Z", provider_analysis }],
 });
 
+test("CRM discards an in-flight refresh after workspace changes", async () => {
+  const app = bridge();
+  await app.context.SocialMEIV22.ready;
+  let release;
+  const pending = new Promise((resolve) => {
+    release = resolve;
+  });
+  app.context.SocialMEIAuth.request = () => pending;
+  const reading = app.context.SocialMEIV22.refresh();
+  app.context.SocialMEIAuth.current.negocio.id = 18;
+  release([{ id: 99, nome: "Previous workspace record" }]);
+  await assert.rejects(reading, /sessão/i);
+  assert.equal(app.context.CL.length, 0);
+  assert.equal(app.context.SocialMEIV22.clients.length, 0);
+});
+
+test("CRM hides previously loaded clients after logout or workspace switch", async () => {
+  const app = bridge();
+  await app.context.SocialMEIV22.ready;
+  app.context.SocialMEIAuth.request = async (path) =>
+    path === "/clientes" ? [{ id: 99, nome: "Scoped client" }] : [];
+  await app.context.SocialMEIV22.refresh();
+  assert.equal(app.context.SocialMEIV22.clients.length, 1);
+  app.context.SocialMEIAuth.current.negocio.id = 18;
+  assert.equal(app.context.SocialMEIV22.clients.length, 0);
+  app.context.SocialMEIAuth.current = null;
+  assert.equal(app.context.SocialMEIV22.clients.length, 0);
+});
+
 test("late, changed and removed analysis refreshes V22 without a new message", async () => {
   const app = bridge();
   app.set([row(null)]);
