@@ -4,6 +4,13 @@ Implementação opcional iniciada na candidata #111, ampliada na PR de recupera�
 
 ## Fluxo
 
+Entregas abandonadas que o worker classificou como `uncertain` não autorizam a
+redefinição, mesmo que o código ainda esteja dentro dos 15 minutos. O usuário
+precisa solicitar um novo código; não há reenvio automático de uma entrega incerta.
+Uma confirmação exige entrega `processing` ou `sent`, além das verificações de
+token, expiração, uso único e versão da senha. `sent` significa aceite SMTP,
+sem comprovar chegada à caixa postal.
+
 Na autenticação remota, “Esqueci minha senha” abre o formulário nativo. Solicite o código pelo e-mail cadastrado, cole o código completo e confirme a nova senha. O usuário retorna ao login; não há sessão automática. No modo local, não existe recuperação remota de contas.
 
 POST `/api/v1/auth/recovery/request`: `{email}`; resposta202 genérica para contas existentes e inexistentes. POST `/api/v1/auth/recovery/confirm`: `{token,nova}`;204 em sucesso,400 se inválido/usado/expirado. Ambos exigem Origin oficial, JSON e `X-SocialMEI-Client: browser`, com no-store. Não exigem sessão para que usuários sem acesso consigam recuperar a conta.
