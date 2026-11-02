@@ -1,4 +1,6 @@
 """Strict OCI identity verification for the offline SocialMEI image handoff."""
+import base64
+import binascii
 import hashlib
 import json
 import re
@@ -10,7 +12,7 @@ def require(ok, code):
 
 
 def verify_oci_archive_identity(archive, by_name, rows, expected, expected_sha):
-    """Bind Docker tags to OCI indices, executable configs, layers and attestations."""
+    """Bind Docker tags to OCI manifests/indices, configs, layers and attestations."""
     layout_member = by_name.get("oci-layout")
     index_member = by_name.get("index.json")
     require(layout_member is not None and index_member is not None
@@ -53,6 +55,14 @@ def verify_oci_archive_identity(archive, by_name, rows, expected, expected_sha):
                     raw.extend(chunk)
         require("sha256:" + digest.hexdigest() == descriptor["digest"],
                 "oci_blob_digest_diverge")
+        if "data" in descriptor:
+            try:
+                embedded = base64.b64decode(descriptor["data"], validate=True)
+            except (ValueError, TypeError, binascii.Error):
+                raise RuntimeError("oci_dado_embutido_invalido") from None
+            require(len(embedded) == descriptor["size"]
+                    and "sha256:" + hashlib.sha256(embedded).hexdigest()
+                        == descriptor["digest"], "oci_dado_embutido_diverge")
         if raw is None:
             return None
         try:
@@ -94,22 +104,27 @@ def verify_oci_archive_identity(archive, by_name, rows, expected, expected_sha):
                 and reference.get("digest") == expected[tag]["image_id"],
                 "oci_tag_ou_identidade_divergente")
         seen.add(tag)
-        image_index = verify_descriptor(
-            reference, "application/vnd.oci.image.index.v1+json")
-        require(isinstance(image_index, dict)
-                and image_index.get("schemaVersion") == 2
-                and image_index.get("mediaType") ==
-                    "application/vnd.oci.image.index.v1+json"
-                and isinstance(image_index.get("manifests"), list)
-                and 1 <= len(image_index["manifests"]) <= 8,
-                "oci_indice_de_imagem_invalido")
+        direct = reference.get("mediaType") == "application/vnd.oci.image.manifest.v1+json"
+        if direct:
+            # A single-platform export need not contain an intermediate image index.
+            children = [reference]
+        else:
+            image_index = verify_descriptor(
+                reference, "application/vnd.oci.image.index.v1+json")
+            require(isinstance(image_index, dict)
+                    and image_index.get("schemaVersion") == 2
+                    and image_index.get("mediaType") ==
+                        "application/vnd.oci.image.index.v1+json"
+                    and isinstance(image_index.get("manifests"), list)
+                    and 1 <= len(image_index["manifests"]) <= 8,
+                    "oci_indice_de_imagem_invalido")
+            children = image_index["manifests"]
         executable = []
         attestations = []
-        for child in image_index["manifests"]:
+        for child in children:
             require(isinstance(child, dict)
-                    and isinstance(child.get("platform"), dict),
+                    and (direct or isinstance(child.get("platform"), dict)),
                     "oci_plataforma_invalida")
-            platform = child["platform"]
             manifest = verify_descriptor(
                 child, "application/vnd.oci.image.manifest.v1+json")
             require(isinstance(manifest, dict)
@@ -119,33 +134,57 @@ def verify_oci_archive_identity(archive, by_name, rows, expected, expected_sha):
                     and isinstance(manifest.get("layers"), list)
                     and isinstance(manifest.get("config"), dict),
                     "oci_manifesto_invalido")
-            config = verify_descriptor(
-                manifest["config"], "application/vnd.oci.image.config.v1+json")
+            config_type = manifest["config"].get("mediaType")
+            require(config_type in {"application/vnd.oci.image.config.v1+json",
+                                    "application/vnd.oci.empty.v1+json"},
+                    "oci_config_tipo_invalido")
+            config = verify_descriptor(manifest["config"], config_type)
             require(isinstance(config, dict), "oci_config_invalida")
+            platform = child.get("platform", config if direct else {})
+            runnable = platform.get("os") == "linux" and platform.get("architecture") == "amd64"
             for layer in manifest["layers"]:
-                require(isinstance(layer, dict) and layer.get("mediaType") in {
+                layer_types = {
                     "application/vnd.oci.image.layer.v1.tar+gzip",
                     "application/vnd.oci.image.layer.v1.tar",
                     "application/vnd.oci.image.layer.v1.tar+zstd",
-                    "application/vnd.in-toto+json",
-                }, "oci_layer_tipo_invalido")
+                } if runnable else {"application/vnd.in-toto+json"}
+                require(isinstance(layer, dict) and layer.get("mediaType") in layer_types,
+                        "oci_layer_tipo_invalido")
                 verify_descriptor(layer, layer["mediaType"], json_limit=0)
-            if platform.get("os") == "linux" and platform.get("architecture") == "amd64":
+            if runnable:
+                require(config_type == "application/vnd.oci.image.config.v1+json"
+                        and config.get("os") == "linux"
+                        and config.get("architecture") == "amd64"
+                        and not manifest.get("artifactType")
+                        and not manifest.get("subject"), "oci_config_plataforma_invalida")
                 require(not child.get("annotations", {}).get(
                     "vnd.docker.reference.type"), "oci_execucao_marcada_como_atestacao")
                 executable.append((child, manifest, config))
             elif platform.get("os") == "unknown" and platform.get("architecture") == "unknown":
-                require(isinstance(child.get("annotations"), dict)
+                require(not direct and isinstance(child.get("annotations"), dict)
                         and child["annotations"].get("vnd.docker.reference.type")
                             == "attestation-manifest", "oci_atestacao_invalida")
-                attestations.append(child)
+                if config_type == "application/vnd.oci.empty.v1+json":
+                    # OCI 1.1 empty descriptors are metadata, never runnable configs.
+                    require(config == {} and manifest["config"].get("size") == 2
+                            and manifest.get("artifactType") ==
+                                "application/vnd.docker.attestation.manifest.v1+json"
+                            and isinstance(manifest.get("subject"), dict),
+                            "oci_atestacao_vazia_invalida")
+                attestations.append((child, manifest))
             else:
                 raise RuntimeError("oci_plataforma_nao_revisada")
         require(len(executable) == 1, "oci_imagem_executavel_ambigua")
         runnable, manifest, config = executable[0]
-        for attestation in attestations:
+        for attestation, att_manifest in attestations:
             require(attestation["annotations"].get("vnd.docker.reference.digest")
                     == runnable["digest"], "oci_atestacao_origem_divergente")
+            subject = att_manifest.get("subject")
+            if subject is not None:
+                require(isinstance(subject, dict)
+                        and all(subject.get(key) == runnable.get(key)
+                                for key in ("mediaType", "digest", "size")),
+                        "oci_atestacao_subject_divergente")
         row = rows_by_tag[tag]
         config_digest = manifest["config"]["digest"]
         require(row.get("Config") == "blobs/sha256/" + config_digest[7:]
