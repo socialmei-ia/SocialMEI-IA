@@ -46,7 +46,8 @@ def runtime_fingerprint(container):
 
 def protected_fingerprint(container):
     return fingerprint([runtime_fingerprint(container), container['State'].get('StartedAt'),
-                        container.get('RestartCount')])
+                        container.get('RestartCount'), container['State'].get('Running'),
+                        container['State'].get('Status')])
 
 
 def mount_fingerprints(container):

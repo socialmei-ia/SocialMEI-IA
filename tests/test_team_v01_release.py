@@ -81,6 +81,8 @@ class V01ReleaseTests(unittest.TestCase):
         self.assertEqual(m.runtime_fingerprint(c), m.runtime_fingerprint(heartbeat))
         restarted = copy.deepcopy(c); restarted['State']['StartedAt'] = 'later'
         self.assertNotEqual(m.protected_fingerprint(c), m.protected_fingerprint(restarted))
+        stopped = copy.deepcopy(c); stopped['State']['Running'] = False; stopped['State']['Status'] = 'exited'
+        self.assertNotEqual(m.protected_fingerprint(c), m.protected_fingerprint(stopped))
         changed = copy.deepcopy(c); changed['Config']['Env'].append('UNEXPECTED=1')
         self.assertNotEqual(m.runtime_fingerprint(c), m.runtime_fingerprint(changed))
 
