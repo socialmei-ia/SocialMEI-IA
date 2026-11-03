@@ -11,7 +11,7 @@ import tarfile
 import tempfile
 from types import ModuleType
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, mock_open, patch
 
 
 class Functional038BackupTests(unittest.TestCase):
@@ -22,7 +22,7 @@ class Functional038BackupTests(unittest.TestCase):
         cls.m = importlib.util.module_from_spec(spec)
         fake = ModuleType('fcntl')
         fake.flock = MagicMock()
-        fake.LOCK_EX, fake.LOCK_NB = 2, 4
+        fake.LOCK_EX, fake.LOCK_NB, fake.LOCK_UN = 2, 4, 8
         with patch.dict(sys.modules, {'fcntl': fake}) if sys.platform == 'win32' else contextlib.nullcontext():
             spec.loader.exec_module(cls.m)
 
@@ -39,12 +39,16 @@ class Functional038BackupTests(unittest.TestCase):
         with patch.object(m.operator, 'preflight', return_value=({}, {})), \
                 patch.object(m.operator, 'no_external_senders'), \
                 patch.object(Path, 'mkdir') as mkdir, \
+                patch.object(m, 'open', create=True) as opened, \
+                patch.object(m.operator.legacy.fcntl, 'flock') as flock, \
                 patch.object(m.subprocess, 'Popen') as popen, \
                 patch.object(m.subprocess, 'run') as run:
             result = m.create_backup(Path('/source'), Path('/bundle'))
         mkdir.assert_not_called()
         popen.assert_not_called()
         run.assert_not_called()
+        opened.assert_not_called()
+        flock.assert_not_called()
         self.assertFalse(result['backup_created'])
         self.assertFalse(result['restore_verified'])
 
@@ -63,6 +67,74 @@ class Functional038BackupTests(unittest.TestCase):
                 m.create_backup(Path('/source'), Path('/bundle'), create=True,
                                 authorization=m.operator.AUTHORIZATION)
         preflight.assert_not_called()
+
+    def test_busy_window_blocks_before_preflight_or_backup_work(self):
+        m = self.m
+        opened = mock_open()
+        with patch.object(m.os, 'name', 'posix'), \
+                patch.object(m.os, 'geteuid', return_value=0, create=True), \
+                patch.object(m, 'open', opened, create=True), \
+                patch.object(m.operator.legacy.fcntl, 'flock', side_effect=BlockingIOError), \
+                patch.object(m, '_create_backup_locked') as work, \
+                patch.object(m.operator, 'preflight') as preflight, \
+                patch.object(m, 'save_private') as save, \
+                patch.object(m.subprocess, 'Popen') as popen:
+            with self.assertRaisesRegex(m.operator.legacy.Blocked, 'outra_janela'):
+                m.create_backup(Path('/source'), Path('/bundle'), create=True,
+                                authorization=m.operator.AUTHORIZATION)
+        opened.assert_called_once_with('/run/lock/socialmei-wa-pilot-release.lock', 'a')
+        work.assert_not_called()
+        preflight.assert_not_called()
+        save.assert_not_called()
+        popen.assert_not_called()
+        opened().__exit__.assert_called_once()
+
+    def test_window_lock_is_released_after_success_or_failure(self):
+        m = self.m
+        for failure in (False, True):
+            opened = mock_open()
+            lock = opened()
+            with patch.object(m.os, 'name', 'posix'), \
+                    patch.object(m.os, 'geteuid', return_value=0, create=True), \
+                    patch.object(m, 'open', opened, create=True), \
+                    patch.object(m.operator.legacy.fcntl, 'flock') as flock, \
+                    patch.object(m, '_create_backup_locked', return_value={'passed': True},
+                                 side_effect=ValueError('fixture failure') if failure else None) as work:
+                if failure:
+                    with self.assertRaises(ValueError):
+                        m.create_backup(Path('/source'), Path('/bundle'), create=True,
+                                        authorization=m.operator.AUTHORIZATION)
+                else:
+                    self.assertEqual(m.create_backup(Path('/source'), Path('/bundle'), create=True,
+                                                     authorization=m.operator.AUTHORIZATION),
+                                     {'passed': True})
+            self.assertEqual(flock.call_args_list[0].args,
+                             (lock, m.operator.legacy.fcntl.LOCK_EX | m.operator.legacy.fcntl.LOCK_NB))
+            self.assertEqual(flock.call_args_list[-1].args,
+                             (lock, m.operator.legacy.fcntl.LOCK_UN))
+            work.assert_called_once()
+            lock.__exit__.assert_called_once()
+
+    @unittest.skipUnless(os.name == 'posix', 'Real flock is verified on the Linux operator host')
+    def test_real_flock_blocks_competing_window_then_allows_backup(self):
+        m = self.m
+        fcntl = m.operator.legacy.fcntl
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'window.lock'
+            with path.open('a') as competing:
+                fcntl.flock(competing, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                with patch.object(m, 'WINDOW_LOCK', str(path)), \
+                        patch.object(m.os, 'geteuid', return_value=0), \
+                        patch.object(m, '_create_backup_locked', return_value={'passed': True}) as work:
+                    with self.assertRaisesRegex(m.operator.legacy.Blocked, 'outra_janela'):
+                        m.create_backup(Path('/source'), Path('/bundle'), create=True,
+                                        authorization=m.operator.AUTHORIZATION)
+                    work.assert_not_called()
+                    fcntl.flock(competing, fcntl.LOCK_UN)
+                    self.assertEqual(m.create_backup(Path('/source'), Path('/bundle'), create=True,
+                                                     authorization=m.operator.AUTHORIZATION),
+                                     {'passed': True})
+                    work.assert_called_once()
 
     def test_snapshot_requires_exact035_71tables_and_11groups(self):
         m = self.m

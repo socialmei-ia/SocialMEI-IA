@@ -319,7 +319,7 @@ def backup_gate(folder, plans, *, fresh=True):
     verify_private_archive(folder / 'private-config.tar', plans)
     images = {s: {'tag': p['container']['Config']['Image'], 'image_id': p['container']['Image']}
               for s, p in plans.items()}
-    sibling('v01_rollback_import', 'team-v33-import-images.py').verify_archive_config_digests(
+    sibling('functional038_rollback_import', 'team-functional038-rollback-images.py').verify_archive_config_digests(
         folder / 'images-before.tar', images, BASE_SHA, 'bundle')
     return receipt
 

@@ -7,6 +7,7 @@ on:
       - ".github/workflows/operator038-checks.yml"
       - "tools/team-functional038-release.py"
       - "tools/team-functional038-backup.py"
+      - "tools/team-functional038-rollback-images.py"
       - "tools/team-restore-schema.py"
       - "tests/test_team_functional038_*.py"
 
@@ -33,6 +34,7 @@ jobs:
         run: |
           python -m py_compile tools/team-functional038-release.py
           python -m py_compile tools/team-functional038-backup.py tools/team-restore-schema.py
+          python -m py_compile tools/team-functional038-rollback-images.py
           python -m unittest discover -s tests -p 'test_team_functional038_*.py' -v
       - name: Confirm pinned application and unchanged migration profile
         run: |

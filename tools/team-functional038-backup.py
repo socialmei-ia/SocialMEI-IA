@@ -29,6 +29,7 @@ operator = sibling('functional038_backup_operator', 'team-functional038-release.
 schema = sibling('functional038_restore_schema', 'team-restore-schema.py')
 require = operator.require
 RESTORE_LABEL = 'socialmei.functional038.backup.restore'
+WINDOW_LOCK = '/run/lock/socialmei-wa-pilot-release.lock'
 
 
 def save_private(folder, name, value):
@@ -149,6 +150,24 @@ def archive_private_configuration(folder, plans):
 
 
 def create_backup(source, bundle, *, create=False, authorization=None):
+    if not create:
+        return _create_backup_locked(source, bundle, create=False, authorization=authorization)
+    require(authorization == operator.AUTHORIZATION,
+            'autorizacao_backup_explicita_obrigatoria')
+    require(os.name == 'posix' and os.geteuid() == 0, 'backup_exige_root_linux')
+    with open(WINDOW_LOCK, 'a') as lock:
+        try:
+            operator.legacy.fcntl.flock(
+                lock, operator.legacy.fcntl.LOCK_EX | operator.legacy.fcntl.LOCK_NB)
+        except BlockingIOError:
+            require(False, 'outra_janela_operacional_em_execucao')
+        try:
+            return _create_backup_locked(source, bundle, create=True, authorization=authorization)
+        finally:
+            operator.legacy.fcntl.flock(lock, operator.legacy.fcntl.LOCK_UN)
+
+
+def _create_backup_locked(source, bundle, *, create=False, authorization=None):
     if create:
         require(authorization == operator.AUTHORIZATION,
                 'autorizacao_backup_explicita_obrigatoria')
