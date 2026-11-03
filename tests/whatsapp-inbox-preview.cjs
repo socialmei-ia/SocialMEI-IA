@@ -215,6 +215,42 @@ module.exports = async function (browser, origin, fixture) {
     await first.page.getByRole("button", { name: "Salvar vínculo", exact: true }).click();
     await first.page.locator("dialog[open]").waitFor({ state: "hidden" });
     assert.equal((await (await first.ctx.request.get(path)).json()).cliente_id, null);
+    await first.page.locator("#ta").fill("Rascunho ficticio de atendimento humano; nao enviar.");
+    await first.page
+      .getByRole("button", { name: "Preparar resposta no servidor", exact: true })
+      .click();
+    await first.page
+      .locator("[data-wa-replies] select option")
+      .filter({ hasText: "Rascunho" })
+      .waitFor({ state: "attached" });
+    const drafts = await (
+      await first.ctx.request.get(
+        origin + `/api/v1/whatsapp/replies?conversation_id=${a.items[0].id}`,
+      )
+    ).json();
+    assert.equal(drafts.send_enabled, false);
+    assert.equal(drafts.items.length, 1);
+    assert.equal(drafts.items[0].status, "draft");
+    assert.equal(await first.page.locator("[data-wa-send]").isDisabled(), true);
+    const human = await (
+      await first.ctx.request.get(
+        origin + `/api/v1/whatsapp/bot/conversations/${a.items[0].id}/status`,
+      )
+    ).json();
+    assert.equal(human.state, "human");
+    assert.equal(human.enabled, false);
+    assert.equal(
+      (
+        await second.ctx.request.get(origin + "/api/v1/whatsapp/replies/" + drafts.items[0].id)
+      ).status(),
+      404,
+    );
+    await first.page.reload();
+    await first.page
+      .locator("[data-wa-replies] select option")
+      .filter({ hasText: "Rascunho" })
+      .waitFor({ state: "attached" });
+    assert.equal(await first.page.locator("[data-wa-send]").isDisabled(), true);
     for (const owner of owners) {
       await owner.page.reload();
       const rows = await (
@@ -230,7 +266,7 @@ module.exports = async function (browser, origin, fixture) {
     assert.deepEqual(errors, []);
     assert.deepEqual(external, []);
     console.log(
-      "WA isolated E2E passed: private signed HTTP, phone label, persistence/polling/dedup, account/workspace isolation, manual CRM link/reload/unlink and new-message CAS conflict; no WAHA/provider/send.",
+      "WA isolated E2E passed: signed receiving, inbox/CRM, dedup/isolation, durable human draft and bot pause with dispatch disabled; no WAHA/provider/send.",
     );
   } finally {
     for (const ctx of contexts) await ctx.close();
