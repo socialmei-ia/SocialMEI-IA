@@ -104,6 +104,14 @@ async function run(browser, origin) {
     await p.getByRole("button", { name: "Confirmar cancelamento", exact: true }).click();
     await p.locator("dialog[open]").waitFor({ state: "hidden" });
     const q = style.page;
+    await p.getByRole("button", { name: "Configurar profissional/recurso", exact: true }).click();
+    await p.locator("#f_booking_active").uncheck();
+    await p.locator("dialog button[type=submit]").click();
+    await p.locator("dialog[open]").waitFor({ state: "hidden" });
+    const resources = await (
+      await sorria.ctx.request.get(origin + "/api/v1/agenda/resources")
+    ).json();
+    assert.equal(resources.items[0].ativo, false);
     await q.evaluate(() => go("/negocio/produtos"));
     await q.getByRole("button", { name: "Novo produto", exact: true }).click();
     await q.locator("#f_n").fill("Blusa fictícia");

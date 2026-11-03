@@ -55,6 +55,11 @@ module.exports = async (browser, origin) => {
         }
         return route.fulfill({ json: { items: resources } });
       }
+      if (p.startsWith("/agenda/resources/") && method === "PATCH") {
+        assert.equal(data.expected_revision, resources[0].revision);
+        resources[0] = { ...resources[0], ...data, revision: resources[0].revision + 1 };
+        return route.fulfill({ json: resources[0] });
+      }
       if (p === "/agenda") return route.fulfill({ json: { items: [], truncated: false } });
       if (p === "/agenda/availability") return route.fulfill({ json: { available: true } });
       if (p === "/agenda/appointments") {
@@ -150,6 +155,18 @@ module.exports = async (browser, origin) => {
       await page.getByRole("button", { name: "Histórico", exact: true }).click();
       await page.getByText(/revisão 3: Cancelado/).waitFor();
       await page.getByRole("button", { name: "Fechar", exact: true }).click();
+      await page
+        .getByRole("button", { name: "Configurar profissional/recurso", exact: true })
+        .click();
+      await page.locator("#f_booking_name").fill("Recurso atualizado");
+      await page.locator("#f_booking_active").uncheck();
+      await page
+        .locator("dialog[open]")
+        .getByRole("button", { name: "Salvar", exact: true })
+        .click();
+      await page.locator("dialog[open]").waitFor({ state: "hidden" });
+      assert.equal(resources[0].ativo, false);
+      assert.equal(resources[0].nome, "Recurso atualizado");
       const resourcesBefore = resources.length;
       await page
         .getByRole("button", { name: "Cadastrar profissional/recurso", exact: true })

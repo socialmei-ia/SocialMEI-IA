@@ -217,6 +217,52 @@
       input("booking_duration").max = "1440";
     }
   }
+  function manageResources(s) {
+    prepare(s, async () => {
+      const result = await host.request("/agenda/resources");
+      if (!live(s)) return;
+      if (!result.items?.length) throw Error("Cadastre um profissional ou recurso primeiro.");
+      const input = form(
+        s,
+        "Configurar profissional ou recurso",
+        [
+          { id: "booking_resource", label: "Profissional ou recurso", type: "select", options: [] },
+          { id: "booking_name", label: "Nome", req: 1 },
+          {
+            id: "booking_active",
+            label: "Ativo para novos agendamentos",
+            type: "check",
+            value: true,
+          },
+        ],
+        async (get) => {
+          const item = result.items.find((row) => row.id === get("booking_resource").value);
+          if (!item) throw Error("Recurso inválido. Reabra a janela.");
+          await host.request("/agenda/resources/" + item.id, "PATCH", {
+            expected_revision: item.revision,
+            nome: get("booking_name").value.trim(),
+            ativo: get("booking_active").checked,
+          });
+        },
+      );
+      if (!input) return;
+      const select = input("booking_resource");
+      select.replaceChildren();
+      for (const row of result.items) {
+        const option = node("option", row.nome + (row.ativo ? "" : " · Inativo"));
+        option.value = row.id;
+        select.append(option);
+      }
+      const fill = () => {
+        const row = result.items.find((item) => item.id === select.value);
+        input("booking_name").value = row.nome;
+        input("booking_active").checked = row.ativo;
+      };
+      select.onchange = fill;
+      input("booking_name").maxLength = 160;
+      fill();
+    });
+  }
   function book(s) {
     prepare(s, async () => {
       const raw = localStorage.getItem(storageKey(s));
@@ -443,6 +489,7 @@
       button("Cadastrar serviço", () => service(s), disabled),
       button("Configurar duração", () => duration(s), disabled),
       button("Cadastrar profissional/recurso", () => resource(s), disabled),
+      button("Configurar profissional/recurso", () => manageResources(s), disabled),
       button("Novo agendamento", () => book(s), disabled || s.phase !== "ready"),
       button("Atualizar agendamentos", () => load(s), s.busy),
     );
