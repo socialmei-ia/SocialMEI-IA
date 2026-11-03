@@ -52,7 +52,10 @@ class Receipt(Strict):
 
 
 def enabled():
-    return os.getenv('SOCIALMEI_WHATSAPP_BOT_ENABLED', 'false').strip().lower() == 'true'
+    return (
+        not settings.waha_workspace_inbox_requested()
+        and os.getenv('SOCIALMEI_WHATSAPP_BOT_ENABLED', 'false').strip().lower() == 'true'
+    )
 
 
 def require_bot():
@@ -354,14 +357,18 @@ def sources(request: Request):
             "ON v.workspace_id=m.workspace_id AND v.id=m.conversation_id "
             "LEFT JOIN socialmei.wa_bot_decisions d ON d.workspace_id=e.workspace_id "
             "AND d.channel_id=e.canal_id AND d.source_message_id=m.id "
+            "LEFT JOIN socialmei.wa_bot_conversations s ON s.workspace_id=e.workspace_id "
+            "AND s.channel_id=e.canal_id AND s.conversation_id=m.conversation_id "
             "WHERE e.workspace_id=%s AND e.canal_id=%s AND e.tipo='message' AND e.status='processado' "
             "AND e.waha_account_snapshot=%s AND v.account_ref=%s "
             "AND (%s OR v.contact_ref=ANY(%s)) "
             "AND m.occurred_at>=NOW()-INTERVAL '15 minutes' AND m.occurred_at<=NOW()+INTERVAL '1 minute' "
-            "AND (d.id IS NULL OR (d.status='planned' AND d.created_at>NOW()-INTERVAL '2 minutes')) "
+            "AND (d.id IS NULL OR (d.status='planned' AND d.created_at>NOW()-INTERVAL '2 minutes' "
+            "AND d.binding_hash=%s AND d.state_revision=s.revision)) "
             "ORDER BY m.occurred_at,m.id LIMIT 50",
             (channel['workspace_id'], channel['channel_id'], channel['identificador_conta'],
-             'waha:' + channel['identificador_conta'], contacts is None, list(contacts or [])),
+             'waha:' + channel['identificador_conta'], contacts is None, list(contacts or []),
+             channel['binding_hash']),
         ).fetchall()
     return {'sources': [{'instance': channel['instancia'], **row} for row in rows]}
 

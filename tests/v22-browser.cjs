@@ -44,6 +44,9 @@ async function run() {
     await require("./v25-entry-browser.cjs")(browser, origin);
     await require("./frontend-recovery-browser.cjs")(browser, origin);
     await require("./agenda-browser.cjs")(browser, origin);
+    await require("./appointments-browser.cjs")(browser, origin);
+    await require("./catalog-details-browser.cjs")(browser, origin);
+    await require("./inbox-customer-browser.cjs")(browser, origin);
     await require("./functional-recovery-browser.cjs")(browser, origin);
     const contracts = await require("./v22-contract-browser.cjs")(browser, origin);
     await require("./v22-instagram-browser.cjs")(browser, origin);

@@ -61,6 +61,12 @@
   if (auth.remote) {
     const agenda = document.createElement("script");
     agenda.src = "scripts/v22-agenda.js";
+    agenda.onload = () => {
+      const appointments = document.createElement("script");
+      appointments.src = "scripts/v22-appointments.js";
+      appointments.onerror = () => console.warn("Agendamentos de serviços indisponíveis.");
+      document.body.appendChild(appointments);
+    };
     agenda.onerror = () => console.warn("Agenda compartilhada indisponível.");
     document.body.appendChild(agenda);
     const knowledge = document.createElement("script");
@@ -75,6 +81,10 @@
     whatsappBot.src = "scripts/v22-whatsapp-bot.js";
     whatsappBot.onerror = () => console.warn("Controle de atendimento WhatsApp indisponível.");
     document.body.appendChild(whatsappBot);
+    const inboxCustomer = document.createElement("script");
+    inboxCustomer.src = "scripts/v22-inbox-customer.js";
+    inboxCustomer.onerror = () => console.warn("Vínculo da Caixa com o CRM indisponível.");
+    document.body.appendChild(inboxCustomer);
     const whatsappReplies = document.createElement("script");
     whatsappReplies.src = "scripts/v22-whatsapp-replies.js";
     whatsappReplies.onerror = () => console.warn("Respostas WhatsApp indisponíveis.");

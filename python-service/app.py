@@ -30,6 +30,7 @@ from instagram_account_media import router as instagram_account_media_router
 from instagram_meta_ingress import WebhookQueryPrivacy, router as instagram_meta_ingress_router
 from workspace_profile import router as workspace_profile_router
 from message_enrichment import router as message_enrichment_router, internal_router as enrichment_internal_router
+from inbox_customer import router as inbox_customer_router
 from provider_sentiment import router as provider_sentiment_router
 from content_preparation import router as content_preparation_router
 from channel_ingress import router as channel_ingress_router, internal_router as channel_ingress_internal_router
@@ -47,6 +48,7 @@ from whatsapp_catalog import router as whatsapp_catalog_router
 from whatsapp_bot import router as whatsapp_bot_router
 from instagram_token_maintenance import router as instagram_token_maintenance_router
 from agenda import router as agenda_router
+from appointments import router as appointments_router
 from whatsapp_human_outbox import router as whatsapp_human_router
 
 app = FastAPI(title="SocialME Python Service", lifespan=runtime_lifespan)
@@ -60,6 +62,7 @@ app.include_router(whatsapp_catalog_router)
 app.include_router(whatsapp_bot_router)
 app.include_router(instagram_token_maintenance_router)
 app.include_router(agenda_router)
+app.include_router(appointments_router)
 app.include_router(whatsapp_human_router)
 app.add_middleware(AccountMiddleware)
 cors_origins = configured_cors_origins()
@@ -94,6 +97,7 @@ app.include_router(instagram_account_media_router)
 app.include_router(waha_ingress_router)
 app.include_router(workspace_profile_router)
 app.include_router(message_enrichment_router)
+app.include_router(inbox_customer_router)
 app.include_router(enrichment_internal_router)
 app.include_router(provider_sentiment_router)
 app.include_router(content_preparation_router)

@@ -107,7 +107,8 @@
           "timeout": 10000
         }
       },
-      "retryOnFail": false
+      "retryOnFail": false,
+      "onError": "continueRegularOutput"
     },
     {
       "id": "validar-recibo",
@@ -116,7 +117,7 @@
       "typeVersion": 1,
       "position": [1540, 0],
       "parameters": {
-        "jsCode": "const id = typeof $json.id === 'string' ? $json.id : $json.id?._serialized;\nreturn [{json: typeof id === 'string' && /^[!-~]{1,1024}$/.test(id) ? {status:'confirmed', provider_message_id:id} : {status:'uncertain'}}];"
+        "jsCode": "// n8n routes this sender's transport/HTTP errors here without retrying. Never persist raw error details.\nif (Object.prototype.hasOwnProperty.call($json, 'error')) return [{json:{status:'uncertain'}}];\nconst id = typeof $json.id === 'string' ? $json.id : $json.id?._serialized;\nreturn [{json: typeof id === 'string' && /^[!-~]{1,1024}$/.test(id) ? {status:'confirmed', provider_message_id:id} : {status:'uncertain'}}];"
       }
     },
     {

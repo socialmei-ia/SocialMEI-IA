@@ -191,18 +191,23 @@ class HumanReplyDatabaseTests(unittest.TestCase):
         self.assertEqual(self.owner.get(PATH).status_code, 403)
         self.assertFalse(self.sent)
 
-    def test_claimed_bot_reply_blocks_draft_without_partial_pause_or_write(self):
+    def test_claimed_and_uncertain_bot_reply_block_draft_without_partial_pause_or_write(self):
         decision = self.tech.post('/internal/whatsapp/bot/decisions', headers=self.headers, json={
             'instance': 'trusted-a', 'external_message_id': self.external_id,
         }).json()
-        self.tech.post('/internal/whatsapp/bot/decisions/' + decision['operation_id'] + '/claim',
-                       headers=self.headers, json={})
-        response, _ = self.draft()
-        self.assertEqual(response.status_code, 409, response.text)
-        with self.db() as conn:
-            self.assertEqual(conn.execute('SELECT count(*) FROM socialmei.wa_human_replies').fetchone()[0], 0)
-            self.assertEqual(conn.execute('SELECT state FROM socialmei.wa_bot_conversations').fetchone()[0], 'menu')
-        self.assertFalse(self.sent)
+        base = '/internal/whatsapp/bot/decisions/' + decision['operation_id']
+        self.assertTrue(self.tech.post(base + '/claim', headers=self.headers, json={}).json()['dispatch_allowed'])
+        for status in ('claimed', 'uncertain'):
+            with self.subTest(status=status):
+                if status == 'uncertain':
+                    receipt = self.tech.post(base + '/receipt', headers=self.headers, json={'status': status})
+                    self.assertEqual(receipt.status_code, 200, receipt.text)
+                response, _ = self.draft()
+                self.assertEqual(response.status_code, 409, response.text)
+                with self.db() as conn:
+                    self.assertEqual(conn.execute('SELECT count(*) FROM socialmei.wa_human_replies').fetchone()[0], 0)
+                    self.assertEqual(conn.execute('SELECT state FROM socialmei.wa_bot_conversations').fetchone()[0], 'menu')
+                self.assertFalse(self.sent)
 
     def test_rebound_channel_refuses_send_before_provider(self):
         reply = self.draft()[0].json()

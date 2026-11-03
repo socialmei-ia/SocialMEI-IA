@@ -169,6 +169,28 @@ class SaleIntegrationTests(unittest.TestCase):
         self.assertEqual(self.stock(), 5)
         self.assertEqual(self.client.get("/api/v1/vendas").json(), [])
 
+    def test_optional_customer_preserves_stock_replay_and_explicit_edit(self):
+        payload = self.data()
+        del payload["cliente_id"]
+        response = self.client.post("/api/v1/vendas", json=payload)
+        self.assertEqual(response.status_code, 201, response.text)
+        sale = response.json()
+        self.assertIsNone(sale["cliente_id"])
+        self.assertEqual(sale["cliente"], "Sem cliente")
+        self.assertEqual(self.stock(), 3)
+        replay = self.client.post("/api/v1/vendas", json={**payload, "cliente_id": None})
+        self.assertEqual(replay.status_code, 201, replay.text)
+        self.assertEqual(replay.json()["id"], sale["id"])
+        self.assertEqual(self.stock(), 3)
+        self.assertEqual(len(self.client.get("/api/v1/clientes").json()), 1)
+        edit = {**payload, "operation_id": str(uuid4()), "expected_version": sale["versao"]}
+        self.assertEqual(self.client.patch(f"/api/v1/vendas/{sale['id']}", json=edit).status_code, 422)
+        edited = self.client.patch(f"/api/v1/vendas/{sale['id']}", json={**edit, "cliente_id": None})
+        self.assertEqual(edited.status_code, 200, edited.text)
+        self.assertEqual(self.stock(), 3)
+        self.action(edited.json(), "cancelar")
+        self.assertEqual(self.stock(), 5)
+
     def test_insufficient_stock_and_concurrent_creates_cannot_oversell(self):
         bad = self.client.post("/api/v1/vendas", json=self.data(quantidade=6))
         self.assertEqual(bad.status_code, 409, bad.text)

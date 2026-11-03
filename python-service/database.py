@@ -33,7 +33,7 @@ CRM_SCHEMA_QUERIES = (
         "socialmei.crm_cliente_importacoes LIMIT 0"
     ),
     (
-        "SELECT id, nome, tipo, preco, custo, estoque, minimo, status, versao, criado_em, "
+        "SELECT id, nome, categoria, descricao, tipo, preco, custo, estoque, minimo, status, versao, criado_em, "
         "atualizado_em FROM socialmei.crm_produtos LIMIT 0"
     ),
     (

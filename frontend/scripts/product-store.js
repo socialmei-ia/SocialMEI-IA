@@ -2,7 +2,17 @@
 const SocialMEIProducts = (() => {
   const config = SOCIALMEI_CONFIG.produtos || { mode: "local" };
   const remote = config.mode !== "local";
-  const fields = ["nome", "tipo", "preco", "custo", "estoque", "minimo", "status"];
+  const fields = [
+    "nome",
+    "categoria",
+    "descricao",
+    "tipo",
+    "preco",
+    "custo",
+    "estoque",
+    "minimo",
+    "status",
+  ];
 
   let localProducts = [],
     ready = !remote,

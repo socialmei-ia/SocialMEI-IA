@@ -42,6 +42,9 @@ EXPECTED_MIGRATIONS = (
     "033_provider_sentiment_jobs.sql",
     "034_workspace_agenda.sql",
     "035_whatsapp_human_outbox.sql",
+    "036_service_appointments.sql",
+    "037_catalog_details.sql",
+    "038_inbox_customer_link.sql",
 )
 
 
@@ -70,6 +73,11 @@ def database_status():
             conn.execute(
                 "SELECT source_message_id,text,status,provider_message_id,claimed_at,finished_at FROM socialmei.wa_human_replies LIMIT 0"
             )
+            conn.execute("SELECT duracao_minutos,categoria,descricao FROM socialmei.crm_produtos LIMIT 0")
+            conn.execute("SELECT nome,ativo,revision FROM socialmei.agenda_resources LIMIT 0")
+            conn.execute("SELECT cliente_id,servico_id,resource_id,scheduled_for,ends_at,status,revision FROM socialmei.agenda_appointments LIMIT 0")
+            conn.execute("SELECT appointment_id,revision,status FROM socialmei.agenda_appointment_history LIMIT 0")
+            conn.execute("SELECT cliente_id FROM socialmei.me_conversations LIMIT 0")
             tables = conn.execute(
                 "SELECT to_regclass('socialmei.auth_recuperacoes'),to_regclass('socialmei.auth_sessoes'),to_regclass('socialmei.auth_recuperacao_envios')"
             ).fetchone()

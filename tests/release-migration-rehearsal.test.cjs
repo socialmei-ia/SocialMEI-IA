@@ -1,13 +1,31 @@
 const assert = require("node:assert/strict");
-const { test } = require("node:test");
-const { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } = require("node:fs");
+const { test, after } = require("node:test");
+const {
+  mkdtempSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+  rmSync,
+} = require("node:fs");
 const { tmpdir } = require("node:os");
 const { dirname, join, resolve } = require("node:path");
 const modulePromise = import("../tools/release-migration-rehearsal.mjs");
+const repository = resolve(__dirname, ".."),
+  legacyRoot = mkdtempSync(join(tmpdir(), "socialmei-reviewed035-"));
+mkdirSync(join(legacyRoot, "database/migrations"), { recursive: true });
+for (const name of readdirSync(join(repository, "database/migrations")).filter(
+  (n) => /^\d{3}_.*\.sql$/.test(n) && Number(n.slice(0, 3)) <= 35,
+))
+  writeFileSync(
+    join(legacyRoot, "database/migrations", name),
+    readFileSync(join(repository, "database/migrations", name)),
+  );
+after(() => rmSync(legacyRoot, { recursive: true }));
 
 test("rehearsal is a non-mutating plan by default and exposes exact reviewed profile", async () => {
   const { parseOptions, rehearse } = await modulePromise;
-  const plan = await rehearse(parseOptions([]));
+  const plan = await rehearse(parseOptions([]), legacyRoot);
   assert.equal(plan.mode, "plan");
   assert.equal(plan.profile, "035");
   assert.equal(Object.keys(plan.source_migrations).length, 35);
@@ -58,7 +76,7 @@ test("artifact paths and Docker endpoints cannot target other machines or direct
 
 test("SQL identity normalizes only CRLF and refuses missing migrations", async () => {
   const { migrationManifest, ROOT } = await modulePromise;
-  const original = migrationManifest(),
+  const original = migrationManifest(legacyRoot),
     temp = mkdtempSync(join(tmpdir(), "socialmei-migration35-"));
   try {
     const directory = join(temp, "database/migrations");

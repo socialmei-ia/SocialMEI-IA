@@ -14,15 +14,18 @@ SPEC.loader.exec_module(release)
 
 class CurrentReleaseProfileTests(unittest.TestCase):
     def test_current_rehearsal_accepts_only_reviewed035_bytes(self):
-        files, identity = release.reviewed_migrations()
-        self.assertEqual(identity['profile'], '035')
-        self.assertEqual(len(files), 35)
         with tempfile.TemporaryDirectory() as temporary:
             source = Path(temporary)
-            shutil.copytree(ROOT/'database/migrations', source/'database/migrations')
+            (source/'database/migrations').mkdir(parents=True)
+            for migration in (ROOT/'database/migrations').glob('*.sql'):
+                if migration.name[:3].isdigit() and int(migration.name[:3]) <= 35:
+                    shutil.copyfile(migration, source/'database/migrations'/migration.name)
             (source/'tools').mkdir()
             shutil.copyfile(ROOT/'tools/team-release-profile.py', source/'tools/team-release-profile.py')
             with patch.object(release, 'ROOT', source):
+                files, identity = release.reviewed_migrations()
+                self.assertEqual(identity['profile'], '035')
+                self.assertEqual(len(files), 35)
                 for name in ('001_initial_socialmei_schema.sql', '034_workspace_agenda.sql', '035_whatsapp_human_outbox.sql'):
                     path = source/'database/migrations'/name
                     previous = path.read_bytes()
@@ -34,6 +37,7 @@ class CurrentReleaseProfileTests(unittest.TestCase):
                 last.unlink()
                 with self.assertRaises(RuntimeError):
                     release.reviewed_migrations()
+                shutil.copyfile(ROOT/'database/migrations'/last.name, last)
                 (source/'database/migrations/036_unreviewed.sql').write_text('SELECT 1;\n')
                 with self.assertRaises(RuntimeError):
                     release.reviewed_migrations()

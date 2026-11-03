@@ -102,10 +102,10 @@ window.SocialMEIV22 = (() => {
       ...products.map((p) => [
         p.nome,
         String(p.id),
-        p.tipo,
+        p.categoria || p.tipo,
         p.preco,
         p.status === "Ativo" ? 1 : 0,
-        "",
+        p.descricao || "",
         p.custo,
         p.tipo === "Serviço" ? undefined : p.estoque || 0,
         p.minimo || 0,
@@ -391,7 +391,7 @@ window.SocialMEIV22 = (() => {
       edit ? "Editar produto ou serviço" : "Novo produto ou serviço",
       [
         field("n", "Nome", p?.nome || "", { req: 1 }),
-        field("c", "Categoria", "", { disabled: true }),
+        field("c", "Categoria", p?.categoria || ""),
         field("t", "Tipo", p?.tipo || "Produto", {
           type: "select",
           options: ["Produto", "Serviço"],
@@ -403,16 +403,19 @@ window.SocialMEIV22 = (() => {
         field("k", "Custo (R$)", String(p?.custo || 0).replace(".", ","), { type: "money" }),
         field("e", "Estoque", String(p?.estoque || 0)),
         field("m", "Estoque mínimo", String(p?.minimo || 0)),
-        field("d", "Descrição", "", { type: "textarea", disabled: true }),
+        field("d", "Descrição", p?.descricao || "", { type: "textarea" }),
         field("a", "Disponível", p ? p.status === "Ativo" : true, { type: "check" }),
       ],
       (v) => {
         const product = {
           nome: v.n,
+          categoria: v.c || "",
+          descricao: v.d || "",
           tipo: v.t,
           preco: money(v.p),
           custo: money(v.k || "0"),
           status: v.a ? "Ativo" : "Inativo",
+          ...(v.t === "Produto" && p?.duracao_minutos != null ? { duracao_minutos: null } : {}),
           ...(v.t === "Produto"
             ? { estoque: Number(v.e), minimo: Number(v.m) }
             : { estoque: null, minimo: null }),
@@ -630,15 +633,13 @@ window.SocialMEIV22 = (() => {
       if (k === "cliente") return clientForm();
       if (k === "produto") return productForm();
       if (k === "venda") {
-        if (!data.clients.length || !data.products.length)
-          return toast("Cadastre um cliente e um produto ou serviço primeiro.");
+        if (!data.products.length) return toast("Cadastre um produto ou serviço primeiro.");
         return form(
           "Nova venda",
           [
-            field("c", "Cliente", "", {
+            field("c", "Cliente (opcional)", "", {
               type: "select",
-              options: data.clients.map((c) => c.nome),
-              req: 1,
+              options: ["", ...data.clients.map((c) => c.nome)],
             }),
             field("p", "Produto ou serviço", "", {
               type: "select",
@@ -649,7 +650,7 @@ window.SocialMEIV22 = (() => {
           ],
           (v) => {
             if (
-              data.clients.filter((c) => c.nome === v.c).length !== 1 ||
+              (v.c && data.clients.filter((c) => c.nome === v.c).length !== 1) ||
               data.products.filter((p) => p.nome === v.p).length !== 1
             )
               throw Error("Existem nomes repetidos. Diferencie os cadastros antes de selecionar.");
@@ -657,7 +658,7 @@ window.SocialMEIV22 = (() => {
               "/vendas",
               "POST",
               {
-                cliente_id: data.clients.find((c) => c.nome === v.c).id,
+                cliente_id: v.c ? data.clients.find((c) => c.nome === v.c).id : null,
                 produto_id: data.products.find((p) => p.nome === v.p).id,
                 quantidade: Number(v.q),
                 data: new Date().toLocaleDateString("en-CA"),

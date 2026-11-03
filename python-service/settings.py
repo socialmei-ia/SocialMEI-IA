@@ -188,8 +188,27 @@ def waha_ingress_team_pilot_enabled() -> bool:
     )
 
 
+def waha_workspace_inbox_requested() -> bool:
+    return os.getenv("SOCIALMEI_WAHA_INGRESS_MODE", "disabled").strip().lower() == "workspace-inbox"
+
+
+def waha_ingress_workspace_enabled() -> bool:
+    """Operator-managed receiving only; neither laboratory mode nor sender opt-in."""
+    return (
+        waha_workspace_inbox_requested()
+        and os.getenv("SOCIALMEI_WAHA_WORKSPACE_INBOX_ENABLED", "false").strip().lower() == "true"
+        and os.getenv("SOCIALMEI_WAHA_REGISTRY_FILE", "") == "/run/socialmei/private/waha-registry.json"
+        and shared_data_enabled()
+        and authentication_mode() == "enabled"
+    )
+
+
 def waha_ingress_enabled() -> bool:
-    return waha_ingress_isolated_enabled() or waha_ingress_team_pilot_enabled()
+    return (
+        waha_ingress_isolated_enabled()
+        or waha_ingress_team_pilot_enabled()
+        or waha_ingress_workspace_enabled()
+    )
 
 
 def whatsapp_bot_allowed_contacts():
@@ -212,6 +231,9 @@ def waha_inbox_enabled(workspace_id: int) -> bool:
     return waha_ingress_isolated_enabled() or (
         type(workspace_id) is int and workspace_id == 1
         and waha_ingress_team_pilot_enabled()
+    ) or (
+        type(workspace_id) is int and 1 <= workspace_id <= 2**63 - 1
+        and waha_ingress_workspace_enabled()
     )
 
 
@@ -231,6 +253,8 @@ class WhatsAppHumanConfiguration:
 
 def whatsapp_human_configuration():
     """Server-owned opt-in for one reviewed WhatsApp human sender; never performs I/O."""
+    if waha_workspace_inbox_requested():
+        return None
     if os.getenv('SOCIALMEI_WHATSAPP_HUMAN_SEND_ENABLED', 'false').strip().lower() != 'true':
         return None
     from waha_ingress import DIRECT

@@ -8,6 +8,7 @@
     "test:valter": "node tests/valter-demo-preview.cjs",
     "preview": "node tools/preview.mjs",
     "test:preview": "node tests/v22-preview-browser.cjs",
+    "test:business-preview": "node tests/business-flows-preview.cjs",
     "test": "node --test tests/*.test.cjs",
     "test:browser": "node tests/v22-browser.cjs",
     "format": "prettier --write frontend tools tests *.html *.json .github docs *.md compose*.yaml",
