@@ -45,6 +45,13 @@ MIGRATIONS = {
     "035_whatsapp_human_outbox.sql": "1c319f7da8d94257493d2359b5cb07789598aa3da00ddaaee03476343a4e654b",
 }
 
+# Explicit future profile. Legacy verify()/rehearsal() and MIGRATIONS stay 035-only.
+MIGRATIONS038 = {**MIGRATIONS,
+    '036_service_appointments.sql': 'be5c0138c5663a9d6ed99789d4c5c84052e38a8658bc7a4ada70661b4a9ec893',
+    '037_catalog_details.sql': 'b3b032226da31c4fed40415d565d28250d24fe65918698cb7d52b1a230846b47',
+    '038_inbox_customer_link.sql': '4442c3d48eb7b7b9cfee16ceae078e9515c94623d81011635be7598410ebbb99',
+}
+
 
 def require(ok, code):
     if not ok:
@@ -64,6 +71,37 @@ def verify(names, read):
     hashes = {name: hashlib.sha256(read(name).replace(b'\r\n', b'\n')).hexdigest() for name in names}
     require(hashes == {name: MIGRATIONS[name] for name in names}, 'conteudo_de_migration_divergente')
     return {'profile': version, 'migrations': hashes}
+
+
+def verify038(names, read):
+    require(names == list(MIGRATIONS038), 'perfil_038_nao_revisado')
+    hashes = {name: hashlib.sha256(read(name).replace(b'\r\n', b'\n')).hexdigest() for name in names}
+    require(hashes == MIGRATIONS038, 'conteudo_de_migration_divergente')
+    return {'profile': '038', 'migrations': hashes}
+
+
+def rehearsal038(receipt, sha):
+    require(isinstance(receipt, dict) and receipt.get('profile') == '038'
+            and receipt.get('baseline') == '035' and receipt.get('source_sha') == sha
+            and receipt.get('source_dirty') is False, 'prova_038_de_origem_invalida')
+    require(re.fullmatch(r'[0-9a-f]{40}', str(sha)), 'source_sha_invalido')
+    require(receipt.get('source_migrations') == MIGRATIONS038
+            and receipt.get('baseline_migrations') == MIGRATIONS, 'prova_038_migrations_divergentes')
+    require(all(receipt.get(key) is True for key in (
+        'isolated', 'disposable', 'restored_backup_verified', 'existing_data_preserved',
+        'migration_reapply_verified', 'constraints_verified', 'schema_contract_verified',
+        'original_migrations_unchanged', 'incompatible_state_rejected',
+        'backwards_compatible_reads_verified', 'sequences_preserved',
+        'isolated_cleanup_verified', 'upgraded_backup_restore_verified',
+    )), 'ensaio_038_incompleto')
+    require(all(receipt.get(key) is False for key in (
+        'production_data_used', 'production_runtime_changed', 'provider_messages_sent',
+    )), 'ensaio_038_ambiente_invalido')
+    require(all(re.fullmatch(r'[0-9a-f]{64}', str(receipt.get(key))) for key in (
+        'backup_sha256', 'upgraded_backup_sha256')), 'ensaio_038_backup_invalido')
+    require(re.fullmatch(r'sha256:[0-9a-f]{64}', str(receipt.get('api_image_id')))
+            and receipt.get('api_image_revision') == sha, 'ensaio_038_imagem_invalida')
+    return receipt
 
 
 def rehearsal(receipt, sha):
@@ -93,13 +131,14 @@ def rehearsal(receipt, sha):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source', type=Path, default=Path(__file__).resolve().parents[1])
-    parser.add_argument('--profile', choices=('033', '035'), default='035')
+    parser.add_argument('--profile', choices=('033', '035', '038'), default='035')
     args = parser.parse_args()
     folder = args.source / 'database/migrations'
     require(folder.is_dir() and not folder.is_symlink(), 'pasta_de_migrations_invalida')
     files = sorted(folder.rglob('*.sql'))
     require(all(not file.is_symlink() for file in files), 'migration_simbolica_invalida')
-    result = verify([file.relative_to(folder).as_posix() for file in files], lambda name: (folder / name).read_bytes())
+    validator = verify038 if args.profile == '038' else verify
+    result = validator([file.relative_to(folder).as_posix() for file in files], lambda name: (folder / name).read_bytes())
     require(result['profile'] == args.profile, 'perfil_de_migrations_divergente')
     print(json.dumps(result, indent=2))
 

@@ -28,6 +28,9 @@ on:
       - "tools/team-release-profile.py"
       - "tests/test_team_release_profile.py"
       - "tools/release-migration-rehearsal.mjs"
+      - "tools/release038-migration-rehearsal.mjs"
+      - "tests/test_team_release038_profile.py"
+      - "tests/release038-migration-rehearsal.test.cjs"
       - "tests/release-migration-rehearsal.test.cjs"
 
 permissions:
@@ -54,7 +57,19 @@ jobs:
           test -f python-service/Dockerfile
           test -f deploy/team/Dockerfile
           test -f frontend/socialmei-app.html
-          python3 tools/team-release-profile.py --profile 035
+          python3 - <<'PY'
+          import importlib.util, os
+          from pathlib import Path
+          spec = importlib.util.spec_from_file_location("profile", "tools/team-release-profile.py")
+          profile = importlib.util.module_from_spec(spec); spec.loader.exec_module(profile)
+          folder = Path("database/migrations")
+          names = sorted(p.name for p in folder.glob("*.sql"))
+          verify = profile.verify038 if len(names) == 38 else profile.verify
+          result = verify(names, lambda name: (folder / name).read_bytes())
+          assert result["profile"] in ("035", "038")
+          with open(os.environ["GITHUB_ENV"], "a") as out:
+              out.write("RELEASE_PROFILE=" + result["profile"] + "\n")
+          PY
       - name: Set up Node for the isolated migration and restore rehearsal
         uses: actions/setup-node@v4
         with:
@@ -72,7 +87,9 @@ jobs:
         run: |
           set -euo pipefail
           api_image_id="$(docker image inspect --format '{{.Id}}' "socialmei-v33/team-api:$CANDIDATE_SHA")"
-          node tools/release-migration-rehearsal.mjs --run \
+          rehearsal=tools/release-migration-rehearsal.mjs
+          if [ "$RELEASE_PROFILE" = 038 ]; then rehearsal=tools/release038-migration-rehearsal.mjs; fi
+          node "$rehearsal" --run \
             --source-sha "$CANDIDATE_SHA" \
             --api-image "$api_image_id" \
             --receipt migration-rehearsal.json
@@ -97,8 +114,9 @@ jobs:
           profile = importlib.util.module_from_spec(spec)
           spec.loader.exec_module(profile)
           with open("migration-rehearsal.json") as f:
-              proof = profile.rehearsal(json.load(f), sha)
-          result = {"source_sha": sha, "release_profile": "035", "migration_sha256": profile.MIGRATIONS,
+              verifier = profile.rehearsal038 if os.environ["RELEASE_PROFILE"] == "038" else profile.rehearsal
+              proof = verifier(json.load(f), sha)
+          result = {"source_sha": sha, "release_profile": os.environ["RELEASE_PROFILE"], "migration_sha256": proof["source_migrations"],
                     "migration_rehearsal": proof, "images": {}}
           for service in ("team-api", "team-gateway"):
               tag = f"socialmei-v33/{service}:{sha}"
