@@ -22,7 +22,7 @@ SALE_COLUMNS = "id, cliente_id, produto_id, cliente, item, tipo_item, data, quan
 
 class VendaFields(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
-    cliente_id: int = Field(ge=1, le=MAX_SAFE_ID, strict=True)
+    cliente_id: int | None = Field(ge=1, le=MAX_SAFE_ID, strict=True)
     produto_id: int = Field(ge=1, le=MAX_SAFE_ID, strict=True)
     data: date
     quantidade: int = Field(ge=1, le=MAX_SAFE_ID, strict=True)
@@ -41,6 +41,7 @@ class VendaFields(BaseModel):
 
 
 class VendaCreate(VendaFields):
+    cliente_id: int | None = Field(default=None, ge=1, le=MAX_SAFE_ID, strict=True)
     operation_id: UUID
     status: Literal["Rascunho", "Pendente"] = "Pendente"
 
@@ -125,6 +126,8 @@ def lock_sale(cur, workspace_id, sale_id, version):
 
 
 def linked_client(cur, workspace_id, client_id):
+    if client_id is None:
+        return {"nome": "Sem cliente"}
     cur.execute(
         "SELECT nome FROM socialmei.crm_clientes WHERE workspace_id = %s AND id = %s",
         (workspace_id, client_id),
