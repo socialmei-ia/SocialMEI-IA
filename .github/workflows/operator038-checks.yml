@@ -32,6 +32,7 @@ jobs:
           PYTHONDONTWRITEBYTECODE: "1"
         run: |
           python -m py_compile tools/team-functional038-release.py
+          python -m py_compile tools/team-functional038-backup.py tools/team-restore-schema.py
           python -m unittest discover -s tests -p 'test_team_functional038_*.py' -v
       - name: Confirm pinned application and unchanged migration profile
         run: |
