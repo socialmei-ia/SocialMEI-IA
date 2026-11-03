@@ -163,6 +163,25 @@ class BotDatabaseTests(unittest.TestCase):
         self.assertEqual(self.owner.post(base + '/resume', json={'channel_id': self.channel}).status_code, 204)
         self.assertEqual(self.decide(self.incoming('Hello again')).json()['action'], 'menu')
 
+    def test_sources_drop_superseded_plans_but_preserve_unplanned_messages(self):
+        first = self.decide(self.incoming('Hello')).json()
+        second_mid = self.incoming('2')
+        second = self.decide(second_mid).json()
+        pending_mid = self.incoming('product search')
+        refs = self.tech.get(PATH + '/sources', headers=self.headers).json()['sources']
+        self.assertEqual([r['external_message_id'] for r in refs], [second_mid, pending_mid])
+        base = '/api/v1/whatsapp/bot/conversations/' + str(first['conversation_id'])
+        self.assertEqual(self.owner.post(base + '/pause', json={'channel_id': self.channel}).status_code, 204)
+        refs = self.tech.get(PATH + '/sources', headers=self.headers).json()['sources']
+        self.assertEqual([r['external_message_id'] for r in refs], [pending_mid])
+        self.assertEqual(self.owner.post(base + '/resume', json={'channel_id': self.channel}).status_code, 204)
+        refs = self.tech.get(PATH + '/sources', headers=self.headers).json()['sources']
+        self.assertEqual([r['external_message_id'] for r in refs], [pending_mid])
+        for decision in (first, second):
+            claim = self.tech.post(PATH + '/decisions/' + decision['operation_id'] + '/claim',
+                                   headers=self.headers, json={})
+            self.assertFalse(claim.json()['dispatch_allowed'])
+
     def test_pause_invalidates_unclaimed_decision_and_reports_existing_claim(self):
         first = self.decide(self.incoming('Hello')).json()
         base = '/api/v1/whatsapp/bot/conversations/' + str(first['conversation_id'])
@@ -327,6 +346,16 @@ class BotDatabaseTests(unittest.TestCase):
             self.assertEqual(r.status_code, 200, r.text)
             self.assertEqual(r.json()['status'], 'uncertain')
         self.assertFalse(self.tech.post(path + '/claim', json={}, headers=self.headers).json()['dispatch_allowed'])
+        self.assertEqual(self.tech.get(PATH + '/sources', headers=self.headers).json(), {'sources': []})
+        state = self.owner.get('/api/v1/whatsapp/bot/conversations/' + str(item['conversation_id']) + '/status').json()
+        self.assertFalse(state['claimed_in_flight'])
+        history = self.owner.get('/api/v1/whatsapp/bot/decisions').json()['items']
+        self.assertEqual(history[0]['status'], 'uncertain')
+        self.assertIsNone(history[0]['provider_message_id'])
+        changed = self.tech.post(path + '/receipt', headers=self.headers, json={
+            'status': 'confirmed', 'provider_message_id': 'different-later-receipt',
+        })
+        self.assertEqual(changed.status_code, 409)
 
     def test_stale_event_does_not_invalidate_newer_reply_or_change_menu(self):
         import time
@@ -375,6 +404,9 @@ class BotDatabaseTests(unittest.TestCase):
         response = self.tech.post(path, json={}, headers=self.headers)
         self.assertEqual(response.status_code, 401, response.text)
         token = self.owner.post('/api/v1/whatsapp/bot/access', json={'channel_id': self.channel}).json()['token_once']
+        refs = self.tech.get(PATH + '/sources', headers={'Authorization': 'Bearer ' + token})
+        self.assertEqual(refs.status_code, 200, refs.text)
+        self.assertEqual(refs.json(), {'sources': []})
         response = self.tech.post(path, json={}, headers={'Authorization': 'Bearer ' + token})
         self.assertEqual(response.status_code, 409, response.text)
 
