@@ -150,7 +150,7 @@ DO $$ BEGIN
  IF (SELECT count(*) FROM pg_indexes WHERE schemaname='socialmei' AND indexname IN ('ix_agenda_reminders_workspace_schedule','ix_wa_human_reply_history','ux_wa_human_provider_receipt')) <> 3 THEN RAISE EXCEPTION 'index_contract_invalid'; END IF;
 END $$;
 
-INSERT INTO socialmei.crm_produtos(id,workspace_id,nome,tipo,preco,estoque,minimo,duracao_minutos,categoria,descricao) VALUES(4003,1001,'Servico ficticio 038','Servi?o',50,NULL,NULL,30,'Servicos','Descricao ficticia');
+INSERT INTO socialmei.crm_produtos(id,workspace_id,nome,tipo,preco,estoque,minimo,duracao_minutos,categoria,descricao) VALUES(4003,1001,'Servico ficticio 038','Servi\u00e7o',50,NULL,NULL,30,'Servicos','Descricao ficticia');
 SELECT pg_temp.expect_rejection($q$UPDATE socialmei.crm_produtos SET duracao_minutos=0 WHERE id=4003$q$,'23514');
 SELECT pg_temp.expect_rejection($q$UPDATE socialmei.crm_produtos SET duracao_minutos=30 WHERE id=4001$q$,'23514');
 SELECT pg_temp.expect_rejection($q$UPDATE socialmei.crm_produtos SET categoria=NULL WHERE id=4003$q$,'23502');
