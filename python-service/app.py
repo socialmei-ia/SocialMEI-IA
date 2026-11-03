@@ -47,6 +47,7 @@ from whatsapp_catalog import router as whatsapp_catalog_router
 from whatsapp_bot import router as whatsapp_bot_router
 from instagram_token_maintenance import router as instagram_token_maintenance_router
 from agenda import router as agenda_router
+from appointments import router as appointments_router
 from whatsapp_human_outbox import router as whatsapp_human_router
 
 app = FastAPI(title="SocialME Python Service", lifespan=runtime_lifespan)
@@ -60,6 +61,7 @@ app.include_router(whatsapp_catalog_router)
 app.include_router(whatsapp_bot_router)
 app.include_router(instagram_token_maintenance_router)
 app.include_router(agenda_router)
+app.include_router(appointments_router)
 app.include_router(whatsapp_human_router)
 app.add_middleware(AccountMiddleware)
 cors_origins = configured_cors_origins()

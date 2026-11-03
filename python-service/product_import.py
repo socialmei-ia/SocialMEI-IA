@@ -49,6 +49,9 @@ class ImportBatch(BaseModel):
 
 def snapshot_and_hash(item):
     snapshot = item.model_dump(mode="json")
+    # Adding optional metadata must not invalidate receipts from older clients.
+    if snapshot["produto"].get("duracao_minutos") is None:
+        snapshot["produto"].pop("duracao_minutos", None)
     canonical = json.dumps(
         snapshot, sort_keys=True, separators=(",", ":"), allow_nan=False
     )

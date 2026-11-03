@@ -61,6 +61,12 @@
   if (auth.remote) {
     const agenda = document.createElement("script");
     agenda.src = "scripts/v22-agenda.js";
+    agenda.onload = () => {
+      const appointments = document.createElement("script");
+      appointments.src = "scripts/v22-appointments.js";
+      appointments.onerror = () => console.warn("Agendamentos de serviços indisponíveis.");
+      document.body.appendChild(appointments);
+    };
     agenda.onerror = () => console.warn("Agenda compartilhada indisponível.");
     document.body.appendChild(agenda);
     const knowledge = document.createElement("script");

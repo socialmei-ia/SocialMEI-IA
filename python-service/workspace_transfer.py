@@ -157,6 +157,9 @@ def require_team():
 def packet_fingerprint(packet):
     # Timestamp de exportação não cria um dataset novo quando a fonte não mudou.
     data = packet.model_dump(mode="json", exclude={"exportado_em"})
+    for product in data["produtos"]:
+        if product.get("duracao_minutos") is None:
+            product.pop("duracao_minutos", None)
     for name in ["clientes", "produtos", "vendas", "financeiro"]:
         data[name].sort(key=lambda r: r["id"])
     return hashlib.sha256(

@@ -39,6 +39,7 @@ class ProdutoFields(BaseModel):
     estoque: int | None = Field(default=None, ge=0, le=MAX_SAFE_ID, strict=True)
     minimo: int | None = Field(default=None, ge=0, le=MAX_SAFE_ID, strict=True)
     status: str | None = Field(default=None, min_length=1, max_length=30)
+    duracao_minutos: int | None = Field(default=None, ge=1, le=1440, strict=True)
 
 
 class ProductSnapshot(ProdutoFields):
@@ -50,6 +51,8 @@ class ProductSnapshot(ProdutoFields):
 
     @model_validator(mode="after")
     def inventory_matches_type(self):
+        if self.tipo != "Serviço" and self.duracao_minutos is not None:
+            raise ValueError("Somente serviços possuem duração.")
         for key in ("estoque", "minimo"):
             value = getattr(self, key)
             if self.tipo == "Serviço" and value is not None:
@@ -98,7 +101,7 @@ class EstoqueUpdate(BaseModel):
         return self
 
 
-PRODUCT_COLUMNS = "id, nome, tipo, preco, custo, estoque, minimo, status, versao, criado_em, atualizado_em"
+PRODUCT_COLUMNS = "id, nome, tipo, preco, custo, estoque, minimo, status, duracao_minutos, versao, criado_em, atualizado_em"
 
 
 def insert_product(cur, workspace_id, product):

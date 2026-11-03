@@ -405,6 +405,7 @@
     if (s.phase === "ready" && !s.items.filter((item) => item.status !== "cancelled").length)
       section.append(element("p", "Nenhum lembrete neste período."));
     view.replaceChildren(section);
+    document.dispatchEvent(new Event("socialmei-agenda-painted"));
   }
   function mount() {
     if (!active()) return;
