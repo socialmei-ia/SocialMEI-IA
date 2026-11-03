@@ -633,15 +633,13 @@ window.SocialMEIV22 = (() => {
       if (k === "cliente") return clientForm();
       if (k === "produto") return productForm();
       if (k === "venda") {
-        if (!data.clients.length || !data.products.length)
-          return toast("Cadastre um cliente e um produto ou serviço primeiro.");
+        if (!data.products.length) return toast("Cadastre um produto ou serviço primeiro.");
         return form(
           "Nova venda",
           [
-            field("c", "Cliente", "", {
+            field("c", "Cliente (opcional)", "", {
               type: "select",
-              options: data.clients.map((c) => c.nome),
-              req: 1,
+              options: ["", ...data.clients.map((c) => c.nome)],
             }),
             field("p", "Produto ou serviço", "", {
               type: "select",
@@ -652,7 +650,7 @@ window.SocialMEIV22 = (() => {
           ],
           (v) => {
             if (
-              data.clients.filter((c) => c.nome === v.c).length !== 1 ||
+              (v.c && data.clients.filter((c) => c.nome === v.c).length !== 1) ||
               data.products.filter((p) => p.nome === v.p).length !== 1
             )
               throw Error("Existem nomes repetidos. Diferencie os cadastros antes de selecionar.");
@@ -660,7 +658,7 @@ window.SocialMEIV22 = (() => {
               "/vendas",
               "POST",
               {
-                cliente_id: data.clients.find((c) => c.nome === v.c).id,
+                cliente_id: v.c ? data.clients.find((c) => c.nome === v.c).id : null,
                 produto_id: data.products.find((p) => p.nome === v.p).id,
                 quantidade: Number(v.q),
                 data: new Date().toLocaleDateString("en-CA"),
