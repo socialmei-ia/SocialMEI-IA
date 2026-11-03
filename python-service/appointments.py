@@ -125,6 +125,16 @@ def lock_resource(conn, workspace_id, resource_id, require_active=True):
     return row
 
 
+def lock_workspace(conn, workspace_id):
+    # Catalog/client writes lock workspace before their rows. Take the FK lock
+    # first too, so a concurrent edit cannot form a workspace/product deadlock.
+    if not conn.execute(
+        "SELECT id FROM socialmei.workspaces WHERE id=%s FOR KEY SHARE",
+        (workspace_id,),
+    ).fetchone():
+        raise HTTPException(403, "Negócio indisponível.")
+
+
 def service(conn, workspace_id, service_id):
     row = conn.execute(
         "SELECT nome,preco,duracao_minutos FROM socialmei.crm_produtos "
@@ -175,6 +185,7 @@ def create_resource(payload: ResourceCreate):
     value = fingerprint(payload)
     with connect() as conn:
         configure(conn)
+        lock_workspace(conn, user["workspace_id"])
         conn.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s,0))", (f"agenda-resource:{user['workspace_id']}:{payload.operation_id}",))
         previous = conn.execute(f"SELECT {RESOURCE_COLUMNS},creation_fingerprint FROM socialmei.agenda_resources WHERE workspace_id=%s AND id=%s", (user["workspace_id"], payload.operation_id)).fetchone()
         if previous:
@@ -190,6 +201,7 @@ def update_resource(resource_id: UUID, payload: ResourceUpdate):
     user = identity(write=True)
     with connect() as conn:
         configure(conn)
+        lock_workspace(conn, user["workspace_id"])
         row = lock_resource(conn, user["workspace_id"], resource_id, False)
         if row["revision"] != payload.expected_revision or row["revision"] >= MAX_SAFE_ID:
             raise HTTPException(409, "O recurso mudou. Recarregue antes de salvar.")
@@ -219,6 +231,7 @@ def create_appointment(payload: AppointmentCreate):
     value = fingerprint(payload)
     with connect() as conn:
         configure(conn)
+        lock_workspace(conn, user["workspace_id"])
         conn.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s,0))", (f"appointment:{user['workspace_id']}:{payload.operation_id}",))
         previous = conn.execute(f"SELECT {APPOINTMENT_COLUMNS},creation_fingerprint FROM socialmei.agenda_appointments WHERE workspace_id=%s AND id=%s", (user["workspace_id"], payload.operation_id)).fetchone()
         if previous:
@@ -280,6 +293,7 @@ def update_appointment(appointment_id: UUID, payload: AppointmentUpdate):
     user = identity(write=True)
     with connect() as conn:
         configure(conn)
+        lock_workspace(conn, user["workspace_id"])
         row = conn.execute("SELECT resource_id FROM socialmei.agenda_appointments WHERE workspace_id=%s AND id=%s", (user["workspace_id"], appointment_id)).fetchone()
         if not row:
             raise HTTPException(404, "Agendamento não encontrado.")

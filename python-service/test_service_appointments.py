@@ -6,6 +6,8 @@ import json
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from uuid import uuid4
+from threading import Event
+from unittest.mock import patch
 
 import psycopg
 from pydantic import ValidationError
@@ -140,6 +142,32 @@ class AppointmentDatabaseTests(unittest.TestCase):
         self.assertEqual(len(self.client.get(url+"/history").json()["items"]),1)
         self.assertEqual(self.client.post(PATH+"/appointments",json={**payload,"notes":"Different"}).status_code,409)
 
+    def test_booking_locks_workspace_before_catalog_rows(self):
+        # Catalog writes lock workspace then product. Booking must use that order
+        # before acquiring product SHARE and inserting its workspace foreign key.
+        product_locked, release = Event(), Event()
+        original = appointments.service
+
+        def hold_product(*args):
+            item = original(*args)
+            product_locked.set()
+            if not release.wait(5):
+                raise RuntimeError("test_timeout")
+            return item
+
+        with patch("appointments.service", side_effect=hold_product), ThreadPoolExecutor(max_workers=1) as pool:
+            pending = pool.submit(self.client.post, PATH+"/appointments", json=self.payload())
+            try:
+                self.assertTrue(product_locked.wait(5))
+                with psycopg.connect(accounts.DB) as conn:
+                    conn.execute("SET LOCAL lock_timeout='100ms'")
+                    with self.assertRaises(psycopg.errors.LockNotAvailable):
+                        conn.execute("SELECT id FROM socialmei.workspaces WHERE id=%s FOR UPDATE", (self.client.identity["negocio"]["id"],))
+            finally:
+                release.set()
+            response = pending.result(timeout=10)
+            self.assertEqual(response.status_code,201,response.text)
+
     def test_workspace_client_service_resource_and_history_isolation(self):
         row = self.post(PATH+"/appointments", self.payload())
         other = self.register("other-sorria@example.test")
@@ -197,6 +225,15 @@ class AppointmentDatabaseTests(unittest.TestCase):
         self.assertEqual(self.client.patch(url,json={"expected_revision":1,"ativo":False}).status_code,409)
         for query in ("?from_date=2026-12-01&to_date=2026-11-01","?from_date=2025-01-01&to_date=2026-11-01","?from_date=9999-12-31&to_date=9999-12-31"):
             self.assertEqual(self.client.get(PATH+"/appointments"+query).status_code,422)
+
+    def test_service_to_product_requires_clearing_service_duration(self):
+        url="/api/v1/produtos/"+str(self.service["id"])
+        payload={"expected_version":self.service["versao"],"tipo":"Produto","estoque":4,"minimo":1}
+        self.assertEqual(self.client.patch(url,json=payload).status_code,422)
+        changed=self.client.patch(url,json={**payload,"duracao_minutos":None})
+        self.assertEqual(changed.status_code,200,changed.text)
+        self.assertIsNone(changed.json()["duracao_minutos"])
+        self.assertEqual((changed.json()["tipo"],changed.json()["estoque"]),("Produto",4))
 
 
 if __name__ == "__main__":
