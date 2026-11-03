@@ -18,6 +18,7 @@ class CatalogDetailsValidationTests(unittest.TestCase):
         for product in old["produtos"]:
             product.pop("categoria")
             product.pop("descricao")
+            product.pop("duracao_minutos")
         for name in ("clientes", "produtos", "vendas", "financeiro"):
             old[name].sort(key=lambda row: row["id"])
         fingerprint = hashlib.sha256(json.dumps(
@@ -33,6 +34,7 @@ class CatalogDetailsValidationTests(unittest.TestCase):
         old = item.model_dump(mode="json")
         old["produto"].pop("categoria")
         old["produto"].pop("descricao")
+        old["produto"].pop("duracao_minutos")
         fingerprint = hashlib.sha256(
             json.dumps(old, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
         ).hexdigest()

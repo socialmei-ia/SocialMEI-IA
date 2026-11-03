@@ -415,6 +415,7 @@ window.SocialMEIV22 = (() => {
           preco: money(v.p),
           custo: money(v.k || "0"),
           status: v.a ? "Ativo" : "Inativo",
+          ...(v.t === "Produto" && p?.duracao_minutos != null ? { duracao_minutos: null } : {}),
           ...(v.t === "Produto"
             ? { estoque: Number(v.e), minimo: Number(v.m) }
             : { estoque: null, minimo: null }),

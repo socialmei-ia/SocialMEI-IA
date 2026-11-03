@@ -32,6 +32,8 @@ class AppointmentValidationTests(unittest.TestCase):
         snapshot, digest = snapshot_and_hash(item)
         legacy = item.model_dump(mode="json")
         legacy["produto"].pop("duracao_minutos")
+        legacy["produto"].pop("categoria")
+        legacy["produto"].pop("descricao")
         expected = hashlib.sha256(json.dumps(legacy,sort_keys=True,separators=(",",":"),allow_nan=False).encode()).hexdigest()
         self.assertEqual(digest,expected)
         self.assertNotIn("duracao_minutos",snapshot["produto"])
@@ -41,6 +43,8 @@ class AppointmentValidationTests(unittest.TestCase):
         legacy_packet = packet.model_dump(mode="json",exclude={"exportado_em"})
         for product in legacy_packet["produtos"]:
             product.pop("duracao_minutos")
+            product.pop("categoria")
+            product.pop("descricao")
         for name in ("clientes","produtos","vendas","financeiro"):
             legacy_packet[name].sort(key=lambda r:r["id"])
         expected = hashlib.sha256(json.dumps(legacy_packet,sort_keys=True,ensure_ascii=False,separators=(",",":"),allow_nan=False).encode()).hexdigest()

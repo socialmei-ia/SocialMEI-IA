@@ -100,6 +100,21 @@ module.exports = async function (browser, origin) {
       assert.equal(await page.locator("#f_e").inputValue(), "5");
       await page.keyboard.press("Escape");
       assert.equal(writes.length, 2);
+      products = [
+        { ...products[0], tipo: "Serviço", estoque: null, minimo: null, duracao_minutos: 45 },
+      ];
+      await page.reload();
+      await page.locator("tr[data-a='prod:0']").click();
+      await page.getByRole("button", { name: "Editar produto", exact: true }).click();
+      await page.locator("#f_t").selectOption("Produto");
+      await page.locator("#f_e").fill("5");
+      await page.locator("dialog button[type=submit]").click();
+      await page.locator("dialog").waitFor({ state: "hidden" });
+      assert.equal(
+        writes[2].duracao_minutos,
+        null,
+        "Changing service into product clears incompatible duration",
+      );
       assert.deepEqual(errors, []);
       assert.deepEqual(external, []);
     } finally {
