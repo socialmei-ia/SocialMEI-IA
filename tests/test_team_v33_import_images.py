@@ -299,7 +299,7 @@ class ImportImagesTests(unittest.TestCase):
         source.mkdir(parents=True)
         proof = {
             "candidate_sha": sha,
-            "candidate_branch": "feat/team-release-candidate-stage-20261030",
+            "candidate_branch": "feat/public-seo-discovery-consent-20261031",
             "stage_source": str(source),
             "stage_clean": True,
             "checkout_original_preservado": True,
@@ -321,7 +321,16 @@ class ImportImagesTests(unittest.TestCase):
             raise AssertionError(argv)
 
         with patch.object(importer, "command", side_effect=git_response):
-            importer.valid_stage(sha)
+            for branch in (
+                "feat/whatsapp-bot-readonly-preview-20261030",
+                "feat/team-release-candidate-stage-20261030",
+                "feat/public-seo-discovery-consent-20261031",
+            ):
+                with self.subTest(branch=branch):
+                    receipt_path.write_text(json.dumps({**proof, "candidate_branch": branch}),
+                                            encoding="utf-8")
+                    importer.valid_stage(sha)
+            receipt_path.write_text(json.dumps(proof), encoding="utf-8")
             with patch.object(importer, "local_image_status", return_value={
                 "team-api": False, "team-gateway": False
             }), patch.object(importer, "docker",

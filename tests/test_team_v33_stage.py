@@ -107,6 +107,7 @@ class ReleaseStageTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             folder = Path(tmp) / "private"
             folder.mkdir(mode=0o755)
+            folder.chmod(0o755)
             with self.assertRaises(RuntimeError):
                 stage.private_root(folder)
             folder.chmod(0o700)
@@ -114,9 +115,17 @@ class ReleaseStageTests(unittest.TestCase):
 
 
     def test_candidate_branch_requires_exact_remote_head_and_release_ancestry(self):
+        for branch in (
+            "feat/whatsapp-bot-readonly-preview-20261030",
+            "feat/team-release-candidate-stage-20261030",
+            "feat/public-seo-discovery-consent-20261031",
+        ):
+            with self.subTest(branch=branch):
+                self.assert_candidate_branch_guards(branch)
+
+    def assert_candidate_branch_guards(self, branch):
         sha = "8" * 40
         calls = []
-        branch = "feat/team-release-candidate-stage-20261030"
         tracking = "refs/remotes/origin/" + branch
 
         def git(*args, **kwargs):
@@ -172,6 +181,17 @@ class ReleaseStageTests(unittest.TestCase):
 
         with patch.object(stage, "git", side_effect=altered_migrations):
             with self.assertRaisesRegex(RuntimeError, "migrations_da_release_modificadas"):
+                stage.ensure_git_object(
+                    Path("/tmp/fixture"), sha, candidate_branch=branch
+                )
+
+        def unrelated_candidate(*args, **kwargs):
+            if args[1:3] == ("merge-base", "--is-ancestor"):
+                raise RuntimeError("comando_falhou")
+            return git(*args, **kwargs)
+
+        with patch.object(stage, "git", side_effect=unrelated_candidate):
+            with self.assertRaisesRegex(RuntimeError, "comando_falhou"):
                 stage.ensure_git_object(
                     Path("/tmp/fixture"), sha, candidate_branch=branch
                 )

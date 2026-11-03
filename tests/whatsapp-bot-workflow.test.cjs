@@ -69,3 +69,32 @@ test("WhatsApp receipt never guesses success without provider identity", () => {
     assert.equal(code("Validar recibo", { id })[0].json.status, "uncertain");
   assert.equal(code("Validar recibo", { id: "true_222@c.us_123" })[0].json.status, "confirmed");
 });
+
+test("only the WAHA send error continues to an uncertain receipt without retry", () => {
+  const send = find("Enviar uma vez WAHA");
+  assert.equal(send.onError, "continueRegularOutput");
+  assert.equal(send.retryOnFail, false);
+  assert.equal(send.parameters.options.response?.response?.neverError, undefined);
+  assert.equal(workflow.connections[send.name].main[0][0].node, "Validar recibo");
+  assert.equal(workflow.connections["Validar recibo"].main[0][0].node, "Registrar recibo");
+  for (const node of workflow.nodes.filter((node) => node !== send)) {
+    assert.equal(node.onError, undefined, node.name + " must still stop on error");
+    assert.notEqual(node.continueOnFail, true);
+  }
+  const receipt = find("Registrar recibo");
+  assert.match(receipt.parameters.url, /\$\('Preparar resposta'\)\.item\.json\.operation_id/);
+  assert.equal(receipt.parameters.jsonBody, "={{ $json }}");
+  for (const error of [
+    "ETIMEDOUT: private-provider-details",
+    { message: "HTTP 500 private payload", httpCode: "500" },
+    { message: "HTTP 401 credential rejected" },
+  ]) {
+    // A transport error wins even if a response/error envelope contains an ID.
+    const out = code("Validar recibo", { error, id: "true_222@c.us_123" });
+    assert.equal(JSON.stringify(out), JSON.stringify([{ json: { status: "uncertain" } }]));
+  }
+  assert.equal(
+    code("Validar recibo", { id: { _serialized: "true_222@c.us_valid" } })[0].json.status,
+    "confirmed",
+  );
+});
