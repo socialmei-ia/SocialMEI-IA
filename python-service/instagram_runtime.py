@@ -227,7 +227,7 @@ def runtime_service(request, capability):
 def whatsapp_readiness(workspace_id):
     """Describe private WAHA receiving configuration, not the live WAHA session.
 
-    Only the pilot workspace can inspect the registered channel. Validate the same
+    Only the authenticated workspace can inspect its channels. Validate the same
     immutable binding and database fields that inbound webhook persistence uses.
     Missing/private/inconsistent state fails closed without exposing registry data.
     """
@@ -243,47 +243,49 @@ def whatsapp_readiness(workspace_id):
             "waha_engine_hmac_homologation",
         ],
     }
-    if (
-        type(workspace_id) is not int
-        or workspace_id != 1
-        or not settings.waha_ingress_team_pilot_enabled()
-    ):
+    pilot = settings.waha_ingress_team_pilot_enabled()
+    workspace_mode = settings.waha_ingress_workspace_enabled()
+    if (type(workspace_id) is not int or not 1 <= workspace_id <= 2**63 - 1
+            or not (pilot or workspace_mode) or (pilot and workspace_id != 1)):
         return result
     try:
         from waha_ingress import waha_service
 
         registry = waha_service().registry
-        if len(registry) != 1:
-            return result
-        binding = registry.get("socialmei-equipe-piloto")
-        if (
-            binding is None
-            or binding.workspace_id != workspace_id
-            or binding.instance != "socialmei-equipe-piloto"
-            or not binding.account_id.endswith("5976@c.us")
-        ):
-            return result
+        if pilot:
+            binding = registry.get("socialmei-equipe-piloto")
+            if (len(registry) != 1 or binding is None
+                    or binding.workspace_id != 1
+                    or binding.instance != "socialmei-equipe-piloto"
+                    or not binding.account_id.endswith("5976@c.us")):
+                return result
+            bindings = [binding]
+        else:
+            bindings = [b for b in registry.values() if b.workspace_id == workspace_id]
+            if not bindings:
+                return result
 
         with connect() as conn:
             conn.execute("SET TRANSACTION READ ONLY")
             conn.execute("SET LOCAL statement_timeout='2s'")
-            registered = conn.execute(
-                "SELECT 1 FROM socialmei.crm_canais "
-                "WHERE workspace_id=%s AND id=%s AND instancia=%s "
-                "AND sessao=%s AND identificador_conta=%s "
-                "AND ingress_provisioned AND ativo AND NOT envio_habilitado "
-                "AND versao=%s",
-                (
-                    workspace_id,
-                    binding.channel_id,
-                    binding.instance,
-                    binding.session,
-                    binding.account_id,
-                    binding.revision,
-                ),
-            ).fetchone()
-        if not registered:
-            return result
+            for binding in bindings:
+                registered = conn.execute(
+                    "SELECT 1 FROM socialmei.crm_canais "
+                    "WHERE workspace_id=%s AND id=%s AND instancia=%s "
+                    "AND sessao=%s AND identificador_conta=%s "
+                    "AND ingress_provisioned AND ativo AND NOT envio_habilitado "
+                    "AND versao=%s",
+                    (
+                        workspace_id,
+                        binding.channel_id,
+                        binding.instance,
+                        binding.session,
+                        binding.account_id,
+                        binding.revision,
+                    ),
+                ).fetchone()
+                if not registered:
+                    return result
     except Exception:
         # A failing DB/private mount must never become a green integration state.
         return result
