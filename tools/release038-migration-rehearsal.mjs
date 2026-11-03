@@ -168,11 +168,12 @@ SELECT pg_temp.expect_rejection($q$UPDATE socialmei.agenda_appointments SET stat
 INSERT INTO socialmei.agenda_appointment_history(workspace_id,appointment_id,revision,scheduled_for,ends_at,status) SELECT workspace_id,id,revision,scheduled_for,ends_at,status FROM socialmei.agenda_appointments;
 SELECT pg_temp.expect_rejection($q$UPDATE socialmei.agenda_appointment_history SET workspace_id=1002$q$,'23503');
 SELECT pg_temp.expect_rejection($q$UPDATE socialmei.me_conversations SET cliente_id=3002 WHERE id=6001$q$,'23503');
+CREATE TEMP TABLE contact_revision_before ON COMMIT DROP AS SELECT revision FROM socialmei.me_conversations WHERE id=6001;
 UPDATE socialmei.me_conversations SET cliente_id=3001 WHERE id=6001;
-DO $$ BEGIN IF (SELECT revision FROM socialmei.me_conversations WHERE id=6001)<>2 THEN RAISE EXCEPTION 'customer_link_revision_missing'; END IF; END $$;
+DO $$ BEGIN IF (SELECT revision FROM socialmei.me_conversations WHERE id=6001)<>(SELECT revision+1 FROM contact_revision_before) THEN RAISE EXCEPTION 'customer_link_revision_missing'; END IF; END $$;
 DELETE FROM socialmei.crm_clientes WHERE id=3001;
 DO $$ BEGIN
- IF NOT EXISTS(SELECT 1 FROM socialmei.me_conversations WHERE id=6001 AND cliente_id IS NULL AND revision=3) THEN RAISE EXCEPTION 'customer_unlink_revision_missing'; END IF;
+ IF NOT EXISTS(SELECT 1 FROM socialmei.me_conversations WHERE id=6001 AND cliente_id IS NULL AND revision=(SELECT revision+2 FROM contact_revision_before)) THEN RAISE EXCEPTION 'customer_unlink_revision_missing'; END IF;
  IF (SELECT count(*) FROM pg_tables WHERE schemaname='socialmei')<>74 THEN RAISE EXCEPTION '038_table_count_invalid'; END IF;
  IF (SELECT count(*) FROM pg_indexes WHERE schemaname='socialmei' AND indexname IN ('ix_appointments_resource_schedule','ix_me_conversation_customer'))<>2 THEN RAISE EXCEPTION '038_indexes_missing'; END IF;
 END $$;
