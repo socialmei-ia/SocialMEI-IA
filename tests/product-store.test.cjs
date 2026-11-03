@@ -121,3 +121,28 @@ test("catalog rejects malformed inventory and accepts service without stock", as
   assert(await service.store.refresh());
   assert.equal(service.appData.produtos[0].estoque, null);
 });
+
+test("legacy catalog rows stay readable while category and description updates reach the API", async () => {
+  let sent;
+  const ctx = setup(async (url, options) => {
+    if (options.method === "GET") return reply([product]);
+    sent = JSON.parse(options.body);
+    return reply({ ...product, ...sent, versao: 2 });
+  });
+  await ctx.store.refresh();
+  assert.equal(ctx.appData.produtos[0].categoria, undefined);
+  const saved = await ctx.store.update(ctx.appData.produtos[0], {
+    categoria: "Moda",
+    descricao: "",
+    status: "Inativo",
+  });
+  assert.deepEqual(sent, {
+    categoria: "Moda",
+    descricao: "",
+    status: "Inativo",
+    expected_version: 1,
+  });
+  assert.equal(saved.categoria, "Moda");
+  assert.equal(saved.descricao, "");
+  assert.equal(saved.estoque, 5);
+});
