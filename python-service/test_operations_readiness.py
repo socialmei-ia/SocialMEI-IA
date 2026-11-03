@@ -49,7 +49,7 @@ class DiagnosticsTests(unittest.TestCase):
         body = result.json()
         self.assertEqual(body["release_sha"], "a" * 40)
         self.assertEqual(body["database"]["status"], "ready")
-        self.assertEqual(body["database"]["expected_migrations"], 35)
+        self.assertEqual(body["database"]["expected_migrations"], 38)
         self.assertEqual(body["providers"]["n8n"], "not_verified")
         self.assertNotIn("secret-do-not-expose", result.text)
         self.assertEqual(result.headers["cache-control"], "no-store")
@@ -68,6 +68,33 @@ class DiagnosticsTests(unittest.TestCase):
                 finally:
                     with psycopg.connect(accounts.DB) as conn:
                         conn.execute('ALTER TABLE socialmei.readiness_hidden RENAME TO ' + table)
+
+    def test_missing_038_tables_and_columns_never_report_ready(self):
+        import psycopg
+
+        for table in ('agenda_resources', 'agenda_appointments', 'agenda_appointment_history'):
+            with self.subTest(table=table):
+                with psycopg.connect(accounts.DB) as conn:
+                    conn.execute('ALTER TABLE socialmei.' + table + ' RENAME TO readiness_hidden')
+                try:
+                    response = self.admin_client.get('/api/v1/admin/diagnostics')
+                    self.assertEqual(response.status_code, 200)
+                    self.assertEqual(response.json()['database']['status'], 'unavailable')
+                finally:
+                    with psycopg.connect(accounts.DB) as conn:
+                        conn.execute('ALTER TABLE socialmei.readiness_hidden RENAME TO ' + table)
+        for table, column in (('crm_produtos', 'duracao_minutos'), ('crm_produtos', 'categoria'),
+                              ('crm_produtos', 'descricao'), ('me_conversations', 'cliente_id')):
+            with self.subTest(table=table, column=column):
+                with psycopg.connect(accounts.DB) as conn:
+                    conn.execute('ALTER TABLE socialmei.' + table + ' RENAME COLUMN ' + column + ' TO readiness_hidden')
+                try:
+                    response = self.admin_client.get('/api/v1/admin/diagnostics')
+                    self.assertEqual(response.status_code, 200)
+                    self.assertEqual(response.json()['database']['status'], 'unavailable')
+                finally:
+                    with psycopg.connect(accounts.DB) as conn:
+                        conn.execute('ALTER TABLE socialmei.' + table + ' RENAME COLUMN readiness_hidden TO ' + column)
 
     def test_missing_queue_schema_never_reports_ready(self):
         import psycopg
