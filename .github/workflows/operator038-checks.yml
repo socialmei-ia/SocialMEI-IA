@@ -1,0 +1,50 @@
+name: Operator038 safety checks (no production access)
+
+on:
+  pull_request:
+    branches: [release/functional-businesses-20261103]
+    paths:
+      - ".github/workflows/operator038-checks.yml"
+      - "tools/team-functional038-release.py"
+      - "tools/team-functional038-backup.py"
+      - "tools/team-restore-schema.py"
+      - "tests/test_team_functional038_*.py"
+
+permissions:
+  contents: read
+
+jobs:
+  safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact operator source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile operator and run negative recovery gates
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          python -m py_compile tools/team-functional038-release.py
+          python -m unittest discover -s tests -p 'test_team_functional038_*.py' -v
+      - name: Confirm pinned application and unchanged migration profile
+        run: |
+          python - <<'PY'
+          import importlib.util
+          from pathlib import Path
+          spec = importlib.util.spec_from_file_location("operator038", "tools/team-functional038-release.py")
+          operator = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(operator)
+          assert operator.BASE_SHA == "266e59b6a766c07f60c83b7b3053b33fc91cc135"
+          assert operator.CANDIDATE_SHA == "a4720f8b7ea98a67cb40b7b3208acdd7e8bcd510"
+          folder = Path("database/migrations")
+          operator.profile.verify038(sorted(p.name for p in folder.glob("*.sql")),
+                                     lambda name: (folder / name).read_bytes())
+          print("Application a472/038 pinned; this PR does not build or deploy application images")
+          PY
