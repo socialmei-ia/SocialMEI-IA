@@ -106,6 +106,8 @@ class WahaEvent:
 
     @property
     def contact_name(self):
+        if re.fullmatch(r"[1-9][0-9]{7,14}@c\.us", self.sender):
+            return "+" + self.sender.removesuffix("@c.us")
         return "Contato do WhatsApp"
 
     @property
@@ -379,6 +381,17 @@ class WahaIngressService:
                             incoming.fingerprint,
                             origin="waha",
                         )
+                        if not message["replayed"] and incoming.contact_name != "Contato do WhatsApp":
+                            # This append already increments the conversation revision. Only
+                            # upgrade the generic label; preserve human names and opaque LIDs.
+                            conn.execute(
+                                "UPDATE socialmei.me_conversations SET contact_name=%s "
+                                "WHERE workspace_id=%s AND id=%s AND origin='waha' "
+                                "AND account_ref=%s AND contact_ref=%s "
+                                "AND contact_name='Contato do WhatsApp'",
+                                (incoming.contact_name, binding.workspace_id,
+                                 message["conversation_id"], incoming.account_ref, incoming.contact_ref),
+                            )
                     status = "processado" if message else "ignorado"
                     conn.execute(
                         "INSERT INTO socialmei.crm_eventos_canal(workspace_id,canal_id,chave_evento,tipo,fingerprint,mensagem_externa_id,status,ocorrida_em,processado_em,waha_account_snapshot,waha_event_key,inbox_message_id,inbox_origin) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,NOW(),%s,%s,%s,'waha')",

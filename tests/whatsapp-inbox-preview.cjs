@@ -17,6 +17,15 @@ module.exports = async function (browser, origin, fixture) {
       contexts.push(ctx);
       const marker = await ctx.request.get(origin + "/__preview");
       assert.equal((await marker.json()).environment, "local-disposable-preview");
+      let ready = false;
+      for (let attempt = 0; attempt < 30; attempt++) {
+        if ((await ctx.request.get(origin + "/health/db")).status() === 200) {
+          ready = true;
+          break;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+      assert(ready, "Disposable API/database must be ready before registering fixtures");
       const registered = await ctx.request.post(origin + "/api/v1/auth/register", {
         headers: { Origin: origin, "X-SocialMEI-Client": "browser" },
         data: {
@@ -62,7 +71,13 @@ module.exports = async function (browser, origin, fixture) {
     }
     const timestamp_ms = Date.now(),
       mid = "same-mid-" + randomUUID();
-    const base = { action: "emit", timestamp_ms, mid, text: "Mensagem ficticia negocio A" };
+    const base = {
+      action: "emit",
+      timestamp_ms,
+      mid,
+      text: "Mensagem ficticia negocio A",
+      sender: "5581990001234@c.us",
+    };
     assert.equal(
       (await fixture({ ...base, workspace_id: owners[0].workspace, tamper: true })).status,
       403,
@@ -105,6 +120,7 @@ module.exports = async function (browser, origin, fixture) {
     assert.equal(a.items.length, 1);
     await owners[0].page.evaluate((id) => go("/caixa/me-" + id), a.items[0].id);
     await owners[0].page.locator(".ct .ms .bb", { hasText: base.text }).waitFor();
+    assert.equal(await owners[0].page.locator(".ct .hd b").first().textContent(), "+5581990001234");
     assert.equal(navigationCount, 0);
     assert.equal(
       (await fixture({ ...base, workspace_id: owners[0].workspace, event: "message.any" }))

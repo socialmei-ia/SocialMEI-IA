@@ -77,7 +77,7 @@ def emit(command):
         'event': command.get('event', 'message'), 'session': binding['session'],
         'me': {'id': binding['account_id']}, 'engine': 'WEBJS',
         'payload': {'id': command['mid'], 'timestamp': command['timestamp_ms'] // 1000,
-            'from': '222@c.us', 'to': binding['account_id'], 'fromMe': False,
+            'from': command.get('sender', '222@c.us'), 'to': binding['account_id'], 'fromMe': False,
             'hasMedia': False, 'body': command['text']}}
     if command.get('forged_workspace'):
         body['workspace_id'] = command['forged_workspace']
