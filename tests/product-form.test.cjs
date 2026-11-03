@@ -11,6 +11,7 @@ assert(start > 0 && end > start);
 
 function open(product) {
   let save;
+  let fields;
   const calls = [];
   const inputs = {
     "#f_t": {
@@ -26,7 +27,8 @@ function open(product) {
     S: { prod: 0 },
     data: { products: product ? [product] : [] },
     field: (id, label, value, extra) => ({ id, label, value, ...extra }),
-    form(title, fields, submit) {
+    form(title, definitions, submit) {
+      fields = definitions;
       save = submit;
     },
     dlg: () => ({ querySelector: (key) => inputs[key] }),
@@ -38,7 +40,7 @@ function open(product) {
   vm.createContext(context);
   vm.runInContext(source.slice(start, end), context);
   context.productForm(!!product);
-  return { save: (data) => save(data), inputs, calls };
+  return { save: (data) => save(data), inputs, calls, fields };
 }
 
 const values = { n: "Atendimento", t: "Serviço", p: "35,00", k: "0", a: true, e: "8", m: "2" };
@@ -72,4 +74,23 @@ test("product inventory keeps integers and refuses fractional amounts before req
   page.save({ ...values, t: "Produto" });
   assert.equal(page.calls[0][2].estoque, 8);
   assert.equal(page.calls[0][2].minimo, 2);
+});
+
+test("catalog details are editable and sent with optimistic version and active state", () => {
+  const page = open({
+    id: 7,
+    tipo: "Produto",
+    categoria: "Roupas",
+    descricao: "Tecido",
+    versao: 3,
+  });
+  assert.equal(page.fields.find((f) => f.id === "c").value, "Roupas");
+  assert.equal(page.fields.find((f) => f.id === "c").disabled, undefined);
+  assert.equal(page.fields.find((f) => f.id === "d").value, "Tecido");
+  assert.equal(page.fields.find((f) => f.id === "d").disabled, undefined);
+  page.save({ ...values, t: "Produto", c: "Moda", d: "", a: false });
+  assert.equal(page.calls[0][2].categoria, "Moda");
+  assert.equal(page.calls[0][2].descricao, "");
+  assert.equal(page.calls[0][2].status, "Inativo");
+  assert.equal(page.calls[0][2].expected_version, 3);
 });

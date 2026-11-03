@@ -11,6 +11,7 @@ from pydantic import (
     Field,
     TypeAdapter,
     ValidationError,
+    field_validator,
     model_validator,
 )
 from sales_data import Money
@@ -33,6 +34,8 @@ CatalogAmount = Annotated[float, BeforeValidator(validate_catalog_amount)]
 class ProdutoFields(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     nome: str | None = Field(default=None, min_length=1, max_length=160)
+    categoria: str | None = Field(default=None, max_length=80)
+    descricao: str | None = Field(default=None, max_length=2000)
     tipo: Literal["Produto", "Serviço"] | None = None
     preco: float | None = Field(default=None, ge=0, allow_inf_nan=False)
     custo: float | None = Field(default=None, ge=0, allow_inf_nan=False)
@@ -41,9 +44,23 @@ class ProdutoFields(BaseModel):
     status: str | None = Field(default=None, min_length=1, max_length=30)
     duracao_minutos: int | None = Field(default=None, ge=1, le=1440, strict=True)
 
+    @field_validator("categoria", "descricao")
+    @classmethod
+    def valid_detail_text(cls, value):
+        if value is not None:
+            if "\x00" in value:
+                raise ValueError("Texto inválido.")
+            try:
+                value.encode("utf-8")
+            except UnicodeError:
+                raise ValueError("Texto inválido.") from None
+        return value
+
 
 class ProductSnapshot(ProdutoFields):
     nome: str = Field(min_length=1, max_length=160)
+    categoria: str = Field(default="", max_length=80)
+    descricao: str = Field(default="", max_length=2000)
     tipo: Literal["Produto", "Serviço"] = "Produto"
     preco: float = Field(ge=0, allow_inf_nan=False)
     custo: float = Field(default=0, ge=0, allow_inf_nan=False)
@@ -76,7 +93,7 @@ class ProdutoUpdate(ProdutoFields):
 
     @model_validator(mode="after")
     def non_nullable_fields(self):
-        for key in ("nome", "tipo", "preco", "custo", "status"):
+        for key in ("nome", "tipo", "preco", "custo", "status", "categoria", "descricao"):
             if key in self.model_fields_set and getattr(self, key) is None:
                 raise ValueError(f"{key} não pode ser nulo.")
         return self
@@ -101,7 +118,7 @@ class EstoqueUpdate(BaseModel):
         return self
 
 
-PRODUCT_COLUMNS = "id, nome, tipo, preco, custo, estoque, minimo, status, duracao_minutos, versao, criado_em, atualizado_em"
+PRODUCT_COLUMNS = "id, nome, categoria, descricao, tipo, preco, custo, estoque, minimo, status, duracao_minutos, versao, criado_em, atualizado_em"
 
 
 def insert_product(cur, workspace_id, product):

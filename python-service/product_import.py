@@ -52,6 +52,10 @@ def snapshot_and_hash(item):
     # Adding optional metadata must not invalidate receipts from older clients.
     if snapshot["produto"].get("duracao_minutos") is None:
         snapshot["produto"].pop("duracao_minutos", None)
+    # Preserve durable import identities created before optional catalog details.
+    for field in ("categoria", "descricao"):
+        if snapshot["produto"].get(field) == "":
+            snapshot["produto"].pop(field, None)
     canonical = json.dumps(
         snapshot, sort_keys=True, separators=(",", ":"), allow_nan=False
     )

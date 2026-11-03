@@ -102,10 +102,10 @@ window.SocialMEIV22 = (() => {
       ...products.map((p) => [
         p.nome,
         String(p.id),
-        p.tipo,
+        p.categoria || p.tipo,
         p.preco,
         p.status === "Ativo" ? 1 : 0,
-        "",
+        p.descricao || "",
         p.custo,
         p.tipo === "Serviço" ? undefined : p.estoque || 0,
         p.minimo || 0,
@@ -391,7 +391,7 @@ window.SocialMEIV22 = (() => {
       edit ? "Editar produto ou serviço" : "Novo produto ou serviço",
       [
         field("n", "Nome", p?.nome || "", { req: 1 }),
-        field("c", "Categoria", "", { disabled: true }),
+        field("c", "Categoria", p?.categoria || ""),
         field("t", "Tipo", p?.tipo || "Produto", {
           type: "select",
           options: ["Produto", "Serviço"],
@@ -403,12 +403,14 @@ window.SocialMEIV22 = (() => {
         field("k", "Custo (R$)", String(p?.custo || 0).replace(".", ","), { type: "money" }),
         field("e", "Estoque", String(p?.estoque || 0)),
         field("m", "Estoque mínimo", String(p?.minimo || 0)),
-        field("d", "Descrição", "", { type: "textarea", disabled: true }),
+        field("d", "Descrição", p?.descricao || "", { type: "textarea" }),
         field("a", "Disponível", p ? p.status === "Ativo" : true, { type: "check" }),
       ],
       (v) => {
         const product = {
           nome: v.n,
+          categoria: v.c || "",
+          descricao: v.d || "",
           tipo: v.t,
           preco: money(v.p),
           custo: money(v.k || "0"),
