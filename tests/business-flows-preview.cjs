@@ -1,7 +1,7 @@
 // Real browser + API + disposable PostgreSQL. Never accepts a public/production origin.
 const assert = require("node:assert/strict");
 const { randomUUID } = require("node:crypto");
-async function run(browser, origin) {
+async function run(browser, origin, { sorriaWidth = 1440, styleWidth = 390 } = {}) {
   assert.match(origin, /^https:\/\/127\.0\.0\.1:[1-9][0-9]{3,4}$/);
   const contexts = [],
     errors = [],
@@ -10,6 +10,7 @@ async function run(browser, origin) {
     const ctx = await browser.newContext({
       ignoreHTTPSErrors: true,
       viewport: { width, height: 1000 },
+      timezoneId: "America/Fortaleza",
     });
     contexts.push(ctx);
     const marker = await ctx.request.get(origin + "/__preview");
@@ -40,6 +41,10 @@ async function run(browser, origin) {
       200,
     );
     const page = await ctx.newPage();
+    page.on("response", async (response) => {
+      if (response.url() === origin + "/api/v1/vendas" && response.status() >= 400)
+        console.log("Disposable sale rejection", response.status(), (await response.json()).detail);
+    });
     page.on("pageerror", (e) => errors.push(e.message));
     await page.route("**/*", (route) => {
       if (new URL(route.request().url()).origin !== origin) {
@@ -63,8 +68,8 @@ async function run(browser, origin) {
     return { ctx, page, headers, identity };
   }
   try {
-    const sorria = await account("SorriaOdonto", 1440),
-      style = await account("She Style", 390);
+    const sorria = await account("SorriaOdonto", sorriaWidth),
+      style = await account("She Style", styleWidth);
     const p = sorria.page;
     await p.evaluate(() => go("/agenda"));
     await p.getByText("Nenhum agendamento neste período.", { exact: true }).waitFor();
@@ -96,6 +101,19 @@ async function run(browser, origin) {
     ).json();
     assert.equal(bookings.items.length, 1);
     assert.equal(bookings.items[0].duration_minutes, 45);
+    assert.equal(new Date(bookings.items[0].scheduled_for).toISOString(), day + "T17:00:00.000Z");
+    await p.getByRole("button", { name: "Novo agendamento", exact: true }).click();
+    await p.locator("#f_booking_start").fill(day + "T14:15");
+    await p.getByRole("button", { name: "Confirmar agendamento", exact: true }).click();
+    await p
+      .getByText("Horário indisponível para este recurso. Escolha outro horário.", { exact: true })
+      .waitFor();
+    assert.equal(
+      (await (await sorria.ctx.request.get(origin + "/api/v1/agenda/appointments")).json()).items
+        .length,
+      1,
+    );
+    await p.keyboard.press("Escape");
     await p.getByRole("button", { name: "Reagendar", exact: true }).click();
     await p.locator("#f_booking_start").fill(day + "T15:00");
     await p.locator("dialog button[type=submit]").click();
@@ -124,6 +142,7 @@ async function run(browser, origin) {
     await q.locator("tr[data-a='prod:0']").waitFor();
     await q.evaluate(() => go("/negocio/vendas"));
     await q.getByRole("button", { name: "Nova venda", exact: true }).click();
+    await q.locator("#f_c").selectOption({ label: "Cliente fictício She Style" });
     await q.locator("#f_q").fill("2");
     await q.locator("dialog button[type=submit]").click();
     await q.locator("dialog[open]").waitFor({ state: "hidden" });
@@ -139,6 +158,18 @@ async function run(browser, origin) {
     assert.equal(sales.length, 1);
     assert.equal(sales[0].quantidade, 2);
     assert.equal(sales[0].valor, 160);
+    assert.ok(sales[0].cliente_id, "Explicit customer selection persists");
+    await q.getByRole("button", { name: "Nova venda", exact: true }).click();
+    await q.locator("#f_q").fill("1");
+    await q.locator("dialog button[type=submit]").click();
+    await q.locator("dialog[open]").waitFor({ state: "hidden" });
+    await q.reload();
+    await q.waitForFunction(() => window.SocialMEIV22?.ready);
+    await q.evaluate(() => window.SocialMEIV22.ready);
+    await q.getByRole("button", { name: "Nova venda", exact: true }).waitFor();
+    const optionalSales = await (await style.ctx.request.get(origin + "/api/v1/vendas")).json();
+    assert.equal(optionalSales.length, 2);
+    assert.equal(optionalSales.find((sale) => sale.cliente_id === null).cliente, "Sem cliente");
     await q.getByRole("button", { name: "Nova venda", exact: true }).click();
     await q.locator("#f_q").fill("4");
     await q.locator("dialog button[type=submit]").click();
@@ -150,9 +181,9 @@ async function run(browser, origin) {
     await q.keyboard.press("Escape");
     assert.equal(
       (await (await style.ctx.request.get(origin + "/api/v1/produtos")).json())[0].estoque,
-      3,
+      2,
     );
-    assert.equal((await (await style.ctx.request.get(origin + "/api/v1/vendas")).json()).length, 1);
+    assert.equal((await (await style.ctx.request.get(origin + "/api/v1/vendas")).json()).length, 2);
     assert.equal(
       (await sorria.ctx.request.get(origin + "/api/v1/produtos/" + products[0].id)).status(),
       404,
