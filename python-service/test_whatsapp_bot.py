@@ -17,6 +17,22 @@ BOT_ACCOUNT = '991234567890@c.us'
 
 
 class BotClosedContracts(unittest.TestCase):
+    def test_live_contact_allowlist_fails_closed_and_validates_every_entry(self):
+        import settings
+        with patch.dict(os.environ, {'SOCIALMEI_WAHA_INGRESS_MODE': 'team-pilot'}):
+            for raw_contacts in ('', 'not-json', '[]', '["222@c.us", "bad"]', '"222@c.us"'):
+                with patch.dict(os.environ, {'SOCIALMEI_WHATSAPP_BOT_ALLOWED_CONTACTS': raw_contacts}):
+                    self.assertEqual(settings.whatsapp_bot_allowed_contacts(), frozenset())
+            with patch.dict(os.environ, {'SOCIALMEI_WHATSAPP_BOT_ALLOWED_CONTACTS': '["222@c.us"]'}):
+                self.assertEqual(settings.whatsapp_bot_allowed_contacts(), frozenset({'waha:222@c.us'}))
+
+    def test_pending_sources_are_closed_before_database_when_bot_disabled(self):
+        with patch.dict(os.environ, {'SOCIALMEI_WHATSAPP_BOT_ENABLED': 'false'}), patch(
+            'whatsapp_bot.connect', side_effect=AssertionError('unexpected database')
+        ):
+            response = TestClient(app).get(PATH + '/sources')
+        self.assertEqual(response.status_code, 503)
+
     def test_database_failure_is_sanitized_without_provider_or_message_details(self):
         with patch.dict(os.environ, {
             'SOCIALMEI_WHATSAPP_BOT_ENABLED': 'true',
@@ -113,6 +129,98 @@ class BotDatabaseTests(unittest.TestCase):
             'nome': name, 'tipo': 'Produto', 'preco': 12.5, 'estoque': stock, 'minimo': 0,
         })
         self.assertEqual(r.status_code, 201, r.text)
+
+    def test_pending_references_only_include_recent_unplanned_own_received_messages(self):
+        import time
+        mid = self.incoming('Private fixture text')
+        self.incoming('old', timestamp=int(time.time()) - 3600)
+        response = self.tech.get(PATH + '/sources', headers=self.headers)
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json(), {'sources': [{'instance': 'trusted-a', 'external_message_id': mid}]})
+        self.assertNotIn('Private fixture', response.text)
+        # Provider IDs may embed contact identity: references stay private and are never logged.
+        self.assertEqual(set(response.json()['sources'][0]), {'instance', 'external_message_id'})
+        planned = self.decide(mid).json()
+        replay = self.tech.get(PATH + '/sources', headers=self.headers).json()['sources']
+        self.assertEqual(replay, [{'instance': 'trusted-a', 'external_message_id': mid}])
+        self.tech.post(PATH + '/decisions/' + planned['operation_id'] + '/claim', headers=self.headers, json={})
+        self.assertEqual(self.tech.get(PATH + '/sources', headers=self.headers).json(), {'sources': []})
+        self.assertEqual(self.tech.get(PATH + '/sources').status_code, 401)
+
+    def test_owner_pause_before_first_decision_is_durable_and_resume_is_explicit(self):
+        mid = self.incoming('Hello')
+        with self.db() as c:
+            conv = c.execute('SELECT conversation_id FROM socialmei.me_messages WHERE workspace_id=%s AND external_message_id=%s', (self.workspace, mid)).fetchone()[0]
+        base = '/api/v1/whatsapp/bot/conversations/' + str(conv)
+        status = self.owner.get(base + '/status')
+        self.assertEqual(status.status_code, 200, status.text)
+        self.assertEqual(status.json()['channel_id'], self.channel)
+        self.assertEqual(status.json()['state'], 'menu')
+        for _ in range(2):
+            self.assertEqual(self.owner.post(base + '/pause', json={'channel_id': self.channel}).status_code, 204)
+        self.assertEqual(self.owner.get(base + '/status').json()['state'], 'human')
+        self.assertEqual(self.decide(mid).json()['action'], 'human_wait')
+        self.assertEqual(self.owner.post(base + '/resume', json={'channel_id': self.channel}).status_code, 204)
+        self.assertEqual(self.decide(self.incoming('Hello again')).json()['action'], 'menu')
+
+    def test_sources_drop_superseded_plans_but_preserve_unplanned_messages(self):
+        first = self.decide(self.incoming('Hello')).json()
+        second_mid = self.incoming('2')
+        second = self.decide(second_mid).json()
+        pending_mid = self.incoming('product search')
+        refs = self.tech.get(PATH + '/sources', headers=self.headers).json()['sources']
+        self.assertEqual([r['external_message_id'] for r in refs], [second_mid, pending_mid])
+        base = '/api/v1/whatsapp/bot/conversations/' + str(first['conversation_id'])
+        self.assertEqual(self.owner.post(base + '/pause', json={'channel_id': self.channel}).status_code, 204)
+        refs = self.tech.get(PATH + '/sources', headers=self.headers).json()['sources']
+        self.assertEqual([r['external_message_id'] for r in refs], [pending_mid])
+        self.assertEqual(self.owner.post(base + '/resume', json={'channel_id': self.channel}).status_code, 204)
+        refs = self.tech.get(PATH + '/sources', headers=self.headers).json()['sources']
+        self.assertEqual([r['external_message_id'] for r in refs], [pending_mid])
+        for decision in (first, second):
+            claim = self.tech.post(PATH + '/decisions/' + decision['operation_id'] + '/claim',
+                                   headers=self.headers, json={})
+            self.assertFalse(claim.json()['dispatch_allowed'])
+
+    def test_pause_invalidates_unclaimed_decision_and_reports_existing_claim(self):
+        first = self.decide(self.incoming('Hello')).json()
+        base = '/api/v1/whatsapp/bot/conversations/' + str(first['conversation_id'])
+        self.assertEqual(self.owner.post(base + '/pause', json={'channel_id': self.channel}).status_code, 204)
+        claim = self.tech.post(PATH + '/decisions/' + first['operation_id'] + '/claim', headers=self.headers, json={})
+        self.assertFalse(claim.json()['dispatch_allowed'])
+        self.owner.post(base + '/resume', json={'channel_id': self.channel})
+        second = self.decide(self.incoming('Hello again')).json()
+        self.tech.post(PATH + '/decisions/' + second['operation_id'] + '/claim', headers=self.headers, json={})
+        self.owner.post(base + '/pause', json={'channel_id': self.channel})
+        self.assertTrue(self.owner.get(base + '/status').json()['claimed_in_flight'])
+
+    def test_explicit_pause_cancels_unclaimed_customer_handoff_acknowledgement(self):
+        decision = self.decide(self.incoming('5')).json()
+        self.owner.post('/api/v1/whatsapp/bot/conversations/' + str(decision['conversation_id']) + '/pause',
+                        json={'channel_id': self.channel})
+        result = self.tech.post(PATH + '/decisions/' + decision['operation_id'] + '/claim', headers=self.headers, json={})
+        self.assertFalse(result.json()['dispatch_allowed'])
+
+    def test_pilot_allowlist_covers_sources_planning_and_claim_after_revocation(self):
+        mid = self.incoming('Hello')
+        with patch.dict(os.environ, {'SOCIALMEI_WAHA_INGRESS_MODE': 'team-pilot',
+                                    'SOCIALMEI_WHATSAPP_BOT_ALLOWED_CONTACTS': '[]'}):
+            self.assertEqual(self.tech.get(PATH + '/sources', headers=self.headers).json(), {'sources': []})
+            self.assertEqual(self.decide(mid).status_code, 403)
+            with patch.dict(os.environ, {'SOCIALMEI_WHATSAPP_BOT_ALLOWED_CONTACTS': '["222@c.us"]'}):
+                self.assertEqual(len(self.tech.get(PATH + '/sources', headers=self.headers).json()['sources']), 1)
+                planned = self.decide(mid).json()
+            claim = self.tech.post(PATH + '/decisions/' + planned['operation_id'] + '/claim', headers=self.headers, json={})
+            self.assertFalse(claim.json()['dispatch_allowed'])
+
+    def test_pause_refuses_cross_workspace_wrong_channel_and_missing_csrf(self):
+        decision = self.decide(self.incoming('Hello')).json()
+        base = '/api/v1/whatsapp/bot/conversations/' + str(decision['conversation_id'])
+        foreign = self.register('other-bot-owner@example.test')
+        self.assertEqual(foreign.get(base + '/status').status_code, 404)
+        self.assertEqual(foreign.post(base + '/pause', json={'channel_id': self.channel}).status_code, 404)
+        self.assertEqual(self.owner.post(base + '/pause', json={'channel_id': self.channel + 100}).status_code, 404)
+        self.assertEqual(self.owner.post(base + '/pause', headers={'X-SocialMEI-CSRF': ''}, json={'channel_id': self.channel}).status_code, 403)
 
     def test_menu_catalog_prompt_persists_and_uses_real_price(self):
         self.product()
@@ -238,6 +346,16 @@ class BotDatabaseTests(unittest.TestCase):
             self.assertEqual(r.status_code, 200, r.text)
             self.assertEqual(r.json()['status'], 'uncertain')
         self.assertFalse(self.tech.post(path + '/claim', json={}, headers=self.headers).json()['dispatch_allowed'])
+        self.assertEqual(self.tech.get(PATH + '/sources', headers=self.headers).json(), {'sources': []})
+        state = self.owner.get('/api/v1/whatsapp/bot/conversations/' + str(item['conversation_id']) + '/status').json()
+        self.assertFalse(state['claimed_in_flight'])
+        history = self.owner.get('/api/v1/whatsapp/bot/decisions').json()['items']
+        self.assertEqual(history[0]['status'], 'uncertain')
+        self.assertIsNone(history[0]['provider_message_id'])
+        changed = self.tech.post(path + '/receipt', headers=self.headers, json={
+            'status': 'confirmed', 'provider_message_id': 'different-later-receipt',
+        })
+        self.assertEqual(changed.status_code, 409)
 
     def test_stale_event_does_not_invalidate_newer_reply_or_change_menu(self):
         import time
@@ -286,6 +404,9 @@ class BotDatabaseTests(unittest.TestCase):
         response = self.tech.post(path, json={}, headers=self.headers)
         self.assertEqual(response.status_code, 401, response.text)
         token = self.owner.post('/api/v1/whatsapp/bot/access', json={'channel_id': self.channel}).json()['token_once']
+        refs = self.tech.get(PATH + '/sources', headers={'Authorization': 'Bearer ' + token})
+        self.assertEqual(refs.status_code, 200, refs.text)
+        self.assertEqual(refs.json(), {'sources': []})
         response = self.tech.post(path, json={}, headers={'Authorization': 'Bearer ' + token})
         self.assertEqual(response.status_code, 409, response.text)
 

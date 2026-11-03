@@ -137,7 +137,13 @@ test("workflow exports are valid, inactive and contain no literal authorization 
   const structural = files.filter((file) =>
     file.startsWith(path.join(root, "n8n-workflows", "structure") + path.sep),
   );
-  assert.equal(files.length - structural.length, 10);
+  assert.equal(files.length - structural.length, 11);
+  assert(
+    files.some((file) =>
+      file.endsWith(path.join("experimental", "whatsapp-bot-persisted-inputs.json")),
+    ),
+    "persisted WhatsApp reference poller must be tracked",
+  );
   assert(
     files.some((file) =>
       file.endsWith(path.join("experimental", "provider-sentiment-worker.json")),

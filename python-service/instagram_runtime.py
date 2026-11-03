@@ -224,10 +224,84 @@ def runtime_service(request, capability):
     return service
 
 
+def whatsapp_readiness(workspace_id):
+    """Describe private WAHA receiving configuration, not the live WAHA session.
+
+    Only the pilot workspace can inspect the registered channel. Validate the same
+    immutable binding and database fields that inbound webhook persistence uses.
+    Missing/private/inconsistent state fails closed without exposing registry data.
+    """
+    result = {
+        "contract_prepared": True,
+        "configured": False,
+        "receiving_configured": False,
+        "session_live_verified": False,
+        "sending_available": False,
+        "requires": [
+            "approved_number",
+            "server_registry",
+            "waha_engine_hmac_homologation",
+        ],
+    }
+    if (
+        type(workspace_id) is not int
+        or workspace_id != 1
+        or not settings.waha_ingress_team_pilot_enabled()
+    ):
+        return result
+    try:
+        from waha_ingress import waha_service
+
+        registry = waha_service().registry
+        if len(registry) != 1:
+            return result
+        binding = registry.get("socialmei-equipe-piloto")
+        if (
+            binding is None
+            or binding.workspace_id != workspace_id
+            or binding.instance != "socialmei-equipe-piloto"
+            or not binding.account_id.endswith("5976@c.us")
+        ):
+            return result
+
+        with connect() as conn:
+            conn.execute("SET TRANSACTION READ ONLY")
+            conn.execute("SET LOCAL statement_timeout='2s'")
+            registered = conn.execute(
+                "SELECT 1 FROM socialmei.crm_canais "
+                "WHERE workspace_id=%s AND id=%s AND instancia=%s "
+                "AND sessao=%s AND identificador_conta=%s "
+                "AND ingress_provisioned AND ativo AND NOT envio_habilitado "
+                "AND versao=%s",
+                (
+                    workspace_id,
+                    binding.channel_id,
+                    binding.instance,
+                    binding.session,
+                    binding.account_id,
+                    binding.revision,
+                ),
+            ).fetchone()
+        if not registered:
+            return result
+    except Exception:
+        # A failing DB/private mount must never become a green integration state.
+        return result
+
+    result["configured"] = True
+    result["receiving_configured"] = True
+    # A registered channel is not evidence that WAHA is WORKING right now.
+    result["requires"] = [
+        "live_waha_session_not_verified",
+        "single_responder_not_verified",
+    ]
+    return result
+
+
 @router.get("/readiness")
 def readiness(request: Request):
     require_enabled()
-    current()
+    identity = current()
     runtime = getattr(request.app.state, "instagram_runtime", InstagramRuntime())
     return {
         "source": "server",
@@ -240,6 +314,9 @@ def readiness(request: Request):
         "instagram": {
             "configuration": runtime.status,
             "oauth_available": runtime.oauth is not None and schema_ready("oauth"),
+            "token_refresh_available": runtime.oauth is not None
+            and settings.instagram_token_refresh_enabled()
+            and schema_ready("oauth"),
             "incoming_available": runtime.ingress is not None
             and schema_ready("ingress"),
             "reply_preparation_available": runtime.direct is not None
@@ -248,16 +325,7 @@ def readiness(request: Request):
             "publishing_available": runtime.publish is not None and schema_ready("publish"),
             "connection_status_path": "/api/v1/instagram/meta/status",
         },
-        "whatsapp": {
-            "contract_prepared": True,
-            "configured": False,
-            "sending_available": False,
-            "requires": [
-                "approved_number",
-                "server_registry",
-                "waha_engine_hmac_homologation",
-            ],
-        },
+        "whatsapp": whatsapp_readiness(identity["workspace_id"]),
         "business_api": {
             "customers": "/api/v1/clientes",
             "catalog": "/api/v1/produtos",

@@ -16,6 +16,7 @@ module.exports = async function (browser, origin) {
         external = [],
         writes = [];
       let provisioned = false;
+      const previewQueries = [];
       const token = "synthetic-whatsapp-credential-" + "x".repeat(40);
       const identity = {
         usuario: { id: 91, nome: "Conta de teste", email: "synthetic@example.test" },
@@ -66,6 +67,26 @@ module.exports = async function (browser, origin) {
           return route.fulfill({ json: { status: "disconnected", credential_available: false } });
         if (p === "/auth/workspaces")
           return route.fulfill({ json: { active_workspace_id: 17, items: [] } });
+        if (p === "/whatsapp/bot/preview") {
+          const choice = url.searchParams.get("opcao");
+          const product = url.searchParams.get("produto") || "";
+          previewQueries.push([choice, product]);
+          assert(["0", "2"].includes(choice));
+          return route.fulfill({
+            json: {
+              preview_only: true,
+              send_enabled: false,
+              action: choice === "0" ? "menu" : "availability",
+              text:
+                choice === "0"
+                  ? "Olá! Como podemos ajudar?\n\n1 - Ver produtos\n2 - Preço e disponibilidade"
+                  : "Bolo fictício — R$ 18,50 — estoque: 7 registrado(s)",
+              choices: choice === "0" ? [{ id: "1", title: "Ver produtos" }] : [],
+              items: choice === "0" ? [] : [{ nome: "Bolo fictício", preco: "18.50", estoque: 7 }],
+              handoff: false,
+            },
+          });
+        }
         if (p === "/whatsapp/catalog/access")
           return route.fulfill({
             json: {
@@ -98,6 +119,17 @@ module.exports = async function (browser, origin) {
         );
         await page.getByRole("button", { name: "Ver catálogo", exact: true }).click();
         await panel.scrollIntoViewIfNeeded();
+        await panel.getByRole("button", { name: "Ver resposta do bot" }).click();
+        await panel.getByText(/1 - Ver produtos/).waitFor();
+        await panel.getByLabel("Opção para demonstrar").selectOption("2");
+        await panel.getByLabel("Nome do produto a consultar").fill("bolo");
+        await panel.getByRole("button", { name: "Ver resposta do bot" }).click();
+        await panel.getByText(/Bolo fictício — R\$ 18,50 — estoque: 7/).waitFor();
+        assert.deepEqual(previewQueries, [
+          ["0", ""],
+          ["2", "bolo"],
+        ]);
+        assert.equal(writes.length, 0);
         await page.screenshot({ path: path.join(out, `${width}-${theme}.png`), fullPage: true });
         await panel.getByRole("button", { name: "Gerar credencial", exact: true }).click();
         const dialog = page.getByRole("dialog", { name: "Credencial de consulta WhatsApp" });

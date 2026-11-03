@@ -148,7 +148,9 @@ def save_result(payload: ResultInput, request: Request, response: Response):
         row = conn.execute(
             """
             SELECT * FROM socialmei.me_provider_sentiment_jobs
-            WHERE claim_id=%s FOR UPDATE
+            WHERE claim_id=%s
+              AND (status='completed' OR lease_until > NOW())
+            FOR UPDATE
             """,
             (payload.claim_id,),
         ).fetchone()

@@ -1,0 +1,15 @@
+# Optional bridge for the EXISTING WAHA session to reach Team API privately.
+# Use only with the original compose.yaml and a previously created
+# socialmei_team_automation network from compose.team.yaml.
+# Never run 'down', recreate a WAHA session, change engine, or migrate volumes
+# as part of provisioning. Validate the effective Compose config first.
+services:
+  waha:
+    networks:
+      - default
+      - team_automation
+
+networks:
+  team_automation:
+    external: true
+    name: socialmei_team_automation

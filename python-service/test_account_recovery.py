@@ -307,7 +307,9 @@ class MailTransportTests(unittest.TestCase):
         for port in (465, 587):
             with self.subTest(port=port), patch(
                 "account_recovery.smtplib.SMTP_SSL"
-            ) as ssl_server, patch("account_recovery.smtplib.SMTP") as plain_server:
+            ) as ssl_server, patch("account_recovery.smtplib.SMTP") as plain_server, patch(
+                "account_recovery.origin", return_value="https://socialmei.example.test"
+            ):
                 server = MagicMock()
                 server.__enter__.return_value = server
                 ssl_server.return_value = plain_server.return_value = server
