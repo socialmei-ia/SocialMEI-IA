@@ -5,11 +5,29 @@ import json
 from pydantic import ValidationError
 from catalog_data import ProdutoCreate, ProdutoUpdate
 from product_import import ImportItem, snapshot_and_hash
+from workspace_transfer import TransferPacket, packet_fingerprint
+from test_workspace_transfer import sample
 import test_business_fixture_flows as fixtures
 import test_account_auth as accounts
 
 
 class CatalogDetailsValidationTests(unittest.TestCase):
+    def test_legacy_transfer_fingerprint_preserved_and_details_bound(self):
+        packet = TransferPacket.model_validate(sample())
+        old = packet.model_dump(mode="json", exclude={"exportado_em"})
+        for product in old["produtos"]:
+            product.pop("categoria")
+            product.pop("descricao")
+        for name in ("clientes", "produtos", "vendas", "financeiro"):
+            old[name].sort(key=lambda row: row["id"])
+        fingerprint = hashlib.sha256(json.dumps(
+            old, sort_keys=True, ensure_ascii=False,
+            separators=(",", ":"), allow_nan=False,
+        ).encode()).hexdigest()
+        self.assertEqual(packet_fingerprint(packet), fingerprint)
+        packet.produtos[0].categoria = "Moda"
+        self.assertNotEqual(packet_fingerprint(packet), fingerprint)
+
     def test_legacy_import_fingerprint_is_preserved_and_new_details_are_bound(self):
         item = ImportItem(local_id=1, produto={"nome": "Legado", "preco": 10})
         old = item.model_dump(mode="json")

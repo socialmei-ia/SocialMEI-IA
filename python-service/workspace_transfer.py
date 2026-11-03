@@ -160,6 +160,9 @@ def packet_fingerprint(packet):
     for product in data["produtos"]:
         if product.get("duracao_minutos") is None:
             product.pop("duracao_minutos", None)
+        for field in ("categoria", "descricao"):
+            if product.get(field) == "":
+                product.pop(field, None)
     for name in ["clientes", "produtos", "vendas", "financeiro"]:
         data[name].sort(key=lambda r: r["id"])
     return hashlib.sha256(
