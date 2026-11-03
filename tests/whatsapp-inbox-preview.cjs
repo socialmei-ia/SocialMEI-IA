@@ -49,11 +49,21 @@ module.exports = async function (browser, origin, fixture) {
       await page.waitForFunction(
         () => window.SocialMEIV22?.identity && !document.getElementById("app").hidden,
       );
+      await page.evaluate(() => go("/negocio/clientes"));
+      await page.getByRole("button", { name: "Novo cliente", exact: true }).click();
+      const customerName = "Cliente ficticio negocio " + owners.length;
+      await page.locator("#f_n").fill(customerName);
+      await page.locator("dialog button[type=submit]").click();
+      await page.locator("dialog[open]").waitFor({ state: "hidden" });
+      await page.getByText(customerName, { exact: true }).first().waitFor();
+      const clients = await (await ctx.request.get(origin + "/api/v1/clientes")).json();
+      assert.equal(clients.length, 1);
+      await page.evaluate(() => go("/caixa"));
       const conversations = await (
         await ctx.request.get(origin + "/api/v1/message-enrichment/conversations")
       ).json();
       assert.equal(conversations.items.length, 0);
-      owners.push({ ctx, page, identity, workspace: identity.negocio.id });
+      owners.push({ ctx, page, identity, workspace: identity.negocio.id, customer: clients[0] });
     }
     const setup = await fixture({ action: "setup", workspaces: owners.map((o) => o.workspace) });
     assert.equal(setup.setup, true);
@@ -156,13 +166,62 @@ module.exports = async function (browser, origin, fixture) {
       .locator(".ct .ms .bb", { hasText: "Mensagem ficticia negocio B" })
       .waitFor();
     assert.equal(await owners[1].page.getByText(base.text, { exact: true }).count(), 0);
+    const first = owners[0],
+      second = owners[1];
+    const firstHeaders = {
+      Origin: origin,
+      "X-SocialMEI-Client": "browser",
+      "X-SocialMEI-Identity": `${first.identity.usuario.id}:${first.workspace}`,
+      "X-SocialMEI-CSRF": first.identity.csrf_token,
+    };
+    const path = origin + `/api/v1/message-enrichment/conversations/${a.items[0].id}/customer`;
+    const before = await (await first.ctx.request.get(path)).json();
+    const forbidden = await first.ctx.request.patch(path, {
+      headers: firstHeaders,
+      data: { expected_revision: before.revision, cliente_id: second.customer.id },
+    });
+    assert.equal(forbidden.status(), 404);
+    await first.page.getByRole("button", { name: "Associar cliente do CRM", exact: true }).click();
+    await first.page.locator("#f_inbox_customer").selectOption(String(first.customer.id));
+    await first.page.getByRole("button", { name: "Salvar vínculo", exact: true }).click();
+    await first.page.locator("dialog[open]").waitFor({ state: "hidden" });
+    await first.page.reload();
+    await first.page
+      .locator("[data-inbox-customer]")
+      .getByText("Cliente: " + first.customer.nome, { exact: true })
+      .waitFor();
+    assert.equal(await first.page.locator(".ct .hd b").first().textContent(), "+5581990001234");
+    assert.equal((await (await first.ctx.request.get(path)).json()).cliente_id, first.customer.id);
+    await first.page.getByRole("button", { name: "Alterar cliente do CRM", exact: true }).click();
+    await first.page.locator("#f_inbox_customer").selectOption("");
+    const extra = await fixture({
+      ...base,
+      workspace_id: first.workspace,
+      mid: mid + "-second",
+      text: "Segunda mensagem ficticia",
+    });
+    assert.equal(extra.processed, 1);
+    await first.page.getByRole("button", { name: "Salvar vínculo", exact: true }).click();
+    await first.page
+      .getByText(
+        "A conversa ou o cliente mudou. Feche e atualize o vínculo antes de salvar novamente.",
+        { exact: true },
+      )
+      .waitFor();
+    await first.page.keyboard.press("Escape");
+    await first.page.getByRole("button", { name: "Atualizar vínculo CRM", exact: true }).click();
+    await first.page.getByRole("button", { name: "Alterar cliente do CRM", exact: true }).click();
+    await first.page.locator("#f_inbox_customer").selectOption("");
+    await first.page.getByRole("button", { name: "Salvar vínculo", exact: true }).click();
+    await first.page.locator("dialog[open]").waitFor({ state: "hidden" });
+    assert.equal((await (await first.ctx.request.get(path)).json()).cliente_id, null);
     for (const owner of owners) {
       await owner.page.reload();
       const rows = await (
         await owner.ctx.request.get(origin + "/api/v1/message-enrichment/conversations")
       ).json();
       assert.equal(rows.items.length, 1);
-      assert.equal(rows.items[0].messages.length, 1);
+      assert.equal(rows.items[0].messages.length, owner === first ? 2 : 1);
       assert.equal(
         (await owner.ctx.request.get(origin + "/internal/waha/local/webhook")).status(),
         404,
@@ -171,7 +230,7 @@ module.exports = async function (browser, origin, fixture) {
     assert.deepEqual(errors, []);
     assert.deepEqual(external, []);
     console.log(
-      "WA isolated E2E passed: signed private HTTP, tamper/scope rejection, real persistence, polling without reload, dedup and two-account/workspace inbox isolation; no WAHA/provider/send.",
+      "WA isolated E2E passed: private signed HTTP, phone label, persistence/polling/dedup, account/workspace isolation, manual CRM link/reload/unlink and new-message CAS conflict; no WAHA/provider/send.",
     );
   } finally {
     for (const ctx of contexts) await ctx.close();
