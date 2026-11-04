@@ -2,6 +2,7 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { waitForViewportFit, layoutSnapshot } = require("./v22-layout-ready.cjs");
 module.exports = async (browser, origin) => {
   let cases = 0;
   for (const mode of ["pages", "empty", "error", "unsafe", "close", "scope"])
@@ -184,9 +185,11 @@ module.exports = async (browser, origin) => {
           );
           await box.getByRole("button", { name: "Fechar", exact: true }).click();
         }
+        await waitForViewportFit(page);
         assert.equal(
           await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
           true,
+          JSON.stringify(await layoutSnapshot(page)),
         );
         assert.deepEqual(errors, []);
         assert.deepEqual(external, []);
