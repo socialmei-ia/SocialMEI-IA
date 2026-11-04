@@ -109,7 +109,7 @@ def _money(value):
     return str(Decimal(value).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
 
 
-def sales_period(start, end, today):
+def report_period(start, end, today):
     if (start is None) != (end is None):
         raise HTTPException(422, "Informe as duas datas do período.")
     if start is None:
@@ -117,6 +117,11 @@ def sales_period(start, end, today):
     days = (end - start).days + 1
     if days < 1 or days > 366:
         raise HTTPException(422, "Escolha um período de 1 a 366 dias, em ordem cronológica.")
+    return start, end, days
+
+
+def sales_period(start, end, today):
+    start, end, days = report_period(start, end, today)
     try:
         previous_end = start - timedelta(days=1)
         previous_start = start - timedelta(days=days)
@@ -188,6 +193,64 @@ def sales(start: date | None = Query(None), end: date | None = Query(None)):
         "current": current, "previous": previous, "change_total_percent": change,
         "daily": daily, "products": products,
         "description": "Vendas pagas e pendentes por data de venda, sem rascunhos, cancelamentos ou exclusões. Não representa receita recebida nem saldo bancário. Ranking por valor e nome registrado na venda; sem nomes de clientes.",
+    }
+
+
+@router.get("/appointments")
+def appointments(start: date | None = Query(None), end: date | None = Query(None)):
+    workspace = scope()
+    if start is not None or end is not None:
+        report_period(start, end, date.min)
+    try:
+        zone = settings.business_timezone().key
+    except ValueError:
+        raise HTTPException(503, "Confira o fuso horário configurado para o negócio.") from None
+    with connect() as conn:
+        conn.row_factory = dict_row
+        conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+        conn.execute("SET LOCAL statement_timeout='3000ms'")
+        conn.execute("SELECT set_config('TimeZone', %s, true)", (zone,))
+        clock = conn.execute("SELECT CURRENT_DATE AS today,CURRENT_TIMESTAMP AS as_of").fetchone()
+        start, end, days = report_period(start, end, clock["today"])
+        scheduled = conn.execute(
+            "SELECT COUNT(*)::bigint AS total,"
+            "COUNT(*) FILTER (WHERE status='pending')::bigint AS pending,"
+            "COUNT(*) FILTER (WHERE status='done')::bigint AS done,"
+            "COUNT(*) FILTER (WHERE status='cancelled')::bigint AS cancelled,"
+            "COUNT(*) FILTER (WHERE status='pending' AND scheduled_for>=CURRENT_TIMESTAMP)::bigint AS upcoming_pending "
+            "FROM socialmei.agenda_appointments WHERE workspace_id=%s "
+            "AND scheduled_for>=%s::date AND scheduled_for<(%s::date+1)",
+            (workspace, start, end),
+        ).fetchone()
+        reschedules = conn.execute(
+            "WITH revisions AS (SELECT scheduled_for,recorded_at,"
+            "LAG(scheduled_for) OVER (PARTITION BY appointment_id ORDER BY revision) AS previous_schedule "
+            "FROM socialmei.agenda_appointment_history WHERE workspace_id=%s) "
+            "SELECT COUNT(*)::bigint AS events FROM revisions "
+            "WHERE previous_schedule IS NOT NULL AND scheduled_for!=previous_schedule "
+            "AND recorded_at>=%s::date AND recorded_at<(%s::date+1)",
+            (workspace, start, end),
+        ).fetchone()["events"]
+        services = [dict(row) for row in conn.execute(
+            "SELECT servico_id AS service_id,service_name AS name,COUNT(*)::bigint AS total,"
+            "COUNT(*) FILTER (WHERE status='pending')::bigint AS pending,"
+            "COUNT(*) FILTER (WHERE status='done')::bigint AS done,"
+            "COUNT(*) FILTER (WHERE status='cancelled')::bigint AS cancelled "
+            "FROM socialmei.agenda_appointments WHERE workspace_id=%s "
+            "AND scheduled_for>=%s::date AND scheduled_for<(%s::date+1) "
+            "GROUP BY servico_id,service_name ORDER BY total DESC,service_name,servico_id NULLS LAST LIMIT 10",
+            (workspace, start, end),
+        ).fetchall()]
+    return {
+        "period": {"start": start.isoformat(), "end": end.isoformat(), "days": days, "timezone": zone},
+        "as_of": clock["as_of"].isoformat(),
+        "scheduled": {key: scheduled[key] for key in ("total", "pending", "done", "cancelled")},
+        "upcoming_pending": scheduled["upcoming_pending"],
+        "reschedule_events": reschedules,
+        "services": services,
+        "description": "Contagens pelo horário atual de início do agendamento no período selecionado, com o estado registrado. Pendente não significa atendimento realizado. Não mede ocupação, comparecimento ou receita.",
+        "upcoming_description": "Próximos: somente agendamentos pendentes com início a partir do instante da consulta e dentro do período selecionado.",
+        "reschedule_description": "Alterações de horário: eventos do histórico registrados no período, mesmo que o horário agendado esteja fora dele. Criação e mudanças apenas de estado não são reagendamentos.",
     }
 
 
