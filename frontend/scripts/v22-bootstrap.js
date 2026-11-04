@@ -105,6 +105,18 @@
     businesses.src = "scripts/v22-businesses.js";
     businesses.onerror = () => console.warn("Meus negócios indisponível.");
     document.body.appendChild(businesses);
+    const exports = document.createElement("script");
+    exports.src = "scripts/v22-business-export.js";
+    exports.onerror = () => console.warn("Exportação indisponível.");
+    document.body.appendChild(exports);
+    const team = document.createElement("script");
+    team.src = "scripts/v22-team-members.js";
+    team.onerror = () => console.warn("Equipe indisponível.");
+    document.body.appendChild(team);
+    const saleHistory = document.createElement("script");
+    saleHistory.src = "scripts/v22-sale-history.js";
+    saleHistory.onerror = () => console.warn("Histórico das vendas indisponível.");
+    document.body.appendChild(saleHistory);
   }
   if (auth.remote) {
     const instagram = document.createElement("script");

@@ -20,6 +20,7 @@ from n8n_read import router as n8n_read_router
 from account_auth import AccountMiddleware, router as account_auth_router
 from account_recovery import router as account_recovery_router
 from account_sessions import router as account_sessions_router
+from team_members import router as team_members_router
 from operations_readiness import router as operations_readiness_router
 from instagram_simulation import router as instagram_simulation_router
 from instagram_provider_lab import router as instagram_provider_lab_router
@@ -43,6 +44,7 @@ from instagram_publishing import router as instagram_publishing_router
 from instagram_media import InstagramMediaPrivacy, router as instagram_media_router
 from pdf_knowledge import router as pdf_knowledge_router
 from workspace_reporting import router as workspace_reporting_router
+from business_csv import router as business_csv_router
 from report_collaboration import router as report_collaboration_router
 from whatsapp_catalog import router as whatsapp_catalog_router
 from whatsapp_bot import router as whatsapp_bot_router
@@ -50,6 +52,7 @@ from instagram_token_maintenance import router as instagram_token_maintenance_ro
 from agenda import router as agenda_router
 from appointments import router as appointments_router
 from whatsapp_human_outbox import router as whatsapp_human_router
+from whatsapp_receiving_status import router as whatsapp_receiving_status_router
 
 app = FastAPI(title="SocialME Python Service", lifespan=runtime_lifespan)
 app.include_router(integration_readiness_router)
@@ -57,6 +60,7 @@ app.include_router(instagram_publishing_router)
 app.include_router(instagram_media_router)
 app.include_router(pdf_knowledge_router)
 app.include_router(workspace_reporting_router)
+app.include_router(business_csv_router)
 app.include_router(report_collaboration_router)
 app.include_router(whatsapp_catalog_router)
 app.include_router(whatsapp_bot_router)
@@ -64,6 +68,7 @@ app.include_router(instagram_token_maintenance_router)
 app.include_router(agenda_router)
 app.include_router(appointments_router)
 app.include_router(whatsapp_human_router)
+app.include_router(whatsapp_receiving_status_router)
 app.add_middleware(AccountMiddleware)
 cors_origins = configured_cors_origins()
 if cors_origins:
@@ -87,6 +92,7 @@ app.include_router(n8n_read_router)
 app.include_router(account_auth_router)
 app.include_router(account_recovery_router)
 app.include_router(account_sessions_router)
+app.include_router(team_members_router)
 app.include_router(operations_readiness_router)
 app.include_router(instagram_simulation_router)
 app.include_router(instagram_provider_lab_router)

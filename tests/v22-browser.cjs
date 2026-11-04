@@ -46,6 +46,7 @@ async function run() {
     await require("./agenda-browser.cjs")(browser, origin);
     await require("./appointments-browser.cjs")(browser, origin);
     await require("./catalog-details-browser.cjs")(browser, origin);
+    console.log(await require("./sale-history-browser.cjs")(browser, origin));
     await require("./inbox-customer-browser.cjs")(browser, origin);
     await require("./functional-recovery-browser.cjs")(browser, origin);
     const contracts = await require("./v22-contract-browser.cjs")(browser, origin);
@@ -57,8 +58,10 @@ async function run() {
     await require("./v22-whatsapp-replies-browser.cjs")(browser, origin);
     await require("./v22-instagram-publisher-browser.cjs")(browser, origin);
     await require("./v22-knowledge-reporting-browser.cjs")(browser, origin);
+    await require("./v22-sales-decisions-browser.cjs")(browser, origin);
     await require("./v22-report-viewer-browser.cjs")(browser, origin);
     await require("./v22-whatsapp-catalog-browser.cjs")(browser, origin);
+    console.log(await require("./v22-whatsapp-receiving-browser.cjs")(browser, origin));
     const page = await browser.newPage({ reducedMotion: "reduce" });
     page.on("pageerror", (e) => errors.push(e.message));
     await page.route("**/*", (r) => {

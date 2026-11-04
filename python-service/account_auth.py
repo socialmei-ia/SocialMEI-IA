@@ -190,6 +190,8 @@ def admin():
 REPORT_ONLY = {
     ("GET", "/api/v1/reporting/overview"),
     ("GET", "/api/v1/reporting/overview.csv"),
+    ("GET", "/api/v1/reporting/sales"),
+    ("GET", "/api/v1/reporting/appointments"),
     ("GET", "/api/v1/auth/workspaces"),
     ("POST", "/api/v1/auth/workspaces/switch"),
     ("POST", "/api/v1/auth/logout"),

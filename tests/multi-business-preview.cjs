@@ -4,6 +4,7 @@ const { randomUUID } = require("node:crypto");
 const { chromium } = require("playwright");
 const fs = require("node:fs");
 const path = require("node:path");
+const { waitForViewportFit, layoutSnapshot } = require("./v22-layout-ready.cjs");
 async function run() {
   const origin = process.env.SOCIALMEI_TEST_PREVIEW_ORIGIN || "https://127.0.0.1:8443";
   assert.match(origin, /^https:\/\/127\.0\.0\.1:[1-9][0-9]{3,4}$/);
@@ -60,7 +61,7 @@ async function run() {
         .locator("[data-businesses]")
         .getByRole("button", { name: "Acessar " + name, exact: true })
         .click();
-      await page.waitForFunction((id) => SocialMEIAuth.current?.negocio.id === id, id);
+      await page.waitForFunction((id) => window.SocialMEIAuth?.current?.negocio.id === id, id);
       assert.equal(
         await page.evaluate(() => SocialMEIAuth.current.usuario.id),
         original.usuario.id,
@@ -125,12 +126,45 @@ async function run() {
     await panel.waitFor();
     assert.equal((await request("/produtos")).find((item) => item.id === product.id).estoque, 4);
     assert.equal((await request("/vendas")).length, 1);
+    const soldOn = new Date().toISOString().slice(0, 10);
+    const salesReport = await request("/reporting/sales?start=" + soldOn + "&end=" + soldOn);
+    assert.equal(salesReport.current.count, 1);
+    assert.equal(salesReport.current.total, "59.90");
+    assert.equal(salesReport.current.average_ticket, "59.90");
+    assert.equal(salesReport.products[0].product_id, product.id);
+    const exported = await request("/exports/produtos", "POST", {});
+    assert.equal(exported.row_count, 1);
+    assert.match(exported.csv, /59,90/);
+    assert.match(exported.csv, /Blusa Teste She Style/);
+    await page.goto(origin + "/frontend/socialmei-app.html#/relatorios");
+    const reportPanel = page.locator("[data-sm-sales-decisions]");
+    await reportPanel.locator("input[type=date]").first().fill(soldOn);
+    await reportPanel.locator("input[type=date]").nth(1).fill(soldOn);
+    await reportPanel
+      .getByRole("button", { name: "Consultar vendas do período", exact: true })
+      .click();
+    await reportPanel.getByText("R$ 59,90", { exact: true }).first().waitFor();
+    await reportPanel.getByText("Blusa Teste She Style", { exact: true }).waitFor();
+    await page.goto(origin + "/frontend/socialmei-app.html#/config/conta");
+    await panel.waitFor();
     for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: 900 });
+      await waitForViewportFit(page);
       await page.locator("[data-business-menu]").waitFor({ state: "visible" });
+      // The native desktop sidebar animates its width after crossing the mobile breakpoint.
+      await page.locator("#app > aside").evaluate(async (sidebar) => {
+        getComputedStyle(sidebar).width;
+        await Promise.all(
+          sidebar
+            .getAnimations()
+            .filter((animation) => animation.transitionProperty === "width")
+            .map((animation) => animation.finished.catch(() => {})),
+        );
+      });
       assert.equal(
         await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1),
         false,
+        JSON.stringify(await layoutSnapshot(page)),
       );
       fs.mkdirSync(path.join(__dirname, "../test-results/multi-business"), { recursive: true });
       await page.screenshot({
@@ -142,12 +176,41 @@ async function run() {
     await second.goto(origin + "/frontend/socialmei-app.html#/config/conta");
     await second.locator("[data-businesses]").waitFor();
     await switchTo("SorriaOdonto", sorria);
-    await second.waitForFunction((id) => SocialMEIAuth.current?.negocio.id === id, sorria);
+    await second.waitForFunction((id) => window.SocialMEIAuth?.current?.negocio.id === id, sorria);
     assert.equal(
       (await request("/produtos")).some((item) => item.id === product.id),
       false,
     );
     assert.equal((await request("/vendas")).length, 0);
+    assert.equal(
+      (await request("/reporting/sales?start=" + soldOn + "&end=" + soldOn)).current.total,
+      "0.00",
+    );
+    const ownExport = await request("/exports/produtos", "POST", {});
+    assert.doesNotMatch(ownExport.csv, /Blusa Teste She Style/);
+    const bookingZone = (await request("/reporting/appointments")).period.timezone;
+    const parts = new Intl.DateTimeFormat("en", {
+      timeZone: bookingZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(new Date(booking.scheduled_for));
+    const bookingDay = ["year", "month", "day"]
+      .map((type) => parts.find((p) => p.type === type).value)
+      .join("-");
+    assert.equal(
+      (await request("/reporting/appointments?start=" + bookingDay + "&end=" + bookingDay))
+        .scheduled.total,
+      1,
+    );
+    await page.goto(origin + "/frontend/socialmei-app.html#/relatorios");
+    const agendaReport = page.locator("[data-appointment-report]");
+    await agendaReport.getByLabel("Agenda desde").fill(bookingDay);
+    await agendaReport.getByLabel("Agenda até").fill(bookingDay);
+    await agendaReport
+      .getByRole("button", { name: "Consultar agenda do período", exact: true })
+      .click();
+    await agendaReport.getByText("Agendamentos no período: 1", { exact: true }).waitFor();
     assert.equal(
       (await request("/agenda/appointments")).items.some((item) => item.id === booking.id),
       true,
@@ -186,7 +249,7 @@ async function run() {
     assert.deepEqual(errors, []);
     assert.deepEqual(external, []);
     console.log(
-      "Multi-business real PostgreSQL/browser: one registration, two owner workspaces, selector, reload, isolated CRM/catalog/settings/empty agenda/sales/inbox, cross-workspace404, cross-tab switch, logout/login, desktop/mobile PASS.",
+      "Real integrated PostgreSQL/browser: one account, two businesses, persisted CRM/booking/sale/stock, report cards and CSV reflect saved data, workspace isolation, two tabs, logout/login, desktop/mobile PASS.",
     );
   } finally {
     await browser.close();

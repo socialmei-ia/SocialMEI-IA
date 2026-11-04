@@ -5,12 +5,15 @@ from decimal import Decimal
 from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException
+import psycopg
+from fastapi import APIRouter, HTTPException, Path as ApiPath, Query
 from psycopg.rows import dict_row
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from shared_data import MAX_SAFE_ID, ensure_workspace, require_shared_data
 
 from database import connect
+from account_auth import current, require_enabled
+import settings
 
 router = APIRouter(prefix="/api/v1/vendas", tags=["vendas"])
 Money = Annotated[
@@ -202,6 +205,73 @@ def get_sale(venda_id: int):
         if not row:
             raise HTTPException(404, "Venda não encontrada.")
         return row
+
+
+@router.get("/{venda_id}/history")
+def sale_history(venda_id: int = ApiPath(ge=1, le=MAX_SAFE_ID),
+                 before: UUID | None = None, limit: int = Query(20, ge=1, le=50)):
+    require_enabled()
+    require_shared_data()
+    user = current()
+    if user['role'] not in {'owner', 'admin', 'member', 'viewer'}:
+        raise HTTPException(403, 'Permissão insuficiente para consultar o histórico.')
+    try:
+        zone = settings.business_timezone()
+    except ValueError:
+        raise HTTPException(503, 'Confira o fuso horário do negócio.') from None
+    workspace = user['workspace_id']
+    try:
+        with connect() as conn:
+            conn.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY')
+            conn.execute("SET LOCAL statement_timeout='2s'")
+            # Soft deletion hides the sale from listings, not its existing history.
+            sale = conn.execute(
+                'SELECT excluida FROM socialmei.crm_vendas WHERE workspace_id=%s AND id=%s',
+                (workspace, venda_id),
+            ).fetchone()
+            if sale is None:
+                raise HTTPException(404, 'Venda não encontrada.')
+            params = [workspace, str(venda_id)]
+            position = ''
+            if before is not None:
+                cursor = conn.execute(
+                    "SELECT criado_em,operation_id FROM socialmei.crm_venda_operacoes "
+                    "WHERE workspace_id=%s AND operation_id=%s AND resposta->>'id'=%s",
+                    (workspace, before, str(venda_id)),
+                ).fetchone()
+                if cursor is None:
+                    raise HTTPException(404, 'Página de histórico não encontrada.')
+                position = ' AND (criado_em,operation_id)<(%s,%s)'
+                params.extend(cursor)
+            rows = conn.execute(
+                "SELECT operation_id,criado_em,resposta FROM socialmei.crm_venda_operacoes "
+                "WHERE workspace_id=%s AND resposta->>'id'=%s" + position +
+                ' ORDER BY criado_em DESC,operation_id DESC LIMIT %s',
+                [*params, limit+1],
+            ).fetchall()
+    except psycopg.Error:
+        raise HTTPException(503, 'Histórico indisponível. Tente novamente.') from None
+    items = []
+    for operation_id, recorded_at, snapshot in rows[:limit]:
+        # Validate persisted contracts, then project only the history fields.
+        try:
+            record = VendaOut.model_validate(snapshot)
+            total = Decimal(str(record.valor))
+            if (record.id != venda_id or record.status not in {'Rascunho', 'Pendente', 'Pago', 'Cancelado'}
+                    or not 1 <= record.versao <= MAX_SAFE_ID or not 1 <= record.quantidade <= MAX_SAFE_ID
+                    or not total.is_finite() or not 0 <= total <= MAX_MONEY):
+                raise ValueError('sale snapshot mismatch')
+        except ValueError:
+            raise HTTPException(503, 'Histórico indisponível. Tente novamente.') from None
+        items.append({
+            'id': str(operation_id), 'recorded_at': recorded_at.isoformat(),
+            'revision': record.versao, 'status': record.status,
+            'quantity': record.quantidade, 'total': format(total, '.2f'),
+            'stock_applied': record.estoque_aplicado, 'deleted': record.excluida,
+        })
+    return {'workspace_id': workspace, 'sale_id': venda_id, 'deleted': sale[0],
+            'timezone': zone.key, 'actor_recorded': False, 'items': items,
+            'next_cursor': items[-1]['id'] if len(rows)>limit else None}
 
 
 @router.post("", response_model=VendaOut, status_code=201)
