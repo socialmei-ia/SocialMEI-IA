@@ -4,6 +4,7 @@ const { randomUUID } = require("node:crypto");
 const { chromium } = require("playwright");
 const fs = require("node:fs");
 const path = require("node:path");
+const { waitForViewportFit, layoutSnapshot } = require("./v22-layout-ready.cjs");
 async function run() {
   const origin = process.env.SOCIALMEI_TEST_PREVIEW_ORIGIN || "https://127.0.0.1:8443";
   assert.match(origin, /^https:\/\/127\.0\.0\.1:[1-9][0-9]{3,4}$/);
@@ -127,10 +128,22 @@ async function run() {
     assert.equal((await request("/vendas")).length, 1);
     for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: 900 });
+      await waitForViewportFit(page);
       await page.locator("[data-business-menu]").waitFor({ state: "visible" });
+      // The native desktop sidebar animates its width after crossing the mobile breakpoint.
+      await page.locator("#app > aside").evaluate(async (sidebar) => {
+        getComputedStyle(sidebar).width;
+        await Promise.all(
+          sidebar
+            .getAnimations()
+            .filter((animation) => animation.transitionProperty === "width")
+            .map((animation) => animation.finished.catch(() => {})),
+        );
+      });
       assert.equal(
         await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1),
         false,
+        JSON.stringify(await layoutSnapshot(page)),
       );
       fs.mkdirSync(path.join(__dirname, "../test-results/multi-business"), { recursive: true });
       await page.screenshot({
