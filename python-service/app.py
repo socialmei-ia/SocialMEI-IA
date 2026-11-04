@@ -44,6 +44,7 @@ from instagram_publishing import router as instagram_publishing_router
 from instagram_media import InstagramMediaPrivacy, router as instagram_media_router
 from pdf_knowledge import router as pdf_knowledge_router
 from workspace_reporting import router as workspace_reporting_router
+from finance_reporting import router as finance_reporting_router
 from business_csv import router as business_csv_router
 from report_collaboration import router as report_collaboration_router
 from whatsapp_catalog import router as whatsapp_catalog_router
@@ -60,6 +61,7 @@ app.include_router(instagram_publishing_router)
 app.include_router(instagram_media_router)
 app.include_router(pdf_knowledge_router)
 app.include_router(workspace_reporting_router)
+app.include_router(finance_reporting_router)
 app.include_router(business_csv_router)
 app.include_router(report_collaboration_router)
 app.include_router(whatsapp_catalog_router)
