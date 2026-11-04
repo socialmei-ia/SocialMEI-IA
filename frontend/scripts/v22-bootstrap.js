@@ -105,6 +105,10 @@
     businesses.src = "scripts/v22-businesses.js";
     businesses.onerror = () => console.warn("Meus negócios indisponível.");
     document.body.appendChild(businesses);
+    const exports = document.createElement("script");
+    exports.src = "scripts/v22-business-export.js";
+    exports.onerror = () => console.warn("Exportação indisponível.");
+    document.body.appendChild(exports);
   }
   if (auth.remote) {
     const instagram = document.createElement("script");
