@@ -86,7 +86,11 @@ function browser(result) {
   assert.equal(allowed.button.disabled, true);
   assert.equal(allowed.button.textContent, "Gerenciado pela equipe");
   assert(allowed.badge.title.includes("não verificados"));
-  assert(allowed.calls.every((route) => route === "/integrations/readiness"));
+  assert(
+    allowed.calls.every((route) =>
+      ["/integrations/readiness", "/whatsapp/receiving-status"].includes(route),
+    ),
+  );
 
   const unconfigured = browser({
     source: "server",

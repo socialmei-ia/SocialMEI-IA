@@ -8,6 +8,8 @@
   let owner = scope();
   let phase = "loading";
   let receiving = false;
+  let receiptPhase = "loading";
+  let receipt = null;
   let pending = null;
 
   function setLabel(element, value) {
@@ -26,6 +28,8 @@
       owner = scope();
       phase = "loading";
       receiving = false;
+      receiptPhase = "loading";
+      receipt = null;
     }
     const label =
       phase === "loading"
@@ -76,11 +80,98 @@
               ? "Recebimento cadastrado no servidor. A sessão atual e as respostas automáticas ainda precisam de verificação."
               : "O recebimento real ainda não foi confirmado para este negócio.";
       }
+      if (
+        row.matches(".cn") ||
+        (row.matches(".sw") && location.hash.startsWith("#/config/integracoes"))
+      )
+        paintReceipt(row);
       const button = row.querySelector("button");
       if (button && button.disabled) {
         button.textContent = "Gerenciado pela equipe";
+        if (button.style) {
+          button.style.whiteSpace = "normal";
+          button.style.height = "auto";
+          button.style.minHeight = "44px";
+          button.style.maxWidth = "120px";
+        }
         button.title =
           "A conexão WhatsApp depende de provisionamento seguro; este botão não inicia pareamento.";
+      }
+    }
+  }
+
+  function paintReceipt(row) {
+    let panel = row.matches(".sw")
+      ? row.nextElementSibling?.matches("[data-wa-receiving]") && row.nextElementSibling
+      : row.querySelector("[data-wa-receiving]");
+    if (!panel) {
+      panel = document.createElement("section");
+      panel.dataset.waReceiving = "true";
+      panel.style.cssText = "margin-top:12px;display:grid;gap:8px;min-width:0";
+      const title = document.createElement("strong");
+      title.textContent = "Recebimento na Caixa";
+      const status = document.createElement("p");
+      status.dataset.waReceivingStatus = "true";
+      status.setAttribute("role", "status");
+      status.setAttribute("aria-live", "polite");
+      const caveat = document.createElement("p");
+      caveat.textContent =
+        "Histórico salvo neste negócio. Não comprova sessão WAHA ativa agora, entrega ou envio de respostas.";
+      const update = document.createElement("button");
+      update.type = "button";
+      update.className = "btn o";
+      update.textContent = "Atualizar recebimento";
+      update.onclick = refresh;
+      const inbox = document.createElement("a");
+      inbox.href = "#/caixa";
+      inbox.textContent = "Abrir Caixa Unificada";
+      panel.append(title, status, caveat, update, inbox);
+      if (row.matches(".sw")) row.after(panel);
+      else row.append(panel);
+    }
+    const status = panel.querySelector("[data-wa-receiving-status]");
+    if (receiptPhase === "loading") status.textContent = "Consultando mensagens persistidas…";
+    else if (receiptPhase === "error")
+      status.textContent = "Recebimento não verificado. Não foi possível consultar o histórico.";
+    else if (!receipt.message_count)
+      status.textContent = "Nenhuma mensagem WhatsApp recebida e persistida neste negócio.";
+    else
+      status.textContent =
+        receipt.message_count +
+        " mensagem(ns) recebida(s) em " +
+        receipt.conversation_count +
+        " conversa(s). Última gravação: " +
+        new Date(receipt.last_persisted_at).toLocaleString("pt-BR") +
+        ".";
+    panel.setAttribute("aria-busy", String(receiptPhase === "loading"));
+    panel.querySelector("button").disabled = receiptPhase === "loading";
+  }
+
+  async function loadReceipt(expectedScope) {
+    try {
+      const result = await host.request("/whatsapp/receiving-status");
+      if (scope() !== expectedScope) return;
+      if (
+        result?.source !== "postgresql" ||
+        result?.workspace_id !== host.identity.negocio.id ||
+        !Number.isSafeInteger(result.message_count) ||
+        result.message_count < 0 ||
+        !Number.isSafeInteger(result.conversation_count) ||
+        result.conversation_count < 0 ||
+        result.conversation_count > result.message_count ||
+        result.historical_receiving_confirmed !== result.message_count > 0 ||
+        result.session_live_verified !== false ||
+        result.sending_available !== false ||
+        (result.message_count > 0 && !Number.isFinite(Date.parse(result.last_persisted_at))) ||
+        (result.message_count === 0 && result.last_persisted_at !== null)
+      )
+        throw Error("Histórico inválido");
+      receipt = result;
+      receiptPhase = "ready";
+    } catch {
+      if (scope() === expectedScope) {
+        receipt = null;
+        receiptPhase = "error";
       }
     }
   }
@@ -89,8 +180,10 @@
     if (pending) return pending;
     const previousOwner = scope();
     phase = "loading";
+    receiptPhase = "loading";
     paint();
     pending = (async () => {
+      const receiptRequest = loadReceipt(previousOwner);
       try {
         const response = await host.request("/integrations/readiness");
         const status = response?.whatsapp;
@@ -110,6 +203,7 @@
           phase = "error";
         }
       } finally {
+        await receiptRequest;
         pending = null;
         paint();
       }
