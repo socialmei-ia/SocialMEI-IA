@@ -113,6 +113,10 @@
     team.src = "scripts/v22-team-members.js";
     team.onerror = () => console.warn("Equipe indisponível.");
     document.body.appendChild(team);
+    const saleHistory = document.createElement("script");
+    saleHistory.src = "scripts/v22-sale-history.js";
+    saleHistory.onerror = () => console.warn("Histórico das vendas indisponível.");
+    document.body.appendChild(saleHistory);
   }
   if (auth.remote) {
     const instagram = document.createElement("script");
