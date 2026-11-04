@@ -344,3 +344,59 @@ test("failed switch preserves the active workspace and its local drafts", async 
   assert.equal(local.getItem("socialmei-draft"), "keep");
   assert.equal(ctx.reloads, 0);
 });
+
+test("network read failures are actionable and contain no transport details", async () => {
+  const local = storage({ "socialmei-auth-browser-scope": "1:1" });
+  const ctx = setup(
+    (url) => {
+      if (url.endsWith("/auth/session")) return reply(identity(1));
+      throw new TypeError("Failed to fetch https://private.invalid/raw?token=private");
+    },
+    undefined,
+    local,
+  );
+  await ctx.auth.ready;
+  await assert.rejects(ctx.auth.request("/clientes"), (error) => {
+    assert.equal(error.code, "connection_failed");
+    assert.match(error.message, /conexão/);
+    assert.doesNotMatch(error.message, /private|token|fetch/);
+    return true;
+  });
+  assert.equal(ctx.requests.length, 2);
+});
+
+test("network write failure warns of unknown outcome and never retries automatically", async () => {
+  const local = storage({ "socialmei-auth-browser-scope": "1:1" });
+  const ctx = setup(
+    (url) => {
+      if (url.endsWith("/auth/session")) return reply(identity(1));
+      throw new TypeError("Failed to fetch");
+    },
+    undefined,
+    local,
+  );
+  await ctx.auth.ready;
+  await assert.rejects(
+    ctx.auth.request("/vendas", "POST", { operation_id: "existing-id" }),
+    (error) => {
+      assert.equal(error.code, "operation_unconfirmed");
+      assert.match(error.message, /antes de repetir/);
+      return true;
+    },
+  );
+  assert.equal(ctx.requests.length, 2);
+});
+
+test("HTTP status remains available when the server sends no readable detail", async () => {
+  const local = storage({ "socialmei-auth-browser-scope": "1:1" });
+  const ctx = setup(
+    (url) => (url.endsWith("/auth/session") ? reply(identity(1)) : reply(null, 403)),
+    undefined,
+    local,
+  );
+  await ctx.auth.ready;
+  await assert.rejects(
+    ctx.auth.request("/clientes"),
+    (error) => error.status === 403 && /permissão/.test(error.message),
+  );
+});
