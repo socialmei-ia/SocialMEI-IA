@@ -644,6 +644,137 @@
     };
     load();
   }
+  function mountAppointmentReport(view) {
+    if (view.querySelector("[data-appointment-report]")) return;
+    const section = panel(
+      "Agenda por período",
+      "Consulte estados registrados e alterações de horário, sem presumir comparecimento ou ocupação.",
+    );
+    section.dataset.appointmentReport = "true";
+    const expected = `${bridge.identity.usuario.id}:${bridge.identity.negocio.id}`;
+    const message = status(section);
+    const form = el("form");
+    form.className = "sm-controls";
+    const fields = ["Agenda desde", "Agenda até"].map((title) => {
+      const label = el("label", title);
+      const input = el("input");
+      input.type = "date";
+      input.required = true;
+      label.append(input);
+      form.append(label);
+      return input;
+    });
+    const button = el("button", "Consultar agenda do período");
+    button.type = "submit";
+    form.append(button);
+    const content = el("div");
+    section.append(form, content);
+    view.append(section);
+    let revision = 0;
+    const alive = (id) =>
+      section.isConnected &&
+      location.hash.startsWith("#/relatorios") &&
+      id === revision &&
+      `${bridge.identity?.usuario.id}:${bridge.identity?.negocio.id}` === expected;
+    async function load(custom) {
+      const id = ++revision;
+      button.disabled = true;
+      fields.forEach((input) => {
+        input.disabled = true;
+      });
+      message.textContent = "Consultando agenda salva…";
+      content.replaceChildren();
+      try {
+        const query = custom
+          ? "?" + new URLSearchParams({ start: fields[0].value, end: fields[1].value })
+          : "";
+        const data = await bridge.request("/reporting/appointments" + query);
+        if (!alive(id)) return;
+        const counts = data.scheduled;
+        if (
+          !counts ||
+          !Array.isArray(data.services) ||
+          data.services.length > 10 ||
+          ![
+            counts.total,
+            counts.pending,
+            counts.done,
+            counts.cancelled,
+            data.upcoming_pending,
+            data.reschedule_events,
+          ].every((n) => Number.isSafeInteger(n) && n >= 0) ||
+          counts.total !== counts.pending + counts.done + counts.cancelled ||
+          data.upcoming_pending > counts.pending ||
+          !/^\d{4}-\d{2}-\d{2}$/.test(data.period?.start) ||
+          !/^\d{4}-\d{2}-\d{2}$/.test(data.period?.end)
+        )
+          throw Error("Relatório de agenda não confirmado pelo servidor.");
+        fields[0].value = data.period.start;
+        fields[1].value = data.period.end;
+        const list = el("ul");
+        for (const [title, value] of [
+          ["Agendamentos no período", counts.total],
+          ["Pendentes", counts.pending],
+          ["Concluídos", counts.done],
+          ["Cancelados", counts.cancelled],
+          ["Próximos pendentes neste período", data.upcoming_pending],
+          ["Alterações de horário registradas no período", data.reschedule_events],
+        ])
+          list.append(el("li", title + ": " + value));
+        content.append(list);
+        const table = el("table");
+        table.style.width = "100%";
+        table.append(el("caption", "Até dez serviços por quantidade de agendamentos"));
+        const head = el("thead"),
+          row = el("tr");
+        for (const title of ["Serviço", "Pendentes", "Concluídos", "Cancelados"])
+          row.append(el("th", title));
+        head.append(row);
+        table.append(head);
+        const body = el("tbody");
+        for (const item of data.services) {
+          if (
+            typeof item.name !== "string" ||
+            ![item.pending, item.done, item.cancelled].every(
+              (n) => Number.isSafeInteger(n) && n >= 0,
+            )
+          )
+            throw Error("Relatório de agenda não confirmado pelo servidor.");
+          const line = el("tr");
+          for (const value of [item.name, item.pending, item.done, item.cancelled])
+            line.append(el("td", value));
+          body.append(line);
+        }
+        table.append(body);
+        content.append(table);
+        content.append(
+          el("p", data.description),
+          el("p", data.upcoming_description),
+          el("p", data.reschedule_description),
+        );
+        message.textContent = counts.total
+          ? "Agenda persistida · fuso: " + data.period.timezone
+          : "Nenhum agendamento no período. Alterações de horário são contadas separadamente.";
+      } catch (error) {
+        if (alive(id)) {
+          content.replaceChildren();
+          message.textContent = error.message || "Não foi possível consultar a agenda.";
+        }
+      } finally {
+        if (alive(id)) {
+          button.disabled = false;
+          fields.forEach((input) => {
+            input.disabled = false;
+          });
+        }
+      }
+    }
+    form.onsubmit = (event) => {
+      event.preventDefault();
+      if (form.reportValidity()) load(true);
+    };
+    load(false);
+  }
   function mount() {
     const view = currentView();
     if (!view) return;
@@ -651,6 +782,7 @@
     if (location.hash.startsWith("#/relatorios")) {
       mountReport(view);
       mountSalesDecisions(view);
+      mountAppointmentReport(view);
     }
   }
   const originalRender = window.render;
