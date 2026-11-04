@@ -268,5 +268,102 @@ class Multi188BackupTests(unittest.TestCase):
             m.schema.compare(value, value)
 
 
+    def test_backup_gate_verifies_real_classic_and_oci_rollback_archives(self):
+        """Exercise the real verifier end-to-end, not a mocked archive check.
+
+        Docker classic uses config digests; containerd-backed Docker 29 can
+        report an OCI manifest or index digest. Each archive must be bound
+        to the exact running baseline image identity.
+        """
+        import shutil
+        import time
+        import test_team_functional038_rollback_images as fixtures
+
+        m = self.m
+        for archive_kind in ('classic', 'direct', 'index'):
+            with self.subTest(archive_kind=archive_kind), tempfile.TemporaryDirectory() as temp:
+                parent = Path(temp)
+                folder = parent / 'multi188-window'
+                folder.mkdir(mode=0o700)
+                images = {}
+                original_verify = fixtures.helper.verify_archive_config_digests
+
+                def capture_archive(path, expected, sha, context):
+                    shutil.copyfile(path, folder / 'images-before.tar')
+                    images.update(copy.deepcopy(expected))
+                    return original_verify(path, expected, sha, context)
+
+                with patch.object(fixtures, 'SHA', m.operator.BASE_SHA), \
+                     patch.object(fixtures.helper, 'verify_archive_config_digests',
+                                  side_effect=capture_archive):
+                    fixtures.RollbackImageIdentityTests().fixture(kind=archive_kind)
+
+                plans = {
+                    service: {
+                        'container': {'Config': {'Image': value['tag']},
+                                      'Image': value['image_id']},
+                        'mount_fingerprints': {},
+                    }
+                    for service, value in images.items()
+                }
+                self.assertEqual(set(plans), {'team-api', 'team-gateway'})
+                (folder / 'postgres.dump').write_bytes(b'isolated synthetic dump')
+                (folder / 'private-config.tar').write_bytes(b'private synthetic archive')
+                restore = {
+                    'backup_sha256': m.operator.legacy.digest_file(folder / 'postgres.dump'),
+                    'ledger': sorted(m.operator.profile.MIGRATIONS038),
+                    'restore_verified': True,
+                    'isolated': True,
+                    'migrations_executed': False,
+                    'production_runtime_changed': False,
+                    'fingerprints_match': True,
+                    'schema_and_constraints_match': True,
+                    'sequence_states_match': True,
+                    'accounts_memberships_match': True,
+                    'table_count': 74,
+                    'metadata_groups': [
+                        'columns', 'constraint_properties', 'constraints',
+                        'environment', 'functions', 'indexes', 'schemas',
+                        'sequences', 'tables', 'triggers', 'views',
+                    ],
+                }
+                (folder / 'restore038.json').write_text(json.dumps(restore))
+                receipt = {
+                    'source_sha': m.operator.CANDIDATE_SHA,
+                    'baseline_sha': m.operator.BASE_SHA,
+                    'release_profile': '038',
+                    'captured_unix': time.time(),
+                    'runtime_fingerprints': {s: 'test-baseline' for s in plans},
+                    'mount_fingerprints': {s: {} for s in plans},
+                    'sha256': {
+                        name: m.operator.legacy.digest_file(folder / name)
+                        for name in ('postgres.dump', 'private-config.tar',
+                                     'restore038.json', 'images-before.tar')
+                    },
+                }
+                (folder / m.operator.BACKUP_RECEIPT).write_text(json.dumps(receipt))
+                for file in folder.iterdir():
+                    file.chmod(0o600)
+
+                original_stat = Path.stat
+
+                def root_owned_fixture(path, *args, **kwargs):
+                    result = original_stat(path, *args, **kwargs)
+                    if path.is_relative_to(folder):
+                        fields = list(result)
+                        fields[4] = 0
+                        return os.stat_result(fields)
+                    return result
+
+                with patch.object(Path, 'stat', root_owned_fixture), \
+                     patch.object(m.operator.legacy, 'PRIVATE', parent), \
+                     patch.object(m.operator, 'runtime_fingerprint',
+                                  return_value='test-baseline'), \
+                     patch.object(m.operator, 'verify_private_archive'):
+                    # Deliberately do NOT mock sibling() or the image verifier.
+                    verified = m.operator.backup_gate(folder, plans)
+                self.assertEqual(verified['source_sha'], m.operator.CANDIDATE_SHA)
+
+
 if __name__ == '__main__':
     unittest.main()
