@@ -482,11 +482,176 @@
     view.appendChild(section);
     load();
   }
+  function mountSalesDecisions(view) {
+    if (view.querySelector("[data-sm-sales-decisions]")) return;
+    const section = panel(
+      "Vendas registradas",
+      "Compare um período com os dias imediatamente anteriores, sem misturar negócios ou recebimentos financeiros.",
+    );
+    section.dataset.smSalesDecisions = "true";
+    const identity = () => `${bridge.identity?.usuario.id}:${bridge.identity?.negocio.id}`;
+    const scope = identity();
+    let sequence = 0;
+    const result = status(section);
+    const form = el("form");
+    form.className = "sm-controls";
+    const startLabel = el("label", "De ");
+    const start = el("input");
+    start.type = "date";
+    start.required = true;
+    startLabel.append(start);
+    const endLabel = el("label", "Até ");
+    const end = el("input");
+    end.type = "date";
+    end.required = true;
+    endLabel.append(end);
+    const filter = el("button", "Consultar vendas do período");
+    filter.type = "submit";
+    const content = el("div");
+    form.append(startLabel, endLabel, filter);
+    section.append(form, content);
+    view.append(section);
+    const money = (value) => {
+      const match = /^(-?\d+)\.(\d{2})$/.exec(String(value));
+      if (!match) throw Error("Valor inválido no relatório. Atualize antes de usar os resultados.");
+      return "R$ " + match[1].replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "," + match[2];
+    };
+    const day = (value) => String(value).split("-").reverse().join("/");
+    function grid(captionText, headings, records) {
+      const table = el("table");
+      table.style.width = "100%";
+      table.append(el("caption", captionText));
+      const head = el("thead"),
+        line = el("tr");
+      headings.forEach((value) => {
+        const cell = el("th", value);
+        cell.scope = "col";
+        line.append(cell);
+      });
+      head.append(line);
+      const body = el("tbody");
+      records.forEach((record) => {
+        const row = el("tr");
+        record.forEach((value) => row.append(el("td", value)));
+        body.append(row);
+      });
+      table.append(head, body);
+      return table;
+    }
+    async function load(custom = false) {
+      const ticket = ++sequence;
+      content.replaceChildren();
+      result.textContent = "Consultando vendas registradas…";
+      filter.disabled = true;
+      start.disabled = end.disabled = true;
+      section.setAttribute("aria-busy", "true");
+      try {
+        if (custom && (!start.value || !end.value || start.value > end.value))
+          throw Error("Informe as duas datas, em ordem cronológica.");
+        const query = custom
+          ? "?start=" + encodeURIComponent(start.value) + "&end=" + encodeURIComponent(end.value)
+          : "";
+        const data = await bridge.request("/reporting/sales" + query);
+        if (!section.isConnected || ticket !== sequence || identity() !== scope) return;
+        if (
+          !Array.isArray(data.daily) ||
+          !Array.isArray(data.products) ||
+          !data.period ||
+          !data.current ||
+          !data.previous
+        )
+          throw Error("Resposta inválida. Nenhum resultado foi apresentado.");
+        const fragment = document.createDocumentFragment();
+        const cards = el("div");
+        cards.className = "sm-controls";
+        cards.style.cssText =
+          "display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:14px";
+        for (const [label, value] of [
+          ["Vendas", data.current.count],
+          ["Valor registrado", money(data.current.total)],
+          ["Ticket médio", money(data.current.average_ticket)],
+          ["Período anterior", money(data.previous.total)],
+        ]) {
+          const card = el("div");
+          const amount = el("strong", value);
+          amount.style.cssText =
+            "display:block;font-size:20px;overflow-wrap:anywhere;margin-top:4px";
+          card.append(el("small", label), amount);
+          cards.append(card);
+        }
+        fragment.append(cards);
+        fragment.append(
+          el(
+            "p",
+            "Comparação: " +
+              day(data.period.previous_start) +
+              " a " +
+              day(data.period.previous_end) +
+              ". " +
+              (data.change_total_percent === null
+                ? "Sem base percentual no período anterior."
+                : "Variação do valor: " +
+                  String(data.change_total_percent).replace(".", ",") +
+                  "%."),
+          ),
+        );
+        if (!data.current.count)
+          fragment.append(el("p", "Nenhuma venda válida no período selecionado."));
+        fragment.append(
+          grid(
+            "Vendas por dia",
+            ["Data", "Vendas", "Valor"],
+            data.daily.map((row) => [day(row.date), row.count, money(row.total)]),
+          ),
+        );
+        if (data.products.length)
+          fragment.append(
+            grid(
+              "10 itens com maior valor registrado",
+              ["Item na venda", "Unidades", "Valor"],
+              data.products.map((row) => [row.name, row.quantity, money(row.total)]),
+            ),
+          );
+        else fragment.append(el("p", "Sem itens vendidos para classificar neste período."));
+        fragment.append(el("p", data.description));
+        start.value = data.period.start;
+        end.value = data.period.end;
+        content.replaceChildren(fragment);
+        result.textContent =
+          "Período: " +
+          day(data.period.start) +
+          " a " +
+          day(data.period.end) +
+          " · Fuso: " +
+          data.period.timezone +
+          ".";
+      } catch (error) {
+        if (section.isConnected && ticket === sequence && identity() === scope) {
+          content.replaceChildren();
+          result.textContent = error.message || "Não foi possível consultar as vendas.";
+        }
+      } finally {
+        if (ticket === sequence) {
+          filter.disabled = false;
+          start.disabled = end.disabled = false;
+          section.setAttribute("aria-busy", "false");
+        }
+      }
+    }
+    form.onsubmit = (event) => {
+      event.preventDefault();
+      if (form.reportValidity()) load(true);
+    };
+    load();
+  }
   function mount() {
     const view = currentView();
     if (!view) return;
     if (location.hash.startsWith("#/config/ia")) mountKnowledge(view);
-    if (location.hash.startsWith("#/relatorios")) mountReport(view);
+    if (location.hash.startsWith("#/relatorios")) {
+      mountReport(view);
+      mountSalesDecisions(view);
+    }
   }
   const originalRender = window.render;
   if (typeof originalRender === "function") {
