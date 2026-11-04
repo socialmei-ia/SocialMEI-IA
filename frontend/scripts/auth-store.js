@@ -117,6 +117,24 @@ const SocialMEIAuth = (() => {
           ...(data ? { "Content-Type": "application/json" } : {}),
         },
         body: data ? JSON.stringify(data) : undefined,
+      }).catch(() => {
+        if (expectedRevision !== revision)
+          throw new Error("Sua sessão mudou. Atualize antes de continuar.");
+        const reading = ["GET", "HEAD", "OPTIONS"].includes(method.toUpperCase());
+        const timeout = controller.signal.aborted;
+        const error = new Error(
+          reading
+            ? timeout
+              ? "O servidor demorou para responder. Tente atualizar os dados."
+              : "Não foi possível conectar ao servidor. Confira sua conexão e tente atualizar."
+            : "Não foi possível confirmar a operação. Confira os dados salvos antes de repetir.",
+        );
+        error.code = reading
+          ? timeout
+            ? "request_timeout"
+            : "connection_failed"
+          : "operation_unconfirmed";
+        throw error;
       });
       const body = response.status === 204 ? null : await response.json().catch(() => null);
       if (expectedRevision !== revision)
@@ -125,7 +143,15 @@ const SocialMEIAuth = (() => {
         const error = new Error(
           typeof body?.detail === "string"
             ? body.detail
-            : "Não foi possível concluir. Confira os dados e tente novamente.",
+            : response.status === 401
+              ? "Sua sessão expirou. Entre novamente."
+              : response.status === 403
+                ? "Você não tem permissão para realizar esta ação."
+                : response.status === 409
+                  ? "Os dados mudaram. Atualize antes de continuar."
+                  : response.status >= 500
+                    ? "O servidor está temporariamente indisponível. Confira a operação antes de tentar novamente."
+                    : "Não foi possível concluir. Confira os dados e tente novamente.",
         );
         error.status = response.status;
         throw error;

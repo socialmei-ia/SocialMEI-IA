@@ -7,6 +7,7 @@ on:
     branches:
       [
         main,
+        feat/account-businesses-20261104,
         release/functional-businesses-20261103,
         release/local-v0.1-preparation-20261102,
         feat/backend-provider-readiness,
