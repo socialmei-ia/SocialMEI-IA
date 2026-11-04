@@ -679,6 +679,9 @@
     async function load(custom) {
       const id = ++revision;
       button.disabled = true;
+      fields.forEach((input) => {
+        input.disabled = true;
+      });
       message.textContent = "Consultando agenda salva…";
       content.replaceChildren();
       try {
@@ -758,7 +761,12 @@
           message.textContent = error.message || "Não foi possível consultar a agenda.";
         }
       } finally {
-        if (alive(id)) button.disabled = false;
+        if (alive(id)) {
+          button.disabled = false;
+          fields.forEach((input) => {
+            input.disabled = false;
+          });
+        }
       }
     }
     form.onsubmit = (event) => {

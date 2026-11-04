@@ -96,6 +96,8 @@ async function run() {
           .getByRole("button", { name: "Consultar agenda do período", exact: true })
           .click();
         await page.waitForFunction(() => !!window.finish);
+        assert.equal(await panel.getByLabel("Agenda desde").isDisabled(), true);
+        assert.equal(await panel.getByLabel("Agenda até").isDisabled(), true);
         await page.evaluate(() => {
           SocialMEIV22.identity.negocio.id = 20;
           finish();
