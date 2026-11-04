@@ -109,6 +109,10 @@
     exports.src = "scripts/v22-business-export.js";
     exports.onerror = () => console.warn("Exportação indisponível.");
     document.body.appendChild(exports);
+    const team = document.createElement("script");
+    team.src = "scripts/v22-team-members.js";
+    team.onerror = () => console.warn("Equipe indisponível.");
+    document.body.appendChild(team);
   }
   if (auth.remote) {
     const instagram = document.createElement("script");
