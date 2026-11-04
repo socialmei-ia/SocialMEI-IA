@@ -105,6 +105,10 @@
     businesses.src = "scripts/v22-businesses.js";
     businesses.onerror = () => console.warn("Meus negócios indisponível.");
     document.body.appendChild(businesses);
+    const team = document.createElement("script");
+    team.src = "scripts/v22-team-members.js";
+    team.onerror = () => console.warn("Equipe indisponível.");
+    document.body.appendChild(team);
   }
   if (auth.remote) {
     const instagram = document.createElement("script");
