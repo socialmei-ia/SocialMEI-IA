@@ -121,6 +121,10 @@
     customerReports.src = "scripts/v22-customer-reporting.js";
     customerReports.onerror = () => console.warn("Indicadores de clientes indisponíveis.");
     document.body.appendChild(customerReports);
+    const financeReports = document.createElement("script");
+    financeReports.src = "scripts/v22-finance-reporting.js";
+    financeReports.onerror = () => console.warn("Relatório financeiro indisponível.");
+    document.body.appendChild(financeReports);
   }
   if (auth.remote) {
     const instagram = document.createElement("script");

@@ -25,6 +25,7 @@ class ReportViewerGuards(unittest.TestCase):
     def test_least_privilege_allowlist(self):
         allowed = {
             ("GET", "/api/v1/reporting/customers"),
+            ("GET", "/api/v1/reporting/finance"),
             ("GET", "/api/v1/reporting/overview"),
             ("GET", "/api/v1/reporting/overview.csv"),
             ("GET", "/api/v1/reporting/sales"),
