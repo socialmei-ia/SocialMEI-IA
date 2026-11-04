@@ -61,7 +61,7 @@ async function run() {
         .locator("[data-businesses]")
         .getByRole("button", { name: "Acessar " + name, exact: true })
         .click();
-      await page.waitForFunction((id) => SocialMEIAuth.current?.negocio.id === id, id);
+      await page.waitForFunction((id) => window.SocialMEIAuth?.current?.negocio.id === id, id);
       assert.equal(
         await page.evaluate(() => SocialMEIAuth.current.usuario.id),
         original.usuario.id,
@@ -176,7 +176,7 @@ async function run() {
     await second.goto(origin + "/frontend/socialmei-app.html#/config/conta");
     await second.locator("[data-businesses]").waitFor();
     await switchTo("SorriaOdonto", sorria);
-    await second.waitForFunction((id) => SocialMEIAuth.current?.negocio.id === id, sorria);
+    await second.waitForFunction((id) => window.SocialMEIAuth?.current?.negocio.id === id, sorria);
     assert.equal(
       (await request("/produtos")).some((item) => item.id === product.id),
       false,
