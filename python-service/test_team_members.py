@@ -1,5 +1,6 @@
 """Workspace team grants, revocation and races in disposable PostgreSQL."""
 import os
+import time
 import unittest
 from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import patch
@@ -188,6 +189,36 @@ class TeamMembersDatabase(unittest.TestCase):
         with ThreadPoolExecutor(max_workers=2) as pool:
             statuses=list(pool.map(attempt,range(2)))
         self.assertEqual(sorted(statuses),[200,409])
+
+    def test_credential_lock_precedes_session_lock_like_password_changes(self):
+        from account_auth import COOKIE, digest
+        self.register('person@example.test')
+        owner=self.scoped(self.admin_client)
+        with psycopg.connect(DB) as credential, psycopg.connect(DB) as probe:
+            credential.execute('SELECT user_id FROM socialmei.auth_credenciais WHERE user_id=%s FOR UPDATE',
+                               (owner.identity['usuario']['id'],))
+            def attempt():
+                client=TestClient(app,base_url=accounts.ORIGIN,headers=dict(owner.headers))
+                client.cookies.update(owner.cookies)
+                return client.post(PATH,json={'email':'person@example.test','role':'member'}).status_code
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                future=pool.submit(attempt)
+                waiting=False
+                for _ in range(200):
+                    waiting=probe.execute("SELECT EXISTS(SELECT 1 FROM pg_stat_activity WHERE datname=current_database() "
+                                          "AND wait_event_type='Lock' AND query LIKE 'SELECT user_id FROM socialmei.auth_credenciais%')").fetchone()[0]
+                    probe.commit()  # Refresh PostgreSQL's per-transaction statistics snapshot.
+                    if waiting: break
+                    time.sleep(0.01)
+                try:
+                    self.assertTrue(waiting,'Team mutation must wait on the credential before acquiring its session lock')
+                    # A password operation already owning the credential can still lock its session.
+                    probe.execute('SELECT token_hash FROM socialmei.auth_sessoes WHERE token_hash=%s FOR UPDATE NOWAIT',
+                                  (digest(owner.cookies[COOKIE]),))
+                    probe.commit()
+                finally:
+                    credential.commit()
+                self.assertEqual(future.result(timeout=10),200)
 
 
 if __name__ == '__main__': unittest.main()

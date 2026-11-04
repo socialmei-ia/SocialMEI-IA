@@ -41,16 +41,17 @@ def identity(request, *, write=False):
 def locked_scope(conn, actor, request):
     conn.execute("SET LOCAL lock_timeout='5s'")
     conn.execute('SELECT id FROM socialmei.workspaces WHERE id=%s FOR UPDATE', (actor['workspace_id'],))
+    credential = conn.execute('SELECT user_id FROM socialmei.auth_credenciais WHERE user_id=%s AND ativo FOR SHARE',
+                              (actor['id'],)).fetchone()
     live = conn.execute(
         'SELECT m.role FROM socialmei.auth_sessoes s '
         'JOIN socialmei.workspace_members m ON m.workspace_id=s.workspace_id AND m.user_id=s.user_id '
-        'JOIN socialmei.auth_credenciais c ON c.user_id=s.user_id '
         'WHERE s.token_hash=%s AND s.user_id=%s AND s.workspace_id=%s '
-        'AND c.ativo AND s.revogada_em IS NULL AND s.expira_em>NOW() '
-        'FOR SHARE OF s,m,c',
+        'AND s.revogada_em IS NULL AND s.expira_em>NOW() '
+        'FOR SHARE OF s,m',
         (digest(request.cookies.get(COOKIE, '')), actor['id'], actor['workspace_id']),
     ).fetchone()
-    if not live:
+    if not credential or not live:
         raise HTTPException(401, 'Sessão expirada. Entre novamente.')
     if live['role'] != 'owner':
         raise HTTPException(403, 'Somente o proprietário pode gerenciar a equipe.')
