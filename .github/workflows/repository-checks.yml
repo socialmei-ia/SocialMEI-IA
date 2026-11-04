@@ -255,6 +255,8 @@ jobs:
         run: npm run test:browser
       - name: Business CSV download and workspace guards
         run: node tests/business-export-browser.cjs
+      - name: Team membership interface
+        run: node tests/team-members-browser.cjs
       - name: Save browser evidence
         if: always()
         uses: actions/upload-artifact@v4
