@@ -117,6 +117,10 @@
     saleHistory.src = "scripts/v22-sale-history.js";
     saleHistory.onerror = () => console.warn("Histórico das vendas indisponível.");
     document.body.appendChild(saleHistory);
+    const customerReports = document.createElement("script");
+    customerReports.src = "scripts/v22-customer-reporting.js";
+    customerReports.onerror = () => console.warn("Indicadores de clientes indisponíveis.");
+    document.body.appendChild(customerReports);
   }
   if (auth.remote) {
     const instagram = document.createElement("script");
