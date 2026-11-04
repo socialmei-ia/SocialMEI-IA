@@ -114,8 +114,10 @@ async function run() {
       const value = await request(route);
       assert.equal((Array.isArray(value) ? value : value.items).length, 0);
     }
+    const sheCustomer = await request("/clientes", "POST", { nome: "Cliente fictício She" });
     const sale = await request("/vendas", "POST", {
       operation_id: randomUUID(),
+      cliente_id: sheCustomer.id,
       produto_id: product.id,
       quantidade: 1,
       preco: "59.90",
@@ -136,6 +138,28 @@ async function run() {
     assert.equal(exported.row_count, 1);
     assert.match(exported.csv, /59,90/);
     assert.match(exported.csv, /Blusa Teste She Style/);
+    const paidEntry = await request("/financeiro", "POST", {
+      operation_id: randomUUID(),
+      descricao: "Recebimento fictício",
+      tipo: "receita",
+      valor: "59.90",
+      vencimento: soldOn,
+      status: "pago",
+    });
+    await request("/financeiro", "POST", {
+      operation_id: randomUUID(),
+      descricao: "Pendência fictícia",
+      tipo: "despesa",
+      valor: "10.00",
+      vencimento: paidEntry.data_pagamento,
+      status: "aberto",
+    });
+    await request("/produtos", "POST", {
+      nome: "Produto fictício sem venda",
+      preco: "1.00",
+      estoque: 1,
+      minimo: 2,
+    });
     await page.goto(origin + "/frontend/socialmei-app.html#/relatorios");
     const reportPanel = page.locator("[data-sm-sales-decisions]");
     await reportPanel.locator("input[type=date]").first().fill(soldOn);
@@ -145,6 +169,31 @@ async function run() {
       .click();
     await reportPanel.getByText("R$ 59,90", { exact: true }).first().waitFor();
     await reportPanel.getByText("Blusa Teste She Style", { exact: true }).waitFor();
+    const customerPanel = page.locator("[data-customer-report]");
+    await customerPanel.getByLabel("Clientes desde").fill(soldOn);
+    await customerPanel.getByLabel("Clientes até").fill(soldOn);
+    await customerPanel
+      .getByRole("button", { name: "Consultar clientes do período", exact: true })
+      .click();
+    await customerPanel.getByText("Clientes com compras no período: 1", { exact: true }).waitFor();
+    await customerPanel.getByText("Cliente fictício She", { exact: true }).waitFor();
+    const financePanel = page.locator("[data-finance-report]");
+    await financePanel.getByLabel("Financeiro desde").fill(paidEntry.data_pagamento);
+    await financePanel.getByLabel("Financeiro até").fill(paidEntry.data_pagamento);
+    await financePanel
+      .getByRole("button", { name: "Consultar financeiro do período", exact: true })
+      .click();
+    await financePanel
+      .getByText("Entradas registradas como pagas: R$ 59,90", { exact: true })
+      .waitFor();
+    await financePanel.getByText("A pagar por vencimento: R$ 10,00", { exact: true }).waitFor();
+    const productPanel = page.locator("[data-product-report]");
+    await productPanel.getByText("Produto fictício sem venda", { exact: true }).waitFor();
+    await productPanel.getByLabel("Produtos desde").fill(soldOn);
+    await productPanel.getByLabel("Produtos até").fill(soldOn);
+    await productPanel.getByLabel("Lista de produtos").selectOption("no_sales");
+    await productPanel.getByText("Produto fictício sem venda", { exact: true }).waitFor();
+    assert.equal(await productPanel.getByText("Blusa Teste She Style", { exact: true }).count(), 0);
     await page.goto(origin + "/frontend/socialmei-app.html#/config/conta");
     await panel.waitFor();
     for (const width of [1440, 390]) {
@@ -182,6 +231,12 @@ async function run() {
       false,
     );
     assert.equal((await request("/vendas")).length, 0);
+    assert.equal(
+      (await request("/reporting/customers?start=" + soldOn + "&end=" + soldOn)).buyers,
+      0,
+    );
+    assert.equal((await request("/reporting/finance")).paid.count, 0);
+    assert.equal((await request("/reporting/products")).totals.active_products, 0);
     assert.equal(
       (await request("/reporting/sales?start=" + soldOn + "&end=" + soldOn)).current.total,
       "0.00",

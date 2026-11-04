@@ -117,6 +117,18 @@
     saleHistory.src = "scripts/v22-sale-history.js";
     saleHistory.onerror = () => console.warn("Histórico das vendas indisponível.");
     document.body.appendChild(saleHistory);
+    const customerReports = document.createElement("script");
+    customerReports.src = "scripts/v22-customer-reporting.js";
+    customerReports.onerror = () => console.warn("Indicadores de clientes indisponíveis.");
+    document.body.appendChild(customerReports);
+    const financeReports = document.createElement("script");
+    financeReports.src = "scripts/v22-finance-reporting.js";
+    financeReports.onerror = () => console.warn("Relatório financeiro indisponível.");
+    document.body.appendChild(financeReports);
+    const productReports = document.createElement("script");
+    productReports.src = "scripts/v22-product-reporting.js";
+    productReports.onerror = () => console.warn("Relatório de produtos indisponível.");
+    document.body.appendChild(productReports);
   }
   if (auth.remote) {
     const instagram = document.createElement("script");
