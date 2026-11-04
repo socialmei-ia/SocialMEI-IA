@@ -2,11 +2,13 @@
 
 import hashlib
 import hmac
+import json
 import re
 import secrets
 import threading
+import unicodedata
 from urllib.parse import urlsplit
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import psycopg
 from argon2 import PasswordHasher
@@ -337,6 +339,20 @@ class Invite(Strict):
     _email = field_validator("email")(normalize_email)
 
 
+class WorkspaceCreate(Strict):
+    nome: str = Field(min_length=1, max_length=160, strict=True)
+    segmento: str = Field(min_length=1, max_length=120, strict=True)
+    idempotency_key: UUID
+
+    @field_validator("nome", "segmento")
+    @classmethod
+    def clean_text(cls, value):
+        value = unicodedata.normalize("NFC", " ".join(value.split()))
+        if not value or any(unicodedata.category(char).startswith("C") for char in value):
+            raise ValueError("Informe um texto válido.")
+        return value
+
+
 def throttle(address, action, *, timeout_seconds=None):
     # Database counters survive process/container restart. No password or email in keys.
     if timeout_seconds is not None and (type(timeout_seconds) is not int or not 1 <= timeout_seconds <= 10):
@@ -596,6 +612,77 @@ def profile(payload: Profile, request: Request):
         return public_identity(
             identity_in(conn, user["id"], user["workspace_id"]), request.cookies[COOKIE]
         )
+
+
+@router.post("/auth/workspaces", status_code=201)
+def create_workspace(payload: WorkspaceCreate, request: Request, response: Response):
+    require_enabled()
+    user = current()
+    if request.headers.get("x-socialmei-identity") != f"{user['id']}:{user['workspace_id']}":
+        raise HTTPException(409, "Atualize a conta antes de criar um negócio.")
+    if user["role"] not in {"owner", "admin"}:
+        raise HTTPException(403, "Somente responsáveis podem adicionar negócios.")
+    slug = "business-" + digest(f"{user['id']}:{payload.idempotency_key}")[:40]
+    fingerprint = digest(json.dumps(
+        [payload.nome, payload.segmento], ensure_ascii=False, separators=(",", ":")
+    ))
+    with connect() as conn:
+        conn.row_factory = dict_row
+        # Serialize creation for this identity, including different retry keys.
+        conn.execute("SET LOCAL lock_timeout='5s'")
+        credential = conn.execute(
+            "SELECT user_id FROM socialmei.auth_credenciais WHERE user_id=%s AND ativo FOR UPDATE",
+            (user["id"],),
+        ).fetchone()
+        active = conn.execute(
+            "SELECT m.role FROM socialmei.auth_sessoes s JOIN socialmei.workspace_members m "
+            "ON m.user_id=s.user_id AND m.workspace_id=s.workspace_id "
+            "WHERE s.token_hash=%s AND s.user_id=%s AND s.workspace_id=%s "
+            "AND s.revogada_em IS NULL AND s.expira_em>NOW() FOR SHARE OF s,m",
+            (digest(request.cookies.get(COOKIE, "")), user["id"], user["workspace_id"]),
+        ).fetchone()
+        if not credential or not active:
+            raise HTTPException(401, "Sessão expirada. Entre novamente.")
+        if active["role"] not in {"owner", "admin"}:
+            raise HTTPException(403, "Somente responsáveis podem adicionar negócios.")
+        existing = conn.execute(
+            "SELECT w.id,w.slug,w.nome,w.configuracao FROM socialmei.workspaces w "
+            "JOIN socialmei.workspace_members m ON m.workspace_id=w.id "
+            "WHERE w.slug=%s AND m.user_id=%s AND m.role='owner'",
+            (slug, user["id"]),
+        ).fetchone()
+        if existing:
+            if existing["configuracao"].get("creation_fingerprint") != fingerprint:
+                raise HTTPException(409, "Esta tentativa já foi usada com outros dados.")
+            response.status_code = 200
+            return {"negocio": existing, "papel": "owner", "created": False}
+        owned = conn.execute(
+            "SELECT w.nome FROM socialmei.workspaces w JOIN socialmei.workspace_members m "
+            "ON m.workspace_id=w.id WHERE m.user_id=%s AND m.role='owner'",
+            (user["id"],),
+        ).fetchall()
+        if any(unicodedata.normalize("NFC", " ".join(row["nome"].split())).casefold()
+               == payload.nome.casefold() for row in owned):
+            raise HTTPException(409, "Você já possui um negócio com esse nome. Confira Meus negócios.")
+        if len(owned) >= 20:
+            raise HTTPException(429, "Limite de 20 negócios por responsável atingido.")
+        throttle(str(user["id"]), "create_workspace")
+        created = conn.execute(
+            "INSERT INTO socialmei.workspaces(slug,nome,configuracao) VALUES(%s,%s,%s::jsonb) "
+            "RETURNING id,slug,nome,configuracao",
+            (slug, payload.nome, json.dumps({
+                "segmento": payload.segmento, "creation_fingerprint": fingerprint
+            })),
+        ).fetchone()
+        conn.execute(
+            "INSERT INTO socialmei.workspace_members(workspace_id,user_id,role) VALUES(%s,%s,'owner')",
+            (created["id"], user["id"]),
+        )
+        conn.execute(
+            "INSERT INTO socialmei.auth_auditoria(user_id,acao) VALUES(%s,'negocio_criado')",
+            (user["id"],),
+        )
+        return {"negocio": created, "papel": "owner", "created": True}
 
 
 def create_invite(conn, address, actor):
