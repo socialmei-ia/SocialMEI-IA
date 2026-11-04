@@ -26,6 +26,7 @@ class ReportViewerGuards(unittest.TestCase):
         allowed = {
             ("GET", "/api/v1/reporting/customers"),
             ("GET", "/api/v1/reporting/finance"),
+            ("GET", "/api/v1/reporting/products"),
             ("GET", "/api/v1/reporting/overview"),
             ("GET", "/api/v1/reporting/overview.csv"),
             ("GET", "/api/v1/reporting/sales"),

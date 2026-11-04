@@ -125,6 +125,10 @@
     financeReports.src = "scripts/v22-finance-reporting.js";
     financeReports.onerror = () => console.warn("Relatório financeiro indisponível.");
     document.body.appendChild(financeReports);
+    const productReports = document.createElement("script");
+    productReports.src = "scripts/v22-product-reporting.js";
+    productReports.onerror = () => console.warn("Relatório de produtos indisponível.");
+    document.body.appendChild(productReports);
   }
   if (auth.remote) {
     const instagram = document.createElement("script");
