@@ -7,6 +7,7 @@ on:
     branches:
       [
         main,
+        release/product-increment-20261104,
         feat/account-businesses-20261104,
         feat/business-decision-reports-20261104,
         release/functional-businesses-20261103,
@@ -260,6 +261,8 @@ jobs:
         run: node tests/team-members-browser.cjs
       - name: Appointment reporting states
         run: node tests/appointment-report-browser.cjs
+      - name: Product reporting states
+        run: node tests/product-report-browser.cjs
       - name: Save browser evidence
         if: always()
         uses: actions/upload-artifact@v4
