@@ -7,6 +7,7 @@ on:
     branches:
       [
         main,
+        release/decision-reports-20261104,
         release/product-increment-20261104,
         feat/account-businesses-20261104,
         feat/business-decision-reports-20261104,
