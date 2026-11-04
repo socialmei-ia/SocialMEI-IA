@@ -1,0 +1,84 @@
+.sm-businesses {
+  margin: 18px 0;
+  padding: 20px;
+  border: 1px solid var(--b);
+  border-radius: 16px;
+  background: var(--w);
+  color: var(--t);
+}
+.sm-businesses h2 {
+  margin: 0 0 10px;
+}
+.sm-businesses p {
+  margin: 10px 0;
+  color: var(--m);
+}
+.sm-businesses ul {
+  list-style: none;
+  padding: 0;
+}
+.sm-businesses li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--b);
+}
+.sm-businesses form {
+  margin-top: 18px;
+  max-width: 560px;
+}
+.sm-businesses form[hidden] {
+  display: none;
+}
+.sm-businesses label {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0;
+}
+.sm-businesses input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  border: 1px solid var(--b);
+  border-radius: 10px;
+  padding: 12px;
+  background: var(--w);
+  color: var(--t);
+  font: inherit;
+}
+.sm-business-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+.sm-business-link {
+  white-space: nowrap;
+  font-size: 13px;
+  max-width: 250px;
+  min-width: 0;
+}
+.sm-business-link span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (max-width: 600px) {
+  .sm-businesses {
+    padding: 16px;
+  }
+  .sm-businesses li {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .sm-business-link {
+    padding: 8px !important;
+    font-size: 12px;
+    max-width: clamp(40px, calc(100vw - 280px), 145px);
+  }
+  .sm-business-link .sm-business-caption {
+    display: none;
+  }
+}
