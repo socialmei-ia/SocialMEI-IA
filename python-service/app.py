@@ -47,6 +47,7 @@ from workspace_reporting import router as workspace_reporting_router
 from customer_reporting import router as customer_reporting_router
 from finance_reporting import router as finance_reporting_router
 from product_reporting import router as product_reporting_router
+from workspace_audit import router as workspace_audit_router
 from business_csv import router as business_csv_router
 from report_collaboration import router as report_collaboration_router
 from whatsapp_catalog import router as whatsapp_catalog_router
@@ -66,6 +67,7 @@ app.include_router(workspace_reporting_router)
 app.include_router(customer_reporting_router)
 app.include_router(finance_reporting_router)
 app.include_router(product_reporting_router)
+app.include_router(workspace_audit_router)
 app.include_router(business_csv_router)
 app.include_router(report_collaboration_router)
 app.include_router(whatsapp_catalog_router)

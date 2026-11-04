@@ -268,6 +268,8 @@ jobs:
         run: node tests/finance-report-browser.cjs
       - name: Product reporting states
         run: node tests/product-report-browser.cjs
+      - name: Workspace audit interface
+        run: node tests/workspace-audit-browser.cjs
       - name: Save browser evidence
         if: always()
         uses: actions/upload-artifact@v4

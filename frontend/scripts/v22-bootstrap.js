@@ -129,6 +129,10 @@
     productReports.src = "scripts/v22-product-reporting.js";
     productReports.onerror = () => console.warn("Relatório de produtos indisponível.");
     document.body.appendChild(productReports);
+    const workspaceAudit = document.createElement("script");
+    workspaceAudit.src = "scripts/v22-workspace-audit.js";
+    workspaceAudit.onerror = () => console.warn("Histórico do negócio indisponível.");
+    document.body.appendChild(workspaceAudit);
   }
   if (auth.remote) {
     const instagram = document.createElement("script");
