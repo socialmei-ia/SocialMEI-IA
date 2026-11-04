@@ -122,10 +122,15 @@ module.exports = async function (browser, origin) {
               },
               { key, pending },
             );
-          if (outcome === "switched")
+          if (outcome === "switched") {
+            // Let lazy bootstrap reads finish before deliberately making the
+            // in-memory identity stale. Otherwise an unrelated GET correctly
+            // reloads the page before this test can exercise the dialog guard.
+            await page.waitForLoadState("networkidle");
             await page.evaluate(() => {
               SocialMEIV22.identity.negocio.id = 18;
             });
+          }
           await page
             .getByRole("button", { name: "Confirmar consulta da operação", exact: true })
             .click();
