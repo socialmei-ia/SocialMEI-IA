@@ -40,6 +40,17 @@ const SocialMEIAuth = (() => {
     problem = "",
     base = "";
   const scopeKey = "socialmei-auth-browser-scope";
+  const pending = new Set();
+  let revision = 0;
+  let transitioning = false;
+  const currentScope = () => (current ? `${current.usuario.id}:${current.negocio.id}` : "");
+  function invalidate() {
+    transitioning = true;
+    revision++;
+    current = null;
+    for (const controller of pending) controller.abort();
+    pending.clear();
+  }
   const archivePrefix = "socialmei-account-state-";
   const internal = (key) => key === scopeKey || key.startsWith(archivePrefix);
   const appKey = (key) => /^socialmei[-_]/i.test(key) && !internal(key);
@@ -63,7 +74,8 @@ const SocialMEIAuth = (() => {
     }
     localStorage.setItem(scopeKey, next);
     for (const key of Object.keys(sessionStorage)) {
-      if (/^socialmei[-_]/i.test(key)) sessionStorage.removeItem(key);
+      if (/^socialmei[-_]/i.test(key) && !/^socialmei-business-create:\d+:\d+$/.test(key))
+        sessionStorage.removeItem(key);
     }
     return true;
   }
@@ -81,7 +93,16 @@ const SocialMEIAuth = (() => {
   }
   async function request(path, method = "GET", data) {
     if (!base) throw new Error(problem || "Autenticação não configurada.");
+    if (transitioning) throw new Error("Sua sessão mudou. Atualize antes de continuar.");
+    const scope = currentScope();
+    if (scope && localStorage.getItem(scopeKey) !== scope) {
+      invalidate();
+      location.reload();
+      throw new Error("O negócio mudou em outra aba. Atualize antes de continuar.");
+    }
+    const expectedRevision = revision;
     const controller = new AbortController();
+    pending.add(controller);
     const timer = setTimeout(() => controller.abort(), 12000);
     try {
       const response = await fetch(base + path, {
@@ -98,6 +119,8 @@ const SocialMEIAuth = (() => {
         body: data ? JSON.stringify(data) : undefined,
       });
       const body = response.status === 204 ? null : await response.json().catch(() => null);
+      if (expectedRevision !== revision)
+        throw new Error("Sua sessão mudou. Atualize antes de continuar.");
       if (!response.ok) {
         const error = new Error(
           typeof body?.detail === "string"
@@ -109,6 +132,7 @@ const SocialMEIAuth = (() => {
       }
       return body;
     } finally {
+      pending.delete(controller);
       clearTimeout(timer);
     }
   }
@@ -122,6 +146,7 @@ const SocialMEIAuth = (() => {
   }
   async function signIn(path, data) {
     const value = identity(await request(path, "POST", data));
+    invalidate();
     bindBrowser(value);
     location.reload();
     return value;
@@ -158,6 +183,18 @@ const SocialMEIAuth = (() => {
     }
   }
   const ready = remote ? bootstrap() : Promise.resolve(null);
+  if (remote && window.addEventListener) {
+    window.addEventListener("storage", (event) => {
+      if (
+        (event.key === scopeKey || event.key === null) &&
+        current &&
+        localStorage.getItem(scopeKey) !== currentScope()
+      ) {
+        invalidate();
+        location.reload();
+      }
+    });
+  }
   return {
     remote,
     ready,
@@ -173,6 +210,16 @@ const SocialMEIAuth = (() => {
     },
     login: (data) => signIn("/auth/login", data),
     register: (data) => signIn("/auth/register", data),
+    async switchWorkspace(workspaceId) {
+      const value = identity(
+        await request("/auth/workspaces/switch", "POST", {
+          workspace_id: workspaceId,
+        }),
+      );
+      invalidate();
+      bindBrowser(value);
+      location.reload();
+    },
     async saveProfile(data) {
       current = identity(await request("/auth/profile", "PATCH", data));
       return current;
@@ -185,7 +232,7 @@ const SocialMEIAuth = (() => {
       } catch (error) {
         if (error.status !== 401) throw error;
       }
-      current = null;
+      invalidate();
       try {
         bindBrowser(null);
       } catch (_) {

@@ -23,58 +23,6 @@
     panel.append(node);
     return node;
   }
-  async function mountWorkspace(view) {
-    if (view.querySelector("[data-sm-switch]")) return;
-    const panel = element("section");
-    panel.className = "sm-collab";
-    panel.dataset.smSwitch = "true";
-    panel.append(element("h2", "Acessar outro negócio"));
-    const description = element(
-      "p",
-      "Alterar negócio só é permitido para contas às quais você já tem acesso.",
-    );
-    const message = status(panel);
-    const controls = element("div");
-    controls.className = "sm-actions";
-    const select = element("select");
-    select.setAttribute("aria-label", "Escolher negócio");
-    const change = element("button", "Trocar de negócio");
-    change.type = "button";
-    controls.append(select, change);
-    panel.insertBefore(description, message);
-    panel.append(controls);
-    view.append(panel);
-    try {
-      const data = await host.request("/auth/workspaces");
-      if (!panel.isConnected) return;
-      select.replaceChildren();
-      for (const item of data.items) {
-        const option = element("option", item.nome + " (" + item.role + ")");
-        option.value = item.id;
-        option.selected = item.id === data.active_workspace_id;
-        select.append(option);
-      }
-      if (data.items.length < 2) {
-        change.disabled = true;
-        message.textContent = "Você tem acesso a apenas um negócio.";
-      }
-    } catch (error) {
-      message.textContent = error.message || "Negócios indisponíveis.";
-      change.disabled = true;
-    }
-    change.addEventListener("click", async () => {
-      change.disabled = true;
-      try {
-        await host.request("/auth/workspaces/switch", "POST", {
-          workspace_id: Number(select.value),
-        });
-        location.replace("/frontend/socialmei-app.html#/relatorios");
-      } catch (error) {
-        message.textContent = error.message || "Não foi possível trocar de negócio.";
-        change.disabled = false;
-      }
-    });
-  }
   async function mountViewers(view) {
     if (!owner() || view.querySelector("[data-sm-viewers]")) return;
     const panel = element("section");
@@ -155,7 +103,6 @@
   function mount() {
     const view = document.getElementById("v");
     if (!view) return;
-    if (location.hash.startsWith("#/config/conta")) mountWorkspace(view);
     if (location.hash.startsWith("#/relatorios")) mountViewers(view);
   }
   const previous = window.render;

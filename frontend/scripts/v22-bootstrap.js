@@ -101,6 +101,10 @@
     collaborator.src = "scripts/v22-report-access.js";
     collaborator.onerror = () => console.warn("Acesso aos relatórios indisponível.");
     document.body.appendChild(collaborator);
+    const businesses = document.createElement("script");
+    businesses.src = "scripts/v22-businesses.js";
+    businesses.onerror = () => console.warn("Meus negócios indisponível.");
+    document.body.appendChild(businesses);
   }
   if (auth.remote) {
     const instagram = document.createElement("script");

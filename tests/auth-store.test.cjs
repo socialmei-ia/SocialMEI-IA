@@ -34,9 +34,14 @@ function setup(
 ) {
   let reloads = 0;
   const requests = [];
+  const events = {};
   const context = vm.createContext({
     SOCIALMEI_CONFIG: { auth: config },
-    window: {},
+    window: {
+      addEventListener: (name, callback) => {
+        events[name] = callback;
+      },
+    },
     localStorage: local,
     sessionStorage: session,
     location: {
@@ -64,6 +69,7 @@ function setup(
     requests,
     local,
     location: context.location,
+    events,
     get reloads() {
       return reloads;
     },
@@ -249,4 +255,92 @@ test("new password policy accepts eight characters without mandatory character c
   ])
     assert(auth.passwordPolicy(value).error);
   assert.equal(auth.passwordPolicy("Uma frase longa original").warning, "");
+});
+
+test("switching workspace archives drafts and rejects pending old-workspace responses", async () => {
+  const local = storage({
+    "socialmei-auth-browser-scope": "1:1",
+    "socialmei-inbox-draft": "private previous draft",
+  });
+  let resolveOld;
+  const other = identity(1);
+  other.negocio = { ...other.negocio, id: 2, slug: "second" };
+  const ctx = setup(
+    (url) => {
+      if (url.endsWith("/auth/session")) return reply(identity(1));
+      if (url.endsWith("/auth/workspaces/switch")) return reply(other);
+      return new Promise((resolve) => {
+        resolveOld = resolve;
+      });
+    },
+    undefined,
+    local,
+  );
+  await ctx.auth.ready;
+  const old = ctx.auth.request("/clientes");
+  await ctx.auth.switchWorkspace(2);
+  resolveOld(reply([{ nome: "Old customer" }]));
+  await assert.rejects(old, /sessão mudou/);
+  assert.equal(ctx.auth.current, null);
+  assert.equal(local.getItem("socialmei-auth-browser-scope"), "1:2");
+  await assert.rejects(
+    ctx.auth.request("/clientes", "POST", { nome: "Stale after switch" }),
+    /sessão mudou/,
+  );
+  assert.equal(local.getItem("socialmei-inbox-draft"), null);
+  assert.equal(
+    JSON.parse(local.getItem("socialmei-account-state-1:1"))["socialmei-inbox-draft"],
+    "private previous draft",
+  );
+  assert.equal(ctx.reloads, 1);
+});
+
+test("another tab changing workspace invalidates identity and pending responses", async () => {
+  const local = storage({ "socialmei-auth-browser-scope": "1:1" });
+  let resolveOld;
+  const ctx = setup(
+    (url) =>
+      url.endsWith("/auth/session")
+        ? reply(identity(1))
+        : new Promise((resolve) => {
+            resolveOld = resolve;
+          }),
+    undefined,
+    local,
+  );
+  await ctx.auth.ready;
+  const old = ctx.auth.request("/clientes");
+  local.setItem("socialmei-auth-browser-scope", "1:2");
+  ctx.events.storage({ key: "socialmei-auth-browser-scope" });
+  resolveOld(reply([{ nome: "Old customer" }]));
+  await assert.rejects(old, /sessão mudou/);
+  assert.equal(ctx.auth.current, null);
+  assert.equal(ctx.reloads, 1);
+});
+
+test("stale tab cannot send a write before its storage event is delivered", async () => {
+  const local = storage({ "socialmei-auth-browser-scope": "1:1" });
+  const ctx = setup(() => reply(identity(1)), undefined, local);
+  await ctx.auth.ready;
+  local.setItem("socialmei-auth-browser-scope", "1:2");
+  await assert.rejects(ctx.auth.request("/clientes", "POST", { nome: "Stale" }), /outra aba/);
+  assert.equal(ctx.requests.length, 1);
+  assert.equal(ctx.auth.current, null);
+});
+
+test("failed switch preserves the active workspace and its local drafts", async () => {
+  const local = storage({ "socialmei-auth-browser-scope": "1:1", "socialmei-draft": "keep" });
+  const ctx = setup(
+    (url) =>
+      url.endsWith("/auth/session")
+        ? reply(identity(1))
+        : reply({ detail: "Você não possui acesso a este negócio." }, 403),
+    undefined,
+    local,
+  );
+  await ctx.auth.ready;
+  await assert.rejects(ctx.auth.switchWorkspace(99), /não possui acesso/);
+  assert.equal(ctx.auth.current.negocio.id, 1);
+  assert.equal(local.getItem("socialmei-draft"), "keep");
+  assert.equal(ctx.reloads, 0);
 });
