@@ -201,7 +201,11 @@ def exercise(folder, phase):
     raw, headers = incoming('false_222@c.us_bad')
     check(request('http://team-api:8000/internal/waha/lab/webhook', raw, {**headers, 'X-Webhook-Hmac': '0' * 128})[0] == 403, 'waha_bad_hmac_rejected')
     raw, headers = incoming('false_222@c.us_cross', workspace_id=config['workspace2'])
-    check(request('http://team-api:8000/internal/waha/lab/webhook', raw, headers)[0] in (400, 403), 'waha_payload_workspace_rejected')
+    check(request('http://team-api:8000/internal/waha/lab/webhook', raw, headers)[0] == 422, 'waha_payload_workspace_rejected')
+    check(sql('SELECT count(*) FROM socialmei.crm_eventos_canal WHERE mensagem_externa_id=%s',
+              ('false_222@c.us_cross',)) == [(0,)]
+          and sql('SELECT count(*) FROM socialmei.me_messages WHERE external_message_id=%s',
+                  ('false_222@c.us_cross',)) == [(0,)], 'waha_cross_workspace_no_persisted_event_or_message')
     for mode in ('500', 'timeout'):
         request('http://waha:3000/control', {'mode': mode})
         mid = 'false_222@c.us_' + mode
