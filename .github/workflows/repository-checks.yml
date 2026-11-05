@@ -302,6 +302,7 @@ jobs:
           npm run preview -- up
           npm run test:preview
           node tests/multi-business-preview.cjs
+          node tests/sale-record-selection-preview.cjs
           node tests/report-viewer-decisions-preview.cjs
           node tests/business-start-preview.cjs
       - name: Fake Instagram provider in disposable preview only
