@@ -41,8 +41,11 @@ async function run() {
                         {
                           id: second ? 1 : 2,
                           at: "2026-11-04T03:30:00Z",
-                          kind: "exports",
-                          action: "CSV de produtos gerado",
+                          kind: query.get("kind") === "settings" ? "settings" : "exports",
+                          action:
+                            query.get("kind") === "settings"
+                              ? "Perfil do negócio atualizado"
+                              : "CSV de produtos gerado",
                           actor: second ? null : "<img src=x onerror=alert(1)>",
                           target: null,
                         },
@@ -74,6 +77,9 @@ async function run() {
         assert.equal(await panel.locator("tbody tr").count(), 2);
         assert.equal(await more.isVisible(), false);
         assert.match(await page.evaluate(() => calls.at(-1)), /before=2/);
+        await panel.getByLabel("Tipo de histórico").selectOption("settings");
+        await panel.getByText("Perfil do negócio atualizado", { exact: true }).waitFor();
+        assert.match(await page.evaluate(() => calls.at(-1)), /kind=settings/);
         await page.evaluate(() => {
           mode = "empty";
         });
