@@ -79,3 +79,59 @@ do preparador Instagram aprovados localmente. A execução combinada pertence ao
 workflow dedicado `channel-e2e-checks.yml`; seu resultado deve ser consultado
 para a SHA exata da PR. Não substituir resultado pendente/falho por testes
 isolados ou por evidências de revisões anteriores.
+
+## Continuidade operacional — 05/11/2026
+
+Branch de qualificação: `test/channel-e2e-212`, PR Draft #213. Base de aplicação:
+PR #212, `345a074310673640084c7634e3da75dd72491813`. Não usar o operador da
+PR #211 diretamente para esta candidata: ele fixa a PR #210, outra identidade.
+A PR #212 prepara **recebimento** Instagram; não habilita respostas automáticas
+nem demonstra publicação de posts. O ensaio WhatsApp exercita respostas de menu e
+catálogo, mas o provider é sintético. Nenhum dos dois estados comprova operação
+no site oficial.
+
+O ambiente remoto desta sessão não tem identidade AWS, segredo SSH ou rota de
+produção configurados. Um caminho de chave no notebook Windows não concede
+acesso a esta máquina. Nenhuma inspeção atual dos containers/contas publicados
+foi realizada. Relatos anteriores de versão instalada não substituem inventário
+fresco.
+
+### Sequência quando o acesso estiver disponível
+
+1. Inventariar de forma privada SHA/revisão e IDs das imagens da API/gateway,
+   schema aplicado, saúde, Compose efetivo, redes e volumes. Inspecionar n8n e
+   WAHA sem reiniciar nem recriar serviços. Registrar somente IDs/resultados
+   sanitizados. Confirmar versão real do n8n antes de promover os templates.
+2. Revalidar CI e artefato da candidata exata. Preparar um operador com os mesmos
+   SHA/IDs e schema observado; não reaproveitar um pin de outra candidata.
+   Preservar a configuração e os serviços n8n/WAHA. Backup PostgreSQL e restore
+   em cópia descartável são gates anteriores a qualquer corte. Não fazer
+   downgrade ou restaurar dump sobre dados novos como recuperação automática.
+3. Homologar login, Origin/CSRF, negócio e Caixa com sessão humana. Sessões do
+   laboratório são fixtures e não comprovam esse gate.
+4. WhatsApp: confirmar sessão existente `WORKING`, canal/registry corretos e
+   ingresso HMAC assinado persistindo **antes** do planner. Conferir qual fluxo
+   responde atualmente; deixar um único remetente. O poller/subworkflow real e
+   a lista de contatos autorizados precisam de homologação. Não substituir a
+   sessão, trocar engine ou presumir autorização de contatos.
+5. Instagram: exportar a revisão publicada do fluxo existente; gerar e revisar
+   o diff do preparador receive-only sobre essa revisão. Inspecionar vínculo da
+   conta, validade/permissões OAuth e inscrição Meta sem imprimir tokens. Não
+   retomar o ramo legado de IA/envio como efeito da implantação de recebimento.
+6. Depois de corte aprovado, uma mensagem de cada contato/conta de teste deve
+   aparecer uma única vez na Caixa do negócio correto. Reenvio do mesmo evento
+   não pode duplicar persistência/resposta; outro negócio não pode ler os dados.
+   Testar menu/catálogo WhatsApp com preço e estoque conhecidos e transferência
+   para humano. Confirmar aceite e, separadamente, entrega no aparelho.
+7. Antes de declarar Instagram respondendo, homologar a saída humana/automática
+   autorizada, janela/permissões e entrega na conta de teste. Publicações exigem
+   sua própria homologação; recebimento Direct não comprova posts publicados.
+8. Falha: suspender o novo remetente, preservar ingressos, schema e decisões.
+   Conciliar `claimed`/`uncertain` sem reabrir tentativa. Só voltar binários
+   anteriores se a compatibilidade com o schema atual estiver comprovada.
+
+Critério de conclusão operacional: evidência datada de SHA/imagens/schema,
+backup e restore, saúde e jornadas autenticadas no site oficial, junto do ID
+sanitizado da mensagem recebida e do recibo/entrega de resposta. CI verde sozinho
+não satisfaz esse critério. Até lá, manter produção como **não homologada nesta
+sessão**.

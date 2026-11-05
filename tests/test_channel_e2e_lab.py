@@ -14,6 +14,15 @@ spec.loader.exec_module(lab)
 
 
 class PlanTests(unittest.TestCase):
+    def test_cli_diagnostics_classify_without_printing_private_output(self):
+        result = subprocess.CompletedProcess([], 1, stdout='generated-secret-token',
+                    stderr="TypeError: Cannot read properties of undefined (reading 'tags')\nSQLITE_CONSTRAINT: NOT NULL constraint failed: workflow_entity.versionId")
+        diagnostic = lab.classify_command_error(result)
+        self.assertEqual(diagnostic['missing_property'], 'tags')
+        self.assertEqual(diagnostic['constraint_column'], 'workflow_entity.versionId')
+        self.assertIn('type_error', diagnostic['categories'])
+        self.assertNotIn('generated-secret-token', json.dumps(diagnostic))
+
     def test_default_plan_never_invokes_docker(self):
         with patch.object(lab, 'docker', side_effect=AssertionError('Docker called')):
             report = lab.plan()

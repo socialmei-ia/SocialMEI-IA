@@ -28,6 +28,38 @@ LABEL = 'socialmei.channel-e2e'
 HERE = Path(__file__).resolve().parent
 
 
+class CommandFailure(RuntimeError):
+    def __init__(self, diagnostic):
+        super().__init__('lab_command_failed')
+        self.diagnostic = diagnostic
+
+
+def classify_command_error(result):
+    """Return fixed patterns and identifiers, never raw CLI output or secrets."""
+    output = result.stdout + '\n' + result.stderr
+    diagnostic = {'exit_code': result.returncode}
+    patterns = {
+        'sqlite_constraint': r'SQLITE_CONSTRAINT',
+        'sqlite_error': r'SQLITE_ERROR',
+        'permission_denied': r'EACCES|permission denied',
+        'file_missing': r'ENOENT',
+        'json_invalid': r'SyntaxError|Unexpected token|not valid JSON',
+        'type_error': r'TypeError',
+        'workflow_import_failed': r'error importing workflows|Error importing workflows',
+        'credential_missing': r'Could not find credential|credential.*not found',
+        'database_locked': r'database is locked|SQLITE_BUSY',
+        'invalid_uuid': r'invalid.*uuid|Invalid UUID',
+    }
+    diagnostic['categories'] = [name for name, pattern in patterns.items() if re.search(pattern, output)]
+    missing = re.search(r"Cannot read properties of (?:undefined|null) \(reading '([A-Za-z0-9_]{1,50})'\)", output)
+    if missing:
+        diagnostic['missing_property'] = missing[1]
+    constraint = re.search(r'(?:NOT NULL|UNIQUE) constraint failed: ([A-Za-z0-9_.]{1,100})', output)
+    if constraint:
+        diagnostic['constraint_column'] = constraint[1]
+    return diagnostic
+
+
 def require(ok, code):
     if not ok:
         raise RuntimeError(code)
@@ -45,7 +77,7 @@ def command(argv, timeout=120, stdin=None):
                 raise RuntimeError(controlled['code'])
         except (ValueError, IndexError, TypeError):
             pass
-        raise RuntimeError('lab_command_failed')
+        raise CommandFailure(classify_command_error(result))
     return result.stdout
 
 
@@ -283,6 +315,8 @@ def execute(args):
         report['failure_code'] = (str(error) if isinstance(error, RuntimeError)
                                   and re.fullmatch(r'[a-z0-9_]{1,100}', str(error))
                                   else 'isolated_channel_e2e_failed')
+        if isinstance(error, CommandFailure):
+            report['diagnostic'] = error.diagnostic
     finally:
         try:
             lab.cleanup()
