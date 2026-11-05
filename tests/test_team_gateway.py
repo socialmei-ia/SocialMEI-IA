@@ -289,6 +289,11 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(b'[]' if authenticated and known else b'{"detail":"Session required"}')
     def do_POST(self):
+        if self.path == '/webhooks/instagram/n8n':
+            body = self.rfile.read(int(self.headers.get('Content-Length', '0')))
+            accepted = not self.headers.get('Cookie') and self.headers.get('Authorization') == 'Bearer relay-fixture' and not self.headers.get('X-SocialMEI-Signature') and self.headers.get('X-Hub-Signature-256') == 'sha256=meta-fixture' and body == b'{"fixture":1}'
+            self.send_response(200 if accepted else 400)
+            self.end_headers(); self.wfile.write(b'{"received":true}'); return
         # The protected technical route is GET-only: Caddy must strip the
         # Bearer before forwarding any mutation.
         authorized = self.headers.get('Authorization') == 'Bearer gateway-read-test-key'
@@ -392,3 +397,19 @@ HTTPServer(('0.0.0.0', 8000), Handler).serve_forever()
                 response=error
             self.assertEqual(response.code,404,method)
             response.close()
+
+    def test_n8n_ingress_forwards_relay_auth_and_raw_body_without_cookies(self):
+        request = Request(self.origin + '/webhooks/instagram/n8n', data=b'{"fixture":1}', headers={
+            'Content-Type': 'application/json', 'Authorization': 'Bearer relay-fixture',
+            'Cookie': 'test-session=valid',
+            'X-Hub-Signature-256': 'sha256=meta-fixture', 'X-SocialMEI-Timestamp': '1793550000',
+        })
+        with urlopen(request, timeout=3) as response:
+            self.assertEqual(response.code, 200)
+            self.assertTrue(json.load(response)['received'])
+        self.assertEqual(self.request('/webhooks/instagram/n8n')[0], 404)
+        oversized = Request(self.origin + '/webhooks/instagram/n8n', data=b'x' * 65537,
+                            headers={'Content-Type': 'application/json'})
+        with self.assertRaises(HTTPError) as rejected:
+            urlopen(oversized, timeout=3)
+        self.assertEqual(rejected.exception.code, 413)
