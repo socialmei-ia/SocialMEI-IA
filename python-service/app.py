@@ -29,6 +29,7 @@ from waha_ingress import router as waha_ingress_router
 from instagram_direct_outbox import router as instagram_direct_router
 from instagram_account_media import router as instagram_account_media_router
 from instagram_meta_ingress import WebhookQueryPrivacy, router as instagram_meta_ingress_router
+from instagram_n8n_ingress import router as instagram_n8n_ingress_router
 from workspace_profile import router as workspace_profile_router
 from message_enrichment import router as message_enrichment_router, internal_router as enrichment_internal_router
 from inbox_customer import router as inbox_customer_router
@@ -108,6 +109,7 @@ app.include_router(instagram_simulation_router)
 app.include_router(instagram_provider_lab_router)
 app.include_router(instagram_persistent_oauth_router)
 app.include_router(instagram_meta_ingress_router)
+app.include_router(instagram_n8n_ingress_router)
 app.include_router(instagram_direct_router)
 app.include_router(instagram_account_media_router)
 app.include_router(waha_ingress_router)

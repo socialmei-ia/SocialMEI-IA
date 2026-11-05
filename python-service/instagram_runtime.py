@@ -300,11 +300,29 @@ def whatsapp_readiness(workspace_id):
     return result
 
 
+def n8n_incoming_for_workspace(workspace_id):
+    """Check an enabled, valid private relay binding; do not claim a live provider."""
+    if type(workspace_id) is not int or not settings.instagram_n8n_ingress_enabled():
+        return False
+    try:
+        from instagram_n8n_ingress import ingress_service
+
+        return ingress_service().has_workspace(workspace_id)
+    except Exception:
+        # A missing/invalid private configuration must not become green readiness.
+        return False
+
+
 @router.get("/readiness")
 def readiness(request: Request):
     require_enabled()
     identity = current()
     runtime = getattr(request.app.state, "instagram_runtime", InstagramRuntime())
+    n8n_incoming = n8n_incoming_for_workspace(identity["workspace_id"])
+    ingress_schema = (
+        schema_ready("ingress")
+        if runtime.ingress is not None or n8n_incoming else False
+    )
     return {
         "source": "server",
         "n8n": {
@@ -319,8 +337,10 @@ def readiness(request: Request):
             "token_refresh_available": runtime.oauth is not None
             and settings.instagram_token_refresh_enabled()
             and schema_ready("oauth"),
-            "incoming_available": runtime.ingress is not None
-            and schema_ready("ingress"),
+            "incoming_available": ingress_schema and (
+                runtime.ingress is not None or n8n_incoming
+            ),
+            "n8n_ingress_configured": ingress_schema and n8n_incoming,
             "reply_preparation_available": runtime.direct is not None
             and schema_ready("direct"),
             "send_enabled": runtime.send,

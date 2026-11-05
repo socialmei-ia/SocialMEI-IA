@@ -26,6 +26,19 @@
             reverse_proxy team-api:8000
         }
         # Optional provider ingress; backend stays503 until explicitly configured.
+        @instagram_n8n_ingress {
+            method POST
+            path /webhooks/instagram/n8n
+        }
+        handle @instagram_n8n_ingress {
+            request_body {
+                max_size 65536
+            }
+            reverse_proxy team-api:8000 {
+                # Dedicated relay credentials are verified by the API.
+                header_up -Cookie
+            }
+        }
         # Review upstream log redaction before any live webhook activation.
         handle /webhooks/instagram {
             reverse_proxy team-api:8000 {
