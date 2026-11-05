@@ -128,14 +128,58 @@ def context(container):
     require(journal.get('source_sha') == BASE_SHA
             and journal.get('baseline_sha') == '266e59b6a766c07f60c83b7b3053b33fc91cc135'
             and journal.get('bundle_sha256') == '43f5df836e3b49e4e99a5a01f0d243108f5310be4cd8e2d7d68a59d28afcac2a'
-            and journal.get('phase') == 'published038'
-            and journal.get('candidate_runtime', {}).get(service) == runtime_fingerprint(container),
+            and journal.get('phase') == 'published038',
             'overlay_baseline_journal_diverge')
     command = ['docker', '--host=unix:///var/run/docker.sock', 'compose',
                '-p', 'socialmei-team', '--env-file', str(env)]
     for path in paths:
         command += ['-f', str(path)]
-    return wd, command, {str(p): legacy.digest_file(p) for p in [env, *paths]}
+    hashes = {str(p): legacy.digest_file(p) for p in [env, *paths]}
+    require(journal.get('candidate_runtime', {}).get(service) == runtime_fingerprint(container)
+            or verified_rollback_context(container, service, wd, command, hashes),
+            'overlay_baseline_journal_diverge')
+    return wd, command, hashes
+
+
+def verified_rollback_context(container, service, wd, command, hashes):
+    """Recognize only this release's completed recovery; never rewrite prior evidence."""
+    current = runtime_fingerprint(container)
+    mounts = protected = None
+    matches = []
+    for folder in legacy.PRIVATE.glob('product204-window-*'):
+        try:
+            if (not folder.is_dir() or folder.is_symlink() or folder.resolve() != folder
+                    or folder.parent != legacy.PRIVATE or folder.stat().st_uid != 0
+                    or stat.S_IMODE(folder.stat().st_mode) != 0o700):
+                continue
+            state = json.loads(private_file(folder / JOURNAL).read_text())
+            if (state.get('source_sha') != CANDIDATE_SHA or state.get('baseline_sha') != BASE_SHA
+                    or state.get('bundle_sha256') != BUNDLE_SHA256
+                    or state.get('phase') != 'rolled_back_schema038_retained'
+                    or state.get('migrations_executed') is not False
+                    or service not in state.get('rolled_back_services', [])
+                    or state.get('rolled_back_runtime', {}).get(service) != current):
+                continue
+            plan = state.get('backup_plans', {}).get(service, {})
+            if (plan.get('wd') != str(wd) or plan.get('command') != command
+                    or plan.get('files') != hashes):
+                continue
+            receipt_path = private_file(folder / BACKUP_RECEIPT)
+            if state.get('backup_receipt_sha256') != legacy.digest_file(receipt_path):
+                continue
+            receipt = json.loads(receipt_path.read_text())
+            if (receipt.get('source_sha') != CANDIDATE_SHA or receipt.get('baseline_sha') != BASE_SHA
+                    or receipt.get('release_profile') != '038'):
+                continue
+            if mounts is None:
+                mounts = mount_fingerprints(container)
+                protected = {name: protected_fingerprint(legacy.inspect(name)) for name in PROTECTED}
+            if plan.get('mount_fingerprints') != mounts or state.get('protected') != protected:
+                continue
+            matches.append(folder)
+        except (OSError, ValueError, legacy.Blocked, TypeError, AttributeError):
+            continue
+    return len(matches) == 1
 
 
 runtime.context = context

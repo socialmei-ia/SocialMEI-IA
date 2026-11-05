@@ -77,6 +77,52 @@ class Product204ReleaseTests(unittest.TestCase):
         self.assertIn('scripts/auth-store.js', m.BASELINE_STATIC_FILES)
         self.assertIn('scripts/v22-bootstrap.js', m.BASELINE_STATIC_FILES)
 
+    @unittest.skipUnless(os.name == 'posix', 'Unix ownership checked in Linux')
+    def test_private_baseline_after_own_verified_rollback_uses_linked_cas_without_rewriting_old_journal(self):
+        m = self.m
+        with tempfile.TemporaryDirectory() as temp:
+            parent = Path(temp)
+            root = parent/'checkout'; root.mkdir()
+            backups = parent/'backups'; backups.mkdir()
+            private = parent/'private'; private.mkdir(mode=0o700)
+            baseline = private/m.BASELINE_WINDOW; baseline.mkdir(mode=0o700)
+            env = root/'.env.team'; env.write_text('fictional'); env.chmod(0o600)
+            compose = root/'compose.json'; compose.write_text('{}')
+            path = baseline/'team-api.candidate.compose.json'
+            path.write_text(json.dumps({'services':{'team-api':{'image':m.legacy.image_tags(m.BASE_SHA)['team-api'],'environment':{'SOCIALMEI_RELEASE_SHA':m.BASE_SHA}}}})); path.chmod(0o600)
+            old = baseline/'functional038-state.json'
+            old.write_text(json.dumps({'source_sha':m.BASE_SHA,'baseline_sha':'266e59b6a766c07f60c83b7b3053b33fc91cc135','bundle_sha256':'43f5df836e3b49e4e99a5a01f0d243108f5310be4cd8e2d7d68a59d28afcac2a','phase':'published038','candidate_runtime':{'team-api':'original-container-cas'}})); old.chmod(0o600)
+            original = old.read_bytes()
+            _, container, _ = self.fixture()
+            container['Config']['Labels']={'com.docker.compose.service':'team-api','com.docker.compose.project.working_dir':str(root),'com.docker.compose.project.environment_file':str(env),'com.docker.compose.project.config_files':str(compose)+','+str(path)}
+            command=['docker','--host=unix:///var/run/docker.sock','compose','-p','socialmei-team','--env-file',str(env),'-f',str(compose),'-f',str(path)]
+            hashes={str(p):m.legacy.digest_file(p) for p in [env,compose,path]}
+            recovery=private/'product204-window-20261105T000000Z-fixture'; recovery.mkdir(mode=0o700)
+            receipt=recovery/m.BACKUP_RECEIPT
+            receipt.write_text(json.dumps({'source_sha':m.CANDIDATE_SHA,'baseline_sha':m.BASE_SHA,'release_profile':'038'})); receipt.chmod(0o600)
+            state={'source_sha':m.CANDIDATE_SHA,'baseline_sha':m.BASE_SHA,'bundle_sha256':m.BUNDLE_SHA256,'phase':'rolled_back_schema038_retained','migrations_executed':False,'rolled_back_services':['team-api'],'rolled_back_runtime':{'team-api':'restored-container-cas'},'backup_receipt_sha256':m.legacy.digest_file(receipt),'protected':{n:'protected-cas' for n in m.PROTECTED},'backup_plans':{'team-api':{'wd':str(root),'command':command,'files':hashes,'mount_fingerprints':{'private':'hash'}}}}
+            journal=recovery/m.JOURNAL
+            journal.write_text(json.dumps(state)); journal.chmod(0o600)
+            with patch.object(m,'approved_context',side_effect=m.legacy.Blocked('compose_fora_do_escopo')), patch.object(m.legacy,'ROOT',root), patch.object(m.legacy,'BACKUPS',backups), patch.object(m.legacy,'PRIVATE',private), patch.object(m,'runtime_fingerprint',return_value='restored-container-cas'), patch.object(m,'mount_fingerprints',return_value={'private':'hash'}), patch.object(m,'protected_fingerprint',return_value='protected-cas'), patch.object(m.legacy,'inspect',return_value=container):
+                self.assertEqual(m.context(container),(root,command,hashes))
+                self.assertEqual(old.read_bytes(),original)
+                for key,value in [('source_sha','unexpected'),('backup_receipt_sha256','changed'),('protected',{}),('rolled_back_runtime',{'team-api':'unexpected'})]:
+                    changed=copy.deepcopy(state); changed[key]=value; journal.write_text(json.dumps(changed))
+                    with self.subTest(key=key), self.assertRaises(m.legacy.Blocked): m.context(container)
+                for key,value in [('files',{}),('mount_fingerprints',{}),('command',['unexpected'])]:
+                    changed=copy.deepcopy(state); changed['backup_plans']['team-api'][key]=value
+                    journal.write_text(json.dumps(changed))
+                    with self.subTest(plan_key=key), self.assertRaises(m.legacy.Blocked): m.context(container)
+                journal.write_text(json.dumps(state))
+                duplicate=private/'product204-window-duplicate'; duplicate.mkdir(mode=0o700)
+                for filename in (m.JOURNAL,m.BACKUP_RECEIPT):
+                    copied=duplicate/filename; copied.write_bytes((recovery/filename).read_bytes()); copied.chmod(0o600)
+                with self.assertRaises(m.legacy.Blocked): m.context(container)
+                for filename in (m.JOURNAL,m.BACKUP_RECEIPT): (duplicate/filename).unlink()
+                duplicate.rmdir()
+                journal.write_text(json.dumps(state)); recovery.chmod(0o755)
+                with self.assertRaises(m.legacy.Blocked): m.context(container)
+
     def test_rollback_canary_capture_never_requests_assets_absent_in_a472(self):
         m = self.m
         def existing_asset(url, status):
