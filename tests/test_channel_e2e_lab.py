@@ -14,6 +14,18 @@ spec.loader.exec_module(lab)
 
 
 class PlanTests(unittest.TestCase):
+    def test_fixture_import_tail_redacts_before_filtering_and_is_bounded(self):
+        secret = 'private-fixture-value-123456789'
+        result = subprocess.CompletedProcess([], 1, stdout='\x1b[31mImport workflow failed ' + secret + '\x1b[0m\n' + 'error ' * 500,
+                                              stderr='credentials ' + secret)
+        with patch.object(lab, '_REDACTIONS', (secret,)):
+            diagnostic = lab.classify_command_error(result, include_fixture_tail=True)
+        raw = json.dumps(diagnostic)
+        self.assertNotIn(secret, raw)
+        self.assertNotIn('\\u001b', raw)
+        self.assertLessEqual(len(diagnostic['fixture_import_tail']), 1000)
+        self.assertNotIn('fixture_import_tail', lab.classify_command_error(result))
+
     def test_cli_diagnostics_classify_without_printing_private_output(self):
         result = subprocess.CompletedProcess([], 1, stdout='generated-secret-token',
                     stderr="TypeError: Cannot read properties of undefined (reading 'tags')\nSQLITE_CONSTRAINT: NOT NULL constraint failed: workflow_entity.versionId")

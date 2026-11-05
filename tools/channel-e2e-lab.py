@@ -26,6 +26,7 @@ PG_IMAGE = 'postgres:16-alpine'
 N8N_IMAGE = 'n8nio/n8n:2.40.5'
 LABEL = 'socialmei.channel-e2e'
 HERE = Path(__file__).resolve().parent
+_REDACTIONS = ()
 
 
 class CommandFailure(RuntimeError):
@@ -34,7 +35,7 @@ class CommandFailure(RuntimeError):
         self.diagnostic = diagnostic
 
 
-def classify_command_error(result):
+def classify_command_error(result, *, include_fixture_tail=False):
     """Return fixed patterns and identifiers, never raw CLI output or secrets."""
     output = result.stdout + '\n' + result.stderr
     diagnostic = {'exit_code': result.returncode}
@@ -57,6 +58,15 @@ def classify_command_error(result):
     constraint = re.search(r'(?:NOT NULL|UNIQUE) constraint failed: ([A-Za-z0-9_.]{1,100})', output)
     if constraint:
         diagnostic['constraint_column'] = constraint[1]
+    if include_fixture_tail:
+        # This is enabled solely for the synthetic IG workflow import, never
+        # credential import. Redact before line selection and truncation.
+        clean = re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]', '', output)
+        for secret in sorted(_REDACTIONS, key=len, reverse=True):
+            clean = clean.replace(secret, '[REDACTED]')
+        lines = [line for line in clean.splitlines() if re.search(
+            r'error|failed|cannot|must|invalid|unexpected|enoent|eacces|import|workflow', line, re.I)]
+        diagnostic['fixture_import_tail'] = '\n'.join(lines)[-1000:]
     return diagnostic
 
 
@@ -65,7 +75,7 @@ def require(ok, code):
         raise RuntimeError(code)
 
 
-def command(argv, timeout=120, stdin=None):
+def command(argv, timeout=120, stdin=None, diagnostic_context=None):
     try:
         result = subprocess.run(argv, input=stdin, text=True, capture_output=True, timeout=timeout, check=False)
     except (OSError, subprocess.TimeoutExpired):
@@ -77,14 +87,15 @@ def command(argv, timeout=120, stdin=None):
                 raise RuntimeError(controlled['code'])
         except (ValueError, IndexError, TypeError):
             pass
-        raise CommandFailure(classify_command_error(result))
+        raise CommandFailure(classify_command_error(result, include_fixture_tail=diagnostic_context == 'n8n_ig'))
     return result.stdout
 
 
-def docker(*args, timeout=120):
+def docker(*args, timeout=120, diagnostic_context=None):
     # Do not inherit DOCKER_HOST, contexts or a remote daemon.
     require(Path('/var/run/docker.sock').is_socket(), 'local_docker_socket_required')
-    return command(['docker', '--host=unix:///var/run/docker.sock', *map(str, args)], timeout)
+    return command(['docker', '--host=unix:///var/run/docker.sock', *map(str, args)], timeout,
+                   diagnostic_context=diagnostic_context)
 
 
 def validate_source(source):
@@ -168,7 +179,8 @@ class Lab:
             argv += ['-v', mount]
         for mount in tmpfs:
             argv += ['--tmpfs', mount]
-        docker(*argv, image, *args, timeout=300)
+        docker(*argv, image, *args, timeout=300,
+               diagnostic_context='n8n_ig' if role == 'n8n-ig' else None)
         return name
 
 
@@ -216,12 +228,18 @@ writeFileSync(OUTPUT,JSON.stringify(candidate));'''
 
 
 def execute(args):
+    global _REDACTIONS
     validate_source(args.source)
     source, bundle = args.source.resolve(), args.candidate_bundle
     image_receipt = verify_bundle(bundle)
     lab = Lab()
     report = {**plan(), 'mode': 'isolated-run', 'docker_executed': True, 'passed': False,
               'cleanup_complete': False, 'checks': [], 'api_image_id': image_receipt['images']['team-api']['image_id']}
+
+    def stage(value):
+        report['stage'] = value
+        print(json.dumps({'mode': 'isolated-run-progress', 'stage': value}), flush=True)
+
     try:
         # No pull or provider access occurs inside this harness. CI preloads pinned
         # dependencies before the isolated network is created.
@@ -241,6 +259,7 @@ def execute(args):
             require(actual['Id'] == report['api_image_id'] and actual['Config']['Labels']['org.opencontainers.image.revision'] == SOURCE_SHA,
                     'loaded_candidate_identity_mismatch')
             config = {key: secrets.token_hex(32) for key in ('waha', 'bot', 'bridge', 'meta', 'session1', 'session2', 'postgres', 'encryption')}
+            _REDACTIONS = tuple(value for value in config.values() if len(value) >= 16)
             private_file = folder / 'private.json'
             private_file.write_text(json.dumps(config))
             private_file.chmod(0o600)
@@ -254,7 +273,7 @@ def execute(args):
                    'SOCIALMEI_INSTAGRAM_N8N_ACCOUNT_BINDINGS': '{"987654321":1}'}
             user = str(os.getuid()) + ':' + str(os.getgid())
             mounts = [str(folder) + ':/lab', str(HERE / 'channel_e2e_seed.py') + ':/fixture.py:ro']
-            report['stage'] = 'postgres_start'
+            stage('postgres_start')
             postgres = lab.container('postgres', PG_IMAGE, env={'POSTGRES_USER': 'lab', 'POSTGRES_PASSWORD': config['postgres'], 'POSTGRES_DB': 'channel_e2e_fixture'}, aliases=['postgres'], user='postgres',
                                      tmpfs=['/var/lib/postgresql/data:rw,noexec,nosuid,size=512m,uid=70,gid=70'])
             for _ in range(60):
@@ -265,12 +284,12 @@ def execute(args):
                     time.sleep(1)
             else:
                 raise RuntimeError('postgres_readiness_failed')
-            report['stage'] = 'database_migrate_seed'
+            stage('database_migrate_seed')
             lab.container('seed', image, ['python', '/fixture.py', 'initialize'], env,
                           mounts + [str(source / 'database/migrations') + ':/migrations:ro'], detach=False, user=user)
             config = json.loads(private_file.read_text())
             env['SOCIALMEI_INSTAGRAM_N8N_ACCOUNT_BINDINGS'] = json.dumps({'987654321': config['workspace1']})
-            report['stage'] = 'prepare_ephemeral_workflows'
+            stage('prepare_ephemeral_workflows')
             workflows(source, folder, config)
             lab.container('waha', image, ['python', '/fixture.py', 'provider'], mounts=mounts, aliases=['waha'], user=user)
             api = lab.container('api', image, env=env, mounts=mounts, aliases=['team-api'], user=user)
@@ -287,9 +306,9 @@ def execute(args):
                         ('publish-wa', ['publish:workflow', '--id=channelLabWA']),
                         ('publish-ig', ['publish:workflow', '--id=channelLabIG'])]
             for role, argv in commands:
-                report['stage'] = 'n8n_' + role
+                stage('n8n_' + role)
                 lab.container('n8n-' + role, N8N_IMAGE, argv, n8n_env, n8n_mounts, detach=False, user=user)
-            report['stage'] = 'n8n_start'
+            stage('n8n_start')
             n8n = lab.container('n8n', N8N_IMAGE, env=n8n_env, mounts=n8n_mounts, aliases=['n8n'], user=user)
             require(docker('exec', n8n, 'n8n', '--version').strip() == '2.40.5', 'n8n_version_mismatch')
             # Readiness is checked through the real internal HTTP stack.
@@ -302,15 +321,15 @@ def execute(args):
                     time.sleep(1)
             else:
                 raise RuntimeError('api_n8n_readiness_failed')
-            report['stage'] = 'exercise_channels'
+            stage('exercise_channels')
             docker('exec', api, 'python', '/fixture.py', 'exercise', timeout=240)
             docker('stop', api)
-            report['stage'] = 'exercise_api_outage'
+            stage('exercise_api_outage')
             lab.container('outage', image, ['python', '/fixture.py', 'exercise', '--phase=outage'], env,
                           mounts, detach=False, user=user)
             report['checks'] = json.loads((folder / 'checks-main.json').read_text()) + json.loads((folder / 'checks-outage.json').read_text())
             report['passed'] = True
-            report['stage'] = 'complete'
+            stage('complete')
     except Exception as error:
         report['failure_code'] = (str(error) if isinstance(error, RuntimeError)
                                   and re.fullmatch(r'[a-z0-9_]{1,100}', str(error))
