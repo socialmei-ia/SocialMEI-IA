@@ -206,8 +206,8 @@ def workflows(source, folder, config):
     # points to a counted failing provider endpoint and must remain unreachable.
     generate = '''import {prepare,WORKFLOW} from MODULE;
 import {writeFileSync} from 'node:fs';
-const hook={id:'fixture-hook',name:'Meta webhook',type:'n8n-nodes-base.webhook',typeVersion:2,webhookId:'channel-lab-ig',parameters:{httpMethod:'POST',path:'channel-lab-ig',options:{}}};
-const legacy={id:'fixture-legacy',name:'Legacy AI and sender canary',type:'n8n-nodes-base.httpRequest',typeVersion:4.2,parameters:{method:'POST',url:'http://waha:3000/legacy-ai-sender'}};
+const hook={id:'fixture-hook',name:'Meta webhook',type:'n8n-nodes-base.webhook',typeVersion:2,position:[0,0],webhookId:'channel-lab-ig',parameters:{httpMethod:'POST',path:'channel-lab-ig',options:{}}};
+const legacy={id:'fixture-legacy',name:'Legacy AI and sender canary',type:'n8n-nodes-base.httpRequest',typeVersion:4.2,position:[1600,0],parameters:{method:'POST',url:'http://waha:3000/legacy-ai-sender'}};
 const source={id:WORKFLOW,versionId:'fixture-version',name:'Isolated IG fixture',nodes:[hook,legacy],connections:{'Meta webhook':{main:[[{node:legacy.name,type:'main',index:0}]]}}};
 const result=prepare(source,{sourceSha:'a'.repeat(64),publishedVersion:'fixture-version',apiOrigin:'https://candidate.example.test',credentialId:'labInstagram'});
 const candidate={...result.candidate,id:'channelLabIG',active:false};

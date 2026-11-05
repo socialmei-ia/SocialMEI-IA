@@ -136,6 +136,11 @@ class WorkflowTests(unittest.TestCase):
             instagram = json.loads((folder / 'instagram.json').read_text())
             self.assertFalse(whatsapp['active'])
             self.assertFalse(instagram['active'])
+            # n8n 2.40.5 validates these mandatory tuples before importing.
+            for workflow in (whatsapp, instagram):
+                for node in workflow['nodes']:
+                    self.assertEqual(len(node['position']), 2)
+                    self.assertTrue(all(type(value) in (int, float) for value in node['position']))
             persist = next(node for node in instagram['nodes'] if node['name'] == 'SocialMEI persistir antes da IA')
             self.assertEqual(persist['parameters']['url'], 'http://team-api:8000/webhooks/instagram/n8n')
             self.assertEqual(persist['parameters']['contentType'], 'binaryData')
