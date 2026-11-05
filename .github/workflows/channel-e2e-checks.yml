@@ -1,0 +1,79 @@
+name: Isolated WhatsApp and Instagram qualification
+
+on:
+  pull_request:
+    branches: [fix/instagram-receive-only-210]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Focused fixture and exact-image identity contracts
+        run: |
+          set -euo pipefail
+          for name in test_channel_e2e_lab test_team_import038 test_team_v33_import_images test_team_oci_image_identity; do
+            python -m unittest discover -s tests -p "$name.py" -v
+          done
+          node --test tests/instagram-persistence-workflow.test.cjs tests/whatsapp-bot-workflow.test.cjs
+          git diff --check
+
+  channels:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          path: harness
+      - uses: actions/checkout@v4
+        with:
+          ref: 345a074310673640084c7634e3da75dd72491813
+          persist-credentials: false
+          path: application
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Obtain the unchanged candidate artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api "/repos/${{ github.repository }}/actions/artifacts/13414736091/zip" > "$RUNNER_TEMP/channels212.zip"
+          echo "0ff6d5364e54f003016c70c2408412006e981fe3bf30831f44eb5c4970e1767a  $RUNNER_TEMP/channels212.zip" | sha256sum --check --status
+      - name: Real n8n, candidate API and PostgreSQL with synthetic providers only
+        run: |
+          set -euo pipefail
+          docker pull postgres:16-alpine
+          docker pull n8nio/n8n:2.40.5
+          python3 "$GITHUB_WORKSPACE/harness/tools/channel-e2e-lab.py" --run \
+            --source "$GITHUB_WORKSPACE/application" \
+            --candidate-bundle "$RUNNER_TEMP/channels212.zip" \
+            --receipt "$RUNNER_TEMP/channel-qualification.json"
+      - name: Save sanitized qualification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: channel-qualification-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/channel-qualification.json
+          if-no-files-found: warn
+          retention-days: 14
