@@ -7,6 +7,7 @@ on:
     branches:
       [
         main,
+        release/functional-product-20261105,
         release/decision-reports-20261104,
         release/product-increment-20261104,
         feat/account-businesses-20261104,
@@ -299,6 +300,7 @@ jobs:
           npm run preview -- up
           npm run test:preview
           node tests/multi-business-preview.cjs
+          node tests/sale-record-selection-preview.cjs
           node tests/report-viewer-decisions-preview.cjs
       - name: Fake Instagram provider in disposable preview only
         run: |
