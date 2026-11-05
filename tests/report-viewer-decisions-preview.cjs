@@ -82,6 +82,7 @@ async function run() {
     assert.equal(reader.identity.papel, "report_viewer");
     assert.equal((await reader.ctx.request.get(origin + "/api/v1/clientes")).status(), 403);
     assert.equal((await reader.ctx.request.get(origin + "/api/v1/financeiro")).status(), 403);
+    assert.equal((await reader.ctx.request.get(origin + "/api/v1/audit/workspace")).status(), 403);
     const raw = await request(reader, "/reporting/customers");
     assert.deepEqual(raw.customers, []);
     assert.equal(raw.identification_available, false);
@@ -129,6 +130,12 @@ async function run() {
       .waitFor();
     assert.deepEqual(errors, []);
     assert.deepEqual(external, []);
+    const ownerPage = await owner.ctx.newPage();
+    await ownerPage.goto(origin + "/frontend/socialmei-app.html#/config/conta");
+    await ownerPage
+      .locator("[data-workspace-audit]")
+      .getByText("Acesso à equipe concedido", { exact: true })
+      .waitFor();
     await request(reader, "/auth/logout", "POST", {});
     assert.equal(
       (await reader.ctx.request.get(origin + "/api/v1/reporting/finance")).status(),
