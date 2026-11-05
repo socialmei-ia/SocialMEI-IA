@@ -1,0 +1,50 @@
+name: Operator204 app-only safety (no production access)
+
+on:
+  pull_request:
+    branches: [feat/operator188-app-only-20261104]
+    paths:
+      - ".github/workflows/operator204-checks.yml"
+      - "tools/team-product204-*.py"
+      - "tests/test_team_product204_*.py"
+
+permissions:
+  contents: read
+
+jobs:
+  safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact operator source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: App-only gates and inherited safety
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          python -m py_compile tools/team-product204-release.py tools/team-product204-backup.py
+          python -m unittest discover -s tests -p 'test_team_product204_*.py' -v
+          python -m unittest discover -s tests -p 'test_team_functional038_*.py' -v
+      - name: Confirm exact application and unchanged038 profile
+        run: |
+          python - <<'PY'
+          import importlib.util
+          from pathlib import Path
+          spec = importlib.util.spec_from_file_location("operator204", "tools/team-product204-release.py")
+          operator = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(operator)
+          assert operator.BASE_SHA == "a4720f8b7ea98a67cb40b7b3208acdd7e8bcd510"
+          assert operator.CANDIDATE_SHA == "f2805c8a1549071010850090606c6a92f9d6ba7a"
+          assert not hasattr(operator, "migrate038")
+          folder = Path("database/migrations")
+          operator.profile.verify038(sorted(p.name for p in folder.glob("*.sql")),
+                                     lambda name: (folder / name).read_bytes())
+          print("App-only038: two images pinned, no migration and no production access")
+          PY
