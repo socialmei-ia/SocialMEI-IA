@@ -48,6 +48,14 @@ module.exports = async function (browser, origin) {
             finance_by_type_and_status: [],
           },
         });
+      case "/api/v1/reporting/customers":
+      case "/api/v1/reporting/finance":
+      case "/api/v1/reporting/products":
+        assert.equal(request.method(), "GET");
+        return route.fulfill({
+          status: 503,
+          json: { detail: "Indicadores detalhados indisponíveis nesta simulação." },
+        });
       default:
         throw Error("Report-only user attempted unrelated API: " + url.pathname);
     }

@@ -6,7 +6,8 @@
     <meta name="robots" content="noindex,nofollow" />
     <title>Relatórios de leitura · SocialMEI.IA</title>
     <style>
-      :root{color-scheme:dark;--bg:#0c1624;--card:#142134;--border:#304057;--ink:#eef3fa;--muted:#b6c4d5;--accent:#579bef}
+      :root{color-scheme:dark;--bg:#0c1624;--card:#142134;--border:#304057;--ink:#eef3fa;--muted:#b6c4d5;--accent:#579bef;--b:var(--border);--w:var(--card);--t:var(--ink)}
+      @media(prefers-color-scheme:light){:root{color-scheme:light;--bg:#f6f8fb;--card:#fff;--border:#cbd5e1;--ink:#172033;--muted:#475569;--accent:#165fc4}}
       *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,sans-serif}
       main{max-width:1000px;margin:0 auto;padding:24px 18px 60px}
       header{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:30px}
@@ -51,9 +52,12 @@
         <h2>Vendas e financeiro</h2>
         <div id="breakdown"></div>
       </section>
+      <p id="report-details-status" role="status" aria-live="polite"></p>
+      <div id="v"></div>
     </main>
     <script src="config.js"></script>
     <script src="scripts/auth-store.js"></script>
+    <script src="scripts/report-viewer-details.js"></script>
     <script>
       (async()=>{
       const auth=window.SocialMEIAuth;
