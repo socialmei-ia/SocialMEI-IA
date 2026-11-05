@@ -44,6 +44,7 @@ from instagram_publishing import router as instagram_publishing_router
 from instagram_media import InstagramMediaPrivacy, router as instagram_media_router
 from pdf_knowledge import router as pdf_knowledge_router
 from workspace_reporting import router as workspace_reporting_router
+from business_start import router as business_start_router
 from customer_reporting import router as customer_reporting_router
 from finance_reporting import router as finance_reporting_router
 from product_reporting import router as product_reporting_router
@@ -64,6 +65,7 @@ app.include_router(instagram_publishing_router)
 app.include_router(instagram_media_router)
 app.include_router(pdf_knowledge_router)
 app.include_router(workspace_reporting_router)
+app.include_router(business_start_router)
 app.include_router(customer_reporting_router)
 app.include_router(finance_reporting_router)
 app.include_router(product_reporting_router)

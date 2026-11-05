@@ -7,6 +7,7 @@ on:
     branches:
       [
         main,
+        release/functional-product-20261105,
         release/decision-reports-20261104,
         release/product-increment-20261104,
         feat/account-businesses-20261104,
@@ -270,6 +271,8 @@ jobs:
         run: node tests/product-report-browser.cjs
       - name: Workspace audit interface
         run: node tests/workspace-audit-browser.cjs
+      - name: Business start guidance
+        run: node tests/business-start-browser.cjs
       - name: Save browser evidence
         if: always()
         uses: actions/upload-artifact@v4
