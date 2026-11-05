@@ -1844,7 +1844,9 @@
       "</div>" +
       '<div class="pxb" style="margin-top:18px">' +
       ico("info", 18, 1.8) +
-      "<span>Ao entrar, salvamos este perfil só neste navegador. Isso não cadastra produtos, vendas ou conexões.</span></div>"
+      (remote
+        ? "<span>Ao concluir, a configuração deste negócio será salva na sua conta, separada das outras empresas. Produtos, serviços, agendamentos e vendas são cadastrados nas telas correspondentes. Nenhum canal será conectado automaticamente.</span></div>"
+        : "<span>Ao entrar, salvamos este perfil só neste navegador. Isso não cadastra produtos, vendas ou conexões.</span></div>")
     );
   }
 
