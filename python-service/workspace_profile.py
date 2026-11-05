@@ -177,6 +177,15 @@ def identity(request, response):
     return current()
 
 
+def audit_profile(conn, user, created):
+    """Record only workspace, actor and operation; never copy the private profile."""
+    action = 'criado' if created else 'alterado'
+    conn.execute(
+        'INSERT INTO socialmei.auth_auditoria(user_id,acao) VALUES(%s,%s)',
+        (user['id'], f"perfil:{user['workspace_id']}:{action}"),
+    )
+
+
 def storage(table, user, column, value=None, expected=None):
     """Single-statement CAS handles absent-row races without blind upserts."""
     keys = {"workspace_id": user["workspace_id"]}
@@ -217,6 +226,8 @@ def storage(table, user, column, value=None, expected=None):
                 raise HTTPException(
                     409, "Os dados mudaram em outra sessão. Recarregue antes de salvar."
                 )
+            if table == 'workspace_profiles' and expected is not None:
+                audit_profile(conn, user, expected == 0)
             return row
     except (psycopg.Error, RuntimeError):
         raise HTTPException(

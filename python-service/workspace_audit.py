@@ -15,11 +15,12 @@ import settings
 router = APIRouter(prefix="/api/v1/audit", tags=["workspace audit"])
 TEAM = {'concedida': 'Acesso à equipe concedido', 'papel': 'Papel na equipe alterado', 'revogada': 'Acesso à equipe revogado'}
 EXPORTS = {'clientes': 'CSV de clientes gerado', 'produtos': 'CSV de produtos gerado', 'vendas': 'CSV de vendas gerado', 'financeiro': 'CSV financeiro gerado', 'agendamentos': 'CSV de agendamentos gerado'}
+SETTINGS = {'criado': 'Perfil do negócio configurado', 'alterado': 'Perfil do negócio atualizado'}
 
 
 @router.get('/workspace')
 def history(start: date | None = Query(None), end: date | None = Query(None),
-            kind: Literal['all', 'team', 'exports'] = Query('all'),
+            kind: Literal['all', 'team', 'exports', 'settings'] = Query('all'),
             before: int | None = Query(None, ge=1, le=MAX_SAFE_ID),
             limit: int = Query(30, ge=1, le=50)):
     require_enabled()
@@ -38,6 +39,8 @@ def history(start: date | None = Query(None), end: date | None = Query(None),
         actions.update({f'equipe:{workspace}:{key}': ('team', label) for key, label in TEAM.items()})
     if kind in {'all', 'exports'}:
         actions.update({f'export_{key}:{workspace}': ('exports', label) for key, label in EXPORTS.items()})
+    if kind in {'all', 'settings'}:
+        actions.update({f'perfil:{workspace}:{key}': ('settings', label) for key, label in SETTINGS.items()})
     try:
         with connect() as conn:
             conn.row_factory = dict_row
@@ -63,4 +66,4 @@ def history(start: date | None = Query(None), end: date | None = Query(None),
                        'action': actions[r['acao']][1], 'actor': r['actor_name'], 'target': r['target_name']}
                       for r in page],
             'next_before': page[-1]['id'] if len(rows) > limit else None,
-            'description': 'Histórico disponível: alterações de acesso da equipe e geração de CSV vinculadas explicitamente a este negócio. Não inclui todas as alterações de CRM, agenda, estoque ou conta. CSV gerado não comprova download pelo navegador. Nomes exibidos são os atuais das contas.'}
+            'description': 'Histórico disponível: alterações de acesso da equipe, geração de CSV e salvamentos do perfil vinculados explicitamente a este negócio. O perfil passa a ser registrado a partir desta versão, sem reconstruir alterações anteriores ou armazenar seus valores. Não inclui todas as alterações de CRM, agenda, estoque ou conta. CSV gerado não comprova download pelo navegador. Nomes exibidos são os atuais das contas.'}
