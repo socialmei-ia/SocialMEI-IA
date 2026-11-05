@@ -297,6 +297,7 @@ jobs:
           npm run preview -- up
           npm run test:preview
           node tests/multi-business-preview.cjs
+          node tests/report-viewer-decisions-preview.cjs
       - name: Fake Instagram provider in disposable preview only
         run: |
           docker compose --project-name socialmei-preview --env-file .preview/.env -f compose.preview.yaml -f compose.preview.instagram-lab.yaml up -d --no-build --wait --wait-timeout 180 api
