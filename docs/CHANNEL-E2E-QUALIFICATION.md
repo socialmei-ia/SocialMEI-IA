@@ -135,3 +135,31 @@ backup e restore, saúde e jornadas autenticadas no site oficial, junto do ID
 sanitizado da mensagem recebida e do recibo/entrega de resposta. CI verde sozinho
 não satisfaz esse critério. Até lá, manter produção como **não homologada nesta
 sessão**.
+
+### Marco aprovado: ensaio combinado
+
+- Código do harness: `77e4a4cced12a396b1104d957786365c6d286b76`.
+- CI [42075947081](https://github.com/socialmei-ia/SocialMEI-IA/actions/runs/42075947081):
+  jobs `contracts` e `channels` aprovados em 05/11/2026.
+- [Recibo sanitizado versionado](evidence/channel-e2e-212-20261105.json): 21
+  verificações observadas (inclui ACK original/replay), todas aprovadas; limpeza
+  de containers/volumes/rede concluída. API e bundle exatos conforme pins acima.
+- Migrações 001–038 aplicadas no banco **vazio da fixture**. Isso não ensaia
+  atualização de um banco de produção 035 ou 038 com seus dados atuais.
+- WhatsApp: ingresso/replay, menu/catálogo com preço/estoque, assinatura inválida,
+  bloqueio de workspace forjado sem escrita, HTTP500/timeout como `uncertain`
+  sem segundo envio, estoque preservado.
+- Instagram: corpo/HMAC e newline preservados, uma persistência após replay,
+  ACK após persistência; HMAC inválido e API parada recusados sem ACK; ramo
+  legado não executado. Ambos canais visíveis somente na Caixa do negócio certo.
+
+As falhas anteriores eram da fixture: dois nós sem `position` obrigatório no
+n8n e expectativa 400/403 em vez do 422 que o ingresso usa para envelope inválido.
+Foram corrigidas sem alterar aplicação, schema ou imagens da PR #212. Os testes
+focados passaram novamente; suítes completas de aplicação não foram repetidas.
+
+O próximo trabalho local necessário é preparar/revisar o operador para **esta
+identidade #212** usando os componentes do operador #211; os gates, backup e
+restore de produção precisam continuar frescos e não são substituídos por este
+recibo. Estado operacional permanece não homologado: não houve login/OAuth real,
+pareamento WAHA, publicação de workflow vivo, mensagem ou deploy de produção.
