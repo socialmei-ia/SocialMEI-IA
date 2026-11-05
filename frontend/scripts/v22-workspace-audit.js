@@ -24,7 +24,7 @@
     section.dataset.workspaceAudit = "true";
     section.style.cssText =
       "margin:20px 0;padding:20px;border:1px solid var(--b);border-radius:16px;background:var(--w);color:var(--t)";
-    section.append(el("h2", "Histórico de acessos e exportações do negócio"));
+    section.append(el("h2", "Histórico de acessos, exportações e perfil do negócio"));
     const form = el("form"),
       dates = [];
     form.style.cssText = "display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin:14px 0";
@@ -48,6 +48,7 @@
       ["all", "Todos disponíveis"],
       ["team", "Equipe"],
       ["exports", "Exportações CSV"],
+      ["settings", "Perfil do negócio"],
     ]) {
       const option = el("option", title);
       option.value = value;
@@ -117,7 +118,7 @@
             item.id < 1 ||
             item.id >= previous ||
             typeof item.action !== "string" ||
-            !["team", "exports"].includes(item.kind) ||
+            !["team", "exports", "settings"].includes(item.kind) ||
             ![item.actor, item.target].every((n) => n === null || typeof n === "string") ||
             !Number.isFinite(Date.parse(item.at))
           )
