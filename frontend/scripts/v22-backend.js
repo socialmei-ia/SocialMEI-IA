@@ -309,6 +309,10 @@ window.SocialMEIV22 = (() => {
     const dialog = dlg(),
       element = dialog.querySelector("form");
     for (const f of fields) {
+      if (f.choices) {
+        const input = element.querySelector("#f_" + f.id);
+        input.replaceChildren(...f.choices.map((choice) => new Option(choice.label, choice.value)));
+      }
       if (f.disabled) {
         const input = element.querySelector("#f_" + f.id);
         if (input) {
@@ -367,6 +371,15 @@ window.SocialMEIV22 = (() => {
     };
   }
   const field = (id, label, value = "", extra = {}) => ({ id, label, value, ...extra });
+  function recordChoices(records, optional = false) {
+    const counts = new Map();
+    for (const record of records) counts.set(record.nome, (counts.get(record.nome) || 0) + 1);
+    const choices = records.map((record) => ({
+      value: String(record.id),
+      label: record.nome + (counts.get(record.nome) > 1 ? " · #" + record.id : ""),
+    }));
+    return optional ? [{ value: "", label: "Sem cliente" }, ...choices] : choices;
+  }
   function clientForm(edit = false) {
     const c = edit ? data.clients[S.cli] : null;
     form(
@@ -640,29 +653,32 @@ window.SocialMEIV22 = (() => {
             field("c", "Cliente (opcional)", "", {
               type: "select",
               options: ["", ...data.clients.map((c) => c.nome)],
+              choices: recordChoices(data.clients, true),
             }),
             field("p", "Produto ou serviço", "", {
               type: "select",
               options: data.products.map((p) => p.nome),
+              choices: recordChoices(data.products),
               req: 1,
             }),
             field("q", "Quantidade", "1", { req: 1 }),
           ],
           (v) => {
-            if (
-              (v.c && data.clients.filter((c) => c.nome === v.c).length !== 1) ||
-              data.products.filter((p) => p.nome === v.p).length !== 1
-            )
-              throw Error("Existem nomes repetidos. Diferencie os cadastros antes de selecionar.");
+            const customer = v.c ? data.clients.find((c) => String(c.id) === v.c) : null;
+            const product = data.products.find((p) => String(p.id) === v.p);
+            if ((v.c && !customer) || !product)
+              throw Error(
+                "Selecione um cadastro disponível neste negócio. Atualize se a lista mudou.",
+              );
             return write(
               "/vendas",
               "POST",
               {
-                cliente_id: v.c ? data.clients.find((c) => c.nome === v.c).id : null,
-                produto_id: data.products.find((p) => p.nome === v.p).id,
+                cliente_id: customer ? customer.id : null,
+                produto_id: product.id,
                 quantidade: Number(v.q),
                 data: new Date().toLocaleDateString("en-CA"),
-                preco: data.products.find((p) => p.nome === v.p).preco,
+                preco: product.preco,
                 pagamento: "Pix",
                 desconto: 0,
                 status: "Pendente",
