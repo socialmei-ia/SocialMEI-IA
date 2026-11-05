@@ -103,7 +103,14 @@ class Product204ReleaseTests(unittest.TestCase):
             state={'source_sha':m.CANDIDATE_SHA,'baseline_sha':m.BASE_SHA,'bundle_sha256':m.BUNDLE_SHA256,'phase':'rolled_back_schema038_retained','migrations_executed':False,'rolled_back_services':['team-api'],'rolled_back_runtime':{'team-api':'restored-container-cas'},'backup_receipt_sha256':m.legacy.digest_file(receipt),'protected':{n:'protected-cas' for n in m.PROTECTED},'backup_plans':{'team-api':{'wd':str(root),'command':command,'files':hashes,'mount_fingerprints':{'private':'hash'}}}}
             journal=recovery/m.JOURNAL
             journal.write_text(json.dumps(state)); journal.chmod(0o600)
-            with patch.object(m,'approved_context',side_effect=m.legacy.Blocked('compose_fora_do_escopo')), patch.object(m.legacy,'ROOT',root), patch.object(m.legacy,'BACKUPS',backups), patch.object(m.legacy,'PRIVATE',private), patch.object(m,'runtime_fingerprint',return_value='restored-container-cas'), patch.object(m,'mount_fingerprints',return_value={'private':'hash'}), patch.object(m,'protected_fingerprint',return_value='protected-cas'), patch.object(m.legacy,'inspect',return_value=container):
+            original_stat = Path.stat
+            def root_owned_fixture(path, *args, **kwargs):
+                value = original_stat(path, *args, **kwargs)
+                if path.is_relative_to(private):
+                    fields = list(value); fields[4] = 0
+                    return os.stat_result(fields)
+                return value
+            with patch.object(Path,'stat',root_owned_fixture), patch.object(m,'approved_context',side_effect=m.legacy.Blocked('compose_fora_do_escopo')), patch.object(m.legacy,'ROOT',root), patch.object(m.legacy,'BACKUPS',backups), patch.object(m.legacy,'PRIVATE',private), patch.object(m,'runtime_fingerprint',return_value='restored-container-cas'), patch.object(m,'mount_fingerprints',return_value={'private':'hash'}), patch.object(m,'protected_fingerprint',return_value='protected-cas'), patch.object(m.legacy,'inspect',return_value=container):
                 self.assertEqual(m.context(container),(root,command,hashes))
                 self.assertEqual(old.read_bytes(),original)
                 for key,value in [('source_sha','unexpected'),('backup_receipt_sha256','changed'),('protected',{}),('rolled_back_runtime',{'team-api':'unexpected'})]:
