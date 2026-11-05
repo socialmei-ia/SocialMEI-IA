@@ -97,6 +97,12 @@ async function run() {
         .locator("[data-business-start]")
         .getByText("Perfil do negócio salvo — Registrado", { exact: true })
         .waitFor();
+      const history = await request("/audit/workspace?kind=settings");
+      assert.equal(history.workspace_id, ids[name]);
+      assert.equal(history.items.length, 1, "Each business only sees its own profile event");
+      assert.equal(history.items[0].action, "Perfil do negócio configurado");
+      assert.equal(history.items[0].actor, "Responsável fictício do guia");
+      assert.equal(history.items[0].target, null);
     }
     await select("SorriaOdonto");
     await configure("SorriaOdonto", "saude", "servicos", "Agendar atendimentos");
@@ -176,10 +182,20 @@ async function run() {
       path: path.join(__dirname, "../test-results/business-start/she-390.png"),
       fullPage: true,
     });
+    await page.goto(origin + "/frontend/socialmei-app.html#/config/conta");
+    const history = page.locator("[data-workspace-audit]");
+    await history.getByLabel("Tipo de histórico").selectOption("settings");
+    await history.getByText("Perfil do negócio configurado", { exact: true }).waitFor();
+    assert.equal(await history.locator("tbody tr").count(), 1);
+    await waitForViewportFit(page);
+    assert.equal(
+      await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1),
+      false,
+    );
     assert.deepEqual(errors, []);
     assert.deepEqual(external, []);
     console.log(
-      "Real setup guide: one account/two businesses, existing five-step wizard saved in PG, profile offers do not fabricate records, service/resource/booking and product/sale/stock persist after reload, correct per-business guidance and mobile layout PASS",
+      "Real setup guide: one account/two businesses, existing five-step wizard saved in PG, isolated profile audit displayed, profile offers do not fabricate records, service/resource/booking and product/sale/stock persist after reload, correct per-business guidance and mobile layout PASS",
     );
   } finally {
     await context.close();
