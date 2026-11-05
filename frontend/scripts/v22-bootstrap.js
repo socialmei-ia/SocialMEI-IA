@@ -133,6 +133,10 @@
     workspaceAudit.src = "scripts/v22-workspace-audit.js";
     workspaceAudit.onerror = () => console.warn("Histórico do negócio indisponível.");
     document.body.appendChild(workspaceAudit);
+    const businessStart = document.createElement("script");
+    businessStart.src = "scripts/v22-business-start.js";
+    businessStart.onerror = () => console.warn("Primeiros passos indisponíveis.");
+    document.body.appendChild(businessStart);
   }
   if (auth.remote) {
     const instagram = document.createElement("script");

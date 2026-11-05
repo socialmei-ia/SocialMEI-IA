@@ -155,6 +155,11 @@ module.exports = async function v22EntryFlow(browser, origin) {
       await page.locator('[data-ob="prox"]').click();
       await page.locator('[data-ob="prox"]').click();
       await page.locator('[data-ob="prox"]').click();
+      assert.equal(
+        await page.getByText(/salvamos este perfil só neste navegador/).count(),
+        0,
+        "Authenticated onboarding must explain server persistence, not browser-only storage",
+      );
       await page.locator('[data-ob="fim"]').click();
       await page.waitForURL("**/socialmei-app.html#/bemvindo");
       assert.equal(profile.expected_revision, 0);

@@ -3,6 +3,7 @@ name: Team v33 candidate images (off-VPS)
 on:
   pull_request:
     branches:
+      - release/functional-product-20261105
       - release/decision-reports-20261104
       - release/product-increment-20261104
       - feat/account-businesses-20261104
