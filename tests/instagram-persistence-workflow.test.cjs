@@ -11,6 +11,7 @@ const options = {
   publishedVersion: "published-fixture",
   apiOrigin: "https://app.example.com",
   credentialId: "fixture-ingress-credential",
+  resumeLegacy: true,
 };
 function fixture() {
   return {
@@ -60,6 +61,29 @@ function fixture() {
     },
   };
 }
+
+test("receive-only default persists and acknowledges without any reachable legacy AI or sender", async () => {
+  const { prepare, NAMES } = await load();
+  const { resumeLegacy, ...receiveOptions } = options;
+  const source = fixture(),
+    graph = prepare(source, receiveOptions);
+  assert.equal(graph.resume_legacy_automation, false);
+  const visited = new Set(),
+    pending = ["Original webhook"];
+  while (pending.length) {
+    const name = pending.pop();
+    if (visited.has(name)) continue;
+    visited.add(name);
+    for (const groups of Object.values(graph.candidate.connections[name] || {}))
+      for (const links of groups) for (const link of links) pending.push(link.node);
+  }
+  assert.ok(visited.has(NAMES.persist));
+  assert.ok(visited.has(NAMES.ack));
+  assert.ok(visited.has(NAMES.fail));
+  for (const name of [NAMES.resume, "Branch", "AI", "Send"]) assert.equal(visited.has(name), false);
+  assert.deepEqual(graph.candidate.nodes.slice(1, source.nodes.length), source.nodes.slice(1));
+  assert.throws(() => prepare(source, { ...options, resumeLegacy: "false" }));
+});
 
 test("patches same published workflow, preserves old graph and credentials", async () => {
   const { prepare, NAMES } = await load();

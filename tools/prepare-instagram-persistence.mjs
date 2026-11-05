@@ -32,8 +32,9 @@ function edge(name) {
 
 export function prepare(
   source,
-  { sourceSha, publishedVersion, apiOrigin, credentialId, webhookNodeId },
+  { sourceSha, publishedVersion, apiOrigin, credentialId, webhookNodeId, resumeLegacy = false },
 ) {
+  if (typeof resumeLegacy !== "boolean") throw new Error("Modo de retomada invalido.");
   if (typeof credentialId !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(credentialId))
     throw new Error("Credencial nativa de ingresso obrigatoria.");
   if (!/^[a-f0-9]{64}$/.test(sourceSha || "")) throw new Error("Hash de origem obrigatorio.");
@@ -176,14 +177,15 @@ return $(${JSON.stringify(hook.name)}).all().map(item => {
     ["validate", "ack"],
   ])
     candidate.connections[NAMES[key]] = { main: [[edge(NAMES[next])], [edge(NAMES.fail)]] };
-  candidate.connections[NAMES.ack] = { main: [[edge(NAMES.resume)]] };
-  candidate.connections[NAMES.resume] = old;
+  candidate.connections[NAMES.ack] = { main: resumeLegacy ? [[edge(NAMES.resume)]] : [[]] };
+  candidate.connections[NAMES.resume] = resumeLegacy ? old : { main: [[]] };
   // Credentials, existing nodes/expressions and webhook identity remain in this PRIVATE file.
   return {
     target_workflow_id: WORKFLOW,
     expected_published_version_id: publishedVersion,
     source_sha256: sourceSha,
     automatically_publish: false,
+    resume_legacy_automation: resumeLegacy,
     candidate: {
       name: candidate.name,
       nodes: candidate.nodes,
@@ -205,11 +207,20 @@ export async function main(args) {
   const options = {};
   for (let i = 0; i < args.length; i += 2) {
     const key = args[i]?.replace(/^--/, "");
-    if (![...names, "webhook-node-id"].includes(key) || !args[i + 1] || options[key])
+    if (
+      ![...names, "webhook-node-id", "resume-legacy"].includes(key) ||
+      !args[i + 1] ||
+      options[key]
+    )
       throw new Error("Argumentos invalidos.");
     options[key] = args[i + 1];
   }
   if (names.some((name) => !options[name])) throw new Error("Argumentos obrigatorios ausentes.");
+  if (
+    options["resume-legacy"] !== undefined &&
+    !["true", "false"].includes(options["resume-legacy"])
+  )
+    throw new Error("Modo de retomada invalido.");
   const bytes = await readFile(options.input);
   const hash = createHash("sha256").update(bytes).digest("hex");
   if (hash !== options["expected-sha256"]) throw new Error("Export diverge do hash aprovado.");
@@ -219,6 +230,7 @@ export async function main(args) {
     apiOrigin: options["api-origin"],
     credentialId: options["credential-id"],
     webhookNodeId: options["webhook-node-id"],
+    resumeLegacy: options["resume-legacy"] === "true",
   });
   await writeFile(options.output, JSON.stringify(result, null, 2) + "\n", {
     flag: "wx",
