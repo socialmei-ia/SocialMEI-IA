@@ -1,4 +1,4 @@
-"""Pinned app-only a472/038 -> 339d/038 release. Inspect unless explicitly authorized.
+"""Pinned app-only a472/038 -> f280/038 release. Inspect unless explicitly authorized.
 
 The approved038 runtime checks are reused; this entry point never runs a migrator
 or restores production PostgreSQL. Recovery replaces only API/gateway images.
@@ -27,9 +27,9 @@ legacy = runtime.legacy
 profile = runtime.profile
 require = runtime.require
 BASE_SHA = 'a4720f8b7ea98a67cb40b7b3208acdd7e8bcd510'
-CANDIDATE_SHA = '339d8025bc28ad6fc7d2e831741cdddc34c4d49e'
-BUNDLE_SHA256 = '3f639617cc08019d27cd4a85e3739490616510cb20e7e2fae0130b1a45ba750d'
-AUTHORIZATION = 'a472-038-to-339d-038-app-only'
+CANDIDATE_SHA = 'f2805c8a1549071010850090606c6a92f9d6ba7a'
+BUNDLE_SHA256 = '5b682c41d76a002a574522d10405232eb4673216e0b8245e49274e84ab01ff34'
+AUTHORIZATION = 'a472-038-to-f280-038-app-only'
 JOURNAL = 'product204-state.json'
 BACKUP_RECEIPT = 'product204-backup-receipt.json'
 BASELINE_WINDOW = 'functional038-window-20261104T005701Z-17201648d4fb'

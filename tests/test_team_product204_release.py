@@ -41,8 +41,8 @@ class Product204ReleaseTests(unittest.TestCase):
     def test_pins_are_app_only_and_old_operator_remains_unchanged(self):
         m = self.m
         self.assertEqual(m.BASE_SHA, 'a4720f8b7ea98a67cb40b7b3208acdd7e8bcd510')
-        self.assertEqual(m.CANDIDATE_SHA, '339d8025bc28ad6fc7d2e831741cdddc34c4d49e')
-        self.assertEqual(m.BUNDLE_SHA256, '3f639617cc08019d27cd4a85e3739490616510cb20e7e2fae0130b1a45ba750d')
+        self.assertEqual(m.CANDIDATE_SHA, 'f2805c8a1549071010850090606c6a92f9d6ba7a')
+        self.assertEqual(m.BUNDLE_SHA256, '5b682c41d76a002a574522d10405232eb4673216e0b8245e49274e84ab01ff34')
         self.assertEqual(m.runtime.ledger035, m.runtime.ledger038)
         self.assertFalse(hasattr(m, 'migrate038'))
         self.assertFalse(hasattr(m, 'resume'))

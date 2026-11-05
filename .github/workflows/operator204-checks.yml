@@ -41,7 +41,7 @@ jobs:
           operator = importlib.util.module_from_spec(spec)
           spec.loader.exec_module(operator)
           assert operator.BASE_SHA == "a4720f8b7ea98a67cb40b7b3208acdd7e8bcd510"
-          assert operator.CANDIDATE_SHA == "339d8025bc28ad6fc7d2e831741cdddc34c4d49e"
+          assert operator.CANDIDATE_SHA == "f2805c8a1549071010850090606c6a92f9d6ba7a"
           assert not hasattr(operator, "migrate038")
           folder = Path("database/migrations")
           operator.profile.verify038(sorted(p.name for p in folder.glob("*.sql")),
