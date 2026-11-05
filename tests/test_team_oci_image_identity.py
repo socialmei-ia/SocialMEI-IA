@@ -16,10 +16,11 @@ SHA = 'a' * 40
 OCI_INDEX = 'application/vnd.oci.image.index.v1+json'
 OCI_MANIFEST = 'application/vnd.oci.image.manifest.v1+json'
 OCI_CONFIG = 'application/vnd.oci.image.config.v1+json'
+OCI_EMPTY = 'application/vnd.oci.empty.v1+json'
 
 
 class OciImageIdentityTests(unittest.TestCase):
-    def bundle(self, broken=None):
+    def bundle(self, broken=None, *, direct=False, empty=False):
         blobs = {}
 
         def blob(value, media_type):
@@ -35,15 +36,30 @@ class OciImageIdentityTests(unittest.TestCase):
             labels = {'org.opencontainers.image.revision':
                       '0' * 40 if broken == 'revision' and service == 'team-api' else SHA}
             config = blob({'config': {'Labels': labels},
-                           'architecture': 'amd64', 'os': 'linux'}, OCI_CONFIG)
+                           'architecture': 'arm64' if broken == 'platform' else 'amd64',
+                           'os': 'linux'}, OCI_CONFIG)
             layer = blob(b'fixture compressed layer for ' + service.encode(),
                          'application/vnd.oci.image.layer.v1.tar+gzip')
             manifest = blob({'schemaVersion': 2, 'mediaType': OCI_MANIFEST,
                              'config': config, 'layers': [layer]}, OCI_MANIFEST)
-            att_config = blob({'kind': 'attestation'}, OCI_CONFIG)
+            att_config = blob({} if empty else {'kind': 'attestation'},
+                              OCI_EMPTY if empty else OCI_CONFIG)
+            if empty:
+                att_config['data'] = 'e30=' if broken != 'embedded' else 'e10='
+            if broken == 'empty-executable':
+                manifest = blob({'schemaVersion': 2, 'mediaType': OCI_MANIFEST,
+                                 'config': att_config, 'layers': [layer]}, OCI_MANIFEST)
             att_layer = blob(b'fixture in-toto payload', 'application/vnd.in-toto+json')
-            att_manifest = blob({'schemaVersion': 2, 'mediaType': OCI_MANIFEST,
-                                 'config': att_config, 'layers': [att_layer]}, OCI_MANIFEST)
+            att_value = {'schemaVersion': 2, 'mediaType': OCI_MANIFEST,
+                         'config': att_config, 'layers': [att_layer]}
+            if empty:
+                att_value.update(artifactType='application/vnd.docker.attestation.manifest.v1+json',
+                                 subject={**manifest})
+                if broken == 'subject':
+                    att_value['subject']['digest'] = 'sha256:' + '0' * 64
+                if broken == 'artifact-type':
+                    att_value['artifactType'] = 'application/unknown'
+            att_manifest = blob(att_value, OCI_MANIFEST)
             att_ref = (manifest['digest'] if broken != 'attestation' or
                        service != 'team-api' else 'sha256:' + '0' * 64)
             image_index = blob({
@@ -55,10 +71,11 @@ class OciImageIdentityTests(unittest.TestCase):
                      'annotations': {'vnd.docker.reference.type': 'attestation-manifest',
                                      'vnd.docker.reference.digest': att_ref}},
                 ]}, OCI_INDEX)
-            refs.append({**image_index, 'annotations': {
+            reference = manifest if direct else image_index
+            refs.append({**reference, 'annotations': {
                 'io.containerd.image.name': 'docker.io/' + tag,
                 'org.opencontainers.image.ref.name': SHA}})
-            expected[tag] = {'tag': tag, 'image_id': image_index['digest']}
+            expected[tag] = {'tag': tag, 'image_id': reference['digest']}
             rows.append({'RepoTags': [tag],
                          'Config': 'blobs/sha256/' + config['digest'][7:],
                          'Layers': ['blobs/sha256/' + layer['digest'][7:]]})
@@ -70,6 +87,13 @@ class OciImageIdentityTests(unittest.TestCase):
             blobs[rows[0]['Layers'][0]] = b'corrupted layer bytes'
         if broken == 'index':
             blobs['blobs/sha256/' + refs[0]['digest'][7:]] += b' '
+        if broken == 'config':
+            name = rows[0]['Config']
+            blobs[name] = blobs[name].replace(b'linux', b'other')
+        if broken == 'size':
+            refs[0]['size'] += 1
+        if broken == 'tag':
+            refs[0]['annotations']['io.containerd.image.name'] += '-wrong'
         root = {'schemaVersion': 2, 'mediaType': OCI_INDEX, 'manifests': refs}
         with tempfile.TemporaryDirectory() as folder:
             archive_path = Path(folder) / 'images.tar.gz'
@@ -88,6 +112,38 @@ class OciImageIdentityTests(unittest.TestCase):
 
     def test_valid_oci_index_with_attestations(self):
         self.bundle()
+
+    def test_valid_direct_manifest_uses_config_platform(self):
+        self.bundle(direct=True)
+
+    def test_valid_empty_attestation_config_and_subject(self):
+        self.bundle(empty=True)
+
+    def test_empty_config_cannot_be_executable(self):
+        with self.assertRaises(RuntimeError):
+            self.bundle('empty-executable', empty=True)
+
+    def test_empty_attestation_requires_matching_embedded_data(self):
+        with self.assertRaises(RuntimeError):
+            self.bundle('embedded', empty=True)
+
+    def test_empty_attestation_requires_matching_subject(self):
+        with self.assertRaises(RuntimeError):
+            self.bundle('subject', empty=True)
+
+    def test_empty_attestation_requires_reviewed_artifact_type(self):
+        with self.assertRaises(RuntimeError):
+            self.bundle('artifact-type', empty=True)
+
+    def test_direct_manifest_rejects_tampering_and_other_platforms(self):
+        for broken in ('receipt', 'manifest', 'layer', 'index', 'revision',
+                       'config', 'platform', 'size', 'tag'):
+            with self.subTest(broken=broken), self.assertRaises(RuntimeError):
+                self.bundle(broken, direct=True)
+
+    def test_index_rejects_config_platform_mismatch(self):
+        with self.assertRaises(RuntimeError):
+            self.bundle('platform')
 
     def test_rejects_wrong_image_id(self):
         with self.assertRaises(RuntimeError):

@@ -119,6 +119,16 @@ def valid_stage(expected_sha=EXPECTED_SHA):
 
 
 def read_bundle(path, expected_sha=EXPECTED_SHA):
+    """Legacy 033/035 entry point; never implicitly accepts a newer schema."""
+    return _read_bundle(path, expected_sha)
+
+
+def read_bundle038(path, expected_sha):
+    """Explicit 038 operator entry point; retains every archive/OCI identity gate."""
+    return _read_bundle(path, expected_sha, profile038=True)
+
+
+def _read_bundle(path, expected_sha, *, profile038=False):
     require(re.fullmatch(r"[0-9a-f]{40}", str(expected_sha)) is not None,
             "source_sha_invalido")
     require(not path.is_symlink(), "pacote_simbolico_proibido")
@@ -166,7 +176,15 @@ def read_bundle(path, expected_sha=EXPECTED_SHA):
             require(receipt.get("source_sha") == expected_sha
                     and set(receipt.get("images", {})) == set(SERVICES),
                     "origem_das_imagens_divergente")
-            if receipt.get('release_profile') == '035':
+            if profile038:
+                require(receipt.get('release_profile') == '038', 'pacote_nao_e_038')
+                profile = release_profile()
+                proof = profile.rehearsal038(receipt.get('migration_rehearsal'), expected_sha)
+                require(receipt.get('migration_sha256') == profile.MIGRATIONS038
+                        and proof.get('api_image_id') == receipt['images']['team-api'].get('image_id')
+                        and proof.get('api_image_revision') == expected_sha,
+                        'imagem_038_sem_ensaio_correspondente')
+            elif receipt.get('release_profile') == '035':
                 profile = release_profile()
                 proof = profile.rehearsal(receipt.get('migration_rehearsal'), expected_sha)
                 require(receipt.get('migration_sha256') == profile.MIGRATIONS
