@@ -8,9 +8,17 @@ A produção inclui Prisma e um container de bot independente da imagem do repos
 
 ## Mudanças nesta branch
 
-- `SOCIALMEI_WAHA_WEBHOOK_ENGINE`: ausente ou `WEBJS` preserva o comportamento atual. Somente `GOWS` com piloto `team-pilot` habilitado aceita evento assinado desse engine. Configuração desconhecida falha fechada.
+- `SOCIALMEI_WAHA_WEBHOOK_ENGINE`: ausente ou `WEBJS` preserva o comportamento atual. Somente `GOWS` ou `WEBJS,GOWS` com piloto `team-pilot` habilitado aceita(m) eventos assinados do(s) engine(s) correspondente(s). Configuração desconhecida falha fechada.
 - `SOCIALMEI_WHATSAPP_LISTS_VERIFIED=true`: junto com o engine `GOWS` e o piloto válido, ativa `/api/sendList` para decisões do bot que possuem opções. Sem isso, permanece `/api/sendText`.
 - Resposta de lista assinada aceita somente IDs de opções conhecidos (0–5), com campos de seleção reconhecidos, e rejeita resposta não reconhecida como conteúdo de menu. Não altera o identificador do contato, o escopo do negócio, a idempotência nem a lista permitida.
+
+## Janela de recepção dupla (sem troca de remetente)
+
+- Primeiro: configurar o receptor em modo WEBJS,GOWS, restrito ao piloto autenticado. O worker continua enviando somente para WEBJS, e as listas ficam desligadas.
+- Dois engines conectados à mesma conta podem receber o mesmo evento em paralelo. Antes do pareamento GOWS, retirar provisoriamente seu webhook e manter somente o WEBJS produzindo ingresso. Não confiar na deduplicação entre engines.
+- Na janela de corte, pausar o worker, parar a sessão WEBJS, ativar o webhook GOWS, direcionar o único worker ao novo host e validar o tráfego real. Só depois homologar a exibição/seleção de listas, restringir o receptor a GOWS e ativar a flag de listas.
+- Em rollback, restabelecer um único caminho WEBJS para recepção e envio. Não reenviar automaticamente mensagens com recibo incerto.
+- Testes sintéticos HMAC não comprovam a forma real de eventos GOWS: validar sua estrutura sem imprimir telefones nem mensagens.
 
 ## Ordem para implantação
 
