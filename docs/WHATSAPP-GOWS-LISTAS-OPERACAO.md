@@ -61,3 +61,41 @@ Fontes oficiais: https://waha.devlike.pro/docs/how-to/engines/ , https://waha.de
 7. Manter GOWS sem webhook e sem worker remetente até estar em `WORKING` e passar validação controlada. Se continuar `FAILED`, interromper tentativas e preservar WEBJS.
 
 Fontes: https://waha.devlike.pro/docs/engines/gows/ ; https://waha.devlike.pro/docs/how-to/sessions/ ; https://waha.devlike.pro/blog/waha-2026-7/ .
+
+
+## Diagnóstico de pareamento versionado (somente leitura)
+
+O repositório inclui `tools/gows_pairing_diagnostic.py` e testes offline em
+`tests/test_gows_pairing_diagnostic.py`. O diagnóstico deve ser executado
+**no host AWS**, com acesso de leitura ao Docker, usando a revisão aprovada
+do arquivo (não obter e executar `latest` sem revisão):
+
+```bash
+sudo -n python3 tools/gows_pairing_diagnostic.py
+```
+
+O script consulta o estado dos quatro containers (API, worker, WEBJS e GOWS),
+a API local de sessões de ambos os WAHA e **sinais categorizados** dos últimos
+30 minutos de logs do GOWS. Ele não mostra nome de sessão, número de telefone,
+mensagens, QR, tokens, HMAC, URL privada ou linhas brutas dos logs. O código
+não contém operações de start/restart/stop, envio nem atualização de webhook.
+Os campos `GOWS_MOTIVO` e `GOWS_CODIGO` podem continuar
+`NAO_INFORMADO` se o endpoint de consulta não expuser o motivo do último
+evento `session.status`; isso **não prova** inexistência da causa nos logs.
+
+Os testes offline podem ser executados sem Docker, sem WhatsApp e sem banco:
+
+```bash
+python3 -m unittest discover -s tests -p test_gows_pairing_diagnostic.py -v
+```
+
+Um `RESULTADO = VERIFICAR_PASSKEY_OFICIAL` é uma **indicação para seguir
+a documentação do WAHA**; não é autorização para contornar WebAuthn. O
+desafio de passkey requer um autenticador no origin
+`https://web.whatsapp.com`; o backend não o conclui sozinho. Algumas
+versões/contas também podem ficar retidas após uma asserção aceita.
+Quando o QR renova, uma imagem PNG salva anteriormente torna-se obsoleta:
+não reutilizá-la e não insistir em tentativas repetidas.
+
+Referências: https://waha.devlike.pro/docs/how-to/sessions/ ,
+https://github.com/devlikeapro/waha/issues/2227 .
