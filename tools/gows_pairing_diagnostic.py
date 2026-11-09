@@ -38,7 +38,7 @@ SIGNALS = {
 
 def safe_state(value):
     """Never echo unexpected provider strings or private data."""
-    return value if value in STATES and isinstance(value, str) else "DESCONHECIDO"
+    return value if isinstance(value, str) and value in STATES else "DESCONHECIDO"
 
 
 def safe_reason(value):
@@ -59,6 +59,9 @@ def cmd(args, *, timeout=25):
     )
     if p.returncode:
         raise RuntimeError("COMANDO_FALHOU")
+    # Docker may write container logs to stderr; never print either raw stream.
+    if len(args) > 1 and args[0] == "docker" and args[1] == "logs":
+        return p.stdout + "\n" + p.stderr
     return p.stdout
 
 
