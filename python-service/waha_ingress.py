@@ -252,30 +252,38 @@ def parse_event(raw, signature, algorithm, binding):
     if not from_me and kind == "message" and recipient != binding.account_id:
         invalid()
     incoming_type = message.get("type", "chat")
+    data = message.get("_data")
+    info = data.get("Info") if isinstance(data, dict) else None
+    raw_media_type = info.get("MediaType") if isinstance(info, dict) else None
+    is_list = (
+        value.get("engine") == "GOWS"
+        and (
+            incoming_type in {"list_response", "listResponseMessage"}
+            or raw_media_type == "list_response"
+        )
+    )
     selected = None
-    if incoming_type in {"list_response", "listResponseMessage"} and value.get("engine") == "GOWS":
-        # Only provider-signed known row IDs are accepted. Never trust display titles.
-        data = message.get("_data")
-        if isinstance(data, dict):
-            nested = data.get("Message")
-            if isinstance(nested, dict):
-                listed = nested.get("listResponseMessage")
-                if isinstance(listed, dict):
-                    reply = listed.get("singleSelectReply")
-                    if isinstance(reply, dict):
-                        selected = reply.get("selectedRowID", reply.get("selectedRowId"))
-        # Some WAHA versions expose the row ID as body instead of raw metadata.
+    if is_list:
+        # Signed GOWS envelope; row IDs from the protocol are more reliable than
+        # the display title, which can be localized or repeated.
+        nested = data.get("Message") if isinstance(data, dict) else None
+        listed = nested.get("listResponseMessage") if isinstance(nested, dict) else None
+        reply = listed.get("singleSelectReply") if isinstance(listed, dict) else None
+        if isinstance(reply, dict):
+            selected = reply.get("selectedRowID", reply.get("selectedRowId"))
+        # Some GOWS versions surface the selected row ID directly as body.
         if selected is None and type(message.get("body")) is str:
             selected = message["body"]
         if type(selected) is not str or selected not in {"0", "1", "2", "3", "4", "5"}:
             selected = None
     if (
         message["hasMedia"]
-        or (incoming_type != "chat" and selected is None)
-        or (selected is None and not isinstance(message.get("body"), str))
+        or (incoming_type != "chat" and not is_list)
+        or (is_list and selected is None)
+        or (not is_list and not isinstance(message.get("body"), str))
     ):
         kind = "unsupported" if not from_me else "echo"
-    text = (selected if selected is not None else message.get("body")) if kind == "message" else None
+    text = (selected if is_list else message.get("body")) if kind == "message" else None
     if text is not None:
         try:
             valid = (
