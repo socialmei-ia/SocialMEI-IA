@@ -154,14 +154,19 @@ def answer(conn, workspace, state, text):
     lines = []
     for item in items:
         price = format(Decimal(item['preco']), '.2f').replace('.', ',')
-        line = item['nome'] + ' — R$ ' + price
+        # Product names are workspace data: avoid treating their content as formatting.
+        line = item['nome'] + '\nPreço: R$ ' + price
         if item['tipo'] == 'Produto':
-            line += (' — estoque: ' + str(item['estoque']) + ' registrado(s)'
-                     if item['disponibilidade'] == 'em_estoque' else ' — disponibilidade a confirmar')
+            if item['disponibilidade'] == 'em_estoque':
+                quantity = item['estoque']
+                unit = 'unidade' if quantity == 1 else 'unidades'
+                line += f'\nDisponibilidade: {quantity} {unit}'
+            else:
+                line += '\nDisponibilidade: a confirmar'
         lines.append(line)
     return 'menu', {**result, 'action': 'services' if choice == '3' else 'availability' if query else 'products',
-                    'items': items, 'choices': [], 'text': ('\n'.join(lines) +
-                    '\n\nConfirme os detalhes antes de fechar o pedido. Digite 0 para o menu ou 5 para atendente.')
+                    'items': items, 'choices': [], 'text': ('\n\n'.join(lines) +
+                    '\n\nPara solicitar um orçamento, digite 4. Para falar com um atendente, digite 5. Para voltar ao menu, digite 0.')
                     if items else (
                         'Não encontrei um produto com esse nome no catálogo ativo. '
                         'Digite 5 para falar com atendente ou 0 para o menu.'
