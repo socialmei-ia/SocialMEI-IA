@@ -101,14 +101,18 @@ class BotClosedContracts(unittest.TestCase):
             result = render_waha('main', '222@c.us', 'Olá', choices, engine=engine)
             self.assertEqual(result['path'], '/api/sendText')
             self.assertIn('1 - Ver produtos', result['body']['text'])
-        for engine in ('GOWS', 'NOWEB'):
+        result = render_waha('main', '222@c.us', 'Olá', choices,
+                             engine='GOWS', list_verified=True)
+        self.assertEqual(result['path'], '/api/sendList')
+        rows = result['body']['message']['sections'][0]['rows']
+        self.assertEqual([r['rowId'] for r in rows], ['1', '5'])
+        # A config flag alone must never enable lists in other engines,
+        # even if the renderer is called directly by another worker.
+        for engine in ('WEBJS', 'NOWEB', 'UNKNOWN', ''):
             result = render_waha('main', '222@c.us', 'Olá', choices,
                                  engine=engine, list_verified=True)
-            self.assertEqual(result['path'], '/api/sendList')
-            rows = result['body']['message']['sections'][0]['rows']
-            self.assertEqual([r['rowId'] for r in rows], ['1', '5'])
-        self.assertEqual(render_waha('main', '222@c.us', 'Olá', choices,
-                                     engine='WEBJS', list_verified=True)['path'], '/api/sendText')
+            self.assertEqual(result['path'], '/api/sendText')
+            self.assertIn('1 - Ver produtos', result['body']['text'])
 
 
 @unittest.skipUnless(os.getenv('TEST_DATABASE_URL'), 'Disposable PostgreSQL required')
