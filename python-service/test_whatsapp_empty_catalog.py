@@ -49,6 +49,28 @@ class EmptyCatalogReplyTests(unittest.TestCase):
         self.assertIn("digite 5", reply["text"])
         self.assertIn("digite 0", reply["text"])
 
+    def test_product_name_search_keeps_the_menu_navigation(self):
+        database = MagicMock()
+        database.execute.return_value.fetchall.return_value = [
+            {"nome": "Produto demonstração", "tipo": "Produto", "preco": "10.00", "estoque": 5},
+        ]
+
+        next_state, prompt = answer(database, 1, "menu", "2")
+        self.assertEqual(next_state, "ask_product")
+        self.assertEqual(prompt["action"], "ask_product")
+        database.execute.assert_not_called()
+
+        next_state, reply = answer(database, 1, "ask_product", "demonstração")
+        self.assertEqual(next_state, "menu")
+        self.assertEqual(reply["action"], "availability")
+        self.assertIn("Preço: R$ 10,00", reply["text"])
+        self.assertIn("Disponibilidade: 5 unidades", reply["text"])
+        self.assertEqual(database.execute.call_args.args[1][-2:], ("demonstração", "demonstração"))
+
+        next_state, back = answer(database, 1, "menu", "0")
+        self.assertEqual(next_state, "menu")
+        self.assertEqual(back["action"], "menu")
+
     def test_services_have_price_without_stock(self):
         database = MagicMock()
         database.execute.return_value.fetchall.return_value = [
