@@ -464,7 +464,12 @@ def claim(decision_id: UUID, payload: Strict, request: Request):
         if not permitted:
             return {'operation_id': str(row['id']), 'dispatch_allowed': False, 'status': row['status']}
         conn.execute("UPDATE socialmei.wa_bot_decisions SET status='claimed',claimed_at=NOW() WHERE id=%s", (decision_id,))
-        delivery = render_waha(channel['sessao'], state['contact_ref'].removeprefix('waha:'), row['result']['text'], row['result']['choices'])
+        delivery = render_waha(
+            channel['sessao'], state['contact_ref'].removeprefix('waha:'),
+            row['result']['text'], row['result']['choices'],
+            engine=settings.waha_ingress_engine(),
+            list_verified=settings.whatsapp_bot_lists_enabled(),
+        )
         return {'operation_id': str(row['id']), 'dispatch_allowed': True, 'status': 'claimed', 'delivery': delivery}
 
 
