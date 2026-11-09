@@ -190,7 +190,7 @@ def parse_event(raw, signature, algorithm, binding):
     ):
         invalid()
     # Keep WEBJS as the default. GOWS is enabled only by a dedicated pilot gate.
-    if value.get("engine") != settings.waha_ingress_engine():
+    if value.get("engine") not in settings.waha_ingress_engines():
         invalid()
     if type(value.get("timestamp")) is not int:
         invalid()
