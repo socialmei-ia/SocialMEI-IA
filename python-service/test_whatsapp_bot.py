@@ -26,6 +26,46 @@ class BotClosedContracts(unittest.TestCase):
             with patch.dict(os.environ, {'SOCIALMEI_WHATSAPP_BOT_ALLOWED_CONTACTS': '["222@c.us"]'}):
                 self.assertEqual(settings.whatsapp_bot_allowed_contacts(), frozenset({'waha:222@c.us'}))
 
+    def test_gows_list_delivery_requires_explicit_pilot_and_verified_opt_in(self):
+        import settings
+        from whatsapp_bot import render_waha
+
+        choices = [{"id": "1", "title": "Ver produtos"}]
+        with patch("settings.waha_ingress_team_pilot_enabled", return_value=True):
+            with patch.dict(os.environ, {
+                "SOCIALMEI_WAHA_WEBHOOK_ENGINE": "WEBJS",
+                "SOCIALMEI_WHATSAPP_LISTS_VERIFIED": "true",
+            }):
+                self.assertEqual(settings.waha_ingress_engine(), "WEBJS")
+                self.assertFalse(settings.whatsapp_bot_lists_enabled())
+            with patch.dict(os.environ, {
+                "SOCIALMEI_WAHA_WEBHOOK_ENGINE": "GOWS",
+                "SOCIALMEI_WHATSAPP_LISTS_VERIFIED": "false",
+            }):
+                self.assertEqual(settings.waha_ingress_engine(), "GOWS")
+                self.assertFalse(settings.whatsapp_bot_lists_enabled())
+            with patch.dict(os.environ, {
+                "SOCIALMEI_WAHA_WEBHOOK_ENGINE": "GOWS",
+                "SOCIALMEI_WHATSAPP_LISTS_VERIFIED": "true",
+            }):
+                self.assertTrue(settings.whatsapp_bot_lists_enabled())
+                result = render_waha("default", "222@c.us", "Escolha", choices,
+                                     engine=settings.waha_ingress_engine(),
+                                     list_verified=settings.whatsapp_bot_lists_enabled())
+                self.assertEqual(result["path"], "/api/sendList")
+            with patch.dict(os.environ, {
+                "SOCIALMEI_WAHA_WEBHOOK_ENGINE": "NOWEB",
+                "SOCIALMEI_WHATSAPP_LISTS_VERIFIED": "true",
+            }):
+                self.assertEqual(settings.waha_ingress_engine(), "")
+                self.assertFalse(settings.whatsapp_bot_lists_enabled())
+        with patch("settings.waha_ingress_team_pilot_enabled", return_value=False):
+            with patch.dict(os.environ, {
+                "SOCIALMEI_WAHA_WEBHOOK_ENGINE": "GOWS",
+                "SOCIALMEI_WHATSAPP_LISTS_VERIFIED": "true",
+            }):
+                self.assertFalse(settings.whatsapp_bot_lists_enabled())
+
     def test_pending_sources_are_closed_before_database_when_bot_disabled(self):
         with patch.dict(os.environ, {'SOCIALMEI_WHATSAPP_BOT_ENABLED': 'false'}), patch(
             'whatsapp_bot.connect', side_effect=AssertionError('unexpected database')
