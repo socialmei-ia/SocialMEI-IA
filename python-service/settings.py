@@ -211,6 +211,28 @@ def waha_ingress_enabled() -> bool:
     )
 
 
+def waha_ingress_engine() -> str:
+    """WEBJS by default; GOWS only in the explicitly configured team pilot.
+
+    An unknown/incorrect requested engine rejects events instead of broadening trust.
+    """
+    requested = os.getenv("SOCIALMEI_WAHA_WEBHOOK_ENGINE", "WEBJS").strip().upper()
+    if requested == "WEBJS":
+        return "WEBJS"
+    if requested == "GOWS" and waha_ingress_team_pilot_enabled():
+        return "GOWS"
+    return ""
+
+
+def whatsapp_bot_lists_enabled() -> bool:
+    """Operator-approved GOWS pilot only; safe default remains numbered text."""
+    return (
+        waha_ingress_engine() == "GOWS"
+        and os.getenv("SOCIALMEI_WHATSAPP_LISTS_VERIFIED", "false").strip().lower() == "true"
+        and waha_ingress_team_pilot_enabled()
+    )
+
+
 def whatsapp_bot_allowed_contacts():
     """Unrestricted fixtures only in isolated mode; live pilot needs explicit contacts."""
     if waha_ingress_isolated_enabled():
