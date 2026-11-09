@@ -96,7 +96,7 @@ class ContractTests(unittest.TestCase):
         with self.assertRaises(HTTPException):
             parse_event(raw_text, sign(raw_text), "sha512", binding())
 
-        with patch("waha_ingress.settings.waha_ingress_engine", return_value="GOWS"):
+        with patch("waha_ingress.settings.waha_ingress_engines", return_value=frozenset({"GOWS"})):
             parsed = parse_event(raw_text, sign(raw_text), "sha512", binding())
             self.assertEqual(parsed.text, " Original\n")
 
@@ -150,6 +150,44 @@ class ContractTests(unittest.TestCase):
             data = raw(item)
             selected = parse_event(data, sign(data), "sha512", binding())
             self.assertEqual(selected.text, "5")
+
+    def test_dual_engine_cutover_requires_team_pilot_and_same_signed_binding(self):
+        import os
+        import settings
+        webjs = raw(payload())
+        gows = raw(payload(engine="GOWS"))
+
+        with patch.dict(os.environ, {
+            "SOCIALMEI_WAHA_WEBHOOK_ENGINE": "WEBJS,GOWS"
+        }):
+            with patch("settings.waha_ingress_team_pilot_enabled", return_value=False):
+                self.assertEqual(settings.waha_ingress_engines(), frozenset())
+                for body in (webjs, gows):
+                    with self.assertRaises(HTTPException):
+                        parse_event(body, sign(body), "sha512", binding())
+
+            with patch("settings.waha_ingress_team_pilot_enabled", return_value=True):
+                self.assertEqual(
+                    settings.waha_ingress_engines(),
+                    frozenset({"WEBJS", "GOWS"}),
+                )
+                self.assertFalse(settings.whatsapp_bot_lists_enabled())
+                self.assertEqual(
+                    parse_event(webjs, sign(webjs), "sha512", binding()).text,
+                    " Original\n",
+                )
+                self.assertEqual(
+                    parse_event(gows, sign(gows), "sha512", binding()).text,
+                    " Original\n",
+                )
+                with self.assertRaises(HTTPException):
+                    parse_event(gows, "0" * 128, "sha512", binding())
+
+        with patch.dict(os.environ, {
+            "SOCIALMEI_WAHA_WEBHOOK_ENGINE": "WEBJS,GOWS,OTHER"
+        }):
+            with patch("settings.waha_ingress_team_pilot_enabled", return_value=True):
+                self.assertEqual(settings.waha_ingress_engines(), frozenset())
 
     def test_bounds_algorithms_immutable_registry_and_generic_representations(self):
         b = binding()
