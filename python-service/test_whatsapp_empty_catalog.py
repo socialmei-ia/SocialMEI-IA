@@ -30,6 +30,37 @@ class EmptyCatalogReplyTests(unittest.TestCase):
                 self.assertIn("status='Ativo'", sql)
                 self.assertEqual(args[0], 1)
 
+    def test_formatted_product_list_uses_registered_price_and_stock(self):
+        database = MagicMock()
+        database.execute.return_value.fetchall.return_value = [
+            {"nome": "Produto demonstração", "tipo": "Produto", "preco": "10.00", "estoque": 5},
+            {"nome": "Última unidade", "tipo": "Produto", "preco": "3.50", "estoque": 1},
+            {"nome": "A confirmar", "tipo": "Produto", "preco": "20.00", "estoque": 0},
+        ]
+        state, reply = answer(database, 1, "menu", "1")
+        self.assertEqual(state, "menu")
+        self.assertEqual(reply["action"], "products")
+        self.assertIn("Produto demonstração\nPreço: R$ 10,00\nDisponibilidade: 5 unidades", reply["text"])
+        self.assertIn("Última unidade\nPreço: R$ 3,50\nDisponibilidade: 1 unidade", reply["text"])
+        self.assertIn("A confirmar\nPreço: R$ 20,00\nDisponibilidade: a confirmar", reply["text"])
+        self.assertNotIn("registrado(s)", reply["text"])
+        self.assertNotIn("esgotado", reply["text"].lower())
+        self.assertIn("digite 4", reply["text"])
+        self.assertIn("digite 5", reply["text"])
+        self.assertIn("digite 0", reply["text"])
+
+    def test_services_have_price_without_stock(self):
+        database = MagicMock()
+        database.execute.return_value.fetchall.return_value = [
+            {"nome": "Serviço exemplo", "tipo": "Serviço", "preco": "50.00", "estoque": 0},
+        ]
+        state, reply = answer(database, 1, "menu", "3")
+        self.assertEqual(state, "menu")
+        self.assertEqual(reply["action"], "services")
+        self.assertIn("Serviço exemplo\nPreço: R$ 50,00", reply["text"])
+        self.assertNotIn("Disponibilidade:", reply["text"])
+        self.assertIn("digite 4", reply["text"])
+
     def test_menu_and_handoff_still_work_without_catalog(self):
         database = MagicMock()
         for state, message, expected in (
