@@ -38,6 +38,14 @@ class BotClosedContracts(unittest.TestCase):
             }):
                 self.assertEqual(settings.waha_ingress_engine(), "WEBJS")
                 self.assertFalse(settings.whatsapp_bot_lists_enabled())
+            # Dual ingress is only a transition state: never enable list sends.
+            with patch.dict(os.environ, {
+                "SOCIALMEI_WAHA_WEBHOOK_ENGINE": "WEBJS,GOWS",
+                "SOCIALMEI_WHATSAPP_LISTS_VERIFIED": "true",
+            }):
+                self.assertEqual(settings.waha_ingress_engines(), frozenset({"WEBJS", "GOWS"}))
+                self.assertEqual(settings.waha_ingress_engine(), "")
+                self.assertFalse(settings.whatsapp_bot_lists_enabled())
             with patch.dict(os.environ, {
                 "SOCIALMEI_WAHA_WEBHOOK_ENGINE": "GOWS",
                 "SOCIALMEI_WHATSAPP_LISTS_VERIFIED": "false",
