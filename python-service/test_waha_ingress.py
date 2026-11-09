@@ -123,6 +123,28 @@ class ContractTests(unittest.TestCase):
             self.assertEqual(unknown.kind, "unsupported")
             self.assertIsNone(unknown.text)
 
+            # The actual GOWS envelope may use "chat" as the public type
+            # while Info.MediaType holds "list_response".
+            item["payload"]["type"] = "chat"
+            item["payload"]["_data"]["Info"] = {"MediaType": "list_response"}
+            item["payload"]["_data"]["Message"]["listResponseMessage"]["singleSelectReply"]["selectedRowID"] = "3"
+            data = raw(item)
+            selected = parse_event(data, sign(data), "sha512", binding())
+            self.assertEqual(selected.text, "3")
+
+            item["payload"]["_data"]["Message"]["listResponseMessage"]["singleSelectReply"]["selectedRowID"] = "unknown"
+            data = raw(item)
+            unsupported = parse_event(data, sign(data), "sha512", binding())
+            self.assertEqual(unsupported.kind, "unsupported")
+            self.assertIsNone(unsupported.text)
+
+            # A normal text message with the same body is still ordinary text.
+            item["payload"]["_data"] = {}
+            data = raw(item)
+            ordinary = parse_event(data, sign(data), "sha512", binding())
+            self.assertEqual(ordinary.text, "Ver produtos")
+
+            item["payload"]["type"] = "list_response"
             item["payload"]["_data"] = {}
             item["payload"]["body"] = "5"
             data = raw(item)
