@@ -224,6 +224,21 @@ def waha_ingress_engine() -> str:
     return ""
 
 
+def waha_ingress_engines() -> frozenset[str]:
+    """Engines admitted by the authenticated webhook during a controlled cutover.
+
+    Dual reception is opt-in and limited to the same team pilot/registry. The
+    bot cannot send interactive lists while both engines are admitted.
+    """
+    single = waha_ingress_engine()
+    if single:
+        return frozenset((single,))
+    requested = os.getenv("SOCIALMEI_WAHA_WEBHOOK_ENGINE", "").strip().upper()
+    if requested == "WEBJS,GOWS" and waha_ingress_team_pilot_enabled():
+        return frozenset(("WEBJS", "GOWS"))
+    return frozenset()
+
+
 def whatsapp_bot_lists_enabled() -> bool:
     """Operator-approved GOWS pilot only; safe default remains numbered text."""
     return (
