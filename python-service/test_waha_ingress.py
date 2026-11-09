@@ -90,6 +90,45 @@ class ContractTests(unittest.TestCase):
             event.fingerprint,
         )
 
+    def test_gows_is_rejected_by_default_and_opted_in_for_signed_text_and_list_rows(self):
+        gows_text = payload(engine="GOWS")
+        raw_text = raw(gows_text)
+        with self.assertRaises(HTTPException):
+            parse_event(raw_text, sign(raw_text), "sha512", binding())
+
+        with patch("waha_ingress.settings.waha_ingress_engine", return_value="GOWS"):
+            parsed = parse_event(raw_text, sign(raw_text), "sha512", binding())
+            self.assertEqual(parsed.text, " Original\n")
+
+            webjs = raw(payload())
+            with self.assertRaises(HTTPException):
+                parse_event(webjs, sign(webjs), "sha512", binding())
+
+            item = payload(engine="GOWS")
+            item["payload"]["type"] = "list_response"
+            item["payload"]["body"] = "Ver produtos"
+            item["payload"]["_data"] = {
+                "Message": {"listResponseMessage": {
+                    "singleSelectReply": {"selectedRowID": "1"}
+                }}
+            }
+            data = raw(item)
+            selected = parse_event(data, sign(data), "sha512", binding())
+            self.assertEqual(selected.kind, "message")
+            self.assertEqual(selected.text, "1")
+
+            item["payload"]["_data"]["Message"]["listResponseMessage"]["singleSelectReply"]["selectedRowID"] = "999"
+            data = raw(item)
+            unknown = parse_event(data, sign(data), "sha512", binding())
+            self.assertEqual(unknown.kind, "unsupported")
+            self.assertIsNone(unknown.text)
+
+            item["payload"]["_data"] = {}
+            item["payload"]["body"] = "5"
+            data = raw(item)
+            selected = parse_event(data, sign(data), "sha512", binding())
+            self.assertEqual(selected.text, "5")
+
     def test_bounds_algorithms_immutable_registry_and_generic_representations(self):
         b = binding()
         service = WahaIngressService({"trusted-a": b})
