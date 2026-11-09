@@ -110,7 +110,7 @@ def view(row):
 
 def render_waha(session, chat, text, choices, *, engine='WEBJS', list_verified=False):
     """Construct a payload, not an HTTP call. Text is the verified default."""
-    if choices and list_verified and engine in {'GOWS', 'NOWEB'}:
+    if choices and list_verified and engine == 'GOWS':
         return {'path': '/api/sendList', 'body': {'session': session, 'chatId': chat, 'message': {
             'title': 'Atendimento', 'description': text, 'footer': 'SocialMEI', 'button': 'Ver opções',
             'sections': [{'title': 'Como podemos ajudar?', 'rows': [
