@@ -189,7 +189,8 @@ def parse_event(raw, signature, algorithm, binding):
         or value["me"].get("id") != binding.account_id
     ):
         invalid()
-    if value.get("engine") != "WEBJS":
+    # Keep WEBJS as the default. GOWS is enabled only by a dedicated pilot gate.
+    if value.get("engine") != settings.waha_ingress_engine():
         invalid()
     if type(value.get("timestamp")) is not int:
         invalid()
@@ -250,13 +251,31 @@ def parse_event(raw, signature, algorithm, binding):
         kind = "unsupported"
     if not from_me and kind == "message" and recipient != binding.account_id:
         invalid()
+    incoming_type = message.get("type", "chat")
+    selected = None
+    if incoming_type in {"list_response", "listResponseMessage"} and value.get("engine") == "GOWS":
+        # Only provider-signed known row IDs are accepted. Never trust display titles.
+        data = message.get("_data")
+        if isinstance(data, dict):
+            nested = data.get("Message")
+            if isinstance(nested, dict):
+                listed = nested.get("listResponseMessage")
+                if isinstance(listed, dict):
+                    reply = listed.get("singleSelectReply")
+                    if isinstance(reply, dict):
+                        selected = reply.get("selectedRowID", reply.get("selectedRowId"))
+        # Some WAHA versions expose the row ID as body instead of raw metadata.
+        if selected is None and type(message.get("body")) is str:
+            selected = message["body"]
+        if type(selected) is not str or selected not in {"0", "1", "2", "3", "4", "5"}:
+            selected = None
     if (
         message["hasMedia"]
-        or message.get("type", "chat") != "chat"
-        or not isinstance(message.get("body"), str)
+        or (incoming_type != "chat" and selected is None)
+        or (selected is None and not isinstance(message.get("body"), str))
     ):
         kind = "unsupported" if not from_me else "echo"
-    text = message.get("body") if kind == "message" else None
+    text = (selected if selected is not None else message.get("body")) if kind == "message" else None
     if text is not None:
         try:
             valid = (
