@@ -38,3 +38,26 @@ A produção inclui Prisma e um container de bot independente da imagem do repos
 - Registro de recibo/entrega confirmado. Suporte do endpoint por documentação ou HTTP 200 não é, sozinho, prova de exibição da lista no WhatsApp.
 
 Fontes oficiais: https://waha.devlike.pro/docs/how-to/engines/ , https://waha.devlike.pro/docs/how-to/send-messages/ e https://waha.devlike.pro/docs/how-to/storages/ .
+
+
+## Falha de pareamento GOWS — triagem segura (09/11/2026)
+
+### Observações do piloto
+
+- A sessão WEBJS permanecia `WORKING`; o worker continuava enviando para `socialmei-waha`.
+- A sessão GOWS isolada passou a `FAILED`, com zero webhooks e sem pareamento confirmado.
+- A triagem resumida apontou timeout nos logs, mas **não recuperou a razão estruturada do evento de falha**. Timeout isolado não prova QR expirado.
+- A primeira tentativa de `restart` de sessão não resolveu o pareamento, segundo o teste no celular.
+- A configuração HMAC do webhook GOWS e o volume WEBJS foram copiados em backups privados na AWS. Um backup online que passa na leitura de `tar` não equivale a snapshot consistente do banco/sessão.
+
+### Próxima janela com acesso à AWS e ao aparelho principal
+
+1. **Antes de iniciar outro QR**, inspecionar versão/imagem exatas do container GOWS, código de saída e último `session.status` (inclusive `payload.data.reason.event` e `reason.Reason`) **sem registrar telefones, conteúdo de mensagens, QR ou segredos**. A consulta anterior capturou apenas `s.data` / `s.statusData`, por isso `NAO_INFORMADO` não comprova ausência de motivo no evento.
+2. Correlacionar eventos e horários de logs da tentativa: `ClientOutdated` (405), `ConnectFailure`, `LoggedOut`, `TemporaryBan`, `StreamReplaced` ou problemas de rede/timeouts. Evitar tirar conclusão com simples busca de palavras nos últimos logs.
+3. Reconhecer os novos estados `PASSKEY_REQUIRED` e `PASSKEY_CONFIRMATION_REQUIRED`: desde WAHA 2026.7 há contas que exigem autenticação WebAuthn/confirmação extra; **não interpretar esses estados como simples QR vencido**. Seguir o fluxo oficial da Dashboard/extensão se ocorrer.
+4. Se versão desatualizada for comprovada, avaliar atualização **somente do piloto**, preservando seu volume e mantendo WEBJS intacto. Nunca atualizar tags flutuantes de produção por tentativa e erro.
+5. Na próxima tentativa de QR, exibir o código **atualizado** em interface privada para escaneamento imediato. QR salvo em PNG estático pode expirar enquanto a sessão renova o código; não reutilizar imagens antigas.
+6. No telefone principal: confirmar WhatsApp atualizado, horário automático, conectividade e disponibilidade de vínculo. **Não remover aparelhos existentes, limpar dados, reinstalar o WhatsApp ou enviar QR/senha no chat.**
+7. Manter GOWS sem webhook e sem worker remetente até estar em `WORKING` e passar validação controlada. Se continuar `FAILED`, interromper tentativas e preservar WEBJS.
+
+Fontes: https://waha.devlike.pro/docs/engines/gows/ ; https://waha.devlike.pro/docs/how-to/sessions/ ; https://waha.devlike.pro/blog/waha-2026-7/ .
