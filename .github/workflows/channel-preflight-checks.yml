@@ -17,7 +17,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Checkout pinned Instagram candidate (read-only)
+        uses: actions/checkout@v4
+        with:
+          ref: 345a074310673640084c7634e3da75dd72491813
+          path: candidate212
+          persist-credentials: false
       - name: Syntax and offline safety contracts
         run: |
-          python -m py_compile tools/channel-live-preflight.py
+          python -m py_compile tools/channel-live-preflight.py tools/instagram212-source-gate.py
           python -m unittest discover -s tests -p 'test_channel_live_preflight.py' -v
+          python -m unittest discover -s tests -p 'test_instagram212_source_gate.py' -v
+      - name: Pinned Instagram API, gateway and workflow contract
+        run: python tools/instagram212-source-gate.py --candidate-root candidate212
