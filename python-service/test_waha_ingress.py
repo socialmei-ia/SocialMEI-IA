@@ -90,6 +90,105 @@ class ContractTests(unittest.TestCase):
             event.fingerprint,
         )
 
+    def test_gows_is_rejected_by_default_and_opted_in_for_signed_text_and_list_rows(self):
+        gows_text = payload(engine="GOWS")
+        raw_text = raw(gows_text)
+        with self.assertRaises(HTTPException):
+            parse_event(raw_text, sign(raw_text), "sha512", binding())
+
+        with patch("waha_ingress.settings.waha_ingress_engines", return_value=frozenset({"GOWS"})):
+            parsed = parse_event(raw_text, sign(raw_text), "sha512", binding())
+            self.assertEqual(parsed.text, " Original\n")
+
+            webjs = raw(payload())
+            with self.assertRaises(HTTPException):
+                parse_event(webjs, sign(webjs), "sha512", binding())
+
+            item = payload(engine="GOWS")
+            item["payload"]["type"] = "list_response"
+            item["payload"]["body"] = "Ver produtos"
+            item["payload"]["_data"] = {
+                "Message": {"listResponseMessage": {
+                    "singleSelectReply": {"selectedRowID": "1"}
+                }}
+            }
+            data = raw(item)
+            selected = parse_event(data, sign(data), "sha512", binding())
+            self.assertEqual(selected.kind, "message")
+            self.assertEqual(selected.text, "1")
+
+            item["payload"]["_data"]["Message"]["listResponseMessage"]["singleSelectReply"]["selectedRowID"] = "999"
+            data = raw(item)
+            unknown = parse_event(data, sign(data), "sha512", binding())
+            self.assertEqual(unknown.kind, "unsupported")
+            self.assertIsNone(unknown.text)
+
+            # The actual GOWS envelope may use "chat" as the public type
+            # while Info.MediaType holds "list_response".
+            item["payload"]["type"] = "chat"
+            item["payload"]["_data"]["Info"] = {"MediaType": "list_response"}
+            item["payload"]["_data"]["Message"]["listResponseMessage"]["singleSelectReply"]["selectedRowID"] = "3"
+            data = raw(item)
+            selected = parse_event(data, sign(data), "sha512", binding())
+            self.assertEqual(selected.text, "3")
+
+            item["payload"]["_data"]["Message"]["listResponseMessage"]["singleSelectReply"]["selectedRowID"] = "unknown"
+            data = raw(item)
+            unsupported = parse_event(data, sign(data), "sha512", binding())
+            self.assertEqual(unsupported.kind, "unsupported")
+            self.assertIsNone(unsupported.text)
+
+            # A normal text message with the same body is still ordinary text.
+            item["payload"]["_data"] = {}
+            data = raw(item)
+            ordinary = parse_event(data, sign(data), "sha512", binding())
+            self.assertEqual(ordinary.text, "Ver produtos")
+
+            item["payload"]["type"] = "list_response"
+            item["payload"]["_data"] = {}
+            item["payload"]["body"] = "5"
+            data = raw(item)
+            selected = parse_event(data, sign(data), "sha512", binding())
+            self.assertEqual(selected.text, "5")
+
+    def test_dual_engine_cutover_requires_team_pilot_and_same_signed_binding(self):
+        import os
+        import settings
+        webjs = raw(payload())
+        gows = raw(payload(engine="GOWS"))
+
+        with patch.dict(os.environ, {
+            "SOCIALMEI_WAHA_WEBHOOK_ENGINE": "WEBJS,GOWS"
+        }):
+            with patch("settings.waha_ingress_team_pilot_enabled", return_value=False):
+                self.assertEqual(settings.waha_ingress_engines(), frozenset())
+                for body in (webjs, gows):
+                    with self.assertRaises(HTTPException):
+                        parse_event(body, sign(body), "sha512", binding())
+
+            with patch("settings.waha_ingress_team_pilot_enabled", return_value=True):
+                self.assertEqual(
+                    settings.waha_ingress_engines(),
+                    frozenset({"WEBJS", "GOWS"}),
+                )
+                self.assertFalse(settings.whatsapp_bot_lists_enabled())
+                self.assertEqual(
+                    parse_event(webjs, sign(webjs), "sha512", binding()).text,
+                    " Original\n",
+                )
+                self.assertEqual(
+                    parse_event(gows, sign(gows), "sha512", binding()).text,
+                    " Original\n",
+                )
+                with self.assertRaises(HTTPException):
+                    parse_event(gows, "0" * 128, "sha512", binding())
+
+        with patch.dict(os.environ, {
+            "SOCIALMEI_WAHA_WEBHOOK_ENGINE": "WEBJS,GOWS,OTHER"
+        }):
+            with patch("settings.waha_ingress_team_pilot_enabled", return_value=True):
+                self.assertEqual(settings.waha_ingress_engines(), frozenset())
+
     def test_bounds_algorithms_immutable_registry_and_generic_representations(self):
         b = binding()
         service = WahaIngressService({"trusted-a": b})
@@ -368,6 +467,34 @@ class DatabaseTests(unittest.TestCase):
                 ).fetchone()[0],
                 1,
             )
+
+    def test_dual_engine_same_message_is_deduplicated_before_bot(self):
+        """Two signed deliveries of one message cannot create two inbox rows."""
+        original = payload(mid="false_222@c.us_cross_engine")
+        secondary = payload(mid="false_222@c.us_cross_engine", engine="GOWS")
+        with patch("waha_ingress.settings.waha_ingress_engines",
+                   return_value=frozenset({"WEBJS", "GOWS"})):
+            first = self.receive(original)
+            second = self.receive(secondary)
+
+        self.assertEqual(first["processed"], 1)
+        self.assertEqual(second["processed"], 0)
+        self.assertEqual(second["duplicates"], 1)
+
+        with psycopg.connect(DB) as conn:
+            self.assertEqual(conn.execute(
+                "SELECT COUNT(*) FROM socialmei.crm_eventos_canal "
+                "WHERE workspace_id=%s AND mensagem_externa_id=%s",
+                (self.identity["workspace_id"], original["payload"]["id"]),
+            ).fetchone()[0], 1)
+
+        # Same provider ID with conflicting content fails instead of replying twice.
+        secondary["payload"]["body"] = "5"
+        with patch("waha_ingress.settings.waha_ingress_engines",
+                   return_value=frozenset({"WEBJS", "GOWS"})):
+            with self.assertRaises(HTTPException) as error:
+                self.receive(secondary)
+        self.assertEqual(error.exception.status_code, 409)
 
     def test_concurrent_duplicate_conflict_and_atomic_rollback(self):
         gate = threading.Barrier(2)

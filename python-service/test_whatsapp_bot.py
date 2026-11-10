@@ -26,6 +26,54 @@ class BotClosedContracts(unittest.TestCase):
             with patch.dict(os.environ, {'SOCIALMEI_WHATSAPP_BOT_ALLOWED_CONTACTS': '["222@c.us"]'}):
                 self.assertEqual(settings.whatsapp_bot_allowed_contacts(), frozenset({'waha:222@c.us'}))
 
+    def test_gows_list_delivery_requires_explicit_pilot_and_verified_opt_in(self):
+        import settings
+        from whatsapp_bot import render_waha
+
+        choices = [{"id": "1", "title": "Ver produtos"}]
+        with patch("settings.waha_ingress_team_pilot_enabled", return_value=True):
+            with patch.dict(os.environ, {
+                "SOCIALMEI_WAHA_WEBHOOK_ENGINE": "WEBJS",
+                "SOCIALMEI_WHATSAPP_LISTS_VERIFIED": "true",
+            }):
+                self.assertEqual(settings.waha_ingress_engine(), "WEBJS")
+                self.assertFalse(settings.whatsapp_bot_lists_enabled())
+            # Dual ingress is only a transition state: never enable list sends.
+            with patch.dict(os.environ, {
+                "SOCIALMEI_WAHA_WEBHOOK_ENGINE": "WEBJS,GOWS",
+                "SOCIALMEI_WHATSAPP_LISTS_VERIFIED": "true",
+            }):
+                self.assertEqual(settings.waha_ingress_engines(), frozenset({"WEBJS", "GOWS"}))
+                self.assertEqual(settings.waha_ingress_engine(), "")
+                self.assertFalse(settings.whatsapp_bot_lists_enabled())
+            with patch.dict(os.environ, {
+                "SOCIALMEI_WAHA_WEBHOOK_ENGINE": "GOWS",
+                "SOCIALMEI_WHATSAPP_LISTS_VERIFIED": "false",
+            }):
+                self.assertEqual(settings.waha_ingress_engine(), "GOWS")
+                self.assertFalse(settings.whatsapp_bot_lists_enabled())
+            with patch.dict(os.environ, {
+                "SOCIALMEI_WAHA_WEBHOOK_ENGINE": "GOWS",
+                "SOCIALMEI_WHATSAPP_LISTS_VERIFIED": "true",
+            }):
+                self.assertTrue(settings.whatsapp_bot_lists_enabled())
+                result = render_waha("default", "222@c.us", "Escolha", choices,
+                                     engine=settings.waha_ingress_engine(),
+                                     list_verified=settings.whatsapp_bot_lists_enabled())
+                self.assertEqual(result["path"], "/api/sendList")
+            with patch.dict(os.environ, {
+                "SOCIALMEI_WAHA_WEBHOOK_ENGINE": "NOWEB",
+                "SOCIALMEI_WHATSAPP_LISTS_VERIFIED": "true",
+            }):
+                self.assertEqual(settings.waha_ingress_engine(), "")
+                self.assertFalse(settings.whatsapp_bot_lists_enabled())
+        with patch("settings.waha_ingress_team_pilot_enabled", return_value=False):
+            with patch.dict(os.environ, {
+                "SOCIALMEI_WAHA_WEBHOOK_ENGINE": "GOWS",
+                "SOCIALMEI_WHATSAPP_LISTS_VERIFIED": "true",
+            }):
+                self.assertFalse(settings.whatsapp_bot_lists_enabled())
+
     def test_pending_sources_are_closed_before_database_when_bot_disabled(self):
         with patch.dict(os.environ, {'SOCIALMEI_WHATSAPP_BOT_ENABLED': 'false'}), patch(
             'whatsapp_bot.connect', side_effect=AssertionError('unexpected database')
@@ -61,14 +109,18 @@ class BotClosedContracts(unittest.TestCase):
             result = render_waha('main', '222@c.us', 'Olá', choices, engine=engine)
             self.assertEqual(result['path'], '/api/sendText')
             self.assertIn('1 - Ver produtos', result['body']['text'])
-        for engine in ('GOWS', 'NOWEB'):
+        result = render_waha('main', '222@c.us', 'Olá', choices,
+                             engine='GOWS', list_verified=True)
+        self.assertEqual(result['path'], '/api/sendList')
+        rows = result['body']['message']['sections'][0]['rows']
+        self.assertEqual([r['rowId'] for r in rows], ['1', '5'])
+        # A config flag alone must never enable lists in other engines,
+        # even if the renderer is called directly by another worker.
+        for engine in ('WEBJS', 'NOWEB', 'UNKNOWN', ''):
             result = render_waha('main', '222@c.us', 'Olá', choices,
                                  engine=engine, list_verified=True)
-            self.assertEqual(result['path'], '/api/sendList')
-            rows = result['body']['message']['sections'][0]['rows']
-            self.assertEqual([r['rowId'] for r in rows], ['1', '5'])
-        self.assertEqual(render_waha('main', '222@c.us', 'Olá', choices,
-                                     engine='WEBJS', list_verified=True)['path'], '/api/sendText')
+            self.assertEqual(result['path'], '/api/sendText')
+            self.assertIn('1 - Ver produtos', result['body']['text'])
 
 
 @unittest.skipUnless(os.getenv('TEST_DATABASE_URL'), 'Disposable PostgreSQL required')
