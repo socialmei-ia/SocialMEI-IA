@@ -128,6 +128,7 @@ class ChannelPreflightTests(unittest.TestCase):
             if name == audit.CONTAINERS["api"]:
                 env = {
                     "SOCIALMEI_WAHA_WEBHOOK_ENGINE": "WEBJS,GOWS",
+                    "SOCIALMEI_WAHA_INGRESS_MODE": "team-pilot",
                     "SOCIALMEI_INSTAGRAM_RUNTIME_SEND_ENABLED": "false",
                 }
             elif name == audit.CONTAINERS["worker"]:
