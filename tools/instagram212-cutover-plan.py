@@ -467,11 +467,35 @@ def wait_service(name, image_id):
         if (item.get("Image") == image_id and
                 item.get("State", {}).get("Running") is True):
             health = (item["State"].get("Health") or {}).get("Status")
-            if health in (None, "healthy"):
+            if name == TARGETS["team-api"]["name"]:
+                if health == "healthy":
+                    return item
+            elif health in (None, "healthy"):
                 return item
-            require(health in ("starting",), "candidate_unhealthy")
+            require(health in (None, "starting"), "candidate_unhealthy")
         time.sleep(2)
     raise Blocked("candidate_health_timeout")
+
+
+def security_preserved(before, after):
+    """Image content may change; compose runtime isolation must not."""
+    before_cfg = before["HostConfig"]
+    after_cfg = after["HostConfig"]
+    for field in ("Privileged", "CapAdd", "CapDrop", "SecurityOpt",
+                  "NetworkMode", "PortBindings", "Binds", "ReadonlyRootfs",
+                  "PidMode", "IpcMode", "Devices", "RestartPolicy"):
+        require(before_cfg.get(field) == after_cfg.get(field),
+                "service_security_shape_changed")
+    before_mounts = sorted(
+        (m.get("Type"), m.get("Source"), m.get("Destination"), m.get("RW"))
+        for m in before.get("Mounts", [])
+    )
+    after_mounts = sorted(
+        (m.get("Type"), m.get("Source"), m.get("Destination"), m.get("RW"))
+        for m in after.get("Mounts", [])
+    )
+    require(before_mounts == after_mounts, "service_mounts_changed")
+
 
 
 def service_command(source, service, folder, *, candidate):
@@ -505,6 +529,7 @@ def revert_attempted(folder, baseline, state):
             restored = wait_service(cfg["name"], cfg["base_id"])
             require(restored["Config"]["Image"] == source["Config"]["Image"],
                     "rollback_container_tag_mismatch")
+            security_preserved(source, restored)
         if service not in state["restored"]:
             state["restored"].append(service)
         write_journal(folder / JOURNAL, state)
@@ -549,6 +574,10 @@ def publish(folder, authorization):
                 require(running["Config"]["Image"] ==
                         candidate_overlay(service)["services"][service]["image"],
                         "candidate_container_tag_mismatch")
+                require((running["Config"].get("Labels") or {}).get(
+                    "org.opencontainers.image.revision") == CANDIDATE,
+                    "candidate_revision_changed")
+                security_preserved(baseline[config["name"]], running)
                 protected_same(baseline)
             state["phase"] = "published_api_gateway_only"
             write_journal(folder / JOURNAL, state)
