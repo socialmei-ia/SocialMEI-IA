@@ -2,7 +2,7 @@
 """Prepare a pinned, private, no-deploy API/gateway #212 Compose overlay.
 
 Requires a successful, isolated 038 backup receipt. Refuses any public or
-production mutation. No Compose up, no n8n import, no Meta/WhatsApp requests.
+production mutation. Does not publish services, update automations, or call providers.
 The private plan is NOT release authorization or a rollback rehearsal.
 """
 import argparse
