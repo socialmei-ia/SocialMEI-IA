@@ -44,3 +44,10 @@
 
 **Estado atual: preparação offline do contrato API+gateway+workflow, sem GO de produção.**
 Fontes: [plano P0 #216](https://github.com/socialmei-ia/SocialMEI-IA/issues/216), [PR #212](https://github.com/socialmei-ia/SocialMEI-IA/pull/212), [ensaio isolado #213](https://github.com/socialmei-ia/SocialMEI-IA/pull/213).
+## Imagens carregadas e preparo do backup (10/11/2026)
+
+- O operador transferiu o artifact oficial #212 para a AWS. As duas imagens foram validadas por índice OCI, linux/amd64, camadas e revisão. Resultado `IMAGENS_212_VALIDAS_SEM_DEPLOY` e `containers_anteriores_preservados=true`; nenhum deploy executado.
+- API atual: Compose válido usando explicitamente `--env-file /home/ubuntu/socialmei-team/.env.team` com 16 camadas, imagem/ambiente coincidentes. Gateway passou com 12 camadas.
+- Criado `tools/instagram212-protected-backup.py` para execução autorizada com `--create-backup`: salva no servidor em diretório privado (config, .env.team, mounts e imagens anteriores), gera dump PostgreSQL custom, restaura em PostgreSQL isolado com `--network none`, confere schema038 e 74 tabelas, remove container efêmero e verifica que os containers atuais mantiveram identidade e estado.
+- **A execução na AWS ainda está pendente.** Em caso de `BLOQUEADO`, não publicar. Se concluída, guardar o caminho privado de `pasta_privada` para o operador de rollback.
+- Backup/restore isolado não equivale a operador #212 homologado. Permanecem pendentes snapshot da versão n8n publicada e credenciais Meta/relay, corte seguro e teste real.
