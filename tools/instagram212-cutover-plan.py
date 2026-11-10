@@ -357,25 +357,277 @@ def prepare(folder):
     }
 
 
+# Mutating branch: deliberately separate from the previously shipped --prepare.
+# A draft PR and an offline green CI are not production authorization.
+import fcntl
+import tempfile
+import time
+
+LOCK = Path("/run/lock/socialmei-wa-pilot-release.lock")
+JOURNAL = "publication212.private.json"
+APPLY_AUTHORIZATION = "AUTORIZO-IG212-API-E-GATEWAY-SEM-N8N"
+ROLLBACK_AUTHORIZATION = "AUTORIZO-ROLLBACK-IG212-API-E-GATEWAY"
+
+
+def private_json(path):
+    return json.loads(secure_file(path).read_text())
+
+
+def write_journal(path, value):
+    """Crash-safe root-private update. The previous journal is never printed."""
+    payload = json.dumps(value, sort_keys=True, indent=2).encode()
+    fd, temporary = tempfile.mkstemp(prefix=".journal-", dir=path.parent)
+    try:
+        os.fchmod(fd, 0o600)
+        with os.fdopen(fd, "wb") as stream:
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+
+def with_lock():
+    fd = os.open(LOCK, os.O_CREAT | os.O_RDWR, 0o600)
+    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    return fd
+
+
+def expected_services(folder):
+    baseline = private_json(folder / "baseline-inspect.json")
+    plan = private_json(folder / "cutover-plan.private.json")
+    require(plan.get("status") == "PREPARED_NO_DEPLOY"
+            and plan.get("release") == CANDIDATE
+            and plan.get("baseline") == BASELINE
+            and plan.get("apply_authorized") is False
+            and plan.get("production_changed") is False
+            and plan.get("workflow_n8n_changed") is False
+            and plan.get("backup_receipt_sha256") == digest(
+                secure_file(folder / "receipt.private.json")),
+            "publication_plan_mismatch")
+    for service, cfg in TARGETS.items():
+        path = secure_file(folder / f"{service}.ig212.candidate.compose.json")
+        require(digest(path) == plan.get("overlay_sha256", {}).get(service),
+                "publication_overlay_changed")
+        require(json.loads(path.read_text()) == candidate_overlay(service),
+                "publication_overlay_unexpected")
+        require(cfg["name"] in baseline, "publication_baseline_missing")
+    return baseline, plan
+
+
+def render_matches(folder, baseline, plan, *, candidate):
+    """Compare normalized full Compose model, never log its secret values."""
+    verify_config_archive(folder / "private-config.tar")
+    for service, cfg in TARGETS.items():
+        source = baseline[cfg["name"]]
+        args = compose_args(compose_files(source, cfg["layers"]))
+        baseline_model = json.loads(call(args + ["config", "--format", "json"]))
+        require(hashlib.sha256(json.dumps(
+            baseline_model, sort_keys=True).encode()).hexdigest() ==
+            plan["model_sha256"][service]["before"],
+            "publication_compose_baseline_changed")
+        proposal = json.loads(call(args + ["-f", str(
+            folder / f"{service}.ig212.candidate.compose.json"),
+            "config", "--format", "json"]))
+        require(safe_diff(baseline_model, proposal, service),
+                "publication_compose_scope_changed")
+        require(hashlib.sha256(json.dumps(
+            proposal, sort_keys=True).encode()).hexdigest() ==
+            plan["model_sha256"][service]["after"],
+            "publication_compose_candidate_changed")
+    return True
+
+
+def current_is(name, source, image_id):
+    item = docker_inspect(name)
+    require(item.get("Image") == image_id
+            and item["State"].get("Running") is True,
+            "publication_runtime_image_mismatch")
+    revision = CANDIDATE if image_id in [
+        cfg["candidate_id"] for cfg in TARGETS.values()] else BASELINE
+    require((item.get("Config", {}).get("Labels") or {}).get(
+        "org.opencontainers.image.revision") == revision,
+        "publication_runtime_revision_mismatch")
+    if image_id == source.get("Image"):
+        require(same_runtime(item, source), "publication_runtime_baseline_changed")
+    return item
+
+
+def protected_same(baseline):
+    require(all(same_runtime(docker_inspect(name), baseline[name])
+                for name in PROTECTED), "protected_runtime_changed")
+    return True
+
+
+def wait_service(name, image_id):
+    for _ in range(45):
+        item = docker_inspect(name)
+        if (item.get("Image") == image_id and
+                item.get("State", {}).get("Running") is True):
+            health = (item["State"].get("Health") or {}).get("Status")
+            if health in (None, "healthy"):
+                return item
+            require(health in ("starting",), "candidate_unhealthy")
+        time.sleep(2)
+    raise Blocked("candidate_health_timeout")
+
+
+def service_command(source, service, folder, *, candidate):
+    cfg = TARGETS[service]
+    args = compose_args(compose_files(source, cfg["layers"]))
+    if candidate:
+        args.extend(["-f", str(folder / f"{service}.ig212.candidate.compose.json")])
+    return args + ["up", "-d", "--no-deps", "--no-build", "--pull", "never", service]
+
+
+def revert_attempted(folder, baseline, state):
+    """Restore only the two images; schema038 and current messages are retained."""
+    state["phase"] = "rolling_back"
+    write_journal(folder / JOURNAL, state)
+    for service in reversed(list(state["attempted"])):
+        cfg = TARGETS[service]
+        source = baseline[cfg["name"]]
+        current = docker_inspect(cfg["name"])
+        require(current.get("Image") in (cfg["base_id"], cfg["candidate_id"]),
+                "rollback_unrecognized_runtime")
+        if current.get("Image") == cfg["base_id"]:
+            require(current["State"].get("Running"), "rollback_baseline_stopped")
+        else:
+            call(service_command(source, service, folder, candidate=False),
+                 timeout=220)
+            wait_service(cfg["name"], cfg["base_id"])
+        state["restored"].append(service)
+        write_journal(folder / JOURNAL, state)
+    protected_same(baseline)
+    state["phase"] = "restored_previous_images"
+    write_journal(folder / JOURNAL, state)
+
+
+def publish(folder, authorization):
+    require(authorization == APPLY_AUTHORIZATION, "explicit_apply_authorization_missing")
+    require(os.geteuid() == 0, "root_required")
+    secure_folder(folder)
+    lock = with_lock()
+    try:
+        # prepare() revalidates the exact baseline and may rewrite neither
+        # the existing overlays nor plan; it never touches a running service.
+        prepare(folder)
+        baseline, plan = expected_services(folder)
+        render_matches(folder, baseline, plan, candidate=True)
+        protected_same(baseline)
+        require(not (folder / JOURNAL).exists(), "release_journal_already_exists")
+        state = {
+            "source": CANDIDATE, "baseline": BASELINE,
+            "plan_sha256": digest(folder / "cutover-plan.private.json"),
+            "phase": "before_services", "attempted": [],
+            "restored": [], "workflow_n8n_changed": False,
+            "migrations_executed": False,
+        }
+        write_journal(folder / JOURNAL, state)
+        try:
+            for service in ("team-api", "team-gateway"):
+                protected_same(baseline)
+                config = TARGETS[service]
+                current_is(config["name"], baseline[config["name"]],
+                           config["base_id"])
+                state["attempted"].append(service)
+                state["phase"] = "updating_" + service.replace("-", "_")
+                write_journal(folder / JOURNAL, state)
+                call(service_command(baseline[config["name"]], service,
+                                     folder, candidate=True), timeout=220)
+                running = wait_service(config["name"], config["candidate_id"])
+                require(running["Config"]["Image"] ==
+                        candidate_overlay(service)["services"][service]["image"],
+                        "candidate_container_tag_mismatch")
+                protected_same(baseline)
+            state["phase"] = "published_api_gateway_only"
+            write_journal(folder / JOURNAL, state)
+        except Exception:
+            state["phase"] = "recovery_required"
+            write_journal(folder / JOURNAL, state)
+            try:
+                render_matches(folder, baseline, plan, candidate=True)
+                revert_attempted(folder, baseline, state)
+            except Exception:
+                state["phase"] = "manual_recovery_required"
+                write_journal(folder / JOURNAL, state)
+            raise
+        return {
+            "resultado": "IG212_API_GATEWAY_PUBLICADOS_SEM_N8N",
+            "workflow_n8n_alterado": False, "migrations": 38,
+            "rollback_disponivel": True,
+            "whatsapp_protegido": True,
+        }
+    finally:
+        os.close(lock)
+
+
+def rollback(folder, authorization):
+    require(authorization == ROLLBACK_AUTHORIZATION,
+            "explicit_rollback_authorization_missing")
+    require(os.geteuid() == 0, "root_required")
+    secure_folder(folder)
+    lock = with_lock()
+    try:
+        state = private_json(folder / JOURNAL)
+        require(state.get("source") == CANDIDATE and
+                state.get("baseline") == BASELINE and
+                state.get("migrations_executed") is False and
+                state.get("workflow_n8n_changed") is False and
+                state.get("phase") in (
+                    "published_api_gateway_only", "recovery_required",
+                    "manual_recovery_required"),
+                "rollback_journal_unexpected")
+        baseline, plan = expected_services(folder)
+        require(state.get("plan_sha256") == digest(
+            folder / "cutover-plan.private.json"), "rollback_plan_changed")
+        render_matches(folder, baseline, plan, candidate=True)
+        protected_same(baseline)
+        # No unrecognized services or images may be changed by this rollback.
+        require(set(state.get("attempted", [])) <= set(TARGETS),
+                "rollback_scope_changed")
+        revert_attempted(folder, baseline, state)
+        return {
+            "resultado": "IG212_IMAGENS_ANTERIORES_RESTAURADAS",
+            "migrations": 38, "workflow_n8n_alterado": False,
+            "whatsapp_protegido": True,
+        }
+    finally:
+        os.close(lock)
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--backup", required=True)
-    parser.add_argument("--prepare", action="store_true")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--prepare", action="store_true")
+    mode.add_argument("--apply", action="store_true")
+    mode.add_argument("--rollback", action="store_true")
+    parser.add_argument("--authorization")
     args = parser.parse_args()
-    if not args.prepare:
+    if not (args.prepare or args.apply or args.rollback):
         print(json.dumps({"resultado": "PREPARE_ONLY", "production_changed": False}))
         return 0
     try:
-        report = prepare(Path(args.backup))
+        if args.apply:
+            report = publish(Path(args.backup), args.authorization)
+        elif args.rollback:
+            report = rollback(Path(args.backup), args.authorization)
+        else:
+            require(args.authorization is None, "authorization_not_accepted_for_prepare")
+            report = prepare(Path(args.backup))
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0
     except Exception as error:
         code = str(error) if isinstance(error, Blocked) and re.fullmatch(
             r"[a-z0-9_]+", str(error)
-        ) else "plan_blocked_details_redacted"
-        print(json.dumps({"resultado": "BLOQUEADO", "motivo": code,
-                          "deploy_executado": False,
-                          "backup_pode_conter_arquivos_preparados": True}))
+        ) else "operation_blocked_details_redacted"
+        print(json.dumps({
+            "resultado": "BLOQUEADO", "motivo": code,
+            "deploy_pode_ter_sido_iniciado": bool(args.apply or args.rollback),
+            "verificar_journal_privado_antes_de_reexecutar": bool(args.apply or args.rollback),
+        }))
         return 2
 
 
