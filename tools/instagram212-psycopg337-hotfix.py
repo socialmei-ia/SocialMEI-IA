@@ -221,7 +221,7 @@ def plan_diff(ref, prepared):
             before, sort_keys=True).encode()).hexdigest()
         check(fingerprint == prepared.get("model_sha256", {}).get(
             service, {}).get("before"), "compose_baseline_changed")
-        after = model(args + ["-f", "-"]) if False else json.loads(run(
+        after = json.loads(run(
             args + ["-f", "-", "config", "--format", "json"],
             stdin=json.dumps(overlay(service)).encode(), cwd=ROOT, timeout=90
         ))
@@ -238,11 +238,15 @@ def plan_diff(ref, prepared):
 
 def smoke(image, existing):
     code = (
-        "import json,sys,psycopg;"
+        "import json,sys,psycopg,importlib.metadata;"
+        "from psycopg import pq;"
         "from shared_data import database_health_payload;"
         "r=database_health_payload();"
-        "print(json.dumps({'version':psycopg.__version__,'healthy':r.get('status')=='healthy'}));"
-        "sys.exit(0 if r.get('status')=='healthy' and psycopg.__version__=='3.3.7' else 3)"
+        "good=(r.get('status')=='healthy' and psycopg.__version__=='3.3.7'"
+        " and importlib.metadata.version('psycopg-binary')=='3.3.7'"
+        " and pq.__impl__=='binary');"
+        "print(json.dumps({'version':psycopg.__version__,'healthy':bool(good)}));"
+        "sys.exit(0 if good else 3)"
     )
     vars = existing["Config"]["Env"]
     check(all("\n" not in x and "\r" not in x for x in vars),
@@ -478,18 +482,15 @@ def recover():
           "journal_not_recoverable")
     ref = json.loads(private_file(
         BACKUP / "baseline-inspect.json").read_text())
-    # The original API was recreated by the earlier rollback; refresh its
-    # baseline from running inspection only if already on the original image.
-    curr = docker(API)
-    if curr["Image"] == BASE_API_ID and curr["State"].get("Health", {}).get(
-        "Status") == "healthy":
-        ref[API] = curr
-    else:
-        # Exact baseline runtime profile is stored in prior backup, but
-        # its original container ID is stale. For safety, block recovery
-        # rather than restore with unverifiable recreation.
-        raise Stop("manual_rollback_required")
-    protected_unchanged(ref)
+    # The earlier baseline archive contains the immutable original Compose
+    # labels, image and runtime security profile, even though the API's
+    # container ID was changed during the previous (successful) rollback.
+    # For a partially deployed hotfix, use that recorded baseline to
+    # reconstruct the old service with force-recreate.
+    check(ref[API].get("Image") == BASE_API_ID
+          and ref[GW].get("Image") == BASE_GW_ID, "backup_baseline_invalid")
+    for name in PROTECTED:
+        check(stable(ref[name], docker(name)), "protected_runtime_changed")
     commands = plan_diff(ref, json.loads(private_file(PLAN).read_text()))
     rollback(ref, commands, state)
     return {"resultado": "IG212_HOTFIX337_ROLLBACK_CONCLUIDO",
@@ -503,15 +504,15 @@ def main():
     options.add_argument("--rollback", action="store_true")
     parser.add_argument("--authorization")
     args = parser.parse_args()
-    if args.apply:
-        check(args.authorization == ALLOW, "hotfix_explicit_authorization_required")
-    elif args.rollback:
-        check(args.authorization == ALLOW_ROLLBACK, "rollback_authorization_required")
-    else:
+    if not args.apply and not args.rollback:
         print(json.dumps({"resultado": "PREPARE_ONLY"}))
         return 0
     lock = None
     try:
+        if args.apply:
+            check(args.authorization == ALLOW, "hotfix_explicit_authorization_required")
+        else:
+            check(args.authorization == ALLOW_ROLLBACK, "rollback_authorization_required")
         check(os.geteuid() == 0, "root_required")
         lock = os.open(LOCK, os.O_CREAT | os.O_RDWR, 0o600)
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
