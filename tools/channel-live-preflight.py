@@ -191,11 +191,15 @@ def api_flags(obj):
 def worker_flags(obj):
     values = env_values(obj)
     target = values.get("SOCIALMEI_MENU_WAHA_URL", "")
-    parsed = urlparse(target)
-    return {
-        "destino_webjs": parsed.scheme == "http" and
-            parsed.hostname == CONTAINERS["webjs"] and parsed.port == 3000,
-    }
+    try:
+        parsed = urlparse(target)
+        correct = (parsed.scheme == "http" and
+                   parsed.hostname == CONTAINERS["webjs"] and
+                   parsed.port == 3000 and
+                   not parsed.username and not parsed.password)
+    except ValueError:
+        correct = False
+    return {"destino_webjs": correct}
 
 
 def main():
