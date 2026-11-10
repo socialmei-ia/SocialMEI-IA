@@ -244,7 +244,6 @@ def ensure_compose(base, additions):
     verify(before["services"]["team-api"]["image"] == IMAGE and
            base.get("Config", {}).get("Image") == IMAGE,
            "api_image_not_expected")
-    old = dict(base["Config"]["Env"])
     runtime = dict(x.split("=", 1) for x in base["Config"]["Env"] if "=" in x)
     verify(runtime.get("SOCIALMEI_INSTAGRAM_N8N_INGRESS_ENABLED", "false") != "true"
            and runtime.get("SOCIALMEI_INSTAGRAM_RUNTIME_SEND_ENABLED", "false") == "false"
@@ -336,7 +335,7 @@ def validate_current(current, original):
     return current
 
 
-def check_production(base, previous):
+def check_production(previous):
     a = inspect(API)
     g = inspect(GW)
     verify(a.get("State", {}).get("Health", {}).get("Status") == "healthy"
@@ -478,7 +477,7 @@ def activate(key):
            and B.stat().st_uid == 0
            and stat.S_IMODE(B.stat().st_mode) == 0o700,
            "private_backup_unavailable")
-    verify(re.fullmatch(r"eyJ[A-Za-z0-9_\-\.]{40,}", key or ""),
+    verify(bool(re.fullmatch(r"[A-Za-z0-9_.\-]{32,4096}", key or "")),
            "n8n_api_key_required")
     verify(not JOURNAL.exists() and not JOURNAL.is_symlink(),
            "cutover_journal_already_exists")
@@ -488,7 +487,7 @@ def activate(key):
     old, after = candidate()
     relay = private_environment()
     base = {n: inspect(n) for n in (API, GW) + PROTECT}
-    check_production(base[API], base)
+    check_production(base)
     args, overlay = ensure_compose(base[API], relay)
     live = n8n(key, "GET", "/workflows/" + WID)["body"]
     validate_current(live, old)
