@@ -313,16 +313,27 @@ def backup():
             "producao_alterada": False,
         }
     finally:
-        if started_restore:
-            # Only remove our own labelled test container; never match by prefix.
-            try:
-                obj = inspect(restore_name)
-                if (obj.get("Config", {}).get("Labels") or {}).get(
-                    "socialmei.ig212.restore") == restore_name:
-                    call(["docker", "rm", "-f", "-v", restore_name], timeout=45)
-            except GateError:
-                pass
-        # Retain private evidence; do not remove a partially completed backup.
+        # A docker run may create the container before its CLI times out.
+        # Always inspect the exact random name and verify our private label
+        # before removal. Never delete another container by partial match.
+        probe = subprocess.run(
+            ["docker", "inspect", "--type", "container", restore_name],
+            capture_output=True, timeout=20,
+        )
+        if probe.returncode == 0:
+            items = json.loads(probe.stdout)
+            require(len(items) == 1 and
+                    (items[0].get("Config", {}).get("Labels") or {}).get(
+                        "socialmei.ig212.restore") == restore_name,
+                    "isolated_cleanup_identity_mismatch")
+            call(["docker", "rm", "-f", "-v", restore_name], timeout=45)
+        elif started_restore:
+            raise GateError("isolated_container_missing_during_cleanup")
+        if result["resultado"] == "BACKUP_038_RESTAURADO_EM_ISOLAMENTO":
+            require(restore_data.is_dir() and not restore_data.is_symlink()
+                    and restore_data.parent == folder, "restore_dir_identity_mismatch")
+            shutil.rmtree(restore_data)
+        # Retain private evidence and partial backups for manual review.
     return result
 
 
@@ -347,7 +358,7 @@ def main():
         ) else "backup_incompleto"
         print(json.dumps({
             "resultado": "BLOQUEADO", "motivo": code,
-            "producao_alterada": False,
+            "producao_alterada": "nao_comprovada_em_falha",
             "aviso": "Backup parcial pode existir na pasta privada; nao publicar."
         }, ensure_ascii=False))
         return 2
