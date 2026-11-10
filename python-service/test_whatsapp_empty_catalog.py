@@ -83,6 +83,47 @@ class EmptyCatalogReplyTests(unittest.TestCase):
         self.assertNotIn("Disponibilidade:", reply["text"])
         self.assertIn("digite 4", reply["text"])
 
+    def test_numbered_menu_zero_to_five_routes_without_sending(self):
+        """All numbered paths are planning only, even during a GOWS pilot."""
+        from whatsapp_bot import render_waha
+        database = MagicMock()
+        database.execute.return_value.fetchall.return_value = []
+
+        scenarios = (
+            ("0", "menu", "menu", False),
+            ("1", "menu", "products", False),
+            ("2", "ask_product", "ask_product", False),
+            ("3", "menu", "services", False),
+            ("4", "human", "quote_handoff", True),
+            ("5", "human", "human_handoff", True),
+        )
+        for choice, expected_state, action, handoff in scenarios:
+            with self.subTest(choice=choice):
+                state, result = answer(database, 1, "menu", choice)
+                self.assertEqual((state, result["action"], result["handoff"]),
+                                 (expected_state, action, handoff))
+                self.assertIsInstance(result["text"], str)
+                self.assertNotIn("send", result)
+                prepared = render_waha("default", "222@c.us", result["text"],
+                                       result["choices"], engine="WEBJS",
+                                       list_verified=True)
+                self.assertEqual(prepared["path"], "/api/sendText")
+                self.assertEqual(prepared["body"]["chatId"], "222@c.us")
+
+        # After handoff only the owner can resume the automatic menu.
+        _, silent = answer(database, 1, "human", "0")
+        self.assertEqual(silent["action"], "human_wait")
+        self.assertEqual(silent["text"], "")
+
+    def test_unrecognized_menu_message_never_triggers_handoff(self):
+        database = MagicMock()
+        database.execute.return_value.fetchall.return_value = []
+        state, result = answer(database, 1, "menu", "999")
+        self.assertEqual(state, "menu")
+        self.assertEqual(result["action"], "menu")
+        self.assertFalse(result["handoff"])
+        database.execute.assert_not_called()
+
     def test_menu_and_handoff_still_work_without_catalog(self):
         database = MagicMock()
         for state, message, expected in (
