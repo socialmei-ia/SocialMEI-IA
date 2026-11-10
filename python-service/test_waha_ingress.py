@@ -468,6 +468,34 @@ class DatabaseTests(unittest.TestCase):
                 1,
             )
 
+    def test_dual_engine_same_message_is_deduplicated_before_bot(self):
+        """Two signed deliveries of one message cannot create two inbox rows."""
+        original = payload(mid="false_222@c.us_cross_engine")
+        secondary = payload(mid="false_222@c.us_cross_engine", engine="GOWS")
+        with patch("waha_ingress.settings.waha_ingress_engines",
+                   return_value=frozenset({"WEBJS", "GOWS"})):
+            first = self.receive(original)
+            second = self.receive(secondary)
+
+        self.assertEqual(first["processed"], 1)
+        self.assertEqual(second["processed"], 0)
+        self.assertEqual(second["duplicates"], 1)
+
+        with psycopg.connect(DB) as conn:
+            self.assertEqual(conn.execute(
+                "SELECT COUNT(*) FROM socialmei.crm_eventos_canal "
+                "WHERE workspace_id=%s AND mensagem_externa_id=%s",
+                (self.identity["workspace_id"], original["payload"]["id"]),
+            ).fetchone()[0], 1)
+
+        # Same provider ID with conflicting content fails instead of replying twice.
+        secondary["payload"]["body"] = "5"
+        with patch("waha_ingress.settings.waha_ingress_engines",
+                   return_value=frozenset({"WEBJS", "GOWS"})):
+            with self.assertRaises(HTTPException) as error:
+                self.receive(secondary)
+        self.assertEqual(error.exception.status_code, 409)
+
     def test_concurrent_duplicate_conflict_and_atomic_rollback(self):
         gate = threading.Barrier(2)
 
