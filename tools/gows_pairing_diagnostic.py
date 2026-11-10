@@ -160,7 +160,11 @@ def main():
 
         old = sessions(WEBJS)
         new = sessions(GOWS)
-        print("WEBJS_WORKING =", sum(safe_state(s.get("status")) == "WORKING" for s in old))
+        webjs_working = sum(safe_state(s.get("status")) == "WORKING" for s in old)
+        print("WEBJS_WORKING =", webjs_working)
+        if webjs_working != 1:
+            print("RESULTADO = WEBJS_NAO_SAUDAVEL")
+            return 2
         print("TOTAL_SESSOES_GOWS =", len(new))
         if len(new) != 1:
             print("RESULTADO = SESSAO_GOWS_AMBIGUA")
