@@ -492,13 +492,21 @@ def revert_attempted(folder, baseline, state):
         current = docker_inspect(cfg["name"])
         require(current.get("Image") in (cfg["base_id"], cfg["candidate_id"]),
                 "rollback_unrecognized_runtime")
-        if current.get("Image") == cfg["base_id"]:
+        if current.get("Image") == cfg["base_id"] and same_runtime(current, source):
             require(current["State"].get("Running"), "rollback_baseline_stopped")
         else:
-            call(service_command(source, service, folder, candidate=False),
-                 timeout=220)
-            wait_service(cfg["name"], cfg["base_id"])
-        state["restored"].append(service)
+            # A partial Compose attempt may have recreated a container with
+            # the old image yet different runtime options. Force a restore
+            # from the immutable base Compose model in that case.
+            command = service_command(source, service, folder, candidate=False)
+            if current.get("Image") == cfg["base_id"]:
+                command.insert(-1, "--force-recreate")
+            call(command, timeout=220)
+            restored = wait_service(cfg["name"], cfg["base_id"])
+            require(restored["Config"]["Image"] == source["Config"]["Image"],
+                    "rollback_container_tag_mismatch")
+        if service not in state["restored"]:
+            state["restored"].append(service)
         write_journal(folder / JOURNAL, state)
     protected_same(baseline)
     state["phase"] = "restored_previous_images"
@@ -577,8 +585,10 @@ def rollback(folder, authorization):
                 state.get("migrations_executed") is False and
                 state.get("workflow_n8n_changed") is False and
                 state.get("phase") in (
-                    "published_api_gateway_only", "recovery_required",
-                    "manual_recovery_required"),
+                    "before_services", "updating_team_api",
+                    "updating_team_gateway", "published_api_gateway_only",
+                    "recovery_required", "manual_recovery_required",
+                    "rolling_back"),
                 "rollback_journal_unexpected")
         baseline, plan = expected_services(folder)
         require(state.get("plan_sha256") == digest(
