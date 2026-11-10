@@ -214,20 +214,14 @@ def candidate():
 
 def check_oauth_scopes(relay):
     # Read-only database proof before creating a credential or modifying n8n.
-    code = (
-        "import json;"
-        "from database import connect;"
-        "conn=connect();"
-        "conn.execute('BEGIN READ ONLY');"
-        "conn.execute(\\\"SET LOCAL statement_timeout='4s'\\\");"
-        "rows=conn.execute(\\\"SELECT external_account_id,workspace_id "
-        "FROM socialmei.ig_meta_connections "
-        "WHERE status='connected' AND expires_at>NOW() "
-        "AND scopes @> ARRAY['instagram_business_basic',"
-        "'instagram_business_manage_messages']::text[]\\\").fetchall();"
-        "print(json.dumps({str(account):workspace for account,workspace in rows}));"
-        "conn.rollback();conn.close()"
-    )
+    code = """import json
+from database import connect
+with connect() as conn:
+    conn.execute("SET TRANSACTION READ ONLY")
+    conn.execute("SET LOCAL statement_timeout = '4s'")
+    rows = conn.execute("SELECT external_account_id,workspace_id FROM socialmei.ig_meta_connections WHERE status='connected' AND expires_at>NOW() AND scopes @> ARRAY['instagram_business_basic','instagram_business_manage_messages']::text[]").fetchall()
+    print(json.dumps({str(account): workspace for account,workspace in rows}))
+"""
     # Python string compile on the actual container; no SQL or token output
     # goes to the terminal. Neither user nor chat sees OAuth account IDs.
     r = call(["docker", "exec", API, "python", "-B", "-c", code], timeout=20)
