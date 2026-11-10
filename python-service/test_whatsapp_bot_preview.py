@@ -68,7 +68,7 @@ class WhatsAppBotPreviewContracts(unittest.TestCase):
         self.assertEqual(listed["action"], "products")
         self.assertIn("Bolo da loja", listed["text"])
         self.assertIn("R$ 18,50", listed["text"])
-        self.assertIn("estoque: 7", listed["text"])
+        self.assertIn("Disponibilidade: 7 unidades", listed["text"])
         sql, params = db.queries[-1]
         self.assertIn("workspace_id=%s", sql)
         self.assertEqual(params[0], 41)
