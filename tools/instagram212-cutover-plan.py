@@ -20,7 +20,6 @@ ROOT = Path("/home/ubuntu/socialmei-team")
 ENV = ROOT / ".env.team"
 BACKUPS = Path("/var/lib/socialmei-ig212-backups")
 CANDIDATE = "345a074310673640084c7634e3da75dd72491813"
-BASELINE = "a4720f8b7ea98a67cb40b7b3208acdd510"  # replaced below
 BASELINE = "a4720f8b7ea98a67cb40b7b3208acdd7e8bcd510"
 TARGETS = {
     "team-api": {
