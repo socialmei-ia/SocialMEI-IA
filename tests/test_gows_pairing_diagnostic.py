@@ -49,6 +49,38 @@ class GowsPairingDiagnosticTests(unittest.TestCase):
             self.assertTrue(diagnostic.signals_from_logs(data)["PASSKEY"])
             self.assertEqual(diagnostic.cmd(["docker", "inspect", diagnostic.GOWS]), "")
 
+    def test_main_blocks_if_webjs_has_no_single_working_session(self):
+        import io
+        from contextlib import redirect_stdout
+
+        def state(variables):
+            return {
+                "State": {"Running": True, "Health": {"Status": "healthy"}},
+                "Config": {"Env": [k + "=" + v for k, v in variables.items()]},
+            }
+
+        containers = {
+            diagnostic.API: state({"SOCIALMEI_WAHA_WEBHOOK_ENGINE": "WEBJS,GOWS"}),
+            diagnostic.WORKER: state({"SOCIALMEI_MENU_WAHA_URL": "http://socialmei-waha:3000"}),
+            diagnostic.WEBJS: state({}),
+            diagnostic.GOWS: state({"WHATSAPP_DEFAULT_ENGINE": "GOWS"}),
+        }
+
+        for working_count in (0, 2):
+            with self.subTest(working_count=working_count):
+                old = [{"status": "WORKING"} for _ in range(working_count)]
+                new = [{"status": "FAILED", "hookCount": 0}]
+                output = io.StringIO()
+                with patch.object(diagnostic, "inspect", side_effect=lambda name: containers[name]), \
+                     patch.object(diagnostic, "inspect_backup", return_value=True), \
+                     patch.object(diagnostic, "sessions",
+                                  side_effect=lambda name: old if name == diagnostic.WEBJS else new), \
+                     patch.object(diagnostic, "docker",
+                                  side_effect=AssertionError("logs should not be queried")), \
+                     redirect_stdout(output):
+                    self.assertEqual(diagnostic.main(), 2)
+                self.assertIn("RESULTADO = WEBJS_NAO_SAUDAVEL", output.getvalue())
+
     def test_worker_check_requires_exact_webjs_destination(self):
         from urllib.parse import urlparse
         self.assertEqual(urlparse("http://socialmei-waha:3000").hostname, diagnostic.WEBJS)
