@@ -25,9 +25,10 @@ jobs:
           persist-credentials: false
       - name: Syntax and offline safety contracts
         run: |
-          python -m py_compile tools/channel-live-preflight.py tools/instagram212-source-gate.py tools/instagram212-protected-backup.py
+          python -m py_compile tools/channel-live-preflight.py tools/instagram212-source-gate.py tools/instagram212-protected-backup.py tools/instagram212-cutover-plan.py
           python -m unittest discover -s tests -p 'test_channel_live_preflight.py' -v
           python -m unittest discover -s tests -p 'test_instagram212_source_gate.py' -v
           python -m unittest discover -s tests -p 'test_instagram212_protected_backup.py' -v
+          python -m unittest discover -s tests -p 'test_instagram212_cutover_plan.py' -v
       - name: Pinned Instagram API, gateway and workflow contract
         run: python tools/instagram212-source-gate.py --candidate-root candidate212
