@@ -25,7 +25,7 @@ jobs:
           persist-credentials: false
       - name: Syntax and offline safety contracts
         run: |
-          python -m py_compile tools/channel-live-preflight.py tools/instagram212-source-gate.py tools/instagram212-protected-backup.py tools/instagram212-cutover-plan.py tools/instagram212-psycopg337-hotfix.py tools/instagram212-n8n-private-stage.py tools/instagram212-n8n-workflow-candidate.py
+          python -m py_compile tools/channel-live-preflight.py tools/instagram212-source-gate.py tools/instagram212-protected-backup.py tools/instagram212-cutover-plan.py tools/instagram212-psycopg337-hotfix.py tools/instagram212-n8n-private-stage.py tools/instagram212-n8n-workflow-candidate.py tools/instagram212-n8n-receive-cutover.py
           python -m unittest discover -s tests -p 'test_channel_live_preflight.py' -v
           python -m unittest discover -s tests -p 'test_instagram212_source_gate.py' -v
           python -m unittest discover -s tests -p 'test_instagram212_protected_backup.py' -v
@@ -33,5 +33,6 @@ jobs:
           python -m unittest discover -s tests -p 'test_instagram212_psycopg337_hotfix.py' -v
           python -m unittest discover -s tests -p 'test_instagram212_n8n_private_stage.py' -v
           python -m unittest discover -s tests -p 'test_instagram212_n8n_workflow_candidate.py' -v
+          python -m unittest discover -s tests -p 'test_instagram212_n8n_receive_cutover.py' -v
       - name: Pinned Instagram API, gateway and workflow contract
         run: python tools/instagram212-source-gate.py --candidate-root candidate212
