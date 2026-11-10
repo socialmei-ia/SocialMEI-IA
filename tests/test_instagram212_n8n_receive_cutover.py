@@ -135,8 +135,8 @@ class ReceiveCutoverTests(unittest.TestCase):
         with patch.object(cut, "activate", side_effect=Exception("PASSWORD=secret-value")
         ), patch.object(cut, "LOCK", Path("/tmp/non-existing-operator-lock")), patch(
             "os.geteuid", return_value=0
-        ), patch("os.open", return_value=9), patch("fcntl.flock"), patch("os.close"), patch(
-            "getpass", return_value="some-key"
+        ), patch("os.open", return_value=9), patch("fcntl.flock"), patch("os.close"), patch.object(
+            cut, "getpass", return_value="some-key"
         ), patch("sys.argv", ["cutover", "--authorization", cut.AUTH]), patch(
             "sys.stdout", new_callable=io.StringIO
         ) as out:
