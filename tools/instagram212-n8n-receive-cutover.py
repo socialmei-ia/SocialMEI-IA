@@ -212,6 +212,36 @@ def candidate():
     return before, after
 
 
+def check_oauth_scopes(relay):
+    # Read-only database proof before creating a credential or modifying n8n.
+    code = (
+        "import json;"
+        "from database import connect;"
+        "conn=connect();"
+        "conn.execute('BEGIN READ ONLY');"
+        "conn.execute(\\\"SET LOCAL statement_timeout='4s'\\\");"
+        "rows=conn.execute(\\\"SELECT external_account_id,workspace_id "
+        "FROM socialmei.ig_meta_connections "
+        "WHERE status='connected' AND expires_at>NOW() "
+        "AND scopes @> ARRAY['instagram_business_basic',"
+        "'instagram_business_manage_messages']::text[]\\\").fetchall();"
+        "print(json.dumps({str(account):workspace for account,workspace in rows}));"
+        "conn.rollback();conn.close()"
+    )
+    # Python string compile on the actual container; no SQL or token output
+    # goes to the terminal. Neither user nor chat sees OAuth account IDs.
+    r = call(["docker", "exec", API, "python", "-B", "-c", code], timeout=20)
+    try:
+        current = json.loads(r)
+        expected = json.loads(relay["SOCIALMEI_INSTAGRAM_N8N_ACCOUNT_BINDINGS"])
+        verify(isinstance(current, dict) and set(current) == set(expected) and
+               all(current.get(k) == v["workspace_id"] and
+                   k == v["connection_account_id"] for k,v in expected.items()),
+               "oauth_scopes_or_bindings_not_ready")
+    except (ValueError, TypeError, KeyError):
+        raise Block("oauth_scopes_or_bindings_not_ready") from None
+
+
 def compose_args(api):
     labels = api.get("Config", {}).get("Labels") or {}
     verify(labels.get("com.docker.compose.project") == "socialmei-team" and
@@ -437,6 +467,7 @@ def patch_candidate(after, credential_id):
            "SOCIALMEI212_PENDING_NATIVE_CREDENTIAL",
            "placeholder_credential_not_expected")
     node["credentials"]["httpBearerAuth"]["id"] = credential_id
+    node["credentials"]["httpBearerAuth"]["name"] = "SocialMEI Instagram ingresso 212"
     headers = node["parameters"].get("headerParameters", {}).get("parameters", [])
     verify(not any(x.get("name", "").lower() == "content-type" for x in headers),
            "relay_headers_unexpected")
@@ -486,6 +517,7 @@ def activate(key):
            "api_gateway_hotfix_not_confirmed")
     old, after = candidate()
     relay = private_environment()
+    check_oauth_scopes(relay)
     base = {n: inspect(n) for n in (API, GW) + PROTECT}
     check_production(base)
     args, overlay = ensure_compose(base[API], relay)
