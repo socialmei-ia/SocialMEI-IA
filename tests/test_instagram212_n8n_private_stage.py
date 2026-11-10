@@ -20,9 +20,12 @@ class StageTests(unittest.TestCase):
             path = Path(d) / "private.env"
             stage.create_bytes(path, b"SAFE=example\n")
             self.assertEqual(path.stat().st_mode & 0o777, 0o600)
-            stage.create_bytes(path, b"SAFE=example\n")
-            with self.assertRaises(stage.Refuse):
-                stage.create_bytes(path, b"SAFE=changed\n")
+            # GitHub Actions does not run as root, while the AWS operator does.
+            # Keep production root ownership checks, mock only this positive path.
+            with patch.object(stage, "private", side_effect=lambda p: p):
+                stage.create_bytes(path, b"SAFE=example\n")
+                with self.assertRaises(stage.Refuse):
+                    stage.create_bytes(path, b"SAFE=changed\n")
 
     def test_private_rejects_symlink(self):
         with tempfile.TemporaryDirectory() as d:
