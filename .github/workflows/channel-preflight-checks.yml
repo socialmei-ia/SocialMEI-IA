@@ -1,0 +1,23 @@
+name: Channel live preflight checks
+
+on:
+  push:
+    branches:
+      - ops/whatsapp-instagram-preflight-20261109
+
+permissions:
+  contents: read
+
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Syntax and offline safety contracts
+        run: |
+          python -m py_compile tools/channel-live-preflight.py
+          python -m unittest discover -s tests -p 'test_channel_live_preflight.py' -v
