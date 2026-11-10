@@ -250,10 +250,16 @@ def main():
     webjs = result["webjs"] or {}
     gows = result["gows"] or {}
     result["whatsapp_preservado"] = bool(
-        result["containers"]["api"].get("health") == "healthy"
+        result["containers"]["api"].get("running") is True
+        and result["containers"]["api"].get("health") == "healthy"
+        and result["containers"]["worker"].get("running") is True
+        and result["containers"]["webjs"].get("running") is True
+        and result["containers"]["gows"].get("running") is True
         and api.get("receptor_dual_webjs_gows")
+        and api.get("modo_waha_team_pilot")
         and worker.get("destino_webjs")
         and webjs.get("working_count") == 1
+        and webjs.get("webhook_counts") == [1]
         and gows.get("webhook_counts") == [0]
     )
     # Never promote Instagram or GOWS solely based on metadata and synthetic tests.
