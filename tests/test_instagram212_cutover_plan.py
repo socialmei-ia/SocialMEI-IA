@@ -201,10 +201,39 @@ class CutoverPlanTests(unittest.TestCase):
                 gate, "wait_service", return_value={
                     "Config": {"Image": source["Config"]["Image"]}
                 }
-            ), patch.object(gate, "protected_same", return_value=True):
+            ), patch.object(gate, "protected_same", return_value=True), patch.object(
+                gate, "security_preserved", return_value=None
+            ):
                 gate.revert_attempted(folder, {name: source}, state)
             self.assertIn("--force-recreate", cmd.call_args.args[0])
             self.assertEqual(state["restored"], ["team-api"])
+
+    def test_runtime_security_invariant_blocks_privileged_change(self):
+        base = {
+            "HostConfig": {
+                "Privileged": False, "Binds": ["/host:/config:ro"],
+                "PortBindings": {}, "NetworkMode": "socialmei-team_default",
+                "RestartPolicy": {"Name": "unless-stopped"},
+            },
+            "Mounts": [{"Type": "bind", "Source": "/host",
+                        "Destination": "/config", "RW": False}]
+        }
+        safe = json.loads(json.dumps(base))
+        gate.security_preserved(base, safe)
+        safe["HostConfig"]["Privileged"] = True
+        with self.assertRaises(gate.Blocked):
+            gate.security_preserved(base, safe)
+
+    def test_runtime_security_invariant_blocks_rw_mount(self):
+        base = {
+            "HostConfig": {"Privileged": False},
+            "Mounts": [{"Type": "bind", "Source": "/host",
+                        "Destination": "/config", "RW": False}]
+        }
+        changed = json.loads(json.dumps(base))
+        changed["Mounts"][0]["RW"] = True
+        with self.assertRaises(gate.Blocked):
+            gate.security_preserved(base, changed)
 
     def test_private_journal_writes_without_disclosing_contents(self):
         with tempfile.TemporaryDirectory() as root:
