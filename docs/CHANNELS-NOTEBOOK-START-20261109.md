@@ -8,17 +8,17 @@ Objetivo P0: preservar o WhatsApp WEBJS em funcionamento e preparar o recebiment
 
 ## Primeiro comando no Windows PowerShell 5.1
 
-O bloco abaixo baixa somente o script do commit imutável 0ce5d14cd32c84921f19803fb5c17c9c531fc456, valida seu hash Git de conteúdo e executa pela conexão SSH atual. O código é somente leitura e nunca imprime credenciais, telefones, nomes de sessão, QR, mensagens, URLs privadas ou logs. Nenhum arquivo fica no servidor.
+O bloco abaixo baixa somente o script do commit imutável 2ab73ddb07519d9f7c792449ee4c4cad383933c0, valida seu hash Git de conteúdo e executa pela conexão SSH atual. O código é somente leitura e nunca imprime credenciais, telefones, nomes de sessão, QR, mensagens, URLs privadas ou logs. Nenhum arquivo fica no servidor.
 
-[Inspecionar a fonte fixada](https://github.com/socialmei-ia/SocialMEI-IA/blob/0ce5d14cd32c84921f19803fb5c17c9c531fc456/tools/channel-live-preflight.py)
+[Inspecionar a fonte fixada](https://github.com/socialmei-ia/SocialMEI-IA/blob/2ab73ddb07519d9f7c792449ee4c4cad383933c0/tools/channel-live-preflight.py)
 
 ~~~powershell
 $ErrorActionPreference='Stop'
 $chave="$env:LOCALAPPDATA\SocialMEI-SSH\socialmei-aws-key.pem"
 if (-not (Test-Path -LiteralPath $chave -PathType Leaf)) { throw 'Chave SSH nao encontrada.' }
 [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12
-$ref='0ce5d14cd32c84921f19803fb5c17c9c531fc456'
-$blobEsperado='66b0cf14dab8f0056204abf1fe6a03a901a01158'
+$ref='2ab73ddb07519d9f7c792449ee4c4cad383933c0'
+$blobEsperado='5c6170a167bd7f7435d11f29ef74e5c03798042e'
 $url="https://raw.githubusercontent.com/socialmei-ia/SocialMEI-IA/$ref/tools/channel-live-preflight.py"
 $web=New-Object System.Net.WebClient
 try { [byte[]]$bytes=$web.DownloadData($url) } finally { $web.Dispose() }
