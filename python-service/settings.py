@@ -256,6 +256,7 @@ class WhatsAppHumanConfiguration:
     base_url: str
     api_key: str
     public_inbound: bool = False
+    engine: str = 'WEBJS'
 
     def __repr__(self):
         return 'WhatsAppHumanConfiguration(private=<redacted>)'
@@ -277,6 +278,7 @@ def whatsapp_human_configuration():
         session = os.getenv('SOCIALMEI_WHATSAPP_HUMAN_SESSION', '')
         account = os.getenv('SOCIALMEI_WHATSAPP_HUMAN_ACCOUNT_ID', '')
         base_url = os.getenv('SOCIALMEI_WAHA_PRIVATE_BASE_URL', '')
+        engine = os.getenv('SOCIALMEI_WHATSAPP_HUMAN_ENGINE', 'WEBJS')
         api_key = os.getenv('SOCIALMEI_WAHA_PRIVATE_API_KEY', '')
         raw_contacts = os.getenv('SOCIALMEI_WHATSAPP_HUMAN_CONTACTS', '')
         if len(raw_contacts) > 4096:
@@ -289,7 +291,9 @@ def whatsapp_human_configuration():
             or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,79}', instance)
             or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,159}', session)
             or not re.fullmatch(r'[0-9]{1,40}@c\.us', account)
-            or base_url not in {'http://waha:3000', 'http://socialmei-waha:3000'}
+            or engine not in {'WEBJS', 'GOWS'}
+            or (engine == 'WEBJS' and base_url not in {'http://waha:3000', 'http://socialmei-waha:3000'})
+            or (engine == 'GOWS' and (base_url != 'http://socialmei-waha-gows-piloto:3000' or session != '01'))
             or not re.fullmatch(r'[!-~]{16,4096}', api_key)
             or not isinstance(contacts, list) or not 1 <= len(contacts) <= 20
             or any(not isinstance(item, str) or not DIRECT.fullmatch(item) for item in contacts)
@@ -299,6 +303,7 @@ def whatsapp_human_configuration():
         return WhatsAppHumanConfiguration(
             workspace, instance, session, account, frozenset(contacts), base_url, api_key,
             os.getenv('SOCIALMEI_WHATSAPP_HUMAN_PUBLIC_INBOUND_ENABLED', 'false') == 'true',
+            engine,
         )
     except (TypeError, ValueError):
         raise ValueError('Configuração privada de envio WhatsApp indisponível.') from None
