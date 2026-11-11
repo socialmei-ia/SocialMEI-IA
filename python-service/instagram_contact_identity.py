@@ -21,7 +21,7 @@ def refresh_contacts(runtime, workspace, *, limit=10):
     with connect() as conn:
         conn.row_factory = dict_row
         rows = conn.execute(
-            "SELECT DISTINCT ON (v.id) v.id,v.contact_ref,c.id AS connection_id,c.external_account_id,c.encrypted_token "
+            "SELECT DISTINCT ON (v.id) v.id,v.contact_ref,v.contact_name,c.id AS connection_id,c.external_account_id,c.encrypted_token "
             "FROM socialmei.me_conversations v "
             "JOIN socialmei.ig_meta_ingress_events e ON e.workspace_id=v.workspace_id "
             "JOIN socialmei.me_messages m ON m.workspace_id=e.workspace_id AND m.id=e.message_id AND m.conversation_id=v.id "
@@ -29,7 +29,7 @@ def refresh_contacts(runtime, workspace, *, limit=10):
             "AND c.external_account_id=e.external_account_id "
             "WHERE v.workspace_id=%s AND v.origin='instagram' AND m.origin='instagram' "
             "AND e.kind='message' AND e.status='processed' AND v.account_ref='instagram:' || c.external_account_id "
-            "AND c.status='connected' AND c.expires_at>NOW() AND v.contact_name='Contato do Instagram' "
+            "AND c.status='connected' AND c.expires_at>NOW() AND (v.contact_name='Contato do Instagram' OR v.contact_name ~ '^Contato do Instagram · [0-9A-F]{6}$') "
             "ORDER BY v.id,e.received_at DESC LIMIT %s", (workspace, limit),
         ).fetchall()
     updated = available = denied = 0
@@ -43,12 +43,14 @@ def refresh_contacts(runtime, workspace, *, limit=10):
         except (ProviderError, VaultError):
             denied += 1
         label = contact_label(profile, row['contact_ref'])
+        if label == row['contact_name']:
+            continue  # Avoid revising an unchanged neutral label.
         with connect() as conn:
             result = conn.execute(
                 "UPDATE socialmei.me_conversations SET contact_name=%s,revision=revision+1 "
                 "WHERE workspace_id=%s AND id=%s AND origin='instagram' AND account_ref=%s "
-                "AND contact_ref=%s AND contact_name='Contato do Instagram'",
-                (label, workspace, row['id'], 'instagram:' + row['external_account_id'], row['contact_ref']),
+                "AND contact_ref=%s AND contact_name=%s",
+                (label, workspace, row['id'], 'instagram:' + row['external_account_id'], row['contact_ref'], row['contact_name']),
             )
             updated += result.rowcount
     return {'updated': updated, 'official_profile_available': available, 'unavailable': denied}
