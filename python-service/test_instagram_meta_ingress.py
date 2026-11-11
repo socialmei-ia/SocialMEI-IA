@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from unittest.mock import patch
 
 import psycopg
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from app import app
@@ -88,6 +89,42 @@ class ContractTests(unittest.TestCase):
             encoded(payload()), signature(encoded(payload())), KEY
         )
         self.assertEqual(events[0].text, "  Mensagem original\n")
+
+    def test_direct_alias_requires_signed_meta_event_and_server_mapping(self):
+        aliases = json.dumps({
+            "555444333": {"workspace_id": 1, "connection_account_id": "987654321"}
+        })
+        service = InstagramIngressService(
+            app_secret=KEY, verify_token=VERIFY, alias_bindings=aliases
+        )
+        raw = encoded(payload(account="555444333"))
+        original = parse_message_events(raw, signature(raw), KEY)[0]
+        with patch("instagram_meta_ingress.persist_authenticated_events", return_value={"received": True}) as persist:
+            self.assertEqual(service.receive(raw, signature(raw)), {"received": True})
+            events = persist.call_args.args[0]
+            self.assertEqual(events[0].account_id, "987654321")
+            self.assertEqual(events[0].canonical_fingerprint, original.canonical_fingerprint)
+            self.assertEqual(persist.call_args.kwargs["alias_bindings"], {"987654321": 1})
+        with patch("instagram_meta_ingress.persist_authenticated_events", side_effect=AssertionError("DB accessed")):
+            with self.assertRaises(HTTPException) as caught:
+                service.receive(raw, "sha256=" + "0" * 64)
+            self.assertEqual(caught.exception.status_code, 403)
+
+    def test_direct_alias_server_configuration_fails_closed(self):
+        valid = {"workspace_id": 1, "connection_account_id": "987654321"}
+        invalid = [
+            '{"555444333":' + json.dumps(valid) + ',"555444333":' + json.dumps(valid) + '}',
+            json.dumps({"555444333": {"workspace_id": True, "connection_account_id": "987654321"}}),
+            json.dumps({"555444333": {"workspace_id": 1, "connection_account_id": "555444333"}}),
+            json.dumps({"555444333": {"workspace_id": 1, "connection_account_id": "invalid"}}),
+            json.dumps({"555444333": {"workspace_id": 1, "connection_account_id": "987654321"},
+                        "444333222": {"workspace_id": 2, "connection_account_id": "987654321"}}),
+            json.dumps({"555444333": {**valid, "token": "injected"}}),
+            'not-json',
+        ]
+        for value in invalid:
+            with self.subTest(value=value[:30]), self.assertRaises(ValueError):
+                InstagramIngressService(app_secret=KEY, verify_token=VERIFY, alias_bindings=value)
 
     def test_defaults_closed_and_signature_challenge(self):
         with patch.dict(os.environ, {**ENV, **FLAGS}):
@@ -265,6 +302,51 @@ class DatabaseTests(unittest.TestCase):
             ),
             datetime(2026, 10, 23, 15, 40, 0, 123000, tzinfo=timezone.utc),
         )
+
+    def test_direct_signed_alias_persists_in_original_oauth_workspace_only(self):
+        account = "987654321"
+        source = "555444333"
+        alias = json.dumps({source: {
+            "workspace_id": self.identity["workspace_id"],
+            "connection_account_id": account
+        }})
+        self.ingress = InstagramIngressService(
+            app_secret=KEY, verify_token=VERIFY, alias_bindings=alias
+        )
+        signed_payload = payload(account=source, mid="direct-alias-valid")
+        raw = encoded(signed_payload)
+        original = parse_message_events(raw, signature(raw), KEY)[0]
+        response = self.receive(signed_payload)
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()["processed"], 1)
+        self.assertEqual(self.receive(signed_payload).json()["duplicates"], 1)
+        with psycopg.connect(DB) as conn:
+            row = conn.execute(
+                "SELECT external_account_id,workspace_id,fingerprint FROM socialmei.ig_meta_ingress_events "
+                "WHERE event_key=%s",
+                (original.event_key,),
+            ).fetchone()
+        self.assertEqual(row, (account, self.identity["workspace_id"], original.canonical_fingerprint))
+        rows = self.client.get("/api/v1/message-enrichment/conversations").json()["items"]
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["account_ref"], "instagram:" + account)
+
+    def test_direct_alias_refuses_wrong_workspace_without_persistence(self):
+        self.ingress = InstagramIngressService(
+            app_secret=KEY, verify_token=VERIFY,
+            alias_bindings=json.dumps({"555444333": {
+                "workspace_id": self.identity["workspace_id"] + 999,
+                "connection_account_id": "987654321"
+            }}),
+        )
+        response = self.receive(payload(account="555444333", mid="wrong-workspace-alias"))
+        self.assertEqual(response.status_code, 403)
+        with psycopg.connect(DB) as conn:
+            count = conn.execute(
+                "SELECT COUNT(*) FROM socialmei.ig_meta_ingress_events "
+                "WHERE workspace_id=%s", (self.identity["workspace_id"],)
+            ).fetchone()[0]
+        self.assertEqual(count, 0)
 
     def test_signature_invalid_accounts_scopes_and_disabled_connection(self):
         raw = encoded(payload())
