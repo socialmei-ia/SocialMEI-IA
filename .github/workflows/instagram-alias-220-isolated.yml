@@ -60,9 +60,19 @@ jobs:
         run: |
           python -m unittest discover -s python-service -p 'test_instagram_n8n_ingress.py' -v
           python -m unittest discover -s python-service -p 'test_instagram_meta_ingress.py' -v
-      - name: Instagram runtime and existing OAuth contracts (disposable PostgreSQL)
+      - name: Instagram runtime contracts (disposable PostgreSQL)
+        env:
+          PYTHONPATH: python-service
+        run: python -m unittest discover -s python-service -p 'test_instagram_runtime.py' -v
+      - name: Instagram OAuth regression on its own disposable database
         env:
           PYTHONPATH: python-service
         run: |
-          python -m unittest discover -s python-service -p 'test_instagram_runtime.py' -v
+          python - <<'PY'
+          import os, psycopg
+          with psycopg.connect(os.environ["TEST_DATABASE_URL"], autocommit=True) as conn:
+              conn.execute("CREATE DATABASE socialmei_oauth_ci")
+          PY
+          export TEST_DATABASE_URL=postgresql://socialmei_test:socialmei_test@127.0.0.1:5432/socialmei_oauth_ci
+          export DATABASE_URL="$TEST_DATABASE_URL"
           python -m unittest discover -s python-service -p 'test_instagram_persistent_oauth.py' -v
