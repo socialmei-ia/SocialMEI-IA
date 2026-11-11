@@ -56,7 +56,7 @@ class ContractTests(unittest.TestCase):
         b = binding(engine='GOWS')
         event = parse_event(sample, sign(sample), 'sha512', b)
         self.assertEqual(event.kind, 'message')
-        self.assertEqual(event.text, ' Original\\n')
+        self.assertEqual(event.text, ' Original\n')
         self.assertEqual(event.account_ref, 'waha:111@c.us')
         with self.assertRaises(HTTPException):
             parse_event(sample, sign(sample), 'sha512', binding())
