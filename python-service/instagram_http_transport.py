@@ -105,6 +105,11 @@ class InstagramHTTPTransport:
                 )))
             )
             parameters = dict(request.params)
+            profile = (
+                url.hostname == 'graph.instagram.com' and request.method == 'GET'
+                and re.fullmatch(r'/v[1-9][0-9]{0,2}\.0/[0-9]{1,40}', url.path)
+                and parameters == {'fields': 'id,name,username'}
+            )
             listing = (
                 url.hostname == 'graph.instagram.com' and request.method == 'GET'
                 and re.fullmatch(r'/v[1-9][0-9]{0,2}\.0/[0-9]{1,40}/media', url.path)
@@ -117,7 +122,7 @@ class InstagramHTTPTransport:
                     and re.fullmatch(r'[A-Za-z0-9_+/-]{1,2048}={0,2}', parameters['after'])
                 ))
             )
-            if not trusted or not (oauth or sending or publishing or listing):
+            if not trusted or not (oauth or sending or publishing or listing or profile):
                 raise ProviderError()
         except (TypeError, ValueError, AttributeError):
             raise ProviderError() from None

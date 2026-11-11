@@ -255,6 +255,7 @@ class WhatsAppHumanConfiguration:
     contacts: frozenset[str]
     base_url: str
     api_key: str
+    public_inbound: bool = False
 
     def __repr__(self):
         return 'WhatsAppHumanConfiguration(private=<redacted>)'
@@ -297,6 +298,7 @@ def whatsapp_human_configuration():
             raise ValueError()
         return WhatsAppHumanConfiguration(
             workspace, instance, session, account, frozenset(contacts), base_url, api_key,
+            os.getenv('SOCIALMEI_WHATSAPP_HUMAN_PUBLIC_INBOUND_ENABLED', 'false') == 'true',
         )
     except (TypeError, ValueError):
         raise ValueError('Configuração privada de envio WhatsApp indisponível.') from None

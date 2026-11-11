@@ -10,6 +10,16 @@ from instagram_http_transport import InstagramHTTPTransport
 
 
 class InstagramHTTPTransportTests(unittest.TestCase):
+    def test_contact_profile_read_needs_exact_official_host_and_fields(self):
+        calls = []
+        transport = self.transport(lambda r: calls.append(r) or httpx.Response(200, json={'id': '9876'}))
+        request = ProviderRequest('GET', 'https://graph.instagram.com/v25.0/9876', params={'fields': 'id,name,username'})
+        self.assertEqual(transport(request).status_code, 200)
+        for fields in ['access_token', 'id,name,username,email']:
+            with self.assertRaises(ProviderError):
+                transport(ProviderRequest('GET', request.url, params={'fields': fields}))
+        self.assertEqual(len(calls), 1)
+
     def transport(self, handler, **options):
         def factory(**kwargs):
             self.assertIs(kwargs["verify"], True)

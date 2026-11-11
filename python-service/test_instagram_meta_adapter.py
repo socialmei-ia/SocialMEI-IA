@@ -37,6 +37,19 @@ class FakeTransport:
 
 
 class InstagramAdapterTests(unittest.TestCase):
+    def test_contact_profile_is_bound_to_exact_sender_and_uses_bearer_only(self):
+        adapter, transport = self.adapter(response({'id': '9876', 'username': 'fixture.user', 'name': 'Fixture'}))
+        self.assertEqual(adapter.contact_profile(TOKEN, '9876')['username'], 'fixture.user')
+        request = transport.requests[0]
+        self.assertEqual(request.method, 'GET')
+        self.assertEqual(dict(request.params), {'fields': 'id,name,username'})
+        self.assertNotIn(TOKEN, request.url)
+        self.assertEqual(request.headers['Authorization'], 'Bearer ' + TOKEN)
+        for payload in [{'id': '4321', 'name': 'Wrong'}, {'id': '9876', 'username': 'bad/name'}]:
+            adapter, _ = self.adapter(response(payload))
+            with self.assertRaises(ProviderError):
+                adapter.contact_profile(TOKEN, '9876')
+
     def adapter(self, *responses, **kwargs):
         transport = FakeTransport(*responses)
         adapter = InstagramAdapter(

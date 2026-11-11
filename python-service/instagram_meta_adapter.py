@@ -359,6 +359,28 @@ class InstagramAdapter:
             "short",
         )
 
+    def contact_profile(self, access_token, recipient_id):
+        recipient_id = _user_id(recipient_id)
+        data = self._request(ProviderRequest(
+            'GET', f'https://graph.instagram.com/{self._version}/{recipient_id}',
+            params={'fields': 'id,name,username'},
+            headers={'Authorization': 'Bearer ' + _opaque(access_token)},
+        ), retryable=True)
+        if data.get('id') != recipient_id:
+            raise ProviderError()
+        result = {}
+        for field, maximum in [('name', 120), ('username', 30)]:
+            value = data.get(field)
+            if value is None:
+                continue
+            if (not isinstance(value, str) or not 1 <= len(value.strip()) <= maximum
+                    or any(ord(c) < 32 or 0x7f <= ord(c) <= 0x9f for c in value)):
+                raise ProviderError()
+            if field == 'username' and not re.fullmatch(r'[A-Za-z0-9_.]{1,30}', value):
+                raise ProviderError()
+            result[field] = value.strip()
+        return result
+
     def send_direct(self, access_token, account_id, recipient_id, text):
         account_id, recipient_id = _user_id(account_id), _user_id(recipient_id)
         token = _opaque(access_token)

@@ -31,6 +31,18 @@ ENV = {
 
 
 class HumanTransportTests(unittest.TestCase):
+    def test_public_inbound_policy_keeps_workspace_and_account_guards(self):
+        with patch.dict(os.environ, {'SOCIALMEI_WHATSAPP_HUMAN_PUBLIC_INBOUND_ENABLED': 'true'}):
+            config = settings.whatsapp_human_configuration()
+        transport = WahaHumanTransport(config)
+        item = dict(workspace_id=7, instancia='trusted-a', sessao='default',
+                    identificador_conta='111@c.us', contact_ref='waha:333@c.us')
+        transport.validate_scope(item)
+        for update in [dict(workspace_id=8), dict(identificador_conta='999@c.us'),
+                       dict(contact_ref='waha:group@g.us')]:
+            with self.assertRaises(WahaPolicyError):
+                transport.validate_scope({**item, **update})
+
     def setUp(self):
         environment = patch.dict(os.environ, ENV, clear=True)
         environment.start()

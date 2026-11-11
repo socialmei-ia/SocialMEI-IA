@@ -53,7 +53,7 @@ class WahaHumanTransport:
         if not isinstance(configuration, WhatsAppHumanConfiguration) or not callable(client_factory) or not callable(clock):
             raise WahaPolicyError()
         # Defense in depth: no other URL is ever used, even with an injected configuration.
-        if configuration.base_url not in {'http://waha:3000', 'http://socialmei-waha:3000'}:
+        if configuration.base_url not in {'http://waha:3000', 'http://socialmei-waha:3000'} or type(configuration.public_inbound) is not bool:
             raise WahaPolicyError()
         self._configuration = configuration
         self._client_factory = client_factory
@@ -69,7 +69,9 @@ class WahaHumanTransport:
             or item.get('instancia') != config.instance
             or item.get('sessao') != config.session
             or item.get('identificador_conta') != config.account_id
-            or item.get('contact_ref') not in {'waha:' + value for value in config.contacts}
+            or (not config.public_inbound and item.get('contact_ref') not in {'waha:' + value for value in config.contacts})
+            or not isinstance(item.get('contact_ref'), str)
+            or not re.fullmatch(r'waha:(?:[0-9]{1,40}@c\.us|[A-Za-z0-9][A-Za-z0-9_.:-]{0,79}@lid)', item['contact_ref'])
         ):
             raise WahaPolicyError()
 
@@ -105,7 +107,9 @@ class WahaHumanTransport:
             or not isinstance(body, dict) or set(body) != {'session', 'chatId', 'text'}
             or body.get('session') != config.session
             or not isinstance(body.get('chatId'), str)
-            or body.get('chatId') not in config.contacts
+            or (not config.public_inbound and body.get('chatId') not in config.contacts)
+            or not re.fullmatch(r'(?:[0-9]{1,40}@c\.us|[A-Za-z0-9][A-Za-z0-9_.:-]{0,79}@lid)', body['chatId'])
+            or body['chatId'] == config.account_id
             or not isinstance(body.get('text'), str) or not body['text'].strip()
             or any((ord(c) < 32 and c not in '\n\r\t') or 0x7f <= ord(c) <= 0x9f for c in body['text'])
         ):
