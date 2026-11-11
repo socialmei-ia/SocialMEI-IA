@@ -20,7 +20,7 @@ spec.loader.exec_module(guard)
 
 
 class PilotLimitsTests(unittest.TestCase):
-    def run_pilot(self, allowed_count=1, error=False, expire_before_post=False, foreign=False, source_failures=0):
+    def run_pilot(self, allowed_count=1, error=False, expire_before_post=False, foreign=False, source_failures=0, fail_after_send=False):
         with tempfile.TemporaryDirectory() as directory:
             folder = Path(directory)
             contacts = ['waha:22' + str(i) + '@c.us' for i in range(allowed_count)]
@@ -32,6 +32,9 @@ class PilotLimitsTests(unittest.TestCase):
                 posts.append(request)
                 return httpx.Response(200, json={'id': 'synthetic-provider-receipt'})
             def poll(cfg, client_factory):
+                if fail_after_send and len(posts) == 1 and not failed_reads[0]:
+                    failed_reads[0] += 1
+                    raise module.SourceUnavailable('read failure after previous send')
                 if failed_reads[0] < source_failures:
                     failed_reads[0] += 1
                     raise module.SourceUnavailable('source read only')
@@ -72,6 +75,11 @@ class PilotLimitsTests(unittest.TestCase):
         state, posts = self.run_pilot(source_failures=3)
         self.assertEqual((state['attempted'], posts, state['reason']), (0, 0, 'source_read_unavailable'))
         self.assertEqual(state['source_read_failures'], 3)
+
+    def test_source_read_failure_after_attempt_stops_without_resend(self):
+        state, posts = self.run_pilot(fail_after_send=True)
+        self.assertEqual((state['attempted'], state['confirmed'], posts), (1, 1, 1))
+        self.assertEqual(state['reason'], 'source_read_unavailable')
 
     def test_expiration_before_provider_post_blocks_send(self):
         state, posts = self.run_pilot(expire_before_post=True)
