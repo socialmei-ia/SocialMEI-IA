@@ -1,6 +1,14 @@
+from hashlib import sha256
+from threading import Lock
+from time import monotonic
+
 import psycopg
 
-from settings import database_url, shared_data_enabled
+from settings import database_readiness_cache_seconds, database_url, shared_data_enabled
+
+
+_readiness_lock = Lock()
+_readiness_cache = None
 
 
 def connect():
@@ -111,6 +119,42 @@ CHANNEL_SCHEMA_QUERIES = (
         "mensagem_externa_id, mensagem_id, status FROM socialmei.crm_eventos_canal LIMIT 0"
     ),
 )
+
+
+def check_database_readiness(*, include_auth: bool = False) -> str:
+    global _readiness_cache
+    seconds = database_readiness_cache_seconds()
+    if not seconds:
+        with _readiness_lock:
+            _readiness_cache = None
+        return check_database(include_auth=include_auth)
+
+    # Retain only a digest of configuration, never the DSN or business data.
+    identity = (sha256(database_url().encode()).digest(), include_auth, seconds)
+    with _readiness_lock:
+        if _readiness_cache is not None:
+            previous_identity, checked_at = _readiness_cache
+            if previous_identity == identity and monotonic() - checked_at < seconds:
+                try:
+                    _check_database_availability()
+                except Exception:
+                    _readiness_cache = None
+                    raise
+                return "prepared"
+
+        _readiness_cache = None
+        result = check_database(include_auth=include_auth)
+        # Missing channel capabilities are retried rather than cached.
+        if result == "prepared":
+            _readiness_cache = (identity, monotonic())
+        return result
+
+
+def _check_database_availability() -> None:
+    with connect() as conn, conn.cursor() as cur:
+        cur.execute("SET TRANSACTION READ ONLY")
+        cur.execute("SET LOCAL statement_timeout = '5s'")
+        cur.execute("SELECT 1")
 
 
 def check_database(*, include_auth: bool = False) -> str:

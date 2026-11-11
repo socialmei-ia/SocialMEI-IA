@@ -462,8 +462,18 @@ window.SocialMEIV22 = (() => {
   let inboxPolling = false;
   let inboxFingerprint = "";
   let inboxCapabilities = null;
+  let inboxRetryAt = 0;
+  let inboxFailures = 0;
+  let inboxRetryScope = "";
   async function refreshInbox({ silent = false } = {}) {
     if (inboxPolling || !remote || !auth.current) return;
+    const currentScope = identityKey();
+    if (inboxRetryScope !== currentScope) {
+      inboxRetryScope = currentScope;
+      inboxRetryAt = 0;
+      inboxFailures = 0;
+    }
+    if (silent && Date.now() < inboxRetryAt) return;
     inboxPolling = true;
     const workspace = auth.current.negocio.id;
     const scope = identityKey();
@@ -477,6 +487,8 @@ window.SocialMEIV22 = (() => {
         : { workspace_id: workspace, items: [] };
       if (!sameSession()) return;
       if (result.workspace_id !== workspace) throw Error("Resposta de outro negócio.");
+      inboxFailures = 0;
+      inboxRetryAt = 0;
       inboxCapabilities = cap;
       const fingerprint = JSON.stringify([
         scope,
@@ -523,6 +535,10 @@ window.SocialMEIV22 = (() => {
       }
       if (silent && loaded && H.startsWith("/caixa")) render();
     } catch (e) {
+      if (sameSession()) {
+        inboxFailures = Math.min(inboxFailures + 1, 6);
+        inboxRetryAt = Date.now() + Math.min(6000 * 2 ** inboxFailures, 300000);
+      }
       if (!silent && ![403, 503].includes(e.status)) throw e;
     } finally {
       inboxPolling = false;

@@ -308,3 +308,57 @@ test("invalid or non-provider analysis is hidden and absent metadata removes old
   app.flush();
   assert.equal(app.thread.children.length, 0);
 });
+
+test("Inbox backs off failed polling but permits an immediate refresh after workspace change", async () => {
+  const app = bridge();
+  await app.context.SocialMEIV22.ready;
+  let reads = 0;
+  app.context.SocialMEIAuth.request = async () => {
+    reads++;
+    throw Object.assign(new Error("Unavailable"), { status: 503 });
+  };
+  await app.poll();
+  assert.equal(reads, 1);
+  await app.poll();
+  assert.equal(reads, 1);
+  app.context.SocialMEIAuth.current.negocio.id = 18;
+  await app.poll();
+  assert.equal(reads, 2);
+});
+
+test("Inbox retry delay grows on failures, resets on success and pauses while hidden", async () => {
+  const app = bridge();
+  await app.context.SocialMEIV22.ready;
+  let now = 100000;
+  app.context.Date = class extends Date {
+    static now() {
+      return now;
+    }
+  };
+  let reads = 0;
+  let failing = true;
+  app.context.SocialMEIAuth.request = async (path) => {
+    reads++;
+    if (failing) throw Object.assign(new Error("Unavailable"), { status: 503 });
+    return path.endsWith("/capabilities")
+      ? { mode: "disabled", waha_inbox: true }
+      : { workspace_id: 17, items: [] };
+  };
+  await app.poll();
+  now += 12000;
+  await app.poll();
+  assert.equal(reads, 2);
+  now += 12000;
+  await app.poll();
+  assert.equal(reads, 2);
+  now += 12000;
+  failing = false;
+  await app.poll();
+  assert.equal(reads, 4);
+  now += 6000;
+  await app.poll();
+  assert.equal(reads, 6);
+  app.context.document.hidden = true;
+  await app.poll();
+  assert.equal(reads, 6);
+});

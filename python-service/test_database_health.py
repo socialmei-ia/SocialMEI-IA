@@ -12,6 +12,7 @@ from shared_data import database_health_payload
 
 DB = os.getenv("TEST_DATABASE_URL", "").strip()
 ENV = {
+    "SOCIALMEI_DB_READINESS_CACHE_SECONDS": "0",
     "SOCIALMEI_SHARED_DATA_ENABLED": "true",
     "SOCIALMEI_AUTH_ENABLED": "true",
     "SOCIALMEI_AUTH_ORIGIN": "https://app.example.com",
