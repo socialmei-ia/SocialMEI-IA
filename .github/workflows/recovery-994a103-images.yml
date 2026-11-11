@@ -1,0 +1,63 @@
+name: Recovery 994a103 candidate OCI images (off production)
+
+on:
+  push:
+    branches:
+      - ci/socialmei-recovery-994a103-images-20261111
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SOURCE_SHA: 994a103826791c532c1487891e971a44a8a2b674
+    steps:
+      - name: Checkout candidate plus verification workflow
+        uses: actions/checkout@v4
+      - name: Confirm source is identical to recovery commit
+        run: |
+          set -euo pipefail
+          git diff --exit-code "$SOURCE_SHA" HEAD -- python-service deploy/team/Dockerfile.whatsapp-menu-worker tools/whatsapp-menu-worker.py tools/whatsapp-pilot-guard.py tools/whatsapp-public-pilot.py
+      - name: Build API image off VPS
+        run: |
+          set -euo pipefail
+          docker build --pull --build-arg "SOCIALMEI_RELEASE_SHA=$SOURCE_SHA" \
+            -t "socialmei-recovery/api:$SOURCE_SHA" -f python-service/Dockerfile python-service
+      - name: Build menu worker off VPS
+        run: |
+          set -euo pipefail
+          docker build --build-arg "SOCIALMEI_RELEASE_SHA=$SOURCE_SHA" \
+            --build-arg "SOCIALMEI_MENU_BASE_IMAGE=socialmei-recovery/api:$SOURCE_SHA" \
+            -t "socialmei-recovery/menu-worker:$SOURCE_SHA" \
+            -f deploy/team/Dockerfile.whatsapp-menu-worker .
+      - name: Verify immutable labels and safe no-send defaults
+        run: |
+          set -euo pipefail
+          for image in "socialmei-recovery/api:$SOURCE_SHA" "socialmei-recovery/menu-worker:$SOURCE_SHA"; do
+            test "$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' "$image")" = "$SOURCE_SHA"
+          done
+          docker run --rm --network none --entrypoint python "socialmei-recovery/api:$SOURCE_SHA" -c "from app import app; assert len(app.routes) > 30; print('API_IMPORT_OK')"
+          output=$(docker run --rm --network none "socialmei-recovery/menu-worker:$SOURCE_SHA")
+          echo "$output"
+          echo "$output" | grep -q "MODO_SEGURO = SEM_ENVIO"
+      - name: Export immutable candidate bundle (no credentials)
+        run: |
+          set -euo pipefail
+          mkdir -p recovery-candidate
+          docker image inspect "socialmei-recovery/api:$SOURCE_SHA" "socialmei-recovery/menu-worker:$SOURCE_SHA" \
+            --format '{{.RepoTags}} {{.Id}} {{index .Config.Labels "org.opencontainers.image.revision"}}' > recovery-candidate/image-identity.txt
+          cp tools/whatsapp-pilot-guard.py tools/whatsapp-public-pilot.py recovery-candidate/
+          docker save "socialmei-recovery/api:$SOURCE_SHA" "socialmei-recovery/menu-worker:$SOURCE_SHA" | gzip -1 > recovery-candidate/images.tar.gz
+          printf 'SOURCE_SHA=%s\nPUBLISHED=false\nREQUIRES_PRIVATE_OVERLAYS=true\nREQUIRES_MANUAL_APPROVAL=true\n' "$SOURCE_SHA" > recovery-candidate/manifest.txt
+          (cd recovery-candidate && sha256sum images.tar.gz image-identity.txt whatsapp-pilot-guard.py whatsapp-public-pilot.py manifest.txt > SHA256SUMS)
+      - name: Upload private deploy candidate to GitHub artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: SocialMEI-recovery-994a103-images
+          path: recovery-candidate/
+          retention-days: 7
+          if-no-files-found: error
+          compression-level: 0
