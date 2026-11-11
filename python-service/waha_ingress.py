@@ -34,6 +34,7 @@ class WahaBinding:
     channel_id: int = field(repr=False)
     hmac_key: str = field(repr=False)
     revision: int = 1
+    engine: str = 'WEBJS'  # Explicit per-channel cutover; legacy registries stay WEBJS.
 
     def __post_init__(self):
         if (
@@ -49,6 +50,7 @@ class WahaBinding:
             or not 1 <= self.workspace_id <= 2**63 - 1
             or type(self.channel_id) is not int
             or not 1 <= self.channel_id <= 2**63 - 1
+            or self.engine not in {'WEBJS', 'GOWS'}
             or type(self.revision) is not int
             or not 1 <= self.revision <= 2**63 - 1
             or not isinstance(self.hmac_key, str)
@@ -189,7 +191,7 @@ def parse_event(raw, signature, algorithm, binding):
         or value["me"].get("id") != binding.account_id
     ):
         invalid()
-    if value.get("engine") != "WEBJS":
+    if value.get("engine") != binding.engine:
         invalid()
     if type(value.get("timestamp")) is not int:
         invalid()
