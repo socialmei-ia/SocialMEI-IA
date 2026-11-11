@@ -7,7 +7,7 @@ import time
 from datetime import datetime, timezone
 
 import httpx
-from public_worker import Config, run_once, WAHA_URL
+from public_worker import Config, SourceUnavailable, run_once, API_URL, WAHA_URL, SOURCE_URL
 
 
 def pause():
@@ -60,7 +60,23 @@ def main():
                 state['attempted'] += 1
                 state['contacts'][contact] = state['contacts'].get(contact, 0) + 1
                 save()
-            response = super().request(method, url, **kwargs)
+            try:
+                response = super().request(method, url, **kwargs)
+            except httpx.TransportError:
+                # Stage name only; never log full URLs, contacts or credentials.
+                if method == 'GET' and url == API_URL + SOURCE_URL:
+                    stage = 'source_read'
+                elif method == 'GET' and url.startswith(WAHA_URL + '/api/sessions/'):
+                    stage = 'waha_session_read'
+                elif outgoing:
+                    stage = 'waha_send'
+                elif method == 'POST' and url.startswith(API_URL + '/internal/whatsapp/bot/decisions'):
+                    stage = 'decision_api'
+                else:
+                    stage = 'private_http'
+                state['last_transport_stage'] = stage
+                save()
+                raise
             if outgoing:
                 response.raise_for_status()
                 state['last_post_response_ok'] = True
@@ -72,8 +88,23 @@ def main():
         state['configuration_validated'] = True
         save()
         print('PILOT_READY', flush=True)
+        consecutive_source_failures = 0
         while within_window():
-            result = run_once(config, client_factory=PilotClient)
+            try:
+                result = run_once(config, client_factory=PilotClient)
+            except SourceUnavailable:
+                # Only the initial, read-only source GET is retryable.
+                # Never retry after any attempted send, even if its result is uncertain.
+                state['source_read_failures'] = state.get('source_read_failures', 0) + 1
+                consecutive_source_failures += 1
+                save()
+                print('PILOT_SOURCE_READ_UNAVAILABLE', consecutive_source_failures, flush=True)
+                if state['attempted'] or consecutive_source_failures >= 3:
+                    state['reason'] = 'source_read_unavailable'
+                    break
+                time.sleep(min(2, max(0, end - time.time())))
+                continue
+            consecutive_source_failures = 0
             if result == 'ENVIO_CONFIRMADO':
                 state['confirmed'] += 1
                 state.pop('last_post_response_ok', None)
