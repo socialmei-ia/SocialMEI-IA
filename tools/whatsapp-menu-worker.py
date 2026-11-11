@@ -202,9 +202,16 @@ def run_once(cfg, *, client_factory=httpx.Client):
         return 'ENVIO_CONFIRMADO' if status == 'confirmed' else 'RESULTADO_INCERTO_NAO_REENVIAR'
 
 
-def run_continuously(cfg, *, poll=run_once, sleep=time.sleep):
+def run_continuously(cfg, *, poll=run_once, sleep=time.sleep, max_seconds=None,
+                     clock=time.monotonic):
+    if max_seconds is not None and (type(max_seconds) is not int or not 1 <= max_seconds <= 3600):
+        raise ValueError('Janela de teste invalida')
+    deadline = clock() + max_seconds if max_seconds is not None else None
     backoff = 15
     while True:
+        if deadline is not None and clock() >= deadline:
+            print('JANELA_ENCERRADA_SEM_NOVOS_ENVIOS', flush=True)
+            return 0
         try:
             result = poll(cfg)
         except SourceUnavailable:
@@ -229,7 +236,10 @@ def main(argv=None):
     p = argparse.ArgumentParser(description='Despachante controlado SocialMEI WhatsApp')
     p.add_argument('--run-once', action='store_true')
     p.add_argument('--continuous', action='store_true')
+    p.add_argument('--window-seconds', type=int)
     args = p.parse_args(argv)
+    if args.window_seconds is not None and (not args.continuous or not 1 <= args.window_seconds <= 3600):
+        p.error('--window-seconds exige --continuous e valor de 1 a 3600')
     if not args.run_once and not args.continuous:
         print('MODO_SEGURO = SEM_ENVIO')
         print('PARA_LIBERAR = PILOTO_RESTRITO_COM_SEGREDOS_E_AUTORIZACAO')
@@ -237,7 +247,7 @@ def main(argv=None):
     try:
         config = Config.from_env()
         if args.continuous:
-            run_continuously(config)
+            run_continuously(config, max_seconds=args.window_seconds)
             # Permanecer pausado impede restart_policy de repetir envio incerto.
             while True:
                 time.sleep(3600)

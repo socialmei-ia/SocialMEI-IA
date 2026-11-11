@@ -12,6 +12,24 @@ spec.loader.exec_module(worker)
 
 
 class ContinuousWorkerTests(unittest.TestCase):
+    def test_bounded_window_stops_new_polls_and_sends(self):
+        poll = Mock(return_value='SEM_MENSAGENS_NOVAS')
+        sleep = Mock()
+        clock = Mock(side_effect=[100, 100, 101])
+        with patch('builtins.print'):
+            self.assertEqual(worker.run_continuously(object(), poll=poll, sleep=sleep,
+                                                     max_seconds=1, clock=clock), 0)
+        self.assertEqual(poll.call_count, 1)
+
+    def test_unavailable_source_does_not_resume_after_window_expires(self):
+        poll = Mock(side_effect=worker.SourceUnavailable())
+        clock = Mock(side_effect=[100, 100, 160])
+        with patch('builtins.print'):
+            result = worker.run_continuously(object(), poll=poll, sleep=Mock(),
+                                            max_seconds=30, clock=clock)
+        self.assertEqual(result, 0)
+        self.assertEqual(poll.call_count, 1)
+
     def test_only_source_transport_or_server_failure_is_retry_safe(self):
         config = worker.Config('isolated-instance', 'fixture', '111@c.us',
                                'isolated-token-for-test', 'isolated-key-for-test')
