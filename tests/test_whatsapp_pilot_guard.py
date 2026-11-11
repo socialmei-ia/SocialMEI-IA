@@ -20,17 +20,31 @@ spec.loader.exec_module(guard)
 
 
 class PilotLimitsTests(unittest.TestCase):
-    def run_pilot(self, allowed_count=1, error=False, expire_before_post=False, foreign=False):
+    def run_pilot(self, allowed_count=1, error=False, expire_before_post=False, foreign=False, source_failures=0, fail_after_send=False, transport_error_stage=None):
         with tempfile.TemporaryDirectory() as directory:
             folder = Path(directory)
             contacts = ['waha:22' + str(i) + '@c.us' for i in range(allowed_count)]
             (folder / 'allowed.json').write_text(json.dumps(contacts))
             clock = [1000.0]
             posts = []
+            failed_reads = [0]
             def handler(request):
                 posts.append(request)
                 return httpx.Response(200, json={'id': 'synthetic-provider-receipt'})
             def poll(cfg, client_factory):
+                if transport_error_stage:
+                    url = (guard.API_URL + guard.SOURCE_URL if transport_error_stage == 'source_read'
+                           else guard.WAHA_URL + '/api/sessions/fixture')
+                    def fail_transport(request):
+                        raise httpx.ConnectError('synthetic connection failure', request=request)
+                    with client_factory(transport=httpx.MockTransport(fail_transport)) as client:
+                        client.request('GET', url)
+                if fail_after_send and len(posts) == 1 and not failed_reads[0]:
+                    failed_reads[0] += 1
+                    raise module.SourceUnavailable('read failure after previous send')
+                if failed_reads[0] < source_failures:
+                    failed_reads[0] += 1
+                    raise module.SourceUnavailable('source read only')
                 if error:
                     raise RuntimeError('source unavailable')
                 if expire_before_post:
@@ -58,6 +72,29 @@ class PilotLimitsTests(unittest.TestCase):
         state, posts = self.run_pilot(error=True)
         self.assertEqual((state['attempted'], posts), (0, 0))
         self.assertEqual(state['reason'], 'error_RuntimeError')
+
+    def test_source_read_recovers_within_window_before_any_send(self):
+        state, posts = self.run_pilot(source_failures=2)
+        self.assertEqual((state['confirmed'], posts, state['reason']), (5, 5, 'send_limit_reached'))
+        self.assertEqual(state['source_read_failures'], 2)
+
+    def test_source_read_failure_budget_closes_without_sending(self):
+        state, posts = self.run_pilot(source_failures=3)
+        self.assertEqual((state['attempted'], posts, state['reason']), (0, 0, 'source_read_unavailable'))
+        self.assertEqual(state['source_read_failures'], 3)
+
+    def test_source_read_failure_after_attempt_stops_without_resend(self):
+        state, posts = self.run_pilot(fail_after_send=True)
+        self.assertEqual((state['attempted'], state['confirmed'], posts), (1, 1, 1))
+        self.assertEqual(state['reason'], 'source_read_unavailable')
+
+    def test_transport_error_records_stage_without_sensitive_details(self):
+        for stage in ('source_read', 'waha_session_read'):
+            with self.subTest(stage=stage):
+                state, posts = self.run_pilot(transport_error_stage=stage)
+                self.assertEqual((state['attempted'], posts), (0, 0))
+                self.assertEqual(state['last_transport_stage'], stage)
+                self.assertEqual(state['reason'], 'error_ConnectError')
 
     def test_expiration_before_provider_post_blocks_send(self):
         state, posts = self.run_pilot(expire_before_post=True)
