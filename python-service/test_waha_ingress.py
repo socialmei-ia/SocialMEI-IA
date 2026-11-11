@@ -68,6 +68,54 @@ class ContractTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             binding(engine='UNKNOWN')
 
+    def test_gows_missing_to_only_for_signed_direct_and_own_echo(self):
+        b = binding(engine="GOWS")
+        inbound = payload(engine="GOWS")
+        inbound["payload"].pop("to")
+        body = raw(inbound)
+        event = parse_event(body, sign(body), "sha512", b)
+        self.assertEqual(event.kind, "message")
+        self.assertEqual(event.recipient, b.account_id)
+        self.assertEqual(event.sender, "222@c.us")
+        with self.assertRaises(HTTPException):
+            parse_event(body, sign(body), "sha512", binding())
+        with self.assertRaises(HTTPException):
+            parse_event(body, "0" * 128, "sha512", b)
+
+        outbound = payload(engine="GOWS")
+        outbound["payload"]["fromMe"] = True
+        outbound["payload"].pop("to")
+        echo = parse_event(raw(outbound), sign(raw(outbound)), "sha512", b)
+        self.assertEqual(echo.kind, "echo")
+        self.assertEqual(echo.recipient, "")
+
+        wrong = payload(engine="GOWS")
+        wrong["payload"]["to"] = "333@c.us"
+        with self.assertRaises(HTTPException):
+            parse_event(raw(wrong), sign(raw(wrong)), "sha512", b)
+
+        explicit_null = payload(engine="GOWS")
+        explicit_null["payload"]["to"] = None
+        with self.assertRaises(HTTPException):
+            parse_event(raw(explicit_null), sign(raw(explicit_null)), "sha512", b)
+
+        group = payload(engine="GOWS")
+        group["payload"]["from"] = "12345@g.us"
+        group["payload"].pop("to")
+        with self.assertRaises(HTTPException):
+            parse_event(raw(group), sign(raw(group)), "sha512", b)
+
+    def test_gows_missing_recipient_is_idempotent_across_envelopes(self):
+        b = binding(engine="GOWS")
+        first = payload(engine="GOWS")
+        first["payload"].pop("to")
+        second = payload(engine="GOWS", id="different-delivery", timestamp=1792890000123)
+        second["payload"].pop("to")
+        one = parse_event(raw(first), sign(raw(first)), "sha512", b)
+        two = parse_event(raw(second), sign(raw(second)), "sha512", b)
+        self.assertEqual(one.event_key, two.event_key)
+        self.assertEqual(one.fingerprint, two.fingerprint)
+
     def test_raw_hmac_before_parse_or_database_and_exact_owner_binding(self):
         service = WahaIngressService({"trusted-a": binding()})
         with patch(
