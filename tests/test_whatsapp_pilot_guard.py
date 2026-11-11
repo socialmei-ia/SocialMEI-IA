@@ -104,3 +104,9 @@ class PilotLimitsTests(unittest.TestCase):
     def test_contact_outside_existing_authorization_cannot_receive(self):
         state, posts = self.run_pilot(foreign=True)
         self.assertEqual((state['attempted'], posts), (0, 0))
+
+    def test_resumed_window_cannot_exceed_the_remaining_time(self):
+        with patch.dict(os.environ, {'SOCIALMEI_PILOT_SECONDS': '1'}):
+            state, posts = self.run_pilot(allowed_count=10)
+        self.assertEqual(posts, 1)
+        self.assertEqual(state['reason'], 'window_expired')

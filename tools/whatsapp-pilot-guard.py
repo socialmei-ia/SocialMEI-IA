@@ -23,7 +23,9 @@ def main():
     allowed = json.loads(Path('/run/socialmei/pilot/allowed-contacts.json').read_text())
     assert allowed and all(isinstance(x, str) and x.startswith('waha:') for x in allowed)
     start = datetime.fromisoformat(os.environ['SOCIALMEI_PILOT_START_UTC']).timestamp()
-    end = start + 600
+    seconds = int(os.getenv('SOCIALMEI_PILOT_SECONDS', '600'))
+    assert 1 <= seconds <= 600
+    end = start + seconds
     assert start <= time.time() < end
     monotonic_end = time.monotonic() + min(600, end - time.time())
     state = {'status': 'running', 'start_utc': datetime.fromtimestamp(start, timezone.utc).isoformat(),
@@ -49,6 +51,8 @@ def main():
 
     class PilotClient(httpx.Client):
         def request(self, method, url, **kwargs):
+            if method == 'GET' and url == API_URL + SOURCE_URL:
+                kwargs['timeout'] = httpx.Timeout(15, connect=2)
             outgoing = method == 'POST' and url == WAHA_URL + '/api/sendText'
             contact = None
             if outgoing:
@@ -62,7 +66,7 @@ def main():
                 save()
             try:
                 response = super().request(method, url, **kwargs)
-            except httpx.TransportError:
+            except httpx.TransportError as error:
                 # Stage name only; never log full URLs, contacts or credentials.
                 if method == 'GET' and url == API_URL + SOURCE_URL:
                     stage = 'source_read'
@@ -75,8 +79,12 @@ def main():
                 else:
                     stage = 'private_http'
                 state['last_transport_stage'] = stage
+                state['last_transport_error'] = type(error).__name__
                 save()
                 raise
+            if response.status_code >= 400:
+                state['last_error_http'] = response.status_code
+                save()
             if outgoing:
                 response.raise_for_status()
                 state['last_post_response_ok'] = True
@@ -120,6 +128,8 @@ def main():
         state['reason'] = state['reason'] or 'window_expired'
     except Exception as error:
         state['reason'] = 'error_' + type(error).__name__
+        if error.__cause__ is not None:
+            state['error_cause_type'] = type(error.__cause__).__name__
     state['status'] = 'paused'
     state['closed_utc'] = datetime.now(timezone.utc).isoformat()
     save()

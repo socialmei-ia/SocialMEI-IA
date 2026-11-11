@@ -1,5 +1,6 @@
 """Read/claim gate for an explicitly authorized, existing-contact menu pilot."""
 import json
+import os
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
@@ -13,7 +14,10 @@ import public_app as original
 settings.whatsapp_bot_allowed_contacts = original_contact_scope
 app = original.app
 START = original.START
-END = START + timedelta(seconds=600)
+SECONDS = int(os.getenv('SOCIALMEI_PILOT_SECONDS', '600'))
+if not 1 <= SECONDS <= 600:
+    raise RuntimeError('Invalid pilot duration')
+END = START + timedelta(seconds=SECONDS)
 CONTACTS = json.loads(Path('/run/socialmei/pilot/allowed-contacts.json').read_text())
 if not CONTACTS or not isinstance(CONTACTS, list):
     raise RuntimeError('Pilot contacts required')
