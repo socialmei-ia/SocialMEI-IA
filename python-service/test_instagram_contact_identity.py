@@ -18,6 +18,8 @@ class ContactIdentityTests(unittest.TestCase):
         ref = 'instagram:123'
         fallback = contact_label({}, ref)
         read_db, write_db = MagicMock(), MagicMock()
+        read_db.__enter__.return_value = read_db
+        write_db.__enter__.return_value = write_db
         read_db.execute.return_value.fetchall.return_value = [{
             'id': 41, 'contact_ref': ref, 'contact_name': fallback,
             'connection_id': UUID('12345678-1234-1234-1234-123456789abc'),
@@ -43,6 +45,7 @@ class ContactIdentityTests(unittest.TestCase):
         ref = 'instagram:123'
         fallback = contact_label({}, ref)
         read_db = MagicMock()
+        read_db.__enter__.return_value = read_db
         read_db.execute.return_value.fetchall.return_value = [{
             'id': 41, 'contact_ref': ref, 'contact_name': fallback,
             'connection_id': UUID('12345678-1234-1234-1234-123456789abc'),
