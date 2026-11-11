@@ -15,6 +15,8 @@ import httpx
 
 API_URL = 'http://socialmei-menu-public-api-v3:8019'
 WAHA_URL = 'http://socialmei-waha:3000'
+GOWS_URL = 'http://socialmei-waha-gows-piloto:3000'
+WAHA_ENDPOINTS = {'WEBJS': WAHA_URL, 'GOWS': GOWS_URL}
 SOURCE_URL = '/internal/whatsapp/bot/sources'
 VALID_CONTACT = re.compile(r'(?:[0-9]{1,40}@c\.us|[A-Za-z0-9][A-Za-z0-9_.:-]{0,79}@lid)\Z')
 VALID_ACCOUNT = re.compile(r'[0-9]{1,40}@c\.us\Z')
@@ -54,13 +56,18 @@ class Config:
     account: str
     token: str
     waha_key: str
+    engine: str = 'WEBJS'
+    waha_url: str = WAHA_URL
 
     def __post_init__(self):
         if (not VALID_INSTANCE.fullmatch(self.instance)
                 or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,159}', self.session)
                 or not VALID_ACCOUNT.fullmatch(self.account)
                 or not re.fullmatch(r'[!-~]{16,4096}', self.token)
-                or not re.fullmatch(r'[!-~]{16,4096}', self.waha_key)):
+                or not re.fullmatch(r'[!-~]{16,4096}', self.waha_key)
+                or self.engine not in WAHA_ENDPOINTS
+                or self.waha_url != WAHA_ENDPOINTS.get(self.engine)
+                or (self.engine == 'GOWS' and self.session != '01')):
             raise Blocked('Escopo do piloto invalido')
 
     @classmethod
@@ -68,8 +75,10 @@ class Config:
         if (os.getenv('SOCIALMEI_MENU_SENDER_ACTIVE') != 'YES'
                 or os.getenv('SOCIALMEI_PUBLIC_MENU_EXPLICIT_ENABLE') != 'YES'):
             raise Blocked('Envio automatico nao autorizado')
+        engine = os.getenv('SOCIALMEI_MENU_WAHA_ENGINE', 'WEBJS')
         if (os.getenv('SOCIALMEI_MENU_API_URL') != API_URL
-                or os.getenv('SOCIALMEI_MENU_WAHA_URL') != WAHA_URL):
+                or engine not in WAHA_ENDPOINTS
+                or os.getenv('SOCIALMEI_MENU_WAHA_URL') != WAHA_ENDPOINTS.get(engine)):
             raise Blocked('Destino privado nao autorizado')
         return cls(
             os.getenv('SOCIALMEI_MENU_INSTANCE', ''),
@@ -77,6 +86,8 @@ class Config:
             os.getenv('SOCIALMEI_MENU_ACCOUNT', ''),
             _secret(os.getenv('SOCIALMEI_MENU_TOKEN_FILE', '')),
             _secret(os.getenv('SOCIALMEI_MENU_WAHA_KEY_FILE', '')),
+            engine,
+            os.getenv('SOCIALMEI_MENU_WAHA_URL', ''),
         )
 
 
@@ -109,7 +120,7 @@ def _delivery(data, cfg):
     if not isinstance(data, dict) or set(data) != {'path', 'body'}:
         raise Blocked('Entrega inesperada')
     if data['path'] != '/api/sendText':
-        raise Blocked('Somente menu textual WEBJS')
+        raise Blocked('Somente menu textual autorizado')
     body = data['body']
     if (not isinstance(body, dict) or set(body) != {'session', 'chatId', 'text'}
             or body['session'] != cfg.session
@@ -163,7 +174,11 @@ def run_once(cfg, *, client_factory=httpx.Client):
             return 'SEM_ENVIO_AUTORIZADO'
 
         # Preflight antes do claim. O contato so aparece no payload assinado do claim.
-        session = request(waha, 'GET', WAHA_URL + '/api/sessions/' + cfg.session, headers=provider)
+        if cfg.engine == 'GOWS':
+            version = request(waha, 'GET', cfg.waha_url + '/api/version', headers=provider)
+            if version.get('engine') != 'GOWS':
+                raise Blocked('Engine WAHA diferente da configurada')
+        session = request(waha, 'GET', cfg.waha_url + '/api/sessions/' + cfg.session, headers=provider)
         if (session.get('name') != cfg.session or session.get('status') != 'WORKING'
                 or not isinstance(session.get('me'), dict)
                 or session['me'].get('id') != cfg.account):
@@ -179,12 +194,16 @@ def run_once(cfg, *, client_factory=httpx.Client):
         try:
             body = _delivery(claimed.get('delivery'), cfg)
             # Revalidar sessao apos claim: qualquer erro exige conciliação, nao retry.
-            current = request(waha, 'GET', WAHA_URL + '/api/sessions/' + cfg.session, headers=provider)
+            if cfg.engine == 'GOWS':
+                version = request(waha, 'GET', cfg.waha_url + '/api/version', headers=provider)
+                if version.get('engine') != 'GOWS':
+                    raise Blocked('Engine WAHA mudou apos claim')
+            current = request(waha, 'GET', cfg.waha_url + '/api/sessions/' + cfg.session, headers=provider)
             if (current.get('name') != cfg.session or current.get('status') != 'WORKING'
                     or not isinstance(current.get('me'), dict)
                     or current['me'].get('id') != cfg.account):
                 raise Blocked('Sessao mudou apos claim')
-            sent = request(waha, 'POST', WAHA_URL + '/api/sendText', headers=provider, data=body)
+            sent = request(waha, 'POST', cfg.waha_url + '/api/sendText', headers=provider, data=body)
             receipt = sent.get('id')
             if isinstance(receipt, dict):
                 receipt = receipt.get('_serialized')
