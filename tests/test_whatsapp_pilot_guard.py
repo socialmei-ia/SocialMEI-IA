@@ -20,7 +20,7 @@ spec.loader.exec_module(guard)
 
 
 class PilotLimitsTests(unittest.TestCase):
-    def run_pilot(self, allowed_count=1, error=False, expire_before_post=False, foreign=False, source_failures=0, fail_after_send=False):
+    def run_pilot(self, allowed_count=1, error=False, expire_before_post=False, foreign=False, source_failures=0, fail_after_send=False, transport_error_stage=None):
         with tempfile.TemporaryDirectory() as directory:
             folder = Path(directory)
             contacts = ['waha:22' + str(i) + '@c.us' for i in range(allowed_count)]
@@ -32,6 +32,13 @@ class PilotLimitsTests(unittest.TestCase):
                 posts.append(request)
                 return httpx.Response(200, json={'id': 'synthetic-provider-receipt'})
             def poll(cfg, client_factory):
+                if transport_error_stage:
+                    url = (guard.API_URL + guard.SOURCE_URL if transport_error_stage == 'source_read'
+                           else guard.WAHA_URL + '/api/sessions/fixture')
+                    def fail_transport(request):
+                        raise httpx.ConnectError('synthetic connection failure', request=request)
+                    with client_factory(transport=httpx.MockTransport(fail_transport)) as client:
+                        client.request('GET', url)
                 if fail_after_send and len(posts) == 1 and not failed_reads[0]:
                     failed_reads[0] += 1
                     raise module.SourceUnavailable('read failure after previous send')
@@ -80,6 +87,14 @@ class PilotLimitsTests(unittest.TestCase):
         state, posts = self.run_pilot(fail_after_send=True)
         self.assertEqual((state['attempted'], state['confirmed'], posts), (1, 1, 1))
         self.assertEqual(state['reason'], 'source_read_unavailable')
+
+    def test_transport_error_records_stage_without_sensitive_details(self):
+        for stage in ('source_read', 'waha_session_read'):
+            with self.subTest(stage=stage):
+                state, posts = self.run_pilot(transport_error_stage=stage)
+                self.assertEqual((state['attempted'], posts), (0, 0))
+                self.assertEqual(state['last_transport_stage'], stage)
+                self.assertEqual(state['reason'], 'error_ConnectError')
 
     def test_expiration_before_provider_post_blocks_send(self):
         state, posts = self.run_pilot(expire_before_post=True)
