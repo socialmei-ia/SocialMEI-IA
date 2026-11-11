@@ -60,3 +60,46 @@ class ContactIdentityTests(unittest.TestCase):
 
         self.assertEqual(result['updated'], 0)
         connect.assert_called_once()
+
+    def test_refresh_cursor_advances_past_unresolved_contact(self):
+        # Selecting from id 41 must allow the worker to inspect later contacts,
+        # even if the first contact still has an unavailable Meta profile.
+        ref = 'instagram:456'
+        fallback = contact_label({}, ref)
+        read_db = MagicMock()
+        read_db.__enter__.return_value = read_db
+        read_db.execute.return_value.fetchall.return_value = [{
+            'id': 42, 'contact_ref': ref, 'contact_name': fallback,
+            'connection_id': UUID('12345678-1234-1234-1234-123456789abc'),
+            'external_account_id': '987', 'encrypted_token': 'encrypted'
+        }]
+        runtime = MagicMock()
+        runtime.status = 'configured'
+        runtime.direct.adapter.contact_profile.return_value = {}
+        with patch('instagram_contact_identity.connect', return_value=read_db):
+            result = refresh_contacts(runtime, 1, limit=1, after_id=41)
+
+        self.assertEqual(result['updated'], 0)
+        self.assertEqual(result['last_id'], 42)
+        sql, arguments = read_db.execute.call_args.args
+        self.assertIn('v.id>%s', sql)
+        self.assertEqual(arguments, (1, 41, 1))
+
+    def test_refresh_cursor_resets_at_end_without_provider_call(self):
+        read_db = MagicMock()
+        read_db.__enter__.return_value = read_db
+        read_db.execute.return_value.fetchall.return_value = []
+        runtime = MagicMock()
+        runtime.status = 'configured'
+        with patch('instagram_contact_identity.connect', return_value=read_db):
+            result = refresh_contacts(runtime, 1, limit=1, after_id=42)
+        self.assertEqual(result['last_id'], 0)
+        runtime.direct.adapter.contact_profile.assert_not_called()
+
+    def test_invalid_refresh_cursor_fails_closed(self):
+        runtime = MagicMock()
+        runtime.status = 'configured'
+        for after_id in (True, -1, '41', 1.0):
+            with self.subTest(after_id=after_id), self.assertRaises(ValueError):
+                refresh_contacts(runtime, 1, after_id=after_id)
+
