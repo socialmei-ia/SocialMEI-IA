@@ -126,9 +126,17 @@ test("V22 remote inbox clears demonstration and disabled provider rows", async (
   );
   await ctx.SocialMEIV22.ready;
   assert.equal(ctx.C.length, 0, "Remote accounts never display demo conversations");
+  let now = Date.now();
+  ctx.Date = class extends Date {
+    static now() {
+      return now;
+    }
+  };
+  now += 60000;
   enabled = true;
   await ctx.tick();
   assert.equal(ctx.C[0][5], "Mensagem do Direct");
+  now += 60000;
   enabled = false;
   await ctx.tick();
   assert.equal(ctx.C.length, 0, "Revoked capability removes previously loaded conversations");

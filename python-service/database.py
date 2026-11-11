@@ -129,32 +129,51 @@ def check_database_readiness(*, include_auth: bool = False) -> str:
             _readiness_cache = None
         return check_database(include_auth=include_auth)
 
-    # Retain only a digest of configuration, never the DSN or business data.
+    # Only readiness metadata is cached; never a DSN, exception or business data.
     identity = (sha256(database_url().encode()).digest(), include_auth, seconds)
     with _readiness_lock:
-        if _readiness_cache is not None:
-            previous_identity, checked_at = _readiness_cache
-            if previous_identity == identity and monotonic() - checked_at < seconds:
-                try:
-                    _check_database_availability()
-                except Exception:
-                    _readiness_cache = None
-                    raise
-                return "prepared"
-
-        _readiness_cache = None
-        result = check_database(include_auth=include_auth)
-        # Missing channel capabilities are retried rather than cached.
-        if result == "prepared":
-            _readiness_cache = (identity, monotonic())
-        return result
+        state = _readiness_cache
+        if state is None or state["identity"] != identity:
+            state = {"identity": identity, "checked_at": None, "schema": None,
+                     "structural_failure": False, "failed": False, "next_schema_at": 0}
+            _readiness_cache = state
+        if state["checked_at"] is None or monotonic() - state["checked_at"] >= seconds:
+            try:
+                _check_database_availability()
+            except Exception:
+                state["failed"] = True
+            else:
+                if state["schema"] is None and not state["structural_failure"]:
+                    state["failed"] = True
+                    if monotonic() >= state["next_schema_at"]:
+                        try:
+                            state["schema"] = check_database(include_auth=include_auth)
+                            state["failed"] = False
+                        except Exception as error:
+                            # A partial deep failure must not rescan the schema every five minutes.
+                            state["next_schema_at"] = monotonic() + 6 * 3600
+                            state["structural_failure"] = (
+                                isinstance(error, (psycopg.errors.UndefinedTable,
+                                                   psycopg.errors.UndefinedColumn,
+                                                   psycopg.errors.InsufficientPrivilege))
+                                or isinstance(error, RuntimeError) and str(error) in {
+                                    "Migrations do CRM incompletas.", "Migration de contas ausente.",
+                                }
+                            )
+                else:
+                    state["failed"] = state["structural_failure"]
+            state["checked_at"] = monotonic()
+        if state["failed"]:
+            raise RuntimeError("Database readiness unavailable.") from None
+        return state["schema"]
 
 
 def _check_database_availability() -> None:
-    with connect() as conn, conn.cursor() as cur:
-        cur.execute("SET TRANSACTION READ ONLY")
-        cur.execute("SET LOCAL statement_timeout = '5s'")
-        cur.execute("SELECT 1")
+    url = database_url()
+    options = psycopg.conninfo.conninfo_to_dict(url).get("options", "")
+    options += " -c default_transaction_read_only=on -c statement_timeout=5000"
+    with psycopg.connect(url, autocommit=True, connect_timeout=5, options=options) as conn:
+        conn.execute("SELECT 1")
 
 
 def check_database(*, include_auth: bool = False) -> str:

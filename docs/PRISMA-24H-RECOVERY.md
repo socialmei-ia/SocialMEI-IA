@@ -1,39 +1,58 @@
-# Recuperação Prisma: janela de 24 horas ainda não ativada
+# Prisma: orçamento sustentável e janela de recuperação
 
-## Evidências e limites
+Prisma permanece oficial. Nenhuma ativação das 24h, contratação, troca de banco ou alteração de produção está autorizada por este documento.
 
-Prisma continua oficial: `db.prisma.io:5432`, banco `postgres`. Não substituir DATABASE_URL pela reserva AWS. Nenhuma liberação, contratação ou alteração em produção foi feita.
+## Código e projeção
 
-O healthcheck efetivo chama `/health/db` a cada 15s. Foram observadas 214 chamadas na última hora, sem conversas ou claims nessa amostra. Nos workflows marcados ativos consultados não há gatilhos Schedule/Cron; isso não exclui consumidores externos. A amostra durante bloqueio não mede o consumo anterior faturado.
+- `/health`: liveness fresco, sem SQL, a cada 15s.
+- Healthcheck do container consulta `/health/db` a cada 60s. A resposta de readiness é reaproveitada por 300s; leituras em cache executam zero SQL. Até 6min para detectar/recuperar indisponibilidade no estado do container, mais o limiar de retries Docker. Docker saudável não substitui o gate de publicação.
+- Probe periódico: um SELECT 1, autocommit, conexão somente leitura e timeout. Sucesso e falha têm cache. Validação completa inicial por processo/configuração; verificações operacionais e doctor continuam completas, sem cache.
+- Falha de conexão inicial não inicia varredura. Falha parcial transitória de esquema limita novas varreduras a uma por 6h; permanece indisponível até validar. Falhas estruturais exigem correção e reinício validado. Não transformar erros em sucesso.
+- Caixa: carregamento em lote, no máximo quatro SELECTs de dados, além de autenticação e manutenção de jobs sintéticos. Antes havia uma consulta por conversa e por job sintético. Preservados workspace, origem, 100 mensagens por conversa, ordem e análise persistida.
+- Polling visível da Caixa: 30s; capabilities: 60s, descartadas na troca de sessão ou falha. Isso apenas espaça leituras: permissões são verificadas pelo backend em cada acesso. Estado de integração pode levar até 60s para atualizar; recarregar consulta imediatamente.
+- Status do atendimento WhatsApp: 60s, recuo após falhas; Atualizar/Assumir/Retomar continuam imediatos e validados no servidor. Nenhum envio ou respondedor foi alterado.
 
-Cada validação completa autenticada executa 25 SELECTs e duas instruções SET. Projeção por processo: 144.000 SELECTs/dia antes; 40.320 após o cache de 60s (menos 72%). Transações e SET não entram nessa conta. É uma amplificação confirmada, mas a atribuição do esgotamento exige métricas Prisma.
+### Mês de 31 dias
 
-A redução ainda pode ultrapassar a franquia mensal. A página pública anuncia 200 mil operações/mês: https://www.prisma.io/pricing. Confirmar o plano efetivo e dimensionar a frequência de readiness sem retirar verificações de banco do deploy. Não prometer operação contínua gratuita com esta otimização isolada.
+Hipóteses do limite: até quatro processos de API no total, TTL 300s, até um reinício diário por processo e configuração de banco estável. O runtime observado usa um processo; os cálculos reservam quatro. Cache é por processo e não é compartilhado entre réplicas.
 
-## Código preparado
+| Componente                                                                                                   | Projeção ou orçamento mensal |
+| ------------------------------------------------------------------------------------------------------------ | ---------------------------: |
+| Monitoramento normal: 4 × 31 × 288 probes + 4 × 31 × 31 instruções de inicialização                          |                       39.556 |
+| Monitoramento com falhas parciais e reinício diário: 35.712 probes + 4 × 31 × 5 × 31 instruções de varredura |                       54.932 |
+| Reserva adotada para monitoramento, incluindo incerteza                                                      |                       60.000 |
+| Polling: até 20h agregadas de Caixa visível com conversa WhatsApp aberta; até 29 comandos/min, arredondados  |                       35.000 |
+| Orçamento para mensagens, respostas autorizadas e demais operações de usuários                               |                       55.000 |
+| Orçamento para outros consumidores, backups e testes controlados                                             |                       20.000 |
+| Margem não comprometida                                                                                      |                       30.000 |
+| Total de orçamento                                                                                           |                      200.000 |
 
-- Cache apenas do esquema bem-sucedido por 60s, configurável entre 0 e 300s. Cada chamada verifica disponibilidade real; falha invalida o cache. Verificações operacionais explícitas continuam completas. Mudanças de esquema podem levar até 60s para aparecer no healthcheck.
-- Caixa usa recuo de 12s até 5min após falhas; sucesso e troca de sessão reiniciam o recuo. Consulta manual permanece disponível; aba oculta não faz polling.
-- Nenhuma alteração em migrations, dados, credenciais, IA, envios ou workflows.
+Consumo previsto sob esse envelope: até 170 mil, com 30 mil de margem. Os 55/20 mil são verbas de capacidade, não medições nem estimativas inventadas de mensagens reais. Não é garantia sob carga arbitrária. Mais horas ativas, processos, reinícios, alterações de configuração ou mensagens exigem recalcular; não desabilitar funcionalidades automaticamente para esconder consumo. Validar contabilização de SELECT, SET e transações pelo provedor.
 
-## Preparação antes da confirmação
+A inspeção anterior observou 214 healthchecks em uma hora, sem chamadas de conversas/claims nessa amostra. Isso confirma amplificação, não atribui todo o faturamento. Workflows ativos consultados não tinham gatilhos Schedule/Cron; não exclui consumidores externos.
 
-1. Registrar SHA, CI aprovado e imagens correspondentes à candidata. Não promover antes disso.
-2. Conferir no painel Prisma cota, período, consumidores e elegibilidade. Não acionar Restore access ainda.
-3. Reconciliar offline os seis overlays históricos ausentes com o snapshot privado de configuração efetiva. Preservar env, mounts, redes, imagens e Caddy. Não recriar serviços com Compose incompleto.
-4. Preparar ferramentas pg_dump/pg_restore compatíveis, armazenamento privado, hashes e destino descartável. Dumps fora de Git/OneDrive.
-5. Rollback por imagens/configuração de API/gateway anteriores, mantendo Prisma. Não restaurar dump integral como rollback de código.
-6. Obter autorização específica para aplicar a otimização mínima e para iniciar a janela. Preservar WhatsApp, n8n e PostgreSQL; não reiniciar serviços sem necessidade.
+## Overlays e rollback
 
-## Execução após confirmação
+Os seis overlays classificados como ausentes existem: o usuário ubuntu não tinha permissão de travessia em /var/lib. Recuperação com sudo somente leitura preservou 24 arquivos originais, hashes e ACL privada local.
 
-1. **0–30min:** ativar a liberação autorizada; registrar início/fim UTC e consumo inicial; confirmar identidade do banco e saúde da API sem testes em loop.
-2. **30–90min:** backup consistente Prisma; hash; restauração isolada; validar migrations, tabelas e contagens. Comparar reserva AWS em leitura, usando o mesmo critério. Não sincronizar diferenças automaticamente. Os históricos 477 e 481 registros ainda não são comparáveis.
-3. **90–150min:** medir taxa de operações e disponibilidade após a otimização. Se permanecer alta, localizar consumidores usando métricas antes de novas ações.
-4. **2,5–5h:** correlacionar Direct autorizado com Caddy/API, assinatura, persistência e Caixa. Distinguir ausência de POST, rejeição e falha SQL. Exigir evento/mensagem únicos no workspace correto. IA e envios continuam desativados.
-5. **5–7h:** verificar Caixa e histórico WhatsApp, sem mudar respondedor ou disparar mensagens. Envio real exige autorização específica.
-6. **Tempo restante:** corrigir bloqueios comprovados, guardar evidências e backup final. Definir continuidade antes de expirar: reset gratuito ou plano pago apenas autorizado. A janela não repõe a franquia permanentemente.
+Merge efetivo validado para API e gateway: zero divergências de ambiente, imagens, comandos, mounts, redes, portas, healthchecks, segurança e recursos contra inspect atual. Compose também validado offline. Recibo sanitizado: `.preview/private-overlay-reconciliation.json`; arquivos e env privados permanecem fora do Git.
 
-## Bloqueios de execução
+Rollback privado fixado nas imagens instaladas, com pull_policy never; mantém Prisma, mounts, Caddy e todas as configurações. Delta candidato permitido somente após autorização: imagem API, imagem gateway necessária ao frontend, healthcheck da API e TTL 300. Não recriar n8n, WhatsApp ou bancos. Não executar migrations: esta PR não altera schema.
 
-CI/imagens da nova SHA; reconciliação dos overlays privados; painel Prisma para cota e ativação autorizada. Backup Prisma e restauração dependem da volta do acesso e ainda não estão certificados. A instância física PostgreSQL17 socialmei-db não foi identificada; não equipará-la ao Prisma nem à reserva PG16 sem evidência.
+## Antes de iniciar a janela
+
+1. CI e imagens da SHA exata aprovados; usar somente bundle/recibos correspondentes. Revisar o delta privado sobre o merge recuperado e validar Compose sem subir serviços.
+2. Conferir no painel Prisma cota/consumo por workspace, período, consumidores e elegibilidade; não acionar Restore access ainda. Registrar baseline e método de cobrança.
+3. Ferramentas PostgreSQL 17 já disponíveis como imagem na AWS. Preparar armazenamento privado, hashes e destino isolado de restauração; dumps fora de Git/OneDrive. Não usar ferramenta histórica limitada a schema 033 para certificar schema 038.
+4. Obter autorização específica de publicação e da janela. Confirmar gates completos, comandos de rollback e serviços afetados antes de executar.
+
+## Após confirmação
+
+- **0–30min:** ativação autorizada, início/fim UTC, identidade Prisma, disponibilidade API e validação completa sem cache. Nenhum teste em loop.
+- **30–90min:** backup Prisma consistente, hash, restauração isolada; comparar tabelas, ledger e contagens com reserva AWS pelo mesmo critério. Não sincronizar diferenças. Os históricos 477 e 481 não são diretamente comparáveis.
+- **90–150min:** medir operações no painel antes/depois, descontar backup/testes e separar períodos ociosos/uso real. Projetar taxa × duração restante do mês; incluir todos os bancos do workspace e processos. Gatilhos de revisão: projeção acima de 170mil ou margem abaixo de 30mil; não contratar nem trocar banco automaticamente.
+- **2,5–5h:** Direct autorizado: correlacionar Meta/Caddy/API, assinatura, evento e mensagem únicos no workspace correto, persistência antes de IA e exibição na Caixa. Distinguir POST ausente, rejeição e falha SQL. IA/envios permanecem desligados.
+- **5–7h:** Caixa, histórico e controles WhatsApp sem duplicidade ou mudança de respondedor. Envios reais exigem autorização específica.
+- **Restante:** corrigir bloqueios comprovados, backup final e decisão antes de expirar. A janela não renova franquia; plano pago somente autorizado.
+
+Backup e restauração dos dados Prisma reais ainda não estão certificados, pois o serviço segue bloqueado. CI descartável não os substitui. Não ativar a janela nem publicar sem autorização.

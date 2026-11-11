@@ -429,6 +429,9 @@ def doctor():
     print(run(compose("ps", "--all")).decode())
     script = (
         "import json, urllib.request\n"
+        "from database import check_database\n"
+        "from account_auth import enabled as auth_enabled\n"
+        "check_database(include_auth=auth_enabled())\n"
         "payload=json.load(urllib.request.urlopen('http://127.0.0.1:8000/health/db', timeout=10))\n"
         "if payload.get('status') != 'healthy' or payload.get('shared_data') is not True: "
         "raise SystemExit('CRM compartilhado indisponivel.')\n"

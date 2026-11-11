@@ -357,8 +357,8 @@ test("Inbox retry delay grows on failures, resets on success and pauses while hi
   assert.equal(reads, 4);
   now += 6000;
   await app.poll();
-  assert.equal(reads, 6);
+  assert.equal(reads, 5, "Capabilities are reused while fresh");
   app.context.document.hidden = true;
   await app.poll();
-  assert.equal(reads, 6);
+  assert.equal(reads, 5);
 });
