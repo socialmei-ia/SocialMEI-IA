@@ -60,3 +60,9 @@ jobs:
         run: |
           python -m unittest discover -s python-service -p 'test_instagram_n8n_ingress.py' -v
           python -m unittest discover -s python-service -p 'test_instagram_meta_ingress.py' -v
+      - name: Instagram runtime and existing OAuth contracts (disposable PostgreSQL)
+        env:
+          PYTHONPATH: python-service
+        run: |
+          python -m unittest discover -s python-service -p 'test_instagram_runtime.py' -v
+          python -m unittest discover -s python-service -p 'test_instagram_persistent_oauth.py' -v
