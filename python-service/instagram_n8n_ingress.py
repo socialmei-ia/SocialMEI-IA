@@ -4,7 +4,6 @@ import hmac
 import json
 import re
 import time
-from dataclasses import dataclass, field
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from starlette.concurrency import run_in_threadpool
@@ -12,31 +11,15 @@ from starlette.concurrency import run_in_threadpool
 import settings
 from instagram_meta_contract import MAX_WEBHOOK_BYTES, MetaContractError
 from instagram_meta_ingress import (
+    BoundMessageEvent,
     MessageEvent,
+    bound_event,
     parse_message_events,
     persist_authenticated_events,
 )
 
 PATH = "/webhooks/instagram/n8n"
 router = APIRouter(tags=["authenticated Instagram n8n ingress"])
-
-
-@dataclass(frozen=True)
-class BoundMessageEvent(MessageEvent):
-    source_fingerprint: str = field(default="", repr=False)
-
-    @property
-    def canonical_fingerprint(self):
-        # FK/inbox use the OAuth ID; replay integrity keeps the signed source IDs.
-        return self.source_fingerprint
-
-
-def bound_event(event, account):
-    return BoundMessageEvent(
-        account_id=account, sender_id=event.sender_id, recipient_id=event.recipient_id,
-        mid=event.mid, occurred_at=event.occurred_at, kind=event.kind, text=event.text,
-        content_hash=event.content_hash, source_fingerprint=event.canonical_fingerprint,
-    )
 
 
 def _unique(pairs):
