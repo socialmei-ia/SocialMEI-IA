@@ -103,7 +103,7 @@ module.exports = async function (browser, origin) {
           confidence: "low",
           explanation: "<img src=x onerror=alert(1)>",
         };
-        await page.clock.fastForward(6001);
+        await page.clock.fastForward(30001);
         const panel = page.locator("[data-provider-analysis]");
         await panel.waitFor();
         await panel.locator("summary").click();
@@ -122,11 +122,11 @@ module.exports = async function (browser, origin) {
         await page.keyboard.press("Enter");
         assert.equal(await panel.evaluate((n) => n.open), false);
         metadata = { ...metadata, sentiment: "negative", explanation: "Resultado atualizado" };
-        await page.clock.fastForward(6001);
+        await page.clock.fastForward(30001);
         await panel.locator("summary").click();
         await panel.getByText(/Sentimento negativo/).waitFor();
         metadata = null;
-        await page.clock.fastForward(6001);
+        await page.clock.fastForward(30001);
         await page.waitForFunction(() => !document.querySelector("[data-provider-analysis]"));
         metadata = {
           source: "automation",
@@ -134,7 +134,7 @@ module.exports = async function (browser, origin) {
           confidence: "medium",
           explanation: "Novo resultado",
         };
-        await page.clock.fastForward(6001);
+        await page.clock.fastForward(30001);
         await panel.waitFor();
         await page.evaluate(() => {
           SocialMEIV22.identity.negocio.id = 18;
