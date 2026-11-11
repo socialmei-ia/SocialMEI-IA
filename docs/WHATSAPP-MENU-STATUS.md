@@ -8,3 +8,4 @@
 - Execução contínua restrita a um contato autorizado: guard `a66b885`, sobre a imagem homologada `994a103`. Ativação com corte novo de mensagens; não reutiliza a janela do piloto.
 - Um remetente com trava exclusiva e estado persistente. Limite móvel de 5 respostas por 45 minutos; tentativas anteriores ainda nessa faixa contam para o limite. Falha incerta exige conciliação e não é reenviada.
 - O piloto anterior confirmou os comandos 0, 1 e 5. A homologação de listas e botões nativos continua pendente; ampliar contatos exige autorização específica.
+- Contínuo `a66b885` homologado para o contato autorizado: uma nova mensagem gerou uma tentativa, uma decisão confirmada e um recibo único, sem duplicação. Worker ativo, sem envio incerto. A entrada está vinculada à conversa da Caixa; a projeção da resposta do bot no histórico é uma correção separada.

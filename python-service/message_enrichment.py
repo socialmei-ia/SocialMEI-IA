@@ -458,6 +458,28 @@ def conversations(request: Request, response: Response):
                 (workspace, synthetic_ids),
             ).fetchall()
             jobs = {row['message_id']: row for row in rows}
+        bot_replies = {}
+        waha_ids = [row['id'] for row in items if row['origin'] == 'waha']
+        if waha_ids:
+            from whatsapp_bot import render_waha
+            rows = conn.execute(
+                "SELECT selected.conversation_id,d.* FROM unnest(%s::bigint[]) AS selected(conversation_id) "
+                "CROSS JOIN LATERAL (SELECT id,result,provider_message_id,finished_at "
+                "FROM socialmei.wa_bot_decisions d WHERE d.workspace_id=%s "
+                "AND d.conversation_id=selected.conversation_id AND d.status='confirmed' "
+                "AND d.provider_message_id IS NOT NULL "
+                "AND NOT EXISTS(SELECT 1 FROM socialmei.me_messages m WHERE m.workspace_id=d.workspace_id "
+                "AND m.conversation_id=d.conversation_id AND m.external_message_id=d.provider_message_id) "
+                "ORDER BY d.finished_at DESC,d.id DESC LIMIT 100) AS d",
+                (waha_ids, workspace),
+            ).fetchall()
+            for row in rows:
+                text = render_waha('', '', row['result']['text'], row['result']['choices'])['body']['text']
+                bot_replies.setdefault(row['conversation_id'], []).append({
+                    'id': 'wa-bot-' + str(row['id']), 'text': text,
+                    'occurred_at': row['finished_at'], 'direction': 'outgoing',
+                    'provider': 'waha', 'enrichment': None,
+                })
         for conversation in items:
             messages = messages_by_conversation[conversation['id']]
             for message in messages:
@@ -472,6 +494,12 @@ def conversations(request: Request, response: Response):
                         'source': 'automation',
                     } if analysis else None
             conversation['messages'] = list(reversed(messages))
+            replies = bot_replies.get(conversation['id'], [])
+            if replies:
+                conversation['messages'] = sorted(
+                    conversation['messages'] + replies,
+                    key=lambda row: datetime.fromisoformat(str(row['occurred_at']).replace('Z', '+00:00')),
+                )[-100:]
             if conversation['origin'] == 'synthetic':
                 del conversation['origin']
         return {'workspace_id': workspace, 'items': items}

@@ -292,6 +292,31 @@ class BotDatabaseTests(unittest.TestCase):
         changed = {**receipt, 'provider_message_id': 'different'}
         self.assertEqual(self.tech.post(base + '/receipt', headers=self.headers, json=changed).status_code, 409)
 
+    def test_confirmed_bot_reply_is_visible_once_in_own_inbox_not_uncertain_or_foreign(self):
+        decision = self.decide(self.incoming('0')).json()
+        base = PATH + '/decisions/' + decision['operation_id']
+        claim = self.tech.post(base + '/claim', headers=self.headers, json={}).json()
+        expected = claim['delivery']['body']['text']
+        receipt = {'status': 'confirmed', 'provider_message_id': 'synthetic-menu-receipt'}
+        for _ in range(2):
+            self.assertEqual(self.tech.post(base + '/receipt', headers=self.headers, json=receipt).status_code, 200)
+        uncertain = self.decide(self.incoming('0')).json()
+        other_base = PATH + '/decisions/' + uncertain['operation_id']
+        self.tech.post(other_base + '/claim', headers=self.headers, json={})
+        self.tech.post(other_base + '/receipt', headers=self.headers,
+                       json={'status': 'uncertain', 'provider_message_id': None})
+        other = self.register('bot-inbox-other@example.test')
+        with patch('message_enrichment.settings.waha_inbox_enabled', return_value=True):
+            for _ in range(2):
+                response = self.owner.get('/api/v1/message-enrichment/conversations')
+                self.assertEqual(response.status_code, 200, response.text)
+                messages = [m for row in response.json()['items'] for m in row['messages']
+                            if m.get('direction') == 'outgoing']
+                self.assertEqual(len(messages), 1)
+                self.assertEqual(messages[0]['text'], expected)
+                self.assertEqual(messages[0]['provider'], 'waha')
+            self.assertEqual(other.get('/api/v1/message-enrichment/conversations').json()['items'], [])
+
     def test_tenant_binding_revocation_and_unverified_messages_are_rejected(self):
         other = self.register('bot-other@example.test')
         self.assertEqual(other.post('/api/v1/whatsapp/bot/access', json={'channel_id': self.channel}).status_code, 404)

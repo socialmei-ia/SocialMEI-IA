@@ -51,6 +51,8 @@ class Connection:
 
     def execute(self, sql, params):
         self.queries.append((sql, params))
+        if 'FROM socialmei.wa_bot_decisions' in sql:
+            return Cursor(getattr(self, 'bot_replies', []))
         if 'FROM socialmei.me_conversations' in sql:
             return Cursor(self.conversations)
         if 'CROSS JOIN LATERAL' in sql:
@@ -72,12 +74,12 @@ class InboxQueryBudgetTests(unittest.TestCase):
             invalidation.assert_called_once_with(connection, 17)
             return result
 
-    def test_four_reads_for_mixed_inbox_independent_of_conversation_or_message_count(self):
+    def test_five_reads_for_mixed_inbox_independent_of_conversation_or_message_count(self):
         for size in (3, 100):
             with self.subTest(conversations=size):
                 connection = Connection(size, message_count=100 if size == 100 else 3)
                 result = self.read(connection)
-                self.assertEqual(len(connection.queries), 4)
+                self.assertEqual(len(connection.queries), 5)
                 self.assertEqual(len(result['items']), size)
                 for sql, params in connection.queries:
                     self.assertIn('workspace_id=%s', sql)
@@ -105,7 +107,7 @@ class InboxQueryBudgetTests(unittest.TestCase):
     def test_disabled_sentiment_does_not_query_provider_table_or_add_analysis(self):
         connection = Connection(100, origins=('instagram', 'waha'))
         result = self.read(connection, sentiment=False)
-        self.assertEqual(len(connection.queries), 2)
+        self.assertEqual(len(connection.queries), 3)
         self.assertFalse(any('me_provider_sentiment_jobs' in sql for sql, _ in connection.queries))
         self.assertTrue(all('provider_analysis' not in message for row in result['items'] for message in row['messages']))
 
@@ -113,6 +115,25 @@ class InboxQueryBudgetTests(unittest.TestCase):
         connection = Connection(0)
         self.assertEqual(self.read(connection), {'workspace_id': 17, 'items': []})
         self.assertEqual(len(connection.queries), 1)
+
+    def test_confirmed_menu_reply_appears_once_with_exact_text_and_receipt_time(self):
+        connection = Connection(2, origins=('waha', 'instagram'))
+        connection.bot_replies = [{'conversation_id': 1, 'id': UUID(int=123),
+            'result': {'text': 'Menu de teste', 'choices': [{'id': '1', 'title': 'Produtos'}]},
+            'provider_message_id': 'synthetic-receipt', 'finished_at': '2026-11-10T10:00:01Z'}]
+        result = self.read(connection, sentiment=False)
+        outgoing = [m for m in result['items'][0]['messages'] if m.get('direction') == 'outgoing']
+        self.assertEqual(len(outgoing), 1)
+        self.assertEqual(outgoing[0]['text'], 'Menu de teste\n\n1 - Produtos')
+        self.assertEqual(outgoing[0]['provider'], 'waha')
+        self.assertEqual(outgoing[0]['occurred_at'], '2026-11-10T10:00:01Z')
+        self.assertFalse(any(m.get('direction') == 'outgoing' for m in result['items'][1]['messages']))
+        sql, params = connection.queries[-1]
+        self.assertEqual(params, ([1], 17))
+        self.assertIn("d.status='confirmed'", sql)
+        self.assertIn('m.workspace_id=d.workspace_id', sql)
+        self.assertIn('m.conversation_id=d.conversation_id', sql)
+        self.assertIn('m.external_message_id=d.provider_message_id', sql)
 
 
 DB = os.getenv('TEST_DATABASE_URL', '').strip()
