@@ -140,6 +140,10 @@ module.exports = async function (browser, origin, options = {}) {
           await page.goto(origin + "/frontend/socialmei-app.html#/caixa/me-1");
           await page.locator("[data-ig-prepare]").waitFor();
           if (options.autoMenu) {
+            assert.match(
+              await page.locator(".ct").innerText(),
+              /Preparar uma resposta manual pausa o menu/,
+            );
             await page
               .getByText("Menu automático ativo nesta conversa.", { exact: true })
               .waitFor();

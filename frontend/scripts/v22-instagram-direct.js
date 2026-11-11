@@ -490,7 +490,9 @@
     const note = document.querySelector(".ct > p.m.sm");
     if (note)
       note.textContent = canSend()
-        ? "Toda resposta exige revisão e confirmação. Nada é enviado automaticamente."
+        ? readiness.auto_menu_available
+          ? "Menu automático habilitado. Preparar uma resposta manual pausa o menu nesta conversa."
+          : "Toda resposta exige revisão e confirmação. Nada é enviado automaticamente."
         : "Preparação salva no servidor. Envio externo desativado.";
     const assistant = document.querySelector('.ct .hd [data-a="ai"]');
     if (assistant) {
