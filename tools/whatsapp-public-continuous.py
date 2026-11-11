@@ -44,7 +44,8 @@ def sources(request: Request):
             "AND (SELECT COUNT(*) FROM socialmei.wa_bot_decisions q "
             "WHERE q.workspace_id=e.workspace_id AND q.channel_id=e.canal_id "
             "AND q.conversation_id=v.id AND q.status IN ('claimed','confirmed','uncertain') "
-            "AND q.created_at>=NOW()-INTERVAL '45 minutes')<5 "
+            + ("AND q.created_at>=NOW()-INTERVAL '15 minutes')<10 " if PUBLIC
+               else "AND q.created_at>=NOW()-INTERVAL '45 minutes')<5 ") +
             "ORDER BY m.occurred_at,m.id LIMIT 40",
             tuple([channel['identificador_conta'], 'waha:' + channel['identificador_conta']]
                   + ([] if PUBLIC else [CONTACTS]) + [START, START]),

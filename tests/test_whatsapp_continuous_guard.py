@@ -95,16 +95,16 @@ class ContinuousTests(unittest.TestCase):
         self.journal.path.unlink()
         journal = guard.Journal(self.folder, 1000, [], public=True)
         self.addCleanup(journal.lock.close)
-        for _ in range(5):
+        for _ in range(10):
             journal.before_send({'chatId': '222@c.us'}, 1001)
         with self.assertRaises(RuntimeError):
             journal.before_send({'chatId': '222@c.us'}, 1002)
         journal.before_send({'chatId': '333@c.us'}, 1002)
-        for contact in range(7):
-            for _ in range(4):
-                journal.before_send({'chatId': str(400+contact)+'@c.us'}, 1002)
-        self.assertEqual(journal.state['attempted'], 34)
         for contact in range(6):
+            for _ in range(7):
+                journal.before_send({'chatId': str(400+contact)+'@c.us'}, 1002)
+        self.assertEqual(journal.state['attempted'], 53)
+        for contact in range(7):
             journal.before_send({'chatId': str(500+contact)+'@c.us'}, 1002)
         self.assertFalse(journal.available(1003))
         self.assertTrue(journal.available(3703))

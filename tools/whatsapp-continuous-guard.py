@@ -53,12 +53,12 @@ class Journal:
         if now < self.state['start']:
             raise RuntimeError('Clock moved before activation')
         self.state['attempts'] = [entry for entry in self.state['attempts']
-                                  if (entry['time'] if isinstance(entry, dict) else entry) > now - 2700]
+                                  if (entry['time'] if isinstance(entry, dict) else entry) > now - (900 if self.public else 2700)]
         if not self.public:
             return len(self.state['attempts']) < 5
-        if len(self.state['attempts']) >= 40:
+        if len(self.state['attempts']) >= 60:
             return False
-        return contact is None or sum(entry['contact'] == contact for entry in self.state['attempts']) < 5
+        return contact is None or sum(entry['contact'] == contact for entry in self.state['attempts']) < 10
 
     def before_send(self, body, now):
         contact = hashlib.sha256(body['chatId'].encode()).hexdigest()
