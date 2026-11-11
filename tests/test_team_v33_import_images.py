@@ -297,6 +297,11 @@ class ImportImagesTests(unittest.TestCase):
         sha = "b" * 40
         source = self.folder / ("team-v33-" + sha[:12]) / "source"
         source.mkdir(parents=True)
+        migration_folder = source / 'database/migrations'
+        migration_folder.mkdir(parents=True)
+        names = list(importer.release_profile().MIGRATIONS)[:33]
+        for name in names:
+            (migration_folder / name).write_bytes((MODULE.parents[1] / 'database/migrations' / name).read_bytes())
         proof = {
             "candidate_sha": sha,
             "candidate_branch": "feat/public-seo-discovery-consent-20261031",
@@ -325,6 +330,7 @@ class ImportImagesTests(unittest.TestCase):
                 "feat/whatsapp-bot-readonly-preview-20261030",
                 "feat/team-release-candidate-stage-20261030",
                 "feat/public-seo-discovery-consent-20261031",
+                "fix/functional-audit-20261031",
             ):
                 with self.subTest(branch=branch):
                     receipt_path.write_text(json.dumps({**proof, "candidate_branch": branch}),
@@ -366,6 +372,29 @@ class ImportImagesTests(unittest.TestCase):
         ]):
             with self.assertRaisesRegex(RuntimeError, "source_modificado"):
                 importer.valid_stage(sha)
+
+    def test_035_bundle_requires_matching_upgrade_proof_and_api_image(self):
+        from test_team_release_profile import valid_proof
+        sha = 'b' * 40
+        self.set_receipt_source(sha)
+        proof = valid_proof(sha)
+        proof['api_image_id'] = self.receipt['images']['team-api']['image_id']
+        self.receipt.update(release_profile='035', migration_sha256=dict(importer.release_profile().MIGRATIONS),
+                            migration_rehearsal=proof)
+        self.write_bundle()
+        self.assertEqual(importer.read_bundle(self.path, sha)['release_profile'], '035')
+        for update in ({'source_dirty': True}, {'source_sha': 'a' * 40},
+                       {'api_image_id': 'sha256:' + '0' * 64}, {'restored_backup_verified': False}):
+            with self.subTest(update=update):
+                self.receipt['migration_rehearsal'] = {**proof, **update}
+                self.write_bundle()
+                with self.assertRaises(RuntimeError):
+                    importer.read_bundle(self.path, sha)
+        self.receipt['migration_rehearsal'] = proof
+        self.write_bundle()
+        with patch.object(importer, 'valid_stage', return_value='033'):
+            with self.assertRaisesRegex(RuntimeError, 'perfil_stage_imagem_divergente'):
+                importer.execute(self.path, expected_sha=sha)
 
 
 if __name__ == "__main__":

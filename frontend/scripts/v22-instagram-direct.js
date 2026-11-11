@@ -4,6 +4,7 @@
   if (!host?.remote || window.SocialMEIInstagramDirect) return;
   const states = new Map();
   let readiness = null,
+    readinessScope = null,
     loading = null,
     dialog = null;
   const scope = () => `${host.identity?.usuario.id}:${host.identity?.negocio.id}`;
@@ -53,23 +54,32 @@
     const n = document.querySelector("[data-ig-reply-status]");
     if (n && selected()?.id === state.conversation) n.textContent = text;
   }
-  async function configuration() {
+  async function configuration(force = false) {
+    const identity = scope();
+    if (force || readinessScope !== identity) readiness = null;
     if (readiness) return readiness;
-    if (!loading)
-      loading = host
+    if (!loading || loading.scope !== identity) {
+      const current = { scope: identity };
+      current.promise = host
         .request("/integrations/readiness")
         .then(async (r) => {
           const result = r.instagram || {};
           const connection = await host.request("/instagram/meta/status");
+          if (identity !== scope()) return null;
+          readinessScope = identity;
           return (readiness = {
             ...result,
             account_connected:
               connection.status === "connected" && connection.credential_available === true,
           });
         })
-        .catch(() => (readiness = {}))
-        .finally(() => (loading = null));
-    return loading;
+        .catch(() => null)
+        .finally(() => {
+          if (loading === current) loading = null;
+        });
+      loading = current;
+    }
+    return loading.promise;
   }
   async function refresh(state, force = false) {
     if (state.reading || (!force && Date.now() - state.lastRead < 5000)) return;
@@ -211,7 +221,11 @@
       reviewButton.onclick = () => review(state);
       const reload = element("button", "Consultar respostas");
       reload.type = "button";
-      reload.onclick = () => refresh(state, true);
+      reload.onclick = async () => {
+        await configuration(true);
+        paint();
+        await refresh(state, true);
+      };
       section.append(title, feedback, select, reviewButton, reload);
       composer.append(section);
       const label = composer.querySelector(".row > b");
@@ -318,8 +332,29 @@
     const row = selected();
     if (!row) return;
     const identity = scope();
-    await configuration();
-    if (identity !== scope() || !readiness.reply_preparation_available) return;
+    const config = await configuration();
+    if (identity !== scope() || selected()?.id !== row.id) return;
+    const composer = document.querySelector(".ct .cp");
+    composer?.querySelector("[data-ig-reply-unavailable]")?.remove();
+    if (!config) {
+      if (composer) {
+        const section = element("section");
+        section.dataset.igReplyUnavailable = "true";
+        section.className = "ig-human";
+        const feedback = element("p", "Não foi possível consultar a conexão do Instagram.");
+        feedback.setAttribute("role", "status");
+        const retry = element("button", "Consultar conexão novamente");
+        retry.type = "button";
+        retry.onclick = async () => {
+          retry.disabled = true;
+          await mount();
+        };
+        section.append(feedback, retry);
+        composer.append(section);
+      }
+      return;
+    }
+    if (!config.reply_preparation_available) return;
     paint();
     await refresh(stateFor(row));
   }

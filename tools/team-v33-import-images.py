@@ -8,6 +8,7 @@ changes Compose, running containers, gateways, databases or provider flags.
 """
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -30,6 +31,15 @@ SERVICES = ("team-api", "team-gateway")
 def require(ok, code):
     if not ok:
         raise RuntimeError(code)
+
+
+def release_profile():
+    path = Path(__file__).with_name('team-release-profile.py')
+    require(path.is_file() and not path.is_symlink(), 'helper_de_perfil_ausente')
+    spec = importlib.util.spec_from_file_location('team_release_profile', path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def command(argv, timeout=90):
@@ -87,9 +97,24 @@ def valid_stage(expected_sha=EXPECTED_SHA):
                 "feat/whatsapp-bot-readonly-preview-20261030",
                 "feat/team-release-candidate-stage-20261030",
                 "feat/public-seo-discovery-consent-20261031",
+                "fix/functional-audit-20261031",
             },
             "recibo_do_stage_invalido",
         )
+        folder = source / 'database/migrations'
+        require(folder.is_dir() and not folder.is_symlink(), 'migrations_de_stage_ausentes')
+        files = sorted(folder.rglob('*.sql'))
+        require(all(not file.is_symlink() for file in files), 'migration_simbolica_invalida')
+        profile = release_profile()
+        identity = profile.verify([file.relative_to(folder).as_posix() for file in files],
+                                  lambda name: (folder / name).read_bytes())
+        if identity['profile'] == '035':
+            require(receipt.get('release_profile') == '035'
+                    and receipt.get('migration_sha256') == profile.MIGRATIONS,
+                    'perfil_035_de_stage_divergente')
+            profile.rehearsal(receipt.get('migration_rehearsal'), expected_sha)
+        return identity['profile']
+    return '033'
 
 
 def read_bundle(path, expected_sha=EXPECTED_SHA):
@@ -140,6 +165,15 @@ def read_bundle(path, expected_sha=EXPECTED_SHA):
             require(receipt.get("source_sha") == expected_sha
                     and set(receipt.get("images", {})) == set(SERVICES),
                     "origem_das_imagens_divergente")
+            if receipt.get('release_profile') == '035':
+                profile = release_profile()
+                proof = profile.rehearsal(receipt.get('migration_rehearsal'), expected_sha)
+                require(receipt.get('migration_sha256') == profile.MIGRATIONS
+                        and proof.get('api_image_id') == receipt['images']['team-api'].get('image_id')
+                        and proof.get('api_image_revision') == expected_sha,
+                        'imagem_035_sem_ensaio_correspondente')
+            else:
+                require(receipt.get('release_profile') in (None, '033'), 'perfil_de_imagem_nao_revisado')
             for service in SERVICES:
                 entry = receipt["images"][service]
                 require(isinstance(entry, dict) and entry.get("tag") ==
@@ -239,12 +273,15 @@ def local_image_status(receipt, expected_sha=EXPECTED_SHA):
 def execute(bundle, *, apply=False, expected_sha=EXPECTED_SHA):
     require(re.fullmatch(r"[0-9a-f]{40}", str(expected_sha)) is not None,
             "source_sha_invalido")
-    valid_stage(expected_sha=expected_sha)
+    staged_profile = valid_stage(expected_sha=expected_sha)
     receipt = read_bundle(bundle, expected_sha=expected_sha)
+    require((receipt.get('release_profile') == '035') if staged_profile == '035'
+            else receipt.get('release_profile') in (None, '033'), 'perfil_stage_imagem_divergente')
     before = local_image_status(receipt, expected_sha=expected_sha)
     report = {
         "mode": "image_archive_inspection" if not apply else "image_archive_import",
         "candidate_sha": expected_sha,
+        "release_profile": receipt.get('release_profile', '033'),
         "bundle_sha256_verified": True,
         "image_identity_verified": True,
         "images_present_before": before,

@@ -24,10 +24,19 @@ def event(**overrides):
 
 class IngressUnitTests(unittest.TestCase):
     def test_disabled_no_database_and_no_real_transport(self):
-        with patch.dict(os.environ, ENV), patch('message_enrichment.connect', side_effect=AssertionError('DB')):
+        with patch.dict(os.environ, ENV, clear=True), patch('message_enrichment.connect', side_effect=AssertionError('DB')):
             r=TestClient(app,base_url=ORIGIN).post(INTERNAL,json={})
             self.assertEqual(r.status_code,503)
             self.assertEqual(r.headers['cache-control'],'no-store')
+
+    def test_disabled_or_invalid_mode_ignores_configured_fixture_credentials(self):
+        for mode in ('disabled', '', 'invalid'):
+            with self.subTest(mode=mode), patch.dict(
+                os.environ, {**ENV, **MODE, 'SOCIALMEI_CHANNEL_INGRESS_MODE': mode}
+            ), patch('message_enrichment.connect', side_effect=AssertionError('No database')):
+                response = TestClient(app, base_url=ORIGIN).post(INTERNAL, json=sign_fixture(event()))
+                self.assertEqual(response.status_code, 503)
+                self.assertEqual(response.headers['cache-control'], 'no-store')
 
     def test_shared_data_off_or_invalid_origin_fails_before_storage(self):
         for options in ({'SOCIALMEI_SHARED_DATA_ENABLED':'false'},{'SOCIALMEI_AUTH_ORIGIN':'http://invalid.example'}):

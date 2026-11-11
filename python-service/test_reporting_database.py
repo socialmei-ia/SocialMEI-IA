@@ -1,11 +1,25 @@
 """Real accounts, current-period aggregates and revocable report-only memberships."""
 import os
 import unittest
+from unittest.mock import patch
 
 import psycopg
 from fastapi.testclient import TestClient
 from account_auth import COOKIE
 import test_account_auth as accounts
+import settings
+import workspace_reporting
+from fastapi import HTTPException
+
+
+class ReportingTimezoneTests(unittest.TestCase):
+    def test_invalid_timezone_does_not_run_a_report_in_server_timezone(self):
+        with patch.dict(os.environ, {'TZ': 'invalid-business-timezone'}), patch(
+            'workspace_reporting.scope', return_value=1
+        ), patch('workspace_reporting.connect', side_effect=AssertionError('No database')):
+            with self.assertRaises(HTTPException) as error:
+                workspace_reporting.summary(30)
+        self.assertEqual(error.exception.status_code, 503)
 
 
 @unittest.skipUnless(accounts.DB,'Disposable PostgreSQL required')
@@ -18,9 +32,26 @@ class ReportDatabaseTests(unittest.TestCase):
 
     def seed(self, workspace, amount):
         with psycopg.connect(accounts.DB) as conn:
+            conn.execute("SELECT set_config('TimeZone', %s, true)", (settings.business_timezone().key,))
             for days in (-1,0,29,30):
                 conn.execute("INSERT INTO socialmei.crm_vendas(workspace_id,cliente,item,data,quantidade,preco,valor,pagamento,status) VALUES(%s,'Private customer','Synthetic item',CURRENT_DATE-%s,1,%s,%s,'Pix','Pago')",(workspace,days,amount,amount))
                 conn.execute("INSERT INTO socialmei.crm_financeiro(workspace_id,descricao,tipo,valor,vencimento,status) VALUES(%s,'Private finance','receita',%s,CURRENT_DATE-%s,'pago')",(workspace,amount,days))
+
+    def test_reporting_date_and_period_use_the_business_timezone(self):
+        for index, zone in enumerate(('Pacific/Kiritimati', 'Pacific/Pago_Pago')):
+            with self.subTest(zone=zone), patch.dict(os.environ, {'TZ': zone}):
+                owner = self.register(f'timezone-report-{index}@example.test')
+                self.seed(owner.identity['negocio']['id'], 10)
+                with psycopg.connect(accounts.DB) as conn:
+                    expected = conn.execute(
+                        "SELECT (CURRENT_TIMESTAMP AT TIME ZONE %s)::date",
+                        (zone,),
+                    ).fetchone()[0]
+                report = owner.get('/api/v1/reporting/overview?days=1')
+                self.assertEqual(report.status_code, 200, report.text)
+                self.assertEqual(report.json()['as_of'], expected.isoformat())
+                self.assertEqual(report.json()['sales_by_status']['Pago'], {'quantidade': 1, 'valor': '10.00'})
+                self.assertEqual(report.json()['finance_by_type_and_status'][0]['quantidade'], 1)
 
     def test_period_excludes_future_old_and_other_business_records(self):
         owner=self.register('reports-a@example.test');other=self.register('reports-b@example.test')
@@ -57,3 +88,31 @@ class ReportDatabaseTests(unittest.TestCase):
         self.assertEqual(again.identity['negocio']['id'],original)
         self.assertEqual(again.get('/api/v1/auth/workspaces').json()['items'][0]['role'],'owner')
         self.assertEqual(len(again.get('/api/v1/auth/workspaces').json()['items']),1)
+
+    def test_attendance_counts_are_scoped_dated_and_do_not_expose_message_content(self):
+        owner = self.register('attendance@example.test')
+        other = self.register('attendance-other@example.test')
+        for user in (owner, other):
+            workspace = user.identity['negocio']['id']
+            with psycopg.connect(accounts.DB) as conn:
+                conn.execute("SELECT set_config('TimeZone', %s, true)", (settings.business_timezone().key,))
+                conversation = conn.execute(
+                    "INSERT INTO socialmei.me_conversations(workspace_id,channel,account_ref,contact_ref,contact_name) "
+                    "VALUES(%s,'whatsapp','synthetic:report','synthetic:contact','Private contact') RETURNING id",
+                    (workspace,),
+                ).fetchone()[0]
+                for index, offset in enumerate((0, 0, 3, -1)):
+                    conn.execute(
+                        "INSERT INTO socialmei.me_messages(workspace_id,conversation_id,external_message_id,fingerprint,conversation_revision,text,occurred_at) "
+                        "VALUES(%s,%s,%s,%s,1,'Private message',CURRENT_DATE-(%s::integer)+INTERVAL '1 hour')",
+                        (workspace, conversation, str(index), 'a'*64, offset),
+                    )
+        report = owner.get('/api/v1/reporting/overview?days=1')
+        self.assertEqual(report.status_code, 200, report.text)
+        self.assertEqual(report.json()['attendance'], [
+            {'channel': 'whatsapp', 'origin': 'synthetic', 'conversations': 1, 'messages': 2}
+        ])
+        csv = owner.get('/api/v1/reporting/overview.csv?days=1')
+        self.assertIn('Mensagens recebidas,whatsapp,synthetic,2,', csv.text)
+        self.assertNotIn('Private contact', csv.text)
+        self.assertNotIn('Private message', csv.text)

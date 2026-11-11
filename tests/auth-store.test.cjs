@@ -30,6 +30,7 @@ function setup(
   config = { mode: "remote", apiBaseUrl: "/api/v1" },
   local = storage(),
   session = storage(),
+  entry = {},
 ) {
   let reloads = 0;
   const requests = [];
@@ -41,9 +42,12 @@ function setup(
     location: {
       href: "https://app.example.com/frontend/socialmei-app.html",
       origin: "https://app.example.com",
+      pathname: "/frontend/socialmei-app.html",
+      hash: "",
       reload() {
         reloads++;
       },
+      ...entry,
     },
     URL,
     AbortController,
@@ -59,6 +63,7 @@ function setup(
     auth: context.auth,
     requests,
     local,
+    location: context.location,
     get reloads() {
       return reloads;
     },
@@ -133,6 +138,47 @@ test("authenticated writes use CSRF and passwords never enter storage", async ()
   assert.equal(options.headers["X-SocialMEI-Client"], "browser");
   assert(!JSON.stringify([...local.data]).includes("private"));
   assert(!JSON.stringify([...local.data]).includes("csrf_token"));
+});
+
+test("expired recovery link isolates old account state without reloading away its in-memory token", async () => {
+  const local = storage({
+    "socialmei-auth-browser-scope": "1:1",
+    "socialmei-private-work": "preserve-old-account",
+  });
+  let complete;
+  const ctx = setup(
+    () => new Promise((resolve) => (complete = resolve)),
+    { mode: "remote", apiBaseUrl: "/api/v1" },
+    local,
+    storage(),
+    { pathname: "/frontend/entrada.html", hash: "#/recuperar/" + "T".repeat(43) },
+  );
+  // entrada.js erases the token fragment while the session request is pending.
+  ctx.location.hash = "#/recuperar";
+  complete(reply(null));
+  assert.equal(await ctx.auth.ready, null);
+  assert.equal(ctx.auth.current, null);
+  assert.equal(ctx.reloads, 0);
+  assert.equal(local.getItem("socialmei-auth-browser-scope"), "");
+  assert.equal(local.getItem("socialmei-private-work"), null);
+  assert.equal(
+    JSON.parse(local.getItem("socialmei-account-state-1:1"))["socialmei-private-work"],
+    "preserve-old-account",
+  );
+  assert(!JSON.stringify([...local.data]).includes("T".repeat(43)));
+});
+
+test("normal entry still reloads when the server identity changes", async () => {
+  const local = storage({ "socialmei-auth-browser-scope": "1:1" });
+  const ctx = setup(
+    () => reply(null),
+    { mode: "remote", apiBaseUrl: "/api/v1" },
+    local,
+    storage(),
+    { pathname: "/frontend/entrada.html", hash: "#/entrar" },
+  );
+  await ctx.auth.ready;
+  assert.equal(ctx.reloads, 1);
 });
 test("invalid password response does not change account state or reload", async () => {
   const ctx = setup((url) =>

@@ -247,12 +247,30 @@ def resume(conversation_id: int, payload: ChannelAccess):
     with operation_database() as conn:
         if conversation_channel(conn, user['workspace_id'], conversation_id) != payload.channel_id:
             raise HTTPException(404, 'Canal não encontrado nesta conversa.')
+        # Serialize against the human claim before allowing automation again.
+        conn.execute("SELECT conversation_id FROM socialmei.wa_bot_conversations "
+                     "WHERE workspace_id=%s AND channel_id=%s AND conversation_id=%s FOR UPDATE",
+                     (user['workspace_id'], payload.channel_id, conversation_id)).fetchone()
+        if pending_human_reply(conn, user['workspace_id'], payload.channel_id, conversation_id):
+            raise HTTPException(409, 'Existe resposta humana iniciada ou incerta. Concilie antes de retomar o bot.')
         row = conn.execute("UPDATE socialmei.wa_bot_conversations SET state='menu',revision=revision+1,updated_at=NOW() "
                            "WHERE workspace_id=%s AND channel_id=%s AND conversation_id=%s RETURNING conversation_id",
                            (user['workspace_id'], payload.channel_id, conversation_id)).fetchone()
         if not row:
             raise HTTPException(404, 'Conversa não encontrada.')
         conn.execute("INSERT INTO socialmei.auth_auditoria(user_id,acao) VALUES(%s,'whatsapp_bot_resumed')", (user['id'],))
+
+
+def pending_human_reply(conn, workspace, channel, conversation):
+    # Keep the existing 033 bot usable before the additive human outbox migration.
+    if conn.execute("SELECT to_regclass('socialmei.wa_human_replies') AS relation").fetchone()['relation'] is None:
+        return False
+    return conn.execute(
+        "SELECT EXISTS(SELECT 1 FROM socialmei.wa_human_replies "
+        "WHERE workspace_id=%s AND channel_id=%s AND conversation_id=%s "
+        "AND status IN ('dispatching','uncertain')) AS pending",
+        (workspace, channel, conversation),
+    ).fetchone()['pending']
 
 
 def conversation_channel(conn, workspace, conversation_id):
@@ -433,6 +451,8 @@ def claim(decision_id: UUID, payload: Strict, request: Request):
         permitted = row['status'] == 'planned' and row['created_at'] > datetime.now(timezone.utc) - timedelta(minutes=2) and row['state_revision'] == state['revision']
         contacts = settings.whatsapp_bot_allowed_contacts()
         permitted = permitted and (contacts is None or state['contact_ref'] in contacts)
+        permitted = permitted and not pending_human_reply(
+            conn, channel['workspace_id'], channel['channel_id'], row['conversation_id'])
         if not permitted:
             return {'operation_id': str(row['id']), 'dispatch_allowed': False, 'status': row['status']}
         conn.execute("UPDATE socialmei.wa_bot_decisions SET status='claimed',claimed_at=NOW() WHERE id=%s", (decision_id,))

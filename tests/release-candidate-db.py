@@ -34,6 +34,17 @@ def canonical(value):
     return json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=True, default=str)
 
 
+def reviewed_migrations():
+    files = sorted((ROOT/'database/migrations').glob('*.sql'))
+    spec = importlib.util.spec_from_file_location('rc_release_profile', ROOT/'tools/team-release-profile.py')
+    profile = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(profile)
+    identity = profile.verify([path.name for path in files], lambda name: (ROOT/'database/migrations'/name).read_bytes())
+    if identity['profile'] != '035':
+        raise AssertionError('Current release requires the exact reviewed035 schema')
+    return files, identity
+
+
 class Rehearsal:
     def __init__(self, output):
         self.output = output
@@ -391,8 +402,9 @@ class Rehearsal:
 
     def run(self, backend_tests):
         import psycopg
-        files = sorted((ROOT/'database/migrations').glob('*.sql'))
-        self.check(len(files) == 33 and [p.name[:3] for p in files] == [f'{n:03}' for n in range(1,34)], 'exact incremental migrations001–033 present')
+        files, identity = reviewed_migrations()
+        self.check(True, 'exact reviewed migrations001–035 names and SQL hashes present')
+        self.report['release_profile'] = identity['profile']
         manifest = {}
         for path in files:
             committed = subprocess.run(['git','show','HEAD:database/migrations/'+path.name], cwd=ROOT, capture_output=True, check=True).stdout
@@ -442,12 +454,12 @@ class Rehearsal:
                 # requires exact preservation across each incremental migration.
                 self.check(all(all(row in [{key: item[key] for key in legacy_columns[name]} for item in current['tables'][name]] for row in rows) for name,rows in legacy.items()), f'{number:03} preserves all preexisting001–011 row values')
             baseline = self.snapshot()
-            self.migrate(folder, 'ledger replay001–033')
+            self.migrate(folder, 'ledger replay001–035')
             self.check(self.snapshot() == baseline, 'team migrator ledger replay preserves rows, schema, sequences and applied_at')
             with self.connect() as conn:
                 for path in files[11:]:
                     conn.execute(path.read_text(), prepare=False)
-            self.check(self.snapshot() == baseline, 'raw012–033 reapplication is idempotent with seeded data')
+            self.check(self.snapshot() == baseline, 'raw012–035 reapplication is idempotent with seeded data')
             with tempfile.TemporaryDirectory(prefix='socialmei-rc80-failure-') as failure:
                 (Path(failure)/'999_release_probe.sql').write_text('CREATE TABLE socialmei.rc80_rollback_probe(id INT); SELECT 1/0;')
                 try:

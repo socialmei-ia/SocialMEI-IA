@@ -11,9 +11,17 @@ from sales_data import Money, linked_client
 from shared_data import MAX_SAFE_ID, ensure_workspace, require_shared_data
 
 from database import connect
+import settings
 
 router = APIRouter(prefix="/api/v1/financeiro", tags=["financeiro"])
 FINANCE_COLUMNS = "id, cliente_id, descricao, pessoa, tipo, valor, vencimento, status, data_pagamento, importada, excluida, versao, criado_em, atualizado_em"
+
+
+def payment_date() -> date:
+    try:
+        return datetime.now(settings.business_timezone()).date()
+    except ValueError:
+        raise HTTPException(503, "Confira o fuso horário configurado para o negócio.") from None
 
 
 class FinanceFields(BaseModel):
@@ -147,7 +155,7 @@ def create_entry(payload: FinanceCreate):
         if replay:
             return replay
         values = entry_values(cur, workspace_id, payload)
-        values["data_pagamento"] = date.today() if payload.status == "pago" else None
+        values["data_pagamento"] = payment_date() if payload.status == "pago" else None
         cur.execute(
             f"INSERT INTO socialmei.crm_financeiro (workspace_id, {', '.join(values)}) VALUES (%s, {', '.join(['%s'] * len(values))}) RETURNING {FINANCE_COLUMNS}",
             [workspace_id, *values.values()],
@@ -194,7 +202,7 @@ def change_entry(entry_id, payload, kind):
         if kind == "pagar":
             cur.execute(
                 f"UPDATE socialmei.crm_financeiro SET status = 'pago', data_pagamento = %s, versao = versao + 1, atualizado_em = NOW() WHERE workspace_id = %s AND id = %s RETURNING {FINANCE_COLUMNS}",
-                (date.today(), workspace_id, entry_id),
+                (payment_date(), workspace_id, entry_id),
             )
         else:
             cur.execute(

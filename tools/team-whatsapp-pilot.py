@@ -110,15 +110,16 @@ def session_info(waha, suffix):
         raise Blocked("Numero WAHA nao confere com sufixo autorizado")
     hooks = [h for h in config.get("webhooks", []) if isinstance(h, dict)]
     active = [h for h in hooks
-              if urlsplit(str(h.get("url", ""))).path.startswith("/webhook-test/")
+              if urlsplit(str(h.get("url", ""))).path.startswith(("/webhook-test/", "/webhook/"))
               and "message" in (h.get("events") or [])]
     if len(active) != 1:
-        raise Blocked("Esperado um webhook de teste WAHA com evento message")
+        raise Blocked("Esperado exatamente um webhook n8n WAHA com evento message")
     # Existing n8n webhook secrets are unrelated and must not be copied to
     # the future API webhook. A new independent secret is generated ONLY when
     # the operator explicitly provisions a private registry.
     return {"name": name, "account": identity,
-            "hook_test": True, "engine": engine}
+            "hook_test": urlsplit(str(active[0].get("url", ""))).path.startswith("/webhook-test/"),
+            "engine": engine}
 
 
 DB_PY = """
@@ -263,7 +264,7 @@ def main():
           (private / "waha-registry.json").exists() if private else "NAO_VERIFICAVEL")
     print("REDE_API_N8N:", "CONECTADA" if shared_api_n8n else "PENDENTE")
     print("REDE_API_WAHA:", "CONECTADA" if shared_api_wa else "PENDENTE")
-    print("WEBHOOK_ATUAL: TESTE_N8N")
+    print("WEBHOOK_ATUAL: " + ("TESTE_N8N" if session.get("hook_test", True) else "PUBLICADO_N8N"))
     if not a.prepare_channel:
         print("MODO: LEITURA; NADA FOI ALTERADO")
         return

@@ -1,6 +1,10 @@
 /* Execute the unchanged V22 application only after the server identity is known. */
 (async () => {
   const auth = window.SocialMEIAuth;
+  const detailsStyle = document.createElement("link");
+  detailsStyle.rel = "stylesheet";
+  detailsStyle.href = "styles/v22-client-details.css";
+  document.head.appendChild(detailsStyle);
   await auth.ready;
   if (auth.remote && !auth.current) {
     if (!auth.problem && localStorage.getItem("socialmei-auth-browser-scope")) return;
@@ -55,6 +59,10 @@
   });
   await window.SocialMEIV22.ready;
   if (auth.remote) {
+    const agenda = document.createElement("script");
+    agenda.src = "scripts/v22-agenda.js";
+    agenda.onerror = () => console.warn("Agenda compartilhada indisponível.");
+    document.body.appendChild(agenda);
     const knowledge = document.createElement("script");
     knowledge.src = "scripts/v22-knowledge-reporting.js";
     knowledge.onerror = () => console.warn("Gestão de conhecimento indisponível.");
@@ -67,6 +75,10 @@
     whatsappBot.src = "scripts/v22-whatsapp-bot.js";
     whatsappBot.onerror = () => console.warn("Controle de atendimento WhatsApp indisponível.");
     document.body.appendChild(whatsappBot);
+    const whatsappReplies = document.createElement("script");
+    whatsappReplies.src = "scripts/v22-whatsapp-replies.js";
+    whatsappReplies.onerror = () => console.warn("Respostas WhatsApp indisponíveis.");
+    document.body.appendChild(whatsappReplies);
     const whatsappReadiness = document.createElement("script");
     whatsappReadiness.src = "scripts/v22-whatsapp-readiness.js";
     whatsappReadiness.onerror = () => console.warn("Estado WhatsApp indisponível.");
@@ -93,6 +105,10 @@
       publishing.src = "scripts/v22-instagram-publisher.js";
       publishing.onerror = () => console.warn("Publicação Instagram indisponível.");
       document.body.appendChild(publishing);
+      const media = document.createElement("script");
+      media.src = "scripts/v22-instagram-media.js";
+      media.onerror = () => console.warn("Consulta de publicações Instagram indisponível.");
+      document.body.appendChild(media);
     };
     document.body.appendChild(instagram);
   }
@@ -102,6 +118,9 @@
     document.body.appendChild(profile);
   }
 })().catch(() => {
-  document.getElementById("app").textContent =
+  const app = document.getElementById("app");
+  app.hidden = false;
+  app.setAttribute("role", "alert");
+  app.textContent =
     "Não foi possível carregar sua sessão. Atualize a página para tentar novamente.";
 });

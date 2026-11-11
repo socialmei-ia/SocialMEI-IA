@@ -127,6 +127,10 @@ const SocialMEIAuth = (() => {
     return value;
   }
   async function bootstrap() {
+    // entrada.js keeps this token only in memory after erasing the fragment.
+    const recoveryEntry =
+      location.pathname === "/frontend/entrada.html" &&
+      /^#\/recuperar\/[A-Za-z0-9_-]{43}$/.test(location.hash);
     try {
       if (config.mode !== "remote") throw new Error("Configuração de autenticação inválida.");
       const url = new URL(config.apiBaseUrl, location.href);
@@ -142,7 +146,7 @@ const SocialMEIAuth = (() => {
       base = url.href.replace(/\/$/, "");
       const session = await request("/auth/session");
       const value = session === null ? null : identity(session);
-      if (bindBrowser(value)) {
+      if (bindBrowser(value) && !recoveryEntry) {
         location.reload();
         return null;
       }
