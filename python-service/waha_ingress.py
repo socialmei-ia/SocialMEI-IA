@@ -267,6 +267,8 @@ def parse_event(raw, signature, algorithm, binding):
         text = choices[0] if choices else None
         if not isinstance(text, str) or text not in {"0", "1", "2", "3", "4", "5", "9"} or any(value != text for value in choices):
             text = None
+        elif text == "9":
+            text = "5"
     if (
         message["hasMedia"]
         or not isinstance(message_type, str)
