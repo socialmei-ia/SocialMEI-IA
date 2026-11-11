@@ -53,7 +53,11 @@ def main():
                 # One background lookup per 15 minutes avoids hammering the Meta API.
                 if time.monotonic()-last_contact_refresh>=900:
                     last_contact_refresh=time.monotonic()
-                    try: refresh_contacts(runtime,workspace,limit=1)
+                    try:
+                        outcome=refresh_contacts(runtime,workspace,limit=1,
+                                                 after_id=state.get('contact_refresh_cursor',0))
+                        state['contact_refresh_cursor']=outcome['last_id']
+                        save(path,state)
                     except Exception: pass
                 time.sleep(15); continue
             state['in_flight']=True; save(path,state)
@@ -64,7 +68,11 @@ def main():
                 state['confirmed']+=1
                 print('INSTAGRAM_MENU_CONFIRMED',state['confirmed'],flush=True)
             state['in_flight']=False; save(path,state)
-            try: refresh_contacts(runtime,workspace,limit=1)
+            try:
+                outcome=refresh_contacts(runtime,workspace,limit=1,
+                                         after_id=state.get('contact_refresh_cursor',0))
+                state['contact_refresh_cursor']=outcome['last_id']
+                save(path,state)
             except Exception: pass
             last_contact_refresh=time.monotonic()
             time.sleep(3)
