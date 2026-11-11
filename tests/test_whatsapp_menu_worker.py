@@ -12,6 +12,49 @@ spec.loader.exec_module(worker)
 
 
 class ContinuousWorkerTests(unittest.TestCase):
+    def test_gows_requires_explicit_private_target_and_session(self):
+        webjs = worker.Config('trusted-a', 'default', '111@c.us',
+                              'synthetic-token-123456', 'synthetic-waha-key-123456')
+        self.assertEqual(webjs.engine, 'WEBJS')
+        self.assertEqual(webjs.waha_url, worker.WAHA_URL)
+        gows = worker.Config('trusted-a', '01', '111@c.us',
+                             'synthetic-token-123456', 'synthetic-waha-key-123456',
+                             'GOWS', worker.GOWS_URL)
+        self.assertEqual(gows.engine, 'GOWS')
+        for engine, url, session in [
+            ('GOWS', worker.WAHA_URL, '01'),
+            ('GOWS', worker.GOWS_URL, 'default'),
+            ('WEBJS', worker.GOWS_URL, 'default'),
+        ]:
+            with self.subTest(engine=engine, url=url, session=session):
+                with self.assertRaises(worker.Blocked):
+                    worker.Config('trusted-a', session, '111@c.us',
+                                  'synthetic-token-123456', 'synthetic-waha-key-123456',
+                                  engine, url)
+
+    def test_gows_engine_mismatch_never_claims_or_sends(self):
+        cfg = worker.Config('trusted-a', '01', '111@c.us',
+                            'synthetic-token-123456', 'synthetic-waha-key-123456',
+                            'GOWS', worker.GOWS_URL)
+        api, provider = Mock(), Mock()
+        for client in (api, provider):
+            client.__enter__ = Mock(return_value=client)
+            client.__exit__ = Mock(return_value=False)
+        api.request.side_effect = [
+            httpx.Response(200, json={'sources': [
+                {'instance': 'trusted-a', 'external_message_id': 'test-message'}]}),
+            httpx.Response(200, json={'operation_id': '12345678-1234-1234-1234-123456789abc',
+                                      'status': 'planned'}),
+        ]
+        provider.request.return_value = httpx.Response(200, json={'engine': 'WEBJS'})
+        with self.assertRaises(worker.Blocked):
+            worker.run_once(cfg, client_factory=Mock(side_effect=[api, provider]))
+        self.assertEqual(provider.request.call_count, 1)
+        self.assertEqual(provider.request.call_args.args[1], worker.GOWS_URL + '/api/version')
+        self.assertEqual(api.request.call_count, 2)
+        self.assertTrue(all(call.args[0] != 'POST' or call.args[1].endswith('/decisions')
+                            for call in api.request.call_args_list))
+
     def test_bounded_window_stops_new_polls_and_sends(self):
         poll = Mock(return_value='SEM_MENSAGENS_NOVAS')
         sleep = Mock()
