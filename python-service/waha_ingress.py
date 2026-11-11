@@ -212,6 +212,29 @@ def parse_event(raw, signature, algorithm, binding):
         invalid()
     sender = message.get("from")
     recipient = message.get("to", "") if event == "message.ack" else message.get("to")
+    # GOWS can omit the destination of private messages. Infer only for a
+    # signed inbound direct message bound to this authenticated account.
+    # WEBJS and explicitly conflicting destinations remain strictly validated.
+    if (
+        recipient is None
+        and binding.engine == "GOWS"
+        and event in {"message", "message.any"}
+        and not from_me
+        and isinstance(sender, str)
+        and DIRECT.fullmatch(sender)
+        and message.get("participant") is None
+        and "to" not in message
+    ):
+        recipient = binding.account_id
+    elif (
+        recipient is None
+        and binding.engine == "GOWS"
+        and from_me
+        and event in {"message", "message.any"}
+        and "to" not in message
+    ):
+        # Outgoing copies are echo-only and never authorize a new send.
+        recipient = ""
     if (
         not isinstance(sender, str)
         or not isinstance(recipient, str)
@@ -220,7 +243,7 @@ def parse_event(raw, signature, algorithm, binding):
         or not re.fullmatch(r"[!-~]{1,255}", sender)
         or (
             not re.fullmatch(r"[!-~]{1,255}", recipient)
-            and not (event == "message.ack" and recipient == "")
+            and not ((event == "message.ack" or (binding.engine == "GOWS" and from_me)) and recipient == "")
         )
     ):
         invalid()
