@@ -51,6 +51,23 @@ def binding(**patches):
 
 
 class ContractTests(unittest.TestCase):
+    def test_gows_messages_require_explicit_channel_engine_and_valid_hmac(self):
+        sample = raw(payload(engine='GOWS'))
+        b = binding(engine='GOWS')
+        event = parse_event(sample, sign(sample), 'sha512', b)
+        self.assertEqual(event.kind, 'message')
+        self.assertEqual(event.text, ' Original\\n')
+        self.assertEqual(event.account_ref, 'waha:111@c.us')
+        with self.assertRaises(HTTPException):
+            parse_event(sample, sign(sample), 'sha512', binding())
+        with self.assertRaises(HTTPException):
+            parse_event(sample, '0' * 128, 'sha512', b)
+        webjs = raw(payload(engine='WEBJS'))
+        with self.assertRaises(HTTPException):
+            parse_event(webjs, sign(webjs), 'sha512', b)
+        with self.assertRaises(ValueError):
+            binding(engine='UNKNOWN')
+
     def test_raw_hmac_before_parse_or_database_and_exact_owner_binding(self):
         service = WahaIngressService({"trusted-a": binding()})
         with patch(
