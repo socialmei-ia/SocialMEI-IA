@@ -53,7 +53,11 @@ class WahaHumanTransport:
         if not isinstance(configuration, WhatsAppHumanConfiguration) or not callable(client_factory) or not callable(clock):
             raise WahaPolicyError()
         # Defense in depth: no other URL is ever used, even with an injected configuration.
-        if configuration.base_url not in {'http://waha:3000', 'http://socialmei-waha:3000'} or type(configuration.public_inbound) is not bool:
+        allowed = {'WEBJS': {'http://waha:3000', 'http://socialmei-waha:3000'},
+                   'GOWS': {'http://socialmei-waha-gows-piloto:3000'}}
+        if (configuration.engine not in allowed or configuration.base_url not in allowed.get(configuration.engine, set())
+                or (configuration.engine == 'GOWS' and configuration.session != '01')
+                or type(configuration.public_inbound) is not bool):
             raise WahaPolicyError()
         self._configuration = configuration
         self._client_factory = client_factory
@@ -127,6 +131,10 @@ class WahaHumanTransport:
                 timeout=httpx.Timeout(5, connect=2),
                 limits=httpx.Limits(max_connections=2, max_keepalive_connections=0),
             ) as client:
+                if config.engine == 'GOWS':
+                    version = self._request(client, 'GET', '/api/version')
+                    if version.get('engine') != 'GOWS':
+                        raise WahaTransportError()
                 session = self._request(client, 'GET', '/api/sessions/' + quote(config.session, safe=''))
                 if (session.get('name') != config.session or session.get('status') != 'WORKING'
                         or not isinstance(session.get('me'), dict)
