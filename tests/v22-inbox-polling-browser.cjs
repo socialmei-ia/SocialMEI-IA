@@ -159,7 +159,10 @@ module.exports = async function (browser, origin) {
       await page.locator(".ct .ms .bb", { hasText: "Menu confirmado" }).waitFor();
       await page.clock.fastForward(30001);
       assert.equal(await page.locator(".ct .ms .bb", { hasText: "Menu confirmado" }).count(), 1);
-      assert.match(await page.locator(".ct .ms").innerText(), /Aceita pelo WAHA; entrega não verificada/);
+      assert.match(
+        await page.locator(".ct .ms").innerText(),
+        /Aceita pelo WAHA; entrega não verificada/,
+      );
       assert.equal(documents, documentCount, "Confirmed menu replies update without reloading");
       await page.evaluate(() => go("/caixa"));
       await page.getByRole("link", { name: "Contato Direct B", exact: true }).waitFor();
