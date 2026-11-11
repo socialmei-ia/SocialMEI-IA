@@ -13,6 +13,7 @@
 document.documentElement.dataset.theme=d?'dark':'light';if(localStorage.getItem('smei-calm')==='1')document.documentElement.classList.add('calm');
 var c=localStorage.getItem('smei-brand'),m={v:'#0e7a43',r:'#6a46d9',k:'#c2185b',l:'#a64a08',g:'#334155'};if(m[c])document.documentElement.style.setProperty('--brand',m[c])}catch(e){}})();
 </script>
+<style>.smei-remote-only{display:none}html[data-auth-mode="remote"] .smei-remote-only{display:inline}html[data-auth-mode="remote"] .smei-demo-only{display:none}</style>
 </head>
 <body>
 <a class="skip" href="#conteudo">Pular para o conteúdo</a>
@@ -254,7 +255,7 @@ var c=localStorage.getItem('smei-brand'),m={v:'#0e7a43',r:'#6a46d9',k:'#c2185b',
    <section id="panC" role="tabpanel" aria-labelledby="tabC">
     <h1>Crie seu espaço</h1>
     <p class="m">Só o essencial para começar.</p>
-    <div class="pxb"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-info"/></svg><span>Demonstração: nenhuma conta real é criada e a senha não é guardada.</span></div>
+    <div class="pxb"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-info"/></svg><span><span class="smei-demo-only">Demonstração: nenhuma conta real é criada e a senha não é guardada.</span><span class="smei-remote-only">Conta real: os dados são salvos no SocialMEI e a senha é protegida por hash.</span></span></div>
     <form id="fC" novalidate>
      <div class="row2">
      <div class="fld"><label for="cNome">Seu nome</label><input class="in" id="cNome" autocomplete="name" placeholder="Como te chamamos?" aria-describedby="eNome"><div class="err" id="eNome" role="alert"></div></div>
@@ -277,7 +278,7 @@ var c=localStorage.getItem('smei-brand'),m={v:'#0e7a43',r:'#6a46d9',k:'#c2185b',
     <p class="m">Atendimento, vendas e próximos passos, juntos.</p>
     <p class="who" id="who" hidden><span>Entrando como <b id="whoN"></b></span><button class="lk" type="button" id="notYou">Não é você?</button></p>
     <div class="hint" id="whoMsg" role="status" aria-live="polite"></div>
-    <div class="pxb"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-info"/></svg><span>Nesta demonstração, qualquer e-mail e senha válidos abrem o app.</span></div>
+    <div class="pxb"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-info"/></svg><span><span class="smei-demo-only">Nesta demonstração, qualquer e-mail e senha válidos abrem o app.</span><span class="smei-remote-only">Entre com as credenciais da sua conta cadastrada no SocialMEI.</span></span></div>
     <form id="fE" novalidate>
      <div class="fld"><label for="eMailL">E-mail</label><input class="in" id="eMailL" type="email" autocomplete="email" placeholder="voce@exemplo.com" aria-describedby="eMailLe"><div class="err" id="eMailLe" role="alert"></div></div>
      <div class="fld"><label for="ePassL">Senha</label><div class="pw"><input class="in" id="ePassL" type="password" autocomplete="current-password" placeholder="Sua senha" aria-describedby="ePassLe"><button type="button" data-pw="ePassL" aria-controls="ePassL" aria-pressed="false">Mostrar</button></div><div class="hint caps" id="caps_ePassL" role="status" hidden>Caps Lock está ligado: as letras saem em maiúsculas.</div><div class="err" id="ePassLe" role="alert"></div></div>
