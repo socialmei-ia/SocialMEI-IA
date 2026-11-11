@@ -138,6 +138,29 @@ module.exports = async function (browser, origin) {
         "Resolving identity never creates another message",
       );
       assert.equal(documents, documentCount, "A verified contact label updates without reloading");
+      items = items.map((row) =>
+        row.id === 3
+          ? {
+              ...row,
+              messages: [
+                ...row.messages,
+                {
+                  id: "wa-bot-synthetic",
+                  text: "Menu confirmado\n\n1 - Produtos",
+                  occurred_at: "2026-10-26T10:00:01Z",
+                  direction: "outgoing",
+                  provider: "waha",
+                },
+              ],
+            }
+          : row,
+      );
+      await page.clock.fastForward(30001);
+      await page.locator(".ct .ms .bb", { hasText: "Menu confirmado" }).waitFor();
+      await page.clock.fastForward(30001);
+      assert.equal(await page.locator(".ct .ms .bb", { hasText: "Menu confirmado" }).count(), 1);
+      assert.match(await page.locator(".ct .ms").innerText(), /Aceita pelo WAHA; entrega não verificada/);
+      assert.equal(documents, documentCount, "Confirmed menu replies update without reloading");
       await page.evaluate(() => go("/caixa"));
       await page.getByRole("link", { name: "Contato Direct B", exact: true }).waitFor();
       assert.match(await page.locator("#v").innerText(), /Recebimento habilitado no servidor/);
