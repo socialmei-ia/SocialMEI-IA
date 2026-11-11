@@ -250,13 +250,31 @@ def parse_event(raw, signature, algorithm, binding):
         kind = "unsupported"
     if not from_me and kind == "message" and recipient != binding.account_id:
         invalid()
+    text = message.get("body")
+    message_type = message.get("type", "chat")
+    if isinstance(message_type, str) and message_type in {"buttons_response", "list_response"}:
+        raw_data = message.get("_data")
+        raw_data = raw_data if isinstance(raw_data, dict) else {}
+        selection = raw_data.get("listResponse")
+        selection = selection if isinstance(selection, dict) else {}
+        reply = selection.get("singleSelectReply")
+        reply = reply if isinstance(reply, dict) else {}
+        choices = [
+            message.get("selectedButtonId"), message.get("selectedRowId"),
+            raw_data.get("selectedButtonId"), reply.get("selectedRowId"),
+        ]
+        choices = [value for value in choices if value is not None]
+        text = choices[0] if choices else None
+        if not isinstance(text, str) or text not in {"0", "1", "2", "3", "4", "5", "9"} or any(value != text for value in choices):
+            text = None
     if (
         message["hasMedia"]
-        or message.get("type", "chat") != "chat"
-        or not isinstance(message.get("body"), str)
+        or not isinstance(message_type, str)
+        or message_type not in {"chat", "buttons_response", "list_response"}
+        or not isinstance(text, str)
     ):
         kind = "unsupported" if not from_me else "echo"
-    text = message.get("body") if kind == "message" else None
+    text = text if kind == "message" else None
     if text is not None:
         try:
             valid = (

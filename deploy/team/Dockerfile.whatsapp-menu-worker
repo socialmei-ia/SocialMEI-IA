@@ -1,0 +1,7 @@
+ARG SOCIALMEI_MENU_BASE_IMAGE
+FROM ${SOCIALMEI_MENU_BASE_IMAGE}
+
+ARG SOCIALMEI_RELEASE_SHA=unknown
+LABEL org.opencontainers.image.revision=$SOCIALMEI_RELEASE_SHA
+COPY tools/whatsapp-menu-worker.py /app/public_worker.py
+CMD ["python", "-u", "-m", "public_worker", "--continuous"]
