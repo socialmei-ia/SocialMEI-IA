@@ -192,9 +192,18 @@ test("V22 polling observes visibility, prevents overlap and recovers after failu
   release.resolve({ workspace_id: 17, items: [inboxRow()] });
   await new Promise((resolve) => setImmediate(resolve));
   release = null;
+  let now = 100000;
+  ctx.Date = class extends Date {
+    static now() {
+      return now;
+    }
+  };
   fail = true;
   await ctx.tick();
   fail = false;
+  await ctx.tick();
+  assert.equal(reads, 3, "Failure backoff prevents an immediate automatic retry");
+  now += 12000;
   await ctx.tick();
   assert.equal(reads, 4);
   assert.equal(ctx.C[0][5], "Mensagem do Direct");
