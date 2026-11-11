@@ -200,6 +200,52 @@ class MessageEvent:
         return self.mid
 
 
+@dataclass(frozen=True)
+class BoundMessageEvent(MessageEvent):
+    """Use canonical OAuth identity while preserving the signed Meta source fingerprint."""
+    source_fingerprint: str = field(default="", repr=False)
+
+    @property
+    def canonical_fingerprint(self):
+        return self.source_fingerprint
+
+
+def bound_event(event, account):
+    return BoundMessageEvent(
+        account_id=account, sender_id=event.sender_id, recipient_id=event.recipient_id,
+        mid=event.mid, occurred_at=event.occurred_at, kind=event.kind,
+        text=event.text, content_hash=event.content_hash,
+        source_fingerprint=event.canonical_fingerprint,
+    )
+
+
+def parse_direct_alias_bindings(raw):
+    """Optional server-only exact source -> (workspace, OAuth account); no client input."""
+    if raw is None or raw == "":
+        return {}
+    if not isinstance(raw, str) or len(raw) > 16384:
+        raise ValueError("Vínculos Instagram inválidos.")
+    try:
+        items = json.loads(raw, object_pairs_hook=_unique, parse_constant=_invalid_constant)
+    except (ValueError, TypeError, RecursionError):
+        raise ValueError("Vínculos Instagram inválidos.") from None
+    if not isinstance(items, dict) or len(items) > 100:
+        raise ValueError("Vínculos Instagram inválidos.")
+    result, targets = {}, set()
+    for source, binding in items.items():
+        if not isinstance(binding, dict) or set(binding) != {"workspace_id", "connection_account_id"}:
+            raise ValueError("Vínculos Instagram inválidos.")
+        workspace, canonical = binding["workspace_id"], binding["connection_account_id"]
+        if (not isinstance(source, str) or not re.fullmatch(r"[0-9]{1,40}", source)
+                or not isinstance(canonical, str) or not re.fullmatch(r"[0-9]{1,40}", canonical)
+                or source == canonical or canonical in targets
+                or type(workspace) is not int or not 1 <= workspace <= 9223372036854775807):
+            raise ValueError("Vínculos Instagram inválidos.")
+        targets.add(canonical)
+        result[source] = (workspace, canonical)
+    return result
+
+
 def parse_message_events(raw, signature, app_secret):
     # Existing verifier authenticates the raw bytes before parsing and enforces envelope bounds.
     inspect_verified_webhook(raw, signature, app_secret)
@@ -302,7 +348,7 @@ def parse_message_events(raw, signature, app_secret):
 
 
 class InstagramIngressService:
-    def __init__(self, *, app_secret, verify_token):
+    def __init__(self, *, app_secret, verify_token, alias_bindings=None):
         if (
             not isinstance(app_secret, str)
             or len(app_secret) < 32
@@ -312,6 +358,7 @@ class InstagramIngressService:
             raise ValueError("Verificação Instagram indisponível.")
         self._app_secret = app_secret
         self._verify_token = verify_token
+        self._aliases = parse_direct_alias_bindings(alias_bindings)
 
     def challenge(self, mode, token, challenge):
         try:
@@ -328,10 +375,22 @@ class InstagramIngressService:
             pass
         if events is None:
             raise HTTPException(403, "Evento Instagram inválido ou não autenticado.")
-        return persist_authenticated_events(events)
+        if not any(event.account_id in self._aliases for event in events):
+            return persist_authenticated_events(events)
+        mapped = []
+        alias_workspaces = {}
+        for event in events:
+            alias = self._aliases.get(event.account_id)
+            if alias is None:
+                mapped.append(event)
+                continue
+            workspace, canonical = alias
+            mapped.append(bound_event(event, canonical))
+            alias_workspaces[canonical] = workspace
+        return persist_authenticated_events(mapped, alias_bindings=alias_workspaces)
 
 
-def persist_authenticated_events(events, account_bindings=None):
+def persist_authenticated_events(events, account_bindings=None, alias_bindings=None):
     """Persist authenticated ingress atomically, independently of AI and sends."""
     accounts = sorted({event.account_id for event in events})
     result = {"received": True, "processed": 0, "ignored": 0, "duplicates": 0}
@@ -357,6 +416,8 @@ def persist_authenticated_events(events, account_bindings=None):
                         404, "Conta Instagram não disponível para recebimento."
                     )
                 if account_bindings is not None and account_bindings.get(account) != row["workspace_id"]:
+                    raise HTTPException(403, "Vínculo Instagram não autorizado para esta integração.")
+                if alias_bindings is not None and account in alias_bindings and alias_bindings[account] != row["workspace_id"]:
                     raise HTTPException(403, "Vínculo Instagram não autorizado para esta integração.")
                 bindings[account] = row
             for workspace in sorted({r["workspace_id"] for r in bindings.values()}):

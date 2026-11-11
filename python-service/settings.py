@@ -317,7 +317,7 @@ def instagram_runtime_configuration() -> dict:
             "client_id": "CLIENT_ID", "client_secret": "CLIENT_SECRET",
             "graph_version": "GRAPH_VERSION", "authorization_embed": "AUTHORIZATION_EMBED",
             "keyring": "TOKEN_KEYRING", "active_key_id": "TOKEN_ACTIVE_KEY_ID",
-            "verify_token": "WEBHOOK_VERIFY_TOKEN", "ingress": "RUNTIME_INGRESS_ENABLED",
+            "verify_token": "WEBHOOK_VERIFY_TOKEN", "webhook_aliases": "WEBHOOK_ACCOUNT_ALIASES", "ingress": "RUNTIME_INGRESS_ENABLED",
             "send": "RUNTIME_SEND_ENABLED", "privacy_reviewed": "PROXY_PRIVACY_REVIEWED",
         }.items()
     }
