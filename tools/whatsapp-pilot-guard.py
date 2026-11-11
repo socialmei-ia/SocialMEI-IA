@@ -69,6 +69,9 @@ def main():
 
     try:
         config = Config.from_env()
+        state['configuration_validated'] = True
+        save()
+        print('PILOT_READY', flush=True)
         while within_window():
             result = run_once(config, client_factory=PilotClient)
             if result == 'ENVIO_CONFIRMADO':
@@ -96,6 +99,8 @@ def main():
 if __name__ == '__main__':
     try:
         main()
-    except Exception:
-        print('PILOT_CLOSED_STARTUP_ERROR', flush=True)
+    except Exception as error:
+        import traceback
+        location = traceback.extract_tb(error.__traceback__)[-1]
+        print('PILOT_CLOSED_STARTUP_ERROR', type(error).__name__, 'line', location.lineno, flush=True)
         pause()
