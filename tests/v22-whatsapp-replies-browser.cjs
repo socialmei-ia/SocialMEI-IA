@@ -1,8 +1,8 @@
 /* Native inbox with synthetic API and provider receipts. No external network. */
 const assert = require("node:assert/strict");
-module.exports = async (browser, origin) => {
+module.exports = async (browser, origin, options = {}) => {
   let cases = 0;
-  for (const mode of [
+  for (const mode of options.modes || [
     "disabled",
     "confirmed",
     "uncertain",
@@ -11,6 +11,7 @@ module.exports = async (browser, origin) => {
     "lost-send",
     "storage-blocked",
     "viewer",
+    "after-menu",
   ])
     for (const width of [390, 1440]) {
       const context = await browser.newContext({
@@ -38,6 +39,14 @@ module.exports = async (browser, origin) => {
         contact_name: "Contato autorizado fictício",
         messages: [{ id: 11, text: "Qual o preço?", occurred_at: "2026-10-31T09:00:00Z" }],
       };
+      if (mode === "after-menu")
+        incoming.messages.push({
+          id: "wa-bot-synthetic",
+          text: "Menu confirmado\n\n1 - Produtos",
+          direction: "outgoing",
+          provider: "waha",
+          occurred_at: "2026-10-31T09:00:01Z",
+        });
       await page.addInitScript(() => localStorage.setItem("socialmei-auth-browser-scope", "91:17"));
       if (mode === "storage-blocked")
         await page.addInitScript(() => {
@@ -164,7 +173,7 @@ module.exports = async (browser, origin) => {
                   exact: true,
                 },
               )
-              .waitFor();
+              .waitFor({ timeout: mode === "after-menu" ? 2000 : 30000 });
           if (mode === "disabled")
             assert.equal(await page.locator("[data-wa-send]").isDisabled(), true);
           else {
@@ -185,6 +194,7 @@ module.exports = async (browser, origin) => {
               await page
                 .locator(".ct .ms .m.sm")
                 .filter({ hasText: "Aceita pelo WAHA; entrega não verificada" })
+                .last()
                 .waitFor();
           }
           assert.equal(

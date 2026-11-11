@@ -110,7 +110,11 @@
     try {
       if (!state.pending) {
         const text = input.value,
-          source = row.messages?.at(-1)?.id;
+          source = row.messages
+            ?.filter(
+              (message) => message.direction !== "outgoing" && Number.isSafeInteger(message.id),
+            )
+            .at(-1)?.id;
         if (
           !Number.isSafeInteger(source) ||
           !text.trim() ||
