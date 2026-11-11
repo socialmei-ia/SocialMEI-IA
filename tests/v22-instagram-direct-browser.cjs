@@ -140,6 +140,15 @@ module.exports = async function (browser, origin, options = {}) {
           await page.goto(origin + "/frontend/socialmei-app.html#/caixa/me-1");
           await page.locator("[data-ig-prepare]").waitFor();
           if (options.autoMenu) {
+            await require("./v22-layout-ready.cjs").waitForViewportFit(page);
+            const controls = await page.locator("[data-ig-menu] button").evaluateAll((buttons) =>
+              buttons.map((button) => {
+                const box = button.getBoundingClientRect();
+                return { height: box.height, right: box.right, viewport: innerWidth };
+              }),
+            );
+            assert.equal(controls.length, 2);
+            assert(controls.every((box) => box.height >= 44 && box.right <= box.viewport + 1));
             assert.match(
               await page.locator(".ct").innerText(),
               /Preparar uma resposta manual pausa o menu/,
