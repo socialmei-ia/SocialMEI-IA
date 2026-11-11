@@ -345,6 +345,8 @@ def readiness(request: Request):
             "reply_preparation_available": runtime.direct is not None
             and schema_ready("direct"),
             "send_enabled": runtime.send,
+            "auto_menu_available": runtime.send and os.getenv('SOCIALMEI_INSTAGRAM_AUTO_MENU_ENABLED') == 'true'
+            and str(identity['workspace_id']) in os.getenv('SOCIALMEI_INSTAGRAM_AUTO_MENU_WORKSPACES', '').split(','),
             "publishing_available": runtime.publish is not None and schema_ready("publish"),
             "connection_status_path": "/api/v1/instagram/meta/status",
         },

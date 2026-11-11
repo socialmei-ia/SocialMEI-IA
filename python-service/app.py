@@ -33,6 +33,7 @@ from instagram_n8n_ingress import router as instagram_n8n_ingress_router
 from workspace_profile import router as workspace_profile_router
 from message_enrichment import router as message_enrichment_router, internal_router as enrichment_internal_router
 from inbox_customer import router as inbox_customer_router
+from instagram_auto_menu import router as instagram_menu_router
 from provider_sentiment import router as provider_sentiment_router
 from content_preparation import router as content_preparation_router
 from channel_ingress import router as channel_ingress_router, internal_router as channel_ingress_internal_router
@@ -116,6 +117,7 @@ app.include_router(waha_ingress_router)
 app.include_router(workspace_profile_router)
 app.include_router(message_enrichment_router)
 app.include_router(inbox_customer_router)
+app.include_router(instagram_menu_router)
 app.include_router(enrichment_internal_router)
 app.include_router(provider_sentiment_router)
 app.include_router(content_preparation_router)

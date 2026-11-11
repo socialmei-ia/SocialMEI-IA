@@ -187,6 +187,8 @@ class InstagramDirectService:
                 source, linked = self.source(
                     conn, user["workspace_id"], payload.source_message_id
                 )
+                from instagram_auto_menu import manual_pause
+                manual_pause(conn, user['workspace_id'], source['conversation_id'])
                 identity = [
                     payload.source_message_id,
                     source["conversation_id"],

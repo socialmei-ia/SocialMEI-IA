@@ -169,6 +169,28 @@
       if (selected()?.id === state.conversation) paint();
     }
   }
+  async function menuStatus(state) {
+    if (
+      !readiness?.auto_menu_available ||
+      state.menuReading ||
+      Date.now() - (state.menuReadAt || 0) < 15000
+    )
+      return;
+    state.menuReading = true;
+    state.menuReadAt = Date.now();
+    try {
+      const data = await host.request(`/instagram/menu/conversations/${state.conversation}/status`);
+      if (state.scope !== scope() || selected()?.id !== state.conversation) return;
+      state.menuState = ["menu", "ask_product", "human"].includes(data.state) ? data.state : null;
+      state.menuError = !state.menuState;
+    } catch {
+      state.menuState = null;
+      state.menuError = true;
+    } finally {
+      state.menuReading = false;
+      if (state.scope === scope() && selected()?.id === state.conversation) paint();
+    }
+  }
   function review(state) {
     if (!state.job || state.busy) return;
     const job = Object.freeze({ ...state.job });
@@ -291,6 +313,7 @@
       const reload = element("button", "Consultar respostas");
       reload.type = "button";
       reload.onclick = async () => {
+        state.menuReadAt = 0;
         await configuration(true);
         paint();
         await refresh(state, true);
@@ -303,6 +326,64 @@
         el.hidden = true;
         el.style.display = "none";
       });
+    }
+    if (readiness.auto_menu_available) {
+      let controls = section.querySelector("[data-ig-menu]");
+      if (!controls) {
+        controls = element("div");
+        controls.dataset.igMenu = "true";
+        const status = element("p");
+        status.setAttribute("role", "status");
+        status.setAttribute("aria-live", "polite");
+        controls.append(status);
+        for (const [action, label] of [
+          ["pause", "Assumir atendimento"],
+          ["resume", "Retomar menu"],
+        ]) {
+          const control = element("button", label);
+          control.type = "button";
+          control.dataset.igMenuAction = action;
+          control.onclick = async () => {
+            if (state.busy || state.scope !== scope() || selected()?.id !== state.conversation)
+              return;
+            state.busy = true;
+            paint();
+            try {
+              await host.request(
+                `/instagram/menu/conversations/${state.conversation}/${action}`,
+                "POST",
+                {},
+              );
+            } catch (error) {
+              message(state, error.message || "Não foi possível alterar o atendimento.");
+            } finally {
+              state.busy = false;
+              state.menuReadAt = 0;
+              await menuStatus(state);
+            }
+          };
+          controls.append(control);
+        }
+        section.append(controls);
+      }
+      controls.querySelector("p").textContent =
+        state.menuState === "human"
+          ? "Atendimento humano ativo. O menu está pausado."
+          : state.menuState
+            ? "Menu automático ativo nesta conversa."
+            : state.menuError
+              ? "Não foi possível consultar o menu. Atualize as respostas para tentar novamente."
+              : "Consultando o menu automático…";
+      for (const control of controls.querySelectorAll("button")) {
+        control.disabled =
+          state.busy ||
+          !canWrite() ||
+          !state.menuState ||
+          (control.dataset.igMenuAction === "pause"
+            ? state.menuState === "human"
+            : state.menuState !== "human");
+      }
+      menuStatus(state);
     }
     input.value = state.job?.text || state.pending?.text || state.text;
     section.setAttribute("aria-busy", String(state.busy));
@@ -325,7 +406,11 @@
         event.stopImmediatePropagation();
         if (state.busy || state.job || state.storageError || !canWrite()) return;
         if (!state.pending) {
-          const source = row.messages?.at(-1)?.id,
+          const source = row.messages
+              ?.filter(
+                (message) => message.direction !== "outgoing" && Number.isSafeInteger(message.id),
+              )
+              .at(-1)?.id,
             text = input.value;
           if (
             !Number.isSafeInteger(source) ||
@@ -360,6 +445,7 @@
             throw Error("Registro divergente. Não prepare outra resposta.");
           state.job = job;
           state.text = job.text;
+          state.menuReadAt = 0;
           message(state, "Rascunho salvo no servidor. Nenhuma mensagem foi enviada.");
           await refresh(state, true);
         } catch (error) {
@@ -456,6 +542,7 @@
   style.textContent =
     ".ig-human{margin-top:12px;display:flex;gap:10px;flex-wrap:wrap}.ig-human strong,.ig-human p{width:100%;font-size:14px}.ig-human select,.ig-human button,.ig-human-review button{min-height:44px;border:1px solid var(--b);border-radius:9px;padding:9px 12px;font:inherit;color:var(--t);background:var(--w);max-width:100%}.ig-human select{min-width:0;flex:1 1 100%}.ig-human-review{margin:auto;max-width:calc(100vw - 32px);width:520px;max-height:calc(100dvh - 32px);overflow:auto;background:var(--w);color:var(--t);border:1px solid var(--b);border-radius:16px;padding:22px}.ig-human-review::backdrop{background:#0008}.ig-human-review p{margin:14px 0;overflow-wrap:anywhere}.ig-human-review button{margin-right:10px}";
   document.head.append(style);
+  style.textContent += ".ig-human [data-ig-menu]{display:flex;flex-wrap:wrap;gap:8px;width:100%}";
   const render = window.render;
   if (typeof render === "function")
     window.render = function (...args) {

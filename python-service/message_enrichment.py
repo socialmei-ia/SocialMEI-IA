@@ -480,6 +480,20 @@ def conversations(request: Request, response: Response):
                     'occurred_at': row['finished_at'], 'direction': 'outgoing',
                     'provider': 'waha', 'enrichment': None,
                 })
+        from instagram_auto_menu import enabled as instagram_menu_enabled
+        instagram_ids = [row['id'] for row in items if row['origin'] == 'instagram']
+        if instagram_ids and instagram_menu_enabled(workspace):
+            rows = conn.execute(
+                "SELECT selected.conversation_id,r.* FROM unnest(%s::bigint[]) AS selected(conversation_id) "
+                "CROSS JOIN LATERAL (SELECT id,text,finished_at FROM socialmei.ig_menu_replies "
+                "WHERE workspace_id=%s AND conversation_id=selected.conversation_id AND status='confirmed' "
+                "ORDER BY finished_at DESC,id DESC LIMIT 100) AS r", (instagram_ids, workspace),
+            ).fetchall()
+            for row in rows:
+                bot_replies.setdefault(row['conversation_id'], []).append({
+                    'id': 'ig-menu-' + str(row['id']), 'text': row['text'], 'occurred_at': row['finished_at'],
+                    'direction': 'outgoing', 'provider': 'instagram', 'enrichment': None,
+                })
         for conversation in items:
             messages = messages_by_conversation[conversation['id']]
             for message in messages:

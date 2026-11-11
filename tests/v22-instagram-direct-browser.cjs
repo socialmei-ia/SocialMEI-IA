@@ -1,7 +1,7 @@
 /* Synthetic transport; real native inbox composer, review and receipt. */
 const assert = require("node:assert/strict");
-module.exports = async function (browser, origin) {
-  for (const mode of ["disabled", "confirmed", "uncertain", "changed"])
+module.exports = async function (browser, origin, options = {}) {
+  for (const mode of options.modes || ["disabled", "confirmed", "uncertain", "changed"])
     for (const width of [1440, 390])
       for (const theme of ["light", "dark"]) {
         const context = await browser.newContext({
@@ -14,6 +14,7 @@ module.exports = async function (browser, origin) {
           writes = [];
         let jobs = [],
           runs = 0,
+          menuState = "menu",
           approvedRevision = null;
         const identity = {
           usuario: { id: 91, nome: "Operador", email: "operator@example.test" },
@@ -31,6 +32,14 @@ module.exports = async function (browser, origin) {
             { id: 11, text: "Gostaria de saber o prazo.", occurred_at: "2026-10-27T09:00:00Z" },
           ],
         };
+        if (options.autoMenu)
+          incoming.messages.push({
+            id: "ig-menu-fixture",
+            text: "Menu automático confirmado",
+            occurred_at: "2026-10-27T09:00:01Z",
+            direction: "outgoing",
+            provider: "instagram",
+          });
         await page.addInitScript(() =>
           localStorage.setItem("socialmei-auth-browser-scope", "91:17"),
         );
@@ -67,6 +76,7 @@ module.exports = async function (browser, origin) {
                   reply_preparation_available: true,
                   incoming_available: true,
                   send_enabled: mode !== "disabled",
+                  auto_menu_available: !!options.autoMenu,
                 },
               },
             });
@@ -74,11 +84,22 @@ module.exports = async function (browser, origin) {
             return route.fulfill({ json: { status: "connected", credential_available: true } });
           if (p === "/instagram/direct/jobs" && request.method() === "GET")
             return route.fulfill({ json: { items: jobs } });
+          if (p === "/instagram/menu/conversations/1/status")
+            return route.fulfill({ json: { state: menuState } });
+          if (
+            p === "/instagram/menu/conversations/1/pause" ||
+            p === "/instagram/menu/conversations/1/resume"
+          ) {
+            assert.equal(request.method(), "POST");
+            menuState = p.endsWith("/pause") ? "human" : "menu";
+            return route.fulfill({ status: 204 });
+          }
           if (p.startsWith("/instagram/direct/") && request.method() === "POST") {
             writes.push(p);
             assert.equal(request.headers()["x-socialmei-csrf"], "a".repeat(64));
             assert.equal(request.headers()["x-socialmei-identity"], "91:17");
             if (p === "/instagram/direct/jobs") {
+              menuState = "human";
               assert.equal(request.postDataJSON().source_message_id, 11);
               jobs = [
                 {
@@ -118,6 +139,19 @@ module.exports = async function (browser, origin) {
         try {
           await page.goto(origin + "/frontend/socialmei-app.html#/caixa/me-1");
           await page.locator("[data-ig-prepare]").waitFor();
+          if (options.autoMenu) {
+            await page
+              .getByText("Menu automático ativo nesta conversa.", { exact: true })
+              .waitFor();
+            await page.getByRole("button", { name: "Assumir atendimento", exact: true }).click();
+            await page
+              .getByText("Atendimento humano ativo. O menu está pausado.", { exact: true })
+              .waitFor();
+            await page.getByRole("button", { name: "Retomar menu", exact: true }).click();
+            await page
+              .getByText("Menu automático ativo nesta conversa.", { exact: true })
+              .waitFor();
+          }
           await page.locator("#ta").fill("Prazo confirmado: cinco dias úteis.");
           await page.locator("[data-ig-prepare]").click();
           await page
@@ -205,6 +239,8 @@ module.exports = async function (browser, origin) {
         }
       }
 
+  if (options.skipRecovery)
+    return "Instagram menu: manual source, pause/resume and confirmed reply validated";
   // An HTTP response can be lost after the API has committed the draft, or
   // before it reached the database. Both cases must reuse the original UUID.
   for (const committedBeforeFailure of [true, false]) {

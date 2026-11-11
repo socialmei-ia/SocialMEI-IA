@@ -1,0 +1,113 @@
+import os
+from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
+import unittest
+from unittest.mock import patch
+from uuid import uuid4
+
+import psycopg
+from fastapi import HTTPException
+from psycopg.rows import dict_row
+import instagram_auto_menu as menu
+import test_instagram_direct_outbox as fixtures
+from test_instagram_simulation import DB
+
+
+@unittest.skipUnless(DB, 'Disposable PostgreSQL required')
+class AutoMenuDatabaseTests(unittest.TestCase):
+    setUpClass=classmethod(fixtures.DatabaseTests.setUpClass.__func__)
+    tearDown=fixtures.DatabaseTests.tearDown
+    begin=fixtures.DatabaseTests.begin
+    complete=fixtures.DatabaseTests.complete
+    post=fixtures.DatabaseTests.post
+    incoming=fixtures.DatabaseTests.incoming
+    request=fixtures.DatabaseTests.request
+
+    def setUp(self):
+        fixtures.DatabaseTests.setUp(self)
+        self.workspace=self.identity['workspace_id']
+        flags=patch.dict(os.environ,{'SOCIALMEI_INSTAGRAM_AUTO_MENU_ENABLED':'true',
+                                    'SOCIALMEI_INSTAGRAM_AUTO_MENU_WORKSPACES':str(self.workspace)})
+        flags.start(); self.addCleanup(flags.stop)
+        self.runtime=SimpleNamespace(send=True,direct=self.direct)
+        self.start=datetime.now(timezone.utc)-timedelta(seconds=5)
+
+    def test_concurrent_workers_dispatch_once_and_preserve_receipt(self):
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(2) as pool:
+            results=list(pool.map(lambda _:menu.reply(self.runtime,self.workspace,self.source,self.start),range(2)))
+        self.assertEqual(sorted(results),['confirmed','duplicate'])
+        self.assertEqual(len(self.send_calls),1)
+        with menu.db() as conn:
+            rows=conn.execute('SELECT status,provider_message_id FROM socialmei.ig_menu_replies WHERE workspace_id=%s',
+                              (self.workspace,)).fetchall()
+        self.assertEqual(len(rows),1)
+        self.assertEqual(rows[0]['status'],'confirmed')
+
+    def test_old_and_foreign_messages_never_dispatch(self):
+        self.assertIsNone(menu.next_source(self.workspace,datetime.now(timezone.utc)+timedelta(seconds=1)))
+        self.assertEqual(menu.reply(self.runtime,self.workspace,self.source,datetime.now(timezone.utc)+timedelta(seconds=1)),'skipped')
+        other=self.identities[1]['workspace_id']
+        with patch.dict(os.environ,{'SOCIALMEI_INSTAGRAM_AUTO_MENU_WORKSPACES':str(other)}):
+            self.assertEqual(menu.reply(self.runtime,other,self.source,self.start),'skipped')
+        self.assertEqual(self.send_calls,[])
+
+    def test_human_draft_pauses_auto_until_cancelled_and_explicit_resume(self):
+        draft=self.request('/jobs',{'operation_id':str(uuid4()),'source_message_id':self.source,'text':'Resposta humana de teste'})
+        self.assertEqual(draft.status_code,200,draft.text)
+        self.assertEqual(menu.reply(self.runtime,self.workspace,self.source,self.start),'skipped')
+        self.assertEqual(self.send_calls,[])
+        row=draft.json()
+        cancel=self.request('/jobs/'+row['id']+'/cancel',{'operation_id':str(uuid4()),'expected_revision':row['revision']})
+        self.assertEqual(cancel.status_code,200,cancel.text)
+        source=self.incoming(text='0')
+        self.assertEqual(menu.reply(self.runtime,self.workspace,source,self.start),'confirmed')
+
+    def test_uncertain_result_never_retries_and_blocks_automatic_continuation(self):
+        self.send_error=TimeoutError('synthetic provider timeout')
+        self.assertEqual(menu.reply(self.runtime,self.workspace,self.source,self.start),'uncertain')
+        self.assertEqual(menu.reply(self.runtime,self.workspace,self.source,self.start),'duplicate')
+        with self.assertRaises(HTTPException):
+            menu.reply(self.runtime,self.workspace,self.incoming(text='0'),self.start)
+        self.assertEqual(len(self.send_calls),1)
+
+    def test_manual_draft_is_blocked_while_auto_dispatch_is_in_flight(self):
+        import threading
+        from concurrent.futures import ThreadPoolExecutor
+        self.send_gate=threading.Event()
+        with ThreadPoolExecutor(1) as pool:
+            future=pool.submit(menu.reply,self.runtime,self.workspace,self.source,self.start)
+            self.assertTrue(self.started.wait(5))
+            try:
+                draft=self.request('/jobs',{'operation_id':str(uuid4()),'source_message_id':self.source,'text':'Fixture humana'})
+                self.assertEqual(draft.status_code,409,draft.text)
+            finally:
+                self.send_gate.set()
+            self.assertEqual(future.result(),'confirmed')
+
+    def test_menu_handoff_and_explicit_resume_preserve_human_state(self):
+        from instagram_meta_adapter import ProviderResponse
+        for index,text in enumerate(['5','Mensagem após atendimento humano','0']):
+            self.send_response=ProviderResponse(200,('{"recipient_id":"123456789","message_id":"receipt-'+str(index)+'"}').encode())
+            outcome=menu.reply(self.runtime,self.workspace,self.incoming(text=text),self.start)
+            self.assertEqual(outcome,'skipped' if index==1 else 'confirmed')
+        self.assertEqual(len(self.send_calls),2)
+
+    def test_confirmed_auto_reply_is_projected_once_in_inbox(self):
+        self.assertEqual(menu.reply(self.runtime,self.workspace,self.source,self.start),'confirmed')
+        response=self.client.get('/api/v1/message-enrichment/conversations')
+        self.assertEqual(response.status_code,200,response.text)
+        messages=[m for row in response.json()['items'] for m in row['messages'] if m.get('direction')=='outgoing']
+        self.assertEqual(len(messages),1)
+        self.assertEqual(messages[0]['provider'],'instagram')
+
+    def test_migration_is_idempotent_and_rejects_cross_workspace_state(self):
+        from pathlib import Path
+        with psycopg.connect(DB) as conn:
+            conn.execute((Path(__file__).resolve().parents[1]/'database/migrations/039_instagram_auto_menu.sql').read_text(),prepare=False)
+        with psycopg.connect(DB) as conn:
+            conversation=conn.execute('SELECT conversation_id FROM socialmei.me_messages WHERE workspace_id=%s AND id=%s',
+                                      (self.workspace,self.source)).fetchone()[0]
+        with self.assertRaises(psycopg.errors.ForeignKeyViolation),psycopg.connect(DB) as conn:
+            conn.execute('INSERT INTO socialmei.ig_menu_conversations(workspace_id,conversation_id) VALUES(%s,%s)',
+                         (self.identities[1]['workspace_id'],conversation))
