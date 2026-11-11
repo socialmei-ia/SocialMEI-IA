@@ -1,6 +1,6 @@
 fastapi
 uvicorn[standard]
-psycopg[binary]
+psycopg[binary]==3.3.7
 httpx
 tzdata
 argon2-cffi==25.1.0

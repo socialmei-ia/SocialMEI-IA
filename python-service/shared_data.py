@@ -14,7 +14,7 @@ from pydantic import (
     model_validator,
 )
 
-from database import check_database, connect, shared_data_enabled
+from database import check_database_readiness as check_database, connect, shared_data_enabled
 from contact_validation import validate_phone, validate_instagram
 from auth_context import principal
 from account_auth import enabled as auth_enabled, require_enabled as require_auth_enabled

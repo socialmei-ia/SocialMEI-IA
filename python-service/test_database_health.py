@@ -12,6 +12,7 @@ from shared_data import database_health_payload
 
 DB = os.getenv("TEST_DATABASE_URL", "").strip()
 ENV = {
+    "SOCIALMEI_DB_READINESS_CACHE_SECONDS": "0",
     "SOCIALMEI_SHARED_DATA_ENABLED": "true",
     "SOCIALMEI_AUTH_ENABLED": "true",
     "SOCIALMEI_AUTH_ORIGIN": "https://app.example.com",
@@ -25,6 +26,12 @@ class HealthConfigurationTests(unittest.TestCase):
         self.env.start()
         self.addCleanup(self.env.stop)
         self.client = TestClient(app)
+
+    def test_frequent_liveness_does_not_open_database(self):
+        with patch("database.psycopg.connect", side_effect=AssertionError("Liveness must not query SQL")) as connect:
+            for _ in range(20):
+                self.assertEqual(self.client.get("/health").status_code, 200)
+            connect.assert_not_called()
 
     def test_enabled_auth_validates_configuration_before_database(self):
         for changes in (
@@ -99,6 +106,10 @@ class DatabaseHealthIntegrationTests(unittest.TestCase):
         self.env.start()
         self.addCleanup(self.env.stop)
         self.client = TestClient(app)
+
+    def test_periodic_availability_probe_accepts_read_only_startup_options(self):
+        from database import _check_database_availability
+        _check_database_availability()
 
     @contextmanager
     def renamed_table(self, table):

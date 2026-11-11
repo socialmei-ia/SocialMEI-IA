@@ -16,6 +16,15 @@ def shared_data_enabled() -> bool:
     return os.getenv("SOCIALMEI_SHARED_DATA_ENABLED", "false").lower() in ENABLED_VALUES
 
 
+def database_readiness_cache_seconds() -> int:
+    value = os.getenv("SOCIALMEI_DB_READINESS_CACHE_SECONDS", "300").strip()
+    try:
+        seconds = int(value)
+    except ValueError:
+        return 0
+    return min(max(seconds, 0), 900)
+
+
 def authentication_mode() -> str:
     value = os.getenv("SOCIALMEI_AUTH_ENABLED", "false").strip().lower()
     if value in ENABLED_VALUES:

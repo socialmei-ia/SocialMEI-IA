@@ -76,7 +76,7 @@ function setup({ role = "owner", origin = "waha", request } = {}) {
   const panel = () => thread.children.find((n) => n.dataset.waBot);
   const button = (text) =>
     panel()?.children.find((n) => n.tagName === "button" && n.textContent === text);
-  return { host, calls, settle, panel, button, window, timers };
+  return { host, calls, settle, panel, button, window, timers, context, document };
 }
 
 test("only an owner of a received WhatsApp conversation gets bot controls", async () => {
@@ -169,4 +169,42 @@ test("late responses are ignored after changing workspace and in-flight claims a
       .join(" "),
     /já reservad/,
   );
+});
+
+test("WhatsApp status polling is spaced, backs off and preserves manual refresh", async () => {
+  let failing = false;
+  const app = setup({
+    request: async () => {
+      if (failing) throw Error("Unavailable");
+      return { channel_id: 9, state: "menu", enabled: true, claimed_in_flight: 0 };
+    },
+  });
+  let now = 0;
+  app.context.Date = class extends Date {
+    static now() {
+      return now;
+    }
+  };
+  await app.settle();
+  const tick = async (at) => {
+    now = at;
+    app.timers[0]();
+    await new Promise(setImmediate);
+  };
+  await tick(6000);
+  await tick(24000);
+  assert.equal(app.calls.length, 1);
+  await tick(60000);
+  assert.equal(app.calls.length, 2);
+  failing = true;
+  await tick(120000);
+  assert.equal(app.calls.length, 3);
+  await tick(150000);
+  assert.equal(app.calls.length, 3);
+  failing = false;
+  await app.button("Atualizar atendimento").onclick();
+  assert.equal(app.calls.length, 4);
+  app.document.hidden = true;
+  await tick(240000);
+  assert.equal(app.calls.length, 4);
 });

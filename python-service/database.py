@@ -1,6 +1,14 @@
+from hashlib import sha256
+from threading import Lock
+from time import monotonic
+
 import psycopg
 
-from settings import database_url, shared_data_enabled
+from settings import database_readiness_cache_seconds, database_url, shared_data_enabled
+
+
+_readiness_lock = Lock()
+_readiness_cache = None
 
 
 def connect():
@@ -111,6 +119,61 @@ CHANNEL_SCHEMA_QUERIES = (
         "mensagem_externa_id, mensagem_id, status FROM socialmei.crm_eventos_canal LIMIT 0"
     ),
 )
+
+
+def check_database_readiness(*, include_auth: bool = False) -> str:
+    global _readiness_cache
+    seconds = database_readiness_cache_seconds()
+    if not seconds:
+        with _readiness_lock:
+            _readiness_cache = None
+        return check_database(include_auth=include_auth)
+
+    # Only readiness metadata is cached; never a DSN, exception or business data.
+    identity = (sha256(database_url().encode()).digest(), include_auth, seconds)
+    with _readiness_lock:
+        state = _readiness_cache
+        if state is None or state["identity"] != identity:
+            state = {"identity": identity, "checked_at": None, "schema": None,
+                     "structural_failure": False, "failed": False, "next_schema_at": 0}
+            _readiness_cache = state
+        if state["checked_at"] is None or monotonic() - state["checked_at"] >= seconds:
+            try:
+                _check_database_availability()
+            except Exception:
+                state["failed"] = True
+            else:
+                if state["schema"] is None and not state["structural_failure"]:
+                    state["failed"] = True
+                    if monotonic() >= state["next_schema_at"]:
+                        try:
+                            state["schema"] = check_database(include_auth=include_auth)
+                            state["failed"] = False
+                        except Exception as error:
+                            # A partial deep failure must not rescan the schema every five minutes.
+                            state["next_schema_at"] = monotonic() + 6 * 3600
+                            state["structural_failure"] = (
+                                isinstance(error, (psycopg.errors.UndefinedTable,
+                                                   psycopg.errors.UndefinedColumn,
+                                                   psycopg.errors.InsufficientPrivilege))
+                                or isinstance(error, RuntimeError) and str(error) in {
+                                    "Migrations do CRM incompletas.", "Migration de contas ausente.",
+                                }
+                            )
+                else:
+                    state["failed"] = state["structural_failure"]
+            state["checked_at"] = monotonic()
+        if state["failed"]:
+            raise RuntimeError("Database readiness unavailable.") from None
+        return state["schema"]
+
+
+def _check_database_availability() -> None:
+    url = database_url()
+    options = psycopg.conninfo.conninfo_to_dict(url).get("options", "")
+    options += " -c default_transaction_read_only=on -c statement_timeout=5000"
+    with psycopg.connect(url, autocommit=True, connect_timeout=5, options=options) as conn:
+        conn.execute("SELECT 1")
 
 
 def check_database(*, include_auth: bool = False) -> str:

@@ -462,14 +462,30 @@ window.SocialMEIV22 = (() => {
   let inboxPolling = false;
   let inboxFingerprint = "";
   let inboxCapabilities = null;
+  let inboxCapabilitiesExpiresAt = 0;
+  let inboxRetryAt = 0;
+  let inboxFailures = 0;
+  let inboxRetryScope = "";
   async function refreshInbox({ silent = false } = {}) {
     if (inboxPolling || !remote || !auth.current) return;
+    const currentScope = identityKey();
+    if (inboxRetryScope !== currentScope) {
+      inboxRetryScope = currentScope;
+      inboxRetryAt = 0;
+      inboxFailures = 0;
+      inboxCapabilitiesExpiresAt = 0;
+    }
+    if (silent && Date.now() < inboxRetryAt) return;
     inboxPolling = true;
     const workspace = auth.current.negocio.id;
     const scope = identityKey();
     const sameSession = () => auth.current && identityKey() === scope;
     try {
-      const cap = await request("/message-enrichment/capabilities");
+      const refreshCapabilities =
+        !silent || !inboxCapabilities || Date.now() >= inboxCapabilitiesExpiresAt;
+      const cap = refreshCapabilities
+        ? await request("/message-enrichment/capabilities")
+        : inboxCapabilities;
       if (!sameSession()) return;
       const available = cap.mode === "stub" || cap.instagram_inbox || cap.waha_inbox;
       const result = available
@@ -477,7 +493,10 @@ window.SocialMEIV22 = (() => {
         : { workspace_id: workspace, items: [] };
       if (!sameSession()) return;
       if (result.workspace_id !== workspace) throw Error("Resposta de outro negócio.");
+      inboxFailures = 0;
+      inboxRetryAt = 0;
       inboxCapabilities = cap;
+      if (refreshCapabilities) inboxCapabilitiesExpiresAt = Date.now() + 60000;
       const fingerprint = JSON.stringify([
         scope,
         cap.mode,
@@ -523,6 +542,11 @@ window.SocialMEIV22 = (() => {
       }
       if (silent && loaded && H.startsWith("/caixa")) render();
     } catch (e) {
+      if (sameSession()) {
+        inboxCapabilitiesExpiresAt = 0;
+        inboxFailures = Math.min(inboxFailures + 1, 6);
+        inboxRetryAt = Date.now() + Math.min(6000 * 2 ** inboxFailures, 300000);
+      }
       if (!silent && ![403, 503].includes(e.status)) throw e;
     } finally {
       inboxPolling = false;
@@ -532,7 +556,7 @@ window.SocialMEIV22 = (() => {
   if (remote)
     window.setInterval(() => {
       if (!document.hidden && loaded && H.startsWith("/caixa")) refreshInbox({ silent: true });
-    }, 6000);
+    }, 30000);
   function paintInboxLabels() {
     if (!H.startsWith("/caixa")) return;
     // Replace only label text; retain the native icons, layout and motion hooks.

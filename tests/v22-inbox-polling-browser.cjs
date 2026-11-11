@@ -1,4 +1,4 @@
-/* Synthetic same-origin inbox responses; real V22 shell and six-second polling. */
+/* Synthetic same-origin responses; real V22 shell and controlled polling clock. */
 const assert = require("node:assert/strict");
 module.exports = async function (browser, origin) {
   for (const width of [1440, 390]) {
@@ -10,6 +10,7 @@ module.exports = async function (browser, origin) {
     const errors = [],
       external = [];
     let enabled = true;
+    let capabilitiesReads = 0;
     let reads = 0,
       documents = 0;
     const identity = {
@@ -52,7 +53,8 @@ module.exports = async function (browser, origin) {
       if (p === "/auth/preferences")
         return route.fulfill({ json: { preferences: {}, revision: 0 } });
       if (p === "/workspace-profile") return route.fulfill({ json: { profile: {} } });
-      if (p === "/message-enrichment/capabilities")
+      if (p === "/message-enrichment/capabilities") {
+        capabilitiesReads++;
         return route.fulfill({
           json: {
             mode: "disabled",
@@ -61,6 +63,7 @@ module.exports = async function (browser, origin) {
             waha_inbox: enabled,
           },
         });
+      }
       if (p === "/message-enrichment/conversations") {
         reads++;
         return route.fulfill({ json: { workspace_id: 17, items } });
@@ -94,9 +97,10 @@ module.exports = async function (browser, origin) {
           messages: [message(21, "Outra conversa recebida")],
         },
       ];
-      await page.clock.fastForward(6001);
+      await page.clock.fastForward(30001);
       await page.locator(".ct .ms .bb", { hasText: "Nova mensagem via polling" }).waitFor();
       assert.equal(reads, 2);
+      assert.equal(capabilitiesReads, 1, "Capabilities are not queried on every poll");
       assert.equal(documents, documentCount, "A new webhook message must not reload the document");
       assert.equal(
         await page.evaluate(() => H),
@@ -118,13 +122,13 @@ module.exports = async function (browser, origin) {
         contact_name: "Contato do WhatsApp",
         messages: [message(31, "Mensagem WhatsApp sintetica")],
       });
-      await page.clock.fastForward(6001);
+      await page.clock.fastForward(30001);
       await page.evaluate(() => go("/caixa/me-3"));
       await page.locator(".ct .hd b").first().filter({ hasText: "Contato do WhatsApp" }).waitFor();
       items = items.map((row) =>
         row.id === 3 ? { ...row, revision: 2, contact_name: "+5511990001234" } : row,
       );
-      await page.clock.fastForward(6001);
+      await page.clock.fastForward(30001);
       await page.waitForFunction(
         () => document.querySelector(".ct .hd b")?.textContent === "+5511990001234",
       );
@@ -139,7 +143,7 @@ module.exports = async function (browser, origin) {
       assert.match(await page.locator("#v").innerText(), /Recebimento habilitado no servidor/);
       assert(!/Demonstração local|Canal não conectado/.test(await page.locator("#v").innerText()));
       enabled = false;
-      await page.clock.fastForward(6001);
+      await page.clock.fastForward(60001);
       await page.getByText("Recebimento não habilitado", { exact: true }).waitFor();
       assert.equal(await page.locator('.rw[href^="#/caixa/me-"]').count(), 0);
       assert(
