@@ -118,7 +118,8 @@ def build_runtime():
         )
         ingress = (
             InstagramIngressService(
-                app_secret=values["client_secret"], verify_token=values["verify_token"]
+                app_secret=values["client_secret"], verify_token=values["verify_token"],
+                alias_bindings=values["webhook_aliases"],
             )
             if incoming
             else None
