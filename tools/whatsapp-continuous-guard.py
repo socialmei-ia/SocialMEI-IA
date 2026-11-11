@@ -1,5 +1,6 @@
-"""Single-contact continuous sender; uncertain dispatch requires operator reconciliation."""
+"""Continuous inbound-only sender; uncertain dispatch requires operator reconciliation."""
 import fcntl
+import hashlib
 import json
 import os
 import time
@@ -11,9 +12,10 @@ from public_worker import API_URL, WAHA_URL, SOURCE_URL, Config, SourceUnavailab
 
 
 class Journal:
-    def __init__(self, folder, start, allowed):
-        if len(allowed) != 1 or not allowed[0].startswith('waha:'):
+    def __init__(self, folder, start, allowed, *, public=False):
+        if not public and (len(allowed) != 1 or not allowed[0].startswith('waha:')):
             raise ValueError('Exactly one authorized contact required')
+        self.public = public
         self.path = folder / 'state.json'
         self.lock = (folder / 'sender.lock').open('a')
         try:
@@ -24,12 +26,13 @@ class Journal:
         self.allowed = allowed
         if self.path.exists():
             self.state = json.loads(self.path.read_text())
-            if self.state['start'] != start or self.state['status'] == 'paused' or self.state['in_flight']:
+            if (self.state['start'] != start or self.state['status'] == 'paused' or self.state['in_flight']
+                    or self.state.get('public', False) != public):
                 self.lock.close()
                 raise RuntimeError('Reconciliation required')
         else:
             self.state = dict(start=start, status='running', in_flight=False,
-                              attempts=[], attempted=0, confirmed=0, reason=None)
+                              attempts=[], attempted=0, confirmed=0, reason=None, public=public)
         self.save()
 
     def save(self):
@@ -46,17 +49,22 @@ class Journal:
         finally:
             os.close(fd)
 
-    def available(self, now):
-        # Retain the existing per-contact ceiling as a rolling 45-minute limit.
+    def available(self, now, contact=None):
         if now < self.state['start']:
             raise RuntimeError('Clock moved before activation')
-        self.state['attempts'] = [t for t in self.state['attempts'] if t > now - 2700]
-        return len(self.state['attempts']) < 5
+        self.state['attempts'] = [entry for entry in self.state['attempts']
+                                  if (entry['time'] if isinstance(entry, dict) else entry) > now - 2700]
+        if not self.public:
+            return len(self.state['attempts']) < 5
+        if len(self.state['attempts']) >= 40:
+            return False
+        return contact is None or sum(entry['contact'] == contact for entry in self.state['attempts']) < 5
 
     def before_send(self, body, now):
-        if 'waha:' + body['chatId'] not in self.allowed or not self.available(now):
+        contact = hashlib.sha256(body['chatId'].encode()).hexdigest()
+        if (not self.public and 'waha:' + body['chatId'] not in self.allowed) or not self.available(now, contact):
             raise RuntimeError('Dispatch outside authorization')
-        self.state['attempts'].append(now)
+        self.state['attempts'].append({'time': now, 'contact': contact} if self.public else now)
         self.state['attempted'] += 1
         self.save()
 
@@ -106,11 +114,12 @@ def serve(journal, config, *, poll=run_once, sleep=time.sleep, clock=time.time):
 
 def main():
     folder = Path('/run/socialmei/continuous-state')
-    allowed = json.loads(Path('/run/socialmei/pilot/allowed-contacts.json').read_text())
+    public = os.getenv('SOCIALMEI_MENU_PUBLIC_INBOUND_ACTIVE') == 'YES'
+    allowed = [] if public else json.loads(Path('/run/socialmei/pilot/allowed-contacts.json').read_text())
     start = datetime.fromisoformat(os.environ['SOCIALMEI_CONTINUOUS_START_UTC']).timestamp()
-    journal = Journal(folder, start, allowed)
+    journal = Journal(folder, start, allowed, public=public)
     config = Config.from_env()
-    print('CONTINUOUS_READY_SINGLE_CONTACT', flush=True)
+    print('CONTINUOUS_READY_PUBLIC_INBOUND' if public else 'CONTINUOUS_READY_SINGLE_CONTACT', flush=True)
     serve(journal, config)
 
 

@@ -90,8 +90,57 @@ class ContinuousTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             self.journal.available(999)
 
+    def test_public_inbound_limits_each_contact_without_blocking_other_contacts(self):
+        self.journal.lock.close()
+        self.journal.path.unlink()
+        journal = guard.Journal(self.folder, 1000, [], public=True)
+        self.addCleanup(journal.lock.close)
+        for _ in range(5):
+            journal.before_send({'chatId': '222@c.us'}, 1001)
+        with self.assertRaises(RuntimeError):
+            journal.before_send({'chatId': '222@c.us'}, 1002)
+        journal.before_send({'chatId': '333@c.us'}, 1002)
+        for contact in range(7):
+            for _ in range(4):
+                journal.before_send({'chatId': str(400+contact)+'@c.us'}, 1002)
+        self.assertEqual(journal.state['attempted'], 34)
+        for contact in range(6):
+            journal.before_send({'chatId': str(500+contact)+'@c.us'}, 1002)
+        self.assertFalse(journal.available(1003))
+        self.assertTrue(journal.available(3703))
+        self.assertNotIn('222@c.us', journal.path.read_text())
+
 
 class SourceGateTests(unittest.TestCase):
+    def test_public_source_still_requires_authenticated_channel_fresh_inbound_and_rate_limit(self):
+        from fastapi import FastAPI, HTTPException
+        settings = types.SimpleNamespace(whatsapp_bot_allowed_contacts=lambda: frozenset())
+        conn = MagicMock()
+        conn.execute.return_value.fetchall.return_value = []
+        context = MagicMock()
+        context.__enter__.return_value = conn
+        original = types.SimpleNamespace(app=FastAPI(), require_bot=Mock(),
+            operation_database=lambda: context,
+            authorize=Mock(return_value=dict(workspace_id=1, channel_id=1,
+                instancia='socialmei-equipe-piloto', sessao='01', identificador_conta='111@c.us')))
+        with patch.dict(sys.modules, {'settings': settings, 'public_app': original}), \
+             patch.dict('os.environ', {'SOCIALMEI_CONTINUOUS_START_UTC': '2026-01-01T00:00:00+00:00',
+                                       'SOCIALMEI_MENU_PUBLIC_INBOUND_ACTIVE': 'YES'}):
+            source = load('public_continuous_source', 'whatsapp-public-continuous.py')
+        self.assertIsNone(settings.whatsapp_bot_allowed_contacts())
+        self.assertEqual(source.sources(None), {'sources': []})
+        original.require_bot.assert_called_once()
+        sql, params = conn.execute.call_args.args
+        self.assertNotIn('v.contact_ref=ANY', sql)
+        for clause in ["e.tipo='message'", 'e.waha_account_snapshot=%s', 'v.account_ref=%s',
+                       'e.recebido_em>=%s AND m.occurred_at>=%s', "q.status IN ('claimed','confirmed','uncertain')"]:
+            self.assertIn(clause, sql)
+        self.assertEqual(params[-2:], (source.START, source.START))
+        original.authorize.return_value['workspace_id'] = 2
+        with self.assertRaises(HTTPException) as denied:
+            source.sources(None)
+        self.assertEqual(denied.exception.status_code, 403)
+
     def test_source_requires_same_contact_fresh_receipt_and_timestamp(self):
         from fastapi import FastAPI
         settings = types.SimpleNamespace(whatsapp_bot_allowed_contacts=lambda: frozenset({'waha:222@c.us'}))
