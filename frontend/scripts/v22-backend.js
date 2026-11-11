@@ -540,7 +540,36 @@ window.SocialMEIV22 = (() => {
           }),
         ]);
       }
-      if (silent && loaded && H.startsWith("/caixa")) render();
+      if (silent && loaded && H.startsWith("/caixa")) {
+        const input = document.getElementById("ta");
+        const editing =
+          input && document.activeElement === input
+            ? {
+                route: H,
+                value: input.value,
+                start: input.selectionStart,
+                end: input.selectionEnd,
+                scroll: input.scrollTop,
+              }
+            : null;
+        render();
+        if (editing)
+          requestAnimationFrame(() => {
+            const current = document.getElementById("ta");
+            if (
+              !sameSession() ||
+              H !== editing.route ||
+              !current ||
+              current.disabled ||
+              current.value !== editing.value ||
+              (document.activeElement !== document.body && document.activeElement !== current)
+            )
+              return;
+            current.focus({ preventScroll: true });
+            current.setSelectionRange(editing.start, editing.end);
+            current.scrollTop = editing.scroll;
+          });
+      }
     } catch (e) {
       if (sameSession()) {
         inboxCapabilitiesExpiresAt = 0;

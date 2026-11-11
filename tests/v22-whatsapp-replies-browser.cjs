@@ -12,6 +12,7 @@ module.exports = async (browser, origin, options = {}) => {
     "storage-blocked",
     "viewer",
     "after-menu",
+    "polling-draft",
   ])
     for (const width of [390, 1440]) {
       const context = await browser.newContext({
@@ -133,6 +134,7 @@ module.exports = async (browser, origin, options = {}) => {
         return route.fulfill({ json: [] });
       });
       try {
+        if (mode === "polling-draft") await page.clock.install();
         await page.goto(origin + "/frontend/socialmei-app.html#/caixa/me-1");
         await page.locator('[data-wa-replies][aria-busy="false"]').waitFor();
         if (mode === "viewer") {
@@ -140,6 +142,37 @@ module.exports = async (browser, origin, options = {}) => {
           assert.equal(await page.locator("[data-wa-prepare]").isDisabled(), true);
           assert.equal(creates.length, 0);
         } else {
+          if (mode === "polling-draft") {
+            const draft = "Resposta parcialmente escrita";
+            await page.locator("#ta").fill(draft);
+            await page.locator("#ta").evaluate((input) => input.setSelectionRange(4, 12));
+            incoming.messages.push({
+              id: 12,
+              text: "Nova pergunta recebida",
+              occurred_at: "2026-10-31T09:00:01Z",
+            });
+            await page.clock.fastForward(30001);
+            await page.locator(".ct .ms .bb", { hasText: "Nova pergunta recebida" }).waitFor();
+            await page.clock.fastForward(32);
+            assert.equal(await page.locator("#ta").inputValue(), draft);
+            assert.equal(
+              await page.locator("#ta").evaluate((input) => input === document.activeElement),
+              true,
+              "An incoming message must not interrupt the operator typing a manual reply",
+            );
+            assert.deepEqual(
+              await page
+                .locator("#ta")
+                .evaluate((input) => [input.selectionStart, input.selectionEnd]),
+              [4, 12],
+            );
+            assert.equal(creates.length, 0);
+            assert.equal(sends.length, 0);
+            assert.deepEqual(errors, []);
+            assert.deepEqual(external, []);
+            cases++;
+            continue;
+          }
           await page.locator("#ta").fill("O produto custa R$ 25. <script>teste</script>");
           await page.locator("[data-wa-prepare]").click();
           if (mode === "storage-blocked") {

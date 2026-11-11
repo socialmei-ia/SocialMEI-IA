@@ -137,8 +137,38 @@ module.exports = async function (browser, origin, options = {}) {
           return route.fulfill({ json: [] });
         });
         try {
+          if (options.pollingDraft) await page.clock.install();
           await page.goto(origin + "/frontend/socialmei-app.html#/caixa/me-1");
           await page.locator("[data-ig-prepare]").waitFor();
+          if (options.pollingDraft) {
+            const draft = "Resposta Instagram parcialmente escrita";
+            await page.locator("#ta").fill(draft);
+            await page.locator("#ta").evaluate((input) => input.setSelectionRange(3, 10));
+            incoming.messages.push({
+              id: 12,
+              text: "Novo Direct recebido",
+              occurred_at: "2026-10-27T09:00:02Z",
+            });
+            await page.clock.fastForward(30001);
+            await page.locator(".ct .ms .bb", { hasText: "Novo Direct recebido" }).waitFor();
+            await page.clock.fastForward(32);
+            assert.equal(await page.locator("#ta").inputValue(), draft);
+            assert.equal(
+              await page.locator("#ta").evaluate((input) => input === document.activeElement),
+              true,
+            );
+            assert.deepEqual(
+              await page
+                .locator("#ta")
+                .evaluate((input) => [input.selectionStart, input.selectionEnd]),
+              [3, 10],
+            );
+            assert.equal(writes.length, 0);
+            assert.equal(runs, 0);
+            assert.deepEqual(errors, []);
+            assert.deepEqual(external, []);
+            continue;
+          }
           if (options.autoMenu) {
             await require("./v22-layout-ready.cjs").waitForViewportFit(page);
             const controls = await page.locator("[data-ig-menu] button").evaluateAll((buttons) =>
