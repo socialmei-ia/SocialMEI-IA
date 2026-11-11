@@ -15,8 +15,9 @@ def contact_label(profile, contact_ref):
     return 'Contato do Instagram · ' + hashlib.sha256(contact_ref.encode()).hexdigest()[:6].upper()
 
 
-def refresh_contacts(runtime, workspace, *, limit=10):
-    if type(workspace) is not int or workspace < 1 or not 1 <= limit <= 10 or runtime.status != 'configured':
+def refresh_contacts(runtime, workspace, *, limit=10, after_id=0):
+    if (type(workspace) is not int or workspace < 1 or not 1 <= limit <= 10
+            or type(after_id) is not int or after_id < 0 or runtime.status != 'configured'):
         raise ValueError('Invalid contact lookup scope')
     with connect() as conn:
         conn.row_factory = dict_row
@@ -29,8 +30,8 @@ def refresh_contacts(runtime, workspace, *, limit=10):
             "AND c.external_account_id=e.external_account_id "
             "WHERE v.workspace_id=%s AND v.origin='instagram' AND m.origin='instagram' "
             "AND e.kind='message' AND e.status='processed' AND v.account_ref='instagram:' || c.external_account_id "
-            "AND c.status='connected' AND c.expires_at>NOW() AND (v.contact_name='Contato do Instagram' OR v.contact_name ~ '^Contato do Instagram · [0-9A-F]{6}$') "
-            "ORDER BY v.id,e.received_at DESC LIMIT %s", (workspace, limit),
+            "AND c.status='connected' AND c.expires_at>NOW() AND v.id>%s AND (v.contact_name='Contato do Instagram' OR v.contact_name ~ '^Contato do Instagram · [0-9A-F]{6}$') "
+            "ORDER BY v.id,e.received_at DESC LIMIT %s", (workspace, after_id, limit),
         ).fetchall()
     updated = available = denied = 0
     for row in rows:
@@ -53,4 +54,5 @@ def refresh_contacts(runtime, workspace, *, limit=10):
                 (label, workspace, row['id'], 'instagram:' + row['external_account_id'], row['contact_ref'], row['contact_name']),
             )
             updated += result.rowcount
-    return {'updated': updated, 'official_profile_available': available, 'unavailable': denied}
+    return {'updated': updated, 'official_profile_available': available, 'unavailable': denied,
+            'last_id': rows[-1]['id'] if rows else 0}
