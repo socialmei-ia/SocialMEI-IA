@@ -1,39 +1,39 @@
-# Janela de recupera??o Prisma ? preparada, n?o ativada
+# Recuperação Prisma: janela de 24 horas ainda não ativada
 
-## Limites e evid?ncias
+## Evidências e limites
 
-Prisma permanece oficial (`db.prisma.io:5432`, banco `postgres`). N?o trocar DATABASE_URL pelo PostgreSQL de reserva. `planLimitReached` bloqueia leitura/escrita; a cota exata e a elegibilidade da libera??o exigem o painel Prisma. Nenhuma libera??o, contrata??o ou mudan?a na AWS foi executada nesta prepara??o.
+Prisma continua oficial: `db.prisma.io:5432`, banco `postgres`. Não substituir DATABASE_URL pela reserva AWS. Nenhuma liberação, contratação ou alteração em produção foi feita.
 
-Inspe??o somente leitura: healthcheck efetivo /health/db a cada 15s; 214 chamadas na ?ltima hora consultada, zero chamadas de conversas/claims nessa amostra. N?o h? gatilho Schedule/Cron nos workflows marcados ativos consultados no banco n8n; isso n?o exclui chamadas externas ou outros consumidores. A amostra durante bloqueio n?o mede opera??es faturadas antes dele.
+O healthcheck efetivo chama `/health/db` a cada 15s. Foram observadas 214 chamadas na última hora, sem conversas ou claims nessa amostra. Nos workflows marcados ativos consultados não há gatilhos Schedule/Cron; isso não exclui consumidores externos. A amostra durante bloqueio não mede o consumo anterior faturado.
 
-O c?digo fazia 25 SELECTs (incluindo migrations) e duas instru??es SET com autentica??o por healthcheck. S?o at? 144.000 SELECTs/dia por inst?ncia, independentemente de usu?rios. Com cache de 60s e checagens a cada 15s, a proje??o cai para aproximadamente 40.320 SELECTs/dia (72% menos); comandos de transa??o e SET n?o entram nessa conta. ? uma amplifica??o confirmada; atribuir o esgotamento exige o hist?rico de consumo do Prisma.
+Cada validação completa autenticada executa 25 SELECTs e duas instruções SET. Projeção por processo: 144.000 SELECTs/dia antes; 40.320 após o cache de 60s (menos 72%). Transações e SET não entram nessa conta. É uma amplificação confirmada, mas a atribuição do esgotamento exige métricas Prisma.
 
-## Altera??es locais
+A redução ainda pode ultrapassar a franquia mensal. A página pública anuncia 200 mil operações/mês: https://www.prisma.io/pricing. Confirmar o plano efetivo e dimensionar a frequência de readiness sem retirar verificações de banco do deploy. Não prometer operação contínua gratuita com esta otimização isolada.
 
-- Readiness reutiliza valida??o bem-sucedida do esquema por 60s; cada chamada continua verificando conectividade real. Falhas nunca ficam saud?veis por cache. TTL configur?vel, at? 300s; zero desliga o cache.
-- Caixa mant?m atualiza??o normal enquanto vis?vel; falhas usam recuo de 12s at? 5min. Troca de sess?o reinicia o recuo; atualiza??o expl?cita permanece dispon?vel.
-- Sem altera??o de dados, migrations, credenciais, workflows ou pol?tica de envio.
+## Código preparado
 
-A redu??o inicial ainda pode ultrapassar a franquia mensal: n?o basta para garantir opera??o cont?nua gratuita. Dimensionar frequ?ncia de readiness e consultas usando a franquia efetiva do workspace, sem retirar os gates de banco do deploy. A p?gina p?blica atual anuncia 200 mil opera??es/m?s, mas ? necess?rio conferir o plano deste workspace: https://www.prisma.io/pricing. N?o confundir proje??o de SELECTs com medi??o de opera??es faturadas.
+- Cache apenas do esquema bem-sucedido por 60s, configurável entre 0 e 300s. Cada chamada verifica disponibilidade real; falha invalida o cache. Verificações operacionais explícitas continuam completas. Mudanças de esquema podem levar até 60s para aparecer no healthcheck.
+- Caixa usa recuo de 12s até 5min após falhas; sucesso e troca de sessão reiniciam o recuo. Consulta manual permanece disponível; aba oculta não faz polling.
+- Nenhuma alteração em migrations, dados, credenciais, IA, envios ou workflows.
 
-## Antes de iniciar o rel?gio
+## Preparação antes da confirmação
 
-1. Revisar diff/testes, registrar SHA, CI e imagens correspondentes. N?o promover c?digo sem esses resultados.
-2. Conferir estat?sticas do workspace Prisma no painel: limite atingido, per?odo, consumidores e elegibilidade. N?o acionar Restore access ainda.
-3. Reconstruir e validar offline Compose efetivo: h? seis overlays hist?ricos ausentes. Preservar snapshot privado de env/mounts/redes, Caddy e imagens atuais. N?o recriar servi?os usando Compose incompleto.
-4. Preparar pg_dump/pg_restore compat?veis, armazenamento privado com espa?o, hashes e banco descart?vel de restaura??o. N?o guardar dumps no Git/OneDrive.
-5. Registrar rollback de API/gateway para imagens e configura??es efetivas anteriores; manter Prisma como destino. N?o usar restaura??o integral como rollback de c?digo.
-6. Obter autoriza??o espec?fica para aplicar a otimiza??o m?nima e para acionar a janela gratuita. Reduzir consumo antes de gastar a janela, sem reiniciar WhatsApp/n8n/PostgreSQL.
+1. Registrar SHA, CI aprovado e imagens correspondentes à candidata. Não promover antes disso.
+2. Conferir no painel Prisma cota, período, consumidores e elegibilidade. Não acionar Restore access ainda.
+3. Reconciliar offline os seis overlays históricos ausentes com o snapshot privado de configuração efetiva. Preservar env, mounts, redes, imagens e Caddy. Não recriar serviços com Compose incompleto.
+4. Preparar ferramentas pg_dump/pg_restore compatíveis, armazenamento privado, hashes e destino descartável. Dumps fora de Git/OneDrive.
+5. Rollback por imagens/configuração de API/gateway anteriores, mantendo Prisma. Não restaurar dump integral como rollback de código.
+6. Obter autorização específica para aplicar a otimização mínima e para iniciar a janela. Preservar WhatsApp, n8n e PostgreSQL; não reiniciar serviços sem necessidade.
 
-## Execu??o ap?s confirma??o
+## Execução após confirmação
 
-- 0?30min: ativar libera??o gratuita uma ?nica vez no painel autorizado; confirmar identidade do banco e disponibilidade API. Registrar in?cio/fim UTC e consumo inicial. N?o disparar testes em loop.
-- 30?90min: gerar backup consistente Prisma; hash, pg_restore em destino isolado e validar migrations/tabelas/contagens. Comparar com reserva AWS em transa??es somente leitura e mesmo crit?rio de contagem; registrar diverg?ncias, sem sincronizar automaticamente. Dados hist?ricos 477 e reserva 481 incluem crit?rios n?o reconciliados.
-- 90?150min: observar taxa de consumo e healthchecks otimizados, disponibilidade e falhas. Se consumo continuar alto, localizar consumidor com m?tricas do provedor antes de novas a??es.
-- 2,5?5h: correlacionar um Direct autorizado com logs Caddy/API, assinatura e persist?ncia. Primeiro distinguir POST ausente, rejei??o e falha SQL; IA e envio continuam desligados. Confirmar evento/mensagem ?nicos, workspace e Caixa.
-- 5?7h: validar Caixa e hist?rico WhatsApp sem envio autom?tico, duplicidade ou mudan?a de respondedor; envio real s? com autoriza??o espec?fica.
-- Restante: corrigir apenas bloqueios comprovados, repetir backup incremental de evid?ncias e registrar limites/expira??o. A janela n?o resolve a cota permanentemente; preparar decis?o antes do prazo (reset gratuito ou plano pago somente autorizado).
+1. **0–30min:** ativar a liberação autorizada; registrar início/fim UTC e consumo inicial; confirmar identidade do banco e saúde da API sem testes em loop.
+2. **30–90min:** backup consistente Prisma; hash; restauração isolada; validar migrations, tabelas e contagens. Comparar reserva AWS em leitura, usando o mesmo critério. Não sincronizar diferenças automaticamente. Os históricos 477 e 481 registros ainda não são comparáveis.
+3. **90–150min:** medir taxa de operações e disponibilidade após a otimização. Se permanecer alta, localizar consumidores usando métricas antes de novas ações.
+4. **2,5–5h:** correlacionar Direct autorizado com Caddy/API, assinatura, persistência e Caixa. Distinguir ausência de POST, rejeição e falha SQL. Exigir evento/mensagem únicos no workspace correto. IA e envios continuam desativados.
+5. **5–7h:** verificar Caixa e histórico WhatsApp, sem mudar respondedor ou disparar mensagens. Envio real exige autorização específica.
+6. **Tempo restante:** corrigir bloqueios comprovados, guardar evidências e backup final. Definir continuidade antes de expirar: reset gratuito ou plano pago apenas autorizado. A janela não repõe a franquia permanentemente.
 
-## Bloqueios restantes
+## Bloqueios de execução
 
-Painel Prisma para cota/consumo e ativa??o autorizada; CI/imagens da nova SHA; reconcilia??o dos overlays privados; backup Prisma e restaura??o s? poder?o ser certificados quando o banco voltar a aceitar conex?es. PostgreSQL17 socialmei-db ainda n?o foi identificado como inst?ncia f?sica; n?o equiparar ao Prisma nem ? reserva PG16 sem evid?ncia.
+CI/imagens da nova SHA; reconciliação dos overlays privados; painel Prisma para cota e ativação autorizada. Backup Prisma e restauração dependem da volta do acesso e ainda não estão certificados. A instância física PostgreSQL17 socialmei-db não foi identificada; não equipará-la ao Prisma nem à reserva PG16 sem evidência.
