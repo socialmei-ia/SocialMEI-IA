@@ -79,7 +79,6 @@ def sources(request: Request):
             "FROM socialmei.wa_bot_decisions q "
             "WHERE q.workspace_id=e.workspace_id AND q.channel_id=e.canal_id "
             "AND q.conversation_id=v.id AND q.status='confirmed' "
-            "AND q.result->>'channel_booking'='true' "
             "ORDER BY q.created_at DESC,q.id DESC LIMIT 1"
             ") b ON true "
             "WHERE e.workspace_id=1 AND e.canal_id=1 AND e.tipo='message' AND e.status='processado' "
