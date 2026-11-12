@@ -66,7 +66,8 @@ não são reenviadas automaticamente.
 
 O arquivo `compose.team-recovery.yaml` adiciona um contêiner separado com
 acesso apenas ao PostgreSQL da equipe e à rede de saída `recovery-egress`.
-Nenhuma porta é publicada. Ele **não** faz parte da composição padrão.
+Nenhuma porta é publicada. Ele **não** faz parte da composição padrão e
+exige ativar explicitamente o perfil Docker `recovery-mail`.
 
 Antes de ativá-lo, o operador deve configurar `SOCIALMEI_RECOVERY_MODE=smtp`,
 `TEAM_AUTH_ENABLED=true`, endereço HTTPS oficial, remetente SMTP e segredo
