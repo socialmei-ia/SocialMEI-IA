@@ -170,8 +170,10 @@ class SourceGateTests(unittest.TestCase):
         settings = types.SimpleNamespace(whatsapp_bot_allowed_contacts=lambda: frozenset({'waha:222@c.us'}))
         conn = MagicMock()
         conn.execute.return_value.fetchall.return_value = [
-            {'external_message_id': 'synthetic-human', 'text': 'fixture', 'state': 'human'},
-            {'external_message_id': 'synthetic-menu', 'text': 'fixture', 'state': 'menu'},
+            {'external_message_id': 'synthetic-human', 'text': 'fixture',
+             'state': 'human', 'booking_enabled': 'false'},
+            {'external_message_id': 'synthetic-menu', 'text': 'fixture',
+             'state': 'menu', 'booking_enabled': 'false'},
         ]
         context = MagicMock()
         context.__enter__.return_value = conn
