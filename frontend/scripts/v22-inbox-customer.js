@@ -73,9 +73,19 @@
     s.busy = true;
     paint(s);
     let clients;
+    let suggestions = null;
     try {
       clients = await host.request("/clientes");
       if (!Array.isArray(clients)) throw Error("Clientes indisponíveis.");
+      if (original.cliente_id === null) {
+        try {
+          suggestions = await host.request(
+            `/message-enrichment/conversations/${s.id}/customer-suggestions`,
+          );
+        } catch {
+          // Suggestions are an optional convenience; manual association remains available.
+        }
+      }
     } catch (error) {
       if (current(s)) s.error = error.message;
       return;
@@ -106,6 +116,22 @@
       select.append(option);
     }
     select.value = original.cliente_id === null ? "" : String(original.cliente_id);
+    const hint = suggestions?.candidates?.length === 1 && !suggestions.ambiguous
+      ? suggestions.candidates[0]
+      : null;
+    if (suggestions?.ambiguous) {
+      form.append(element("p", "Mais de um cadastro corresponde ao telefone. Escolha o cliente manualmente."));
+    } else if (hint && clients.some((client) => client.id === hint.id)) {
+      const suggestion = element("p", "Possível cadastro pelo telefone do WhatsApp: " +
+        hint.nome + " (ID " + hint.id + "). Confira antes de confirmar.");
+      const choose = element("button", "Selecionar sugestão");
+      choose.type = "button";
+      choose.className = "btn o";
+      choose.onclick = () => {
+        if (current(s) && owns() && !s.busy) select.value = String(hint.id);
+      };
+      form.append(suggestion, choose);
+    }
     const feedback = element("p");
     feedback.setAttribute("role", "status");
     form.append(feedback);
