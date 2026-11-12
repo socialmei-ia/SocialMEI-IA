@@ -109,6 +109,59 @@ def customer_suggestions(conversation_id: Id, request: Request, response: Respon
         return result
 
 
+@router.get("/conversations/{conversation_id}/assistant-context")
+def assistant_context(conversation_id: Id, request: Request, response: Response):
+    """Minimal authenticated context for a future AI draft, never a sender.
+
+    Incoming text is untrusted data; no tool or automation executes it here.
+    Restricted to operator roles and channels explicitly visible in the inbox.
+    """
+    workspace = guard(request, response, read_inbox=True, write=True)["workspace_id"]
+    allowed = [x for x in enabled_origins(workspace) if x in {"instagram", "waha"}]
+    with db() as conn:
+        conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+        conn.execute("SET LOCAL statement_timeout='5s'")
+        row = conn.execute(
+            "SELECT id,origin,cliente_id FROM socialmei.me_conversations "
+            "WHERE workspace_id=%s AND id=%s AND origin=ANY(%s)",
+            (workspace, conversation_id, allowed),
+        ).fetchone()
+        if not row:
+            raise HTTPException(404, "Conversa não encontrada.")
+        messages = conn.execute(
+            "SELECT id,text,occurred_at FROM socialmei.me_messages "
+            "WHERE workspace_id=%s AND conversation_id=%s AND origin=%s "
+            "ORDER BY occurred_at DESC,id DESC LIMIT 6",
+            (workspace, conversation_id, row["origin"]),
+        ).fetchall()
+        customer = None
+        if row["cliente_id"] is not None:
+            customer = conn.execute(
+                "SELECT id,nome FROM socialmei.crm_clientes "
+                "WHERE workspace_id=%s AND id=%s",
+                (workspace, row["cliente_id"]),
+            ).fetchone()
+        products = conn.execute(
+            "SELECT id,nome,tipo,preco,duracao_minutos "
+            "FROM socialmei.crm_produtos WHERE workspace_id=%s AND status='Ativo' "
+            "ORDER BY nome,id LIMIT 8",
+            (workspace,),
+        ).fetchall()
+    return {
+        "conversation_id": conversation_id,
+        "origin": row["origin"],
+        "customer": customer,
+        "recent_untrusted_messages": [
+            {"message_id": item["id"], "text": item["text"][:600]}
+            for item in reversed(messages)
+        ],
+        "catalog_snapshot": products,
+        "context_only": True,
+        "send_enabled": False,
+        "requires_human_review": True,
+    }
+
+
 @router.patch("/conversations/{conversation_id}/customer")
 def set_customer(conversation_id: Id, payload: CustomerLink, request: Request, response: Response):
     workspace = guard(request, response, read_inbox=True, write=True)["workspace_id"]
