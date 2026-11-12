@@ -3,6 +3,8 @@
 import re
 from typing import Annotated
 
+import ai_drafts
+
 from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import Field, StrictInt
 
@@ -10,6 +12,10 @@ import settings
 from message_enrichment import Id, SAFE_MAX, Strict, db, guard, lock_workspace
 
 router = APIRouter(prefix="/api/v1/message-enrichment", tags=["inbox CRM"])
+
+
+class AssistantDraftRequest(Strict):
+    expected_revision: Annotated[StrictInt, Field(ge=0, le=SAFE_MAX-1)]
 
 
 class CustomerLink(Strict):
@@ -122,7 +128,7 @@ def assistant_context(conversation_id: Id, request: Request, response: Response)
         conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
         conn.execute("SET LOCAL statement_timeout='5s'")
         row = conn.execute(
-            "SELECT id,origin,cliente_id FROM socialmei.me_conversations "
+            "SELECT id,origin,cliente_id,revision FROM socialmei.me_conversations "
             "WHERE workspace_id=%s AND id=%s AND origin=ANY(%s)",
             (workspace, conversation_id, allowed),
         ).fetchone()
@@ -150,6 +156,7 @@ def assistant_context(conversation_id: Id, request: Request, response: Response)
     return {
         "conversation_id": conversation_id,
         "origin": row["origin"],
+        "revision": row["revision"],
         "customer": customer,
         "recent_untrusted_messages": [
             {"message_id": item["id"], "text": item["text"][:600]}
@@ -160,6 +167,35 @@ def assistant_context(conversation_id: Id, request: Request, response: Response)
         "send_enabled": False,
         "requires_human_review": True,
     }
+
+
+@router.post("/conversations/{conversation_id}/assistant-draft")
+def assistant_draft(conversation_id: Id, payload: AssistantDraftRequest,
+                    request: Request, response: Response):
+    """Draft only; no provider dispatch and no save/send route."""
+    user = guard(request, response, read_inbox=True, write=True)
+    if user["role"] not in {"owner", "admin"}:
+        raise HTTPException(403, "Somente responsáveis podem gerar rascunhos com IA.")
+    key, model = ai_drafts.require_configuration(user["workspace_id"])
+    context = assistant_context(conversation_id, request, response)
+    if context["revision"] != payload.expected_revision:
+        raise HTTPException(409, "A conversa mudou. Recarregue antes de gerar o rascunho.")
+    text = ai_drafts.generate(context, key, model)
+    # A slow LLM cannot approve stale answers while a new message or CRM
+    # reassociation arrives. Nothing is written or sent by this operation.
+    with db() as conn:
+        conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+        row = conn.execute(
+            "SELECT revision FROM socialmei.me_conversations "
+            "WHERE workspace_id=%s AND id=%s AND origin=ANY(%s)",
+            (user["workspace_id"], conversation_id,
+             [x for x in enabled_origins(user["workspace_id"]) if x in {"instagram", "waha"}]),
+        ).fetchone()
+        if not row or row["revision"] != payload.expected_revision:
+            raise HTTPException(409, "A conversa mudou enquanto o rascunho era gerado.")
+    return {"conversation_id": conversation_id, "revision": payload.expected_revision,
+            "draft": text, "provider": "groq", "send_enabled": False,
+            "requires_human_review": True, "persisted": False}
 
 
 @router.patch("/conversations/{conversation_id}/customer")
