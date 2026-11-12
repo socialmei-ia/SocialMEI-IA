@@ -1,5 +1,15 @@
 # Checkpoint SocialMEI-IA
 
+## GOWS homologado / publicação restrita de listas em andamento
+
+- Usuário confirmou menu GOWS e resposta manual no celular. Prisma: entrada 74 com uma decisão menu confirmed e recibo; entrada 75 única com quiet_repeat/skipped (proteção correta); uma resposta manual confirmed na mesma conversa. Ambas entradas únicas, edge delivered=2, nenhum claimed/uncertain/dispatching. Não pedir repetição destes testes.
+- Contato da lista derivado exclusivamente do arquivo privado de autorização anterior e comparado à conversa homologada/recibo manual. Coincidência comprovada, sem expor identidade. Só esse contato recebe lista; demais permanecem textuais.
+- Preparadas imagens incrementais de menu API/worker a partir das imagens atuais. Live menu contém UX/canonicalização, quiet_repeat e retomada explícita: patch estrutural preserva todas as funções exceto chamada de render no claim, adiciona helper canary. Não copiar whatsapp_bot.py antigo do checkout sobre o live, pois removeria melhorias. Código reproduzível em tools/gows_list_source.py.
+- Os 31 testes anteriores reaproveitados. Novas verificações: patch preserva AST das políticas/catálogo/renderer; pacote renderiza lista no contato sintético autorizado e texto em outro; parada do remetente comprovada sem retomar polling após limite ocioso. Nenhum teste enviou mensagem real.
+- Artefatos/backup privados: `/home/ubuntu/.socialmei-gows-list-canary-222/`, prepared.json/before.private.json/journal-before.private.json/authorized-contact.private.json. Aplicação e rollback limitados a menu API e worker; GOWS/WEBJS, API principal, Instagram, frontend e banco não serão alterados.
+- Código de aplicação: tools/gows-list-canary.py (--apply); imagens de aplicação fonte 56a4544, ferramenta com correção 36f15bb para congelar/parar remetente ocioso. Mantém journal/quotas e watermark fresco, sem replay. --rollback-check apenas confere; --rollback restaura texto sem reenviar; se houver envio incerto, mantém remetente parado para conciliação e não limpa o ledger.
+- Próxima ação: publicar, verificar scope/render/source/saúde e só então solicitar UM teste real: novo 0 → abrir lista → selecionar 1/Ver produtos → confirmar ação e histórico. Não afirmar listas homologadas antes do recebimento/seleção reais; capturar só estrutura se evento exigir ajuste.
+
 ## GOWS publicado como principal — aguardando homologação real
 
 - Corte incremental executado com candidata `e96a247a4d06ca7eb8203a45913a03aa00741f0e`. API saudável e worker único ativos em GOWS; sessão 01 WORKING na mesma conta. Manual também configurado em GOWS. Menu textual permanece ativo. Nenhum envio de teste foi iniciado pelo operador.
