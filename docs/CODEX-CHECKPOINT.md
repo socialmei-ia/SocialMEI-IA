@@ -1,5 +1,14 @@
 # Checkpoint SocialMEI-IA
 
+## Corte GOWS autorizado — antes da publicação
+
+- Usuário homologou WEBJS recuperado: entrada 0 na Caixa, menu recebido no celular e resposta manual real recebida. Recibos consultados: confirmed automático e manual, nenhum envio claimed/uncertain/dispatching. Não repetir essa homologação.
+- Candidatas GOWS `e96a247`: API derivada da imagem real 86cdd5b altera somente settings/waha_ingress/whatsapp_human_transport; todos os 20 módulos Instagram preservados por hash, psycopg 3.3.7 mantido, imports aprovados. Worker derivado da imagem atual altera somente public_worker. Guard corrigido mantém URL de orçamento e journal/quota antigos. Sem dependências novas.
+- Edge GOWS próprio: engine explícita por registro, HMAC/conta/sessão fixos, spool separado e corte temporal. Testes sintéticos nos dois engines comprovaram assinatura, conta, sessão, engine, descarte antigo e persistência/dedup. Código de corte/rollback em tools/gows-cutover.py; manipula apenas configuração de canal, preserva dados e credenciais.
+- Artefatos privados AWS `/home/ubuntu/.socialmei-gows-cutover-final-222/`: snapshots before, sessão GOWS anterior, registro, journal e prepared.json. WEBJS/volume/sessão permanecem ligados; apenas seu edge e remetente são parados ao assumir GOWS. Um único remetente usa o mesmo journal; manual e automático apontam ao mesmo GOWS. Não reaplicar ferramenta após manifest.private.json sem reconciliação.
+- Próxima ação: executar --apply, conferir result.json/manifest privado e saúde. Se regressão, --rollback restaura configuração WEBJS homologada com corte temporal novo, sem restaurar mensagens ou repetir envio. Resultado incerto exige conciliação e remetente parado.
+- Após o corte, pedir ao usuário retomar o bot da conversa de teste na Caixa se estiver em atendimento humano, enviar novo 0 e testar resposta manual. Não declarar migração homologada apenas por WORKING/HTTP 200. Só então testar listas nativas no contato autorizado, preservando textual se CORE não suportar.
+
 ## Recuperação WEBJS publicada — estado atual
 
 - PR #222: parser comprovado em `634fdf4` aceita `to=null` no GOWS assinado/direto/conta vinculada; mantém recusas WEBJS, identidade divergente e outros tipos. Código GOWS ainda não publicado nem homologado para envio.
