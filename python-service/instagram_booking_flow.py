@@ -19,9 +19,24 @@ STEPS = {'services', 'resources', 'days', 'slots', 'review_ref', 'confirm_ref'}
 
 
 def _offer_details(offer):
+    # Read only this server's generated offer. Final persistence still verifies
+    # its HMAC; this digest preserves the original customer/channel binding.
+    try:
+        token = offer['confirmation']
+        if not isinstance(token, str) or len(token) > 1600:
+            raise ValueError()
+        encoded, _ = token.split('.')
+        raw = base64.b64decode(encoded + '=' * (-len(encoded) % 4), altchars=b'-_', validate=True)
+        claims = json.loads(raw)
+        if not isinstance(claims, dict) or set(claims) != {'binding', 'policy', 'service', 'service_revision',
+                           'resource', 'resource_revision', 'start', 'expires'}:
+            raise ValueError()
+        claims = {key: value for key, value in claims.items() if key != 'expires'}
+    except (KeyError, ValueError, TypeError, UnicodeError):
+        raise ValueError('Booking offer has no valid context') from None
     fields = ('service_id', 'resource_id', 'service_name', 'resource_name',
               'duration_minutes', 'price', 'scheduled_for', 'ends_at')
-    raw = json.dumps({field: offer.get(field) for field in fields},
+    raw = json.dumps({'details': {field: offer.get(field) for field in fields}, 'context': claims},
                      sort_keys=True, separators=(',', ':'), ensure_ascii=False)
     return hashlib.sha256(raw.encode('utf-8')).hexdigest()
 
