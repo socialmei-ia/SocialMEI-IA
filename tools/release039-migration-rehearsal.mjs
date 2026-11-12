@@ -202,6 +202,8 @@ END $;
 ROLLBACK;
 `;
 
+let diagnosticStage = 'startup';
+
 function command(binary, args, { input, binaryOutput = false, timeout = 120000 } = {}) {
   const result = spawnSync(binary, args, {
     cwd: ROOT,
@@ -223,7 +225,7 @@ function command(binary, args, { input, binaryOutput = false, timeout = 120000 }
             : args.includes("pg_isready")
               ? "database_startup"
               : "command";
-    fail("rehearsal_" + phase + "_failed");
+    fail("rehearsal_" + phase + "_failed_" + diagnosticStage);
   }
   return result.stdout;
 }
@@ -437,9 +439,11 @@ export async function rehearse(options, root = ROOT) {
       if (sql(name, "SELECT current_setting('server_version_num')::int / 10000;") !== "16")
         fail("postgres_16_required");
     }
+    diagnosticStage = "baseline_restore";
     migrate(sourceName, join(artifact, "migrations035"));
     if (JSON.stringify(ledger(sourceName)) !== JSON.stringify(manifest.names.slice(0, 35)))
       fail("baseline_ledger_invalid");
+    diagnosticStage = "baseline_seed";
     sql(sourceName, SEED);
     const tables = tableNames(sourceName),
       before = snapshot(sourceName, tables),
@@ -532,6 +536,7 @@ export async function rehearse(options, root = ROOT) {
       ) !== "0"
     )
       fail("incompatible_migration_not_atomic");
+    diagnosticStage = "upgrade039";
     migrate(targetName, join(root, "database/migrations"));
     if (
       snapshot(targetName, tables, false, true) !== before ||
@@ -547,6 +552,7 @@ export async function rehearse(options, root = ROOT) {
       ) !== baselineLedgerRows
     )
       fail("baseline_ledger_timestamps_changed");
+    diagnosticStage = "contract039";
     sql(targetName, CONTRACT);
     sql(
       targetName,
@@ -559,6 +565,7 @@ export async function rehearse(options, root = ROOT) {
       UPDATE socialmei.me_conversations SET cliente_id=3002 WHERE id=6002;
       COMMIT;`,
     );
+    diagnosticStage = "post_contract_039";
     const migratedTables = tableNames(targetName),
       after = snapshot(targetName, migratedTables),
       appliedLedger = sql(
