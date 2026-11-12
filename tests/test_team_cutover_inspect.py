@@ -157,18 +157,19 @@ class TeamCutoverTests(unittest.TestCase):
                     else [],
                 )])
             if args[:3] == ["docker", "exec", "-i"]:
-                assert kwargs["input_text"].startswith("BEGIN TRANSACTION READ ONLY;")
+                self.assertEqual(args[3:], [cutover.CONTAINERS["team_api"], "python", "-"])
+                self.assertIn("SET TRANSACTION READ ONLY", kwargs["input_text"])
+                self.assertIn("from database import connect", kwargs["input_text"])
                 return json.dumps({
-                    "versions": [f"{i:03}_fixture.sql" for i in range(1, 32)] + [
-                        "032_whatsapp_bot_conversations.sql",
-                        "033_provider_sentiment_jobs.sql"
-                    ],
+                    "versions": [f"{i:03}_fixture.sql" for i in range(1, 32)] + sorted(cutover.KNOWN_LATE_MIGRATIONS),
                     "bot_table": True,
                     "sentiment_table": True,
+                    "instagram_menu_table": True,
+                    "instagram_replies_table": True,
                 }) + "\n"
             return None
 
-        report = cutover.collect(CANDIDATE, runner=runner)
+        report = cutover.collect(CANDIDATE, runner=runner, root="/home/ubuntu/socialmei-team")
         self.assertEqual(len(used), 8)
         self.assertTrue(report["decision"]["preflight_unblocked"])
         self.assertFalse(report["decision"]["deployment_executed"])
@@ -176,10 +177,89 @@ class TeamCutoverTests(unittest.TestCase):
         self.assertEqual(report["containers"]["waha"]["default_engine"], "WEBJS")
         self.assertTrue(report["database"]["has_033"])
         self.assertFalse(report["database"]["ledger_has_gaps"])
+        self.assertEqual(report["database_source"], "effective_api_connection")
         self.assertTrue(all(
             a[:2] in (["git", "-C"], ["docker", "inspect"], ["docker", "exec"])
             for a, _ in used
         ))
+
+    def test_failed_api_connection_never_falls_back_to_local_postgres(self):
+        used = []
+
+        def runner(args, **kwargs):
+            used.append(args)
+            if args[0] == "git":
+                return CANDIDATE if args[3] == "rev-parse" else ""
+            if args[:2] == ["docker", "exec"]:
+                return '{"available": false}'
+            return json.dumps([container(api=args[-1].endswith("team-api-1"))])
+
+        report = cutover.collect(CANDIDATE, runner=runner)
+        self.assertFalse(report["database"]["available"])
+        self.assertIn("ledger_do_banco_indisponivel", report["decision"]["blockers"])
+        probes = [args for args in used if args[:2] == ["docker", "exec"]]
+        self.assertEqual(len(probes), 1)
+        self.assertEqual(probes[0][3], cutover.CONTAINERS["team_api"])
+
+    def test_effective_probe_is_read_only_and_sanitizes_connection_errors(self):
+        import sys
+        import types
+        from contextlib import redirect_stdout
+        from io import StringIO
+        from unittest.mock import patch
+
+        module = types.ModuleType("database")
+        def fail():
+            raise RuntimeError("PRIVATE_DATABASE_PASSWORD")
+        module.connect = fail
+        output = StringIO()
+        with patch.dict(sys.modules, {"database": module}), redirect_stdout(output):
+            exec(cutover.API_DATABASE_PROBE, {})
+        self.assertEqual(json.loads(output.getvalue()), {
+            "available": False, "reason": "connection_or_schema_unavailable"})
+        self.assertNotIn("PRIVATE_DATABASE_PASSWORD", output.getvalue())
+        self.assertIn("conn.rollback()", cutover.API_DATABASE_PROBE)
+        self.assertIn("statement_timeout", cutover.API_DATABASE_PROBE)
+        self.assertNotIn("PRIVATE", json.dumps(cutover.migration_summary({
+            "available": False, "reason": "PRIVATE"})))
+
+    def test_smtp_readiness_exposes_only_presence_and_tls(self):
+        raw = container(api=True)
+        raw["Config"]["Env"] += ["SOCIALMEI_RECOVERY_MODE=smtp"] + [
+            "SOCIALMEI_SMTP_" + key + "=PRIVATE_MAIL_VALUE"
+            for key in ("HOST", "USER", "PASSWORD", "FROM")
+        ] + ["SOCIALMEI_SMTP_PORT=25"]
+        flags = cutover.inspect_summary(raw, "team_api")["flags"]
+        self.assertTrue(flags["smtp_fields_present"])
+        self.assertFalse(flags["smtp_tls_port"])
+        self.assertEqual(flags["recovery_mode"], "smtp")
+        self.assertNotIn("PRIVATE_MAIL_VALUE", json.dumps(flags))
+
+    def test_probe_handles_psycopg_text_and_json_results(self):
+        import sys
+        import types
+        from contextlib import redirect_stdout
+        from io import StringIO
+        from unittest.mock import MagicMock, patch
+
+        ledger = {"versions": [f"{i:03}_fixture.sql" for i in range(1, 32)]
+                  + sorted(cutover.KNOWN_LATE_MIGRATIONS),
+                  "bot_table": True, "sentiment_table": True,
+                  "instagram_menu_table": True, "instagram_replies_table": True}
+        for raw in (ledger, json.dumps(ledger)):
+            with self.subTest(raw_type=type(raw).__name__):
+                conn = MagicMock()
+                conn.execute.return_value.fetchone.return_value = (raw,)
+                module = types.ModuleType("database")
+                module.connect = MagicMock()
+                module.connect.return_value.__enter__.return_value = conn
+                output = StringIO()
+                with patch.dict(sys.modules, {"database": module}), redirect_stdout(output):
+                    exec(cutover.API_DATABASE_PROBE, {})
+                self.assertEqual(json.loads(output.getvalue()), ledger)
+                self.assertTrue(cutover.migration_summary(json.loads(output.getvalue()))["has_039"])
+                conn.rollback.assert_called_once()
+                self.assertEqual(conn.execute.call_args_list[0].args, ("SET TRANSACTION READ ONLY",))
 
     def test_unsafe_public_ports_legacy_owner_and_db_network_block(self):
         report = {

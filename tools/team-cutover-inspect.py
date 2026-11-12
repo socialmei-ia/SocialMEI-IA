@@ -48,6 +48,26 @@ FROM socialmei.schema_migrations;
 ROLLBACK;
 """
 
+# Use the API's effective connection, never the legacy local database as fallback.
+# Raw connection failures can contain credentials and must not reach stdout.
+API_DATABASE_PROBE = """
+import json
+from database import connect
+try:
+    with connect() as conn:
+        conn.execute('SET TRANSACTION READ ONLY')
+        conn.execute("SET LOCAL statement_timeout = '8s'")
+        value = conn.execute(%r).fetchone()[0]
+        conn.rollback()
+    if isinstance(value, str):
+        value = json.loads(value)
+    print(json.dumps(value))
+except Exception as error:
+    reason = ('provider_account_limit' if 'planLimitReached' in str(error)
+              else 'connection_or_schema_unavailable')
+    print(json.dumps({'available': False, 'reason': reason}))
+""" % SQL.split('BEGIN TRANSACTION READ ONLY;\n', 1)[1].rsplit('\nROLLBACK;', 1)[0]
+
 
 def run_read_only(args, *, input_text=None, timeout=14):
     """Never print stdout/stderr of a subprocess: they may contain secrets."""
@@ -81,6 +101,7 @@ def inspect_summary(data, service):
         "running": state.get("Running") is True,
         "health": health,
         "release_sha": release_sha,
+        "image_id": data.get("Image") if re.fullmatch(r"sha256:[0-9a-f]{64}", str(data.get("Image", ""))) else None,
         "host_ports_bound": bool(ports),
         "automation_network": AUTOMATION_NETWORK in networks,
     }
@@ -102,6 +123,9 @@ def inspect_summary(data, service):
             "ai_draft_key_configured": 32 <= len(env.get("SOCIALMEI_GROQ_API_KEY", "")) <= 512,
             "ai_draft_workspaces_configured": bool(re.fullmatch(r"[1-9][0-9]{0,15}(?:,[1-9][0-9]{0,15})*", env.get("SOCIALMEI_AI_DRAFT_WORKSPACES", ""))),
             "ai_egress_network": any(n.endswith("_ai-egress") for n in networks),
+            "recovery_mode": env.get("SOCIALMEI_RECOVERY_MODE", "disabled") if env.get("SOCIALMEI_RECOVERY_MODE", "disabled") in {"disabled", "smtp"} else "invalid",
+            "smtp_fields_present": all(env.get("SOCIALMEI_SMTP_" + key, "").strip() for key in ("HOST", "USER", "PASSWORD", "FROM")),
+            "smtp_tls_port": env.get("SOCIALMEI_SMTP_PORT", "465") in {"465", "587"},
         }
     if service == "waha":
         engine = env.get("WHATSAPP_DEFAULT_ENGINE", "unknown").strip().upper()
@@ -112,6 +136,11 @@ def inspect_summary(data, service):
 def migration_summary(result):
     if not isinstance(result, dict):
         return {"available": False}
+    if result.get("available") is False:
+        reason = result.get("reason")
+        return {"available": False, "reason": reason if reason in {
+            "provider_account_limit", "connection_or_schema_unavailable"
+        } else "unavailable"}
     versions = result.get("versions")
     if not isinstance(versions, list) or not all(
         isinstance(v, str) and re.fullmatch(r"\d{3}_[a-z0-9_]+\.sql", v)
@@ -172,7 +201,7 @@ def assess(report, expected_sha):
         blockers.append("ledger_do_banco_indisponivel")
     elif db.get("duplicate_versions") or db.get("ledger_has_gaps") or db.get("future_or_unknown_versions"):
         blockers.append("ledger_incompativel")
-    elif db.get("max_prefix") == 39 and not db.get("has_039"):
+    elif db.get("max_prefix") != MAX_KNOWN_MIGRATION or not db.get("has_039"):
         blockers.append("instagram_menu_039_incompleto")
     if services["team_database"].get("automation_network"):
         blockers.append("postgres_conectado_a_rede_automation")
@@ -206,9 +235,8 @@ def collect(expected_sha, runner=run_read_only, root=ROOT):
         containers[service] = inspect_summary(data, service)
 
     raw_db = runner(
-        ["docker", "exec", "-i", CONTAINERS["team_database"], "sh", "-c",
-         'exec psql -X -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -At'],
-        input_text=SQL, timeout=25,
+        ["docker", "exec", "-i", CONTAINERS["team_api"], "python", "-"],
+        input_text=API_DATABASE_PROBE, timeout=25,
     )
     database = {"available": False}
     if raw_db is not None:
@@ -221,7 +249,8 @@ def collect(expected_sha, runner=run_read_only, root=ROOT):
                     pass
                 break
     report = {"mode": "only_read", "candidate_sha": expected_sha,
-              "source": source, "containers": containers, "database": database}
+              "source": source, "containers": containers, "database": database,
+              "database_source": "effective_api_connection"}
     report["decision"] = assess(report, expected_sha)
     return report
 
