@@ -496,11 +496,16 @@ def claim(decision_id: UUID, payload: Strict, request: Request):
         permitted = permitted and (contacts is None or state['contact_ref'] in contacts)
         permitted = permitted and not pending_human_reply(
             conn, channel['workspace_id'], channel['channel_id'], row['conversation_id'])
+        # Catalog and booking choices can contain opaque "sm:" references.
+        # Never downgrade a planned native list into plain-text delivery:
+        # those references are internal IDs, not customer-facing menu labels.
+        native_verified = native_list_canary(channel, state['contact_ref'])
+        permitted = permitted and (not row['result'].get('catalog_navigation') or native_verified)
         if not permitted:
             return {'operation_id': str(row['id']), 'dispatch_allowed': False, 'status': row['status']}
         conn.execute("UPDATE socialmei.wa_bot_decisions SET status='claimed',claimed_at=NOW() WHERE id=%s", (decision_id,))
         delivery = render_waha(channel['sessao'], state['contact_ref'].removeprefix('waha:'), row['result']['text'], (navigation.offered_choices(row) if row['result'].get('catalog_navigation') else row['result']['choices']),
-                               engine='GOWS', list_verified=native_list_canary(channel, state['contact_ref']))
+                               engine='GOWS', list_verified=native_verified)
         return {'operation_id': str(row['id']), 'dispatch_allowed': True, 'status': 'claimed', 'delivery': delivery}
 
 
