@@ -372,10 +372,10 @@
   function parseBookingHours(value, weekday) {
     const windows = [];
     for (const entry of value.split(";").map((part) => part.trim()).filter(Boolean)) {
-      const match = /^(\\d{2}:\\d{2})\\s*-\\s*(\\d{2}:\\d{2})$/.exec(entry);
+      const match = /^(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})$/.exec(entry);
       if (!match || match[1] >= match[2] ||
           ![match[1], match[2]].every((clock) =>
-            /^(?:[01]\\d|2[0-3]):[0-5]\\d$/.test(clock)))
+            /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(clock)))
         throw Error(bookingDays[weekday] + ": use 09:00-12:00;13:00-18:00.");
       windows.push({ weekday, opens: match[1], closes: match[2] });
     }
