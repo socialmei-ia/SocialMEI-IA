@@ -66,6 +66,9 @@ class TeamCutoverTests(unittest.TestCase):
         self.assertTrue(good["ledger_has_gaps"])
         data["versions"].append("040_unreviewed_change.sql")
         self.assertTrue(cutover.migration_summary(data)["future_or_unknown_versions"])
+        data["versions"].pop()
+        data["versions"].append("034_unreviewed_change.sql")
+        self.assertTrue(cutover.migration_summary(data)["future_or_unknown_versions"])
         data["versions"] = ["032_whatsapp_bot_conversations.sql"] * 2
         self.assertTrue(cutover.migration_summary(data)["duplicate_versions"])
 
