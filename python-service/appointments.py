@@ -63,7 +63,7 @@ def channel_booking_slots(payload: SlotRequest):
         configure(conn)
         key = signing_key_for_context(conn, *context)
         return slots_for_message(*context, payload.service_id, payload.resource_id, payload.day,
-                                 key, connection=conn)
+                                 key, page=payload.page, connection=conn)
 
 
 @router.post("/channel-booking/confirm")
