@@ -1,0 +1,85 @@
+# OPTIONAL: Instagram Direct auto-menu workers. Must NOT run alongside
+# an existing n8n/menu sender for the same account; verify ownership first.
+x-instagram-worker: &instagram-worker
+  build: ./python-service
+  command: ["python", "/app/instagram-auto-menu-worker.py"]
+  restart: unless-stopped
+  environment: &instagram-worker-env
+    PYTHONPATH: /app
+    POSTGRES_HOST: team-postgres
+    POSTGRES_PORT: "5432"
+    POSTGRES_USER: socialmei_team
+    POSTGRES_PASSWORD: ${TEAM_POSTGRES_PASSWORD:?Private Team database password required}
+    POSTGRES_DB: socialmei_team
+    SOCIALMEI_SHARED_DATA_ENABLED: "true"
+    SOCIALMEI_AUTH_ENABLED: ${TEAM_AUTH_ENABLED:-false}
+    SOCIALMEI_AUTH_ORIGIN: https://${SOCIALMEI_TEAM_HOST:?Team HTTPS hostname required}
+    SOCIALMEI_INSTAGRAM_RUNTIME_MODE: ${SOCIALMEI_INSTAGRAM_RUNTIME_MODE:-disabled}
+    SOCIALMEI_INSTAGRAM_CLIENT_ID: ${SOCIALMEI_INSTAGRAM_CLIENT_ID:-}
+    SOCIALMEI_INSTAGRAM_CLIENT_SECRET: ${SOCIALMEI_INSTAGRAM_CLIENT_SECRET:-}
+    SOCIALMEI_INSTAGRAM_GRAPH_VERSION: ${SOCIALMEI_INSTAGRAM_GRAPH_VERSION:-}
+    SOCIALMEI_INSTAGRAM_SCOPES: ${SOCIALMEI_INSTAGRAM_SCOPES:-}
+    SOCIALMEI_INSTAGRAM_AUTHORIZATION_EMBED: ${SOCIALMEI_INSTAGRAM_AUTHORIZATION_EMBED:-}
+    SOCIALMEI_INSTAGRAM_TOKEN_KEYRING: ${SOCIALMEI_INSTAGRAM_TOKEN_KEYRING:-}
+    SOCIALMEI_INSTAGRAM_TOKEN_ACTIVE_KEY_ID: ${SOCIALMEI_INSTAGRAM_TOKEN_ACTIVE_KEY_ID:-}
+    SOCIALMEI_INSTAGRAM_WEBHOOK_VERIFY_TOKEN: ${SOCIALMEI_INSTAGRAM_WEBHOOK_VERIFY_TOKEN:-}
+    SOCIALMEI_INSTAGRAM_WEBHOOK_ACCOUNT_ALIASES: ${SOCIALMEI_INSTAGRAM_WEBHOOK_ACCOUNT_ALIASES:-}
+    SOCIALMEI_INSTAGRAM_RUNTIME_INGRESS_ENABLED: ${SOCIALMEI_INSTAGRAM_RUNTIME_INGRESS_ENABLED:-false}
+    SOCIALMEI_INSTAGRAM_RUNTIME_SEND_ENABLED: ${SOCIALMEI_INSTAGRAM_RUNTIME_SEND_ENABLED:-false}
+    SOCIALMEI_INSTAGRAM_DIRECT_OWNER: ${SOCIALMEI_INSTAGRAM_DIRECT_OWNER:-unassigned}
+    SOCIALMEI_INSTAGRAM_PROXY_PRIVACY_REVIEWED: ${SOCIALMEI_INSTAGRAM_PROXY_PRIVACY_REVIEWED:-false}
+    SOCIALMEI_INSTAGRAM_PUBLISH_ENABLED: "false"
+    SOCIALMEI_INSTAGRAM_AUTO_MENU_ENABLED: ${SOCIALMEI_INSTAGRAM_AUTO_MENU_ENABLED:-false}
+    SOCIALMEI_INSTAGRAM_AUTO_MENU_WORKSPACES: ${SOCIALMEI_INSTAGRAM_AUTO_MENU_WORKSPACES:-}
+  networks: [database, instagram-menu-egress]
+  depends_on:
+    team-postgres:
+      condition: service_healthy
+  healthcheck:
+    test:
+      [
+        "CMD",
+        "python",
+        "-c",
+        "import json; from pathlib import Path; p=Path('/run/socialmei/instagram-menu-state/state.json'); assert json.loads(p.read_text())['status']=='running'",
+      ]
+    interval: 30s
+    timeout: 5s
+    retries: 3
+    start_period: 15s
+
+services:
+  team-api:
+    environment:
+      SOCIALMEI_INSTAGRAM_AUTO_MENU_ENABLED: ${SOCIALMEI_INSTAGRAM_AUTO_MENU_ENABLED:-false}
+      SOCIALMEI_INSTAGRAM_AUTO_MENU_WORKSPACES: ${SOCIALMEI_INSTAGRAM_AUTO_MENU_WORKSPACES:-}
+
+  team-instagram-menu-primary:
+    <<: *instagram-worker
+    profiles: [instagram-menu-primary]
+    environment:
+      <<: *instagram-worker-env
+      SOCIALMEI_INSTAGRAM_AUTO_MENU_WORKSPACE_ID: ${SOCIALMEI_INSTAGRAM_MENU_PRIMARY_WORKSPACE_ID:-}
+      SOCIALMEI_INSTAGRAM_AUTO_MENU_START_UTC: ${SOCIALMEI_INSTAGRAM_MENU_PRIMARY_START_UTC:-}
+    volumes:
+      - ./tools/instagram-auto-menu-worker.py:/app/instagram-auto-menu-worker.py:ro
+      - instagram_menu_primary_state:/run/socialmei/instagram-menu-state
+
+  team-instagram-menu-secondary:
+    <<: *instagram-worker
+    profiles: [instagram-menu-secondary]
+    environment:
+      <<: *instagram-worker-env
+      SOCIALMEI_INSTAGRAM_AUTO_MENU_WORKSPACE_ID: ${SOCIALMEI_INSTAGRAM_MENU_SECONDARY_WORKSPACE_ID:-}
+      SOCIALMEI_INSTAGRAM_AUTO_MENU_START_UTC: ${SOCIALMEI_INSTAGRAM_MENU_SECONDARY_START_UTC:-}
+    volumes:
+      - ./tools/instagram-auto-menu-worker.py:/app/instagram-auto-menu-worker.py:ro
+      - instagram_menu_secondary_state:/run/socialmei/instagram-menu-state
+
+networks:
+  instagram-menu-egress:
+    driver: bridge
+
+volumes:
+  instagram_menu_primary_state:
+  instagram_menu_secondary_state:
