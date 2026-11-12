@@ -50,6 +50,15 @@ class InstagramBookingFlowTests(unittest.TestCase):
         self.assertEqual(ig._recent_choices({**row, 'created_at':
             datetime.now(timezone.utc) - timedelta(minutes=11)}), [])
 
+    def test_internal_booking_reference_is_not_customer_visible(self):
+        stored = self.options()
+        visible = ig.public_text(stored)
+        self.assertNotIn(ig.MARKER, visible)
+        self.assertIn('1 - Corte feminino', visible)
+        self.assertEqual(ig._decode_reference(stored)[0][1]['service_id'], 31)
+        self.assertEqual(ig.public_text('Mensagem normal'), 'Mensagem normal')
+        self.assertEqual(ig.public_text(None), '')
+
     def test_selection_reads_only_confirmed_own_conversation_reply(self):
         row = {'status': 'confirmed', 'text': self.options(), 'created_at': datetime.now(timezone.utc)}
         conn = RecentReply(row)
