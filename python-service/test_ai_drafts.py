@@ -67,7 +67,7 @@ class DraftContractTests(unittest.TestCase):
             self.assertFalse(client.call_args.kwargs["trust_env"])
 
     def test_bad_provider_response_fails_closed(self):
-        for value in (None, "", "X" * 451, "value\\x00"):
+        for value in (None, "", "X" * 451, "value\x00"):
             response = SimpleNamespace(status_code=200, content=b"x", json=lambda v=value:
                 {"choices": [{"message": {"content": v}}]})
             with self.subTest(value=str(value)[:20]), patch("ai_drafts.httpx.Client") as client:
