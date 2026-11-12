@@ -57,17 +57,24 @@ def request_payload(context, model):
         {"historico_em_ordem": history, "catalogo_confirmado": products},
         ensure_ascii=False, separators=(",", ":"),
     )
-    return {
+    payload = {
         "model": model,
         "messages": [
             {"role": "system", "content": SYSTEM_INSTRUCTIONS},
             {"role": "user", "content": "Prepare somente uma sugestão para revisão humana "
              "usando estes dados de um único negócio: " + content},
         ],
-        "max_completion_tokens": 220,
+        "max_completion_tokens": 1024,
         "temperature": 0.2,
         "stream": False,
     }
+    # GPT-OSS spends completion tokens on reasoning. A budget of 220 can
+    # return no visible answer even when the transport succeeded.
+    # Only GPT-OSS models accept these provider-specific parameters.
+    if model in {"openai/gpt-oss-20b", "openai/gpt-oss-120b"}:
+        payload["reasoning_effort"] = "low"
+        payload["include_reasoning"] = False
+    return payload
 
 
 def generate(context, key, model):
