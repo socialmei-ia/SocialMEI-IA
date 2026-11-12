@@ -9,7 +9,19 @@ module.exports = async (browser, origin) => {
     let products = [],
       resources = [],
       rows = [],
-      lost = true;
+      lost = true,
+      policy = {
+        revision: 0,
+        policy: {
+          enabled: false,
+          timezone: "America/Recife",
+          hours: [],
+          step_minutes: 15,
+          lead_minutes: 60,
+          horizon_days: 30,
+        },
+      },
+      policyWrites = 0;
     const identity = {
       usuario: { id: 91, nome: "Teste", email: "teste@example.test" },
       negocio: { id: 17, nome: "Sorria fictícia", slug: "fixture", configuracao: {} },
@@ -61,6 +73,22 @@ module.exports = async (browser, origin) => {
         return route.fulfill({ json: resources[0] });
       }
       if (p === "/agenda") return route.fulfill({ json: { items: [], truncated: false } });
+      if (p === "/agenda/channel-booking") {
+        if (method === "GET") return route.fulfill({ json: policy });
+        assert.equal(data.expected_revision, policy.revision);
+        assert.equal(data.policy.timezone, "America/Recife");
+        assert.equal(data.policy.enabled, true);
+        assert.equal(data.policy.hours.length, 2);
+        assert.deepEqual(data.policy.hours[0], {
+          weekday: 0, opens: "09:00", closes: "12:00",
+        });
+        assert.deepEqual(data.policy.hours[1], {
+          weekday: 0, opens: "13:00", closes: "18:00",
+        });
+        policy = { revision: policy.revision + 1, policy: data.policy };
+        policyWrites++;
+        return route.fulfill({ json: policy });
+      }
       if (p === "/agenda/availability") return route.fulfill({ json: { available: true } });
       if (p === "/agenda/appointments") {
         if (method === "GET") return route.fulfill({ json: { items: rows, truncated: false } });
@@ -112,6 +140,19 @@ module.exports = async (browser, origin) => {
     try {
       await page.goto(origin + "/frontend/socialmei-app.html#/agenda");
       await page.getByText("Nenhum agendamento neste período.", { exact: true }).waitFor();
+      await page.getByRole("button", { name: "Configurar horários dos canais" }).click();
+      await page.locator("#f_channel_booking_enabled").selectOption("true");
+      await page.locator("#f_channel_booking_day_0").fill("09:00-12:00;13:00-18:00");
+      await page.locator("#f_channel_booking_horizon").fill("21");
+      await page.locator("dialog[open]")
+        .getByRole("button", { name: "Salvar horários", exact: true }).click();
+      await page.locator("dialog[open]").waitFor({ state: "hidden" });
+      assert.equal(policyWrites, 1);
+      assert.equal(policy.policy.horizon_days, 21);
+      await page.getByRole("button", { name: "Configurar horários dos canais" }).click();
+      assert.equal(await page.locator("#f_channel_booking_day_0").inputValue(),
+        "09:00-12:00;13:00-18:00");
+      await page.keyboard.press("Escape");
       await page.getByRole("button", { name: "Cadastrar serviço", exact: true }).click();
       await page.locator("#f_booking_service").fill("Consulta");
       await page.locator("#f_booking_duration").fill("45");
