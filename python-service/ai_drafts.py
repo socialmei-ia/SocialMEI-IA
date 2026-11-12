@@ -82,7 +82,7 @@ def generate(context, key, model):
         result = response.json()
         text = result["choices"][0]["message"]["content"]
         if (not isinstance(text, str) or not 1 <= len(text.strip()) <= 450
-                or any(ord(char) < 32 and char not in "\\t\\n\\r" for char in text)):
+                or any(ord(char) < 32 and char not in "\t\n\r" for char in text)):
             raise ValueError("Invalid draft")
         return text.strip()
     except (httpx.HTTPError, ValueError, TypeError, KeyError, IndexError):
