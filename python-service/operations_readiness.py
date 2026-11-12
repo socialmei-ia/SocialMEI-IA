@@ -45,6 +45,7 @@ EXPECTED_MIGRATIONS = (
     "036_service_appointments.sql",
     "037_catalog_details.sql",
     "038_inbox_customer_link.sql",
+    "039_instagram_auto_menu.sql",
 )
 
 
