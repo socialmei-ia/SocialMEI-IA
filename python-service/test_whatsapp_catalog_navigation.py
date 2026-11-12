@@ -40,6 +40,9 @@ class NavigationContracts(unittest.TestCase):
         self.assertIn('30 minutos',nav.availability(service))
         self.assertIn('1 minuto.',nav.availability({**service,'duracao_minutos':1}))
         self.assertNotIn('Duração:',nav.availability({**service,'duracao_minutos':None}))
+        summary={'preco':'12.50','descricao':''}
+        self.assertIn('Sem estoque',nav.item_summary({**summary,'tipo':'Produto','estoque':0}))
+        self.assertIn('Duração a confirmar',nav.item_summary({**summary,**service,'duracao_minutos':None}))
 
 
 @unittest.skipUnless(os.getenv('TEST_DATABASE_URL'),'Disposable PostgreSQL required')
