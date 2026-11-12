@@ -160,7 +160,10 @@ module.exports = async (browser, origin) => {
         await page.locator("#f_channel_booking_day_0").inputValue(),
         "09:00-12:00;13:00-18:00",
       );
-      await page.keyboard.press("Escape");
+      // This test only inspects saved policy; close deterministically before
+      // exercising the unrelated create-appointment journey.
+      await page.locator("dialog[open]").evaluate((dialog) => dialog.close());
+      await page.locator("dialog[open]").waitFor({ state: "hidden" });
       await page.getByRole("button", { name: "Cadastrar serviço", exact: true }).click();
       await page.locator("#f_booking_service").fill("Consulta");
       await page.locator("#f_booking_duration").fill("45");
