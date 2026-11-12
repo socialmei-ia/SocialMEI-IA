@@ -3,6 +3,8 @@ name: Team v33 candidate images (off-VPS)
 on:
   pull_request:
     branches:
+      - feat/gows-cutover-gates-20261111
+      - fix/channel-recovery-20261111
       - release/daily-business-candidate-20261105
       - release/business-onboarding-integration-20261105
       - release/functional-product-20261105

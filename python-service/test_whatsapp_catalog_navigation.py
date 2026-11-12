@@ -147,6 +147,14 @@ class NavigationDatabaseTests(unittest.TestCase):
             self.assertEqual(quiet['action'],'human_wait')
             self.assertEqual(quiet['status'],'skipped')
             resume=human_claim['delivery']['body']['message']['sections'][0]['rows'][0]['rowId']
+            with patch('whatsapp_bot.pending_human_reply', return_value=True):
+                blocked=self.decide(incoming(resume,'Retomar automático')).json()
+            self.assertEqual(blocked['action'],'human_wait')
+            self.assertEqual(blocked['status'],'skipped')
+            with self.db() as c:
+                self.assertEqual(c.execute('SELECT state FROM socialmei.wa_bot_conversations '
+                    'WHERE workspace_id=%s AND conversation_id=%s',
+                    (self.workspace,detail['conversation_id'])).fetchone()[0],'human')
             resumed=self.decide(incoming(resume,'Retomar automático')).json()
             self.assertEqual(resumed['action'],'menu')
             with self.db() as c:
@@ -163,3 +171,30 @@ class NavigationDatabaseTests(unittest.TestCase):
             self.assertIn('Fixture product',inbox.text)
             self.assertNotIn('sm:',inbox.text)
             self.assertNotIn('nav -',inbox.text)
+
+    def test_event_accepted_before_catalog_update_is_persisted_after_update(self):
+        import importlib.util
+        from dataclasses import asdict
+        from pathlib import Path
+        spec=importlib.util.spec_from_file_location('catalog_source_test',
+            Path(__file__).resolve().parents[1]/'tools/gows_catalog_source.py')
+        source=importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(source)
+        now=int(time.time())
+        original=replace(self.service.registry['trusted-a'],engine='GOWS',ingress_after=now-60)
+        registry=source.catalog_registry_snapshot({'version':1,'bindings':[asdict(original)]})
+        binding=type(original)(**registry['bindings'][0])
+        event=gows_list_payload('1',mid='false_222@c.us_'+uuid4().hex,me={'id':BOT_ACCOUNT})
+        event['payload']['timestamp']=now-30
+        event['timestamp']=(now-30)*1000
+        body=raw(event)
+        # Reproduce the discarded-spool regression from a reset activation cutoff.
+        reset=WahaIngressService({'trusted-a':replace(original,ingress_after=now)})
+        self.assertEqual(reset.receive('trusted-a',body,sign(body),'sha512')['ignored'],1)
+        updated=WahaIngressService({'trusted-a':binding})
+        self.assertEqual(updated.receive('trusted-a',body,sign(body),'sha512')['processed'],1)
+        self.assertEqual(updated.receive('trusted-a',body,sign(body),'sha512')['duplicates'],1)
+        with self.db() as c:
+            self.assertEqual(c.execute('SELECT count(*) FROM socialmei.me_messages WHERE '
+                'workspace_id=%s AND external_message_id=%s',
+                (self.workspace,event['payload']['id'])).fetchone()[0],1)

@@ -1,5 +1,44 @@
 """Small source patch retaining the deployed bot's human/quiet-repeat policies."""
 import ast
+import copy
+import re
+from datetime import datetime
+
+
+def catalog_registry_snapshot(value):
+    """Retain the original ingress boundary, including already accepted edge events."""
+    bindings = value.get('bindings', [])
+    if (len(bindings) != 1 or bindings[0].get('engine') != 'GOWS'
+            or type(bindings[0].get('ingress_after')) is not int
+            or bindings[0]['ingress_after'] <= 0):
+        raise ValueError('Unexpected catalog ingress binding')
+    return copy.deepcopy(value)
+
+
+def catalog_source_boundary(environment):
+    """Catalog updates retain the source gate of the already active sender."""
+    value = environment.get('SOCIALMEI_CONTINUOUS_START_UTC', '')
+    try:
+        parsed = datetime.fromisoformat(value)
+    except (TypeError, ValueError):
+        raise ValueError('Existing catalog activation required') from None
+    if parsed.tzinfo is None:
+        raise ValueError('Existing catalog activation timezone required')
+    return value
+
+
+def verified_candidate_images(prepared, image_identity):
+    """Check mutable tags before stopping services, then return immutable IDs."""
+    expected = prepared.get('image_ids', {})
+    tags = prepared.get('images', {})
+    if set(expected) != {'api', 'menu', 'worker'} or set(tags) != set(expected):
+        raise ValueError('Candidate image identities required')
+    for kind, identity in expected.items():
+        if (not isinstance(identity, str) or not re.fullmatch(r'sha256:[0-9a-f]{64}', identity)
+                or image_identity(tags[kind]) != identity
+                or image_identity(identity) != identity):
+            raise ValueError('Candidate image identity changed')
+    return dict(expected)
 
 
 def patch_history(source):
