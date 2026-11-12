@@ -1,5 +1,13 @@
 # Checkpoint SocialMEI-IA
 
+## Incidente WEBJS — 2026-11-12 UTC
+
+- Mensagem de teste localizada exatamente uma vez no histórico WEBJS por ID/timestamp, também presente no REST GOWS. Não foi importada/reprocessada. Nenhum evento correspondente em `crm_eventos_canal` ou `me_messages`: não chegou à Caixa nem gerou decisão/recibo. Não atribuir a pausa humana.
+- Divergência comprovada: única sessão WEBJS WORKING tem conta correta, mas nome diferente do `01` configurado no worker. GET da sessão configurada retorna 404. Webhook da sessão ativa aponta a `/webhook-test/webhook`, sem HMAC; logs de webhook mostram respostas 403. Não alterar vínculo do banco ou aceitar webhook sem assinatura para contornar.
+- Worker contínuo running, journal running sem erro/in_flight na leitura; ausência da resposta é anterior ao planejamento. Instagram preservado. Sessão WEBJS não reiniciada/recriada; nenhum envio ou mudança de configuração efetuado.
+- Captura WebSocket anterior já inativa e sem evento estrutural; não há prova do tipo WebSocket de `to`. REST recente mostra null, mas continua insuficiente para mudar o parser. Captura rearmada, prontidão confirmada, solicitada nova entrada humana. Verificar log privado antes de pedir outra mensagem.
+- Próxima ação: capturar evento GOWS e corrigir apenas shape comprovado. Recuperação WEBJS exige restaurar sessão/webhook autenticado coerentes; não mudar nomes/credenciais/assinatura nem reiniciar sessão sem estabelecer operação segura e rollback. Corte GOWS permanece bloqueado por homologação real, não por teste sintético.
+
 ## Continuação GOWS — estado autoritativo desta execução
 
 - Branch ativa `feat/gows-cutover-gates-20261111`, PR #222 draft; base `132a574` incorporada sem alterar frontend. Código `e19eaf5`: orçamento persistente acompanha URL do transporte selecionado; ingresso GOWS exige corte temporal explícito e descarta eventos antigos antes do banco. WEBJS preservado.
