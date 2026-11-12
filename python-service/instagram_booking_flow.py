@@ -85,10 +85,13 @@ def _decode_reference(text):
     choices = []
     for value in data:
         if (not isinstance(value, list) or len(value) != 2
-                or value[0] not in CHOICE_IDS or not isinstance(value[1], dict)
-                or value[1].get('step') not in STEPS):
+                or not isinstance(value[0], str) or value[0] not in CHOICE_IDS
+                or not isinstance(value[1], dict)
+                or not isinstance(value[1].get('step'), str)
+                or value[1]['step'] not in STEPS
+                or any(identifier == value[0] for identifier, _ in choices)):
             return []
-        choices.append((value[0], {'route': 'booking', **value[1]}))
+        choices.append((value[0], {**value[1], 'route': 'booking'}))
     return choices
 
 
