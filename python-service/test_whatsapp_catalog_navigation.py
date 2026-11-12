@@ -33,6 +33,13 @@ class NavigationContracts(unittest.TestCase):
         self.assertNotIn('sm:',rendered)
         self.assertNotIn('nav -',rendered)
 
+    def test_stock_zero_and_service_duration_are_not_invented(self):
+        self.assertIn('Sem estoque',nav.availability({'tipo':'Produto','estoque':0}))
+        self.assertIn('3 un.',nav.availability({'tipo':'Produto','estoque':3}))
+        service={'tipo':'Serviço','estoque':None,'duracao_minutos':30}
+        self.assertIn('30 minutos',nav.availability(service))
+        self.assertNotIn('Duração:',nav.availability({**service,'duracao_minutos':None}))
+
 
 @unittest.skipUnless(os.getenv('TEST_DATABASE_URL'),'Disposable PostgreSQL required')
 class NavigationDatabaseTests(unittest.TestCase):
@@ -73,6 +80,7 @@ class NavigationDatabaseTests(unittest.TestCase):
                 state,resumed=self.response(result['choices'][0]['target']);self.assertEqual(state,'menu')
         with self.db() as c:c.execute('UPDATE socialmei.crm_produtos SET estoque=0 WHERE id=%s',(pid,))
         self.assertIn('confirme com a equipe',self.response({'route':'stock','id':pid})[1]['text'])
+        self.assertIn('Sem estoque',self.response({'route':'stock','id':pid})[1]['text'])
 
     def test_categories_pagination_new_products_and_inactive_foreign_item(self):
         for i in range(15):self.add('Fixture '+str(i).zfill(2),'Grupo A')
@@ -112,6 +120,17 @@ class NavigationDatabaseTests(unittest.TestCase):
         self.assertEqual(service['action'],'services')
         detail=self.response({'route':'item','id':pid})[1]
         self.assertIn('agenda: confirme',detail['text']);self.assertNotIn('Estoque',detail['text'])
+        self.assertNotIn('Duração:',detail['text'])
+        with self.db() as c:
+            c.execute('UPDATE socialmei.crm_produtos SET duracao_minutos=30 WHERE id=%s',(pid,))
+        service=self.response({'route':'browse','kind':'Serviço'})[1]
+        self.assertIn('30 min',service['choices'][0]['description'])
+        self.assertIn('30 minutos',self.response(service['choices'][0]['target'])[1]['text'])
+        target=service['choices'][0]['target']
+        with self.db() as c:
+            c.execute("UPDATE socialmei.crm_produtos SET status='Inativo' WHERE id=%s",(pid,))
+        unavailable=self.response(target)[1]
+        self.assertEqual(unavailable['choices'][0]['target']['kind'],'Serviço')
 
     def test_native_snapshot_selection_resolves_once_and_keeps_inbox_label(self):
         pid=self.add();b=replace(self.service.registry['trusted-a'],engine='GOWS')

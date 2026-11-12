@@ -64,8 +64,12 @@ def money(value):
 
 
 def availability(row):
-    if row['tipo']=='Serviço':return 'Condições e agenda: confirme com a equipe.'
+    if row['tipo']=='Serviço':
+        duration=row.get('duracao_minutos')
+        details='Duração: '+str(duration)+' minutos.\n' if duration else ''
+        return details+'Condições e agenda: confirme com a equipe.'
     if row['estoque'] is not None and row['estoque']>0:return 'Estoque informado: '+str(row['estoque'])+' un.'
+    if row['estoque']==0:return 'Sem estoque no momento. Para reposição, confirme com a equipe.'
     return 'Disponibilidade: confirme com a equipe.'
 
 
@@ -93,20 +97,21 @@ def browse(conn, workspace, target):
         if not rows:return result('categories','Esta página mudou. Volte ao início do catálogo.',navigation(base))
         return result('categories','*Explore por categoria*\nEscolha uma categoria para ver os itens.',choices)
     if category is not None and (not isinstance(category,str) or len(category)>80):return main()
-    rows=conn.execute("SELECT id,nome,tipo,preco,estoque,categoria,descricao FROM socialmei.crm_produtos "
+    rows=conn.execute("SELECT id,nome,tipo,preco,estoque,categoria,descricao,duracao_minutos FROM socialmei.crm_produtos "
         "WHERE workspace_id=%s AND status='Ativo' AND tipo=%s AND (%s::text IS NULL OR categoria=%s) "
         "AND (%s='' OR strpos(lower(nome),lower(%s))>0) ORDER BY lower(nome),id LIMIT %s OFFSET %s",
         (workspace,kind,category,category,query,query,PAGE_SIZE+1,page*PAGE_SIZE)).fetchall()
     back={**base,'category':category,'all':bool(target.get('all')),'query':query,'page':page}
     choices=[option(r['nome'],{'route':'item','id':r['id'],'back':back},
-        money(r['preco'])+' · '+('Serviço' if kind=='Serviço' else 'Estoque: '+str(r['estoque']) if r['estoque'] else 'Disponibilidade a confirmar')
+        money(r['preco'])+' · '+((str(r['duracao_minutos'])+' min' if r['duracao_minutos'] else 'Duração a confirmar') if kind=='Serviço' else 'Estoque: '+str(r['estoque']) if r['estoque'] else 'Sem estoque no momento')
         +(' · '+r['descricao'] if r['descricao'] else '')) for r in rows[:PAGE_SIZE]]
     if page:choices.append(option('Página anterior',{**back,'page':page-1}))
     if len(rows)>PAGE_SIZE:choices.append(option('Próxima página',{**back,'page':page+1}))
     if category is not None:choices.append(option('Todas as categorias',base))
     choices+=navigation()
     if not rows:
-        return result('catalog_empty','Ainda não há itens disponíveis nesta seleção.\nNossa equipe pode ajudar você.',
+        label='serviços' if kind=='Serviço' else 'produtos'
+        return result('catalog_empty','Ainda não há '+label+' disponíveis nesta seleção.\nNossa equipe pode ajudar você.',
             [option('Falar com a equipe',{'route':'human'})]+navigation(base if page or category is not None else None))
     title='Serviços' if kind=='Serviço' else 'Produtos'
     return result('services' if kind=='Serviço' else 'products','*'+title+'*\nEscolha um item para ver detalhes.\nPreços e estoque consultados no cadastro atual.',choices)
@@ -122,9 +127,12 @@ def respond(conn, workspace, target):
         item=None;item_id=target.get('id')
         if item_id is not None:
             if type(item_id) is not int or item_id<1:return main()
-            item=conn.execute("SELECT id,nome,tipo,preco,estoque,categoria,descricao FROM socialmei.crm_produtos "
+            item=conn.execute("SELECT id,nome,tipo,preco,estoque,categoria,descricao,duracao_minutos FROM socialmei.crm_produtos "
                 "WHERE workspace_id=%s AND id=%s AND status='Ativo'",(workspace,item_id)).fetchone()
-            if not item:return result('item_unavailable','Este item não está mais disponível no catálogo.',navigation({'route':'browse','kind':'Produto'}))
+            if not item:
+                back=target.get('back')
+                if not isinstance(back,dict):back={'route':'browse','kind':'Produto'}
+                return result('item_unavailable','Este item não está mais disponível no catálogo. Escolha outra opção.',navigation(back))
         if route in {'quote','info','human'}:
             title='Pedido de orçamento' if route=='quote' else 'Atendimento com a equipe'
             text='*'+title+'*\n'+('Sobre: '+clean(item['nome'],160)+'\n' if item else '')+'Um atendente pode continuar por aqui. O atendimento automático fica pausado.'
