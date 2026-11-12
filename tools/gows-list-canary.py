@@ -1,4 +1,4 @@
-﻿"""Publish only the contact-bound list canary; keep GOWS/text rollback intact."""
+"""Publish only the contact-bound list canary; keep GOWS/text rollback intact."""
 import copy, datetime as dt, hashlib, http.client, json, pathlib, socket, subprocess as sp, sys, time
 from gows_list_source import patch_bot
 ROOT=pathlib.Path('/home/ubuntu/.socialmei-gows-list-canary-222');ROOT.mkdir(mode=0o700,exist_ok=True)
@@ -31,7 +31,8 @@ def stop_sender():
   if not state['in_flight']:break
   run('docker','kill','--signal','CONT',WORKER);time.sleep(1)
  else:raise RuntimeError('sender_not_idle')
- run('docker','kill','--signal','CONT',WORKER);run('docker','stop','-t','2',WORKER)
+ # Stop while frozen at an idle boundary; do not resume into another poll.
+ run('docker','stop','-t','1',WORKER)
 def restore():
  # Never clear an uncertain ledger or journal to make a rollback look healthy.
  try:
