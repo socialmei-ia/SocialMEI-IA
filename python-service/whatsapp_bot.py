@@ -1,6 +1,7 @@
 """Durable replies for verified WAHA inputs. This module never sends a message."""
 import os
 import whatsapp_catalog_navigation as navigation
+import channel_booking_flow as booking_flow
 import re
 import hashlib
 import json
@@ -452,7 +453,12 @@ def prepare(payload: Source, request: Request):
                 next_state = state['state']
                 result = {'action': 'rate_limited', 'text': '', 'choices': [], 'items': [], 'handoff': False}
             else:
-                next_state, result = _catalog_answer(conn, workspace, state['state'], message['text'], message.get('catalog_target'), nav_enabled)
+                booking_result = booking_flow.respond(conn, channel, message, state, native=nav_enabled)
+                if booking_result is None:
+                    next_state, result = _catalog_answer(conn, workspace, state['state'], message['text'], message.get('catalog_target'), nav_enabled)
+                    result = booking_flow.with_entry(conn, workspace, result)
+                else:
+                    next_state, result = booking_result
         revision = state['revision'] + (0 if old or outdated else 1)
         if not old and not outdated:
             conn.execute("UPDATE socialmei.wa_bot_conversations SET state=%s,revision=%s,"
