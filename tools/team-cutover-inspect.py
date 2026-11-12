@@ -24,6 +24,17 @@ EXPECTED_MIGRATIONS = {
     "039_instagram_auto_menu.sql",
 }
 MAX_KNOWN_MIGRATION = 39
+# Strict names for new channel/booking schema versions; a prefix alone is not proof.
+KNOWN_LATE_MIGRATIONS = {
+    "032_whatsapp_bot_conversations.sql",
+    "033_provider_sentiment_jobs.sql",
+    "034_workspace_agenda.sql",
+    "035_whatsapp_human_outbox.sql",
+    "036_service_appointments.sql",
+    "037_catalog_details.sql",
+    "038_inbox_customer_link.sql",
+    "039_instagram_auto_menu.sql",
+}
 AUTOMATION_NETWORK = "socialmei_team_automation"
 SQL = """BEGIN TRANSACTION READ ONLY;
 SELECT json_build_object(
@@ -118,7 +129,11 @@ def migration_summary(result):
                     and result.get("instagram_replies_table") is True),
         "duplicate_versions": len(versions) != len(set(versions)),
         "ledger_has_gaps": sorted(int(v[:3]) for v in versions) != list(range(1, max((int(v[:3]) for v in versions), default=0) + 1)),
-        "future_or_unknown_versions": any(int(v[:3]) > MAX_KNOWN_MIGRATION for v in versions),
+        "future_or_unknown_versions": any(
+            int(v[:3]) > MAX_KNOWN_MIGRATION
+            or (int(v[:3]) >= 32 and v not in KNOWN_LATE_MIGRATIONS)
+            for v in versions
+        ),
     }
 
 
