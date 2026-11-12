@@ -135,6 +135,47 @@ class ChannelBookingDatabaseTests(unittest.TestCase):
         return (client or self.client).post(PATH + '/confirm', json={**(context or self.context),
                                             'confirmation': token, 'confirmed': True})
 
+    def test_same_user_in_two_stores_cannot_consume_other_stores_conversation(self):
+        # A single login may own both stores, but the active session must scope
+        # every channel-booking lookup to its currently selected workspace.
+        user_id = self.client.identity['usuario']['id']
+        with psycopg.connect(accounts.DB) as conn:
+            second = conn.execute(
+                "INSERT INTO socialmei.workspaces(slug,nome) VALUES(%s,%s) RETURNING id",
+                ("isolated-store-" + uuid4().hex[:12], "Segunda loja fictícia"),
+            ).fetchone()[0]
+            conn.execute(
+                "INSERT INTO socialmei.workspace_members(workspace_id,user_id,role) "
+                "VALUES(%s,%s,'owner')", (second, user_id),
+            )
+            conversation = conn.execute(
+                "INSERT INTO socialmei.me_conversations("
+                "workspace_id,channel,account_ref,contact_ref,contact_name,origin) "
+                "VALUES(%s,'instagram','instagram:555555','instagram:666666',"
+                "'Contato fictício B','instagram') RETURNING id", (second,),
+            ).fetchone()[0]
+            source = conn.execute(
+                "INSERT INTO socialmei.me_messages("
+                "workspace_id,conversation_id,external_message_id,fingerprint,"
+                "conversation_revision,text,origin) "
+                "VALUES(%s,%s,%s,%s,1,'Agendar','instagram') RETURNING id",
+                (second, conversation, 'isolated-' + uuid4().hex, 'f' * 64),
+            ).fetchone()[0]
+        foreign = {'origin': 'instagram', 'conversation_id': conversation,
+                   'source_message_id': source}
+        response = self.client.post(PATH + '/services', json=foreign)
+        self.assertEqual(response.status_code, 404, response.text)
+        self.assertEqual(self.client.post(PATH + '/resources',
+            json={**foreign, 'service_id': self.service['id']}).status_code, 404)
+        current = self.client.get(PATH)
+        self.assertEqual(current.status_code, 200, current.text)
+        self.assertTrue(current.json()['policy']['enabled'])
+        with psycopg.connect(accounts.DB) as conn:
+            self.assertEqual(conn.execute(
+                "SELECT configuracao ? 'channel_booking' FROM socialmei.workspaces WHERE id=%s",
+                (second,),
+            ).fetchone()[0], False)
+
     def test_authenticated_journey_persists_once_and_uses_existing_agenda(self):
         services = self.client.post(PATH + '/services', json=self.context)
         self.assertEqual(services.status_code, 200, services.text)
