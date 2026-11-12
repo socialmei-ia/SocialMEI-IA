@@ -66,6 +66,16 @@ def render(result, selected):
     return text
 
 
+def public_text(text):
+    """Strip only our trailing persisted menu reference before provider send/UI."""
+    if not isinstance(text, str):
+        return ""
+    if MARKER not in text:
+        return text
+    visible, _ = text.rsplit(MARKER, 1)
+    return visible
+
+
 def _decode_reference(text):
     if not isinstance(text, str) or MARKER not in text:
         return []
