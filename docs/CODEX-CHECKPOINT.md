@@ -1,5 +1,22 @@
 # Checkpoint SocialMEI-IA
 
+## Continuidade ChatGPT — testes isolados antes de liberar canais (12-11-2026)
+
+- Prisma de produção permanece indisponível por limite operacional e está fora do escopo desta rodada. Nenhum comando de banco real, corte ou disparo foi executado.
+- PR #225: gate de origem do WhatsApp aceita entrada de agendamento somente quando policy.enabled é verdadeiro no mesmo workspace e a conversa não está em pausa humana (commits 7470ccf e 8ed3030). Testes de regra adicionados, sem publicação.
+- Corrigida navegação de horários além dos seis primeiros com paginação sob demanda e limite de página (commits 967eb23, 459a95e, 6ef43cc); testes de paginação, segundo negócio e seleção nativa posterior adicionados (5051e7c, 603b927, 34765b1). **Esses novos testes ainda não foram executados em CI; não declarar homologados.**
+- PR #223 ganhou verificação estrita 039, ensaio de migration real em PostgreSQL16 descartável com restore, proteção de perfis antigos e CI para PRs empilhadas. Job de imagens 039 aprovado em SHA b4a3163, sem deploy. Demais testes da base precisam ser verificados depois do novo head.
+- Próximo: aguardar CI empilhado da #225, corrigir qualquer falha concreta, concluir menu Instagram usando estado autenticado e persistido, testar em ambiente isolado, preservar produção. Não converter autorização da PR draft em deployment sem recuperação e verificação de saúde do banco real.
+
+
+## Continuidade após limite do Codex — 2026-11-12 (verificação GitHub)
+
+- Resultado da última execução do Codex: SSH, Python e push GitHub recuperados. 40 testes focados do catálogo, identidade Instagram e agendamento passaram em banco PostgreSQL16 descartável/UTF-8. PRs draft #223 (catálogo), #224 (nomes Instagram) e #225 (agenda) abertas; nenhuma publicação dessa rodada na AWS.
+- **NO-GO produção:** leitura da API mostrou /health/db 503 e conexão recusada por Prisma `planLimitReached`. Não atribuir a falha a catálogo ou auth; NÃO trocar banco, renovar plano automaticamente, alterar credenciais, fazer corte ou disparar mensagens. Usuário precisa regularizar diretamente com Prisma ou suporte; reconfirmar health/db e backup depois.
+- GitHub consultado: PR #223 HEAD cff4ceb, CI de imagens falhou em `perfil_de_migrations_nao_revisado` (workflow só reconhece 035/038, repositório já possui 039); Repository checks falhou no teste '038 plan explicitly starts from reviewed035' (rehearsal_command_failed). NÃO pular gates: criar perfil/rehearsal039 revisado e preservar 038; validar diferenças antes de publicação. #224 HEAD 6d009d6, #225 HEAD inicial 23a3989; todas draft, #224/#225 empilhadas em #223, não tratar como independentes.
+- **Correção incremental nesta branch #225:** commit 7470ccf adiciona admissão somente de '6', 'agendar', 'agendar horario' ou 'agendar horário' pelo gate privado WhatsApp quando `workspaces.configuracao.channel_booking.policy.enabled` é exatamente true e conversa não está em estado human. Mantém escopo de conta/workspace/canal, corte temporal, rate limit e seleção opaque. Commit 8ed3030 adiciona `tests/test_whatsapp_booking_source_gate.py` para condições fail-closed. Dez verificações isoladas do helper aprovadas; testes completos do repositório/integração desse patch ainda não executados. NÃO publicou nem ativou agendamento; verificar compatibilidade da query e executar a suíte em banco descartável/CI antes do deploy.
+- **Próximos passos em ordem:** (1) reconfirmar Prisma planLimitReached e orientar recuperação administrativa externa, sem mudar runtime; (2) corrigir ensaio de migration039 com prova de restore offline e CI; (3) rodar testes novos da porta de entrada WhatsApp, revisar integração de agendamento ao worker e ingress com identidade; (4) finalizar seleção de agendamento também no Instagram; (5) apenas com banco saudável, backup/rollback e gates aprovados planejar canário autorizado, sem replay nem dois remetentes.
+
 ## Continuação — chave correta reconhecida e atendimento refinado localmente
 
 - A chave indicada pelo responsável em `%LOCALAPPDATA%/SocialMEI-SSH/socialmei-aws-key.pem` existe. SSH com BatchMode, IdentitiesOnly e StrictHostKeyChecking=yes reconheceu o arquivo, mas a conexão54.94.213.7:22 retornou Permission denied pelo ambiente. Nenhuma inspeção atual da AWS foi obtida. Não gerar chave nem alterar ACL.
@@ -147,30 +164,3 @@ git status --short
 git log -5 --oneline
 ssh -i "$HOME/.ssh/socialmei-aws-inspecao.pem" -o BatchMode=yes -o StrictHostKeyChecking=yes ubuntu@54.94.213.7 'docker ps --format "{{.Names}} {{.Status}}"'
 ```
-
-
-## Sprint local 2026-11-12 ? publica??o bloqueada pelo ambiente
-
-- Cat?logo preservado nesta branch at? `99e68e1`: dura??o real/estoque zero/contexto (`a42e676`, `04596ab`, `97097a0`); canary revalidado antes do claim (`3861cd1`); encerrar consulta sem ultrapassar atendimento humano (`99e68e1`). N?o publicado.
-- Corre??es operacionais `4389244` preservam eventos j? aceitos e fixam identidades Docker imut?veis; checkpoint anterior `cd5c3e8` preservado.
-- Instagram: branch separada `fix/instagram-contact-integration-20261112`, commit `6d009d664c53234833a25b99ff339b6d55c18fc4`, atualiza??o CAS de nomes provis?rios e cursor por workspace/conta. N?o integrada nem publicada.
-- Agendamento compartilhado em desenvolvimento no worktree irm?o `channel-booking-core-20261112`; consultar branch correspondente antes de continuar. Bot/menu atuais preservados, fluxo autom?tico ainda n?o integrado.
-- Bloqueios comprovados: SSH com chave correta existente em LOCALAPPDATA/SocialMEI-SSH retorna Permission denied na conex?o; Python do venv operacional retorna acesso negado; atualiza??o de ref GitHub exige aprova??o, mas pol?tica da sess?o ? never. N?o contornar. Nenhuma altera??o AWS, mensagem ou deploy nesta rodada.
-- Valida??o: diff --check; novos testes Python preparados, N?O executados. Reutilizados resultados anteriores JS: 414 aprovados, 2 skips e 2 falhas ambientais; nenhuma mudan?a JS nesta rodada.
-- PR #222 e branch remota de corre??o continuam no HEAD `96fea2a`; commit remoto n?o referenciado `5c81c2b` n?o equivale a push conclu?do.
-- Pr?ximo passo: concluir revis?o independente das altera??es locais; ap?s libera??o efetiva do ambiente, executar Python focado, atualizar branch pelo fluxo aprovado e CI, inspecionar runtime/manifesto privado antes da publica??o incremental. N?o presumir produ??o atual a partir de documenta??o hist?rica.
-
-- Marco agendamento: commit local `47471a3e29cf3c92e7cc925c6dec812a9a8c141f` em `feat/channel-booking-core-20261112`, worktree limpo. Apenas appointments.py/channel_booking.py/test_channel_booking.py: pol?tica desativada por padr?o, sess?o/role/CSRF, contexto de entrada persistida, servi?os/recursos/hor?rios, confirma??o assinada e transa??o compartilhada com agenda existente. Dez testes preparados, N?O executados; diff --check aprovado. Sem migration e sem integra??o no menu/bot ainda. Revis?o independente pendente; n?o publicar sem testes. Pr?xima tarefa do n?cleo ? validar esses testes em PostgreSQL descart?vel e s? depois ligar a navega??o do canal, preservando o sender ?nico.
-
-- N?cleo de agendamento corrigido ap?s revis?o: `7917d61eb9ae22c13b291c77602a36e93d014994` sobre47471a3, branch feat/channel-booking-core-20261112 limpa. Retry ap?s resposta perdida devolve opera??o j? persistida ap?s HMAC/binding antes de expira??o/pol?tica; novos agendamentos continuam revalidando tudo. Onze testes preparados/n?o executados por acesso negado ao Python, diff --check aprovado. Nenhum push/deploy. Pr?xima execu??o: liberar ambiente, rodar esses testes e cat?logo/IG focados, resolver falhas concretas e publicar branch pelo fluxo aprovado; depois reconfirmar produ??o antes de corte.
-
-
-## Sprint retomada com acessos liberados ? 2026-11-12
-- Python3.13.15, Docker local, SSH com chave LOCALAPPDATA/SocialMEI-SSH e push HTTPS GitHub comprovados. Agentes antigos ainda herdam restri??o; testes executados pelo root.
-- Testes: 6 publicador, 11 cat?logo (incluindo 6 PG16), 8 identidade Instagram, 11 n?cleo agenda e 4 fluxo WA APROVADOS. Bancos Docker exclusivos descart?veis, sem dados de produ??o. Falhas iniciais: migrations lidas como CP1252 no Windows; recria??o UTF8 comprovou causa. Commit8fc34f6 fixa encoding expl?cito do loader de testes.
-- GitHub: PR223 cat?logo branch fix/catalog-finalization-20261112; PR224 identidade IG commit6d009d6; PR225 agenda+fluxo WA commit23a3989 (n?cleo47471a3 e retry7917d61). Drafts, sem merge/deploy. PR224/225 empilhadas na223, preservar depend?ncias.
-- AWS leitura atual: API/menu/worker cat?logo e255cb77d00f8b1eaafaa6686197d1c1135923d1 j? publicados por opera??o anterior. API imageID sha256:8aaa6f0f14fdabbe219eebdaf06c0688ab2f2248a05188cef812e192ee1dd45e. Result/postflight privados confirmam cat?logo s?1contato, rollback_check e zero envios pelo operador anterior. Gateway8159c17 e workerIG86cdd5b preservados.
-- BLOQUEIO PRODU??O COMPROVADO: API liveness200 mas readinessDB503. SELECT1 via configura??o efetiva retorna OperationalError Prisma: account restrictions planLimitReached. N?o trocar banco, alterar credenciais, contratar plano nem publicar para contornar. Respons?vel foi solicitado a regularizar limite/suporte Prisma. Sess?o GOWS probe200 WORKING e conta coincide com binding, sem envio.
-- CI imagens PR223 reprovou em perfil_de_migrations_nao_revisado: workflow035/038 n?o aceita039. Corre??o039 com ensaio real em elabora??o separada pelo revisor; n?o dispensar hashes/restore.
-- Agendamento WA fluxo isolado passou, mas filtro p?blico pode barrar6/agendar/pagina??o; adaptar com escopo/contexto antes da publica??o. IG menu ainda n?o integrado (somente n?cleo/API), sem migration nova nesta entrega.
-- NO-GO para publica??o enquanto banco indispon?vel. Sem altera??o produ??o, frontend, credenciais, sess?o, workflow ou envios nesta sprint. Pr?ximo: concluir CI039, integrar filtro/menus com testes e aguardar banco dispon?vel para gates frescos/backup/rollback e publica??o restrita.
