@@ -1,5 +1,14 @@
 # Checkpoint SocialMEI-IA
 
+## Correção da seleção nativa GOWS — antes da publicação
+
+- Teste real de lista: lista recebida e seleção 1 efetuada; catálogo não retornou. Evento existente localizado no spool: HMAC válido, sessão/engine/conta corretos, entregue; payload sem type, to=null e identificador em `_data.Message.listResponseMessage.singleSelectReply.selectedRowID`, espelhado em RawMessage. Não registrar payload, mensagens ou identificadores pessoais.
+- Seleção persistida uma vez na Caixa; conversa menu (não humana); decisão skipped/quiet_repeat, sem recibo. Parser anterior usou título Ver produtos em vez de ID; a política de repetição silenciou o rótulo. Não é falha de transporte ou envio.
+- Correção 73b16df normaliza somente esses campos GOWS assinados para IDs 0–5. Confere espelhos/campos antigos; valores ausentes/nulos/não textuais/desconhecidos/conflitantes não executam ações. Mantém WEBJS, HMAC, vínculo, workspace e dedup. Quiet_repeat e lógica de catálogo não alterados.
+- Testes: 14 contratos aprovados + 2 integrações em PostgreSQL descartável. Estrutura sintética fiel ao schema comprovado: seleção 1 → persistência 1 → catálogo fixture → decisão/claim/recibo únicos, retries idempotentes e isolamento por workspace. Código real de política confirmou que ID 1 bypassa quiet_repeat. Nenhum evento real foi usado como fixture ou reenviado.
+- Candidata API derivada da imagem principal atual altera somente waha_ingress.py; 157 outros módulos idênticos por hash. Worker/menu canary/quotas, GOWS/WEBJS, Instagram e frontend preservados. Artefatos privados `/home/ubuntu/.socialmei-gows-selection-fix-222/`: prepared.json, before.private.json, registry-before.private.json, diagnostic.json.
+- Publicação/rollback API-only em tools/gows-selection-release.py. Registro privado novo com ingress_after fresco impede replay antigo; não modifica dados, credenciais ou sessão. Próxima ação: --apply, verificar saúde/rollback-check/registro antigo inalterado e canary restrito. Não solicitar outro envio: registros atuais suficientes, usuário proibiu novo teste e replay. Homologação real de uma seleção futura continua pendente, sem dispará-la pelo operador.
+
 ## GOWS homologado / listas publicadas somente no contato autorizado
 
 - Usuário confirmou menu GOWS e resposta manual no celular. Prisma: entrada 74 com uma decisão menu confirmed e recibo; entrada 75 única com quiet_repeat/skipped (proteção correta); uma resposta manual confirmed na mesma conversa. Ambas entradas únicas, edge delivered=2, nenhum claimed/uncertain/dispatching. Não pedir repetição destes testes.
