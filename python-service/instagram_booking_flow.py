@@ -143,7 +143,7 @@ def respond(conn, workspace, message):
                 'Escolha uma opção válida ou comece o agendamento novamente.',
                 [flow.option('6', 'Recomeçar agendamento', 'services'),
                  *flow.navigation()], False)
-            return *response, {'step': 'services'}
+            return response[0], response[1], {'step': 'services'}
     try:
         if selected.get('step') == 'review_ref':
             selected = _review_offer(conn, workspace, message, selected)
