@@ -442,9 +442,10 @@ class DatabaseTests(unittest.TestCase):
         b = replace(self.bindings[0], engine='GOWS')
         self.service = WahaIngressService({b.instance:b})
         sample = payload(engine='GOWS')
-        sample['payload'].pop('to')
+        sample['payload']['to'] = None
         self.assertEqual(self.receive(sample,b)['processed'],1)
         sample['id']='another-gows-envelope'
+        sample['payload'].pop('to')
         self.assertEqual(self.receive(sample,b)['duplicates'],1)
         with psycopg.connect(DB) as conn:
             self.assertEqual(conn.execute('SELECT COUNT(*) FROM socialmei.me_messages WHERE workspace_id=%s',
