@@ -301,8 +301,9 @@ class CustomerLinkDatabaseTests(unittest.TestCase):
                 json={"expected_revision": 0}).status_code, 409)
             self.assertEqual(model.call_count, 1)
             other = self.register("other-ai-draft@example.test")
+            # Non-allowlisted workspaces fail closed before any CRM lookup.
             self.assertEqual(other.post(url,
-                json={"expected_revision": 1}).status_code, 404)
+                json={"expected_revision": 1}).status_code, 503)
             with patch.dict(os.environ, {"SOCIALMEI_AI_DRAFT_ENABLED": "false"}):
                 self.assertEqual(self.client.post(url,
                     json={"expected_revision": 1}).status_code, 503)
