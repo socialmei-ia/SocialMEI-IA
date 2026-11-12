@@ -116,11 +116,23 @@ class InstagramBookingFlowTests(unittest.TestCase):
         output = shared.response('booking_review', 'Confirme o horário.',
             [shared.option('1', 'Confirmar', 'confirm', confirmation='signed-fixture'),
              *shared.navigation()], False)[1]
-        text = ig.render(output, {'step': 'review'})
+        resource = str(uuid4())
+        offer = {'service_id': 31, 'resource_id': resource,
+                 'scheduled_for': '2026-11-14T09:00:00-03:00',
+                 'confirmation': 'signed-fixture'}
+        text = ig.render(output, {'step': 'review', 'offer': offer,
+                                  'day': '2026-11-14', 'page': 1})
+        self.assertNotIn('signed-fixture', text)
+        self.assertEqual(ig._decode_reference(text)[0][1]['step'], 'confirm_ref')
         row = {'status': 'confirmed', 'text': text, 'created_at': datetime.now(timezone.utc)}
-        with patch('instagram_booking_flow.flow.advance',
-                   return_value=shared.response('booking_confirmed', 'Confirmado.', [], False)) as advance:
+        with patch('instagram_booking_flow._review_offer',
+                   return_value={'route': 'booking', 'step': 'review',
+                                 'offer': offer}) as review, \
+                patch('instagram_booking_flow.flow.advance',
+                      return_value=shared.response('booking_confirmed', 'Confirmado.', [], False)) as advance:
             state, result, selected = ig.respond(RecentReply(row), 77, self.message('1'))
+        review.assert_called_once()
+        self.assertEqual(selected['step'], 'confirm')
         self.assertEqual(selected['confirmation'], 'signed-fixture')
         self.assertEqual(result['action'], 'booking_confirmed')
         self.assertEqual(advance.call_args.kwargs['origin'], 'instagram')
