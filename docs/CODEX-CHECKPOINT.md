@@ -1,6 +1,6 @@
 # Checkpoint SocialMEI-IA
 
-## GOWS homologado / publicação restrita de listas em andamento
+## GOWS homologado / listas publicadas somente no contato autorizado
 
 - Usuário confirmou menu GOWS e resposta manual no celular. Prisma: entrada 74 com uma decisão menu confirmed e recibo; entrada 75 única com quiet_repeat/skipped (proteção correta); uma resposta manual confirmed na mesma conversa. Ambas entradas únicas, edge delivered=2, nenhum claimed/uncertain/dispatching. Não pedir repetição destes testes.
 - Contato da lista derivado exclusivamente do arquivo privado de autorização anterior e comparado à conversa homologada/recibo manual. Coincidência comprovada, sem expor identidade. Só esse contato recebe lista; demais permanecem textuais.
@@ -8,7 +8,9 @@
 - Os 31 testes anteriores reaproveitados. Novas verificações: patch preserva AST das políticas/catálogo/renderer; pacote renderiza lista no contato sintético autorizado e texto em outro; parada do remetente comprovada sem retomar polling após limite ocioso. Nenhum teste enviou mensagem real.
 - Artefatos/backup privados: `/home/ubuntu/.socialmei-gows-list-canary-222/`, prepared.json/before.private.json/journal-before.private.json/authorized-contact.private.json. Aplicação e rollback limitados a menu API e worker; GOWS/WEBJS, API principal, Instagram, frontend e banco não serão alterados.
 - Código de aplicação: tools/gows-list-canary.py (--apply); imagens de aplicação fonte 56a4544, ferramenta com correção 36f15bb para congelar/parar remetente ocioso. Mantém journal/quotas e watermark fresco, sem replay. --rollback-check apenas confere; --rollback restaura texto sem reenviar; se houver envio incerto, mantém remetente parado para conciliação e não limpa o ledger.
-- Próxima ação: publicar, verificar scope/render/source/saúde e só então solicitar UM teste real: novo 0 → abrir lista → selecionar 1/Ver produtos → confirmar ação e histórico. Não afirmar listas homologadas antes do recebimento/seleção reais; capturar só estrutura se evento exigir ajuste.
+- PUBLICADO: menu API/worker de listas fonte 56a4544, aplicação 36f15bb, um único remetente e um contato autorizado. Rota real confirmou render de lista somente nesse contato; outros permanecem textuais. DTO do GOWS CORE instalado validou payload sintético sem erros (sem envio). API principal saudável; Instagram/frontend/WAHA e dados preservados. Rollback-check aprovado; worker running, sem erro e sem novas decisões na última leitura. Nenhuma mensagem foi enviada pelo operador.
+- Próxima ação EXATA, já solicitada uma vez: usuário enviar NOVO 0, abrir Ver opções e selecionar 1/Ver produtos. Conferir lista no telefone, evento assinado da seleção, ação/catálogo, recibo e ausência de duplicação na Caixa. A captura durável GOWS já registra o evento; não pedir testes de texto/manual novamente. Não declarar listas homologadas antes desse teste.
+- Retomada: `sudo -n python3 /home/ubuntu/.socialmei-gows-list-canary-222/gows-list-canary.py --rollback-check` só confere; `--rollback` restaura GOWS textual sem replay, desde que não haja envio incerto. Artefatos result.json/postflight.json/activation.json disponíveis; manifest e contato são privados. Não reaplicar --apply nem limpar journal/ledger.
 
 ## GOWS publicado como principal — testes funcionais confirmados; falta conciliar recibos
 
