@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Agendamento público — demonstração SocialMEI</title>
+    <link rel="stylesheet" href="../../../frontend/styles/socialmei.css" />
+    <link rel="stylesheet" href="booking.css" />
+    <script src="booking.js" defer></script>
+  </head>
+  <body class="booking-prototype">
+    <header class="page-header">
+      <a class="brand" href="./index.html" aria-label="Reiniciar demonstração SocialMEI"
+        >SocialMEI<span>.IA</span></a
+      >
+      <button id="theme" type="button" aria-pressed="false">Tema escuro</button>
+    </header>
+    <main>
+      <p class="demo-notice">
+        Demonstração — nenhuma reserva será criada. Use apenas dados fictícios.
+      </p>
+      <div class="page-intro">
+        <p class="eyebrow">Agendamento online</p>
+        <h1>Um horário que cabe no seu dia.</h1>
+        <p>Escolha o serviço e confira os detalhes antes de solicitar.</p>
+      </div>
+      <details class="preview-controls">
+        <summary>Explorar a demonstração</summary>
+        <div class="control-grid">
+          <label
+            >Negócio de exemplo<select id="business">
+              <option value="bella">Bella Store</option>
+              <option value="brilho">Brilho Limpeza</option>
+            </select></label
+          >
+          <label
+            >Cenário<select id="scenario">
+              <option value="normal">Horários disponíveis</option>
+              <option value="empty">Sem horários</option>
+              <option value="error">Falha ao consultar</option>
+              <option value="occupied">Horário ocupado na confirmação</option>
+            </select></label
+          >
+        </div>
+      </details>
+      <div class="booking-layout">
+        <section class="booking-panel" aria-labelledby="step-title">
+          <p id="progress" class="eyebrow" aria-live="polite"></p>
+          <h2 id="step-title" tabindex="-1"></h2>
+          <p id="step-description" class="muted"></p>
+          <form id="booking-form">
+            <div id="step-content"></div>
+            <p id="feedback" role="status" class="feedback" hidden></p>
+            <div class="actions">
+              <button id="back" class="secondary" type="button">Voltar</button
+              ><button id="next" class="primary" type="submit">Continuar</button>
+            </div>
+          </form>
+        </section>
+        <aside class="booking-summary" aria-labelledby="summary-title">
+          <h2 id="summary-title">Seu atendimento</h2>
+          <p id="business-name"></p>
+          <dl id="summary"></dl>
+          <p class="privacy-note">
+            Os dados ficam somente nesta página e são descartados ao fechar ou reiniciar. Não há
+            envio de mensagens.
+          </p>
+        </aside>
+      </div>
+      <p class="page-footer">
+        Prévia independente do painel. Valores e disponibilidade são fictícios.
+      </p>
+    </main>
+  </body>
+</html>
