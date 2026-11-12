@@ -82,6 +82,8 @@ if mode in {'--rollback','--rollback-check'}:
 if (ROOT/'manifest.private.json').exists():raise RuntimeError('reconcile_existing_canary_before_reentry')
 before={n:inspect(n) for n in [API,MENU,WORKER]};e=env(before[WORKER]);assert not e.get('SOCIALMEI_MENU_GOWS_LIST_CONTACTS_JSON');assert e['SOCIALMEI_MENU_WAHA_ENGINE']=='GOWS' and e['SOCIALMEI_MENU_SESSION']=='01';assert pending()==0
 allowed=json.loads((ROOT/'authorized-contact.private.json').read_text());assert len(allowed)==1;contact=allowed[0];assert contact.startswith('waha:')
+assert e.get('SOCIALMEI_MENU_GOWS_LIST_CANARY_CONTACT')==contact
+assert env(before[MENU]).get('SOCIALMEI_MENU_GOWS_LIST_CANARY_CONTACT')==contact
 statefile=pathlib.Path(next(m['Source'] for m in before[WORKER]['Mounts'] if m['Destination']=='/run/socialmei/continuous-state'))/'state.json';assert json.loads(statefile.read_text())['status']=='running'
 private('before.private.json',before);private('journal-before.private.json',json.loads(statefile.read_text()))
 print('CANARY_PREFLIGHT_PASSED_ONE_AUTHORIZED_CONTACT',flush=True)
