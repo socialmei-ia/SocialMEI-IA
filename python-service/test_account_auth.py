@@ -249,7 +249,7 @@ class AccountDatabaseTests(unittest.TestCase):
                     "*.sql"
                 )
             ):
-                conn.execute(path.read_text(), prepare=False)
+                conn.execute(path.read_text(encoding="utf-8"), prepare=False)
         cls.hashed = hash_password(PASSWORD)
 
     def setUp(self):
