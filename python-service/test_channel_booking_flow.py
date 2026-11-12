@@ -120,6 +120,31 @@ class ChannelBookingFlowTests(unittest.TestCase):
         with patch('whatsapp_bot.native_list_canary', return_value=True):
             self.journey()
 
+    def test_later_slot_page_can_be_selected_from_native_list(self):
+        self.native = True
+        binding = replace(self.service.registry['trusted-a'], engine='GOWS')
+        self.service = WahaIngressService({'trusted-a': binding})
+        with patch('whatsapp_bot.native_list_canary', return_value=True):
+            services = self.plan('6')
+            resources = self.choose(services)
+            days = self.choose(resources)
+            tomorrow = (datetime.now(timezone.utc) + timedelta(days=1)).date().isoformat()
+            slots = self.choose(days, lambda choice: choice.get('target', {}).get('day') == tomorrow)
+            self.assertEqual(slots['action'], 'booking_slots')
+            self.assertTrue(any(choice['id'] == '6' for choice in slots['choices']))
+            later = self.choose(slots, lambda choice: choice['id'] == '6')
+            self.assertEqual(later['action'], 'booking_slots')
+            self.assertTrue(any(choice['id'] == '7' for choice in later['choices']))
+            self.assertNotEqual([choice['title'] for choice in slots['choices'][:3]],
+                                [choice['title'] for choice in later['choices'][:3]])
+            review = self.choose(later, lambda choice: choice['id'] == '3')
+            self.assertEqual(review['action'], 'booking_review')
+            saved = self.choose(review)
+            self.assertEqual(saved['action'], 'booking_confirmed')
+            rows = self.owner.get('/api/v1/agenda/appointments?from_date='
+                                  + tomorrow + '&to_date=' + tomorrow)
+            self.assertEqual(len(rows.json()['items']), 1)
+
     def test_missing_customer_hands_off_without_fake_client_or_booking(self):
         result = self.plan('6', link_customer=False)
         self.assertEqual(result['action'], 'booking_handoff')
