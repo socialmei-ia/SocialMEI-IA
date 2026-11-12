@@ -14,6 +14,8 @@ from instagram_meta_adapter import ProviderError
 from instagram_persistent_oauth import _lock
 from instagram_token_vault import TokenBinding
 from whatsapp_bot import answer
+import channel_booking_flow
+import instagram_booking_flow
 
 router = APIRouter(prefix='/api/v1/instagram/menu', tags=['Instagram automatic menu'])
 
@@ -116,17 +118,33 @@ def reply(runtime, workspace, message, start):
                                (workspace, row['conversation_id'])).fetchone()
         resume = row['text'].strip().casefold() in {'0','menu','inicio','início'}
         current_state = 'menu' if resume and not pending else state['state']
-        new_state, result = answer(conn, workspace, current_state, row['text'])
         stale = state['last_occurred_at'] is not None and row['occurred_at'] < state['last_occurred_at']
         blocked = bool(pending) or current_state == 'human' or stale
-        text = '' if blocked else result['text']
-        if not blocked:
-            config = json.loads(os.getenv('SOCIALMEI_INSTAGRAM_AUTO_MENU_CONFIG', '{}')).get(str(workspace), {})
-            if result['action'] == 'menu' and config.get('greeting'):
-                text = config['greeting']
-            if result['choices']:
-                text += '\n\n' + '\n'.join(c['id']+' - '+c['title'] for c in result['choices'])
-            text = text.encode('utf-8')[:1000].decode('utf-8', errors='ignore')
+        text = ''
+        if blocked:
+            new_state, result = answer(conn, workspace, current_state, row['text'])
+        else:
+            booking_plan = instagram_booking_flow.respond(conn, workspace, row)
+            if booking_plan is not None:
+                new_state, result, selection = booking_plan
+                try:
+                    text = instagram_booking_flow.render(result, selection)
+                except ValueError:
+                    # Do not truncate a confirmation reference or send unusable choices.
+                    new_state = 'menu'
+                    text = ('Não consegui apresentar todas as opções de agendamento. '
+                            'Digite 6 para recomeçar ou 5 para falar com nossa equipe.')
+            else:
+                new_state, result = answer(conn, workspace, current_state, row['text'])
+                result = channel_booking_flow.with_entry(conn, workspace, result)
+                config = json.loads(os.getenv('SOCIALMEI_INSTAGRAM_AUTO_MENU_CONFIG', '{}')).get(str(workspace), {})
+                if result['action'] == 'menu' and config.get('greeting'):
+                    text = config['greeting']
+                else:
+                    text = result['text']
+                if result['choices']:
+                    text += '\n\n' + '\n'.join(c['id']+' - '+c['title'] for c in result['choices'])
+                text = text.encode('utf-8')[:1000].decode('utf-8', errors='ignore')
             if not text.strip() or any(ord(c)<32 and c not in '\n\r\t' for c in text):
                 raise ValueError('Invalid automatic greeting')
         token = None if blocked else runtime.direct.vault.open(row['encrypted_token'], TokenBinding(
