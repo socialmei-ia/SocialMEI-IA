@@ -69,8 +69,13 @@ test("allowlisted package, Pages security headers/404, integrity and deployment 
     await fs.writeFile(path.join(temp, ".env"), "fixture-only");
     await assert.rejects(verifyPackage(temp), /Unexpected/);
     await fs.rm(path.join(temp, ".env"));
-    await fs.rm(path.join(temp, "index.html"));
-    await fs.symlink(path.join(directory, "index.html"), path.join(temp, "index.html"));
+    if (process.platform === "win32") {
+      // Junctions exercise the same link rejection without Windows symlink privileges.
+      await fs.symlink(directory, path.join(temp, "linked-package"), "junction");
+    } else {
+      await fs.rm(path.join(temp, "index.html"));
+      await fs.symlink(path.join(directory, "index.html"), path.join(temp, "index.html"));
+    }
     await assert.rejects(verifyPackage(temp), /Symlinks/);
   } finally {
     await fs.rm(temp, { recursive: true, force: true });
