@@ -50,7 +50,68 @@ def binding(**patches):
     )
 
 
+def gows_list_payload(choice="1", **updates):
+    from copy import deepcopy
+    value = payload(engine="GOWS", **updates)
+    selection = {"listResponseMessage": {"title": "Ver produtos", "listType": 1,
+        "singleSelectReply": {"selectedRowID": choice}, "contextInfo": {}}}
+    value["payload"].update(to=None, body="Ver produtos", _data={
+        "Info": {"Type": "text"}, "Message": deepcopy(selection), "RawMessage": deepcopy(selection)})
+    return value
+
+
 class ContractTests(unittest.TestCase):
+    def test_gows_protobuf_list_reply_without_type_uses_id_not_display_title(self):
+        b = binding(engine="GOWS")
+        for choice in "012345":
+            sample = gows_list_payload(choice)
+            body = raw(sample)
+            event = parse_event(body, sign(body), "sha512", b)
+            self.assertEqual((event.kind, event.text, event.recipient), ("message", choice, b.account_id))
+        with self.assertRaises(HTTPException):
+            parse_event(body, "0" * 128, "sha512", b)
+        wrong_account = gows_list_payload(me={"id":"333@c.us"})
+        with self.assertRaises(HTTPException):
+            parse_event(raw(wrong_account), sign(raw(wrong_account)), "sha512", b)
+
+    def test_gows_protobuf_list_reply_rejects_malformed_conflicting_and_unknown_ids(self):
+        b = binding(engine="GOWS")
+        for invalid in [None, 1, True, [], {}, "", " 1", "9", "external-action"]:
+            sample = gows_list_payload(invalid)
+            body = raw(sample)
+            with self.subTest(value_type=type(invalid).__name__):
+                self.assertEqual(parse_event(body, sign(body), "sha512", b).kind, "unsupported")
+        samples = []
+        conflict = gows_list_payload()
+        conflict["payload"]["_data"]["RawMessage"]["listResponseMessage"]["singleSelectReply"]["selectedRowID"] = "5"
+        samples.append(conflict)
+        conflict = gows_list_payload()
+        conflict["payload"]["selectedRowId"] = "5"
+        samples.append(conflict)
+        malformed = gows_list_payload()
+        malformed["payload"]["_data"]["Message"]["listResponseMessage"]["singleSelectReply"] = None
+        samples.append(malformed)
+        missing = gows_list_payload()
+        missing["payload"]["_data"]["Message"]["listResponseMessage"]["singleSelectReply"].pop("selectedRowID")
+        samples.append(missing)
+        explicit_type = gows_list_payload()
+        explicit_type["payload"]["type"] = "chat"
+        samples.append(explicit_type)
+        for sample in samples:
+            body = raw(sample)
+            self.assertEqual(parse_event(body, sign(body), "sha512", b).kind, "unsupported")
+
+    def test_webjs_does_not_infer_go_protobuf_selection(self):
+        sample = gows_list_payload()
+        sample["engine"] = "WEBJS"
+        sample["payload"]["to"] = "111@c.us"
+        body = raw(sample)
+        event = parse_event(body, sign(body), "sha512", binding())
+        self.assertEqual(event.text, "Ver produtos")
+        sample["payload"]["type"] = "list_response"
+        body = raw(sample)
+        self.assertEqual(parse_event(body, sign(body), "sha512", binding()).kind, "unsupported")
+
     def test_gows_history_cutoff_requires_signature_and_never_imports_old_text(self):
         b = binding(engine='GOWS', ingress_after=1792890001)
         service = WahaIngressService({b.instance:b})
@@ -436,6 +497,21 @@ class DatabaseTests(unittest.TestCase):
             value["payload"]["to"] = b.account_id
         body = raw(value)
         return self.service.receive(b.instance, body, sign(body, b.hmac_key), "sha512")
+
+    def test_gows_protobuf_selection_is_persisted_once_without_cross_workspace_data(self):
+        from dataclasses import replace
+        b = replace(self.bindings[0], engine="GOWS")
+        self.service = WahaIngressService({b.instance:b})
+        sample = gows_list_payload()
+        self.assertEqual(self.receive(sample,b)["processed"],1)
+        sample["id"] = "another-fixture-delivery"
+        sample["payload"]["body"] = "Display title changed"
+        self.assertEqual(self.receive(sample,b)["duplicates"],1)
+        with psycopg.connect(DB) as conn:
+            self.assertEqual(conn.execute("SELECT text FROM socialmei.me_messages WHERE workspace_id=%s",
+                (b.workspace_id,)).fetchall(), [("1",)])
+            self.assertEqual(conn.execute("SELECT count(*) FROM socialmei.me_messages WHERE workspace_id=%s",
+                (self.bindings[1].workspace_id,)).fetchone()[0],0)
 
     def test_gows_signed_direct_missing_destination_is_durable_and_not_duplicated(self):
         from dataclasses import replace

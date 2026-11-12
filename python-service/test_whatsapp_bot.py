@@ -144,6 +144,43 @@ class BotDatabaseTests(unittest.TestCase):
         })
         self.assertEqual(r.status_code, 201, r.text)
 
+    def test_gows_native_product_selection_routes_catalog_once_with_receipt(self):
+        import time
+        from dataclasses import replace
+        from test_waha_ingress import gows_list_payload
+        self.product(name="Fixture product", stock=3)
+        b = replace(self.service.registry['trusted-a'], engine='GOWS')
+        self.service = WahaIngressService({'trusted-a':b})
+        mid = 'false_222@c.us_' + uuid4().hex
+        event = gows_list_payload(mid=mid, me={'id':BOT_ACCOUNT})
+        event['payload']['timestamp'] = int(time.time())
+        event['timestamp'] = event['payload']['timestamp'] * 1000
+        body = raw(event)
+        self.assertEqual(self.service.receive('trusted-a',body,sign(body),'sha512')['processed'],1)
+        self.assertEqual(self.service.receive('trusted-a',body,sign(body),'sha512')['duplicates'],1)
+        first = self.decide(mid)
+        self.assertEqual(first.status_code,200,first.text)
+        result = first.json()
+        self.assertEqual(result['action'],'products')
+        self.assertIn('Fixture product',result['text'])
+        self.assertEqual(len(result['items']),1)
+        repeated = self.decide(mid).json()
+        self.assertEqual(result['operation_id'],repeated['operation_id'])
+        url = PATH + '/decisions/' + result['operation_id']
+        claim = self.tech.post(url+'/claim',headers=self.headers,json={}).json()
+        self.assertTrue(claim['dispatch_allowed'])
+        self.assertIn('Fixture product',claim['delivery']['body']['text'])
+        receipt = {'status':'confirmed','provider_message_id':'synthetic-list-catalog-receipt'}
+        for _ in range(2):
+            response=self.tech.post(url+'/receipt',headers=self.headers,json=receipt)
+            self.assertEqual(response.status_code,200,response.text)
+        self.assertFalse(self.tech.post(url+'/claim',headers=self.headers,json={}).json()['dispatch_allowed'])
+        with self.db() as conn:
+            self.assertEqual(conn.execute('SELECT text FROM socialmei.me_messages WHERE workspace_id=%s AND external_message_id=%s',
+                (self.workspace,mid)).fetchall(),[('1',)])
+            self.assertEqual(conn.execute('SELECT count(*) FROM socialmei.wa_bot_decisions WHERE workspace_id=%s AND source_message_id=%s',
+                (self.workspace,result['source_message_id'])).fetchone()[0],1)
+
     def test_pending_references_only_include_recent_unplanned_own_received_messages(self):
         import time
         mid = self.incoming('Private fixture text')

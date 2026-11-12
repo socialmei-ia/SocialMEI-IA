@@ -153,6 +153,22 @@ def _time(value, *, milliseconds=False):
     )
 
 
+def _gows_list_choices(raw_data):
+    """Read the observed Go protobuf fields, including the optional raw mirror."""
+    if not isinstance(raw_data, dict):
+        return []
+    choices = []
+    for name in ("Message", "RawMessage"):
+        message = raw_data.get(name)
+        if not isinstance(message, dict) or "listResponseMessage" not in message:
+            continue
+        selection = message["listResponseMessage"]
+        reply = selection.get("singleSelectReply") if isinstance(selection, dict) else None
+        value = reply.get("selectedRowID") if isinstance(reply, dict) else None
+        choices.append(value if isinstance(value, str) and value in {"0", "1", "2", "3", "4", "5"} else None)
+    return choices
+
+
 def parse_event(raw, signature, algorithm, binding):
     if not isinstance(raw, bytes) or not 1 <= len(raw) <= MAX_BODY:
         invalid()
@@ -278,6 +294,11 @@ def parse_event(raw, signature, algorithm, binding):
         invalid()
     text = message.get("body")
     message_type = message.get("type", "chat")
+    native_choices = _gows_list_choices(message.get("_data")) if binding.engine == "GOWS" else []
+    if native_choices:
+        if "type" in message and message_type != "list_response":
+            native_choices = [None]
+        message_type = "list_response"
     if isinstance(message_type, str) and message_type in {"buttons_response", "list_response"}:
         raw_data = message.get("_data")
         raw_data = raw_data if isinstance(raw_data, dict) else {}
@@ -289,7 +310,7 @@ def parse_event(raw, signature, algorithm, binding):
             message.get("selectedButtonId"), message.get("selectedRowId"),
             raw_data.get("selectedButtonId"), reply.get("selectedRowId"),
         ]
-        choices = [value for value in choices if value is not None]
+        choices = [value for value in choices if value is not None] + native_choices
         text = choices[0] if choices else None
         if not isinstance(text, str) or text not in {"0", "1", "2", "3", "4", "5", "9"} or any(value != text for value in choices):
             text = None
