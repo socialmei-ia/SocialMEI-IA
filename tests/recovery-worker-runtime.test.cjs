@@ -15,6 +15,7 @@ test("default stack leaves recovery delivery off and has no SMTP sender worker",
 
 test("recovery override adds exactly an opt-in bounded worker with SMTP egress", () => {
   assert.ok(override.includes("team-recovery-worker:"));
+  assert.ok(override.includes("profiles: [recovery-mail]"));
   assert.ok(override.includes('"--run", "--watch", "--limit", "10", "--interval", "15"'));
   assert.ok(override.includes("networks: [database, recovery-egress]"));
   assert.ok(override.includes("recovery-egress:"));
