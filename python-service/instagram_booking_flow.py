@@ -14,21 +14,24 @@ MAX_OUTPUT_BYTES = 1000
 MAX_DECODED_BYTES = 7000
 REPLY_TTL = timedelta(minutes=10)
 CHOICE_IDS = {'1', '2', '3', '6', '7'}
-STEPS = {'services', 'resources', 'days', 'slots', 'review_ref', 'confirm'}
+STEPS = {'services', 'resources', 'days', 'slots', 'review_ref', 'confirm_ref'}
 
 
 def _snapshot_target(target, selected):
     if target.get('route') != 'booking':
         return None
-    if target.get('step') != 'review':
+    step = target.get('step')
+    if step not in {'review', 'confirm'}:
         return {key: value for key, value in target.items() if key != 'route'}
-    # Each offer token is long. Persist only its exact slot identity in our
-    # already-persisted outbound text; regenerate and validate the offer on reply.
-    if selected.get('step') != 'slots':
+    # Signed offer tokens are never embedded in customer-visible text.
+    # We persist the exact slot reference and regenerate its signature on
+    # the next confirmed inbound message, after checking availability again.
+    expected = 'slots' if step == 'review' else 'review'
+    if selected.get('step') != expected:
         raise ValueError('Booking offer has no originating slot page')
-    offer = target['offer']
+    offer = target['offer'] if step == 'review' else selected['offer']
     return {
-        'step': 'review_ref',
+        'step': 'review_ref' if step == 'review' else 'confirm_ref',
         'service_id': offer['service_id'],
         'resource_id': offer['resource_id'],
         'day': selected['day'],
@@ -116,7 +119,8 @@ def _review_offer(conn, workspace, message, target):
                   if item['scheduled_for'] == target['scheduled_for']), None)
     if offer is None:
         raise HTTPException(409, 'O horário mudou. Consulte a disponibilidade novamente.')
-    return {'route': 'booking', 'step': 'review', 'offer': offer}
+    return {'route': 'booking', 'step': 'review', 'offer': offer,
+            'day': target['day'], 'page': target['page']}
 
 
 def respond(conn, workspace, message):
@@ -148,8 +152,12 @@ def respond(conn, workspace, message):
                  *flow.navigation()], False)
             return response[0], response[1], {'step': 'services'}
     try:
-        if selected.get('step') == 'review_ref':
+        if selected.get('step') in {'review_ref', 'confirm_ref'}:
+            confirming = selected['step'] == 'confirm_ref'
             selected = _review_offer(conn, workspace, message, selected)
+            if confirming:
+                selected = {'route': 'booking', 'step': 'confirm',
+                            'confirmation': selected['offer']['confirmation']}
         state, result = flow.advance(conn, {'workspace_id': workspace}, message,
                                      selected, False, origin='instagram')
         return state, result, selected
