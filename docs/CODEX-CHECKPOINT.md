@@ -1,13 +1,15 @@
 # Checkpoint SocialMEI-IA
 
-## Correção da seleção nativa GOWS — antes da publicação
+## Correção da seleção nativa GOWS publicada
 
 - Teste real de lista: lista recebida e seleção 1 efetuada; catálogo não retornou. Evento existente localizado no spool: HMAC válido, sessão/engine/conta corretos, entregue; payload sem type, to=null e identificador em `_data.Message.listResponseMessage.singleSelectReply.selectedRowID`, espelhado em RawMessage. Não registrar payload, mensagens ou identificadores pessoais.
 - Seleção persistida uma vez na Caixa; conversa menu (não humana); decisão skipped/quiet_repeat, sem recibo. Parser anterior usou título Ver produtos em vez de ID; a política de repetição silenciou o rótulo. Não é falha de transporte ou envio.
 - Correção 73b16df normaliza somente esses campos GOWS assinados para IDs 0–5. Confere espelhos/campos antigos; valores ausentes/nulos/não textuais/desconhecidos/conflitantes não executam ações. Mantém WEBJS, HMAC, vínculo, workspace e dedup. Quiet_repeat e lógica de catálogo não alterados.
 - Testes: 14 contratos aprovados + 2 integrações em PostgreSQL descartável. Estrutura sintética fiel ao schema comprovado: seleção 1 → persistência 1 → catálogo fixture → decisão/claim/recibo únicos, retries idempotentes e isolamento por workspace. Código real de política confirmou que ID 1 bypassa quiet_repeat. Nenhum evento real foi usado como fixture ou reenviado.
 - Candidata API derivada da imagem principal atual altera somente waha_ingress.py; 157 outros módulos idênticos por hash. Worker/menu canary/quotas, GOWS/WEBJS, Instagram e frontend preservados. Artefatos privados `/home/ubuntu/.socialmei-gows-selection-fix-222/`: prepared.json, before.private.json, registry-before.private.json, diagnostic.json.
-- Publicação/rollback API-only em tools/gows-selection-release.py. Registro privado novo com ingress_after fresco impede replay antigo; não modifica dados, credenciais ou sessão. Próxima ação: --apply, verificar saúde/rollback-check/registro antigo inalterado e canary restrito. Não solicitar outro envio: registros atuais suficientes, usuário proibiu novo teste e replay. Homologação real de uma seleção futura continua pendente, sem dispará-la pelo operador.
+- PUBLICADO 73b16df: API saudável, PostgreSQL oficial acessível, parser carregado; 157 outros módulos idênticos por hash. Snapshot/registro/container anteriores preservados; rollback-check aprovado. Registro privado novo com ingress_after fresco impede replay. Operação antiga 77 permanece única, skipped/quiet_repeat e sem recibo; não houve resposta ou replay retroativo. Canário continua em um contato; outros mantêm texto.
+- Artefatos result.json/postflight.json/manifest privado em `/home/ubuntu/.socialmei-gows-selection-fix-222/`. Ferramenta tools/gows-selection-release.py: --rollback-check somente confere; --rollback restaura API anterior com watermark fresco, sem restaurar mensagens. Não reaplicar --apply após manifesto.
+- Próxima ação exata: aguardar seleção futura espontânea e conferir ID normalizado, ação products, catálogo, recibo e histórico únicos. NÃO solicitar novo envio/teste: usuário proibiu e registros existentes bastaram ao diagnóstico. Não fazer replay da seleção antiga para homologar. Correção comprovada pelos testes estruturais e duas integrações descartáveis; retorno real de catálogo após fix ainda não homologado.
 
 ## GOWS homologado / listas publicadas somente no contato autorizado
 
