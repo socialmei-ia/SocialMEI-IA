@@ -72,7 +72,8 @@ class BookingSourceGateTests(unittest.TestCase):
         self.assertIn("LEFT JOIN LATERAL (", SOURCE)
         self.assertIn("q.workspace_id=e.workspace_id AND q.channel_id=e.canal_id", SOURCE)
         self.assertIn("q.conversation_id=v.id AND q.status='confirmed'", SOURCE)
-        self.assertIn("q.result->>'channel_booking'='true'", SOURCE)
+        # A newer normal or human reply invalidates old booking selections.
+        self.assertNotIn("AND q.result->>'channel_booking'='true'", SOURCE)
         self.assertIn("booking_followup_allowed(row['text'], row['state'], row['booking_enabled']", SOURCE)
 
     def test_policy_read_from_same_workspace_and_used_only_at_source_gate(self):
