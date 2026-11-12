@@ -5,6 +5,7 @@ on:
     branches:
       - feat/gows-cutover-gates-20261111
       - fix/channel-recovery-20261111
+      - fix/catalog-finalization-20261112
       - release/daily-business-candidate-20261105
       - release/business-onboarding-integration-20261105
       - release/functional-product-20261105
@@ -41,6 +42,9 @@ on:
       - "tests/test_team_release_profile.py"
       - "tools/release-migration-rehearsal.mjs"
       - "tools/release038-migration-rehearsal.mjs"
+      - "tools/release039-migration-rehearsal.mjs"
+      - "tests/test_team_release039_profile.py"
+      - "tests/release039-migration-rehearsal.test.cjs"
       - "tests/test_team_release038_profile.py"
       - "tests/release038-migration-rehearsal.test.cjs"
       - "tests/release-migration-rehearsal.test.cjs"
@@ -76,9 +80,9 @@ jobs:
           profile = importlib.util.module_from_spec(spec); spec.loader.exec_module(profile)
           folder = Path("database/migrations")
           names = sorted(p.name for p in folder.glob("*.sql"))
-          verify = profile.verify038 if len(names) == 38 else profile.verify
+          verify = profile.verify039 if len(names) == 39 else profile.verify038 if len(names) == 38 else profile.verify
           result = verify(names, lambda name: (folder / name).read_bytes())
-          assert result["profile"] in ("035", "038")
+          assert result["profile"] in ("035", "038", "039")
           with open(os.environ["GITHUB_ENV"], "a") as out:
               out.write("RELEASE_PROFILE=" + result["profile"] + "\n")
           PY
@@ -101,6 +105,7 @@ jobs:
           api_image_id="$(docker image inspect --format '{{.Id}}' "socialmei-v33/team-api:$CANDIDATE_SHA")"
           rehearsal=tools/release-migration-rehearsal.mjs
           if [ "$RELEASE_PROFILE" = 038 ]; then rehearsal=tools/release038-migration-rehearsal.mjs; fi
+          if [ "$RELEASE_PROFILE" = 039 ]; then rehearsal=tools/release039-migration-rehearsal.mjs; fi
           node "$rehearsal" --run \
             --source-sha "$CANDIDATE_SHA" \
             --api-image "$api_image_id" \
@@ -126,7 +131,9 @@ jobs:
           profile = importlib.util.module_from_spec(spec)
           spec.loader.exec_module(profile)
           with open("migration-rehearsal.json") as f:
-              verifier = profile.rehearsal038 if os.environ["RELEASE_PROFILE"] == "038" else profile.rehearsal
+              verifier = (profile.rehearsal039 if os.environ["RELEASE_PROFILE"] == "039"
+                          else profile.rehearsal038 if os.environ["RELEASE_PROFILE"] == "038"
+                          else profile.rehearsal)
               proof = verifier(json.load(f), sha)
           result = {"source_sha": sha, "release_profile": os.environ["RELEASE_PROFILE"], "migration_sha256": proof["source_migrations"],
                     "migration_rehearsal": proof, "images": {}}
