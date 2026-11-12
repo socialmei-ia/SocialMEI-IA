@@ -112,6 +112,13 @@ def patch_bot(source):
     # Deployed claim may use a single-line renderer call.
     source = source.replace("row['result']['choices'], engine=", "(navigation.offered_choices(row) if row['result'].get('catalog_navigation') else row['result']['choices']), engine=")
     source = source.replace("'description': None} for c in choices", "'description': c.get('description')} for c in choices")
+    claim_gate = '        if not permitted:\n'
+    if source.count(claim_gate) != 1:
+        raise ValueError('Unexpected catalog claim gate')
+    source = source.replace(claim_gate,
+        "        permitted = permitted and (not row['result'].get('catalog_navigation')\n"
+        "                                   or native_list_canary(channel, state['contact_ref']))\n"
+        + claim_gate, 1)
     assert 'navigation.offered_choices(row)' in source
     compile(source, 'whatsapp_bot.py', 'exec')
     return source

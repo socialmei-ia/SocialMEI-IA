@@ -490,6 +490,8 @@ def claim(decision_id: UUID, payload: Strict, request: Request):
         permitted = permitted and (contacts is None or state['contact_ref'] in contacts)
         permitted = permitted and not pending_human_reply(
             conn, channel['workspace_id'], channel['channel_id'], row['conversation_id'])
+        permitted = permitted and (not row['result'].get('catalog_navigation')
+                                   or native_list_canary(channel, state['contact_ref']))
         if not permitted:
             return {'operation_id': str(row['id']), 'dispatch_allowed': False, 'status': row['status']}
         conn.execute("UPDATE socialmei.wa_bot_decisions SET status='claimed',claimed_at=NOW() WHERE id=%s", (decision_id,))

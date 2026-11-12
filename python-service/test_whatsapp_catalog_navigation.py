@@ -221,3 +221,24 @@ class NavigationDatabaseTests(unittest.TestCase):
             self.assertEqual(c.execute('SELECT count(*) FROM socialmei.me_messages WHERE '
                 'workspace_id=%s AND external_message_id=%s',
                 (self.workspace,event['payload']['id'])).fetchone()[0],1)
+
+    def test_disabling_native_rollout_before_claim_does_not_send_internal_tokens(self):
+        self.add()
+        with patch('whatsapp_bot.native_list_canary',return_value=True):
+            decision=self.decide(self.incoming('1')).json()
+        self.assertTrue(decision['catalog_navigation'])
+        url=PATH+'/decisions/'+decision['operation_id']+'/claim'
+        with patch('whatsapp_bot.native_list_canary',return_value=False):
+            response=self.tech.post(url,headers=self.headers,json={})
+        self.assertEqual(response.status_code,200,response.text)
+        self.assertFalse(response.json()['dispatch_allowed'])
+        self.assertNotIn('delivery',response.json())
+        self.assertEqual(response.json()['status'],'planned')
+        with self.db() as c:
+            row=c.execute('SELECT status,claimed_at FROM socialmei.wa_bot_decisions WHERE id=%s',
+                (decision['operation_id'],)).fetchone()
+        self.assertEqual(row,('planned',None))
+        with patch('whatsapp_bot.native_list_canary',return_value=True):
+            claim=self.tech.post(url,headers=self.headers,json={}).json()
+        self.assertTrue(claim['dispatch_allowed'])
+        self.assertEqual(claim['delivery']['path'],'/api/sendList')
