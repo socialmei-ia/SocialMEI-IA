@@ -25,6 +25,18 @@ A conta ChatGPT Plus não fornece uma chave de API automaticamente. A utilizaç�
 4. Simular erro, timeout, redirecionamento e saída inválida do provedor: responder `503` sem encaminhar texto parcial.
 5. Confirmar ausência de novos registros em `wa_bot_decisions`, `ig_menu_replies` e trabalhos de envio. Depois disso, revisar manualmente rascunhos de preços, horários, dúvidas e casos sensíveis.
 
+## Rede de saída opcional
+
+A configuração padrão `compose.team.yaml` mantém a API sem rede externa. Para liberar o acesso HTTPS à Groq, o operador deve utilizar também o arquivo `compose.team-ai-drafts.yaml`. Esse override adiciona a rede `ai-egress` somente à API, sem publicar portas. A permissão de saída é ampla no nível de rede; revisar o firewall e as regras de segurança antes do uso.
+
+Pré-visualizar a composição sem iniciar os serviços:
+
+```sh
+docker compose --env-file .env.team -f compose.team.yaml -f compose.team-ai-drafts.yaml config
+```
+
+A operação acima pode exibir segredos no terminal; nunca encaminhar sua saída. Não habilitar o override na produção sem autorização do responsável.
+
 ## Implantação
 
 A PR #227 é uma candidata, **não um deploy**. Antes da publicação: validar backups e rollback, webhook Meta/OAuth, conexões WAHA, scopes, vinculação do CRM e opção de agendamento por workspace. Fazer um canário real com contas da equipe, respeitando a confirmação humana, e só então expandir gradualmente. Nenhuma configuração privada pode ser inferida apenas pelo CI. Não alterar Prisma ou migrations para este fluxo.
