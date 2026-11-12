@@ -38,6 +38,7 @@ class NavigationContracts(unittest.TestCase):
         self.assertIn('3 un.',nav.availability({'tipo':'Produto','estoque':3}))
         service={'tipo':'Serviço','estoque':None,'duracao_minutos':30}
         self.assertIn('30 minutos',nav.availability(service))
+        self.assertIn('1 minuto.',nav.availability({**service,'duracao_minutos':1}))
         self.assertNotIn('Duração:',nav.availability({**service,'duracao_minutos':None}))
 
 

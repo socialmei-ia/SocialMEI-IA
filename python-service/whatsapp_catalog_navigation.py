@@ -66,11 +66,25 @@ def money(value):
 def availability(row):
     if row['tipo']=='Serviço':
         duration=row.get('duracao_minutos')
-        details='Duração: '+str(duration)+' minutos.\n' if duration else ''
+        unit='minuto' if duration==1 else 'minutos'
+        details='Duração: '+str(duration)+' '+unit+'.\n' if duration else ''
         return details+'Condições e agenda: confirme com a equipe.'
     if row['estoque'] is not None and row['estoque']>0:return 'Estoque informado: '+str(row['estoque'])+' un.'
     if row['estoque']==0:return 'Sem estoque no momento. Para reposição, confirme com a equipe.'
     return 'Disponibilidade: confirme com a equipe.'
+
+
+def item_summary(row):
+    if row['tipo']=='Serviço':
+        duration=row.get('duracao_minutos')
+        detail=str(duration)+' min' if duration else 'Duração a confirmar'
+    elif row['estoque'] is not None and row['estoque']>0:
+        detail='Estoque: '+str(row['estoque'])
+    else:
+        detail='Sem estoque no momento'
+    parts=[money(row['preco']),detail]
+    if row['descricao']:parts.append(row['descricao'])
+    return ' · '.join(parts)
 
 
 def browse(conn, workspace, target):
@@ -102,9 +116,8 @@ def browse(conn, workspace, target):
         "AND (%s='' OR strpos(lower(nome),lower(%s))>0) ORDER BY lower(nome),id LIMIT %s OFFSET %s",
         (workspace,kind,category,category,query,query,PAGE_SIZE+1,page*PAGE_SIZE)).fetchall()
     back={**base,'category':category,'all':bool(target.get('all')),'query':query,'page':page}
-    choices=[option(r['nome'],{'route':'item','id':r['id'],'back':back},
-        money(r['preco'])+' · '+((str(r['duracao_minutos'])+' min' if r['duracao_minutos'] else 'Duração a confirmar') if kind=='Serviço' else 'Estoque: '+str(r['estoque']) if r['estoque'] else 'Sem estoque no momento')
-        +(' · '+r['descricao'] if r['descricao'] else '')) for r in rows[:PAGE_SIZE]]
+    choices=[option(r['nome'],{'route':'item','id':r['id'],'back':back},item_summary(r))
+        for r in rows[:PAGE_SIZE]]
     if page:choices.append(option('Página anterior',{**back,'page':page-1}))
     if len(rows)>PAGE_SIZE:choices.append(option('Próxima página',{**back,'page':page+1}))
     if category is not None:choices.append(option('Todas as categorias',base))
