@@ -176,6 +176,30 @@ class ChannelBookingDatabaseTests(unittest.TestCase):
                 (second,),
             ).fetchone()[0], False)
 
+    def test_paginated_slots_include_later_hours_without_prebooking(self):
+        request = {**self.context, 'service_id': self.service['id'],
+                   'resource_id': self.resource['id'], 'day': self.day}
+        first = self.client.post(PATH + '/slots', json={**request, 'page': 0})
+        second = self.client.post(PATH + '/slots', json={**request, 'page': 1})
+        self.assertEqual(first.status_code, 200, first.text)
+        self.assertEqual(second.status_code, 200, second.text)
+        self.assertEqual(len(first.json()['items']), 3)
+        self.assertEqual(len(second.json()['items']), 3)
+        self.assertTrue(first.json()['has_more'])
+        self.assertFalse(set(row['scheduled_for'] for row in first.json()['items'])
+                         & set(row['scheduled_for'] for row in second.json()['items']))
+        with psycopg.connect(accounts.DB) as conn:
+            count = conn.execute("SELECT count(*) FROM socialmei.agenda_appointments "
+                                 "WHERE workspace_id=%s", (self.workspace,)).fetchone()[0]
+        self.assertEqual(count, 0)
+        confirmed = self.confirm(second.json()['items'][-1]['confirmation'])
+        self.assertEqual(confirmed.status_code, 200, confirmed.text)
+        self.assertEqual(confirmed.json()['cliente_id'], self.person['id'])
+        for invalid in (-1, 101, True, '1'):
+            with self.subTest(page=invalid):
+                response = self.client.post(PATH + '/slots', json={**request, 'page': invalid})
+                self.assertEqual(response.status_code, 422, response.text)
+
     def test_authenticated_journey_persists_once_and_uses_existing_agenda(self):
         services = self.client.post(PATH + '/services', json=self.context)
         self.assertEqual(services.status_code, 200, services.text)
