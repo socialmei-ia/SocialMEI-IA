@@ -366,6 +366,128 @@
       input("booking_notes").maxLength = 1000;
     });
   }
+  const bookingDays = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
+  function parseBookingHours(value, weekday) {
+    const windows = [];
+    for (const entry of value
+      .split(";")
+      .map((part) => part.trim())
+      .filter(Boolean)) {
+      const match = /^(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})$/.exec(entry);
+      if (
+        !match ||
+        match[1] >= match[2] ||
+        ![match[1], match[2]].every((clock) => /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(clock))
+      )
+        throw Error(bookingDays[weekday] + ": use 09:00-12:00;13:00-18:00.");
+      windows.push({ weekday, opens: match[1], closes: match[2] });
+    }
+    return windows;
+  }
+  function configureChannelBooking(s) {
+    prepare(s, async () => {
+      if (!["owner", "admin"].includes(host.identity?.papel))
+        throw Error("Somente a administração pode definir horários dos canais.");
+      const existing = await host.request("/agenda/channel-booking");
+      if (!live(s)) return;
+      if (
+        !Number.isSafeInteger(existing.revision) ||
+        !existing.policy ||
+        !Array.isArray(existing.policy.hours)
+      )
+        throw Error("Configuração de horários inválida. Nenhuma alteração foi feita.");
+      const fields = [
+        {
+          id: "channel_booking_enabled",
+          label: "Agendamento pelo WhatsApp e Instagram",
+          type: "select",
+          options: [],
+        },
+        { id: "channel_booking_timezone", label: "Fuso horário", req: 1 },
+        { id: "channel_booking_step", label: "Intervalo dos horários (minutos)", req: 1 },
+        { id: "channel_booking_lead", label: "Antecedência mínima (minutos)", req: 1 },
+        { id: "channel_booking_horizon", label: "Dias disponíveis para marcar", req: 1 },
+        ...bookingDays.map((day, i) => ({
+          id: "channel_booking_day_" + i,
+          label: day + " (ex.: 09:00-12:00;13:00-18:00)",
+        })),
+      ];
+      const input = form(
+        s,
+        "Horários para agendamento por WhatsApp e Instagram",
+        fields,
+        async (get) => {
+          const hours = bookingDays.flatMap((_, weekday) =>
+            parseBookingHours(get("channel_booking_day_" + weekday).value, weekday),
+          );
+          const policy = {
+            ...existing.policy,
+            enabled: get("channel_booking_enabled").value === "true",
+            timezone: get("channel_booking_timezone").value.trim(),
+            step_minutes: Number(get("channel_booking_step").value),
+            lead_minutes: Number(get("channel_booking_lead").value),
+            horizon_days: Number(get("channel_booking_horizon").value),
+            hours,
+          };
+          if (
+            !policy.timezone ||
+            ![policy.step_minutes, policy.lead_minutes, policy.horizon_days].every(Number.isInteger)
+          )
+            throw Error("Confira o fuso horário e os intervalos.");
+          if (policy.enabled && !hours.length)
+            throw Error("Defina pelo menos um dia de atendimento antes de ativar.");
+          await host.request("/agenda/channel-booking", "PUT", {
+            expected_revision: existing.revision,
+            policy,
+          });
+        },
+        "Salvar horários",
+      );
+      if (!input) return;
+      const active = input("channel_booking_enabled");
+      active.replaceChildren();
+      for (const [value, title] of [
+        ["false", "Desativado"],
+        ["true", "Ativado"],
+      ]) {
+        const option = node("option", title);
+        option.value = value;
+        active.append(option);
+      }
+      active.value = String(existing.policy.enabled);
+      for (const [field, value] of [
+        ["timezone", existing.policy.timezone],
+        ["step", existing.policy.step_minutes],
+        ["lead", existing.policy.lead_minutes],
+        ["horizon", existing.policy.horizon_days],
+      ])
+        input("channel_booking_" + field).value = String(value);
+      for (const [field, min, max] of [
+        ["step", 5, 120],
+        ["lead", 0, 10080],
+        ["horizon", 1, 60],
+      ]) {
+        const element = input("channel_booking_" + field);
+        element.type = "number";
+        element.min = String(min);
+        element.max = String(max);
+        element.step = "1";
+      }
+      for (let day = 0; day < bookingDays.length; day++)
+        input("channel_booking_day_" + day).value = existing.policy.hours
+          .filter((item) => item.weekday === day)
+          .map((item) => item.opens + "-" + item.closes)
+          .join(";");
+      const details = node(
+        "p",
+        "Estes horários valem para os dois canais, em cada negócio separadamente. " +
+          "Os clientes só confirmam reservas depois de escolher serviço, profissional e horário. " +
+          "A agenda interna permanece disponível mesmo com o menu dos canais desativado.",
+      );
+      details.className = "mut";
+      dlg().querySelector("form")?.prepend(details);
+    });
+  }
   function duration(s) {
     prepare(s, async () => {
       const products = await host.request("/produtos");
@@ -491,6 +613,11 @@
       button("Cadastrar profissional/recurso", () => resource(s), disabled),
       button("Configurar profissional/recurso", () => manageResources(s), disabled),
       button("Novo agendamento", () => book(s), disabled || s.phase !== "ready"),
+      button(
+        "Configurar horários dos canais",
+        () => configureChannelBooking(s),
+        disabled || !["owner", "admin"].includes(host.identity?.papel),
+      ),
       button("Atualizar agendamentos", () => load(s), s.busy),
     );
     section.append(actions);

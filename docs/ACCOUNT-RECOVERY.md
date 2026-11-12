@@ -55,3 +55,25 @@ Migration024 é incremental e foi aplicada somente em PostgreSQL descartável. B
 Testes específicos: senha7/8, comum, expiração, replay, código inválido, isolamento, revogação, falha SMTP, mudança normal, concorrência de confirmação, migration ausente, limites e TLS465/587. Transporte e destinatários são sintéticos; nenhum acesso Google. Regressão de contas no Chromium cobre formulário, retorno, validação e capturas1440/390 claro/escuro com API controlada. Sessões e SQL reais são verificados separadamente nos testes backend.
 
 Ensaio adicional de release executado em PostgreSQL16 Docker descartável: migrations001–024, preservação de valores/ledger, reexecução, falha transacional e pg_dump/pg_restore passaram. A fixture024 inclui dois hashes sintéticos de recuperação (pendente e usado); o snapshot integral confirmou seus estados após restauração. Nenhuma migration anterior foi modificada.
+
+## Worker contínuo opcional (sem mexer no banco)
+
+A implementação do envio de e-mail é alimentada por uma fila persistente.
+A nova opção `recovery_worker.py --run --watch --limit 10 --interval 15`
+processa a fila continuamente, sem registrar endereços, códigos ou senhas
+nos logs. Erros do SMTP interrompem o worker; mensagens com entrega incerta
+não são reenviadas automaticamente.
+
+O arquivo `compose.team-recovery.yaml` adiciona um contêiner separado com
+acesso apenas ao PostgreSQL da equipe e à rede de saída `recovery-egress`.
+Nenhuma porta é publicada. Ele **não** faz parte da composição padrão e
+exige ativar explicitamente o perfil Docker `recovery-mail`.
+
+Antes de ativá-lo, o operador deve configurar `SOCIALMEI_RECOVERY_MODE=smtp`,
+`TEAM_AUTH_ENABLED=true`, endereço HTTPS oficial, remetente SMTP e segredo
+privado na infraestrutura. Verificar a existência das tabelas 024 e 026
+**sem executar migrations**. Uma prova de restauração, o worker saudável
+e um e-mail recebido por destinatário de teste são requisitos da homologação.
+
+A ativação continua opcional: sem essas configurações, o backend retorna 503
+e os usuários não recebem a falsa promessa de um e-mail que não será enviado.

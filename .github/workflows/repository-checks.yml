@@ -7,6 +7,10 @@ on:
     branches:
       [
         main,
+        feat/gows-cutover-gates-20261111,
+        fix/channel-recovery-20261111,
+        fix/catalog-finalization-20261112,
+        feat/channel-booking-core-20261112,
         release/daily-business-candidate-20261105,
         release/business-onboarding-integration-20261105,
         release/functional-product-20261105,
@@ -120,9 +124,9 @@ jobs:
           profile = importlib.util.module_from_spec(spec); spec.loader.exec_module(profile)
           folder = Path("database/migrations")
           names = sorted(p.name for p in folder.glob("*.sql"))
-          verify = profile.verify038 if len(names) == 38 else profile.verify
+          verify = profile.verify039 if len(names) == 39 else profile.verify038 if len(names) == 38 else profile.verify
           result = verify(names, lambda name: (folder / name).read_bytes())
-          assert result["profile"] in ("035", "038")
+          assert result["profile"] in ("035", "038", "039")
           print(result["profile"])
           PY
           )
@@ -130,9 +134,9 @@ jobs:
             python tests/release-candidate-db.py --run --output test-results/release-candidate
           else
             sha=$(git rev-parse HEAD)
-            docker build --build-arg "SOCIALMEI_RELEASE_SHA=$sha" -t "socialmei-rehearsal038:$sha" -f python-service/Dockerfile python-service
-            image=$(docker image inspect --format '{{.Id}}' "socialmei-rehearsal038:$sha")
-            node tools/release038-migration-rehearsal.mjs --run --source-sha "$sha" --api-image "$image" --receipt test-results/release-candidate/receipt038.json
+            docker build --build-arg "SOCIALMEI_RELEASE_SHA=$sha" -t "socialmei-rehearsal:$sha" -f python-service/Dockerfile python-service
+            image=$(docker image inspect --format '{{.Id}}' "socialmei-rehearsal:$sha")
+            node "tools/release${profile}-migration-rehearsal.mjs" --run --source-sha "$sha" --api-image "$image" --receipt "test-results/release-candidate/receipt${profile}.json"
           fi
       - name: Save sanitized release candidate evidence
         if: always()

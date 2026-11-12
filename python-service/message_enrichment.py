@@ -482,6 +482,7 @@ def conversations(request: Request, response: Response):
                     'provider': 'waha', 'enrichment': None,
                 })
         from instagram_auto_menu import enabled as instagram_menu_enabled
+        from instagram_booking_flow import public_text as instagram_public_text
         instagram_ids = [row['id'] for row in items if row['origin'] == 'instagram']
         if instagram_ids and instagram_menu_enabled(workspace):
             rows = conn.execute(
@@ -492,7 +493,7 @@ def conversations(request: Request, response: Response):
             ).fetchall()
             for row in rows:
                 bot_replies.setdefault(row['conversation_id'], []).append({
-                    'id': 'ig-menu-' + str(row['id']), 'text': row['text'], 'occurred_at': row['finished_at'],
+                    'id': 'ig-menu-' + str(row['id']), 'text': instagram_public_text(row['text']), 'occurred_at': row['finished_at'],
                     'direction': 'outgoing', 'provider': 'instagram', 'enrichment': None,
                 })
         for conversation in items:

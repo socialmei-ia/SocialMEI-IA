@@ -26,12 +26,45 @@ class NavigationContracts(unittest.TestCase):
         for token in ['sm:1:0','sm:'+uuid4().hex+':10','https://example.test','sm:'+uuid4().hex+':-1']:
             self.assertFalse(nav.valid_token(token))
         state,result=nav.main()
-        self.assertEqual(state,'menu');self.assertEqual(len(result['choices']),5)
+        self.assertEqual(state,'menu');self.assertEqual(len(result['choices']),6)
         self.assertTrue(all(len(c['title'])<=24 and len(c['description'] or '')<=72 for c in result['choices']))
         self.assertNotIn('digite',result['text'].lower())
         rendered=nav.history_text(result)
         self.assertNotIn('sm:',rendered)
         self.assertNotIn('nav -',rendered)
+
+    def test_close_consultation_returns_to_menu_without_touching_database(self):
+        from unittest.mock import Mock
+        conn=Mock()
+        _,menu=nav.main()
+        close=next(choice['target'] for choice in menu['choices'] if choice['target']['route']=='close')
+        state,result=nav.respond(conn,1,close)
+        self.assertEqual(state,'menu')
+        self.assertEqual(result['action'],'catalog_closed')
+        self.assertFalse(result['handoff'])
+        self.assertEqual(result['choices'][0]['target'],{'route':'main'})
+        conn.execute.assert_not_called()
+
+    def test_closing_command_does_not_override_human_attendance(self):
+        from unittest.mock import Mock
+        from whatsapp_bot import _catalog_answer
+        conn=Mock()
+        state,result=_catalog_answer(conn,1,'human','encerrar',None,True)
+        self.assertEqual(state,'human')
+        self.assertEqual(result['action'],'human_wait')
+        self.assertEqual(result['text'],'')
+        conn.execute.assert_not_called()
+
+    def test_stock_zero_and_service_duration_are_not_invented(self):
+        self.assertIn('Sem estoque',nav.availability({'tipo':'Produto','estoque':0}))
+        self.assertIn('3 un.',nav.availability({'tipo':'Produto','estoque':3}))
+        service={'tipo':'Serviço','estoque':None,'duracao_minutos':30}
+        self.assertIn('30 minutos',nav.availability(service))
+        self.assertIn('1 minuto.',nav.availability({**service,'duracao_minutos':1}))
+        self.assertNotIn('Duração:',nav.availability({**service,'duracao_minutos':None}))
+        summary={'preco':'12.50','descricao':''}
+        self.assertIn('Sem estoque',nav.item_summary({**summary,'tipo':'Produto','estoque':0}))
+        self.assertIn('Duração a confirmar',nav.item_summary({**summary,**service,'duracao_minutos':None}))
 
 
 @unittest.skipUnless(os.getenv('TEST_DATABASE_URL'),'Disposable PostgreSQL required')
@@ -73,6 +106,7 @@ class NavigationDatabaseTests(unittest.TestCase):
                 state,resumed=self.response(result['choices'][0]['target']);self.assertEqual(state,'menu')
         with self.db() as c:c.execute('UPDATE socialmei.crm_produtos SET estoque=0 WHERE id=%s',(pid,))
         self.assertIn('confirme com a equipe',self.response({'route':'stock','id':pid})[1]['text'])
+        self.assertIn('Sem estoque',self.response({'route':'stock','id':pid})[1]['text'])
 
     def test_categories_pagination_new_products_and_inactive_foreign_item(self):
         for i in range(15):self.add('Fixture '+str(i).zfill(2),'Grupo A')
@@ -112,6 +146,17 @@ class NavigationDatabaseTests(unittest.TestCase):
         self.assertEqual(service['action'],'services')
         detail=self.response({'route':'item','id':pid})[1]
         self.assertIn('agenda: confirme',detail['text']);self.assertNotIn('Estoque',detail['text'])
+        self.assertNotIn('Duração:',detail['text'])
+        with self.db() as c:
+            c.execute('UPDATE socialmei.crm_produtos SET duracao_minutos=30 WHERE id=%s',(pid,))
+        service=self.response({'route':'browse','kind':'Serviço'})[1]
+        self.assertIn('30 min',service['choices'][0]['description'])
+        self.assertIn('30 minutos',self.response(service['choices'][0]['target'])[1]['text'])
+        target=service['choices'][0]['target']
+        with self.db() as c:
+            c.execute("UPDATE socialmei.crm_produtos SET status='Inativo' WHERE id=%s",(pid,))
+        unavailable=self.response(target)[1]
+        self.assertEqual(unavailable['choices'][0]['target']['kind'],'Serviço')
 
     def test_native_snapshot_selection_resolves_once_and_keeps_inbox_label(self):
         pid=self.add();b=replace(self.service.registry['trusted-a'],engine='GOWS')
@@ -147,6 +192,14 @@ class NavigationDatabaseTests(unittest.TestCase):
             self.assertEqual(quiet['action'],'human_wait')
             self.assertEqual(quiet['status'],'skipped')
             resume=human_claim['delivery']['body']['message']['sections'][0]['rows'][0]['rowId']
+            with patch('whatsapp_bot.pending_human_reply', return_value=True):
+                blocked=self.decide(incoming(resume,'Retomar automático')).json()
+            self.assertEqual(blocked['action'],'human_wait')
+            self.assertEqual(blocked['status'],'skipped')
+            with self.db() as c:
+                self.assertEqual(c.execute('SELECT state FROM socialmei.wa_bot_conversations '
+                    'WHERE workspace_id=%s AND conversation_id=%s',
+                    (self.workspace,detail['conversation_id'])).fetchone()[0],'human')
             resumed=self.decide(incoming(resume,'Retomar automático')).json()
             self.assertEqual(resumed['action'],'menu')
             with self.db() as c:
@@ -163,3 +216,51 @@ class NavigationDatabaseTests(unittest.TestCase):
             self.assertIn('Fixture product',inbox.text)
             self.assertNotIn('sm:',inbox.text)
             self.assertNotIn('nav -',inbox.text)
+
+    def test_event_accepted_before_catalog_update_is_persisted_after_update(self):
+        import importlib.util
+        from dataclasses import asdict
+        from pathlib import Path
+        spec=importlib.util.spec_from_file_location('catalog_source_test',
+            Path(__file__).resolve().parents[1]/'tools/gows_catalog_source.py')
+        source=importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(source)
+        now=int(time.time())
+        original=replace(self.service.registry['trusted-a'],engine='GOWS',ingress_after=now-60)
+        registry=source.catalog_registry_snapshot({'version':1,'bindings':[asdict(original)]})
+        binding=type(original)(**registry['bindings'][0])
+        event=gows_list_payload('1',mid='false_222@c.us_'+uuid4().hex,me={'id':BOT_ACCOUNT})
+        event['payload']['timestamp']=now-30
+        event['timestamp']=(now-30)*1000
+        body=raw(event)
+        # Reproduce the discarded-spool regression from a reset activation cutoff.
+        reset=WahaIngressService({'trusted-a':replace(original,ingress_after=now)})
+        self.assertEqual(reset.receive('trusted-a',body,sign(body),'sha512')['ignored'],1)
+        updated=WahaIngressService({'trusted-a':binding})
+        self.assertEqual(updated.receive('trusted-a',body,sign(body),'sha512')['processed'],1)
+        self.assertEqual(updated.receive('trusted-a',body,sign(body),'sha512')['duplicates'],1)
+        with self.db() as c:
+            self.assertEqual(c.execute('SELECT count(*) FROM socialmei.me_messages WHERE '
+                'workspace_id=%s AND external_message_id=%s',
+                (self.workspace,event['payload']['id'])).fetchone()[0],1)
+
+    def test_disabling_native_rollout_before_claim_does_not_send_internal_tokens(self):
+        self.add()
+        with patch('whatsapp_bot.native_list_canary',return_value=True):
+            decision=self.decide(self.incoming('1')).json()
+        self.assertTrue(decision['catalog_navigation'])
+        url=PATH+'/decisions/'+decision['operation_id']+'/claim'
+        with patch('whatsapp_bot.native_list_canary',return_value=False):
+            response=self.tech.post(url,headers=self.headers,json={})
+        self.assertEqual(response.status_code,200,response.text)
+        self.assertFalse(response.json()['dispatch_allowed'])
+        self.assertNotIn('delivery',response.json())
+        self.assertEqual(response.json()['status'],'planned')
+        with self.db() as c:
+            row=c.execute('SELECT status,claimed_at FROM socialmei.wa_bot_decisions WHERE id=%s',
+                (decision['operation_id'],)).fetchone()
+        self.assertEqual(row,('planned',None))
+        with patch('whatsapp_bot.native_list_canary',return_value=True):
+            claim=self.tech.post(url,headers=self.headers,json={}).json()
+        self.assertTrue(claim['dispatch_allowed'])
+        self.assertEqual(claim['delivery']['path'],'/api/sendList')

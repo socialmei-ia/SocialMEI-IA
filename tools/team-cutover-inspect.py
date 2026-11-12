@@ -21,13 +21,28 @@ CONTAINERS = {
 EXPECTED_MIGRATIONS = {
     "032_whatsapp_bot_conversations.sql",
     "033_provider_sentiment_jobs.sql",
+    "039_instagram_auto_menu.sql",
+}
+MAX_KNOWN_MIGRATION = 39
+# Strict names for new channel/booking schema versions; a prefix alone is not proof.
+KNOWN_LATE_MIGRATIONS = {
+    "032_whatsapp_bot_conversations.sql",
+    "033_provider_sentiment_jobs.sql",
+    "034_workspace_agenda.sql",
+    "035_whatsapp_human_outbox.sql",
+    "036_service_appointments.sql",
+    "037_catalog_details.sql",
+    "038_inbox_customer_link.sql",
+    "039_instagram_auto_menu.sql",
 }
 AUTOMATION_NETWORK = "socialmei_team_automation"
 SQL = """BEGIN TRANSACTION READ ONLY;
 SELECT json_build_object(
   'versions', COALESCE(json_agg(version ORDER BY version), '[]'::json),
   'bot_table', to_regclass('socialmei.wa_bot_conversations') IS NOT NULL,
-  'sentiment_table', to_regclass('socialmei.me_provider_sentiment_jobs') IS NOT NULL
+  'sentiment_table', to_regclass('socialmei.me_provider_sentiment_jobs') IS NOT NULL,
+  'instagram_menu_table', to_regclass('socialmei.ig_menu_conversations') IS NOT NULL,
+  'instagram_replies_table', to_regclass('socialmei.ig_menu_replies') IS NOT NULL
 )::text
 FROM socialmei.schema_migrations;
 ROLLBACK;
@@ -83,6 +98,10 @@ def inspect_summary(data, service):
             "sentiment_enabled": env.get("SOCIALMEI_PROVIDER_SENTIMENT_ENABLED", "false").strip().lower() == "true",
             "sentiment_key_configured": len(env.get("SOCIALMEI_PROVIDER_SENTIMENT_KEY", "")) >= 32,
             "sentiment_workspaces_configured": bool(re.fullmatch(r"[1-9][0-9]{0,14}(?:,[1-9][0-9]{0,14})*", env.get("SOCIALMEI_PROVIDER_SENTIMENT_WORKSPACE_IDS", ""))),
+            "ai_draft_enabled": env.get("SOCIALMEI_AI_DRAFT_ENABLED", "false").strip().lower() == "true",
+            "ai_draft_key_configured": 32 <= len(env.get("SOCIALMEI_GROQ_API_KEY", "")) <= 512,
+            "ai_draft_workspaces_configured": bool(re.fullmatch(r"[1-9][0-9]{0,15}(?:,[1-9][0-9]{0,15})*", env.get("SOCIALMEI_AI_DRAFT_WORKSPACES", ""))),
+            "ai_egress_network": any(n.endswith("_ai-egress") for n in networks),
         }
     if service == "waha":
         engine = env.get("WHATSAPP_DEFAULT_ENGINE", "unknown").strip().upper()
@@ -106,9 +125,15 @@ def migration_summary(result):
         "max_prefix": max((int(v[:3]) for v in versions), default=None),
         "has_032": expected[0] in versions and result.get("bot_table") is True,
         "has_033": expected[1] in versions and result.get("sentiment_table") is True,
+        "has_039": (expected[2] in versions and result.get("instagram_menu_table") is True
+                    and result.get("instagram_replies_table") is True),
         "duplicate_versions": len(versions) != len(set(versions)),
         "ledger_has_gaps": sorted(int(v[:3]) for v in versions) != list(range(1, max((int(v[:3]) for v in versions), default=0) + 1)),
-        "future_or_unknown_versions": any(int(v[:3]) > 33 for v in versions),
+        "future_or_unknown_versions": any(
+            int(v[:3]) > MAX_KNOWN_MIGRATION
+            or (int(v[:3]) >= 32 and v not in KNOWN_LATE_MIGRATIONS)
+            for v in versions
+        ),
     }
 
 
@@ -136,11 +161,19 @@ def assess(report, expected_sha):
         or not flags.get("sentiment_workspaces_configured")
     ):
         blockers.append("sentimento_ativo_sem_credenciais_ou_allowlist")
+    if flags.get("ai_draft_enabled") and (
+        not flags.get("ai_draft_key_configured")
+        or not flags.get("ai_draft_workspaces_configured")
+        or not flags.get("ai_egress_network")
+    ):
+        blockers.append("ia_ativa_sem_credenciais_allowlist_ou_saida")
     db = report["database"]
     if not db.get("available"):
         blockers.append("ledger_do_banco_indisponivel")
     elif db.get("duplicate_versions") or db.get("ledger_has_gaps") or db.get("future_or_unknown_versions"):
         blockers.append("ledger_incompativel")
+    elif db.get("max_prefix") == 39 and not db.get("has_039"):
+        blockers.append("instagram_menu_039_incompleto")
     if services["team_database"].get("automation_network"):
         blockers.append("postgres_conectado_a_rede_automation")
     return {

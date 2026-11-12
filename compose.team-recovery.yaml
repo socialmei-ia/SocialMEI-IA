@@ -1,0 +1,43 @@
+# OPTIONAL: enable this override only after private SMTP configuration,
+# consent and a verified restore. The default Team stack does not send recovery mail.
+services:
+  team-api:
+    environment:
+      SOCIALMEI_RECOVERY_MODE: ${SOCIALMEI_RECOVERY_MODE:-disabled}
+      SOCIALMEI_SMTP_HOST: ${SOCIALMEI_SMTP_HOST:-}
+      SOCIALMEI_SMTP_PORT: ${SOCIALMEI_SMTP_PORT:-465}
+      SOCIALMEI_SMTP_USER: ${SOCIALMEI_SMTP_USER:-}
+      SOCIALMEI_SMTP_PASSWORD: ${SOCIALMEI_SMTP_PASSWORD:-}
+      SOCIALMEI_SMTP_FROM: ${SOCIALMEI_SMTP_FROM:-}
+
+  team-recovery-worker:
+    profiles: [recovery-mail]
+    build:
+      context: ./python-service
+    command:
+      ["python", "recovery_worker.py", "--run", "--watch", "--limit", "10", "--interval", "15"]
+    restart: unless-stopped
+    environment:
+      PYTHONPATH: /app
+      POSTGRES_HOST: team-postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: socialmei_team
+      POSTGRES_PASSWORD: ${TEAM_POSTGRES_PASSWORD:?Configure private Team database password}
+      POSTGRES_DB: socialmei_team
+      SOCIALMEI_SHARED_DATA_ENABLED: "true"
+      SOCIALMEI_AUTH_ENABLED: ${TEAM_AUTH_ENABLED:-false}
+      SOCIALMEI_AUTH_ORIGIN: https://${SOCIALMEI_TEAM_HOST:?Configure the HTTPS Team hostname}
+      SOCIALMEI_RECOVERY_MODE: ${SOCIALMEI_RECOVERY_MODE:-disabled}
+      SOCIALMEI_SMTP_HOST: ${SOCIALMEI_SMTP_HOST:-}
+      SOCIALMEI_SMTP_PORT: ${SOCIALMEI_SMTP_PORT:-465}
+      SOCIALMEI_SMTP_USER: ${SOCIALMEI_SMTP_USER:-}
+      SOCIALMEI_SMTP_PASSWORD: ${SOCIALMEI_SMTP_PASSWORD:-}
+      SOCIALMEI_SMTP_FROM: ${SOCIALMEI_SMTP_FROM:-}
+    networks: [database, recovery-egress]
+    depends_on:
+      team-postgres:
+        condition: service_healthy
+
+networks:
+  recovery-egress:
+    driver: bridge

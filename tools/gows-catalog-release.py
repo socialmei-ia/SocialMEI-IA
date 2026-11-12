@@ -1,6 +1,6 @@
 """Publish only the contact-bound list canary; keep GOWS/text rollback intact."""
 import copy, datetime as dt, hashlib, http.client, json, pathlib, socket, subprocess as sp, sys, time
-from gows_catalog_source import patch_bot, patch_history
+from gows_catalog_source import patch_bot, patch_history, catalog_registry_snapshot, catalog_source_boundary, verified_candidate_images
 ROOT=pathlib.Path('/home/ubuntu/.socialmei-gows-catalog-222');ROOT.mkdir(mode=0o700,exist_ok=True)
 MENU='socialmei-menu-public-api-v3';WORKER='socialmei-menu-worker-continuo';API='socialmei-team-team-api-1'
 
@@ -11,6 +11,9 @@ def run(*args,input=None):
  if r.returncode:private('last-error.private.txt',r.stderr+'\n'+r.stdout);raise RuntimeError('canary_operation_failed')
  return r.stdout
 def inspect(n):return json.loads(run('docker','inspect',n))[0]
+
+def image_identity(reference):
+ return run('docker','image','inspect','--format','{{.Id}}',reference).strip()
 def env(c):return dict(x.split('=',1) for x in c['Config']['Env'] if '=' in x)
 def py(code):
  for name in [API,MENU]:
@@ -40,9 +43,7 @@ def stop_sender():
  run('docker','stop','-t','1',WORKER)
 def registry_at(name):
  source=next(m['Source'] for m in before[API]['Mounts'] if m['Destination']=='/run/socialmei/private')
- value=json.loads((pathlib.Path(source)/'waha-registry.json').read_text())
- assert value['bindings'][0]['engine']=='GOWS'
- value['bindings'][0]['ingress_after']=int(time.time())
+ value=catalog_registry_snapshot(json.loads((pathlib.Path(source)/'waha-registry.json').read_text()))
  folder=ROOT/name;folder.mkdir(mode=0o700,exist_ok=True)
  p=folder/'waha-registry.json';p.write_text(json.dumps(value));p.chmod(0o600)
  return folder
@@ -68,7 +69,7 @@ def restore():
   except Exception:pass
   if n==API:
    registry=registry_at('rollback-registry');clone(n,before[n],mounts={'/run/socialmei/private':(registry,False)})
-  elif n==MENU:clone(n,before[n],{'SOCIALMEI_CONTINUOUS_START_UTC':now})
+  elif n==MENU:clone(n,before[n])
   else:run('docker','rename',backups[n],n);run('docker','start',n)
  healthy_api()
  private('rollback-result.json',{'previous_catalog_restored':True,'messages_replayed':False});print('PREVIOUS_CATALOG_RESTORED_NO_REPLAY',flush=True)
@@ -81,6 +82,7 @@ if mode in {'--rollback','--rollback-check'}:
  restore();sys.exit(0)
 if (ROOT/'manifest.private.json').exists():raise RuntimeError('reconcile_existing_canary_before_reentry')
 before={n:inspect(n) for n in [API,MENU,WORKER]};e=env(before[WORKER]);assert not e.get('SOCIALMEI_MENU_GOWS_LIST_CONTACTS_JSON');assert e['SOCIALMEI_MENU_WAHA_ENGINE']=='GOWS' and e['SOCIALMEI_MENU_SESSION']=='01';assert pending()==0
+source_start=catalog_source_boundary(env(before[MENU]))
 allowed=json.loads((ROOT/'authorized-contact.private.json').read_text());assert len(allowed)==1;contact=allowed[0];assert contact.startswith('waha:')
 assert e.get('SOCIALMEI_MENU_GOWS_LIST_CANARY_CONTACT')==contact
 assert env(before[MENU]).get('SOCIALMEI_MENU_GOWS_LIST_CANARY_CONTACT')==contact
@@ -94,23 +96,25 @@ if mode=='--prepare':
  for kind,container,filenames in [('api',API,['waha_ingress.py','message_enrichment.py','whatsapp_catalog_navigation.py']),('menu',MENU,['whatsapp_bot.py','whatsapp_catalog_navigation.py']),('worker',WORKER,['public_worker.py'])]:
   base=before[container]['Image'];tag='socialmei-gows-catalog-base:'+kind;run('docker','tag',base,tag);recipe='FROM '+tag+'\n'+''.join('COPY '+filename+' /app/'+filename+'\n' for filename in filenames);private('Dockerfile.'+kind,recipe)
   run('docker','build','--network','none','--pull=false','-f',str(ROOT/('Dockerfile.'+kind)),'-t','socialmei-gows-catalog-'+kind+':'+(ROOT/'source-sha').read_text().strip(),str(ROOT))
- private('prepared.json',{'source':(ROOT/'source-sha').read_text().strip(),'base_images':{n:before[n]['Image'] for n in before},'images':{kind:'socialmei-gows-catalog-'+kind+':'+(ROOT/'source-sha').read_text().strip() for kind in ['api','menu','worker']},'live_bot_sha256':hashlib.sha256(live.encode()).hexdigest(),'candidate_bot_sha256':hashlib.sha256(patched.encode()).hexdigest()})
+ images={kind:'socialmei-gows-catalog-'+kind+':'+(ROOT/'source-sha').read_text().strip() for kind in ['api','menu','worker']}
+ private('prepared.json',{'source':(ROOT/'source-sha').read_text().strip(),'base_images':{n:before[n]['Image'] for n in before},'images':images,'image_ids':{kind:image_identity(tag) for kind,tag in images.items()},'live_bot_sha256':hashlib.sha256(live.encode()).hexdigest(),'candidate_bot_sha256':hashlib.sha256(patched.encode()).hexdigest()})
  print('CANARY_CANDIDATES_BUILT_LIVE_POLICIES_PRESERVED');sys.exit(0)
 prepared=json.loads((ROOT/'prepared.json').read_text());assert prepared['base_images']=={n:before[n]['Image'] for n in before}
 assert hashlib.sha256(run('docker','exec',MENU,'cat','/app/whatsapp_bot.py').encode()).hexdigest()==prepared['live_bot_sha256']
+candidate_images=verified_candidate_images(prepared,image_identity)
 stamp=dt.datetime.now(dt.timezone.utc).strftime('%Y%m%dT%H%M%SZ');backups={n:n+'-before-list-'+stamp for n in before};changed=[]
 manifest=dict(before=before,backups=backups,changed=changed,statefile=str(statefile),stamp=stamp)
 def save():manifest['changed']=changed[:];private('manifest.private.json',manifest)
 try:
  stop_sender();run('docker','rename',WORKER,backups[WORKER]);changed.append(WORKER);save()
  assert pending()==0
- activation=dt.datetime.now(dt.timezone.utc).isoformat();private('activation.json',{'utc':activation})
+ activation=source_start;private('activation.json',{'utc':dt.datetime.now(dt.timezone.utc).isoformat(),'source_boundary_preserved':activation})
  registry=registry_at('registry')
  run('docker','stop','-t','15',API);run('docker','rename',API,backups[API]);changed.append(API);save()
- clone(API,before[API],mounts={'/run/socialmei/private':(registry,False)},image=prepared['images']['api']);healthy_api()
+ clone(API,before[API],mounts={'/run/socialmei/private':(registry,False)},image=candidate_images['api']);healthy_api()
  run('docker','stop','-t','10',MENU);run('docker','rename',MENU,backups[MENU]);changed.append(MENU);save()
  flags={'SOCIALMEI_MENU_GOWS_LIST_CANARY_CONTACT':contact,'SOCIALMEI_MENU_GOWS_LIST_CANARY_ACTIVE':'YES','SOCIALMEI_MENU_WAHA_ENGINE':'GOWS'}
- clone(MENU,before[MENU],dict(flags,SOCIALMEI_CONTINUOUS_START_UTC=activation),{'/app/whatsapp_public_continuous.py':(ROOT/'whatsapp-public-continuous.py',False)},prepared['images']['menu'])
+ clone(MENU,before[MENU],dict(flags,SOCIALMEI_CONTINUOUS_START_UTC=activation),{'/app/whatsapp_public_continuous.py':(ROOT/'whatsapp-public-continuous.py',False)},candidate_images['menu'])
  # Import and verify only selection/renderer; never write a fixture to production.
  code="""import whatsapp_bot as b,json,os
 channel=dict(workspace_id=1,channel_id=1,instancia='socialmei-equipe-piloto',sessao='01')
@@ -121,7 +125,7 @@ assert hasattr(b,'explicit_menu_action') and hasattr(b,'canonical_choice')
 print('canary_scope_and_live_policy_ok')
 """
  assert run('docker','exec','-i',MENU,'python','-',input=code).strip()=='canary_scope_and_live_policy_ok'
- clone(WORKER,before[WORKER],flags,{},prepared['images']['worker'])
+ clone(WORKER,before[WORKER],flags,{},candidate_images['worker'])
  time.sleep(2);assert inspect(WORKER)['State']['Running'];state=json.loads(statefile.read_text());assert state['status']=='running'
  code="""from public_worker import Config,API_URL,SOURCE_URL
 import httpx

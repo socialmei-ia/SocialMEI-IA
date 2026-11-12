@@ -1,9 +1,36 @@
 const assert = require("node:assert/strict"),
-  { test } = require("node:test");
+  { test, after } = require("node:test");
+const {
+  mkdtempSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+  rmSync,
+} = require("node:fs");
+const { tmpdir } = require("node:os");
+const { join, resolve } = require("node:path");
 const future = import("../tools/release038-migration-rehearsal.mjs");
+const repository = resolve(__dirname, "..");
+const reviewed038 = mkdtempSync(join(tmpdir(), "socialmei-reviewed038-"));
+mkdirSync(join(reviewed038, "database/migrations"), { recursive: true });
+mkdirSync(join(reviewed038, "tools"), { recursive: true });
+writeFileSync(
+  join(reviewed038, "tools/team-release-profile.py"),
+  readFileSync(join(repository, "tools/team-release-profile.py")),
+);
+for (const name of readdirSync(join(repository, "database/migrations")).filter(
+  (name) => /^\d{3}_.*\.sql$/.test(name) && Number(name.slice(0, 3)) <= 38,
+))
+  writeFileSync(
+    join(reviewed038, "database/migrations", name),
+    readFileSync(join(repository, "database/migrations", name)),
+  );
+after(() => rmSync(reviewed038, { recursive: true, force: true }));
+
 test("038 plan explicitly starts from reviewed035 and never authorizes deployment", async () => {
   const { rehearse, parseOptions } = await future;
-  const plan = await rehearse(parseOptions([]));
+  const plan = await rehearse(parseOptions([]), reviewed038);
   assert.equal(plan.mode, "plan");
   assert.equal(plan.profile, "038");
   assert.equal(plan.baseline, "035");
