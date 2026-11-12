@@ -120,8 +120,20 @@ class ContractTests(unittest.TestCase):
 
         explicit_null = payload(engine="GOWS")
         explicit_null["payload"]["to"] = None
+        null_body = raw(explicit_null)
+        self.assertEqual(parse_event(null_body, sign(null_body), "sha512", b).recipient, b.account_id)
         with self.assertRaises(HTTPException):
-            parse_event(raw(explicit_null), sign(raw(explicit_null)), "sha512", b)
+            parse_event(null_body, "0" * 128, "sha512", b)
+        wrong_account = payload(engine="GOWS", me={"id": "333@c.us"})
+        wrong_account["payload"]["to"] = None
+        with self.assertRaises(HTTPException):
+            parse_event(raw(wrong_account), sign(raw(wrong_account)), "sha512", b)
+        webjs_null = payload()
+        webjs_null["payload"]["to"] = None
+        with self.assertRaises(HTTPException):
+            parse_event(raw(webjs_null), sign(raw(webjs_null)), "sha512", binding())
+        outbound["payload"]["to"] = None
+        self.assertEqual(parse_event(raw(outbound), sign(raw(outbound)), "sha512", b).kind, "echo")
 
         group = payload(engine="GOWS")
         group["payload"]["from"] = "12345@g.us"
@@ -134,7 +146,7 @@ class ContractTests(unittest.TestCase):
         first = payload(engine="GOWS")
         first["payload"].pop("to")
         second = payload(engine="GOWS", id="different-delivery", timestamp=1792890000123)
-        second["payload"].pop("to")
+        second["payload"]["to"] = None
         one = parse_event(raw(first), sign(raw(first)), "sha512", b)
         two = parse_event(raw(second), sign(raw(second)), "sha512", b)
         self.assertEqual(one.event_key, two.event_key)

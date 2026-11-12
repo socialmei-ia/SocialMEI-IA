@@ -1,5 +1,12 @@
 # Checkpoint SocialMEI-IA
 
+## GOWS comprovado / recuperação WEBJS em preparação
+
+- Captura WebSocket autenticada real: evento message, sessão/engine/conta corretos, entrada direta, participant null e `payload.to` PRESENTE NULL. Capturas anteriores eram recusadas com 1008: nesta versão WS autentica por query, não pelo cabeçalho REST. Chave usada somente em memória no loopback; coletor corrigido confirma conexão persistente e registra fechamento. Não pedir nova mensagem para identificar este shape.
+- Parser agora infere destinatário somente para GOWS assinado, conta vinculada e entrada direta com null/ausente; WEBJS e destinatário divergente/não textual continuam bloqueados. Testes: 11 contrato + 1 PostgreSQL descartável; 3 gates de sessão; patch edge testado com entrada antiga descartada, assinatura obrigatória, engine fixa, timestamp inválido rejeitado e persistência/dedup de entrada nova. Suites bot/worker/manual previamente aprovadas reaproveitadas.
+- Recuperação WEBJS autorizada: preflight comprovou conta ativa correta, sessão diferente, zero envios em andamento/incertos e spool sem pendências. Backup privado atual em `/home/ubuntu/.socialmei-webjs-recovery-222/`. Estratégia: parar remetente em limite ocioso; preservar imagens/containers/journal e spool antigo; alinhar sessão autorizada no canal, registro, worker e manual; webhook HMAC direto ao edge; novo spool com corte temporal para não importar mensagens anteriores; PUT da mesma sessão preserva nome/credenciais, mas provoca stop/start controlado. Sem WORKING da mesma conta, rollback de configuração sem restaurar mensagens ou repetir envio.
+- Não tocar gateway/frontend, Instagram, n8n, credenciais ou volumes existentes. Resultado da operação deve ser consultado em `result.json`/`failure.json` privados antes de continuar. Ainda NÃO declarar atendimento recuperado nem GOWS homologado.
+
 ## Incidente WEBJS — 2026-11-12 UTC
 
 - Mensagem de teste localizada exatamente uma vez no histórico WEBJS por ID/timestamp, também presente no REST GOWS. Não foi importada/reprocessada. Nenhum evento correspondente em `crm_eventos_canal` ou `me_messages`: não chegou à Caixa nem gerou decisão/recibo. Não atribuir a pausa humana.

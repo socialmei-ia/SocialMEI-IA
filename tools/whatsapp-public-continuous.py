@@ -1,6 +1,7 @@
 """Account-bound inbound source gate, with a fresh activation watermark."""
 import json
 import os
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -16,6 +17,9 @@ app = original.app
 START = datetime.fromisoformat(os.environ['SOCIALMEI_CONTINUOUS_START_UTC'])
 if START.tzinfo is None:
     raise RuntimeError('Activation timezone required')
+SESSION = os.getenv('SOCIALMEI_MENU_SESSION', '01')
+if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,159}', SESSION):
+    raise RuntimeError('Invalid bound session')
 CONTACTS = [] if PUBLIC else json.loads(Path('/run/socialmei/pilot/allowed-contacts.json').read_text())
 if not PUBLIC and (not isinstance(CONTACTS, list) or len(CONTACTS) != 1 or set(CONTACTS) != set(original_contact_scope() or [])):
     raise RuntimeError('Contact authorization mismatch')
@@ -27,7 +31,7 @@ def sources(request: Request):
     original.require_bot()
     with original.operation_database() as conn:
         channel = original.authorize(conn, request)
-        if (channel['workspace_id'], channel['channel_id'], channel['instancia'], channel['sessao']) != (1, 1, 'socialmei-equipe-piloto', '01'):
+        if (channel['workspace_id'], channel['channel_id'], channel['instancia'], channel['sessao']) != (1, 1, 'socialmei-equipe-piloto', SESSION):
             raise HTTPException(403, 'Canal fora da autorização.')
         rows = conn.execute(
             "SELECT e.mensagem_externa_id AS external_message_id,m.text,s.state "
