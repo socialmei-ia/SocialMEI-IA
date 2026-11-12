@@ -49,7 +49,8 @@ def main():
         option('Preço e disponibilidade',{'route':'browse','kind':'Produto'},'Escolha o produto que procura'),
         option('Conhecer serviços',{'route':'browse','kind':'Serviço'},'Veja os serviços cadastrados'),
         option('Solicitar orçamento',{'route':'quote'},'Continue com nossa equipe'),
-        option('Falar com a equipe',{'route':'human'},'Atendimento nesta conversa')])
+        option('Falar com a equipe',{'route':'human'},'Atendimento nesta conversa'),
+        option('Encerrar consulta',{'route':'close'},'Volte ao menu quando precisar')])
 
 
 def navigation(back=None):
@@ -134,6 +135,8 @@ def respond(conn, workspace, target):
     if not isinstance(target,dict):return main()
     route=target.get('route')
     if route in {'main','resume'}:return main()
+    if route=='close':
+        return result('catalog_closed','Tudo certo. Encerramos esta consulta.\nQuando precisar, abra o menu para continuar.',navigation())
     if route=='expired':return result('navigation_expired','Esta lista foi atualizada. Abra o menu para continuar.',navigation())
     if route=='browse':return browse(conn,workspace,target)
     if route in {'item','stock','quote','info','human'}:

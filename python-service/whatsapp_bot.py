@@ -118,7 +118,8 @@ def _catalog_answer(conn, workspace, state, text, target, enabled):
     command = globals().get('canonical_choice', lambda value: value.strip().casefold())(text)
     routes = {'0': {'route':'main'}, '1': {'route':'browse','kind':'Produto'},
               '2': {'route':'browse','kind':'Produto'}, '3': {'route':'browse','kind':'Serviço'},
-              '4': {'route':'quote'}, '5': {'route':'human'}}
+              '4': {'route':'quote'}, '5': {'route':'human'},
+              'encerrar': {'route':'close'}, 'finalizar': {'route':'close'}}
     if state == 'ask_product' and command not in routes:
         return navigation.browse(conn, workspace, {'route':'browse','kind':'Produto','query':text})
     return navigation.respond(conn, workspace, routes.get(command, {'route':'main'}))

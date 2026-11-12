@@ -26,12 +26,34 @@ class NavigationContracts(unittest.TestCase):
         for token in ['sm:1:0','sm:'+uuid4().hex+':10','https://example.test','sm:'+uuid4().hex+':-1']:
             self.assertFalse(nav.valid_token(token))
         state,result=nav.main()
-        self.assertEqual(state,'menu');self.assertEqual(len(result['choices']),5)
+        self.assertEqual(state,'menu');self.assertEqual(len(result['choices']),6)
         self.assertTrue(all(len(c['title'])<=24 and len(c['description'] or '')<=72 for c in result['choices']))
         self.assertNotIn('digite',result['text'].lower())
         rendered=nav.history_text(result)
         self.assertNotIn('sm:',rendered)
         self.assertNotIn('nav -',rendered)
+
+    def test_close_consultation_returns_to_menu_without_touching_database(self):
+        from unittest.mock import Mock
+        conn=Mock()
+        _,menu=nav.main()
+        close=next(choice['target'] for choice in menu['choices'] if choice['target']['route']=='close')
+        state,result=nav.respond(conn,1,close)
+        self.assertEqual(state,'menu')
+        self.assertEqual(result['action'],'catalog_closed')
+        self.assertFalse(result['handoff'])
+        self.assertEqual(result['choices'][0]['target'],{'route':'main'})
+        conn.execute.assert_not_called()
+
+    def test_closing_command_does_not_override_human_attendance(self):
+        from unittest.mock import Mock
+        from whatsapp_bot import _catalog_answer
+        conn=Mock()
+        state,result=_catalog_answer(conn,1,'human','encerrar',None,True)
+        self.assertEqual(state,'human')
+        self.assertEqual(result['action'],'human_wait')
+        self.assertEqual(result['text'],'')
+        conn.execute.assert_not_called()
 
     def test_stock_zero_and_service_duration_are_not_invented(self):
         self.assertIn('Sem estoque',nav.availability({'tipo':'Produto','estoque':0}))
