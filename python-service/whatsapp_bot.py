@@ -1,6 +1,7 @@
 """Durable replies for verified WAHA inputs. This module never sends a message."""
 import os
 import whatsapp_catalog_navigation as navigation
+import channel_booking_flow as booking_flow
 import re
 import hashlib
 import json
@@ -118,8 +119,7 @@ def _catalog_answer(conn, workspace, state, text, target, enabled):
     command = globals().get('canonical_choice', lambda value: value.strip().casefold())(text)
     routes = {'0': {'route':'main'}, '1': {'route':'browse','kind':'Produto'},
               '2': {'route':'browse','kind':'Produto'}, '3': {'route':'browse','kind':'Serviço'},
-              '4': {'route':'quote'}, '5': {'route':'human'},
-              'encerrar': {'route':'close'}, 'finalizar': {'route':'close'}}
+              '4': {'route':'quote'}, '5': {'route':'human'}}
     if state == 'ask_product' and command not in routes:
         return navigation.browse(conn, workspace, {'route':'browse','kind':'Produto','query':text})
     return navigation.respond(conn, workspace, routes.get(command, {'route':'main'}))
@@ -453,7 +453,12 @@ def prepare(payload: Source, request: Request):
                 next_state = state['state']
                 result = {'action': 'rate_limited', 'text': '', 'choices': [], 'items': [], 'handoff': False}
             else:
-                next_state, result = _catalog_answer(conn, workspace, state['state'], message['text'], message.get('catalog_target'), nav_enabled)
+                booking_result = booking_flow.respond(conn, channel, message, state, native=nav_enabled)
+                if booking_result is None:
+                    next_state, result = _catalog_answer(conn, workspace, state['state'], message['text'], message.get('catalog_target'), nav_enabled)
+                    result = booking_flow.with_entry(conn, workspace, result)
+                else:
+                    next_state, result = booking_result
         revision = state['revision'] + (0 if old or outdated else 1)
         if not old and not outdated:
             conn.execute("UPDATE socialmei.wa_bot_conversations SET state=%s,revision=%s,"
@@ -491,13 +496,16 @@ def claim(decision_id: UUID, payload: Strict, request: Request):
         permitted = permitted and (contacts is None or state['contact_ref'] in contacts)
         permitted = permitted and not pending_human_reply(
             conn, channel['workspace_id'], channel['channel_id'], row['conversation_id'])
-        permitted = permitted and (not row['result'].get('catalog_navigation')
-                                   or native_list_canary(channel, state['contact_ref']))
+        # Catalog and booking choices can contain opaque "sm:" references.
+        # Never downgrade a planned native list into plain-text delivery:
+        # those references are internal IDs, not customer-facing menu labels.
+        native_verified = native_list_canary(channel, state['contact_ref'])
+        permitted = permitted and (not row['result'].get('catalog_navigation') or native_verified)
         if not permitted:
             return {'operation_id': str(row['id']), 'dispatch_allowed': False, 'status': row['status']}
         conn.execute("UPDATE socialmei.wa_bot_decisions SET status='claimed',claimed_at=NOW() WHERE id=%s", (decision_id,))
         delivery = render_waha(channel['sessao'], state['contact_ref'].removeprefix('waha:'), row['result']['text'], (navigation.offered_choices(row) if row['result'].get('catalog_navigation') else row['result']['choices']),
-                               engine='GOWS', list_verified=native_list_canary(channel, state['contact_ref']))
+                               engine='GOWS', list_verified=native_verified)
         return {'operation_id': str(row['id']), 'dispatch_allowed': True, 'status': 'claimed', 'delivery': delivery}
 
 

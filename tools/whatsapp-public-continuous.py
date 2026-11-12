@@ -9,6 +9,33 @@ from fastapi import HTTPException, Request
 def valid_token(value):
     return isinstance(value, str) and re.fullmatch(r'sm:[0-9a-f]{32}:[0-9]', value) is not None
 
+
+def booking_command_allowed(value, state, enabled):
+    """Admit fresh booking entries only when the workspace owner enabled booking."""
+    return (enabled == 'true' and state != 'human'
+            and isinstance(value, str) and value.strip().casefold()
+            in {'6', 'agendar', 'agendar horario', 'agendar horário'})
+
+
+def booking_followup_allowed(value, state, enabled, choices, expires, now):
+    """Only the last confirmed, unexpired booking menu can authorize its replies."""
+    if (enabled != 'true' or state == 'human' or not isinstance(value, str)
+            or not isinstance(choices, list) or not isinstance(expires, str)
+            or not expires.isascii() or not expires.isdecimal()
+            or len(expires) > 12 or not isinstance(now, int)):
+        return False
+    selected = value.strip()
+    if selected not in {'1', '2', '3', '6', '7'}:
+        return False
+    validity = int(expires)
+    if not now <= validity <= now + 600:
+        return False
+    return any(isinstance(choice, dict) and choice.get('id') == selected
+               and isinstance(choice.get('target'), dict)
+               and choice['target'].get('route') == 'booking'
+               for choice in choices)
+
+
 import settings
 
 original_contact_scope = settings.whatsapp_bot_allowed_contacts
@@ -37,12 +64,23 @@ def sources(request: Request):
         if (channel['workspace_id'], channel['channel_id'], channel['instancia'], channel['sessao']) != (1, 1, 'socialmei-equipe-piloto', SESSION):
             raise HTTPException(403, 'Canal fora da autorização.')
         rows = conn.execute(
-            "SELECT e.mensagem_externa_id AS external_message_id,COALESCE(e.dados_normalizados->>'wa_selection',m.text) AS text,s.state "
+            "SELECT e.mensagem_externa_id AS external_message_id,COALESCE(e.dados_normalizados->>'wa_selection',m.text) AS text,s.state, "
+            "w.configuracao #>> '{channel_booking,policy,enabled}' AS booking_enabled, "
+            "b.booking_choices,b.booking_expires "
             "FROM socialmei.crm_eventos_canal e "
+            "JOIN socialmei.workspaces w ON w.id=e.workspace_id "
             "JOIN socialmei.me_messages m ON m.workspace_id=e.workspace_id AND m.id=e.inbox_message_id AND m.origin='waha' "
             "JOIN socialmei.me_conversations v ON v.workspace_id=m.workspace_id AND v.id=m.conversation_id "
             "LEFT JOIN socialmei.wa_bot_conversations s ON s.workspace_id=e.workspace_id AND s.channel_id=e.canal_id AND s.conversation_id=m.conversation_id "
             "LEFT JOIN socialmei.wa_bot_decisions d ON d.workspace_id=e.workspace_id AND d.channel_id=e.canal_id AND d.source_message_id=m.id "
+            "LEFT JOIN LATERAL ("
+            "SELECT q.result->'choices' AS booking_choices, "
+            "q.result->>'booking_expires' AS booking_expires "
+            "FROM socialmei.wa_bot_decisions q "
+            "WHERE q.workspace_id=e.workspace_id AND q.channel_id=e.canal_id "
+            "AND q.conversation_id=v.id AND q.status='confirmed' "
+            "ORDER BY q.created_at DESC,q.id DESC LIMIT 1"
+            ") b ON true "
             "WHERE e.workspace_id=1 AND e.canal_id=1 AND e.tipo='message' AND e.status='processado' "
             "AND e.waha_account_snapshot=%s AND v.account_ref=%s "
             + ("" if PUBLIC else "AND v.contact_ref=ANY(%s::text[]) ") +
@@ -57,8 +95,12 @@ def sources(request: Request):
             tuple([channel['identificador_conta'], 'waha:' + channel['identificador_conta']]
                   + ([] if PUBLIC else [CONTACTS]) + [START, START]),
         ).fetchall()
+        now = int(datetime.now(timezone.utc).timestamp())
         for row in rows:
-            if original.permitted_text(row['text'], row['state']) or valid_token(row['text']):
+            if (original.permitted_text(row['text'], row['state']) or valid_token(row['text'])
+                    or booking_command_allowed(row['text'], row['state'], row['booking_enabled'])
+                    or booking_followup_allowed(row['text'], row['state'], row['booking_enabled'],
+                                                row.get('booking_choices'), row.get('booking_expires'), now)):
                 return {'sources': [{'instance': channel['instancia'], 'external_message_id': row['external_message_id']}]}
     return {'sources': []}
 
