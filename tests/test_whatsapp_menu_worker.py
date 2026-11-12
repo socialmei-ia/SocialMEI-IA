@@ -35,8 +35,8 @@ class ContinuousWorkerTests(unittest.TestCase):
                 if native:
                     result['delivery'] = {'path':'/api/sendList','body':{
                         'session':'01','chatId':'222@c.us','message':{
-                            'title':'Atendimento','description':'Menu sint?tico','footer':'SocialMEI',
-                            'button':'Ver op??es','sections':[{'title':'Escolha','rows':[
+                            'title':'Atendimento','description':'Menu sintético','footer':'SocialMEI',
+                            'button':'Ver opções','sections':[{'title':'Escolha','rows':[
                                 {'rowId':'1','title':'Produtos','description':None}]}]}}}
             elif path in {'/api/sendText', '/api/sendList'}:
                 if timeout: raise httpx.ReadTimeout('synthetic timeout',request=request)
@@ -74,7 +74,7 @@ class ContinuousWorkerTests(unittest.TestCase):
         cfg=worker.Config('trusted-a','01','111@c.us','synthetic-token-123456',
                           'synthetic-waha-key-123456','GOWS',worker.GOWS_URL,'222@c.us')
         good={'path':'/api/sendList','body':{'session':'01','chatId':'222@c.us','message':{
-              'title':'Atendimento','description':'Menu','footer':'SocialMEI','button':'Ver op??es',
+              'title':'Atendimento','description':'Menu','footer':'SocialMEI','button':'Ver opções',
               'sections':[{'title':'Escolha','rows':[{'rowId':'1','title':'Produtos','description':None}]}]}}}
         self.assertEqual(worker._delivery(good,cfg)['chatId'],'222@c.us')
         wrong=copy.deepcopy(good);wrong['body']['chatId']='333@c.us'
@@ -86,6 +86,22 @@ class ContinuousWorkerTests(unittest.TestCase):
         with self.assertRaises(worker.Blocked):
             worker.Config('trusted-a','default','111@c.us','synthetic-token-123456',
                           'synthetic-waha-key-123456',native_list_contact='222@c.us')
+
+    def test_ten_context_bound_rows_and_gradual_config_remain_contact_scoped(self):
+        from uuid import uuid4
+        import os,json
+        cfg=worker.Config('trusted-a','01','111@c.us','synthetic-token-123456',
+            'synthetic-waha-key-123456','GOWS',worker.GOWS_URL,'222@c.us')
+        body={'path':'/api/sendList','body':{'session':'01','chatId':'222@c.us','message':{
+            'title':'Catálogo','description':'Escolha um produto','footer':'SocialMEI','button':'Ver opções',
+            'sections':[{'title':'Produtos','rows':[{'rowId':'sm:'+uuid4().hex+':'+str(i),
+                'title':'Produto '+str(i),'description':'Preço e estoque reais'} for i in range(10)]}]}}}
+        self.assertEqual(worker._delivery(body,cfg)['chatId'],'222@c.us')
+        with patch.dict(os.environ,{'SOCIALMEI_MENU_GOWS_LIST_CONTACTS_JSON':'["waha:222@c.us","waha:333@c.us"]'}):
+            self.assertEqual(worker._native_contacts(),('222@c.us','333@c.us'))
+        for raw in ['[]','["*"]','["waha:222@c.us","waha:222@c.us"]','{}']:
+            with patch.dict(os.environ,{'SOCIALMEI_MENU_GOWS_LIST_CONTACTS_JSON':raw}),self.assertRaises(worker.Blocked):
+                worker._native_contacts()
 
     def test_gows_success_uses_only_selected_provider_and_records_one_receipt(self):
         result,calls,receipts=self.gows_attempt()

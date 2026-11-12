@@ -12,6 +12,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import httpx
+def valid_token(value):
+    return isinstance(value, str) and re.fullmatch(r'sm:[0-9a-f]{32}:[0-9]', value) is not None
+
 
 API_URL = 'http://socialmei-menu-public-api-v3:8019'
 WAHA_URL = 'http://socialmei-waha:3000'
@@ -49,6 +52,18 @@ def _secret(path: str) -> str:
     return value
 
 
+def _native_contacts():
+    raw=os.getenv('SOCIALMEI_MENU_GOWS_LIST_CONTACTS_JSON','')
+    if not raw:return ()
+    try:values=json.loads(raw)
+    except ValueError:raise Blocked('Configuracao de listas invalida') from None
+    if (not isinstance(values,list) or not 1<=len(values)<=20
+            or any(not isinstance(c,str) or not c.startswith('waha:') or not VALID_CONTACT.fullmatch(c[5:]) for c in values)
+            or len(set(values))!=len(values)):
+        raise Blocked('Configuracao de listas invalida')
+    return tuple(c[5:] for c in values)
+
+
 @dataclass(frozen=True, repr=False)
 class Config:
     instance: str
@@ -59,6 +74,7 @@ class Config:
     engine: str = 'WEBJS'
     waha_url: str = WAHA_URL
     native_list_contact: str = ''
+    native_list_contacts: tuple[str, ...] = ()
 
     def __post_init__(self):
         if (not VALID_INSTANCE.fullmatch(self.instance)
@@ -73,7 +89,11 @@ class Config:
                 or (self.native_list_contact and (self.engine != 'GOWS'
                     or not isinstance(self.native_list_contact, str)
                     or not VALID_CONTACT.fullmatch(self.native_list_contact)
-                    or self.native_list_contact == self.account))):
+                    or self.native_list_contact == self.account))
+                or not isinstance(self.native_list_contacts, tuple)
+                or len(self.native_list_contacts)>20
+                or any(self.engine!='GOWS' or not isinstance(c,str) or not VALID_CONTACT.fullmatch(c) or c==self.account for c in self.native_list_contacts)
+                or len(set(self.native_list_contacts))!=len(self.native_list_contacts)):
             raise Blocked('Escopo do piloto invalido')
 
     @classmethod
@@ -95,6 +115,7 @@ class Config:
             engine,
             os.getenv('SOCIALMEI_MENU_WAHA_URL', ''),
             os.getenv('SOCIALMEI_MENU_GOWS_LIST_CANARY_CONTACT', '').removeprefix('waha:'),
+            _native_contacts(),
         )
 
 
@@ -141,8 +162,7 @@ def _delivery(data, cfg):
         if set(body) != {'session', 'chatId', 'text'} or not _plain(body['text'], 4096):
             raise Blocked('Texto invalido')
     elif data['path'] == '/api/sendList':
-        if (cfg.engine != 'GOWS' or not cfg.native_list_contact
-                or body['chatId'] != cfg.native_list_contact
+        if (cfg.engine != 'GOWS' or body['chatId'] not in (cfg.native_list_contacts or (cfg.native_list_contact,))
                 or set(body) != {'session', 'chatId', 'message'}):
             raise Blocked('Lista fora do contato de homologacao')
         message = body['message']
@@ -155,15 +175,15 @@ def _delivery(data, cfg):
         section = message['sections'][0]
         if (not isinstance(section, dict) or set(section) != {'title', 'rows'}
                 or not _plain(section['title'], 60) or not isinstance(section['rows'], list)
-                or not 1 <= len(section['rows']) <= 6):
+                or not 1 <= len(section['rows']) <= 10):
             raise Blocked('Secao invalida')
         ids = []
         for row in section['rows']:
             if (not isinstance(row, dict) or set(row) != {'rowId', 'title', 'description'}
                     or not isinstance(row['rowId'], str)
-                    or row['rowId'] not in {'0', '1', '2', '3', '4', '5'}
-                    or not _plain(row['title'], 60)
-                    or (row['description'] is not None and not _plain(row['description'], 72))):
+                    or (row['rowId'] not in {'0', '1', '2', '3', '4', '5'} and not valid_token(row['rowId']))
+                    or not _plain(row['title'], 96) or len(row['title'])>24
+                    or (row['description'] is not None and (not _plain(row['description'], 288) or len(row['description'])>72))):
                 raise Blocked('Opcao invalida')
             ids.append(row['rowId'])
         if len(ids) != len(set(ids)):

@@ -6,6 +6,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import HTTPException, Request
+def valid_token(value):
+    return isinstance(value, str) and re.fullmatch(r'sm:[0-9a-f]{32}:[0-9]', value) is not None
+
 import settings
 
 original_contact_scope = settings.whatsapp_bot_allowed_contacts
@@ -34,7 +37,7 @@ def sources(request: Request):
         if (channel['workspace_id'], channel['channel_id'], channel['instancia'], channel['sessao']) != (1, 1, 'socialmei-equipe-piloto', SESSION):
             raise HTTPException(403, 'Canal fora da autorização.')
         rows = conn.execute(
-            "SELECT e.mensagem_externa_id AS external_message_id,m.text,s.state "
+            "SELECT e.mensagem_externa_id AS external_message_id,COALESCE(e.dados_normalizados->>'wa_selection',m.text) AS text,s.state "
             "FROM socialmei.crm_eventos_canal e "
             "JOIN socialmei.me_messages m ON m.workspace_id=e.workspace_id AND m.id=e.inbox_message_id AND m.origin='waha' "
             "JOIN socialmei.me_conversations v ON v.workspace_id=m.workspace_id AND v.id=m.conversation_id "
@@ -55,7 +58,7 @@ def sources(request: Request):
                   + ([] if PUBLIC else [CONTACTS]) + [START, START]),
         ).fetchall()
         for row in rows:
-            if original.permitted_text(row['text'], row['state']):
+            if original.permitted_text(row['text'], row['state']) or valid_token(row['text']):
                 return {'sources': [{'instance': channel['instancia'], 'external_message_id': row['external_message_id']}]}
     return {'sources': []}
 

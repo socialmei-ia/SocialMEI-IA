@@ -462,6 +462,7 @@ def conversations(request: Request, response: Response):
         waha_ids = [row['id'] for row in items if row['origin'] == 'waha']
         if waha_ids:
             from whatsapp_bot import render_waha
+            from whatsapp_catalog_navigation import history_text
             rows = conn.execute(
                 "SELECT selected.conversation_id,d.* FROM unnest(%s::bigint[]) AS selected(conversation_id) "
                 "CROSS JOIN LATERAL (SELECT id,result,provider_message_id,finished_at "
@@ -474,7 +475,7 @@ def conversations(request: Request, response: Response):
                 (waha_ids, workspace),
             ).fetchall()
             for row in rows:
-                text = render_waha('', '', row['result']['text'], row['result']['choices'])['body']['text']
+                text = history_text(row['result']) if row['result'].get('catalog_navigation') else render_waha('', '', row['result']['text'], row['result']['choices'])['body']['text']
                 bot_replies.setdefault(row['conversation_id'], []).append({
                     'id': 'wa-bot-' + str(row['id']), 'text': text,
                     'occurred_at': row['finished_at'], 'direction': 'outgoing',

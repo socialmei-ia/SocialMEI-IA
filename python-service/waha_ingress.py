@@ -13,6 +13,8 @@ from types import MappingProxyType
 
 import psycopg
 from psycopg.rows import dict_row
+from psycopg.types.json import Jsonb
+from whatsapp_catalog_navigation import valid_token
 from fastapi import APIRouter, Depends, HTTPException, Request
 from starlette.concurrency import run_in_threadpool
 
@@ -73,6 +75,7 @@ class WahaEvent:
     detail_hash: str | None = field(default=None, repr=False)
     ack: int | None = None
     account_id: str = field(default="", repr=False)
+    selection: str | None = field(default=None, repr=False)
 
     @property
     def event_key(self):
@@ -94,7 +97,7 @@ class WahaEvent:
                 self.text,
                 self.detail_hash,
                 self.ack,
-            ]
+            ] + ([self.selection] if self.selection else [])
         )
 
     @property
@@ -165,7 +168,7 @@ def _gows_list_choices(raw_data):
         selection = message["listResponseMessage"]
         reply = selection.get("singleSelectReply") if isinstance(selection, dict) else None
         value = reply.get("selectedRowID") if isinstance(reply, dict) else None
-        choices.append(value if isinstance(value, str) and value in {"0", "1", "2", "3", "4", "5"} else None)
+        choices.append(value if isinstance(value, str) and (value in {"0", "1", "2", "3", "4", "5"} or valid_token(value)) else None)
     return choices
 
 
@@ -292,6 +295,7 @@ def parse_event(raw, signature, algorithm, binding):
         kind = "unsupported"
     if not from_me and kind == "message" and recipient != binding.account_id:
         invalid()
+    selection_token = None
     text = message.get("body")
     message_type = message.get("type", "chat")
     native_choices = _gows_list_choices(message.get("_data")) if binding.engine == "GOWS" else []
@@ -312,10 +316,13 @@ def parse_event(raw, signature, algorithm, binding):
         ]
         choices = [value for value in choices if value is not None] + native_choices
         text = choices[0] if choices else None
-        if not isinstance(text, str) or text not in {"0", "1", "2", "3", "4", "5", "9"} or any(value != text for value in choices):
+        if not isinstance(text, str) or (text not in {"0", "1", "2", "3", "4", "5", "9"} and not (binding.engine == "GOWS" and native_choices and valid_token(text))) or any(value != text for value in choices):
             text = None
         elif text == "9":
             text = "5"
+        elif valid_token(text):
+            selection_token = text
+            text = message.get("body") or "Opção selecionada"
     if (
         message["hasMedia"]
         or not isinstance(message_type, str)
@@ -354,6 +361,7 @@ def parse_event(raw, signature, algorithm, binding):
         text,
         details,
         account_id=binding.account_id,
+        selection=selection_token,
     )
 
 
@@ -464,7 +472,7 @@ class WahaIngressService:
                             )
                     status = "processado" if message else "ignorado"
                     conn.execute(
-                        "INSERT INTO socialmei.crm_eventos_canal(workspace_id,canal_id,chave_evento,tipo,fingerprint,mensagem_externa_id,status,ocorrida_em,processado_em,waha_account_snapshot,waha_event_key,inbox_message_id,inbox_origin) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,NOW(),%s,%s,%s,'waha')",
+                        "INSERT INTO socialmei.crm_eventos_canal(workspace_id,canal_id,chave_evento,tipo,fingerprint,mensagem_externa_id,status,ocorrida_em,processado_em,waha_account_snapshot,waha_event_key,inbox_message_id,inbox_origin,dados_normalizados) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,NOW(),%s,%s,%s,'waha',%s)",
                         (
                             binding.workspace_id,
                             binding.channel_id,
@@ -477,6 +485,7 @@ class WahaIngressService:
                             binding.account_id,
                             incoming.event_key,
                             message["message_id"] if message else None,
+                            Jsonb({"wa_selection":incoming.selection} if incoming.selection else {}),
                         ),
                     )
                     result = {
