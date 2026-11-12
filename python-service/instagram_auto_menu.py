@@ -147,6 +147,11 @@ def reply(runtime, workspace, message, start):
                 text = text.encode('utf-8')[:1000].decode('utf-8', errors='ignore')
             if not text.strip() or any(ord(c)<32 and c not in '\n\r\t' for c in text):
                 raise ValueError('Invalid automatic greeting')
+        # Persist the full choice reference for a verified follow-up, but never
+        # disclose that opaque internal state in a customer-facing Direct.
+        outbound_text = instagram_booking_flow.public_text(text)
+        if not blocked and not outbound_text.strip():
+            raise ValueError('Invalid customer-facing reply')
         token = None if blocked else runtime.direct.vault.open(row['encrypted_token'], TokenBinding(
             workspace, row['connection_id'], row['external_account_id']))
         conn.execute("INSERT INTO socialmei.ig_menu_replies(workspace_id,id,conversation_id,source_message_id,connection_id,external_account_id,recipient_id,text,status,finished_at) "
@@ -164,7 +169,7 @@ def reply(runtime, workspace, message, start):
         return 'skipped'
     status, receipt = 'uncertain', None
     try:
-        sent = runtime.direct.adapter.send_direct(token, row['external_account_id'], row['contact_ref'].split(':')[1], text)
+        sent = runtime.direct.adapter.send_direct(token, row['external_account_id'], row['contact_ref'].split(':')[1], outbound_text)
         status, receipt = 'confirmed', sent['message_id']
     except ProviderError as error:
         if not error.outcome_unknown:
