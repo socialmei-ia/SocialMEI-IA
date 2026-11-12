@@ -114,7 +114,7 @@ if mode=='--prepare':
  receiver=patch_receiver(run('docker','exec',EDGE,'cat','/app/waha_durable_receiver.py'));service=patch_service(run('docker','exec',EDGE,'cat','/app/waha_durable_service.py'));private('waha_durable_receiver.py',receiver);private('waha_durable_service.py',service)
  compile(receiver,'receiver','exec');compile(service,'service','exec')
  for name,files in [('api',['settings.py','waha_ingress.py','whatsapp_human_transport.py']),('worker',['public_worker.py'])]:
-  base=before[API if name=='api' else WORKER]['Image'];recipe='FROM '+base+'\n'+''.join('COPY '+f+' /app/'+f+'\n' for f in files)
+  base=before[API if name=='api' else WORKER]['Image'];base_tag='socialmei-gows-pinned-base:'+name;run('docker','tag',base,base_tag);recipe='FROM '+base_tag+'\n'+''.join('COPY '+f+' /app/'+f+'\n' for f in files)
   private('Dockerfile.'+name,recipe);run('docker','build','--network','none','--pull=false','-f',str(ROOT/('Dockerfile.'+name)),'-t','socialmei-gows-'+name+':'+(ROOT/'source-sha').read_text().strip(),str(ROOT))
  private('prepared.json',{'source':(ROOT/'source-sha').read_text().strip(),'api':'socialmei-gows-api:'+(ROOT/'source-sha').read_text().strip(),'worker':'socialmei-gows-worker:'+(ROOT/'source-sha').read_text().strip(),'base_images':{n:before[n]['Image'] for n in [API,WORKER]}})
  print('CANDIDATES_BUILT_NO_DEPENDENCY_CHANGES',flush=True);sys.exit(0)
