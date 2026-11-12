@@ -119,6 +119,10 @@ class AutoMenuDatabaseTests(unittest.TestCase):
         self.assertIn('Qual serviço deseja agendar?', row['text'])
         self.assertEqual(booking._decode_reference(row['text'])[0][1]['service_id'], 42)
         self.assertEqual(len(self.send_calls), 1)
+        self.assertNotIn(booking.MARKER, self.send_calls[0].content.decode('utf-8'))
+        inbox = self.client.get('/api/v1/message-enrichment/conversations')
+        self.assertEqual(inbox.status_code, 200, inbox.text)
+        self.assertNotIn(booking.MARKER, inbox.text)
 
     def test_full_direct_booking_in_two_isolated_stores_without_provider(self):
         """Meta-like inbound events, existing sender and real disposable agenda."""
@@ -174,6 +178,7 @@ class AutoMenuDatabaseTests(unittest.TestCase):
                     'WHERE workspace_id=%s AND source_message_id=%s',
                     (self.workspace, mid)).fetchone()
             self.assertIsNotNone(row)
+            self.assertNotIn(MARKER, self.send_calls[-1].content.decode('utf-8'))
             return mid, row['text']
 
         with patch.dict(os.environ,
