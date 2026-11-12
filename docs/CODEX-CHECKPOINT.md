@@ -1,5 +1,14 @@
 # Checkpoint SocialMEI-IA
 
+## Continuidade ChatGPT — testes isolados antes de liberar canais (12-11-2026)
+
+- Prisma de produção permanece indisponível por limite operacional e está fora do escopo desta rodada. Nenhum comando de banco real, corte ou disparo foi executado.
+- PR #225: gate de origem do WhatsApp aceita entrada de agendamento somente quando policy.enabled é verdadeiro no mesmo workspace e a conversa não está em pausa humana (commits 7470ccf e 8ed3030). Testes de regra adicionados, sem publicação.
+- Corrigida navegação de horários além dos seis primeiros com paginação sob demanda e limite de página (commits 967eb23, 459a95e, 6ef43cc); testes de paginação, segundo negócio e seleção nativa posterior adicionados (5051e7c, 603b927, 34765b1). **Esses novos testes ainda não foram executados em CI; não declarar homologados.**
+- PR #223 ganhou verificação estrita 039, ensaio de migration real em PostgreSQL16 descartável com restore, proteção de perfis antigos e CI para PRs empilhadas. Job de imagens 039 aprovado em SHA b4a3163, sem deploy. Demais testes da base precisam ser verificados depois do novo head.
+- Próximo: aguardar CI empilhado da #225, corrigir qualquer falha concreta, concluir menu Instagram usando estado autenticado e persistido, testar em ambiente isolado, preservar produção. Não converter autorização da PR draft em deployment sem recuperação e verificação de saúde do banco real.
+
+
 ## Continuidade após limite do Codex — 2026-11-12 (verificação GitHub)
 
 - Resultado da última execução do Codex: SSH, Python e push GitHub recuperados. 40 testes focados do catálogo, identidade Instagram e agendamento passaram em banco PostgreSQL16 descartável/UTF-8. PRs draft #223 (catálogo), #224 (nomes Instagram) e #225 (agenda) abertas; nenhuma publicação dessa rodada na AWS.
