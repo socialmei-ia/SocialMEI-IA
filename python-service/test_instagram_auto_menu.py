@@ -101,6 +101,25 @@ class AutoMenuDatabaseTests(unittest.TestCase):
         self.assertEqual(len(messages),1)
         self.assertEqual(messages[0]['provider'],'instagram')
 
+    def test_booking_plan_uses_the_existing_safe_direct_sender(self):
+        import channel_booking_flow as flow
+        import instagram_booking_flow as booking
+        plan = flow.response('booking_services', 'Qual serviço deseja agendar?',
+            [flow.option('1', 'Serviço de teste', 'resources', service_id=42),
+             *flow.navigation()], False)
+        with patch('instagram_auto_menu.instagram_booking_flow.respond',
+                   return_value=(plan[0], plan[1], {'step': 'services'})):
+            self.assertEqual(menu.reply(self.runtime, self.workspace, self.source, self.start),
+                             'confirmed')
+        with menu.db() as conn:
+            row = conn.execute('SELECT text,status FROM socialmei.ig_menu_replies '
+                'WHERE workspace_id=%s AND source_message_id=%s',
+                (self.workspace, self.source)).fetchone()
+        self.assertEqual(row['status'], 'confirmed')
+        self.assertIn('Qual serviço deseja agendar?', row['text'])
+        self.assertEqual(booking._decode_reference(row['text'])[0][1]['service_id'], 42)
+        self.assertEqual(len(self.send_calls), 1)
+
     def test_migration_is_idempotent_and_rejects_cross_workspace_state(self):
         from pathlib import Path
         with psycopg.connect(DB) as conn:
