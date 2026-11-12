@@ -1,0 +1,121 @@
+﻿{
+  "collected_at_utc": "2026-11-12T19:42:40Z",
+  "production_cutover_executed": false,
+  "production_connections_changed": false,
+  "new_migrations_executed": false,
+  "production_configuration_unchanged": {
+    "api": true,
+    "whatsapp-menu": true,
+    "instagram-worker": true
+  },
+  "destination": {
+    "running": true,
+    "image_id": "sha256:ff87138949ad9a46f32ff23bd6852b52ce024a13dffe9b4087be98292cdd3b4f",
+    "public_ports": false,
+    "only_isolated_network": true,
+    "internal_network": true,
+    "memory_limit_bytes": 201326592,
+    "no_new_privileges": true,
+    "database_info": {
+      "server_version_num": "170011",
+      "database_bytes": 12908211,
+      "data_checksums": "on"
+    }
+  },
+  "security-receipt": {
+    "tls_enabled": true,
+    "app_superuser": false,
+    "host_auth_requires_tls": true,
+    "ports_published": false,
+    "application_schema_changed": false,
+    "cutover_executed": false
+  },
+  "source-export-receipt": {
+    "source_export_succeeded": false,
+    "reason": "provider_account_limit",
+    "source_unchanged": true,
+    "cutover_executed": false,
+    "dump_path": "/home/ubuntu/.socialmei-postgres-relocation-20261112/source-20261112T192205Z.dump",
+    "bytes": 0
+  },
+  "restore-portable-receipt": {
+    "restore_succeeded": true,
+    "source": "historical_prisma_snapshot",
+    "source_snapshot_mtime_utc": "2026-11-11T20:19:29Z",
+    "dump_sha256": "0076d3b68ac8f50306b04f671b4eec1c6708ee62c79a9b1a9749be910979708c",
+    "schema_at_backup": 38,
+    "cutover_allowed": false,
+    "source_is_current": false,
+    "provider_only_entries_omitted": 2,
+    "application_schema_migrations_executed": false
+  },
+  "restore-validation-receipt": {
+    "comparison": {
+      "equal": true,
+      "different_sections": [],
+      "source_valid": true,
+      "target_valid": true,
+      "effective_permissions_equal": true,
+      "effective_sequence_permissions_equal": true,
+      "freshness_verified": false,
+      "cutover_authorized": false
+    },
+    "tables": 74,
+    "total_rows": 594,
+    "foreign_keys_checked": 135,
+    "foreign_key_violations": 0,
+    "sequences_checked": 21,
+    "large_objects": 0,
+    "historical_snapshot_only": true,
+    "production_freshness_verified": false
+  },
+  "consumer-connection-receipt": {
+    "consumers": {
+      "api": {
+        "database": "socialmei_relocation",
+        "server_ip": "172.24.0.2/32",
+        "in_recovery": false,
+        "tls": true
+      },
+      "whatsapp-menu": {
+        "database": "socialmei_relocation",
+        "server_ip": "172.24.0.2/32",
+        "in_recovery": false,
+        "tls": true
+      },
+      "instagram-worker": {
+        "database": "socialmei_relocation",
+        "server_ip": "172.24.0.2/32",
+        "in_recovery": false,
+        "tls": true
+      },
+      "recovery-worker": {
+        "database": "socialmei_relocation",
+        "server_ip": "172.24.0.2/32",
+        "in_recovery": false,
+        "tls": true
+      }
+    },
+    "same_effective_database": true,
+    "all_tls": true,
+    "provider_sends": 0,
+    "cutover_executed": false
+  },
+  "api-smoke-receipt": {
+    "http_statuses": {
+      "/health": 200,
+      "/health/db": 200,
+      "/api/v1/auth/session": 200,
+      "/api/v1/clientes": 401
+    },
+    "provider_sends": 0,
+    "authenticated_write_tests_executed": false
+  },
+  "tls-negative-receipt": {
+    "plaintext_connection_rejected": true
+  },
+  "backup_timer_active": true,
+  "backup_service_result": "success",
+  "host_memory_available_kib": 525144,
+  "s3_configured": false
+}
