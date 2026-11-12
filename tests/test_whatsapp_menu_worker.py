@@ -12,6 +12,57 @@ spec.loader.exec_module(worker)
 
 
 class ContinuousWorkerTests(unittest.TestCase):
+    def gows_attempt(self, *, timeout=False, changed_after_claim=False):
+        cfg=worker.Config('trusted-a','01','111@c.us','synthetic-token-123456','synthetic-waha-key-123456',
+                          'GOWS',worker.GOWS_URL)
+        calls=[]
+        versions=[]
+        receipt=[]
+        op='12345678-1234-1234-1234-123456789abc'
+        def handler(request):
+            calls.append((request.method,str(request.url)))
+            path=request.url.path
+            if path==worker.SOURCE_URL:
+                result={'sources':[{'instance':'trusted-a','external_message_id':'synthetic-message'}]}
+            elif path.endswith('/decisions'): result={'operation_id':op,'status':'planned'}
+            elif path=='/api/version':
+                versions.append(1)
+                result={'engine':'WEBJS' if changed_after_claim and len(versions)==2 else 'GOWS'}
+            elif path=='/api/sessions/01': result={'name':'01','status':'WORKING','me':{'id':'111@c.us'}}
+            elif path.endswith('/claim'):
+                result={'dispatch_allowed':True,'delivery':{'path':'/api/sendText','body':{
+                    'session':'01','chatId':'222@c.us','text':'Synthetic menu'}}}
+            elif path=='/api/sendText':
+                if timeout: raise httpx.ReadTimeout('synthetic timeout',request=request)
+                result={'id':'synthetic-provider-receipt'}
+            elif path.endswith('/receipt'):
+                import json
+                receipt.append(json.loads(request.content))
+                result={'status':receipt[-1]['status']}
+            else: raise AssertionError('Unexpected request')
+            return httpx.Response(200,json=result)
+        def client(**kwargs): return httpx.Client(transport=httpx.MockTransport(handler),**kwargs)
+        return worker.run_once(cfg,client_factory=client),calls,receipt
+
+    def test_gows_success_uses_only_selected_provider_and_records_one_receipt(self):
+        result,calls,receipts=self.gows_attempt()
+        self.assertEqual(result,'ENVIO_CONFIRMADO')
+        self.assertEqual(sum(method=='POST' and url==worker.GOWS_URL+'/api/sendText' for method,url in calls),1)
+        self.assertFalse(any(url.startswith(worker.WAHA_URL+'/') for _,url in calls))
+        self.assertEqual(receipts,[{'status':'confirmed','provider_message_id':'synthetic-provider-receipt'}])
+
+    def test_gows_timeout_is_uncertain_without_second_send(self):
+        result,calls,receipts=self.gows_attempt(timeout=True)
+        self.assertEqual(result,'RESULTADO_INCERTO_NAO_REENVIAR')
+        self.assertEqual(sum(method=='POST' and url.endswith('/api/sendText') for method,url in calls),1)
+        self.assertEqual(receipts,[{'status':'uncertain','provider_message_id':None}])
+
+    def test_gows_engine_change_after_claim_prevents_provider_post(self):
+        result,calls,receipts=self.gows_attempt(changed_after_claim=True)
+        self.assertEqual(result,'RESULTADO_INCERTO_NAO_REENVIAR')
+        self.assertFalse(any(method=='POST' and url.endswith('/api/sendText') for method,url in calls))
+        self.assertEqual(receipts,[{'status':'uncertain','provider_message_id':None}])
+
     def test_gows_requires_explicit_private_target_and_session(self):
         webjs = worker.Config('trusted-a', 'default', '111@c.us',
                               'synthetic-token-123456', 'synthetic-waha-key-123456')

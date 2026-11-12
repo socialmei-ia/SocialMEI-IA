@@ -1,4 +1,15 @@
-﻿# Checkpoint SocialMEI-IA
+# Checkpoint SocialMEI-IA
+
+## Continuação GOWS — estado autoritativo desta execução
+
+- Branch ativa `feat/gows-cutover-gates-20261111`, PR #222 draft; base `132a574` incorporada sem alterar frontend. Código `e19eaf5`: orçamento persistente acompanha URL do transporte selecionado; ingresso GOWS exige corte temporal explícito e descarta eventos antigos antes do banco. WEBJS preservado.
+- Testes focados: 116 casos distintos aprovados, incluindo PostgreSQL descartável, ingresso/HMAC/workspace/deduplicação, bot, worker, guard, envio manual e outbox. Novos casos comprovam envio GOWS único, recibo, timeout incerto sem reenvio e troca de engine bloqueada após claim. Nenhum teste usa dados de produção.
+- AWS reconciliada: API `86cdd5b`, gateway `8159c17`, menu/worker público `837079e`; Instagram homologado preservado. Nenhuma implantação, alteração de webhook ou envio GOWS nesta execução. Zero operações WhatsApp claimed/uncertain e zero respostas manuais dispatching/uncertain na consulta realizada.
+- Backup privado do estado/configuração: `/home/ubuntu/.socialmei-gows-cutover-222/runtime-before.private.json` e cópias privadas dos dois registros. Containers, sessões, volumes e banco inalterados; rollback WEBJS preservado. Antes de corte efetivo, renovar snapshot e verificar fila/remetente.
+- Bloqueio concreto: amostra real anterior prova `payload.to` não textual, mas não seu tipo. Coletor estrutural privado aguarda nova mensagem; log contém apenas prontidão, sem evento. Não inferir formato WebSocket a partir de REST. Parser ainda recusa null/objeto/número até evidência autenticada estrutural.
+- Atenção ao ingresso durável: edge atual aceita somente WEBJS e vincula spool ao hash do registro. Preparar edge GOWS separado, com spool novo, sem alterar hash/fila antiga; manter HMAC e vínculo da conta. Não ativar dois respondedores.
+- Próxima ação exata: pessoa enviar `0` de outro número ao WhatsApp conectado; ler somente `/home/ubuntu/.socialmei-gows-cutover-222/structure-evidence.log`. Se coletor expirou, rearmar script privado existente antes do envio. Comprovar tipo de `to`, corrigir apenas formato demonstrado, testar e preparar corte incremental com um remetente e rollback. Homologar entrada única, automático, manual e recibos; menus nativos continuam NÃO homologados, textual preservado.
+- Retomar: `git status --short`; `git log -3 --oneline`; consulta privada SSH ao log estrutural. Chave SSH já existente em `$HOME/.ssh/socialmei-aws-inspecao.pem`. Não imprimir inspect/env/registros privados nem tocar frontend/hero.
 
 - Branch `fix/channel-recovery-20261111`; último código publicado `8159c17` (gateway). API/worker Instagram `86cdd5b`; menu/worker WhatsApp público `837079e`. Consultar `git log -5 --oneline` para o commit de manutenção deste checkpoint.
 - Entrega `8159c17`: polling preserva texto, foco e seleção do compositor. Falha reproduzida e corrigida; seis cenários WhatsApp/Instagram em desktop/celular e dois de atualização da Caixa aprovados. Publicado apenas gateway; API/workers preservados. O gate inicial sofreu corrida de prontidão HTTP e acionou rollback; espera corrigida e mesma imagem reaplicada, arquivo servido conferido por hash. Artefatos `/home/ubuntu/.socialmei-inbox-focus-8159c17/artifact/`, incluindo `rollback.command.json` para gateway79c6916.

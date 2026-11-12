@@ -31,6 +31,17 @@ ENV = {
 
 
 class HumanTransportTests(unittest.TestCase):
+    def test_gows_manual_success_requires_version_account_and_one_provider_post(self):
+        self.configuration=replace(self.configuration,engine='GOWS',session='01',base_url='http://socialmei-waha-gows-piloto:3000')
+        self.delivery['body']['session']='01'
+        def handler(request):
+            if request.url.path=='/api/version': return httpx.Response(200,json={'engine':'GOWS'})
+            if request.url.path=='/api/sessions/01': return httpx.Response(200,json=self.session(name='01'))
+            if request.url.path=='/api/sendText': return httpx.Response(200,json={'id':'synthetic-manual-receipt'})
+            raise AssertionError('Unexpected provider operation')
+        self.assertEqual(self.transport(handler)(self.delivery),'synthetic-manual-receipt')
+        self.assertEqual([r.url.path for r in self.calls],['/api/version','/api/sessions/01','/api/sendText'])
+
     def test_gows_manual_transport_requires_explicit_engine_and_sidecar(self):
         with patch.dict(os.environ, {'SOCIALMEI_WHATSAPP_HUMAN_ENGINE': 'GOWS'}):
             with self.assertRaises(ValueError):
