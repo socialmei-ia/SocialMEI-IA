@@ -120,15 +120,28 @@ def advance(conn, channel, message, target, native):
     elif step == 'slots':
         key = booking.signing_key_for_context(conn, *context)
         result = booking.slots_for_message(*context, target['service_id'], target['resource_id'],
-                                          target['day'], key, connection=conn)
+                                          target['day'], key, page=page, connection=conn)
         rows = result['items']
         label = 'Escolha um horário disponível. A reserva só é feita após sua confirmação.'
         choices = page_choices(rows, lambda row: {'step': 'review', 'offer': row},
-            lambda row: datetime.fromisoformat(row['scheduled_for']).strftime('%H:%M'), page=page)
+            lambda row: datetime.fromisoformat(row['scheduled_for']).strftime('%H:%M'))
         if not choices:
-            return response('booking_no_slots', 'Não há horários disponíveis nessa data. Escolha outro dia.',
-                [option('6', 'Escolher outra data', 'days', service_id=target['service_id'],
-                        resource_id=target['resource_id']), *navigation()], native)
+            go_back = ([option('7', 'Opções anteriores', 'slots',
+                         service_id=target['service_id'], resource_id=target['resource_id'],
+                         day=target['day'], page=page - 1)] if page else [])
+            return response('booking_no_slots', 'Não há horários disponíveis nessa página.',
+                [*go_back, option('6', 'Escolher outra data', 'days',
+                    service_id=target['service_id'], resource_id=target['resource_id']),
+                 *navigation()], native)
+        if result['has_more']:
+            choices.append(option('6', 'Próximos horários', 'slots',
+                service_id=target['service_id'], resource_id=target['resource_id'],
+                day=target['day'], page=page + 1))
+        if page:
+            choices.append(option('7', 'Horários anteriores', 'slots',
+                service_id=target['service_id'], resource_id=target['resource_id'],
+                day=target['day'], page=page - 1))
+        return response('booking_slots', label, choices + navigation(), native)
     elif step == 'review':
         offer = target['offer']
         start = datetime.fromisoformat(offer['scheduled_for'])
