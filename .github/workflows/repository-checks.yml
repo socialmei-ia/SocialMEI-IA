@@ -107,11 +107,7 @@ jobs:
           if-no-files-found: error
           retention-days: 14
       - name: Formatting
-        run: |
-          npx prettier --write tools/release039-migration-rehearsal.mjs tests/release039-migration-rehearsal.test.cjs >/dev/null
-          git diff -- tools/release039-migration-rehearsal.mjs tests/release039-migration-rehearsal.test.cjs
-          git diff --exit-code -- tools/release039-migration-rehearsal.mjs tests/release039-migration-rehearsal.test.cjs
-          npm run format:check
+        run: npm run format:check
       - name: Python contracts
         run: |
           python -m pip install -r python-service/requirements.txt
