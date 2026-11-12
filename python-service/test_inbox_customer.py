@@ -149,6 +149,70 @@ class CustomerLinkDatabaseTests(unittest.TestCase):
         winner=next(r.json() for r in responses if r.status_code==200)
         self.assertEqual(self.client.get(self.url).json(),winner)
 
+    def test_whatsapp_exact_customer_suggestion_requires_manual_review_and_tenant_match(self):
+        """Only a verified-format WhatsApp contact from the same tenant is suggested."""
+        with patch.dict(os.environ, {
+            "SOCIALMEI_MESSAGE_ENRICHMENT_MODE": "disabled",
+            "SOCIALMEI_WAHA_INGRESS_MODE": "isolated",
+            "SOCIALMEI_WAHA_LAB_ENVIRONMENT": "isolated",
+        }):
+            with psycopg.connect(accounts.DB) as conn:
+                waha = conn.execute(
+                    "INSERT INTO socialmei.me_conversations"
+                    "(workspace_id,channel,account_ref,contact_ref,contact_name,origin,revision) "
+                    "VALUES(%s,'whatsapp','waha:111@c.us',%s,'Contato fictício','waha',1) RETURNING id",
+                    (self.workspace, "waha:85999990001@c.us"),
+                ).fetchone()[0]
+                instagram = conn.execute(
+                    "INSERT INTO socialmei.me_conversations"
+                    "(workspace_id,channel,account_ref,contact_ref,contact_name,origin,revision) "
+                    "VALUES(%s,'instagram','instagram:111',%s,'Contato IG','instagram',1) RETURNING id",
+                    (self.workspace, "instagram:85999990001"),
+                ).fetchone()[0]
+            url = BASE + "/conversations/" + str(waha) + "/customer-suggestions"
+            found = self.client.get(url)
+            self.assertEqual(found.status_code, 200, found.text)
+            self.assertEqual(found.json(), {
+                "conversation_id": waha,
+                "candidates": [{"id": self.customer["id"], "nome": "Cliente fictício"}],
+                "requires_confirmation": True, "ambiguous": False,
+            })
+            self.assertEqual(found.headers["cache-control"], "no-store")
+            # No CRM write occurred; the operator must use the existing PATCH.
+            with psycopg.connect(accounts.DB) as conn:
+                self.assertIsNone(conn.execute(
+                    "SELECT cliente_id FROM socialmei.me_conversations "
+                    "WHERE workspace_id=%s AND id=%s",
+                    (self.workspace, waha),
+                ).fetchone()[0])
+            duplicate = self.client.post("/api/v1/clientes",
+                json={"nome": "Outro cliente mesmo telefone", "telefone": "85 99999-0001"})
+            self.assertEqual(duplicate.status_code, 201, duplicate.text)
+            ambiguous = self.client.get(url)
+            self.assertEqual(ambiguous.status_code, 200, ambiguous.text)
+            self.assertEqual(ambiguous.json()["candidates"], [])
+            self.assertTrue(ambiguous.json()["ambiguous"])
+            other = self.register("other-customer-hints@example.test")
+            self.assertEqual(other.get(url).status_code, 404)
+            with patch.dict(os.environ, {
+                "SOCIALMEI_INSTAGRAM_INGRESS_MODE": "isolated",
+                "SOCIALMEI_INSTAGRAM_LAB_ENVIRONMENT": "isolated",
+            }):
+                ig_url = BASE + "/conversations/" + str(instagram) + "/customer-suggestions"
+                response = self.client.get(ig_url)
+                self.assertEqual(response.status_code, 200, response.text)
+                self.assertEqual(response.json()["candidates"], [])
+                self.assertFalse(response.json()["ambiguous"])
+
+    def test_whatsapp_customer_hints_never_accept_unverified_contact_ids(self):
+        for ref in ["instagram:85999990001", "waha:85999990001@lid",
+                    "waha:12345@c.us", "waha:00000000000@c.us",
+                    "waha:+5585999990001@c.us", None, 123, "waha:abc@c.us"]:
+            with self.subTest(ref=ref):
+                self.assertIsNone(inbox_customer.exact_whatsapp_phone(ref))
+        self.assertEqual(inbox_customer.exact_whatsapp_phone(
+            "waha:85999990001@c.us"), "85999990001")
+
     def test_origin_boundary_matches_inbox_visibility_not_just_workspace(self):
         with psycopg.connect(accounts.DB) as conn:
             instagram=conn.execute("INSERT INTO socialmei.me_conversations(workspace_id,channel,account_ref,contact_ref,contact_name,origin,revision) VALUES(%s,'instagram','instagram:123','instagram:456','IG fixture','instagram',1) RETURNING id",(self.workspace,)).fetchone()[0]
