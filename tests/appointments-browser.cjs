@@ -80,10 +80,14 @@ module.exports = async (browser, origin) => {
         assert.equal(data.policy.enabled, true);
         assert.equal(data.policy.hours.length, 2);
         assert.deepEqual(data.policy.hours[0], {
-          weekday: 0, opens: "09:00", closes: "12:00",
+          weekday: 0,
+          opens: "09:00",
+          closes: "12:00",
         });
         assert.deepEqual(data.policy.hours[1], {
-          weekday: 0, opens: "13:00", closes: "18:00",
+          weekday: 0,
+          opens: "13:00",
+          closes: "18:00",
         });
         policy = { revision: policy.revision + 1, policy: data.policy };
         policyWrites++;
@@ -144,14 +148,18 @@ module.exports = async (browser, origin) => {
       await page.locator("#f_channel_booking_enabled").selectOption("true");
       await page.locator("#f_channel_booking_day_0").fill("09:00-12:00;13:00-18:00");
       await page.locator("#f_channel_booking_horizon").fill("21");
-      await page.locator("dialog[open]")
-        .getByRole("button", { name: "Salvar horários", exact: true }).click();
+      await page
+        .locator("dialog[open]")
+        .getByRole("button", { name: "Salvar horários", exact: true })
+        .click();
       await page.locator("dialog[open]").waitFor({ state: "hidden" });
       assert.equal(policyWrites, 1);
       assert.equal(policy.policy.horizon_days, 21);
       await page.getByRole("button", { name: "Configurar horários dos canais" }).click();
-      assert.equal(await page.locator("#f_channel_booking_day_0").inputValue(),
-        "09:00-12:00;13:00-18:00");
+      assert.equal(
+        await page.locator("#f_channel_booking_day_0").inputValue(),
+        "09:00-12:00;13:00-18:00",
+      );
       await page.keyboard.press("Escape");
       await page.getByRole("button", { name: "Cadastrar serviço", exact: true }).click();
       await page.locator("#f_booking_service").fill("Consulta");

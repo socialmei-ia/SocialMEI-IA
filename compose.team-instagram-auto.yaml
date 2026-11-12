@@ -36,7 +36,13 @@ x-instagram-worker: &instagram-worker
     team-postgres:
       condition: service_healthy
   healthcheck:
-    test: ["CMD", "python", "-c", "import json; from pathlib import Path; p=Path('/run/socialmei/instagram-menu-state/state.json'); assert json.loads(p.read_text())['status']=='running'"]
+    test:
+      [
+        "CMD",
+        "python",
+        "-c",
+        "import json; from pathlib import Path; p=Path('/run/socialmei/instagram-menu-state/state.json'); assert json.loads(p.read_text())['status']=='running'",
+      ]
     interval: 30s
     timeout: 5s
     retries: 3

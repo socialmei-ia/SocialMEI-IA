@@ -61,9 +61,10 @@ module.exports = async (browser, origin) => {
         if (p === "/message-enrichment/conversations/1/customer-suggestions")
           return route.fulfill({
             json: {
-              conversation_id: 1, candidates: linked.cliente_id === null
-                ? [{ id: 11, nome: "Nome repetido" }] : [],
-              ambiguous: false, requires_confirmation: true,
+              conversation_id: 1,
+              candidates: linked.cliente_id === null ? [{ id: 11, nome: "Nome repetido" }] : [],
+              ambiguous: false,
+              requires_confirmation: true,
             },
           });
         if (p === "/message-enrichment/conversations/1/customer") {
@@ -106,8 +107,11 @@ module.exports = async (browser, origin) => {
           continue;
         }
         await associate.click();
-        assert.equal(await page.locator("#f_inbox_customer").inputValue(), "",
-          "A suggestion must never auto-associate a client");
+        assert.equal(
+          await page.locator("#f_inbox_customer").inputValue(),
+          "",
+          "A suggestion must never auto-associate a client",
+        );
         await page.getByRole("button", { name: "Selecionar sugestão" }).click();
         assert.equal(await page.locator("#f_inbox_customer").inputValue(), "11");
         await page.locator("#f_inbox_customer").selectOption("12");

@@ -13,7 +13,8 @@ services:
   team-recovery-worker:
     build:
       context: ./python-service
-    command: ["python", "recovery_worker.py", "--run", "--watch", "--limit", "10", "--interval", "15"]
+    command:
+      ["python", "recovery_worker.py", "--run", "--watch", "--limit", "10", "--interval", "15"]
     restart: unless-stopped
     environment:
       PYTHONPATH: /app

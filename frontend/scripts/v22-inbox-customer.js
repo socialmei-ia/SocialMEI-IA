@@ -116,14 +116,23 @@
       select.append(option);
     }
     select.value = original.cliente_id === null ? "" : String(original.cliente_id);
-    const hint = suggestions?.candidates?.length === 1 && !suggestions.ambiguous
-      ? suggestions.candidates[0]
-      : null;
+    const hint =
+      suggestions?.candidates?.length === 1 && !suggestions.ambiguous
+        ? suggestions.candidates[0]
+        : null;
     if (suggestions?.ambiguous) {
-      form.append(element("p", "Mais de um cadastro corresponde ao telefone. Escolha o cliente manualmente."));
+      form.append(
+        element("p", "Mais de um cadastro corresponde ao telefone. Escolha o cliente manualmente."),
+      );
     } else if (hint && clients.some((client) => client.id === hint.id)) {
-      const suggestion = element("p", "Possível cadastro pelo telefone do WhatsApp: " +
-        hint.nome + " (ID " + hint.id + "). Confira antes de confirmar.");
+      const suggestion = element(
+        "p",
+        "Possível cadastro pelo telefone do WhatsApp: " +
+          hint.nome +
+          " (ID " +
+          hint.id +
+          "). Confira antes de confirmar.",
+      );
       const choose = element("button", "Selecionar sugestão");
       choose.type = "button";
       choose.className = "btn o";
