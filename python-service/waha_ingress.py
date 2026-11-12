@@ -35,6 +35,7 @@ class WahaBinding:
     hmac_key: str = field(repr=False)
     revision: int = 1
     engine: str = 'WEBJS'  # Explicit per-channel cutover; legacy registries stay WEBJS.
+    ingress_after: int = 0
 
     def __post_init__(self):
         if (
@@ -51,6 +52,8 @@ class WahaBinding:
             or type(self.channel_id) is not int
             or not 1 <= self.channel_id <= 2**63 - 1
             or self.engine not in {'WEBJS', 'GOWS'}
+            or type(self.ingress_after) is not int
+            or not 0 <= self.ingress_after <= 4102444800
             or type(self.revision) is not int
             or not 1 <= self.revision <= 2**63 - 1
             or not isinstance(self.hmac_key, str)
@@ -389,6 +392,9 @@ class WahaIngressService:
             raise HTTPException(503, "Vínculo WAHA fora do piloto autorizado.")
         if not settings.waha_ingress_enabled():
             raise HTTPException(503, "Recepção WAHA não habilitada.")
+        if (binding.engine == 'GOWS' and incoming.kind == 'message'
+                and incoming.occurred_at.timestamp() < binding.ingress_after):
+            return {'processed': 0, 'ignored': 1, 'duplicates': 0}
         failed = False
         result = None
         try:
@@ -509,6 +515,9 @@ def waha_service():
             if not isinstance(entry, dict):
                 raise ValueError()
             bindings.append(WahaBinding(**entry))
+            if (bindings[-1].engine == 'GOWS' and not bindings[-1].ingress_after
+                    and (settings.waha_ingress_team_pilot_enabled() or settings.waha_workspace_inbox_requested())):
+                raise ValueError()
         registry = {binding.instance: binding for binding in bindings}
         if len(registry) != len(bindings):
             raise ValueError()

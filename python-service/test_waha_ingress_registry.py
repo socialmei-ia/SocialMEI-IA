@@ -24,6 +24,19 @@ def registry(**changes):
 
 
 class WahaPrivateRegistryTests(unittest.TestCase):
+    def test_live_gows_requires_explicit_history_cutoff(self):
+        from types import SimpleNamespace
+        real_fstat = os.fstat
+        def root_metadata(fd):
+            value = real_fstat(fd)
+            return SimpleNamespace(st_mode=value.st_mode,st_size=value.st_size,st_uid=0)
+        with patch('waha_ingress.settings.waha_ingress_team_pilot_enabled',return_value=True), \
+             patch('waha_ingress.os.fstat',side_effect=root_metadata):
+            self.write(registry(engine='GOWS'))
+            self.reject()
+            self.write(registry(engine='GOWS',ingress_after=1792890000))
+            self.assertEqual(waha_service().registry['trusted-a'].engine,'GOWS')
+
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)

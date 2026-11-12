@@ -51,6 +51,30 @@ def binding(**patches):
 
 
 class ContractTests(unittest.TestCase):
+    def test_gows_history_cutoff_requires_signature_and_never_imports_old_text(self):
+        b = binding(engine='GOWS', ingress_after=1792890001)
+        service = WahaIngressService({b.instance:b})
+        body = raw(payload(engine='GOWS'))
+        with patch('waha_ingress.settings.waha_ingress_enabled',return_value=True), \
+             patch('waha_ingress.settings.waha_ingress_team_pilot_enabled',return_value=False), \
+             patch('waha_ingress.connect',side_effect=AssertionError('Old history must not reach DB')) as database:
+            self.assertEqual(service.receive(b.instance,body,sign(body),'sha512'),
+                             {'processed':0,'ignored':1,'duplicates':0})
+            with self.assertRaises(HTTPException) as rejected:
+                service.receive(b.instance,body,'0'*128,'sha512')
+            self.assertEqual(rejected.exception.status_code,403)
+            database.assert_not_called()
+        for invalid in [True,-1,1792890000000,'1792890001']:
+            with self.assertRaises(ValueError): binding(engine='GOWS',ingress_after=invalid)
+
+    def test_unproven_gows_recipient_shapes_remain_closed(self):
+        b = binding(engine='GOWS')
+        for recipient in [False, 0, [], {}, {'id':b.account_id}, {'_serialized':b.account_id}]:
+            sample = payload(engine='GOWS')
+            sample['payload']['to'] = recipient
+            with self.subTest(kind=type(recipient).__name__), self.assertRaises(HTTPException):
+                parse_event(raw(sample), sign(raw(sample)), 'sha512', b)
+
     def test_gows_messages_require_explicit_channel_engine_and_valid_hmac(self):
         sample = raw(payload(engine='GOWS'))
         b = binding(engine='GOWS')
@@ -400,6 +424,21 @@ class DatabaseTests(unittest.TestCase):
             value["payload"]["to"] = b.account_id
         body = raw(value)
         return self.service.receive(b.instance, body, sign(body, b.hmac_key), "sha512")
+
+    def test_gows_signed_direct_missing_destination_is_durable_and_not_duplicated(self):
+        from dataclasses import replace
+        b = replace(self.bindings[0], engine='GOWS')
+        self.service = WahaIngressService({b.instance:b})
+        sample = payload(engine='GOWS')
+        sample['payload'].pop('to')
+        self.assertEqual(self.receive(sample,b)['processed'],1)
+        sample['id']='another-gows-envelope'
+        self.assertEqual(self.receive(sample,b)['duplicates'],1)
+        with psycopg.connect(DB) as conn:
+            self.assertEqual(conn.execute('SELECT COUNT(*) FROM socialmei.me_messages WHERE workspace_id=%s',
+                                          (b.workspace_id,)).fetchone()[0],1)
+            self.assertEqual(conn.execute('SELECT COUNT(*) FROM socialmei.me_messages WHERE workspace_id=%s',
+                                          (self.bindings[1].workspace_id,)).fetchone()[0],0)
 
     def test_durable_text_read_and_event_alias_dedup_without_legacy_body_copy(self):
         self.assertEqual(self.receive()["processed"], 1)

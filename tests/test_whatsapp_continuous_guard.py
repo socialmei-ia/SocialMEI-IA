@@ -82,13 +82,25 @@ class ContinuousTests(unittest.TestCase):
             with client_factory(transport=httpx.MockTransport(lambda req: sent.append(req) or httpx.Response(200))) as client:
                 client.request('POST', guard.WAHA_URL + '/api/sendText', content=json.dumps({'chatId': '333@c.us'}))
             return 'ENVIO_CONFIRMADO'
-        guard.serve(self.journal, None, poll=poll, sleep=Mock(), clock=lambda: 1001)
+        guard.serve(self.journal, type('Config', (), {'waha_url': guard.WAHA_URL})(), poll=poll, sleep=Mock(), clock=lambda: 1001)
         self.assertEqual(sent, [])
         self.assertEqual(self.journal.state['status'], 'paused')
 
     def test_clock_cannot_precede_activation(self):
         with self.assertRaises(RuntimeError):
             self.journal.available(999)
+
+    def test_gows_provider_post_updates_persistent_budget_before_transport(self):
+        sent=[]
+        def poll(config, client_factory):
+            with client_factory(transport=httpx.MockTransport(lambda request: sent.append(request) or httpx.Response(200))) as client:
+                client.request('POST', worker.GOWS_URL+'/api/sendText', content=json.dumps({'chatId':'222@c.us'}))
+            return 'RESULTADO_INCERTO_NAO_REENVIAR'
+        config=type('Config', (), {'waha_url':worker.GOWS_URL})()
+        guard.serve(self.journal, config, poll=poll, sleep=Mock(), clock=lambda:1001)
+        self.assertEqual(len(sent),1)
+        self.assertEqual(self.journal.state['attempted'],1)
+        self.assertEqual(self.journal.state['status'],'paused')
 
     def test_public_inbound_limits_each_contact_without_blocking_other_contacts(self):
         self.journal.lock.close()
