@@ -84,6 +84,7 @@ class ResourceRequest(MessageContext):
 class SlotRequest(ResourceRequest):
     resource_id: UUID
     day: date
+    page: int = Field(default=0, ge=0, le=100, strict=True)
 
 
 class ConfirmationRequest(MessageContext):
@@ -287,7 +288,7 @@ def decode_confirmation(token, key):
 
 
 def slots_for_message(workspace_id, conversation_id, source_message_id, origin, service_id,
-                      resource_id, day, signing_key, *, connection=None):
+                      resource_id, day, signing_key, *, page=0, connection=None):
     from appointments import service, lock_resource, free, end_time
     try:
         day = date.fromisoformat(day) if isinstance(day, str) else day
@@ -296,6 +297,9 @@ def slots_for_message(workspace_id, conversation_id, source_message_id, origin, 
         resource_id = UUID(str(resource_id))
     except (TypeError, ValueError):
         raise HTTPException(422, 'Selecione uma data e um recurso válidos.') from None
+    if type(page) is not int or not 0 <= page <= 100:
+        raise HTTPException(422, 'Escolha uma página de horários válida.')
+    offset = page * 3
     now = datetime.now(timezone.utc)
     with transaction(connection) as conn:
         context = context_for_message(conn, workspace_id, conversation_id, source_message_id, origin)
@@ -303,24 +307,29 @@ def slots_for_message(workspace_id, conversation_id, source_message_id, origin, 
         resource = lock_resource(conn, workspace_id, resource_id)
         item = service(conn, workspace_id, service_id)
         slots = []
+        seen = 0
         for window in policy.hours:
             if window.weekday != day.weekday():
                 continue
             start = datetime.combine(day, time.fromisoformat(window.opens), tzinfo=ZoneInfo(policy.timezone))
             end = datetime.combine(day, time.fromisoformat(window.closes), tzinfo=ZoneInfo(policy.timezone))
-            while end_time(start.astimezone(timezone.utc), item['duracao_minutos']).astimezone(start.tzinfo) <= end and len(slots) < 6:
+            while (end_time(start.astimezone(timezone.utc), item['duracao_minutos']).astimezone(start.tzinfo) <= end
+                   and seen < offset + 4):
                 until = end_time(start.astimezone(timezone.utc), item['duracao_minutos']).astimezone(start.tzinfo)
                 if allowed_start(policy, start, item['duracao_minutos'], now) and free(conn, workspace_id, resource['id'], start, until):
-                    value = {'binding': context['binding'], 'policy': policy_hash, 'service': service_id,
+                    if seen >= offset:
+                        value = {'binding': context['binding'], 'policy': policy_hash, 'service': service_id,
                         'service_revision': item['versao'], 'resource': str(resource['id']),
                         'resource_revision': resource['revision'], 'start': start.astimezone(timezone.utc).isoformat(),
                         'expires': int(now.timestamp()) + 600}
-                    slots.append({'service_id': service_id, 'service_name': item['nome'], 'price': str(item['preco']),
-                        'duration_minutes': item['duracao_minutos'], 'resource_id': str(resource['id']),
-                        'resource_name': resource['nome'], 'scheduled_for': start.isoformat(), 'ends_at': until.isoformat(),
-                        'confirmation': confirmation_token(value, signing_key)})
+                        slots.append({'service_id': service_id, 'service_name': item['nome'], 'price': str(item['preco']),
+                            'duration_minutes': item['duracao_minutos'], 'resource_id': str(resource['id']),
+                            'resource_name': resource['nome'], 'scheduled_for': start.isoformat(), 'ends_at': until.isoformat(),
+                            'confirmation': confirmation_token(value, signing_key)})
+                    seen += 1
                 start += timedelta(minutes=policy.step_minutes)
-    return {'items': slots, 'reservation_created': False, 'timezone': policy.timezone}
+    return {'items': slots[:3], 'has_more': len(slots) > 3,
+            'reservation_created': False, 'timezone': policy.timezone}
 
 
 def confirm_for_message(workspace_id, conversation_id, source_message_id, origin, confirmation,
