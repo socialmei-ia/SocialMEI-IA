@@ -64,10 +64,79 @@ class TeamCutoverTests(unittest.TestCase):
         self.assertEqual(good["max_prefix"], 33)
         self.assertFalse(good["future_or_unknown_versions"])
         self.assertTrue(good["ledger_has_gaps"])
-        data["versions"].append("034_unreviewed_change.sql")
+        data["versions"].append("040_unreviewed_change.sql")
         self.assertTrue(cutover.migration_summary(data)["future_or_unknown_versions"])
         data["versions"] = ["032_whatsapp_bot_conversations.sql"] * 2
         self.assertTrue(cutover.migration_summary(data)["duplicate_versions"])
+
+    def test_instagram_schema039_is_recognized_but_missing_tables_block_cutover(self):
+        versions = [f"{number:03}_fixture.sql" for number in range(1, 32)] + [
+            "032_whatsapp_bot_conversations.sql",
+            "033_provider_sentiment_jobs.sql",
+            "034_workspace_agenda.sql",
+            "035_whatsapp_human_outbox.sql",
+            "036_service_appointments.sql",
+            "037_catalog_details.sql",
+            "038_inbox_customer_link.sql",
+            "039_instagram_auto_menu.sql",
+        ]
+        data = {
+            "versions": versions,
+            "bot_table": True,
+            "sentiment_table": True,
+            "instagram_menu_table": True,
+            "instagram_replies_table": True,
+        }
+        summary = cutover.migration_summary(data)
+        self.assertEqual(summary["max_prefix"], 39)
+        self.assertTrue(summary["has_039"])
+        self.assertFalse(summary["future_or_unknown_versions"])
+        self.assertFalse(summary["ledger_has_gaps"])
+        data["instagram_replies_table"] = False
+        missing = cutover.migration_summary(data)
+        self.assertFalse(missing["has_039"])
+        report = {"source": {"sha": CANDIDATE, "clean": True},
+                  "containers": {name: cutover.inspect_summary(container(
+                      api=name == "team_api"), name)
+                      for name in cutover.CONTAINERS},
+                  "database": missing}
+        decision = cutover.assess(report, CANDIDATE)
+        self.assertIn("instagram_menu_039_incompleto", decision["blockers"])
+        self.assertFalse(decision["preflight_unblocked"])
+
+    def test_ai_egress_requires_private_network_key_and_allowlist_without_leaks(self):
+        secret = "PRIVATE_AI_TEST_KEY_NOT_TO_PRINT_1234567890000"
+        api = container(api=True, networks=["socialmei_team_automation"])
+        api["Config"]["Env"].extend([
+            "SOCIALMEI_AI_DRAFT_ENABLED=true",
+            "SOCIALMEI_GROQ_API_KEY=" + secret,
+            "SOCIALMEI_AI_DRAFT_WORKSPACES=4",
+        ])
+        summary = cutover.inspect_summary(api, "team_api")
+        self.assertTrue(summary["flags"]["ai_draft_key_configured"])
+        self.assertFalse(summary["flags"]["ai_egress_network"])
+        self.assertNotIn(secret, json.dumps(summary))
+        report = {"source": {"sha": CANDIDATE, "clean": True},
+                  "containers": {name: (summary if name == "team_api"
+                      else cutover.inspect_summary(container(), name))
+                      for name in cutover.CONTAINERS},
+                  "database": cutover.migration_summary({
+                      "versions": [f"{i:03}_fixture.sql" for i in range(1, 32)]
+                          + ["032_whatsapp_bot_conversations.sql",
+                             "033_provider_sentiment_jobs.sql"],
+                      "bot_table": True, "sentiment_table": True,
+                  })}
+        self.assertIn("ia_ativa_sem_credenciais_allowlist_ou_saida",
+                      cutover.assess(report, CANDIDATE)["blockers"])
+        api["NetworkSettings"]["Networks"]["socialmei-team_ai-egress"] = {}
+        report["containers"]["team_api"] = cutover.inspect_summary(api, "team_api")
+        self.assertNotIn("ia_ativa_sem_credenciais_allowlist_ou_saida",
+                         cutover.assess(report, CANDIDATE)["blockers"])
+        api["Config"]["Env"] = [item for item in api["Config"]["Env"]
+                                if not item.startswith("SOCIALMEI_GROQ_API_KEY=")]
+        report["containers"]["team_api"] = cutover.inspect_summary(api, "team_api")
+        self.assertIn("ia_ativa_sem_credenciais_allowlist_ou_saida",
+                      cutover.assess(report, CANDIDATE)["blockers"])
 
     def test_only_git_docker_inspect_and_readonly_database_commands(self):
         used = []
