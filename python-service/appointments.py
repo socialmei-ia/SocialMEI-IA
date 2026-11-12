@@ -13,10 +13,67 @@ from pydantic import Field, field_validator, model_validator
 from agenda import Strict, ReminderCreate, boundary, business_zone, configure, identity
 from database import connect
 from shared_data import MAX_SAFE_ID
+from channel_booking import (BookingPolicyUpdate, MessageContext, ResourceRequest, SlotRequest,
+    ConfirmationRequest, read_policy, save_policy, services_for_message, resources_for_message,
+    slots_for_message, confirm_for_message, signing_key_for_context)
 
 router = APIRouter(prefix="/api/v1/agenda", tags=["agenda"], dependencies=[Depends(boundary)])
 RESOURCE_COLUMNS = "id,nome,ativo,revision,created_at,updated_at"
 APPOINTMENT_COLUMNS = "id,cliente_id,servico_id,resource_id,client_name,service_name,duration_minutes,price,scheduled_for,ends_at,notes,status,revision,created_at,updated_at"
+
+
+@router.get("/channel-booking")
+def channel_booking_settings():
+    user = identity()
+    with connect() as conn:
+        configure(conn)
+        return read_policy(conn, user["workspace_id"])
+
+
+@router.put("/channel-booking")
+def update_channel_booking_settings(payload: BookingPolicyUpdate):
+    user = identity(write=True)
+    if user["role"] not in {"owner", "admin"}:
+        raise HTTPException(403, "Somente a administração pode configurar agendamentos pelos canais.")
+    with connect() as conn:
+        configure(conn)
+        result = save_policy(conn, user["workspace_id"], payload)
+        conn.execute("INSERT INTO socialmei.auth_auditoria(user_id,acao) VALUES(%s,'channel_booking_configured')", (user["id"],))
+    return result
+
+
+def booking_context(user, payload):
+    return (user["workspace_id"], payload.conversation_id, payload.source_message_id, payload.origin)
+
+
+@router.post("/channel-booking/services")
+def channel_booking_services(payload: MessageContext):
+    return services_for_message(*booking_context(identity(write=True), payload))
+
+
+@router.post("/channel-booking/resources")
+def channel_booking_resources(payload: ResourceRequest):
+    return resources_for_message(*booking_context(identity(write=True), payload), payload.service_id)
+
+
+@router.post("/channel-booking/slots")
+def channel_booking_slots(payload: SlotRequest):
+    context = booking_context(identity(write=True), payload)
+    with connect() as conn:
+        configure(conn)
+        key = signing_key_for_context(conn, *context)
+        return slots_for_message(*context, payload.service_id, payload.resource_id, payload.day,
+                                 key, connection=conn)
+
+
+@router.post("/channel-booking/confirm")
+def channel_booking_confirm(payload: ConfirmationRequest):
+    context = booking_context(identity(write=True), payload)
+    with connect() as conn:
+        configure(conn)
+        key = signing_key_for_context(conn, *context)
+        return confirm_for_message(*context, payload.confirmation, key, confirmed=payload.confirmed,
+                                   connection=conn)
 
 
 class ResourceCreate(Strict):
@@ -137,7 +194,7 @@ def lock_workspace(conn, workspace_id):
 
 def service(conn, workspace_id, service_id):
     row = conn.execute(
-        "SELECT nome,preco,duracao_minutos FROM socialmei.crm_produtos "
+        "SELECT id,nome,preco,duracao_minutos,versao FROM socialmei.crm_produtos "
         "WHERE workspace_id=%s AND id=%s AND tipo='Serviço' AND status='Ativo' FOR SHARE",
         (workspace_id, service_id),
     ).fetchone()
@@ -228,31 +285,36 @@ def availability(resource_id: UUID, servico_id: int = Query(ge=1, le=MAX_SAFE_ID
 @router.post("/appointments", status_code=201)
 def create_appointment(payload: AppointmentCreate):
     user = identity(write=True)
-    value = fingerprint(payload)
     with connect() as conn:
         configure(conn)
-        lock_workspace(conn, user["workspace_id"])
-        conn.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s,0))", (f"appointment:{user['workspace_id']}:{payload.operation_id}",))
-        previous = conn.execute(f"SELECT {APPOINTMENT_COLUMNS},creation_fingerprint FROM socialmei.agenda_appointments WHERE workspace_id=%s AND id=%s", (user["workspace_id"], payload.operation_id)).fetchone()
-        if previous:
-            if previous["creation_fingerprint"] != value:
-                raise HTTPException(409, "Identificador já usado para outro agendamento.")
-            resource = conn.execute("SELECT nome FROM socialmei.agenda_resources WHERE workspace_id=%s AND id=%s", (user["workspace_id"], previous["resource_id"])).fetchone()
-            return view({**previous, "resource_name": resource["nome"]})
-        resource = lock_resource(conn, user["workspace_id"], payload.resource_id)
-        item = service(conn, user["workspace_id"], payload.servico_id)
-        client = conn.execute("SELECT nome FROM socialmei.crm_clientes WHERE workspace_id=%s AND id=%s FOR SHARE", (user["workspace_id"], payload.cliente_id)).fetchone()
-        if not client:
-            raise HTTPException(422, "Selecione um cliente deste negócio.")
-        end = end_time(payload.scheduled_for, item["duracao_minutos"])
-        if not free(conn, user["workspace_id"], payload.resource_id, payload.scheduled_for, end):
-            raise HTTPException(409, "Horário ocupado para este recurso. Escolha outro horário.")
-        row = conn.execute(
-            "INSERT INTO socialmei.agenda_appointments(workspace_id,id,cliente_id,servico_id,resource_id,client_name,service_name,duration_minutes,price,scheduled_for,ends_at,notes,creation_fingerprint) "
-            f"VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING {APPOINTMENT_COLUMNS}",
-            (user["workspace_id"], payload.operation_id, payload.cliente_id, payload.servico_id, payload.resource_id, client["nome"], item["nome"], item["duracao_minutos"], item["preco"], payload.scheduled_for, end, payload.notes, value),
-        ).fetchone()
-        history(conn, user["workspace_id"], row)
+        return create_appointment_in(conn, user["workspace_id"], payload)
+
+
+def create_appointment_in(conn, workspace_id, payload):
+    """Shared transaction for the authenticated site and authorized channel adapters."""
+    value = fingerprint(payload)
+    lock_workspace(conn, workspace_id)
+    conn.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s,0))", (f"appointment:{workspace_id}:{payload.operation_id}",))
+    previous = conn.execute(f"SELECT {APPOINTMENT_COLUMNS},creation_fingerprint FROM socialmei.agenda_appointments WHERE workspace_id=%s AND id=%s", (workspace_id, payload.operation_id)).fetchone()
+    if previous:
+        if previous["creation_fingerprint"] != value:
+            raise HTTPException(409, "Identificador já usado para outro agendamento.")
+        resource = conn.execute("SELECT nome FROM socialmei.agenda_resources WHERE workspace_id=%s AND id=%s", (workspace_id, previous["resource_id"])).fetchone()
+        return view({**previous, "resource_name": resource["nome"]})
+    resource = lock_resource(conn, workspace_id, payload.resource_id)
+    item = service(conn, workspace_id, payload.servico_id)
+    client = conn.execute("SELECT nome FROM socialmei.crm_clientes WHERE workspace_id=%s AND id=%s FOR SHARE", (workspace_id, payload.cliente_id)).fetchone()
+    if not client:
+        raise HTTPException(422, "Selecione um cliente deste negócio.")
+    end = end_time(payload.scheduled_for, item["duracao_minutos"])
+    if not free(conn, workspace_id, payload.resource_id, payload.scheduled_for, end):
+        raise HTTPException(409, "Horário ocupado para este recurso. Escolha outro horário.")
+    row = conn.execute(
+        "INSERT INTO socialmei.agenda_appointments(workspace_id,id,cliente_id,servico_id,resource_id,client_name,service_name,duration_minutes,price,scheduled_for,ends_at,notes,creation_fingerprint) "
+        f"VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING {APPOINTMENT_COLUMNS}",
+        (workspace_id, payload.operation_id, payload.cliente_id, payload.servico_id, payload.resource_id, client["nome"], item["nome"], item["duracao_minutos"], item["preco"], payload.scheduled_for, end, payload.notes, value),
+    ).fetchone()
+    history(conn, workspace_id, row)
     return view({**row, "resource_name": resource["nome"]})
 
 
