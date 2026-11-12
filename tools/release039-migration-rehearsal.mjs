@@ -228,7 +228,7 @@ function command(binary, args, { input, binaryOutput = false, timeout = 120000 }
     if (phase === "database_check" && diagnosticStage === "contract039") {
       // Disposable fixtures only; print a bounded PostgreSQL error summary, never SQL input.
       const stderr = String(result.stderr || "");
-      const diagnostics = stderr.split(/\\r?\\n/)
+      const diagnostics = stderr.split(/\r?\n/)
         .filter((line) => /ERROR:|DETAIL:|CONTEXT:/.test(line))
         .map((line) => line.slice(0, 200)).slice(0, 5);
       if (diagnostics.length) console.error("039_SYNTHETIC_CONTRACT:", diagnostics.join(" | "));
