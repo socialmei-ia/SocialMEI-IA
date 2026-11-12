@@ -132,6 +132,13 @@ class AutoMenuDatabaseTests(unittest.TestCase):
                          ('Bella Store (somente fixture)', self.workspace))
             conn.execute('UPDATE socialmei.workspaces SET nome=%s WHERE id=%s',
                          ('Brilho Limpeza (somente fixture)', other))
+            slug, name, config = conn.execute(
+                'SELECT slug,nome,configuracao FROM socialmei.workspaces WHERE id=%s',
+                (self.workspace,)).fetchone()
+        # The real authenticated API expects a full workspace identity; the
+        # generic Instagram transport fixture intentionally omits these fields.
+        self.identity.update(workspace_slug=slug, nome_negocio=name,
+                             configuracao=config)
         def create(path, body):
             response = self.client.post(path, json=body, headers=self.headers)
             self.assertEqual(response.status_code, 201, response.text)
