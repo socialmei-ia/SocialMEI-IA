@@ -1,5 +1,6 @@
 """Instagram Direct booking choices using confirmed reply history; no schema change or sender."""
 import base64
+import hashlib
 import json
 import zlib
 from datetime import datetime, timedelta, timezone
@@ -17,6 +18,14 @@ CHOICE_IDS = {'1', '2', '3', '6', '7'}
 STEPS = {'services', 'resources', 'days', 'slots', 'review_ref', 'confirm_ref'}
 
 
+def _offer_details(offer):
+    fields = ('service_id', 'resource_id', 'service_name', 'resource_name',
+              'duration_minutes', 'price', 'scheduled_for', 'ends_at')
+    raw = json.dumps({field: offer.get(field) for field in fields},
+                     sort_keys=True, separators=(',', ':'), ensure_ascii=False)
+    return hashlib.sha256(raw.encode('utf-8')).hexdigest()
+
+
 def _snapshot_target(target, selected):
     if target.get('route') != 'booking':
         return None
@@ -30,7 +39,7 @@ def _snapshot_target(target, selected):
     if selected.get('step') != expected:
         raise ValueError('Booking offer has no originating slot page')
     offer = target['offer'] if step == 'review' else selected['offer']
-    return {
+    snapshot = {
         'step': 'review_ref' if step == 'review' else 'confirm_ref',
         'service_id': offer['service_id'],
         'resource_id': offer['resource_id'],
@@ -38,6 +47,9 @@ def _snapshot_target(target, selected):
         'page': selected.get('page', 0),
         'scheduled_for': offer['scheduled_for'],
     }
+    if step == 'confirm':
+        snapshot['details'] = _offer_details(offer)
+    return snapshot
 
 
 def render(result, selected):
@@ -129,6 +141,8 @@ def _review_offer(conn, workspace, message, target):
                   if item['scheduled_for'] == target['scheduled_for']), None)
     if offer is None:
         raise HTTPException(409, 'O horário mudou. Consulte a disponibilidade novamente.')
+    if target['step'] == 'confirm_ref' and target.get('details') != _offer_details(offer):
+        raise HTTPException(409, 'Os detalhes do atendimento mudaram. Consulte os horários novamente antes de confirmar.')
     return {'route': 'booking', 'step': 'review', 'offer': offer,
             'day': target['day'], 'page': target['page']}
 

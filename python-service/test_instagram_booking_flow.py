@@ -154,6 +154,43 @@ class InstagramBookingFlowTests(unittest.TestCase):
             ig.render({'text': 'A' * 999, 'choices': [shared.option(
                 '1', 'Profissional', 'resources', service_id=1)]}, {'step': 'services'})
 
+    def test_confirmation_rejects_changed_summary_before_persisting(self):
+        from fastapi import HTTPException
+        offer = {'service_id': 31, 'resource_id': str(uuid4()),
+                 'service_name': 'Avaliação', 'resource_name': 'Profissional',
+                 'duration_minutes': 30, 'price': '80.00',
+                 'scheduled_for': '2026-11-14T09:00:00-03:00',
+                 'ends_at': '2026-11-14T09:30:00-03:00',
+                 'confirmation': 'original-signature'}
+        selected = {'step': 'review', 'offer': offer, 'day': '2026-11-14', 'page': 0}
+        target = ig._snapshot_target({'route': 'booking', 'step': 'confirm'}, selected)
+        self.assertNotIn('confirmation', target)
+        row = {'status': 'confirmed', 'created_at': datetime.now(timezone.utc),
+               'text': ig.render(shared.response('booking_review', 'Confirme seu atendimento.',
+                   [shared.option('1', 'Confirmar', 'confirm', confirmation='original-signature')], False)[1], selected)}
+        changes = [{'price': '200.00'}, {'duration_minutes': 60},
+                   {'service_name': 'Outro atendimento'}, {'resource_name': 'Outra pessoa'},
+                   {'ends_at': '2026-11-14T10:00:00-03:00'}]
+        for change in changes:
+            with self.subTest(change=change), \
+                    patch('instagram_booking_flow.booking.signing_key_for_context', return_value='key'), \
+                    patch('instagram_booking_flow.booking.slots_for_message',
+                          return_value={'items': [{**offer, **change}]}), \
+                    patch('instagram_booking_flow.flow.advance') as advance:
+                state, result, _ = ig.respond(RecentReply(row), 77, self.message('1'))
+                self.assertEqual(state, 'menu')
+                self.assertEqual(result['action'], 'booking_unavailable')
+                self.assertIn('detalhes', result['text'])
+                advance.assert_not_called()
+        with patch('instagram_booking_flow.booking.signing_key_for_context', return_value='key'), \
+                patch('instagram_booking_flow.booking.slots_for_message',
+                      return_value={'items': [{**offer, 'confirmation': 'fresh-signature'}]}):
+            reviewed = ig._review_offer(RecentReply(), 77, self.message('1'), target)
+            self.assertEqual(reviewed['offer']['confirmation'], 'fresh-signature')
+            with self.assertRaises(HTTPException):
+                ig._review_offer(RecentReply(), 77, self.message('1'),
+                                 {key: value for key, value in target.items() if key != 'details'})
+
     def test_booking_errors_return_handoff_or_restart_without_provider_calls(self):
         from fastapi import HTTPException
         for status, detail, expected in [
