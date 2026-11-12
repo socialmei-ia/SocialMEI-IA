@@ -12,9 +12,9 @@ spec.loader.exec_module(worker)
 
 
 class ContinuousWorkerTests(unittest.TestCase):
-    def gows_attempt(self, *, timeout=False, changed_after_claim=False):
+    def gows_attempt(self, *, timeout=False, changed_after_claim=False, native=False, unapproved=False):
         cfg=worker.Config('trusted-a','01','111@c.us','synthetic-token-123456','synthetic-waha-key-123456',
-                          'GOWS',worker.GOWS_URL)
+                          'GOWS',worker.GOWS_URL, '222@c.us' if native and not unapproved else '')
         calls=[]
         versions=[]
         receipt=[]
@@ -32,7 +32,13 @@ class ContinuousWorkerTests(unittest.TestCase):
             elif path.endswith('/claim'):
                 result={'dispatch_allowed':True,'delivery':{'path':'/api/sendText','body':{
                     'session':'01','chatId':'222@c.us','text':'Synthetic menu'}}}
-            elif path=='/api/sendText':
+                if native:
+                    result['delivery'] = {'path':'/api/sendList','body':{
+                        'session':'01','chatId':'222@c.us','message':{
+                            'title':'Atendimento','description':'Menu sint?tico','footer':'SocialMEI',
+                            'button':'Ver op??es','sections':[{'title':'Escolha','rows':[
+                                {'rowId':'1','title':'Produtos','description':None}]}]}}}
+            elif path in {'/api/sendText', '/api/sendList'}:
                 if timeout: raise httpx.ReadTimeout('synthetic timeout',request=request)
                 result={'id':'synthetic-provider-receipt'}
             elif path.endswith('/receipt'):
@@ -43,6 +49,43 @@ class ContinuousWorkerTests(unittest.TestCase):
             return httpx.Response(200,json=result)
         def client(**kwargs): return httpx.Client(transport=httpx.MockTransport(handler),**kwargs)
         return worker.run_once(cfg,client_factory=client),calls,receipt
+
+    def test_gows_canary_list_is_sent_once_with_one_receipt(self):
+        result,calls,receipts=self.gows_attempt(native=True)
+        self.assertEqual(result,'ENVIO_CONFIRMADO')
+        self.assertEqual(sum(method=='POST' and url.endswith('/api/sendList') for method,url in calls),1)
+        self.assertFalse(any(url.endswith('/api/sendText') for _,url in calls))
+        self.assertEqual(receipts,[{'status':'confirmed','provider_message_id':'synthetic-provider-receipt'}])
+
+    def test_gows_canary_timeout_never_falls_back_to_another_send(self):
+        result,calls,receipts=self.gows_attempt(native=True,timeout=True)
+        self.assertEqual(result,'RESULTADO_INCERTO_NAO_REENVIAR')
+        self.assertEqual(sum(method=='POST' and url.endswith('/api/sendList') for method,url in calls),1)
+        self.assertFalse(any(url.endswith('/api/sendText') for _,url in calls))
+        self.assertEqual(receipts,[{'status':'uncertain','provider_message_id':None}])
+
+    def test_native_list_is_denied_without_explicit_canary_contact(self):
+        result,calls,receipts=self.gows_attempt(native=True,unapproved=True)
+        self.assertEqual(result,'RESULTADO_INCERTO_NAO_REENVIAR')
+        self.assertFalse(any(url.endswith(('/api/sendList','/api/sendText')) for _,url in calls))
+
+    def test_native_list_rejects_other_contact_duplicate_options_and_arbitrary_action(self):
+        import copy
+        cfg=worker.Config('trusted-a','01','111@c.us','synthetic-token-123456',
+                          'synthetic-waha-key-123456','GOWS',worker.GOWS_URL,'222@c.us')
+        good={'path':'/api/sendList','body':{'session':'01','chatId':'222@c.us','message':{
+              'title':'Atendimento','description':'Menu','footer':'SocialMEI','button':'Ver op??es',
+              'sections':[{'title':'Escolha','rows':[{'rowId':'1','title':'Produtos','description':None}]}]}}}
+        self.assertEqual(worker._delivery(good,cfg)['chatId'],'222@c.us')
+        wrong=copy.deepcopy(good);wrong['body']['chatId']='333@c.us'
+        duplicate=copy.deepcopy(good);duplicate['body']['message']['sections'][0]['rows'] *= 2
+        action=copy.deepcopy(good);action['body']['message']['sections'][0]['rows'][0]['rowId']='external-action'
+        malformed=copy.deepcopy(good);malformed['body']['message']['sections'][0]['rows'][0]['rowId']=[]
+        for sample in [wrong,duplicate,action,malformed]:
+            with self.assertRaises(worker.Blocked):worker._delivery(sample,cfg)
+        with self.assertRaises(worker.Blocked):
+            worker.Config('trusted-a','default','111@c.us','synthetic-token-123456',
+                          'synthetic-waha-key-123456',native_list_contact='222@c.us')
 
     def test_gows_success_uses_only_selected_provider_and_records_one_receipt(self):
         result,calls,receipts=self.gows_attempt()

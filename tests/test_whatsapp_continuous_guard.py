@@ -102,6 +102,18 @@ class ContinuousTests(unittest.TestCase):
         self.assertEqual(self.journal.state['attempted'],1)
         self.assertEqual(self.journal.state['status'],'paused')
 
+    def test_gows_list_updates_the_same_budget_before_transport(self):
+        sent=[]
+        def poll(config, client_factory):
+            with client_factory(transport=httpx.MockTransport(lambda request: sent.append(request) or httpx.Response(200))) as client:
+                client.request('POST',worker.GOWS_URL+'/api/sendList',content=json.dumps({'chatId':'222@c.us'}))
+            return 'RESULTADO_INCERTO_NAO_REENVIAR'
+        config=type('Config',(),{'waha_url':worker.GOWS_URL})()
+        guard.serve(self.journal,config,poll=poll,sleep=Mock(),clock=lambda:1001)
+        self.assertEqual(len(sent),1)
+        self.assertEqual(self.journal.state['attempted'],1)
+        self.assertEqual(self.journal.state['status'],'paused')
+
     def test_public_inbound_limits_each_contact_without_blocking_other_contacts(self):
         self.journal.lock.close()
         self.journal.path.unlink()

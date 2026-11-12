@@ -1,5 +1,6 @@
 """Durable replies for verified WAHA inputs. This module never sends a message."""
 import os
+import re
 import hashlib
 import json
 from contextlib import contextmanager
@@ -106,6 +107,18 @@ def operation_database():
 def view(row):
     return {**row['result'], 'operation_id': str(row['id']), 'status': row['status'],
             'source_message_id': row['source_message_id'], 'conversation_id': row['conversation_id']}
+
+
+def native_list_canary(channel, contact):
+    allowed = os.getenv('SOCIALMEI_MENU_GOWS_LIST_CANARY_CONTACT', '')
+    return (
+        os.getenv('SOCIALMEI_MENU_GOWS_LIST_CANARY_ACTIVE') == 'YES'
+        and os.getenv('SOCIALMEI_MENU_WAHA_ENGINE') == 'GOWS'
+        and (channel['workspace_id'], channel['channel_id'], channel['instancia'], channel['sessao'])
+        == (1, 1, 'socialmei-equipe-piloto', '01')
+        and bool(re.fullmatch(r'waha:(?:[0-9]{1,40}@c\.us|[A-Za-z0-9][A-Za-z0-9_.:-]{0,79}@lid)', allowed))
+        and contact == allowed
+    )
 
 
 def render_waha(session, chat, text, choices, *, engine='WEBJS', list_verified=False):
@@ -459,7 +472,8 @@ def claim(decision_id: UUID, payload: Strict, request: Request):
         if not permitted:
             return {'operation_id': str(row['id']), 'dispatch_allowed': False, 'status': row['status']}
         conn.execute("UPDATE socialmei.wa_bot_decisions SET status='claimed',claimed_at=NOW() WHERE id=%s", (decision_id,))
-        delivery = render_waha(channel['sessao'], state['contact_ref'].removeprefix('waha:'), row['result']['text'], row['result']['choices'])
+        delivery = render_waha(channel['sessao'], state['contact_ref'].removeprefix('waha:'), row['result']['text'], row['result']['choices'],
+                               engine='GOWS', list_verified=native_list_canary(channel, state['contact_ref']))
         return {'operation_id': str(row['id']), 'dispatch_allowed': True, 'status': 'claimed', 'delivery': delivery}
 
 

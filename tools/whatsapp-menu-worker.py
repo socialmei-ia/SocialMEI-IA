@@ -58,6 +58,7 @@ class Config:
     waha_key: str
     engine: str = 'WEBJS'
     waha_url: str = WAHA_URL
+    native_list_contact: str = ''
 
     def __post_init__(self):
         if (not VALID_INSTANCE.fullmatch(self.instance)
@@ -67,7 +68,12 @@ class Config:
                 or not re.fullmatch(r'[!-~]{16,4096}', self.waha_key)
                 or self.engine not in WAHA_ENDPOINTS
                 or self.waha_url != WAHA_ENDPOINTS.get(self.engine)
-                or (self.engine == 'GOWS' and self.session != '01')):
+                or (self.engine == 'GOWS' and self.session != '01')
+                or not isinstance(self.native_list_contact, str)
+                or (self.native_list_contact and (self.engine != 'GOWS'
+                    or not isinstance(self.native_list_contact, str)
+                    or not VALID_CONTACT.fullmatch(self.native_list_contact)
+                    or self.native_list_contact == self.account))):
             raise Blocked('Escopo do piloto invalido')
 
     @classmethod
@@ -88,6 +94,7 @@ class Config:
             _secret(os.getenv('SOCIALMEI_MENU_WAHA_KEY_FILE', '')),
             engine,
             os.getenv('SOCIALMEI_MENU_WAHA_URL', ''),
+            os.getenv('SOCIALMEI_MENU_GOWS_LIST_CANARY_CONTACT', '').removeprefix('waha:'),
         )
 
 
@@ -116,20 +123,53 @@ def _json(response, maximum=16384):
     return data
 
 
+def _plain(value, maximum):
+    return (isinstance(value, str) and bool(value.strip())
+            and len(value.encode('utf-8')) <= maximum
+            and not any((ord(c) < 32 and c not in '\n\r\t') or 0x7f <= ord(c) <= 0x9f for c in value))
+
+
 def _delivery(data, cfg):
     if not isinstance(data, dict) or set(data) != {'path', 'body'}:
         raise Blocked('Entrega inesperada')
-    if data['path'] != '/api/sendText':
-        raise Blocked('Somente menu textual autorizado')
     body = data['body']
-    if (not isinstance(body, dict) or set(body) != {'session', 'chatId', 'text'}
-            or body['session'] != cfg.session
-            or not isinstance(body['chatId'], str) or not VALID_CONTACT.fullmatch(body['chatId'])
-            or body['chatId'] == cfg.account
-            or not isinstance(body['text'], str) or not body['text'].strip()
-            or len(body['text'].encode('utf-8')) > 4096
-            or any((ord(c) < 32 and c not in '\n\r\t') or 0x7f <= ord(c) <= 0x9f for c in body['text'])):
-        raise Blocked('Contato ou conteudo fora do piloto')
+    if (not isinstance(body, dict) or body.get('session') != cfg.session
+            or not isinstance(body.get('chatId'), str) or not VALID_CONTACT.fullmatch(body['chatId'])
+            or body['chatId'] == cfg.account):
+        raise Blocked('Contato fora do escopo')
+    if data['path'] == '/api/sendText':
+        if set(body) != {'session', 'chatId', 'text'} or not _plain(body['text'], 4096):
+            raise Blocked('Texto invalido')
+    elif data['path'] == '/api/sendList':
+        if (cfg.engine != 'GOWS' or not cfg.native_list_contact
+                or body['chatId'] != cfg.native_list_contact
+                or set(body) != {'session', 'chatId', 'message'}):
+            raise Blocked('Lista fora do contato de homologacao')
+        message = body['message']
+        if (not isinstance(message, dict)
+                or set(message) != {'title', 'description', 'footer', 'button', 'sections'}
+                or not all(_plain(message[k], 4096 if k == 'description' else 60)
+                           for k in ['title', 'description', 'footer', 'button'])
+                or not isinstance(message['sections'], list) or len(message['sections']) != 1):
+            raise Blocked('Lista invalida')
+        section = message['sections'][0]
+        if (not isinstance(section, dict) or set(section) != {'title', 'rows'}
+                or not _plain(section['title'], 60) or not isinstance(section['rows'], list)
+                or not 1 <= len(section['rows']) <= 6):
+            raise Blocked('Secao invalida')
+        ids = []
+        for row in section['rows']:
+            if (not isinstance(row, dict) or set(row) != {'rowId', 'title', 'description'}
+                    or not isinstance(row['rowId'], str)
+                    or row['rowId'] not in {'0', '1', '2', '3', '4', '5'}
+                    or not _plain(row['title'], 60)
+                    or (row['description'] is not None and not _plain(row['description'], 72))):
+                raise Blocked('Opcao invalida')
+            ids.append(row['rowId'])
+        if len(ids) != len(set(ids)):
+            raise Blocked('Opcoes duplicadas')
+    else:
+        raise Blocked('Operacao nao autorizada')
     return body
 
 
@@ -203,7 +243,7 @@ def run_once(cfg, *, client_factory=httpx.Client):
                     or not isinstance(current.get('me'), dict)
                     or current['me'].get('id') != cfg.account):
                 raise Blocked('Sessao mudou apos claim')
-            sent = request(waha, 'POST', cfg.waha_url + '/api/sendText', headers=provider, data=body)
+            sent = request(waha, 'POST', cfg.waha_url + claimed['delivery']['path'], headers=provider, data=body)
             receipt = sent.get('id')
             if isinstance(receipt, dict):
                 receipt = receipt.get('_serialized')

@@ -54,6 +54,20 @@ class BotClosedContracts(unittest.TestCase):
         self.assertEqual(response.status_code, 503)
         self.assertEqual(response.headers['cache-control'], 'no-store')
 
+    def test_native_canary_is_off_by_default_and_bound_to_one_contact_workspace_and_engine(self):
+        from whatsapp_bot import native_list_canary
+        channel=dict(workspace_id=1,channel_id=1,instancia='socialmei-equipe-piloto',sessao='01')
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertFalse(native_list_canary(channel,'waha:222@c.us'))
+        with patch.dict(os.environ, {'SOCIALMEI_MENU_GOWS_LIST_CANARY_ACTIVE':'YES',
+             'SOCIALMEI_MENU_WAHA_ENGINE':'GOWS','SOCIALMEI_MENU_GOWS_LIST_CANARY_CONTACT':'waha:222@c.us'}):
+            self.assertTrue(native_list_canary(channel,'waha:222@c.us'))
+            self.assertFalse(native_list_canary(channel,'waha:333@c.us'))
+            self.assertFalse(native_list_canary({**channel,'workspace_id':2},'waha:222@c.us'))
+            self.assertFalse(native_list_canary({**channel,'sessao':'other'},'waha:222@c.us'))
+            with patch.dict(os.environ, {'SOCIALMEI_MENU_WAHA_ENGINE':'WEBJS'}):
+                self.assertFalse(native_list_canary(channel,'waha:222@c.us'))
+
     def test_menu_renderer_is_explicit_about_engine_support(self):
         from whatsapp_bot import render_waha
         choices = [{'id': '1', 'title': 'Ver produtos'}, {'id': '5', 'title': 'Atendente'}]

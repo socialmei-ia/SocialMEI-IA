@@ -93,9 +93,15 @@ def rollback():
  wait_api();private('rollback-result.json',{'webjs_restored':True,'old_messages_replayed':False,'message_data_restored':False,'source_cutoff':activation});print('WEBJS_RESTORED_NO_REPLAY',flush=True)
 
 ROOT.mkdir(mode=0o700,exist_ok=True)
-mode=next((a for a in sys.argv[1:] if a in ['--prepare','--apply','--rollback']), '--preflight')
-if mode=='--rollback':
- manifest=json.loads((ROOT/'manifest.private.json').read_text());before=manifest['before'];channel=manifest['channel'];target=manifest['target'];backups=manifest['backups'];changed=manifest['changed'];stamp=manifest['stamp'];statefile=pathlib.Path(manifest['statefile']);rollback();sys.exit(0)
+mode=next((a for a in sys.argv[1:] if a in ['--prepare','--apply','--rollback','--rollback-check']), '--preflight')
+if mode in {'--rollback','--rollback-check'}:
+ manifest=json.loads((ROOT/'manifest.private.json').read_text());before=manifest['before'];channel=manifest['channel'];target=manifest['target'];backups=manifest['backups'];changed=manifest['changed'];stamp=manifest['stamp'];statefile=pathlib.Path(manifest['statefile'])
+ if mode=='--rollback-check':
+  assert pending()==0
+  assert all(inspect(name)['State']['Status']=='exited' for name in backups.values())
+  assert inspect('socialmei-waha')['State']['Running']
+  print('ROLLBACK_PREFLIGHT_PASSED_WEBJS_PRESERVED');sys.exit(0)
+ rollback();sys.exit(0)
 if (ROOT/'manifest.private.json').exists():raise RuntimeError('reconcile_existing_cutover_before_reentry')
 before={n:inspect(n) for n in NAMES};gows=inspect(GOWS);key=env(gows)['WAHA_API_KEY']
 s=provider('GET','/api/sessions/01');v=provider('GET','/api/version');assert s['http']==200 and s['body']['status']=='WORKING';assert v['http']==200 and v['body']['engine']=='GOWS' and v['body']['version']=='2026.10.1'
