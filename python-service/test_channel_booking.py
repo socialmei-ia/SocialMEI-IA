@@ -168,6 +168,31 @@ class ChannelBookingDatabaseTests(unittest.TestCase):
         self.assertEqual(changed.status_code, 200, changed.text)
         self.assertEqual(self.confirm(token).status_code, 409)
 
+    def test_lost_response_retry_survives_expiry_and_policy_change_without_new_booking(self):
+        token = self.offer()
+        other_context = self.incoming('333@c.us')
+        pending = self.offer(other_context)
+        created = self.confirm(token)
+        self.assertEqual(created.status_code, 200, created.text)
+        # The first response was lost; an expired offer may identify an existing
+        # operation, but it must never authorize a new booking.
+        with patch('channel_booking.datetime', wraps=datetime) as clock:
+            clock.now.return_value = datetime.now(timezone.utc) + timedelta(minutes=20)
+            self.assertEqual(self.confirm(token).json(), created.json())
+            self.assertEqual(self.confirm(pending, other_context).status_code, 409)
+        changed = self.client.put(PATH, json={'expected_revision': 1,
+                                             'policy': {**self.policy, 'enabled': False}})
+        self.assertEqual(changed.status_code, 200, changed.text)
+        self.assertEqual(self.confirm(token).json(), created.json())
+        self.assertEqual(self.confirm(pending, other_context).status_code, 409)
+        self.assertEqual(self.confirm(token, other_context).status_code, 409)
+        self.assertEqual(self.confirm(token[:-1]).status_code, 409)
+        with psycopg.connect(accounts.DB) as conn:
+            self.assertEqual(conn.execute('SELECT count(*) FROM socialmei.agenda_appointments '
+                'WHERE workspace_id=%s', (self.workspace,)).fetchone()[0], 1)
+            self.assertEqual(conn.execute('SELECT count(*) FROM socialmei.agenda_appointment_history '
+                'WHERE workspace_id=%s', (self.workspace,)).fetchone()[0], 1)
+
     def test_two_contacts_compete_for_one_slot_and_only_one_is_committed(self):
         second = self.incoming('333@c.us')
         tokens = [(self.offer(), self.context), (self.offer(second), second)]

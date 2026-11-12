@@ -325,7 +325,8 @@ def slots_for_message(workspace_id, conversation_id, source_message_id, origin, 
 
 def confirm_for_message(workspace_id, conversation_id, source_message_id, origin, confirmation,
                         signing_key, *, confirmed=False, connection=None):
-    from appointments import AppointmentCreate, service, lock_workspace, lock_resource, create_appointment_in
+    from appointments import (AppointmentCreate, service, lock_workspace, lock_resource,
+                              existing_appointment_in, create_appointment_in)
     if confirmed is not True:
         raise HTTPException(409, 'Confirme os detalhes antes de agendar.')
     value = decode_confirmation(confirmation, signing_key)
@@ -333,23 +334,28 @@ def confirm_for_message(workspace_id, conversation_id, source_message_id, origin
     with transaction(connection) as conn:
         lock_workspace(conn, workspace_id)
         context = context_for_message(conn, workspace_id, conversation_id, source_message_id, origin)
-        policy, policy_hash = active_policy(conn, workspace_id)
-        if value['binding'] != context['binding'] or value['policy'] != policy_hash:
+        if value['binding'] != context['binding']:
             raise HTTPException(409, 'A conversa ou as condições mudaram. Consulte os horários novamente.')
         try:
             start = datetime.fromisoformat(value['start'])
-            if start.tzinfo is None or type(value['expires']) is not int or value['expires'] < now.timestamp():
+            if start.tzinfo is None or type(value['expires']) is not int:
                 raise ValueError()
             resource_id = UUID(value['resource'])
         except (ValueError, TypeError):
             raise HTTPException(409, 'Esta opção de horário expirou. Consulte os horários novamente.') from None
+        operation = uuid5(NAMESPACE_URL, 'socialmei-channel-booking-v1:' + confirmation)
+        payload = AppointmentCreate(operation_id=operation, cliente_id=context['cliente_id'],
+            servico_id=value['service'], resource_id=resource_id, scheduled_for=start,
+            notes='Agendamento confirmado pelo canal ' + origin + '; conversa ' + str(conversation_id) + '.')
+        previous = existing_appointment_in(conn, workspace_id, payload)
+        if previous is not None:
+            return previous
+        policy, policy_hash = active_policy(conn, workspace_id)
+        if value['policy'] != policy_hash or value['expires'] < now.timestamp():
+            raise HTTPException(409, 'Esta opção de horário expirou ou mudou. Consulte os horários novamente.')
         resource = lock_resource(conn, workspace_id, resource_id)
         item = service(conn, workspace_id, value['service'])
         if (item['versao'] != value['service_revision'] or resource['revision'] != value['resource_revision']
                 or not allowed_start(policy, start, item['duracao_minutos'], now)):
             raise HTTPException(409, 'O serviço ou horário mudou. Consulte a disponibilidade novamente.')
-        operation = uuid5(NAMESPACE_URL, 'socialmei-channel-booking-v1:' + confirmation)
-        payload = AppointmentCreate(operation_id=operation, cliente_id=context['cliente_id'],
-            servico_id=value['service'], resource_id=resource_id, scheduled_for=start,
-            notes='Agendamento confirmado pelo canal ' + origin + '; conversa ' + str(conversation_id) + '.')
         return create_appointment_in(conn, workspace_id, payload)

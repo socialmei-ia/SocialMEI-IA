@@ -290,8 +290,8 @@ def create_appointment(payload: AppointmentCreate):
         return create_appointment_in(conn, user["workspace_id"], payload)
 
 
-def create_appointment_in(conn, workspace_id, payload):
-    """Shared transaction for the authenticated site and authorized channel adapters."""
+def existing_appointment_in(conn, workspace_id, payload):
+    """Serialize retries and return only an exact operation already persisted."""
     value = fingerprint(payload)
     lock_workspace(conn, workspace_id)
     conn.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s,0))", (f"appointment:{workspace_id}:{payload.operation_id}",))
@@ -301,6 +301,15 @@ def create_appointment_in(conn, workspace_id, payload):
             raise HTTPException(409, "Identificador já usado para outro agendamento.")
         resource = conn.execute("SELECT nome FROM socialmei.agenda_resources WHERE workspace_id=%s AND id=%s", (workspace_id, previous["resource_id"])).fetchone()
         return view({**previous, "resource_name": resource["nome"]})
+    return None
+
+
+def create_appointment_in(conn, workspace_id, payload):
+    """Shared transaction for the authenticated site and authorized channel adapters."""
+    previous = existing_appointment_in(conn, workspace_id, payload)
+    if previous is not None:
+        return previous
+    value = fingerprint(payload)
     resource = lock_resource(conn, workspace_id, payload.resource_id)
     item = service(conn, workspace_id, payload.servico_id)
     client = conn.execute("SELECT nome FROM socialmei.crm_clientes WHERE workspace_id=%s AND id=%s FOR SHARE", (workspace_id, payload.cliente_id)).fetchone()
