@@ -87,8 +87,8 @@ def respond(conn, channel, message, state, *, native=False):
                         [option('6', 'Consultar horários', 'services'), *navigation()], native)
 
 
-def advance(conn, channel, message, target, native):
-    context = (channel['workspace_id'], message['conversation_id'], message['id'], 'waha')
+def advance(conn, channel, message, target, native, *, origin='waha'):
+    context = (channel['workspace_id'], message['conversation_id'], message['id'], origin)
     step = target.get('step')
     page = target.get('page', 0)
     if type(page) is not int or not 0 <= page <= 100:
