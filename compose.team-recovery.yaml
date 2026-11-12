@@ -11,6 +11,7 @@ services:
       SOCIALMEI_SMTP_FROM: ${SOCIALMEI_SMTP_FROM:-}
 
   team-recovery-worker:
+    profiles: [recovery-mail]
     build:
       context: ./python-service
     command:
