@@ -1,0 +1,15 @@
+# Optional external AI inference. Never use this override without explicit
+# per-workspace approval, private API key, and a reviewed outbound policy.
+# Normal compose.team.yaml leaves team-api on internal-only networks.
+services:
+  team-api:
+    environment:
+      SOCIALMEI_AI_DRAFT_ENABLED: ${SOCIALMEI_AI_DRAFT_ENABLED:-false}
+      SOCIALMEI_AI_DRAFT_WORKSPACES: ${SOCIALMEI_AI_DRAFT_WORKSPACES:-}
+      SOCIALMEI_GROQ_API_KEY: ${SOCIALMEI_GROQ_API_KEY:-}
+      SOCIALMEI_AI_DRAFT_MODEL: ${SOCIALMEI_AI_DRAFT_MODEL:-openai/gpt-oss-20b}
+    networks: [database, api, automation, ai-egress]
+
+networks:
+  ai-egress:
+    driver: bridge
