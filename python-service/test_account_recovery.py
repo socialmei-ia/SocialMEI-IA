@@ -361,3 +361,40 @@ class WorkerSafetyTests(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 recovery_worker.main()
             process.assert_not_called()
+
+    def test_worker_watch_is_opt_in_bounded_and_quiet(self):
+        import recovery_worker
+
+        with patch("sys.argv", ["recovery_worker.py", "--run", "--watch",
+                                "--limit", "2", "--interval", "5"]), patch(
+            "recovery_worker.process_one", side_effect=[True, True, False]
+        ) as process, patch(
+            "recovery_worker.time.sleep", side_effect=KeyboardInterrupt
+        ) as delay:
+            self.assertEqual(recovery_worker.main(), 0)
+        self.assertEqual(process.call_count, 2)
+        delay.assert_called_once_with(5)
+
+    def test_worker_stops_and_does_not_retry_smtp_failure(self):
+        import recovery_worker
+
+        with patch("sys.argv", ["recovery_worker.py", "--run", "--watch",
+                                "--interval", "5"]), patch(
+            "recovery_worker.process_one", side_effect=RuntimeError("private SMTP error")
+        ) as process, patch("recovery_worker.time.sleep") as delay:
+            self.assertEqual(recovery_worker.main(), 1)
+        process.assert_called_once()
+        delay.assert_not_called()
+
+    def test_worker_rejects_invalid_limits_without_sending(self):
+        import recovery_worker
+
+        for args in (["--watch"], ["--run", "--limit", "0"],
+                     ["--run", "--interval", "1"], ["--run", "--limit", "101"]):
+            with self.subTest(args=args), patch("sys.argv", ["worker.py", *args]), patch(
+                "recovery_worker.process_one"
+            ) as process:
+                with self.assertRaises(SystemExit):
+                    recovery_worker.main()
+                process.assert_not_called()
+
