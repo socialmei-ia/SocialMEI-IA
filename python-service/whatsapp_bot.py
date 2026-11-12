@@ -1,5 +1,7 @@
 """Durable replies for verified WAHA inputs. This module never sends a message."""
 import os
+import whatsapp_catalog_navigation as navigation
+import re
 import hashlib
 import json
 from contextlib import contextmanager
@@ -108,13 +110,37 @@ def view(row):
             'source_message_id': row['source_message_id'], 'conversation_id': row['conversation_id']}
 
 
+def _catalog_answer(conn, workspace, state, text, target, enabled):
+    if not enabled or state == 'human':
+        return answer(conn, workspace, state, text)
+    if target is not None:
+        return navigation.respond(conn, workspace, target)
+    command = globals().get('canonical_choice', lambda value: value.strip().casefold())(text)
+    routes = {'0': {'route':'main'}, '1': {'route':'browse','kind':'Produto'},
+              '2': {'route':'browse','kind':'Produto'}, '3': {'route':'browse','kind':'Serviço'},
+              '4': {'route':'quote'}, '5': {'route':'human'}}
+    if state == 'ask_product' and command not in routes:
+        return navigation.browse(conn, workspace, {'route':'browse','kind':'Produto','query':text})
+    return navigation.respond(conn, workspace, routes.get(command, {'route':'main'}))
+
+
+def native_list_canary(channel, contact):
+    return (
+        os.getenv('SOCIALMEI_MENU_GOWS_LIST_CANARY_ACTIVE') == 'YES'
+        and os.getenv('SOCIALMEI_MENU_WAHA_ENGINE') == 'GOWS'
+        and (channel['workspace_id'], channel['channel_id'], channel['instancia'], channel['sessao'])
+        == (1, 1, 'socialmei-equipe-piloto', '01')
+        and contact in navigation.configured_contacts(os.environ)
+    )
+
+
 def render_waha(session, chat, text, choices, *, engine='WEBJS', list_verified=False):
     """Construct a payload, not an HTTP call. Text is the verified default."""
     if choices and list_verified and engine in {'GOWS', 'NOWEB'}:
         return {'path': '/api/sendList', 'body': {'session': session, 'chatId': chat, 'message': {
             'title': 'Atendimento', 'description': text, 'footer': 'SocialMEI', 'button': 'Ver opções',
             'sections': [{'title': 'Como podemos ajudar?', 'rows': [
-                {'rowId': c['id'], 'title': c['title'], 'description': None} for c in choices
+                {'rowId': c['id'], 'title': c['title'], 'description': c.get('description')} for c in choices
             ]}],
         }}}
     menu = '\n'.join(c['id'] + ' - ' + c['title'] for c in choices)
@@ -382,7 +408,7 @@ def prepare(payload: Source, request: Request):
             raise HTTPException(401, 'Credencial de atendimento inválida.')
         workspace, cid = channel['workspace_id'], channel['channel_id']
         message = conn.execute(
-            "SELECT m.*,v.contact_ref FROM socialmei.crm_eventos_canal e "
+            "SELECT m.*,v.contact_ref,e.dados_normalizados AS ingress_data FROM socialmei.crm_eventos_canal e "
             "JOIN socialmei.me_messages m ON m.workspace_id=e.workspace_id AND m.id=e.inbox_message_id AND m.origin='waha' "
             "JOIN socialmei.me_conversations v ON v.workspace_id=m.workspace_id AND v.id=m.conversation_id "
             "WHERE e.workspace_id=%s AND e.canal_id=%s AND e.mensagem_externa_id=%s AND e.status='processado' "
@@ -403,6 +429,14 @@ def prepare(payload: Source, request: Request):
                                 (workspace, cid, message['id'])).fetchone()
         if existing:
             return view(existing)
+        nav_enabled = native_list_canary(channel, message['contact_ref'])
+        metadata = message.get('ingress_data') or {}
+        token = metadata.get('wa_selection')
+        if nav_enabled and navigation.valid_token(token):
+            message['catalog_target'] = navigation.resolve(conn, channel, conv, token)
+            if message['catalog_target'].get('route') == 'resume' and not pending_human_reply(conn, workspace, cid, conv):
+                message['text'] = '0'
+                state['state'] = 'menu'
         now = datetime.now(timezone.utc)
         old = message['occurred_at'] < now - timedelta(minutes=15) or message['occurred_at'] > now + timedelta(minutes=1)
         outdated = state['last_occurred_at'] is not None and (message['occurred_at'], message['id']) < (state['last_occurred_at'], state['last_message_id'])
@@ -418,7 +452,7 @@ def prepare(payload: Source, request: Request):
                 next_state = state['state']
                 result = {'action': 'rate_limited', 'text': '', 'choices': [], 'items': [], 'handoff': False}
             else:
-                next_state, result = answer(conn, workspace, state['state'], message['text'])
+                next_state, result = _catalog_answer(conn, workspace, state['state'], message['text'], message.get('catalog_target'), nav_enabled)
         revision = state['revision'] + (0 if old or outdated else 1)
         if not old and not outdated:
             conn.execute("UPDATE socialmei.wa_bot_conversations SET state=%s,revision=%s,"
@@ -459,7 +493,8 @@ def claim(decision_id: UUID, payload: Strict, request: Request):
         if not permitted:
             return {'operation_id': str(row['id']), 'dispatch_allowed': False, 'status': row['status']}
         conn.execute("UPDATE socialmei.wa_bot_decisions SET status='claimed',claimed_at=NOW() WHERE id=%s", (decision_id,))
-        delivery = render_waha(channel['sessao'], state['contact_ref'].removeprefix('waha:'), row['result']['text'], row['result']['choices'])
+        delivery = render_waha(channel['sessao'], state['contact_ref'].removeprefix('waha:'), row['result']['text'], (navigation.offered_choices(row) if row['result'].get('catalog_navigation') else row['result']['choices']),
+                               engine='GOWS', list_verified=native_list_canary(channel, state['contact_ref']))
         return {'operation_id': str(row['id']), 'dispatch_allowed': True, 'status': 'claimed', 'delivery': delivery}
 
 

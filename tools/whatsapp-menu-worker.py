@@ -12,9 +12,14 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import httpx
+def valid_token(value):
+    return isinstance(value, str) and re.fullmatch(r'sm:[0-9a-f]{32}:[0-9]', value) is not None
+
 
 API_URL = 'http://socialmei-menu-public-api-v3:8019'
 WAHA_URL = 'http://socialmei-waha:3000'
+GOWS_URL = 'http://socialmei-waha-gows-piloto:3000'
+WAHA_ENDPOINTS = {'WEBJS': WAHA_URL, 'GOWS': GOWS_URL}
 SOURCE_URL = '/internal/whatsapp/bot/sources'
 VALID_CONTACT = re.compile(r'(?:[0-9]{1,40}@c\.us|[A-Za-z0-9][A-Za-z0-9_.:-]{0,79}@lid)\Z')
 VALID_ACCOUNT = re.compile(r'[0-9]{1,40}@c\.us\Z')
@@ -47,6 +52,18 @@ def _secret(path: str) -> str:
     return value
 
 
+def _native_contacts():
+    raw=os.getenv('SOCIALMEI_MENU_GOWS_LIST_CONTACTS_JSON','')
+    if not raw:return ()
+    try:values=json.loads(raw)
+    except ValueError:raise Blocked('Configuracao de listas invalida') from None
+    if (not isinstance(values,list) or not 1<=len(values)<=20
+            or any(not isinstance(c,str) or not c.startswith('waha:') or not VALID_CONTACT.fullmatch(c[5:]) for c in values)
+            or len(set(values))!=len(values)):
+        raise Blocked('Configuracao de listas invalida')
+    return tuple(c[5:] for c in values)
+
+
 @dataclass(frozen=True, repr=False)
 class Config:
     instance: str
@@ -54,13 +71,29 @@ class Config:
     account: str
     token: str
     waha_key: str
+    engine: str = 'WEBJS'
+    waha_url: str = WAHA_URL
+    native_list_contact: str = ''
+    native_list_contacts: tuple[str, ...] = ()
 
     def __post_init__(self):
         if (not VALID_INSTANCE.fullmatch(self.instance)
                 or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,159}', self.session)
                 or not VALID_ACCOUNT.fullmatch(self.account)
                 or not re.fullmatch(r'[!-~]{16,4096}', self.token)
-                or not re.fullmatch(r'[!-~]{16,4096}', self.waha_key)):
+                or not re.fullmatch(r'[!-~]{16,4096}', self.waha_key)
+                or self.engine not in WAHA_ENDPOINTS
+                or self.waha_url != WAHA_ENDPOINTS.get(self.engine)
+                or (self.engine == 'GOWS' and self.session != '01')
+                or not isinstance(self.native_list_contact, str)
+                or (self.native_list_contact and (self.engine != 'GOWS'
+                    or not isinstance(self.native_list_contact, str)
+                    or not VALID_CONTACT.fullmatch(self.native_list_contact)
+                    or self.native_list_contact == self.account))
+                or not isinstance(self.native_list_contacts, tuple)
+                or len(self.native_list_contacts)>20
+                or any(self.engine!='GOWS' or not isinstance(c,str) or not VALID_CONTACT.fullmatch(c) or c==self.account for c in self.native_list_contacts)
+                or len(set(self.native_list_contacts))!=len(self.native_list_contacts)):
             raise Blocked('Escopo do piloto invalido')
 
     @classmethod
@@ -68,8 +101,10 @@ class Config:
         if (os.getenv('SOCIALMEI_MENU_SENDER_ACTIVE') != 'YES'
                 or os.getenv('SOCIALMEI_PUBLIC_MENU_EXPLICIT_ENABLE') != 'YES'):
             raise Blocked('Envio automatico nao autorizado')
+        engine = os.getenv('SOCIALMEI_MENU_WAHA_ENGINE', 'WEBJS')
         if (os.getenv('SOCIALMEI_MENU_API_URL') != API_URL
-                or os.getenv('SOCIALMEI_MENU_WAHA_URL') != WAHA_URL):
+                or engine not in WAHA_ENDPOINTS
+                or os.getenv('SOCIALMEI_MENU_WAHA_URL') != WAHA_ENDPOINTS.get(engine)):
             raise Blocked('Destino privado nao autorizado')
         return cls(
             os.getenv('SOCIALMEI_MENU_INSTANCE', ''),
@@ -77,6 +112,10 @@ class Config:
             os.getenv('SOCIALMEI_MENU_ACCOUNT', ''),
             _secret(os.getenv('SOCIALMEI_MENU_TOKEN_FILE', '')),
             _secret(os.getenv('SOCIALMEI_MENU_WAHA_KEY_FILE', '')),
+            engine,
+            os.getenv('SOCIALMEI_MENU_WAHA_URL', ''),
+            os.getenv('SOCIALMEI_MENU_GOWS_LIST_CANARY_CONTACT', '').removeprefix('waha:'),
+            _native_contacts(),
         )
 
 
@@ -105,20 +144,52 @@ def _json(response, maximum=16384):
     return data
 
 
+def _plain(value, maximum):
+    return (isinstance(value, str) and bool(value.strip())
+            and len(value.encode('utf-8')) <= maximum
+            and not any((ord(c) < 32 and c not in '\n\r\t') or 0x7f <= ord(c) <= 0x9f for c in value))
+
+
 def _delivery(data, cfg):
     if not isinstance(data, dict) or set(data) != {'path', 'body'}:
         raise Blocked('Entrega inesperada')
-    if data['path'] != '/api/sendText':
-        raise Blocked('Somente menu textual WEBJS')
     body = data['body']
-    if (not isinstance(body, dict) or set(body) != {'session', 'chatId', 'text'}
-            or body['session'] != cfg.session
-            or not isinstance(body['chatId'], str) or not VALID_CONTACT.fullmatch(body['chatId'])
-            or body['chatId'] == cfg.account
-            or not isinstance(body['text'], str) or not body['text'].strip()
-            or len(body['text'].encode('utf-8')) > 4096
-            or any((ord(c) < 32 and c not in '\n\r\t') or 0x7f <= ord(c) <= 0x9f for c in body['text'])):
-        raise Blocked('Contato ou conteudo fora do piloto')
+    if (not isinstance(body, dict) or body.get('session') != cfg.session
+            or not isinstance(body.get('chatId'), str) or not VALID_CONTACT.fullmatch(body['chatId'])
+            or body['chatId'] == cfg.account):
+        raise Blocked('Contato fora do escopo')
+    if data['path'] == '/api/sendText':
+        if set(body) != {'session', 'chatId', 'text'} or not _plain(body['text'], 4096):
+            raise Blocked('Texto invalido')
+    elif data['path'] == '/api/sendList':
+        if (cfg.engine != 'GOWS' or body['chatId'] not in (cfg.native_list_contacts or (cfg.native_list_contact,))
+                or set(body) != {'session', 'chatId', 'message'}):
+            raise Blocked('Lista fora do contato de homologacao')
+        message = body['message']
+        if (not isinstance(message, dict)
+                or set(message) != {'title', 'description', 'footer', 'button', 'sections'}
+                or not all(_plain(message[k], 4096 if k == 'description' else 60)
+                           for k in ['title', 'description', 'footer', 'button'])
+                or not isinstance(message['sections'], list) or len(message['sections']) != 1):
+            raise Blocked('Lista invalida')
+        section = message['sections'][0]
+        if (not isinstance(section, dict) or set(section) != {'title', 'rows'}
+                or not _plain(section['title'], 60) or not isinstance(section['rows'], list)
+                or not 1 <= len(section['rows']) <= 10):
+            raise Blocked('Secao invalida')
+        ids = []
+        for row in section['rows']:
+            if (not isinstance(row, dict) or set(row) != {'rowId', 'title', 'description'}
+                    or not isinstance(row['rowId'], str)
+                    or (row['rowId'] not in {'0', '1', '2', '3', '4', '5'} and not valid_token(row['rowId']))
+                    or not _plain(row['title'], 96) or len(row['title'])>24
+                    or (row['description'] is not None and (not _plain(row['description'], 288) or len(row['description'])>72))):
+                raise Blocked('Opcao invalida')
+            ids.append(row['rowId'])
+        if len(ids) != len(set(ids)):
+            raise Blocked('Opcoes duplicadas')
+    else:
+        raise Blocked('Operacao nao autorizada')
     return body
 
 
@@ -163,7 +234,11 @@ def run_once(cfg, *, client_factory=httpx.Client):
             return 'SEM_ENVIO_AUTORIZADO'
 
         # Preflight antes do claim. O contato so aparece no payload assinado do claim.
-        session = request(waha, 'GET', WAHA_URL + '/api/sessions/' + cfg.session, headers=provider)
+        if cfg.engine == 'GOWS':
+            version = request(waha, 'GET', cfg.waha_url + '/api/version', headers=provider)
+            if version.get('engine') != 'GOWS':
+                raise Blocked('Engine WAHA diferente da configurada')
+        session = request(waha, 'GET', cfg.waha_url + '/api/sessions/' + cfg.session, headers=provider)
         if (session.get('name') != cfg.session or session.get('status') != 'WORKING'
                 or not isinstance(session.get('me'), dict)
                 or session['me'].get('id') != cfg.account):
@@ -179,12 +254,16 @@ def run_once(cfg, *, client_factory=httpx.Client):
         try:
             body = _delivery(claimed.get('delivery'), cfg)
             # Revalidar sessao apos claim: qualquer erro exige conciliação, nao retry.
-            current = request(waha, 'GET', WAHA_URL + '/api/sessions/' + cfg.session, headers=provider)
+            if cfg.engine == 'GOWS':
+                version = request(waha, 'GET', cfg.waha_url + '/api/version', headers=provider)
+                if version.get('engine') != 'GOWS':
+                    raise Blocked('Engine WAHA mudou apos claim')
+            current = request(waha, 'GET', cfg.waha_url + '/api/sessions/' + cfg.session, headers=provider)
             if (current.get('name') != cfg.session or current.get('status') != 'WORKING'
                     or not isinstance(current.get('me'), dict)
                     or current['me'].get('id') != cfg.account):
                 raise Blocked('Sessao mudou apos claim')
-            sent = request(waha, 'POST', WAHA_URL + '/api/sendText', headers=provider, data=body)
+            sent = request(waha, 'POST', cfg.waha_url + claimed['delivery']['path'], headers=provider, data=body)
             receipt = sent.get('id')
             if isinstance(receipt, dict):
                 receipt = receipt.get('_serialized')

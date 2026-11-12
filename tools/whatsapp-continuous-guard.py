@@ -74,7 +74,7 @@ def serve(journal, config, *, poll=run_once, sleep=time.sleep, clock=time.time):
         def request(self, method, url, **kwargs):
             if method == 'GET' and url == API_URL + SOURCE_URL:
                 kwargs['timeout'] = httpx.Timeout(15, connect=2)
-            if method == 'POST' and url == WAHA_URL + '/api/sendText':
+            if method == 'POST' and url in {config.waha_url + '/api/sendText', config.waha_url + '/api/sendList'}:
                 journal.before_send(json.loads(kwargs['content']), clock())
             return super().request(method, url, **kwargs)
 

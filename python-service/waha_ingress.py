@@ -13,6 +13,8 @@ from types import MappingProxyType
 
 import psycopg
 from psycopg.rows import dict_row
+from psycopg.types.json import Jsonb
+from whatsapp_catalog_navigation import valid_token
 from fastapi import APIRouter, Depends, HTTPException, Request
 from starlette.concurrency import run_in_threadpool
 
@@ -34,6 +36,8 @@ class WahaBinding:
     channel_id: int = field(repr=False)
     hmac_key: str = field(repr=False)
     revision: int = 1
+    engine: str = 'WEBJS'  # Explicit per-channel cutover; legacy registries stay WEBJS.
+    ingress_after: int = 0
 
     def __post_init__(self):
         if (
@@ -49,6 +53,9 @@ class WahaBinding:
             or not 1 <= self.workspace_id <= 2**63 - 1
             or type(self.channel_id) is not int
             or not 1 <= self.channel_id <= 2**63 - 1
+            or self.engine not in {'WEBJS', 'GOWS'}
+            or type(self.ingress_after) is not int
+            or not 0 <= self.ingress_after <= 4102444800
             or type(self.revision) is not int
             or not 1 <= self.revision <= 2**63 - 1
             or not isinstance(self.hmac_key, str)
@@ -68,6 +75,7 @@ class WahaEvent:
     detail_hash: str | None = field(default=None, repr=False)
     ack: int | None = None
     account_id: str = field(default="", repr=False)
+    selection: str | None = field(default=None, repr=False)
 
     @property
     def event_key(self):
@@ -89,7 +97,7 @@ class WahaEvent:
                 self.text,
                 self.detail_hash,
                 self.ack,
-            ]
+            ] + ([self.selection] if self.selection else [])
         )
 
     @property
@@ -148,6 +156,22 @@ def _time(value, *, milliseconds=False):
     )
 
 
+def _gows_list_choices(raw_data):
+    """Read the observed Go protobuf fields, including the optional raw mirror."""
+    if not isinstance(raw_data, dict):
+        return []
+    choices = []
+    for name in ("Message", "RawMessage"):
+        message = raw_data.get(name)
+        if not isinstance(message, dict) or "listResponseMessage" not in message:
+            continue
+        selection = message["listResponseMessage"]
+        reply = selection.get("singleSelectReply") if isinstance(selection, dict) else None
+        value = reply.get("selectedRowID") if isinstance(reply, dict) else None
+        choices.append(value if isinstance(value, str) and (value in {"0", "1", "2", "3", "4", "5"} or valid_token(value)) else None)
+    return choices
+
+
 def parse_event(raw, signature, algorithm, binding):
     if not isinstance(raw, bytes) or not 1 <= len(raw) <= MAX_BODY:
         invalid()
@@ -189,7 +213,7 @@ def parse_event(raw, signature, algorithm, binding):
         or value["me"].get("id") != binding.account_id
     ):
         invalid()
-    if value.get("engine") != "WEBJS":
+    if value.get("engine") != binding.engine:
         invalid()
     if type(value.get("timestamp")) is not int:
         invalid()
@@ -210,6 +234,27 @@ def parse_event(raw, signature, algorithm, binding):
         invalid()
     sender = message.get("from")
     recipient = message.get("to", "") if event == "message.ack" else message.get("to")
+    # GOWS emits null or omits the destination of private messages. Infer only for a
+    # signed inbound direct message bound to this authenticated account.
+    # WEBJS and explicitly conflicting destinations remain strictly validated.
+    if (
+        recipient is None
+        and binding.engine == "GOWS"
+        and event in {"message", "message.any"}
+        and not from_me
+        and isinstance(sender, str)
+        and DIRECT.fullmatch(sender)
+        and message.get("participant") is None
+    ):
+        recipient = binding.account_id
+    elif (
+        recipient is None
+        and binding.engine == "GOWS"
+        and from_me
+        and event in {"message", "message.any"}
+    ):
+        # Outgoing copies are echo-only and never authorize a new send.
+        recipient = ""
     if (
         not isinstance(sender, str)
         or not isinstance(recipient, str)
@@ -218,7 +263,7 @@ def parse_event(raw, signature, algorithm, binding):
         or not re.fullmatch(r"[!-~]{1,255}", sender)
         or (
             not re.fullmatch(r"[!-~]{1,255}", recipient)
-            and not (event == "message.ack" and recipient == "")
+            and not ((event == "message.ack" or (binding.engine == "GOWS" and from_me)) and recipient == "")
         )
     ):
         invalid()
@@ -250,8 +295,14 @@ def parse_event(raw, signature, algorithm, binding):
         kind = "unsupported"
     if not from_me and kind == "message" and recipient != binding.account_id:
         invalid()
+    selection_token = None
     text = message.get("body")
     message_type = message.get("type", "chat")
+    native_choices = _gows_list_choices(message.get("_data")) if binding.engine == "GOWS" else []
+    if native_choices:
+        if "type" in message and message_type != "list_response":
+            native_choices = [None]
+        message_type = "list_response"
     if isinstance(message_type, str) and message_type in {"buttons_response", "list_response"}:
         raw_data = message.get("_data")
         raw_data = raw_data if isinstance(raw_data, dict) else {}
@@ -263,12 +314,15 @@ def parse_event(raw, signature, algorithm, binding):
             message.get("selectedButtonId"), message.get("selectedRowId"),
             raw_data.get("selectedButtonId"), reply.get("selectedRowId"),
         ]
-        choices = [value for value in choices if value is not None]
+        choices = [value for value in choices if value is not None] + native_choices
         text = choices[0] if choices else None
-        if not isinstance(text, str) or text not in {"0", "1", "2", "3", "4", "5", "9"} or any(value != text for value in choices):
+        if not isinstance(text, str) or (text not in {"0", "1", "2", "3", "4", "5", "9"} and not (binding.engine == "GOWS" and native_choices and valid_token(text))) or any(value != text for value in choices):
             text = None
         elif text == "9":
             text = "5"
+        elif valid_token(text):
+            selection_token = text
+            text = message.get("body") or "Opção selecionada"
     if (
         message["hasMedia"]
         or not isinstance(message_type, str)
@@ -307,6 +361,7 @@ def parse_event(raw, signature, algorithm, binding):
         text,
         details,
         account_id=binding.account_id,
+        selection=selection_token,
     )
 
 
@@ -364,6 +419,9 @@ class WahaIngressService:
             raise HTTPException(503, "Vínculo WAHA fora do piloto autorizado.")
         if not settings.waha_ingress_enabled():
             raise HTTPException(503, "Recepção WAHA não habilitada.")
+        if (binding.engine == 'GOWS' and incoming.kind == 'message'
+                and incoming.occurred_at.timestamp() < binding.ingress_after):
+            return {'processed': 0, 'ignored': 1, 'duplicates': 0}
         failed = False
         result = None
         try:
@@ -414,7 +472,7 @@ class WahaIngressService:
                             )
                     status = "processado" if message else "ignorado"
                     conn.execute(
-                        "INSERT INTO socialmei.crm_eventos_canal(workspace_id,canal_id,chave_evento,tipo,fingerprint,mensagem_externa_id,status,ocorrida_em,processado_em,waha_account_snapshot,waha_event_key,inbox_message_id,inbox_origin) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,NOW(),%s,%s,%s,'waha')",
+                        "INSERT INTO socialmei.crm_eventos_canal(workspace_id,canal_id,chave_evento,tipo,fingerprint,mensagem_externa_id,status,ocorrida_em,processado_em,waha_account_snapshot,waha_event_key,inbox_message_id,inbox_origin,dados_normalizados) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,NOW(),%s,%s,%s,'waha',%s)",
                         (
                             binding.workspace_id,
                             binding.channel_id,
@@ -427,6 +485,7 @@ class WahaIngressService:
                             binding.account_id,
                             incoming.event_key,
                             message["message_id"] if message else None,
+                            Jsonb({"wa_selection":incoming.selection} if incoming.selection else {}),
                         ),
                     )
                     result = {
@@ -484,6 +543,9 @@ def waha_service():
             if not isinstance(entry, dict):
                 raise ValueError()
             bindings.append(WahaBinding(**entry))
+            if (bindings[-1].engine == 'GOWS' and not bindings[-1].ingress_after
+                    and (settings.waha_ingress_team_pilot_enabled() or settings.waha_workspace_inbox_requested())):
+                raise ValueError()
         registry = {binding.instance: binding for binding in bindings}
         if len(registry) != len(bindings):
             raise ValueError()
