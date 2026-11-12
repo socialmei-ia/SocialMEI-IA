@@ -267,6 +267,84 @@ class CustomerLinkDatabaseTests(unittest.TestCase):
                     (self.workspace,),
                 ).fetchone()[0], 0)
 
+    def test_opt_in_ai_draft_requires_review_and_rejects_stale_or_foreign_conversations(self):
+        """The provider only suggests text; no WhatsApp/Instagram send is dispatched."""
+        with psycopg.connect(accounts.DB) as conn:
+            conversation = conn.execute(
+                "INSERT INTO socialmei.me_conversations"
+                "(workspace_id,channel,account_ref,contact_ref,contact_name,origin,revision) "
+                "VALUES(%s,'whatsapp','waha:111@c.us','waha:85999990001@c.us',"
+                "'Contato IA fictício','waha',1) RETURNING id", (self.workspace,),
+            ).fetchone()[0]
+        url = BASE + "/conversations/" + str(conversation) + "/assistant-draft"
+        settings = {
+            "SOCIALMEI_MESSAGE_ENRICHMENT_MODE": "disabled",
+            "SOCIALMEI_WAHA_INGRESS_MODE": "isolated",
+            "SOCIALMEI_WAHA_LAB_ENVIRONMENT": "isolated",
+            "SOCIALMEI_AI_DRAFT_ENABLED": "true",
+            "SOCIALMEI_AI_DRAFT_WORKSPACES": str(self.workspace),
+            "SOCIALMEI_GROQ_API_KEY": "f" * 48,
+            "SOCIALMEI_AI_DRAFT_MODEL": "openai/gpt-oss-20b",
+        }
+        with patch.dict(os.environ, settings), patch(
+                "ai_drafts.generate", return_value="Olá! Nossa equipe confirma a disponibilidade.") as model:
+            response = self.client.post(url, json={"expected_revision": 1})
+            self.assertEqual(response.status_code, 200, response.text)
+            self.assertEqual(response.json()["draft"],
+                             "Olá! Nossa equipe confirma a disponibilidade.")
+            self.assertFalse(response.json()["send_enabled"])
+            self.assertTrue(response.json()["requires_human_review"])
+            self.assertFalse(response.json()["persisted"])
+            self.assertEqual(response.headers["cache-control"], "no-store")
+            self.assertNotIn("telefone", str(model.call_args.args[0]))
+            self.assertEqual(self.client.post(url,
+                json={"expected_revision": 0}).status_code, 409)
+            self.assertEqual(model.call_count, 1)
+            other = self.register("other-ai-draft@example.test")
+            self.assertEqual(other.post(url,
+                json={"expected_revision": 1}).status_code, 404)
+            with patch.dict(os.environ, {"SOCIALMEI_AI_DRAFT_ENABLED": "false"}):
+                self.assertEqual(self.client.post(url,
+                    json={"expected_revision": 1}).status_code, 503)
+            self.assertEqual(model.call_count, 1)
+            with psycopg.connect(accounts.DB) as conn:
+                self.assertEqual(conn.execute(
+                    "SELECT count(*) FROM socialmei.wa_bot_decisions "
+                    "WHERE workspace_id=%s AND conversation_id=%s",
+                    (self.workspace, conversation)).fetchone()[0], 0)
+                self.assertEqual(conn.execute(
+                    "SELECT count(*) FROM socialmei.ig_menu_replies WHERE workspace_id=%s",
+                    (self.workspace,)).fetchone()[0], 0)
+
+    def test_ai_draft_discards_result_if_new_message_arrives_during_model_call(self):
+        with psycopg.connect(accounts.DB) as conn:
+            conversation = conn.execute(
+                "INSERT INTO socialmei.me_conversations"
+                "(workspace_id,channel,account_ref,contact_ref,contact_name,origin,revision) "
+                "VALUES(%s,'whatsapp','waha:111@c.us','waha:85999990001@c.us',"
+                "'Contato IA fictício','waha',1) RETURNING id", (self.workspace,),
+            ).fetchone()[0]
+        settings = {
+            "SOCIALMEI_MESSAGE_ENRICHMENT_MODE": "disabled",
+            "SOCIALMEI_WAHA_INGRESS_MODE": "isolated",
+            "SOCIALMEI_WAHA_LAB_ENVIRONMENT": "isolated",
+            "SOCIALMEI_AI_DRAFT_ENABLED": "true",
+            "SOCIALMEI_AI_DRAFT_WORKSPACES": str(self.workspace),
+            "SOCIALMEI_GROQ_API_KEY": "f" * 48,
+        }
+        def concurrent_change(*args):
+            with psycopg.connect(accounts.DB) as conn:
+                conn.execute("UPDATE socialmei.me_conversations SET revision=revision+1 "
+                             "WHERE workspace_id=%s AND id=%s",
+                             (self.workspace, conversation))
+            return "Rascunho antigo."
+        url = BASE + "/conversations/" + str(conversation) + "/assistant-draft"
+        with patch.dict(os.environ, settings), patch(
+                "ai_drafts.generate", side_effect=concurrent_change):
+            response = self.client.post(url, json={"expected_revision": 1})
+        self.assertEqual(response.status_code, 409, response.text)
+        self.assertNotIn("Rascunho antigo", response.text)
+
     def test_origin_boundary_matches_inbox_visibility_not_just_workspace(self):
         with psycopg.connect(accounts.DB) as conn:
             instagram=conn.execute("INSERT INTO socialmei.me_conversations(workspace_id,channel,account_ref,contact_ref,contact_name,origin,revision) VALUES(%s,'instagram','instagram:123','instagram:456','IG fixture','instagram',1) RETURNING id",(self.workspace,)).fetchone()[0]
