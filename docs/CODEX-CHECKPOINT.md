@@ -147,3 +147,15 @@ git status --short
 git log -5 --oneline
 ssh -i "$HOME/.ssh/socialmei-aws-inspecao.pem" -o BatchMode=yes -o StrictHostKeyChecking=yes ubuntu@54.94.213.7 'docker ps --format "{{.Names}} {{.Status}}"'
 ```
+
+
+## Sprint local 2026-11-12 ? publica??o bloqueada pelo ambiente
+
+- Cat?logo preservado nesta branch at? `99e68e1`: dura??o real/estoque zero/contexto (`a42e676`, `04596ab`, `97097a0`); canary revalidado antes do claim (`3861cd1`); encerrar consulta sem ultrapassar atendimento humano (`99e68e1`). N?o publicado.
+- Corre??es operacionais `4389244` preservam eventos j? aceitos e fixam identidades Docker imut?veis; checkpoint anterior `cd5c3e8` preservado.
+- Instagram: branch separada `fix/instagram-contact-integration-20261112`, commit `6d009d664c53234833a25b99ff339b6d55c18fc4`, atualiza??o CAS de nomes provis?rios e cursor por workspace/conta. N?o integrada nem publicada.
+- Agendamento compartilhado em desenvolvimento no worktree irm?o `channel-booking-core-20261112`; consultar branch correspondente antes de continuar. Bot/menu atuais preservados, fluxo autom?tico ainda n?o integrado.
+- Bloqueios comprovados: SSH com chave correta existente em LOCALAPPDATA/SocialMEI-SSH retorna Permission denied na conex?o; Python do venv operacional retorna acesso negado; atualiza??o de ref GitHub exige aprova??o, mas pol?tica da sess?o ? never. N?o contornar. Nenhuma altera??o AWS, mensagem ou deploy nesta rodada.
+- Valida??o: diff --check; novos testes Python preparados, N?O executados. Reutilizados resultados anteriores JS: 414 aprovados, 2 skips e 2 falhas ambientais; nenhuma mudan?a JS nesta rodada.
+- PR #222 e branch remota de corre??o continuam no HEAD `96fea2a`; commit remoto n?o referenciado `5c81c2b` n?o equivale a push conclu?do.
+- Pr?ximo passo: concluir revis?o independente das altera??es locais; ap?s libera??o efetiva do ambiente, executar Python focado, atualizar branch pelo fluxo aprovado e CI, inspecionar runtime/manifesto privado antes da publica??o incremental. N?o presumir produ??o atual a partir de documenta??o hist?rica.
