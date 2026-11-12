@@ -9,6 +9,7 @@ on:
         main,
         feat/gows-cutover-gates-20261111,
         fix/channel-recovery-20261111,
+        fix/catalog-finalization-20261112,
         release/daily-business-candidate-20261105,
         release/business-onboarding-integration-20261105,
         release/functional-product-20261105,
