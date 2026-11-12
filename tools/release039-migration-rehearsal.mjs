@@ -190,14 +190,14 @@ SELECT pg_temp.expect_rejection($q$UPDATE socialmei.ig_menu_conversations SET st
 SELECT pg_temp.expect_rejection($q$UPDATE socialmei.ig_menu_conversations SET conversation_id=6002 WHERE workspace_id=1001 AND conversation_id=6003$q$,'23503');
 SELECT pg_temp.expect_rejection($q$UPDATE socialmei.ig_menu_conversations SET last_message_id=7002 WHERE workspace_id=1001 AND conversation_id=6003$q$,'23503');
 SELECT pg_temp.expect_rejection($q$UPDATE socialmei.ig_menu_conversations SET revision=-1 WHERE workspace_id=1001 AND conversation_id=6003$q$,'23514');
-DO $ BEGIN
+DO $$ BEGIN
  IF (SELECT count(*) FROM pg_constraint WHERE conrelid IN (
    'socialmei.ig_menu_conversations'::regclass,'socialmei.ig_menu_replies'::regclass
  ) AND contype='f' AND convalidated) <> 7 THEN RAISE EXCEPTION '039_tenant_fk_contract_invalid'; END IF;
  IF (SELECT count(*) FROM pg_indexes WHERE schemaname='socialmei'
    AND indexname IN ('ux_ig_menu_provider_receipt','ix_ig_menu_conversation_history')) <> 2
  THEN RAISE EXCEPTION '039_receipt_indexes_missing'; END IF;
-END $;
+END $$;
 
 ROLLBACK;
 `;
