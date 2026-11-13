@@ -197,7 +197,8 @@
   function still() {
     tok++; if (!el) return;
     el.classList.remove('typing'); el.textContent = 'O que vamos cuidar hoje?';
-    var sc = SC[0]; list = SC; if (stage) { stage.className = 'sg'; stage.innerHTML = frame(sc, R(sc.say[0]), 0, SC.length); }
+    list = curF === 'tudo' ? SC : SC.filter(function (s) { return s.cat === curF; });
+    var sc = list[0]; if (stage) { stage.className = 'sg'; stage.innerHTML = frame(sc, R(sc.say[0]), 0, list.length); }
     if (tb) { toast(sc.toast); }
   }
 

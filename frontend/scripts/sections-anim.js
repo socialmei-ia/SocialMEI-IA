@@ -3,6 +3,7 @@
 (function () {
   'use strict';
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  var reduceMQ = matchMedia('(prefers-reduced-motion: reduce)');
   var av = function (t, bg, fg) { return '<span class="av" style="background:' + bg + ';color:' + fg + ';width:26px;height:26px;font-size:12px">' + t + '</span>'; };
 
   /* 1) Produto: uma miniatura animada em cada card */
@@ -36,6 +37,7 @@
   /* 3) brilho que segue o mouse nos cards */
   $$('.grid3 .card, .steps .step').forEach(function (el) {
     el.addEventListener('pointermove', function (e) {
+      if (reduceMQ.matches || document.documentElement.classList.contains('calm')) return;
       var r = el.getBoundingClientRect();
       el.style.setProperty('--cx', (e.clientX - r.left) + 'px'); el.style.setProperty('--cy', (e.clientY - r.top) + 'px');
     });

@@ -12,7 +12,7 @@ body{font:16px/1.55 Inter,system-ui,"Segoe UI",sans-serif;color:var(--t);backgro
 a{color:inherit;text-decoration:none}
 button{font:inherit;color:inherit}
 img,svg{max-width:100%}
-.i{flex:none}
+.i{flex:none;vertical-align:middle}
 h1,h2,h3{letter-spacing:-.02em;line-height:1.12}
 :focus-visible{outline:3px solid var(--p);outline-offset:3px;border-radius:8px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
@@ -121,7 +121,7 @@ h1,h2,h3{letter-spacing:-.02em;line-height:1.12}
 .bb{max-width:88%;padding:8px 11px;border-radius:14px;font-size:12px;line-height:1.35;background:var(--h2)}
 .bb.t{align-self:flex-end;background:var(--pb);color:#fff}
 .ia{margin-top:auto;border:1px dashed var(--bl);background:var(--pl);border-radius:14px;padding:10px;font-size:12px;line-height:1.35}
-.ia b{display:block;font-size:11px;color:var(--p);margin-bottom:4px}
+.ia b{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--p);margin-bottom:4px}
 .ia span{display:block;margin-top:8px;padding:7px;border-radius:9px;background:var(--pb);color:#fff;text-align:center;font-weight:600}
 .ro{display:flex;gap:9px;align-items:center;padding:8px;border-radius:12px;background:var(--bg2);font-size:12px;line-height:1.25}
 .ro b{display:block;font-size:12.5px}.ro small{color:var(--m);font-size:11px}
@@ -214,6 +214,11 @@ html.calm .q1,html.calm .q2,html.calm .q3,html.calm .q4{opacity:1}
 .faq summary svg{transition:transform .3s var(--ease);color:var(--p)}
 .faq[open] summary svg{transform:rotate(180deg)}
 .faq .fa{padding:0 22px 20px;color:var(--m)}
+@supports (interpolate-size:allow-keywords){
+ .faq{interpolate-size:allow-keywords}
+ .faq::details-content{block-size:0;overflow:clip;transition:block-size .25s var(--ease),content-visibility .25s;transition-behavior:allow-discrete}
+ .faq[open]::details-content{block-size:auto}
+}
 .cta-band{margin:0 24px;border-radius:32px;background:linear-gradient(135deg,var(--pb),#2a7bff 60%,#5a9bff);color:#fff;padding:64px 32px;text-align:center;position:relative;overflow:hidden}
 .cta-band:before,.cta-band:after{content:"";position:absolute;border-radius:50%;pointer-events:none}
 .cta-band:before{width:320px;height:320px;right:-80px;top:-120px;background:rgba(255,255,255,.12)}
@@ -366,10 +371,12 @@ html.calm .q1,html.calm .q2,html.calm .q3,html.calm .q4{opacity:1}
 /* modo calmo e movimento reduzido */
 html.calm *,html.calm *:before,html.calm *:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
 html.calm .rv{opacity:1;transform:none}
+html.calm .faq::details-content{transition:none}
 html.calm .orn .b1,html.calm .orn .b2{opacity:.5}
 @media (prefers-reduced-motion:reduce){
  *,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
  .rv{opacity:1;transform:none}
+ .faq::details-content{transition:none}
 }
 
 /* ---------- seções vivas: Produto, Para MEI, Como funciona ---------- */

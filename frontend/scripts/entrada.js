@@ -70,11 +70,9 @@
       return null;
     }
   }
+  var reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
   function calmo() {
-    return (
-      document.documentElement.classList.contains("calm") ||
-      matchMedia("(prefers-reduced-motion: reduce)").matches
-    );
+    return document.documentElement.classList.contains("calm") || reduceMotion.matches;
   }
   function toast(t) {
     var e = document.createElement("div");
@@ -2317,4 +2315,5 @@
   new MutationObserver(function () {
     agendarChat();
   }).observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+  if (reduceMotion.addEventListener) reduceMotion.addEventListener("change", agendarChat);
 })();
