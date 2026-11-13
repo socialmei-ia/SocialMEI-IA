@@ -18,7 +18,7 @@ const server = http.createServer((req, res) => {
   );
   fs.createReadStream(file).pipe(res);
 });
-(async () => {
+async function run() {
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const origin = `http://127.0.0.1:${server.address().port}`;
   const browser = await chromium.launch();
@@ -129,8 +129,11 @@ const server = http.createServer((req, res) => {
     await browser.close();
     server.close();
   }
-})().catch((error) => {
-  console.error(error);
-  server.close();
-  process.exitCode = 1;
-});
+}
+module.exports = run;
+if (require.main === module)
+  run().catch((error) => {
+    console.error(error);
+    server.close();
+    process.exitCode = 1;
+  });
