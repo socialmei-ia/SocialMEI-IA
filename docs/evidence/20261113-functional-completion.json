@@ -1,0 +1,51 @@
+{
+  "base_checkpoint": "72b43f2329c4d76dd942e97da041cdb092973f8c",
+  "source_sha": "bc6b6350b2d21bbf1af284defa6e543598654973",
+  "branch": "release/functional-completion-20261112",
+  "scope": "isolated functional candidate; no production activation",
+  "python": {
+    "tests": 947,
+    "failures": 0,
+    "seconds": 323.916,
+    "environment": "Linux container, disposable PostgreSQL schema039, synthetic fixtures"
+  },
+  "javascript": { "passed": 426, "skipped": 2, "failures": 0 },
+  "browser": {
+    "full_suite_passed": true,
+    "layout_states": 286,
+    "public_booking_journeys": 42,
+    "transport": "controlled API/provider; backend persistence validated separately"
+  },
+  "gateway_docker": { "tests": 14, "failures": 0 },
+  "format_check_passed": true,
+  "compose_configuration_validated": true,
+  "independent_focused_review": "approved",
+  "images": {
+    "location": "local only; not published or deployed",
+    "api": {
+      "tag": "socialmei-completion-api:bc6b6350b2d21bbf1af284defa6e543598654973",
+      "id": "sha256:7a1dfb3dd2bdc7602b166f74bcee78a151645c16b6621e39bcd6c320c3f23e4b",
+      "isolated_contract_smoke_tests": 6
+    },
+    "gateway": {
+      "tag": "socialmei-completion-gateway:bc6b6350b2d21bbf1af284defa6e543598654973",
+      "id": "sha256:19388211ebd70ee736b8be77dc1a2ee9523f7902e19a53576747a789cea5b174",
+      "caddy_configuration_valid": true
+    }
+  },
+  "production_runtime_changed": false,
+  "production_database_changed": false,
+  "production_migrations_executed": false,
+  "prisma_recovery_window_activated": false,
+  "real_messages_or_emails_sent": false,
+  "public_booking_default_enabled": false,
+  "queue_listen_default_enabled": false,
+  "external_gates": [
+    "current Prisma schema039 export; source previously blocked by planLimitReached",
+    "offsite backup IAM and independently restorable external backup",
+    "AWS capacity approval and private runtime overlay reconciliation",
+    "private SMTP and controlled recipient receipt",
+    "authorized WAHA/Meta end-to-end homologation",
+    "explicit approval before database cutover or critical production activation"
+  ]
+}

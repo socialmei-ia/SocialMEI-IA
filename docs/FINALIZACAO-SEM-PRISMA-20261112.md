@@ -171,3 +171,32 @@ Não houve publicação AWS, ativação de listen ou novo respondedor. Revisão
 independente aprovou os commits683b61c/6d9b4ba para a candidata, mantendo os
 gates de ativação. Medida isolada reproduzida em
 `docs/evidence/20261112-queue-wakeup-measurement.json`.
+
+## Continuação de 13/11 — backend público concluído
+
+A pendência de implementação do checkpoint `72b43f2` foi resolvida:
+`280a301` integra a página real; `e62a369` implementa publicação explícita,
+verificação de e-mail, limites duráveis, referências cifradas, idempotência e
+persistência no núcleo transacional compartilhado da Agenda. Usa schema039
+existente. Testes comprovam concorrência com a Agenda, isolamento Bella/Brilho,
+revalidação, atendimento de conflitos e recuperação do recibo após retry.
+
+`81aa4ec` prepara conexão privada comum API/Instagram/recuperação e saída SMTP
+opcional para a API. Nada foi aplicado à AWS. `bc6b635` corrige fixtures HTTP
+expiradas durante suítes longas e a espera limitada de startup do teste Uvicorn;
+as verificações de autenticação e privacidade foram preservadas.
+
+Validação final: **947 Python aprovados** em PostgreSQL039 descartável Linux,
+**426 JavaScript aprovados, 2 skips existentes**, **14 testes Docker do gateway**,
+suíte de navegador completa (286 estados e 42 jornadas públicas), formatação,
+Compose e imagens locais identificadas por SHA. A primeira regressão teve duas
+falhas de temporização de testes; ambas corrigidas e a suíte completa reaprovada.
+Evidência resumida: `docs/evidence/20261113-functional-completion.json`.
+
+Estado: **implementado e aprovado, aguardando ativação**. Recurso público global
+desativado por padrão e LISTEN/NOTIFY permanece opt-in. Não houve publicação AWS,
+envio real, mudança da conexão de produção, migration ou alteração da origem.
+Prisma bloqueado, exportação039 atual, backup remoto/IAM, capacidade AWS, SMTP
+privado e homologação WAHA/Meta continuam os gates externos já registrados.
+Não usar publicadores legados nem fazer o corte antes desses gates e da aprovação
+específica; conciliar imagens, patches e redes privadas instaladas no deploy futuro.
