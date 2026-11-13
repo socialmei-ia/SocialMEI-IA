@@ -148,6 +148,23 @@ async function run() {
       });
       await page.waitForTimeout(30);
       assert.equal(await name.inputValue(), "Alteração mais recente");
+      await price.fill("80");
+      await duration.fill("45");
+      await panel
+        .getByLabel("Conferi nomes, preços e duração destas ofertas.", { exact: true })
+        .check();
+      const callsBeforeSwitch = await page.evaluate(() => calls.length);
+      await page.evaluate(() => {
+        SocialMEIAuth.current.negocio.id = 20;
+      });
+      await panel.getByRole("button", { name: "Salvar e continuar depois", exact: true }).click();
+      await panel
+        .getByRole("button", { name: "Cadastrar ofertas confirmadas", exact: true })
+        .click();
+      assert.equal(await page.evaluate(() => calls.length), callsBeforeSwitch);
+      await page.evaluate(() => {
+        SocialMEIAuth.current.negocio.id = 10;
+      });
       await page.evaluate(() => {
         window.delaySetup = true;
       });

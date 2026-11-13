@@ -40,6 +40,7 @@
       catalogRevision = 0;
     const alive = (id) => section.isConnected && scope() === owner && route() && id === revision;
     async function catalog(id, target, offers) {
+      if (!alive(id)) return;
       const ticket = ++catalogRevision;
       const catalogAlive = () => alive(id) && ticket === catalogRevision;
       const key = "socialmei-initial-catalog-pending-v1:" + owner;
@@ -184,6 +185,7 @@
         }
         busy(false);
         save.onclick = async () => {
+          if (!catalogAlive()) return;
           busy(true);
           try {
             const result = await host.request("/onboarding/catalog", "PUT", {
@@ -207,6 +209,7 @@
         };
         form.onsubmit = async (event) => {
           event.preventDefault();
+          if (!catalogAlive()) return;
           if (!pending && !form.reportValidity()) return;
           if (!pending) {
             if (!controls.length) {
