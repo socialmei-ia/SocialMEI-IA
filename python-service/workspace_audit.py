@@ -42,6 +42,7 @@ def history(start: date | None = Query(None), end: date | None = Query(None),
     if kind in {'all', 'settings'}:
         actions.update({f'perfil:{workspace}:{key}': ('settings', label) for key, label in SETTINGS.items()})
         actions[f'agenda:{workspace}:config'] = ('settings', 'Horários de agendamento configurados')
+        actions[f'agenda:{workspace}:publica'] = ('settings', 'Publicação da agenda atualizada')
     try:
         with connect() as conn:
             conn.row_factory = dict_row

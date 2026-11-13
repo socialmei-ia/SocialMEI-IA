@@ -61,6 +61,17 @@
                 respond "Não encontrado." 404
             }
         }
+        # Visitor contact proofs are body-only and never inherit account cookies.
+        handle /api/v1/public/booking/* {
+            request_body {
+                max_size 16384
+            }
+            header Referrer-Policy no-referrer
+            reverse_proxy team-api:8000 {
+                header_up -Authorization
+                header_up -Cookie
+            }
+        }
         handle /api/v1/* {
             reverse_proxy team-api:8000 {
                 header_up -Authorization

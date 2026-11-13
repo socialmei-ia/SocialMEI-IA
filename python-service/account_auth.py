@@ -213,6 +213,12 @@ class AccountMiddleware(BaseHTTPMiddleware):
         context_token = None
         try:
             require_enabled()
+            if path.startswith('/api/v1/public/booking/') and request.method in {'GET', 'POST'}:
+                # Visitor routes enforce their own verified-contact boundary, never a browser account.
+                response = await call_next(request)
+                response.headers['Cache-Control'] = 'no-store'
+                response.headers['Referrer-Policy'] = 'no-referrer'
+                return response
             if (
                 path in {"/api/v1/auth/registration", "/api/v1/auth/session"}
                 and request.method == "GET"

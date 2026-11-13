@@ -45,6 +45,7 @@ async function run() {
     await require("./frontend-recovery-browser.cjs")(browser, origin);
     await require("./agenda-browser.cjs")(browser, origin);
     await require("./appointments-browser.cjs")(browser, origin);
+    console.log(await require("./public-booking-browser.cjs")(browser, origin));
     await require("./catalog-details-browser.cjs")(browser, origin);
     console.log(await require("./sale-history-browser.cjs")(browser, origin));
     console.log(await require("./optional-sale-customer-browser.cjs")(browser, origin));

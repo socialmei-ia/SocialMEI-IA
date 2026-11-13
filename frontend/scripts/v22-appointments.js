@@ -591,6 +591,112 @@
       }
     }
   }
+  function publishBooking(s) {
+    prepare(s, async () => {
+      if (!["owner", "admin"].includes(host.identity?.papel))
+        throw Error("Somente responsáveis podem publicar a agenda.");
+      const [existing, products, resources] = await Promise.all([
+        host.request("/agenda/public-booking"),
+        host.request("/produtos"),
+        host.request("/agenda/resources"),
+      ]);
+      if (!live(s)) return;
+      if (
+        !existing.policy ||
+        !Number.isSafeInteger(existing.revision) ||
+        !Array.isArray(products) ||
+        !Array.isArray(resources.items)
+      )
+        throw Error("Não foi possível conferir a publicação. Recarregue antes de salvar.");
+      const serviceRows = products.filter(
+          (p) => p.tipo === "Serviço" && p.status === "Ativo" && p.duracao_minutos,
+        ),
+        resourceRows = resources.items.filter((r) => r.ativo);
+      const selectedServices = new Set(
+          serviceRows
+            .filter((row) => existing.policy.service_ids.includes(row.id))
+            .map((row) => row.id),
+        ),
+        selectedResources = new Set(
+          resourceRows
+            .filter((row) => existing.policy.resource_ids.includes(row.id))
+            .map((row) => row.id),
+        );
+      const get = form(
+        s,
+        "Agendamento pelo site",
+        [],
+        async () => {
+          await host.request("/agenda/public-booking", "PUT", {
+            expected_revision: existing.revision,
+            policy: {
+              enabled: enable.checked,
+              service_ids: [...selectedServices],
+              resource_ids: [...selectedResources],
+              allow_new_customers: allowNew.checked,
+              allow_verified_email_match: allowMatch.checked,
+            },
+          });
+        },
+        "Salvar publicação",
+      );
+      if (!get) return;
+      const f = dlg().querySelector("form"),
+        content = node("div");
+      const check = (label, checked, change) => {
+        const wrap = node("label"),
+          box = node("input");
+        box.type = "checkbox";
+        box.checked = checked;
+        box.addEventListener("change", () => change?.(box.checked));
+        wrap.style.cssText = "display:flex;gap:10px;align-items:center;min-height:44px";
+        wrap.append(box, node("span", label));
+        content.append(wrap);
+        return box;
+      };
+      const enable = check("Permitir agendamento público", existing.policy.enabled),
+        allowNew = check(
+          "Cadastrar novos clientes após verificar o e-mail",
+          existing.policy.allow_new_customers,
+        ),
+        allowMatch = check(
+          "Associar cadastro único pelo e-mail verificado",
+          existing.policy.allow_verified_email_match,
+        );
+      content.append(
+        node(
+          "p",
+          "O visitante precisa confirmar seu e-mail. Cadastros ambíguos serão encaminhados à equipe. Os horários usam a configuração dos canais.",
+        ),
+      );
+      for (const [title, rows, selected] of [
+        ["Serviços publicados", serviceRows, selectedServices],
+        ["Profissionais e recursos publicados", resourceRows, selectedResources],
+      ]) {
+        content.append(node("h3", title));
+        if (!rows.length) content.append(node("p", "Cadastre uma opção ativa antes de publicar."));
+        for (const row of rows)
+          check(row.nome, selected.has(row.id), (active) =>
+            active ? selected.add(row.id) : selected.delete(row.id),
+          );
+      }
+      if (/^[a-z0-9-]+$/.test(existing.slug)) {
+        const link = node("a", "Abrir página de agendamento");
+        link.href = "/frontend/agendar.html?negocio=" + encodeURIComponent(existing.slug);
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        content.append(link);
+      }
+      if (!existing.server_enabled)
+        content.append(
+          node(
+            "p",
+            "A ativação no servidor ainda está pendente. Salvar esta configuração não envia e-mails nem ativa o recurso sozinho.",
+          ),
+        );
+      f.prepend(content);
+    });
+  }
   function paint() {
     const parent = document.querySelector(".sm-agenda");
     if (!parent || location.hash !== "#/agenda") return;
@@ -620,6 +726,8 @@
       ),
       button("Atualizar agendamentos", () => load(s), s.busy),
     );
+    if (["owner", "admin"].includes(host.identity?.papel))
+      actions.append(button("Agendamento pelo site", () => publishBooking(s), disabled));
     section.append(actions);
     const filters = node("form");
     filters.className = "row wr";

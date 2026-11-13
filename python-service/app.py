@@ -19,6 +19,7 @@ from workspace_transfer import router as transfer_router
 from n8n_read import router as n8n_read_router
 from account_auth import AccountMiddleware, router as account_auth_router
 from account_recovery import router as account_recovery_router
+from public_booking import router as public_booking_router, admin_router as public_booking_admin_router
 from account_sessions import router as account_sessions_router
 from team_members import router as team_members_router
 from operations_readiness import router as operations_readiness_router
@@ -79,6 +80,8 @@ app.include_router(whatsapp_bot_router)
 app.include_router(instagram_token_maintenance_router)
 app.include_router(agenda_router)
 app.include_router(appointments_router)
+app.include_router(public_booking_router)
+app.include_router(public_booking_admin_router)
 app.include_router(whatsapp_human_router)
 app.include_router(whatsapp_receiving_status_router)
 app.add_middleware(AccountMiddleware)
@@ -146,7 +149,7 @@ app.add_middleware(WebhookQueryPrivacy)
 @app.exception_handler(RequestValidationError)
 async def private_validation_error(request, error):
     # FastAPI's default validation response includes submitted values, including passwords.
-    if request.url.path.startswith(("/api/v1/agenda", "/api/v1/whatsapp/replies")) or request.url.path.startswith(
+    if request.url.path.startswith(("/api/v1/agenda", "/api/v1/whatsapp/replies", "/api/v1/public/booking/")) or request.url.path.startswith(
         ("/api/v1/auth/", "/api/v1/admin/", "/api/v1/instagram/", "/api/v1/whatsapp/bot", "/internal/whatsapp/bot", "/api/v1/workspace-profile", "/api/v1/message-enrichment", "/internal/message-enrichment", "/api/v1/channel-lab", "/internal/channel-ingress", "/api/v1/content/preparation", "/api/v1/opportunities", "/api/v1/integrations/setup")
     ):
         return JSONResponse(

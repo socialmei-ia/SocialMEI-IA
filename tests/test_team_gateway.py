@@ -39,7 +39,8 @@ class TeamGatewayTests(unittest.TestCase):
             "caddy:2-alpine",
             "caddy",
             "hash-password",
-            input=cls.password + "\n",
+            "--plaintext",
+            cls.password,
         )
         (directory / "private").mkdir()
         (directory / "private/users.Caddyfile").write_text("member " + hashed + "\n")
@@ -283,12 +284,19 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(b'{"workspace":"team","acesso":"leitura"}' if accepted else b'{}')
             return
+        if self.path.startswith('/api/v1/public/booking/'):
+            accepted = not self.headers.get('Cookie') and not self.headers.get('Authorization')
+            self.send_response(200 if accepted else 400)
+            self.end_headers(); self.wfile.write(b'{}'); return
         authenticated = self.headers.get('Cookie') == 'test-session=valid'
         known = self.path in ('/api/v1/clientes', '/api/v1/auth/me')
         self.send_response(200 if authenticated and known else 401)
         self.end_headers()
         self.wfile.write(b'[]' if authenticated and known else b'{"detail":"Session required"}')
     def do_POST(self):
+        if self.path.startswith('/api/v1/public/booking/'):
+            self.rfile.read(int(self.headers.get('Content-Length', '0')))
+            self.do_GET(); return
         if self.path == '/webhooks/instagram/n8n':
             body = self.rfile.read(int(self.headers.get('Content-Length', '0')))
             accepted = not self.headers.get('Cookie') and self.headers.get('Authorization') == 'Bearer relay-fixture' and not self.headers.get('X-SocialMEI-Signature') and self.headers.get('X-Hub-Signature-256') == 'sha256=meta-fixture' and body == b'{"fixture":1}'
@@ -344,6 +352,21 @@ HTTPServer(('0.0.0.0', 8000), Handler).serve_forever()
             self.assertEqual(code, 200, path)
             self.assertNotIn("WWW-Authenticate", headers)
             self.assertEqual(headers["X-Content-Type-Options"], "nosniff")
+
+    def test_visitor_booking_strips_authority_and_limits_request_body(self):
+        path = '/api/v1/public/booking/controlled/confirm'
+        headers = {'Cookie': 'test-session=valid', 'Authorization': 'Bearer private-fixture',
+                   'Content-Type': 'application/json', 'Origin': 'https://app.example.com'}
+        self.assertEqual(self.request(path, headers)[0], 200)
+        for length, expected in ((2, 200), (16385, 413)):
+            request = Request(self.origin + path, headers=headers, data=b' ' * length)
+            try:
+                response = urlopen(request, timeout=3)
+            except HTTPError as error:
+                response = error
+            with response:
+                self.assertEqual(response.code, expected)
+                self.assertEqual(response.headers['Referrer-Policy'], 'no-referrer')
 
     def test_anonymous_api_is_401_and_session_cookie_is_preserved(self):
         for path in ("/api/v1/clientes", "/api/v1/auth/me"):

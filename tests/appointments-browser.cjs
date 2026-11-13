@@ -21,7 +21,19 @@ module.exports = async (browser, origin) => {
           horizon_days: 30,
         },
       },
-      policyWrites = 0;
+      policyWrites = 0,
+      publicPolicy = {
+        revision: 0,
+        slug: "negocio-teste",
+        server_enabled: false,
+        policy: {
+          enabled: false,
+          service_ids: [999],
+          resource_ids: ["00000000-0000-4000-8000-000000000999"],
+          allow_new_customers: false,
+          allow_verified_email_match: false,
+        },
+      };
     const identity = {
       usuario: { id: 91, nome: "Teste", email: "teste@example.test" },
       negocio: { id: 17, nome: "Sorria fictícia", slug: "fixture", configuracao: {} },
@@ -71,6 +83,17 @@ module.exports = async (browser, origin) => {
         assert.equal(data.expected_revision, resources[0].revision);
         resources[0] = { ...resources[0], ...data, revision: resources[0].revision + 1 };
         return route.fulfill({ json: resources[0] });
+      }
+      if (p === "/agenda/public-booking") {
+        if (method === "PUT") {
+          assert.equal(data.expected_revision, publicPolicy.revision);
+          assert.deepEqual(data.policy.service_ids, [products[0].id]);
+          assert.deepEqual(data.policy.resource_ids, [resources[0].id]);
+          assert.equal(data.policy.enabled, true);
+          assert.equal(data.policy.allow_new_customers, true);
+          publicPolicy = { ...publicPolicy, ...data, revision: publicPolicy.revision + 1 };
+        }
+        return route.fulfill({ json: publicPolicy });
       }
       if (p === "/agenda") return route.fulfill({ json: { items: [], truncated: false } });
       if (p === "/agenda/channel-booking") {
@@ -181,6 +204,15 @@ module.exports = async (browser, origin) => {
         .getByRole("button", { name: "Salvar", exact: true })
         .click();
       await page.locator("dialog[open]").waitFor({ state: "hidden" });
+      await page.getByRole("button", { name: "Agendamento pelo site", exact: true }).click();
+      const publication = page.locator("dialog[open]");
+      await publication.getByLabel("Permitir agendamento público").check();
+      await publication.getByLabel("Cadastrar novos clientes após verificar o e-mail").check();
+      await publication.getByLabel("Consulta", { exact: true }).check();
+      await publication.getByLabel("Profissional fictício", { exact: true }).check();
+      await publication.getByRole("button", { name: "Salvar publicação", exact: true }).click();
+      await page.locator("dialog[open]").waitFor({ state: "hidden" });
+      assert.equal(publicPolicy.revision, 1);
       await page.getByRole("button", { name: "Novo agendamento", exact: true }).click();
       await page.locator("#f_booking_start").fill("2026-11-10T14:00");
       await page.getByRole("button", { name: "Confirmar agendamento", exact: true }).click();
