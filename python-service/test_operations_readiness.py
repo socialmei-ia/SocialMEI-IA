@@ -63,8 +63,14 @@ class DiagnosticsTests(unittest.TestCase):
                     conn.execute('ALTER TABLE socialmei.' + table + ' RENAME TO readiness_hidden')
                 try:
                     response = self.admin_client.get('/api/v1/admin/diagnostics')
-                    self.assertEqual(response.status_code, 200)
-                    self.assertEqual(response.json()['database']['status'], 'unavailable')
+                    if table == 'auth_email_activation':
+                        # Authentication itself must fail closed without the persistent guard.
+                        self.assertEqual(response.status_code, 503)
+                        self.assertNotIn(table, response.text)
+                        self.assertEqual(self.admin_client.get('/api/v1/clientes').status_code, 503)
+                    else:
+                        self.assertEqual(response.status_code, 200)
+                        self.assertEqual(response.json()['database']['status'], 'unavailable')
                 finally:
                     with psycopg.connect(accounts.DB) as conn:
                         conn.execute('ALTER TABLE socialmei.readiness_hidden RENAME TO ' + table)

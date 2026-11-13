@@ -1,4 +1,4 @@
-# Autossserviço — candidata para homologação
+# Autosserviço — candidata para homologação
 
 Implementação local; nenhuma publicação, migration real, pareamento ou mensagem
 externa foi executada. Preserva os fluxos da Missão 1 e incorpora a continuidade

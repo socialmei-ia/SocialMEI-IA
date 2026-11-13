@@ -6,10 +6,14 @@ async function waitForViewportFit(page) {
     return (
       Number.isFinite(width) &&
       Math.abs(width * zoom - innerWidth) <= 1 &&
-      document.documentElement.scrollWidth <= innerWidth + 1 &&
       document.body.getBoundingClientRect().width <= innerWidth + 1
     );
   });
+  // Flush the shell's resize layout without waiting for content to stop overflowing.
+  // The overflow canary must still pass this readiness check and fail its QA assertion.
+  await page.evaluate(
+    () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+  );
 }
 
 async function layoutSnapshot(page) {
