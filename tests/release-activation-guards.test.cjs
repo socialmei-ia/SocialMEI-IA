@@ -29,7 +29,11 @@ test("production-facing channels and public booking default to OFF", () => {
     ["SOCIALMEI_INSTAGRAM_PUBLISH_ENABLED", "false"],
     ["SOCIALMEI_RECOVERY_MODE", "disabled"],
     ["SOCIALMEI_QUEUE_WAKEUP_MODE", "poll"],
-  ]) optIn(compose, key, fallback);
+    ["SOCIALMEI_IDENTITY_MODE", "disabled"],
+    ["SOCIALMEI_WAHA_MANAGEMENT_ENABLED", "false"],
+    ["SOCIALMEI_WAHA_MANAGEMENT_PROBE_ENABLED", "false"],
+  ])
+    optIn(compose, key, fallback);
 });
 
 test("optional Instagram workers require explicit profiles and send activation", () => {
@@ -53,6 +57,7 @@ test("API and optional workers use one opt-in application database override", ()
     "compose.team.yaml",
     "compose.team-recovery.yaml",
     "compose.team-instagram-auto.yaml",
+    "compose.team-identity.yaml",
   ]) {
     assert.ok(read(file).includes(token), file + " lacks shared application DSN");
   }
@@ -60,6 +65,13 @@ test("API and optional workers use one opt-in application database override", ()
   const apiPosition = base.indexOf("\n  team-api:");
   assert.ok(apiPosition > 0, "API section not found");
   assert.ok(!base.slice(0, apiPosition).includes("TEAM_APPLICATION_DATABASE_URL"));
+});
+
+test("identity delivery requires its explicit profile and enforcement mode", () => {
+  const config = read("compose.team-identity.yaml");
+  assert(config.includes("profiles: [identity-mail]"));
+  optIn(config, "SOCIALMEI_IDENTITY_MODE", "disabled");
+  optIn(config, "SOCIALMEI_QUEUE_WAKEUP_MODE", "poll");
 });
 
 test("public visitor route strips account credentials before proxying", () => {

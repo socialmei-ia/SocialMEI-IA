@@ -49,15 +49,15 @@ class DiagnosticsTests(unittest.TestCase):
         body = result.json()
         self.assertEqual(body["release_sha"], "a" * 40)
         self.assertEqual(body["database"]["status"], "ready")
-        self.assertEqual(body["database"]["expected_migrations"], 39)
+        self.assertEqual(body["database"]["expected_migrations"], 40)
         self.assertEqual(body["providers"]["n8n"], "not_verified")
         self.assertNotIn("secret-do-not-expose", result.text)
         self.assertEqual(result.headers["cache-control"], "no-store")
 
-    def test_missing_035_tables_never_report_ready(self):
+    def test_missing_035_and_040_tables_never_report_ready(self):
         import psycopg
 
-        for table in ('agenda_reminders', 'wa_human_replies'):
+        for table in ('agenda_reminders', 'wa_human_replies', 'auth_email_activation', 'auth_identity_mail'):
             with self.subTest(table=table):
                 with psycopg.connect(accounts.DB) as conn:
                     conn.execute('ALTER TABLE socialmei.' + table + ' RENAME TO readiness_hidden')
