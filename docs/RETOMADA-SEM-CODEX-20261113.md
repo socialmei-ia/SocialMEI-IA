@@ -98,3 +98,7 @@ O comando verifica uso de RAM/disco, containers, estados de saúde e identidade 
 - Não criar PR automaticamente se ela disparar workflows que executem migrations, até confirmar o escopo das verificações.
 
 **Regra de sucesso:** código pronto e testado não significa canal ativo, envio homologado, banco recuperado nem produto concluído em produção.
+
+Continuidade incorporada à Missão2 até `367a03c`, preservando os commits e as
+proteções acima. Estado consolidado e gates040 em `SELF-SERVICE-READINESS.md`;
+evidências finais em `evidence/20261113-selfservice-release.json`.

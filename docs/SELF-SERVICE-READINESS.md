@@ -55,3 +55,12 @@ Não usar publicador legado nem executar `compose up` que acione o migrador real
 Rollback deve usar imagem **compatível com040 e a guarda de verificação**; voltar
 ao código039 poderia liberar contas pendentes. Preservar tabelas, filas, sessões,
 volumes e credenciais; não fazer downgrade nem replay automático de mensagens.
+
+## Evidência da entrega
+
+Código e imagens locais: `b2b839b`. Regressão:986 Python,440 JavaScript
+(2 skips existentes),11 testes operacionais de release e navegador completo
+(286 estados,42 jornadas públicas e8 de identidade), com transportes controlados.
+O ensaio040 dessa imagem restaurou039/040 e aprovou os gates de integridade.
+Recibos sanitizados: `docs/evidence/20261113-selfservice-release.json` e
+`docs/evidence/20261113-schema040-rehearsal.json`. Não comprovam produção.

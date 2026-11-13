@@ -1,0 +1,62 @@
+{
+  "source_sha": "b2b839bae94f4eef18b670cf5a1ada68988dffe3",
+  "base_checkpoint": "3ce82445a6c87dcc3df3dc43890baa72ac83b127",
+  "branch": "release/functional-completion-20261112",
+  "continuity_integrated_through": "367a03cd61dd298253afd19a25672e13d9c7c439",
+  "python": {
+    "tests": 986,
+    "failures": 0,
+    "environment": "Linux, disposable PostgreSQL, synthetic fixtures"
+  },
+  "javascript": {
+    "passed": 440,
+    "skipped": 2,
+    "failures": 0
+  },
+  "browser": {
+    "full_suite_passed": true,
+    "layout_states": 286,
+    "entry_flows": 5,
+    "public_booking_journeys": 42,
+    "identity_journeys": 8,
+    "inbox_widths": [390, 768, 1024, 1280, 1440],
+    "transport": "controlled API/providers, no real deliveries"
+  },
+  "additional_release_tests": {
+    "python": 11,
+    "historical039_node": 3,
+    "historical039_node_included_in_javascript_total": true
+  },
+  "images": {
+    "api": {
+      "tag": "socialmei-selfservice-api:b2b839bae94f4eef18b670cf5a1ada68988dffe3",
+      "id": "sha256:0de7e2eb7a959a21fd5a767213c69eec8f947c28092ad9bf1a736bb36e3331c7",
+      "architecture": "amd64",
+      "location": "local only"
+    },
+    "gateway": {
+      "tag": "socialmei-selfservice-gateway:b2b839bae94f4eef18b670cf5a1ada68988dffe3",
+      "id": "sha256:3ef5f360f507301760eb765e75b023f492afd7db0a1db6ee4c97bb2dd18e1dc0",
+      "architecture": "amd64",
+      "location": "local only"
+    }
+  },
+  "schema040_rehearsal": "20261113-schema040-rehearsal.json",
+  "guard": "Persisted pending-email restrictions survive identity-mode disable; schema040 is mandatory.",
+  "rollback": "Only an image retaining the schema040 verification guard; pre040 rollback is not approved.",
+  "production_runtime_changed": false,
+  "production_database_changed": false,
+  "production_migrations_executed": false,
+  "real_messages_or_emails_sent": false,
+  "aws_resources_created_or_resized": false,
+  "production_deployed": false,
+  "pull_request_created": false,
+  "external_gates": [
+    "current database export",
+    "offsite backup/IAM and AWS capacity",
+    "approved040 installation and private-overlay reconciliation",
+    "SMTP controlled delivery",
+    "Meta webhook/permissions homologation",
+    "WAHA provisioning/capacity/single-responder approval"
+  ]
+}
