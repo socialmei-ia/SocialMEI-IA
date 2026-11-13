@@ -260,7 +260,13 @@ async function validate(browser, origin) {
       await page.goto(origin + "/frontend/agendar.html?negocio=bella");
       await page.getByRole("heading", { name: "Agendamento indisponível", exact: true }).waitFor();
       const beforeRetry = requests.length;
-      await page.getByRole("button", { name: "Tentar novamente", exact: true }).click();
+      await Promise.all([
+        page.waitForResponse((response) =>
+          new URL(response.url()).pathname === "/api/v1/public/booking/bella" &&
+          response.status() === 503,
+        ),
+        page.getByRole("button", { name: "Tentar novamente", exact: true }).click(),
+      ]);
       await page.getByRole("heading", { name: "Agendamento indisponível", exact: true }).waitFor();
       assert.ok(requests.length > beforeRetry, "Retry must perform a fresh visitor request");
       assert.ok(!(await page.content()).includes("private technical error"));
