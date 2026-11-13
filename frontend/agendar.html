@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Agendamento online — SocialMEI</title>
+    <link rel="stylesheet" href="styles/socialmei.css" />
+    <link rel="stylesheet" href="styles/public-booking.css" />
+    <script src="scripts/public-booking.js" defer></script>
+  </head>
+  <body class="public-booking">
+    <header class="page-header">
+      <span class="brand" aria-label="SocialMEI IA">SocialMEI<span>.IA</span></span>
+      <button id="theme" type="button" aria-pressed="false">Tema escuro</button>
+    </header>
+    <main>
+      <div class="page-intro">
+        <p class="eyebrow">Agendamento online</p>
+        <h1 id="business-name">Seu próximo atendimento.</h1>
+        <p>Escolha um serviço e confira os detalhes antes de confirmar.</p>
+      </div>
+      <div class="booking-layout">
+        <section class="booking-panel" aria-labelledby="step-title">
+          <p id="progress" class="eyebrow"></p>
+          <h2 id="step-title" tabindex="-1">Consultando o negócio…</h2>
+          <p id="step-description" class="muted"></p>
+          <form id="booking-form" aria-busy="true">
+            <div id="step-content"></div>
+            <p id="feedback" role="status" aria-live="polite" class="feedback" hidden></p>
+            <div class="actions">
+              <button id="back" class="secondary" type="button" hidden>Voltar</button>
+              <button id="next" class="primary" type="submit" disabled>Continuar</button>
+            </div>
+          </form>
+        </section>
+        <aside class="booking-summary" aria-labelledby="summary-title">
+          <h2 id="summary-title">Seu atendimento</h2>
+          <dl id="summary"></dl>
+          <p class="privacy-note">
+            Seu e-mail é usado para verificar o contato antes da reserva. Os dados deste formulário
+            não são salvos neste navegador.
+          </p>
+        </aside>
+      </div>
+      <p class="page-footer">Cada reserva passa por uma verificação final de disponibilidade.</p>
+    </main>
+  </body>
+</html>
