@@ -9,6 +9,19 @@ Preservar a produção e transformar a candidata validada em uma versão pronta 
 - **Sem publicação:** esta branch não representa aprovação de deploy, configuração de AWS, troca de banco ou habilitação de canais.
 - **Sem alterações no Prisma:** não alterar credenciais, DSN, schema, migrations ou executar restauração em produção.
 
+## Correções adicionais nesta branch — sem ativação
+
+- A tela real de agendamento público tinha chamadas `fetch` sem prazo máximo. Agora cada solicitação, incluindo a leitura do JSON, é limitada a 20 segundos. Uma confirmação interrompida continua sendo tratada como **resultado incerto**, permitindo reenviar **a mesma** solicitação idempotente para consultar o comprovante, sem anunciar falha definitiva.
+- A tela de indisponibilidade ganhou **Tentar novamente**, recuperando o carregamento sem exigir atualizar a página manualmente.
+- Novos testes automatizados em `tests/public-booking-timeout.test.cjs` (5 cenários com rede simulada). O teste de navegador `tests/public-booking-browser.cjs` também foi ampliado para cobrir o botão de tentar novamente.
+- Verificações efetuadas nesta sessão: sintaxe válida dos três arquivos JS; **5 cenários isolados da função de requisição aprovados** em simulação de rede e relógio. Isso **não equivale** à execução do arquivo de teste no Node nem à suíte real de navegador.
+- Próximos testes obrigatórios, no ambiente de desenvolvimento isolado (não no servidor de produção):
+  ```powershell
+  node --test tests/public-booking-timeout.test.cjs
+  node tests/public-booking-browser.cjs
+  ```
+  O segundo comando exige Playwright e navegador instalados. Não exige acesso a Prisma ou e-mail real.
+
 ## O que já foi implementado e testado
 
 O commit `3ce8244` registra, em ambiente isolado e com PostgreSQL schema039 descartável:
