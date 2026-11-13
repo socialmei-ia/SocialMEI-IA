@@ -85,6 +85,10 @@
     inboxCustomer.src = "scripts/v22-inbox-customer.js";
     inboxCustomer.onerror = () => console.warn("Vínculo da Caixa com o CRM indisponível.");
     document.body.appendChild(inboxCustomer);
+    const inboxLayout = document.createElement("script");
+    inboxLayout.src = "scripts/v22-inbox-layout.js";
+    inboxLayout.onerror = () => console.warn("Ajustes de leitura da Caixa indisponíveis.");
+    document.body.appendChild(inboxLayout);
     const whatsappReplies = document.createElement("script");
     whatsappReplies.src = "scripts/v22-whatsapp-replies.js";
     whatsappReplies.onerror = () => console.warn("Respostas WhatsApp indisponíveis.");

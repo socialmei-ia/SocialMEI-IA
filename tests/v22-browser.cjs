@@ -54,6 +54,7 @@ async function run() {
     console.log(await require("./optional-sale-customer-browser.cjs")(browser, origin));
     console.log(await require("./sale-record-selection-browser.cjs")(browser, origin));
     await require("./inbox-customer-browser.cjs")(browser, origin);
+    console.log(await require("./inbox-layout-browser.cjs")(browser, origin));
     await require("./functional-recovery-browser.cjs")(browser, origin);
     const contracts = await require("./v22-contract-browser.cjs")(browser, origin);
     await require("./v22-instagram-browser.cjs")(browser, origin);
