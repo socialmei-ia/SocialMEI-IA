@@ -248,6 +248,13 @@
       input.minLength = input.maxLength = 6;
       input.pattern = "[0-9]{6}";
     }
+    if (state.step === "unavailable") {
+      const retry = element("button", "Tentar novamente");
+      retry.type = "button";
+      retry.className = "secondary";
+      retry.addEventListener("click", () => boot());
+      content.append(retry);
+    }
     if (state.step === "review") {
       const note = element("p", "A reserva só será concluída após a verificação final do negócio.");
       note.className = "review-note";
