@@ -11,6 +11,7 @@ x-instagram-worker: &instagram-worker
     POSTGRES_USER: socialmei_team
     POSTGRES_PASSWORD: ${TEAM_POSTGRES_PASSWORD:?Private Team database password required}
     POSTGRES_DB: socialmei_team
+    DATABASE_URL: ${TEAM_APPLICATION_DATABASE_URL:-}
     SOCIALMEI_SHARED_DATA_ENABLED: "true"
     SOCIALMEI_AUTH_ENABLED: ${TEAM_AUTH_ENABLED:-false}
     SOCIALMEI_AUTH_ORIGIN: https://${SOCIALMEI_TEAM_HOST:?Team HTTPS hostname required}

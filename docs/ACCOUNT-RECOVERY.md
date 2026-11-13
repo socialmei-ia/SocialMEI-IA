@@ -58,6 +58,12 @@ Ensaio adicional de release executado em PostgreSQL16 Docker descartável: migra
 
 ## Worker contínuo opcional (sem mexer no banco)
 
+API e workers opcionais de recuperação/Instagram aceitam a mesma conexão
+privada `TEAM_APPLICATION_DATABASE_URL`. Seu padrão vazio preserva o banco
+Docker atual. Essa variável não configura o migrador: nunca usar o migrador
+para trocar a conexão de produção. Conciliar hostname, CA/TLS e redes privadas
+em todos os consumidores antes do corte autorizado, sem imprimir a DSN.
+
 A implementação do envio de e-mail é alimentada por uma fila persistente.
 A nova opção `recovery_worker.py --run --watch --limit 10 --interval 15`
 processa a fila continuamente, sem registrar endereços, códigos ou senhas

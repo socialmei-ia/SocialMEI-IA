@@ -50,6 +50,35 @@ O processamento contínuo da fila depende do override opcional
 `compose.team-recovery.yaml`, SMTP privado e destinatário de homologação.
 Ver `docs/ACCOUNT-RECOVERY.md`.
 
+## Agendamento público opcional (continuação de 12/11)
+
+O fluxo real está em `/frontend/agendar.html?negocio=<slug>`. A demonstração
+isolada continua em `docs/prototypes/public-booking/`. A API de visitantes usa
+`/api/v1/public/booking/{slug}`; não recebe autorização administrativa.
+O responsável publica serviços e profissionais explicitamente pelo botão
+**Agendamento público** na Agenda. Os horários são os da política compartilhada
+dos canais. Alterações invalidam ofertas antigas; a confirmação revalida tudo
+na mesma transação e no mesmo bloqueio de recurso da Agenda.
+
+Desativado por padrão. Antes de habilitar, configurar no servidor privado
+`SOCIALMEI_PUBLIC_BOOKING_ENABLED=true`, `SOCIALMEI_PUBLIC_BOOKING_KEY` aleatória
+com pelo menos 32 bytes, origem HTTPS e SMTP válido (465/TLS ou 587/STARTTLS).
+Não colocar a chave no frontend. `compose.team-public-booking.yaml` prepara
+somente saída de rede para SMTP; não habilita o recurso. Conciliar esse override
+com as redes privadas instaladas antes de qualquer publicação.
+
+O visitante verifica seu e-mail por código de dez minutos, vinculado à oferta.
+Somente e-mail verificado e único pode associar cliente existente, se o
+responsável permitir explicitamente; novos cadastros também exigem opção
+explícita. Duplicidade ou cadastro inativo encaminha ao atendimento humano.
+Não há associação por nome/telefone. Referências são cifradas; limites persistem
+em `auth_limites` (leitura, envio, código e reservas). O mesmo comprovante
+retorna a reserva persistida em retries, inclusive cancelada/concluída.
+
+Usa somente schema039 existente, sem nova tabela ou migration. Homologação
+SMTP real, entrega ao destinatário controlado e banco atualizado continuam
+obrigatórios antes da ativação; testes simulados não comprovam entrega.
+
 ## Aceitação de produção
 
 A validação automatizada usa dados fictícios, banco descartável e provedores

@@ -1,0 +1,9 @@
+# Optional SMTP egress for visitor verification. Does not enable publication.
+# Apply only after private SMTP, controlled delivery and release approval.
+services:
+  team-api:
+    networks: [database, api, automation, public-booking-egress]
+
+networks:
+  public-booking-egress:
+    driver: bridge
