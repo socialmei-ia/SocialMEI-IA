@@ -48,7 +48,7 @@
       ["all", "Todos disponíveis"],
       ["team", "Equipe"],
       ["exports", "Exportações CSV"],
-      ["settings", "Perfil do negócio"],
+      ["settings", "Perfil e horários"],
     ]) {
       const option = el("option", title);
       option.value = value;

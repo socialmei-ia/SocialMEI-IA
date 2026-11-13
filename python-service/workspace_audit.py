@@ -41,6 +41,7 @@ def history(start: date | None = Query(None), end: date | None = Query(None),
         actions.update({f'export_{key}:{workspace}': ('exports', label) for key, label in EXPORTS.items()})
     if kind in {'all', 'settings'}:
         actions.update({f'perfil:{workspace}:{key}': ('settings', label) for key, label in SETTINGS.items()})
+        actions[f'agenda:{workspace}:config'] = ('settings', 'Horários de agendamento configurados')
     try:
         with connect() as conn:
             conn.row_factory = dict_row
@@ -66,4 +67,4 @@ def history(start: date | None = Query(None), end: date | None = Query(None),
                        'action': actions[r['acao']][1], 'actor': r['actor_name'], 'target': r['target_name']}
                       for r in page],
             'next_before': page[-1]['id'] if len(rows) > limit else None,
-            'description': 'Histórico disponível: alterações de acesso da equipe, geração de CSV e salvamentos do perfil vinculados explicitamente a este negócio. O perfil passa a ser registrado a partir desta versão, sem reconstruir alterações anteriores ou armazenar seus valores. Não inclui todas as alterações de CRM, agenda, estoque ou conta. CSV gerado não comprova download pelo navegador. Nomes exibidos são os atuais das contas.'}
+            'description': 'Histórico disponível: alterações de acesso da equipe, geração de CSV e configurações de perfil e horários vinculadas explicitamente a este negócio. Eventos anteriores sem identificação do negócio não são atribuídos retroativamente. Não inclui todas as alterações de CRM, agenda, estoque ou conta. CSV gerado não comprova download pelo navegador. Nomes exibidos são os atuais das contas.'}

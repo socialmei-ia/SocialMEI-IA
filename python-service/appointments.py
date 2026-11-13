@@ -38,7 +38,8 @@ def update_channel_booking_settings(payload: BookingPolicyUpdate):
     with connect() as conn:
         configure(conn)
         result = save_policy(conn, user["workspace_id"], payload)
-        conn.execute("INSERT INTO socialmei.auth_auditoria(user_id,acao) VALUES(%s,'channel_booking_configured')", (user["id"],))
+        conn.execute("INSERT INTO socialmei.auth_auditoria(user_id,acao) VALUES(%s,%s)",
+                     (user["id"], f"agenda:{user['workspace_id']}:config"))
     return result
 
 

@@ -72,6 +72,19 @@ class AuditDatabase(unittest.TestCase):
         self.admin_client.post('/api/v1/auth/logout', json={})
         self.assertEqual(self.admin_client.get(path).status_code, 401)
 
+    def test_booking_policy_audit_is_bound_to_its_original_business(self):
+        self.generate()
+        result = self.admin_client.put('/api/v1/agenda/channel-booking',
+            json={'expected_revision': 0, 'policy': {'enabled': False, 'timezone': 'America/Fortaleza'}})
+        self.assertEqual(result.status_code, 200, result.text)
+        # Old unscoped rows must never be attributed through the actor's current workspace.
+        with psycopg.connect(accounts.DB) as conn:
+            conn.execute("INSERT INTO socialmei.auth_auditoria(user_id,acao) VALUES(%s,'channel_booking_configured')", (self.admin_id,))
+        own = self.admin_client.get('/api/v1/audit/workspace?kind=settings').json()
+        self.assertEqual([item['action'] for item in own['items']], ['Horários de agendamento configurados'])
+        foreign = self.other.get('/api/v1/audit/workspace?kind=settings').json()
+        self.assertEqual(foreign['items'], [])
+
 
 if __name__ == '__main__':
     unittest.main()
