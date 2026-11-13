@@ -174,6 +174,10 @@ const SocialMEIAuth = (() => {
     const value = identity(await request(path, "POST", data));
     invalidate();
     bindBrowser(value);
+    if (value.email_verification?.required && !value.email_verification.verified) {
+      location.assign("/frontend/ativar.html");
+      return value;
+    }
     location.reload();
     return value;
   }
@@ -197,6 +201,15 @@ const SocialMEIAuth = (() => {
       base = url.href.replace(/\/$/, "");
       const session = await request("/auth/session");
       const value = session === null ? null : identity(session);
+      if (
+        value?.email_verification?.required &&
+        !value.email_verification.verified &&
+        location.pathname !== "/frontend/ativar.html"
+      ) {
+        bindBrowser(value);
+        location.replace("/frontend/ativar.html");
+        return null;
+      }
       if (bindBrowser(value) && !recoveryEntry) {
         location.reload();
         return null;

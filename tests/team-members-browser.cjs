@@ -12,6 +12,7 @@ async function run(browser, origin) {
       const errors = [],
         writes = [],
         external = [];
+      const inviteWrites = [];
       let role = "owner";
       let records = [
         {
@@ -56,6 +57,29 @@ async function run(browser, origin) {
           });
         if (p === "/message-enrichment/capabilities")
           return route.fulfill({ json: { mode: "disabled" } });
+        if (p === "/team/invitations" && method === "GET")
+          return route.fulfill({
+            json: {
+              items: [
+                {
+                  id: "00000000-0000-4000-8000-000000000001",
+                  email: "admin-invited@example.test",
+                  role: "admin",
+                  status: "used",
+                },
+              ],
+            },
+          });
+        if (p.startsWith("/team/invitations") && method !== "GET") {
+          assert.equal(request.headers()["x-socialmei-identity"], "91:17");
+          assert.equal(request.headers()["x-socialmei-csrf"], identity.csrf_token);
+          inviteWrites.push({ path: p, method, data: request.postDataJSON() });
+          return route.fulfill(
+            method === "POST"
+              ? { status: 202, json: { id: "00000000-0000-4000-8000-000000000002", queued: true } }
+              : { status: 204, body: "" },
+          );
+        }
         if (p === "/team/members" && method === "GET")
           return route.fulfill({
             json: {
@@ -135,6 +159,33 @@ async function run(browser, origin) {
         await panel.getByRole("button", { name: "Revogar acesso", exact: true }).click();
         await panel.getByText("Acesso revogado neste negócio.", { exact: true }).waitFor();
         assert.equal(records.length, 1);
+        await panel.getByRole("button", { name: "Convidar por e-mail", exact: true }).click();
+        await panel
+          .getByRole("button", { name: "Revogar acesso deste convite", exact: true })
+          .click();
+        await panel
+          .getByLabel("E-mail do convidado", { exact: true })
+          .fill("new-employee@example.test");
+        await panel.getByLabel("Permissão a conceder", { exact: true }).selectOption("member");
+        await panel.getByRole("button", { name: "Enviar convite", exact: true }).click();
+        await panel
+          .getByText("Convite registrado na fila de e-mail. Isso ainda não concede acesso.", {
+            exact: true,
+          })
+          .waitFor();
+        assert.equal(
+          await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1),
+          false,
+        );
+        await page.screenshot({
+          path: path.join(__dirname, `../test-results/team/convites-${width}-${theme}.png`),
+          fullPage: true,
+        });
+        await panel.getByRole("button", { name: "Revogar convite", exact: true }).click();
+        assert.equal(inviteWrites.length, 3);
+        assert.equal(inviteWrites[0].data.expected_role, "admin");
+        assert.equal(inviteWrites[1].data.email, "new-employee@example.test");
+        assert(inviteWrites[2].path.endsWith("000000000002"));
         role = "admin";
         await page.reload();
         await panel
@@ -147,6 +198,10 @@ async function run(browser, origin) {
           0,
         );
         assert.equal(writes.length, 4);
+        assert.equal(
+          await panel.getByRole("button", { name: "Convidar por e-mail", exact: true }).count(),
+          0,
+        );
         assert.deepEqual(errors, []);
         assert.deepEqual(external, []);
       } finally {

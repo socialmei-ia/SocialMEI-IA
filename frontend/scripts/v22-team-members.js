@@ -205,6 +205,117 @@
           "Operacional permite atuar nos módulos disponíveis. Somente relatórios não permite editar CRM, agenda ou vendas. Esta tela não cria usuários nem define senhas.",
         ),
       );
+      const inviteToggle = el("button", "Convidar por e-mail");
+      inviteToggle.type = "button";
+      inviteToggle.className = "btn o";
+      inviteToggle.onclick = async () => {
+        if (!alive() || inviteToggle.disabled) return;
+        inviteToggle.disabled = true;
+        try {
+          const data = await auth.request("/team/invitations");
+          if (!alive()) return;
+          const section = el("section");
+          section.append(el("h3", "Convites para este negócio"));
+          const inviteForm = el("form");
+          const addressLabel = el("label", "E-mail do convidado");
+          const address = el("input");
+          address.type = "email";
+          address.required = true;
+          address.maxLength = 255;
+          addressLabel.append(address);
+          const permissionLabel = el("label", "Permissão a conceder");
+          const permission = el("select");
+          permission.setAttribute("aria-label", "Permissão a conceder");
+          for (const key of ["member", "viewer", "report_viewer", "admin"]) {
+            const option = el("option", roles[key]);
+            option.value = key;
+            permission.append(option);
+          }
+          permissionLabel.append(permission);
+          const send = el("button", "Enviar convite");
+          send.type = "submit";
+          send.className = "btn";
+          inviteForm.append(addressLabel, permissionLabel, send);
+          inviteForm.onsubmit = async (event) => {
+            event.preventDefault();
+            if (!alive() || send.disabled || !inviteForm.reportValidity()) return;
+            send.disabled = true;
+            try {
+              const packet = {
+                email: address.value.trim(),
+                role: permission.value,
+              };
+              const queued = await auth.request("/team/invitations", "POST", packet);
+              if (alive()) {
+                message.textContent =
+                  "Convite registrado na fila de e-mail. Isso ainda não concede acesso.";
+                inviteForm.reset();
+                addInvite({ ...packet, id: queued.id, status: "pending" });
+              }
+            } catch (error) {
+              if (alive()) message.textContent = error.message;
+            } finally {
+              if (alive()) send.disabled = false;
+            }
+          };
+          section.append(
+            inviteForm,
+            el(
+              "p",
+              "A pessoa precisa abrir o convite recebido por e-mail. Administrador pode gerenciar o negócio; conceda esse papel somente a alguém de confiança.",
+            ),
+          );
+          const addInvite = (item) => {
+            const row = el(
+              "p",
+              `${item.email} · ${roles[item.role]} · ${{ pending: "Aguardando envio", processing: "Enviando", sent: "Enviado", uncertain: "Entrega não confirmada", expired: "Expirado", used: "Aceito", revoked: "Revogado" }[item.status] || "Requer atenção"} `,
+            );
+            if (["pending", "processing", "sent", "used"].includes(item.status)) {
+              const revoke = el(
+                "button",
+                item.status === "used" ? "Revogar acesso deste convite" : "Revogar convite",
+              );
+              revoke.type = "button";
+              revoke.className = "btn o";
+              revoke.onclick = async () => {
+                if (
+                  !alive() ||
+                  revoke.disabled ||
+                  !confirm("Revogar este convite ou acesso somente neste negócio?")
+                )
+                  return;
+                revoke.disabled = true;
+                try {
+                  await auth.request(
+                    "/team/invitations/" + item.id + (item.status === "used" ? "/access" : ""),
+                    "DELETE",
+                    item.status === "used" ? { expected_role: item.role } : undefined,
+                  );
+                  if (alive()) {
+                    row.textContent = "Revogado neste negócio.";
+                    await refresh();
+                  }
+                } catch (error) {
+                  if (alive()) {
+                    message.textContent = error.message;
+                    revoke.disabled = false;
+                  }
+                }
+              };
+              row.append(revoke);
+            }
+            section.append(row);
+          };
+          for (const item of data.items) addInvite(item);
+          panel.append(section);
+        } catch (error) {
+          if (alive()) {
+            message.textContent = error.message;
+            inviteToggle.disabled = false;
+          }
+        }
+      };
+      panel.append(inviteToggle);
     } else
       panel.append(
         el("p", "Somente o proprietário pode adicionar, alterar ou revogar integrantes."),

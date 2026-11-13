@@ -7,6 +7,8 @@ import re
 import secrets
 import threading
 import unicodedata
+from email.headerregistry import Address
+from email.errors import HeaderParseError
 from urllib.parse import urlsplit
 from uuid import UUID, uuid4
 
@@ -38,6 +40,9 @@ PUBLIC = {
     "/api/v1/auth/register",
     "/api/v1/auth/recovery/request",
     "/api/v1/auth/recovery/confirm",
+    "/api/v1/auth/verification/confirm",
+    "/api/v1/auth/invitations/inspect",
+    "/api/v1/auth/invitations/accept",
 }
 router = APIRouter(prefix="/api/v1", tags=["accounts"])
 
@@ -86,6 +91,11 @@ def normalize_email(value):
     value = value.strip().lower()
     if len(value) > 255 or not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", value):
         raise ValueError("Informe um e-mail válido.")
+    try:
+        if Address(addr_spec=value).addr_spec != value:
+            raise ValueError()
+    except (ValueError, HeaderParseError, IndexError):
+        raise ValueError("Informe um único e-mail válido.") from None
     return value
 
 
@@ -156,8 +166,8 @@ def session_identity(token):
         return cur.fetchone()
 
 
-def public_identity(user, token):
-    return {
+def public_identity(user, token, activation=None):
+    result = {
         "usuario": {
             key: user[key]
             for key in ["id", "nome", "email", "telefone", "administrador_plataforma"]
@@ -171,6 +181,11 @@ def public_identity(user, token):
         "papel": user["role"],
         "csrf_token": csrf(token),
     }
+    from identity_activation import state
+    activation = state(user['id']) if activation is None else activation
+    if activation is not None:
+        result['email_verification'] = activation
+    return result
 
 
 def current():
@@ -245,6 +260,8 @@ class AccountMiddleware(BaseHTTPMiddleware):
             user = await run_in_threadpool(session_identity, token)
             if not user:
                 raise HTTPException(401, "Sessão ausente ou expirada. Entre novamente.")
+            from identity_activation import guard
+            await run_in_threadpool(guard, user, path)
             if user["role"] == "report_viewer" and (request.method, path) not in REPORT_ONLY:
                 raise HTTPException(403, "Esta conta permite consultar somente relatórios.")
             expected_identity = request.headers.get("x-socialmei-identity")
@@ -456,12 +473,19 @@ def login(payload: Login, response: Response):
 @router.get("/auth/registration")
 def registration_policy():
     require_enabled()
-    return {"mode": settings.registration_mode()}
+    result = {"mode": settings.registration_mode()}
+    from identity_activation import enabled as activation_enabled
+    if activation_enabled():
+        result['email_verification_required'] = True
+    return result
 
 
 @router.post("/auth/register", status_code=201)
 def register(payload: Register, response: Response):
     require_enabled()
+    import identity_activation
+    if identity_activation.enabled():
+        identity_activation.configured()
     throttle(payload.email, "register")
     use_invite = settings.registration_mode() != "open" or payload.convite is not None
     if use_invite and not payload.convite:
@@ -503,10 +527,12 @@ def register(payload: Register, response: Response):
                 "INSERT INTO socialmei.auth_auditoria (user_id,acao) VALUES (%s,'cadastro')",
                 (user_id,),
             )
+            identity_activation.enroll(conn, user_id, payload.email)
             token = issue_session(
                 conn, user_id, workspace_id, response, payload.lembrar
             )
-            return public_identity(identity_in(conn, user_id, workspace_id), token)
+            activation = {'required': True, 'verified': False} if identity_activation.enabled() else None
+            return public_identity(identity_in(conn, user_id, workspace_id), token, activation)
     except psycopg.errors.UniqueViolation:
         raise HTTPException(
             400,
