@@ -88,34 +88,45 @@
   async function request(path, body) {
     const mine = generation;
     controller?.abort();
-    controller = new AbortController();
-    let result;
+    const active = new AbortController();
+    controller = active;
+    // Keep the entire request, including JSON parsing, within a bounded wait.
+    // A timeout during confirmation is treated as an uncertain outcome, not a failed booking.
+    const timeout = setTimeout(() => active.abort(), 20000);
     try {
-      result = await fetch(state.base + path, {
-        method: body === undefined ? "GET" : "POST",
-        credentials: "omit",
-        cache: "no-store",
-        headers:
-          body === undefined
-            ? { Accept: "application/json" }
-            : { Accept: "application/json", "Content-Type": "application/json" },
-        body: body === undefined ? undefined : JSON.stringify(body),
-        signal: controller.signal,
-      });
-    } catch (error) {
+      let result;
+      try {
+        result = await fetch(state.base + path, {
+          method: body === undefined ? "GET" : "POST",
+          credentials: "omit",
+          cache: "no-store",
+          headers:
+            body === undefined
+              ? { Accept: "application/json" }
+              : { Accept: "application/json", "Content-Type": "application/json" },
+          body: body === undefined ? undefined : JSON.stringify(body),
+          signal: active.signal,
+        });
+      } catch {
+        if (mine !== generation) throw Object.assign(Error("stale"), { stale: true });
+        throw Object.assign(Error("network"), { status: 0 });
+      }
       if (mine !== generation) throw Object.assign(Error("stale"), { stale: true });
-      throw Object.assign(Error("network"), { status: 0 });
+      if (!result.ok) throw Object.assign(Error("request_failed"), { status: result.status });
+      let data;
+      try {
+        data = await result.json();
+      } catch {
+        if (mine !== generation) throw Object.assign(Error("stale"), { stale: true });
+        if (active.signal.aborted) throw Object.assign(Error("network"), { status: 0 });
+        throw Error("invalid_response");
+      }
+      if (mine !== generation) throw Object.assign(Error("stale"), { stale: true });
+      return data;
+    } finally {
+      clearTimeout(timeout);
+      if (controller === active) controller = null;
     }
-    if (mine !== generation) throw Object.assign(Error("stale"), { stale: true });
-    if (!result.ok) throw Object.assign(Error("request_failed"), { status: result.status });
-    let data;
-    try {
-      data = await result.json();
-    } catch {
-      throw Error("invalid_response");
-    }
-    if (mine !== generation) throw Object.assign(Error("stale"), { stale: true });
-    return data;
   }
   function summary() {
     const list = $("summary");
