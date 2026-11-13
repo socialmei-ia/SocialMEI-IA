@@ -5,6 +5,11 @@
   const style = document.createElement("link");
   style.rel = "stylesheet";
   style.href = "styles/v22-businesses.css";
+  let styled = false;
+  style.onload = () => {
+    styled = true;
+    mount();
+  };
   document.head.append(style);
   const scope = () => auth.current && `${auth.current.usuario.id}:${auth.current.negocio.id}`;
   const el = (tag, text) => {
@@ -29,7 +34,7 @@
   function mount() {
     if (!auth.current) return;
     const top = document.querySelector("main > .top .r2");
-    if (top && !top.querySelector("[data-business-menu]")) {
+    if (styled && top && !top.querySelector("[data-business-menu]")) {
       const link = el("a");
       const caption = el("span", "Meus negócios · ");
       caption.className = "sm-business-caption";

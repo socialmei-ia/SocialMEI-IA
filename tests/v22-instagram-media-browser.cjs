@@ -16,6 +16,11 @@ module.exports = async (browser, origin) => {
         external = [];
       let requests = 0,
         release = null;
+      const delayBusinessStyle = mode === "pages" && width === 390;
+      let releaseBusinessStyle;
+      const businessStyle = new Promise((resolve) => {
+        releaseBusinessStyle = resolve;
+      });
       const identity = {
         usuario: { id: 91, nome: "Operador", email: "operator@example.test" },
         negocio: { id: 17, nome: "Conta fictícia", slug: "synthetic", configuracao: {} },
@@ -36,6 +41,10 @@ module.exports = async (browser, origin) => {
       await page.route("**/*", async (route) => {
         const request = route.request(),
           url = new URL(request.url());
+        if (delayBusinessStyle && url.pathname.endsWith("/styles/v22-businesses.css")) {
+          await businessStyle;
+          return route.continue();
+        }
         if (url.hostname === "scontent.cdninstagram.com")
           return route.fulfill({
             contentType: "image/svg+xml",
@@ -119,9 +128,19 @@ module.exports = async (browser, origin) => {
         return route.fulfill({ json: [] });
       });
       try {
-        await page.goto(origin + "/frontend/socialmei-app.html#/config/integracoes");
+        await page.goto(origin + "/frontend/socialmei-app.html#/config/integracoes", {
+          waitUntil: "domcontentloaded",
+        });
         const button = page.locator("[data-ig-media-open]").first();
         await button.waitFor();
+        if (delayBusinessStyle) {
+          await page.waitForFunction(() => !!window.SocialMEIBusinesses);
+          assert.equal(await page.locator("[data-business-menu]").count(), 0);
+          await waitForViewportFit(page);
+          assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+          releaseBusinessStyle();
+          await page.locator("[data-business-menu]").waitFor();
+        }
         assert.equal(requests, 0, "No provider call before the user opens the gallery");
         await button.click();
         const box = page.locator("[data-ig-media-dialog]");
