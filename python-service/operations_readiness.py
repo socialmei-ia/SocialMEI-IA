@@ -46,6 +46,7 @@ EXPECTED_MIGRATIONS = (
     "037_catalog_details.sql",
     "038_inbox_customer_link.sql",
     "039_instagram_auto_menu.sql",
+    "040_identity_activation.sql",
 )
 
 
@@ -79,6 +80,8 @@ def database_status():
             conn.execute("SELECT cliente_id,servico_id,resource_id,scheduled_for,ends_at,status,revision FROM socialmei.agenda_appointments LIMIT 0")
             conn.execute("SELECT appointment_id,revision,status FROM socialmei.agenda_appointment_history LIMIT 0")
             conn.execute("SELECT cliente_id FROM socialmei.me_conversations LIMIT 0")
+            conn.execute("SELECT user_id,email,verified_at FROM socialmei.auth_email_activation LIMIT 0")
+            conn.execute("SELECT id,purpose,status,expires_at FROM socialmei.auth_identity_mail LIMIT 0")
             tables = conn.execute(
                 "SELECT to_regclass('socialmei.auth_recuperacoes'),to_regclass('socialmei.auth_sessoes'),to_regclass('socialmei.auth_recuperacao_envios')"
             ).fetchone()
