@@ -138,7 +138,7 @@
         }
         const initial =
           pending?.items ||
-          (data.items.length
+          (data.revision > 0
             ? data.items
             : data.suggestions.map((nome) => ({ nome, tipo: "Serviço" })));
         initial.forEach(add);

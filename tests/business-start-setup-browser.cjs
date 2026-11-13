@@ -176,6 +176,14 @@ async function run() {
       });
       await page.waitForTimeout(30);
       assert.equal(await panel.locator("form").count(), 0);
+      await page.evaluate(() => {
+        SocialMEIAuth.current.negocio.id = 10;
+        draft = [];
+        revision = 4;
+      });
+      await panel.getByRole("button", { name: "Conferir ofertas iniciais", exact: true }).click();
+      await name.waitFor();
+      assert.equal(await name.inputValue(), "");
       await page.close();
     }
   } finally {
