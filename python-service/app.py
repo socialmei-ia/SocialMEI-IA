@@ -19,6 +19,8 @@ from workspace_transfer import router as transfer_router
 from n8n_read import router as n8n_read_router
 from account_auth import AccountMiddleware, router as account_auth_router
 from account_recovery import router as account_recovery_router
+from identity_activation import router as identity_activation_router
+from whatsapp_connection_management import router as whatsapp_connection_management_router
 from public_booking import router as public_booking_router, admin_router as public_booking_admin_router
 from account_sessions import router as account_sessions_router
 from team_members import router as team_members_router
@@ -106,6 +108,8 @@ app.include_router(transfer_router)
 app.include_router(n8n_read_router)
 app.include_router(account_auth_router)
 app.include_router(account_recovery_router)
+app.include_router(identity_activation_router)
+app.include_router(whatsapp_connection_management_router)
 app.include_router(account_sessions_router)
 app.include_router(team_members_router)
 app.include_router(operations_readiness_router)
@@ -149,7 +153,7 @@ app.add_middleware(WebhookQueryPrivacy)
 @app.exception_handler(RequestValidationError)
 async def private_validation_error(request, error):
     # FastAPI's default validation response includes submitted values, including passwords.
-    if request.url.path.startswith(("/api/v1/agenda", "/api/v1/whatsapp/replies", "/api/v1/public/booking/")) or request.url.path.startswith(
+    if request.url.path.startswith(("/api/v1/agenda", "/api/v1/whatsapp/replies", "/api/v1/whatsapp/connection", "/api/v1/public/booking/", "/api/v1/team/invitations")) or request.url.path.startswith(
         ("/api/v1/auth/", "/api/v1/admin/", "/api/v1/instagram/", "/api/v1/whatsapp/bot", "/internal/whatsapp/bot", "/api/v1/workspace-profile", "/api/v1/message-enrichment", "/internal/message-enrichment", "/api/v1/channel-lab", "/internal/channel-ingress", "/api/v1/content/preparation", "/api/v1/opportunities", "/api/v1/integrations/setup")
     ):
         return JSONResponse(

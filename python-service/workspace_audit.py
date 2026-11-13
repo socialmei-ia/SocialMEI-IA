@@ -43,6 +43,10 @@ def history(start: date | None = Query(None), end: date | None = Query(None),
         actions.update({f'perfil:{workspace}:{key}': ('settings', label) for key, label in SETTINGS.items()})
         actions[f'agenda:{workspace}:config'] = ('settings', 'Horários de agendamento configurados')
         actions[f'agenda:{workspace}:publica'] = ('settings', 'Publicação da agenda atualizada')
+        actions[f'setup:{workspace}:catalogo'] = ('settings', 'Catálogo inicial confirmado')
+        actions[f'waha:{workspace}:solicitacao'] = ('settings', 'Solicitação de conexão WhatsApp registrada')
+        for action, label in [('convite_criado', 'Convite de equipe registrado'), ('convite_revogado', 'Convite de equipe revogado'), ('convite_aceito', 'Convite de equipe aceito'), ('acesso_revogado', 'Acesso de convite revogado')]:
+            actions[f'equipe:{workspace}:{action}'] = ('team', label)
     try:
         with connect() as conn:
             conn.row_factory = dict_row

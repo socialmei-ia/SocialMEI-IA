@@ -68,6 +68,12 @@
       if (!auth?.remote)
         throw new Error("Ativação por e-mail disponível somente no ambiente conectado.");
       await auth.ready;
+      if (auth.current) {
+        button("Sair desta conta", async () => {
+          await auth.request("/auth/logout", "POST", {});
+          location.assign("/frontend/entrada.html#/entrar");
+        });
+      }
       if (purpose === "verificar" && token) {
         message.textContent = "Confirme abaixo para verificar o e-mail desta conta.";
         button("Confirmar meu e-mail", async () => {

@@ -11,7 +11,11 @@ test("optional application DSN is shared by API and mail/Instagram workers, outs
   assert(api > 0);
   assert(!base.slice(0, api).includes("TEAM_APPLICATION_DATABASE_URL"));
   assert(base.slice(api).includes(setting));
-  for (const file of ["compose.team-recovery.yaml", "compose.team-instagram-auto.yaml"])
+  for (const file of [
+    "compose.team-recovery.yaml",
+    "compose.team-instagram-auto.yaml",
+    "compose.team-identity.yaml",
+  ])
     assert(read(file).includes(setting), file);
 });
 

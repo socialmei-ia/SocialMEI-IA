@@ -91,6 +91,9 @@
     document.body.appendChild(whatsappReplies);
     const whatsappReadiness = document.createElement("script");
     whatsappReadiness.src = "scripts/v22-whatsapp-readiness.js";
+    const whatsappManagement = document.createElement("script");
+    whatsappManagement.src = "scripts/v22-whatsapp-management.js";
+    document.head.append(whatsappManagement);
     whatsappReadiness.onerror = () => console.warn("Estado WhatsApp indisponível.");
     document.body.appendChild(whatsappReadiness);
     const providerAnalysis = document.createElement("script");

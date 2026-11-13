@@ -43,6 +43,9 @@ async function run() {
     const entry = await require("./v22-entry-browser.cjs")(browser, origin);
     await require("./v25-entry-browser.cjs")(browser, origin);
     await require("./frontend-recovery-browser.cjs")(browser, origin);
+    await require("./identity-activation-browser.cjs")(browser, origin);
+    await require("./business-start-setup-browser.cjs")();
+    await require("./whatsapp-management-browser.cjs")();
     await require("./agenda-browser.cjs")(browser, origin);
     await require("./appointments-browser.cjs")(browser, origin);
     console.log(await require("./public-booking-browser.cjs")(browser, origin));

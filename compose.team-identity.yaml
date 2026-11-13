@@ -1,0 +1,34 @@
+# Optional account activation delivery. No pairing or external activation by default.
+services:
+  team-identity-worker:
+    profiles: [identity-mail]
+    build:
+      context: ./python-service
+    command: ["python", "identity_worker.py", "--run", "--watch", "--limit", "10"]
+    restart: unless-stopped
+    environment:
+      PYTHONPATH: /app
+      POSTGRES_HOST: team-postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: socialmei_team
+      POSTGRES_PASSWORD: ${TEAM_POSTGRES_PASSWORD:?Private Team database password required}
+      POSTGRES_DB: socialmei_team
+      DATABASE_URL: ${TEAM_APPLICATION_DATABASE_URL:-}
+      SOCIALMEI_SHARED_DATA_ENABLED: "true"
+      SOCIALMEI_AUTH_ENABLED: ${TEAM_AUTH_ENABLED:-false}
+      SOCIALMEI_AUTH_ORIGIN: https://${SOCIALMEI_TEAM_HOST:?Team HTTPS hostname required}
+      SOCIALMEI_IDENTITY_MODE: ${SOCIALMEI_IDENTITY_MODE:-disabled}
+      SOCIALMEI_QUEUE_WAKEUP_MODE: ${SOCIALMEI_QUEUE_WAKEUP_MODE:-poll}
+      SOCIALMEI_SMTP_HOST: ${SOCIALMEI_SMTP_HOST:-}
+      SOCIALMEI_SMTP_PORT: ${SOCIALMEI_SMTP_PORT:-465}
+      SOCIALMEI_SMTP_USER: ${SOCIALMEI_SMTP_USER:-}
+      SOCIALMEI_SMTP_PASSWORD: ${SOCIALMEI_SMTP_PASSWORD:-}
+      SOCIALMEI_SMTP_FROM: ${SOCIALMEI_SMTP_FROM:-}
+    networks: [database, identity-egress]
+    depends_on:
+      team-postgres:
+        condition: service_healthy
+
+networks:
+  identity-egress:
+    driver: bridge
