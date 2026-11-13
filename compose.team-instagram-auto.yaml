@@ -31,18 +31,13 @@ x-instagram-worker: &instagram-worker
     SOCIALMEI_INSTAGRAM_PUBLISH_ENABLED: "false"
     SOCIALMEI_INSTAGRAM_AUTO_MENU_ENABLED: ${SOCIALMEI_INSTAGRAM_AUTO_MENU_ENABLED:-false}
     SOCIALMEI_INSTAGRAM_AUTO_MENU_WORKSPACES: ${SOCIALMEI_INSTAGRAM_AUTO_MENU_WORKSPACES:-}
+    SOCIALMEI_QUEUE_WAKEUP_MODE: ${SOCIALMEI_QUEUE_WAKEUP_MODE:-poll}
   networks: [database, instagram-menu-egress]
   depends_on:
     team-postgres:
       condition: service_healthy
   healthcheck:
-    test:
-      [
-        "CMD",
-        "python",
-        "-c",
-        "import json; from pathlib import Path; p=Path('/run/socialmei/instagram-menu-state/state.json'); assert json.loads(p.read_text())['status']=='running'",
-      ]
+    test: ["CMD", "python", "-c", "from instagram_worker_health import healthy; assert healthy()"]
     interval: 30s
     timeout: 5s
     retries: 3
@@ -53,6 +48,7 @@ services:
     environment:
       SOCIALMEI_INSTAGRAM_AUTO_MENU_ENABLED: ${SOCIALMEI_INSTAGRAM_AUTO_MENU_ENABLED:-false}
       SOCIALMEI_INSTAGRAM_AUTO_MENU_WORKSPACES: ${SOCIALMEI_INSTAGRAM_AUTO_MENU_WORKSPACES:-}
+      SOCIALMEI_QUEUE_WAKEUP_MODE: ${SOCIALMEI_QUEUE_WAKEUP_MODE:-poll}
 
   team-instagram-menu-primary:
     <<: *instagram-worker

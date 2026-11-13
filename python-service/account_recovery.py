@@ -12,6 +12,7 @@ from uuid import uuid4
 from pydantic import Field, field_validator
 import settings
 from database import connect
+from queue_wakeup import RECOVERY_CHANNEL, notify_queue
 from account_auth import (
     Strict,
     normalize_email,
@@ -106,6 +107,7 @@ def queue_recovery(address):
             "INSERT INTO socialmei.auth_recuperacao_envios(user_id,generation,status) VALUES(%s,%s,'pending') ON CONFLICT(user_id) DO UPDATE SET generation=EXCLUDED.generation,status='pending',queued_at=NOW(),started_at=NULL,finished_at=NULL",
             (row[0], uuid4()),
         )
+        notify_queue(conn, RECOVERY_CHANNEL)
 
 
 def process_one():

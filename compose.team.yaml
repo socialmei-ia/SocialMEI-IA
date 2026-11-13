@@ -71,6 +71,7 @@ services:
       SOCIALMEI_PROVIDER_SENTIMENT_WORKSPACE_IDS: ${SOCIALMEI_PROVIDER_SENTIMENT_WORKSPACE_IDS:-}
       # Optional recovery; credentials stay in private server environment.
       SOCIALMEI_RECOVERY_MODE: ${SOCIALMEI_RECOVERY_MODE:-disabled}
+      SOCIALMEI_QUEUE_WAKEUP_MODE: ${SOCIALMEI_QUEUE_WAKEUP_MODE:-poll}
       SOCIALMEI_KNOWLEDGE_PDF_ENABLED: ${SOCIALMEI_KNOWLEDGE_PDF_ENABLED:-false}
       SOCIALMEI_WA_CATALOG_ENABLED: ${SOCIALMEI_WA_CATALOG_ENABLED:-false}
       # WAHA bot and signed ingress remain opt-in; registry is a server-only file.

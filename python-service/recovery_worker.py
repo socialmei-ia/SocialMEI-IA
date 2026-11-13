@@ -5,6 +5,7 @@ import sys
 import time
 
 from account_recovery import process_one
+from queue_wakeup import QueueWakeup, RECOVERY_CHANNEL
 
 
 def poll_once(limit):
@@ -28,16 +29,19 @@ def main():
     if not args.run or not 1 <= args.limit <= 100 or not 5 <= args.interval <= 300:
         parser.error("--run, limit 1–100 and interval 5–300 are required")
     try:
-        while True:
+        if not args.watch:
             processed = poll_once(args.limit)
-            if not args.watch:
-                print(
-                    f"Recovery delivery requests processed: {processed}. "
-                    "No delivery receipt is implied."
-                )
-                return 0
-            # Avoid logging email addresses, tokens or even queued customer counts.
-            time.sleep(args.interval)
+            print(f"Recovery delivery requests processed: {processed}. No delivery receipt is implied.")
+            return 0
+        with QueueWakeup(RECOVERY_CHANNEL, interval=args.interval, reconcile=300,
+                         sleeper=time.sleep) as wakeup:
+            while True:
+                wakeup.prepare()
+                processed = poll_once(args.limit)
+                if wakeup.mode == 'listen' and processed == args.limit:
+                    continue
+                # No addresses, tokens or queued customer counts in logs.
+                wakeup.wait()
     except KeyboardInterrupt:
         return 0
     except Exception:

@@ -395,8 +395,10 @@ def persist_authenticated_events(events, account_bindings=None, alias_bindings=N
     accounts = sorted({event.account_id for event in events})
     result = {"received": True, "processed": 0, "ignored": 0, "duplicates": 0}
     failed = False
+    from queue_wakeup import instagram_channel, notify_queue
     try:
         with connect() as conn:
+            wakeups = set()
             conn.row_factory = dict_row
             conn.execute("SET LOCAL lock_timeout='3s'")
             conn.execute("SET LOCAL statement_timeout='10s'")
@@ -469,6 +471,10 @@ def persist_authenticated_events(events, account_bindings=None, alias_bindings=N
                     ),
                 )
                 result["processed" if message_id else "ignored"] += 1
+                if message_id:
+                    wakeups.add(binding['workspace_id'])
+            for workspace in sorted(wakeups):
+                notify_queue(conn, instagram_channel(workspace))
     except HTTPException:
         raise
     except (psycopg.Error, RuntimeError):
