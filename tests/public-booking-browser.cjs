@@ -259,6 +259,10 @@ async function validate(browser, origin) {
       scenario = "off";
       await page.goto(origin + "/frontend/agendar.html?negocio=bella");
       await page.getByRole("heading", { name: "Agendamento indisponível", exact: true }).waitFor();
+      const beforeRetry = requests.length;
+      await page.getByRole("button", { name: "Tentar novamente", exact: true }).click();
+      await page.getByRole("heading", { name: "Agendamento indisponível", exact: true }).waitFor();
+      assert.ok(requests.length > beforeRetry, "Retry must perform a fresh visitor request");
       assert.ok(!(await page.content()).includes("private technical error"));
       await privacy();
       journeys++;
