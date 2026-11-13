@@ -1,0 +1,112 @@
+.inbox-layout .ms {
+  min-height: 160px;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+}
+.inbox-layout .cp {
+  max-height: 42%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.inbox-layout .inbox-customer {
+  padding: 8px 12px;
+  gap: 6px;
+  font-size: 13px;
+}
+.inbox-layout .inbox-customer .btn {
+  padding: 8px 10px;
+  font-size: 12px;
+}
+.inbox-layout .bb {
+  max-width: min(100%, 62ch);
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+.inbox-layout .inbox-message-grouped {
+  margin-top: -8px;
+}
+.inbox-layout .inbox-message-grouped .mg:not(.o) > .av {
+  visibility: hidden;
+}
+.inbox-layout .cp textarea {
+  min-height: 88px;
+  max-height: 180px;
+  resize: vertical;
+  line-height: 1.5;
+}
+.inbox-layout-settings {
+  display: none;
+  margin: 10px 0;
+  color: var(--m);
+  font-size: 12px;
+}
+.inbox-layout-settings summary {
+  cursor: pointer;
+  min-height: 32px;
+  padding: 7px 0;
+}
+.inbox-layout-settings label {
+  display: grid;
+  gap: 4px;
+  margin: 10px 0;
+}
+.inbox-layout-settings input {
+  width: 100%;
+  min-height: 28px;
+  accent-color: var(--p);
+}
+.inbox-layout-settings button {
+  min-height: 36px;
+}
+@media (min-width: 1200px) {
+  #v .cv.inbox-layout {
+    grid-template-columns: minmax(200px, var(--inbox-list-width, 24%)) minmax(0, 1fr) minmax(
+        200px,
+        var(--inbox-context-width, 23%)
+      );
+  }
+  #v .cv.inbox-layout.noctx {
+    grid-template-columns: minmax(200px, var(--inbox-list-width, 24%)) minmax(0, 1fr);
+  }
+  .inbox-layout-settings {
+    display: block;
+  }
+}
+@media (max-width: 600px) {
+  .inbox-layout .wa-human {
+    padding: 8px 10px;
+    margin: 6px 0;
+    gap: 6px;
+  }
+  .inbox-layout .wa-human p {
+    font-size: 12px;
+    line-height: 1.4;
+    margin: 0;
+  }
+  .inbox-layout [data-wa-bot] {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .inbox-layout [data-wa-bot] strong,
+  .inbox-layout [data-wa-bot] p {
+    grid-column: 1 / -1;
+  }
+  .inbox-layout [data-wa-bot] button {
+    padding: 6px;
+    font-size: 12px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .inbox-layout .wa-human button:focus-visible {
+    outline: 2px solid var(--p);
+    outline-offset: 2px;
+  }
+  .inbox-layout .inbox-customer .btn {
+    flex: 1;
+  }
+  .inbox-layout .cp textarea {
+    min-height: 72px;
+    max-height: 130px;
+  }
+}
