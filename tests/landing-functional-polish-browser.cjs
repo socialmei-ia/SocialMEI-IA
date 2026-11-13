@@ -93,6 +93,17 @@ async function run() {
         await app.screenshot({ path: path.join(output, `opportunities-${width}-${theme}.png`) });
       }
     }
+    await app.evaluate(() => {
+      const canary = document.createElement("div");
+      canary.id = "content-overflow-canary";
+      canary.style.cssText = "position:absolute;left:0;top:0;width:4000px;height:1px";
+      document.body.append(canary);
+    });
+    assert(
+      await app.evaluate(() => document.documentElement.scrollWidth > innerWidth),
+      "Real content overflow must remain detectable",
+    );
+    await app.locator("#content-overflow-canary").evaluate((node) => node.remove());
     await app.evaluate(() => (testFailure = true));
     await app.locator("#refresh").click();
     await app.waitForFunction(() =>

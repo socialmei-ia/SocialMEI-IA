@@ -6,11 +6,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>SocialMEI.IA · Oportunidades</title>
 <style>
-:root{box-sizing:border-box;overflow-x:clip;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
 --bg:#0a1223;--sf:#0f1a31;--sf2:#15233f;--bd:#22345a;--tx:#e8eefb;--mu:#8fa3cb;--ac:#4d7cff;--on:#fff;--ok:#43c98a;--late:#ff8a7a;--hov:rgba(77,124,255,.09);--ease:cubic-bezier(.22,1,.36,1)}
 :root[data-theme=light]{--bg:#f6f3ec;--sf:#fffdf8;--sf2:#efebe0;--bd:#d9d2c0;--tx:#14213d;--mu:#5c6479;--ac:#2446c9;--ok:#14774d;--late:#b3392a;--hov:rgba(36,70,201,.07)}
 *,*::before,*::after{box-sizing:inherit}
-body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-variant-numeric:tabular-nums;overflow-x:clip}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-variant-numeric:tabular-nums}
 button,input,select{font:inherit;color:inherit}[hidden]{display:none!important}
 :focus-visible{outline:2px solid var(--ac);outline-offset:2px}
 .ic{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
@@ -196,7 +196,7 @@ h1{font-size:clamp(38px,5.4vw,60px);font-weight:800;letter-spacing:-.03em}
 <div class="mw"><button class="hb user" data-menu="mu" aria-expanded="false"><span class="avt" aria-hidden="true">MA</span><span class="nm">Maiccon</span><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg></button><div class="menu" id="mu" hidden><button class="mi" id="theme" aria-pressed="false">Alternar tema claro e escuro</button></div></div>
 </div></div></header>
 <main class="wrap">
-<section class="hero2"><div class="hl"><div class="eyebrow">OPORTUNIDADES</div>
+<section class="hero2"><div class="hero-glow" aria-hidden="true"></div><div class="hl"><div class="eyebrow">OPORTUNIDADES</div>
 <h1><span>Análise</span> <span style="animation-delay:.07s">de</span> <span style="animation-delay:.14s">clientes</span></h1>
 <p class="lead up">Veja quem acompanhar e qual pode ser o próximo passo.</p>
 <p class="desc">Frio, Morno e Quente indicam interesse. Venda realizada e Não avançou encerram a oportunidade e saem dos contadores de interesse. Sem resposta continua em andamento.</p>
@@ -419,10 +419,11 @@ html.emb.calm *,html.emb.calm *::before,html.emb.calm *::after{animation-duratio
 
 /* v18: brilho de fundo que desliza devagar + abertura do título */
 .hero2{position:relative;isolation:isolate}
-.hero2::before{content:"";position:absolute;z-index:-1;left:-80px;top:-20px;width:520px;height:320px;border-radius:50%;background:var(--ac);opacity:.16;filter:blur(80px);pointer-events:none;animation:glowSlide 20s ease-in-out infinite alternate}
+.hero-glow{position:absolute;inset:0;overflow:clip;pointer-events:none;z-index:-1}
+.hero-glow::before{content:"";position:absolute;left:-80px;top:-20px;width:520px;height:320px;border-radius:50%;background:var(--ac);opacity:.16;filter:blur(80px);pointer-events:none;animation:glowSlide 20s ease-in-out infinite alternate}
 @keyframes glowSlide{to{transform:translate3d(260px,30px,0) scale(1.15)}}
-.calm .hero2::before{animation:none}
-@media(prefers-reduced-motion:reduce){.hero2::before{animation:none}}
+.calm .hero-glow::before{animation:none}
+@media(prefers-reduced-motion:reduce){.hero-glow::before{animation:none}}
 </style>
 <script id="smei-embed">
 /* Modo embutido: usado quando a tela é aberta dentro do SocialMEI.IA (?embed=1).
