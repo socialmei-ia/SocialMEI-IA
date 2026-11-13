@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 import logging
 
 import psycopg
+from psycopg.types.json import Jsonb
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 import settings
@@ -90,6 +91,9 @@ def refresh_connection(service, user, session_hash):
                                    datetime.fromtimestamp(fresh.expires_at, timezone.utc), identity.account_type,
                                    user['workspace_id'], previous['id'])).fetchone()
             conn.execute("INSERT INTO socialmei.auth_auditoria(user_id,acao) VALUES(%s,'instagram_token_refreshed')", (user['id'],))
+            conn.execute("UPDATE socialmei.workspaces SET configuracao=jsonb_set(configuracao,'{instagram_profile}',%s) WHERE id=%s",
+                         (Jsonb({'connection_id': str(previous['id']), 'account_id': identity.user_id,
+                                 'username': identity.username}), user['workspace_id']))
             return {'status': 'refreshed', 'provider': 'instagram', 'connection_id': str(previous['id']),
                     'revision': result['revision'], 'expires_at': result['expires_at'].isoformat()}
     except psycopg.Error:

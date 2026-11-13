@@ -85,6 +85,9 @@ def envelope(workspace, revision, instagram):
         'Conferir contratos dos workflows e a base de produtos antes de responder.',
     ])
     return {'workspace_id': workspace, 'revision': revision, 'instagram': instagram,
+            'purpose': 'preparation_only',
+            'connection_status_path': '/api/v1/instagram/meta/status',
+            'connection_management_path': '/frontend/socialmei-app.html#/config/integracoes',
             'connected': False, 'transport': 'none',
             'readiness': {'can_receive': False, 'can_send': False, 'can_publish': False,
                           'source': 'user_reported_preparation', 'blockers': blockers},

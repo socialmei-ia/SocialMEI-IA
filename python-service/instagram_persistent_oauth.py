@@ -14,6 +14,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException, Request
 from psycopg.errors import DeadlockDetected, SerializationFailure, UniqueViolation
 from psycopg.rows import dict_row
+from psycopg.types.json import Jsonb
 from pydantic import Field, model_validator
 
 import settings
@@ -292,6 +293,12 @@ class InstagramOAuthService:
                     "UPDATE socialmei.ig_meta_oauth_states SET status='connected' WHERE state_hash=%s",
                     (state_hash,),
                 )
+                # Only the verified provider identity writes this display profile.
+                conn.execute(
+                    "UPDATE socialmei.workspaces SET configuracao=jsonb_set(configuracao,'{instagram_profile}',%s) WHERE id=%s",
+                    (Jsonb({'connection_id': str(connection_id), 'account_id': identity.user_id,
+                            'username': identity.username}), user['workspace_id']),
+                )
                 _audit(conn, user, "connected", connection_id)
         except (UniqueViolation, DeadlockDetected, SerializationFailure):
             conflict = True
@@ -309,14 +316,36 @@ class InstagramOAuthService:
         with db() as conn:
             _authorize(conn, user, session_hash, manage=False, lock=False)
             row = conn.execute(
-                "SELECT * FROM socialmei.ig_meta_connections WHERE workspace_id=%s ORDER BY created_at DESC,id DESC LIMIT 1",
+                "SELECT c.*,w.configuracao->'instagram_profile' AS profile FROM socialmei.ig_meta_connections c "
+                "JOIN socialmei.workspaces w ON w.id=c.workspace_id WHERE c.workspace_id=%s "
+                "ORDER BY c.created_at DESC,c.id DESC LIMIT 1",
                 (user["workspace_id"],),
             ).fetchone()
+            pending = conn.execute(
+                "SELECT EXISTS(SELECT 1 FROM socialmei.ig_meta_oauth_states WHERE workspace_id=%s "
+                "AND status IN ('pending','exchanging') AND expires_at>NOW()) AS present",
+                (user['workspace_id'],),
+            ).fetchone()['present']
+            received = None
+            if row and row['status'] == 'connected':
+                received = conn.execute(
+                    "SELECT MAX(e.received_at) AS received FROM socialmei.ig_meta_ingress_events e "
+                    "JOIN socialmei.me_messages m ON m.workspace_id=e.workspace_id AND m.id=e.message_id "
+                    "WHERE e.workspace_id=%s AND e.connection_id=%s AND e.external_account_id=%s "
+                    "AND e.kind='message' AND e.status='processed' AND e.received_at>=NOW()-INTERVAL '24 hours' "
+                    "AND e.received_at<=NOW() AND m.occurred_at>=NOW()-INTERVAL '24 hours' AND m.occurred_at<=NOW()",
+                    (user['workspace_id'], row['id'], row['external_account_id']),
+                ).fetchone()['received']
         if not row:
             return {
                 "status": "disconnected",
                 "provider": "instagram",
                 "credential_available": False,
+                "workspace_id": user['workspace_id'],
+                "connection_state": 'connecting' if pending else 'not_connected',
+                "source": "verified_oauth_store",
+                "missing_scopes": [],
+                "receiving_messages": False,
             }
         available = False
         if row["status"] == "connected":
@@ -333,6 +362,17 @@ class InstagramOAuthService:
         status = row["status"]
         if status == "connected" and row["expires_at"] <= datetime.now(timezone.utc):
             status, available = "expired", False
+        missing = sorted(self.required_scopes - frozenset(row['scopes']))
+        attention = status == 'expired' or (status == 'connected' and (not available or bool(missing)))
+        state = ('attention' if attention else 'connected' if status == 'connected'
+                 else 'connecting' if pending else 'disconnected')
+        profile = row['profile'] if isinstance(row.get('profile'), dict) else {}
+        username = profile.get('username')
+        if (profile.get('connection_id') != str(row['id']) or profile.get('account_id') != row['external_account_id']
+                or not isinstance(username, str) or not re.fullmatch(r'[A-Za-z0-9_.]{1,30}', username)):
+            username = None
+        now = datetime.now(timezone.utc)
+        renew_after = row['issued_at'] + timedelta(hours=24)
         return {
             "status": status,
             "provider": "instagram",
@@ -342,6 +382,20 @@ class InstagramOAuthService:
             "expires_at": row["expires_at"].isoformat(),
             "credential_available": available,
             "revision": row["revision"],
+            "workspace_id": user['workspace_id'],
+            "source": "verified_oauth_store",
+            "connection_state": state,
+            "username": username,
+            "missing_scopes": missing,
+            "receiving_messages": state == 'connected' and received is not None,
+            "last_received_at": received.isoformat() if received else None,
+            "renewal": {
+                "available_after": renew_after.isoformat(),
+                "eligible": state == 'connected' and now >= renew_after,
+                "expiring_soon": state == 'connected' and row['expires_at'] <= now + timedelta(days=7),
+            },
+            "attention_reason": ('credential_expired' if status == 'expired' else 'permissions_missing'
+                                 if missing else 'credential_unavailable' if attention else None),
         }
 
     def disconnect(self, user, session_hash):

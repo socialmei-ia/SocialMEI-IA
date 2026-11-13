@@ -92,6 +92,9 @@ class RefreshDatabaseTests(unittest.TestCase):
 
     def test_renews_ciphertext_and_expiration_without_exposing_token(self):
         self.connected()
+        with self.database() as conn:
+            conn.execute("UPDATE socialmei.workspaces SET configuracao=jsonb_set(configuracao,'{instagram_profile,username}','\"old_display\"'::jsonb) WHERE id=%s",
+                         (self.identity['workspace_id'],))
         previous = self.connection()
         result = self.refresh()
         self.assertEqual(result.status_code, 200, result.text)
@@ -108,6 +111,8 @@ class RefreshDatabaseTests(unittest.TestCase):
         with self.database() as conn:
             action = conn.execute("SELECT acao FROM socialmei.auth_auditoria WHERE user_id=%s ORDER BY id DESC LIMIT 1", (self.identity['id'],)).fetchone()[0]
         self.assertEqual(action, 'instagram_token_refreshed')
+        profile = self.client.get(oauth.PREFIX + '/status').json()
+        self.assertEqual(profile['username'], 'synthetic_account')
 
     def test_recent_expired_and_disconnected_connections_do_not_call_provider(self):
         self.connected(old=False)
