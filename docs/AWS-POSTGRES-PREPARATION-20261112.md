@@ -217,3 +217,24 @@ comprovado; rollback após escritas futuras de produção ainda exige o gate aci
 Faltam para autorizar a troca: dados atuais acessíveis e copiados, comparação com
 a origem final, schema039 real preservado, homologação completa, capacidade e
 backup remoto contínuo aprovados e confirmação humana do corte.
+
+### Permissões externas pendentes — continuação funcional
+
+Sem aplicar políticas IAM nesta execução. Para um bucket aprovado e privado,
+a role de backup precisa de s3:ListBucket no ARN do bucket e s3:PutObject e
+s3:GetObject somente no prefixo postgres-relocation/*. GetObject também
+autoriza HeadObject e a leitura de volta para verificar SHA; não é necessária
+permissão de exclusão. Para multipart de dumps maiores, incluir
+s3:AbortMultipartUpload e s3:ListMultipartUploadParts no mesmo prefixo.
+
+A preparação inicial do bucket, sob aprovação do responsável e por identidade
+administrativa separada, exige s3:CreateBucket,
+s3:PutBucketPublicAccessBlock, s3:PutEncryptionConfiguration,
+s3:PutBucketVersioning e s3:PutBucketPolicy. Não iniciar criação com novos
+custos sem a autorização específica exigida na continuação atual.
+SSE-S3/AES256 não necessita de permissões KMS.
+
+Para completar a inspeção sem alterar a EC2: ec2:DescribeInstances,
+ec2:DescribeVolumes, ec2:DescribeSecurityGroups, cloudwatch:GetMetricData e
+cloudwatch:ListMetrics. Custos faturados exigem acesso de leitura à cobrança,
+como ce:GetCostAndUsage, autorizado pelo responsável da conta.
