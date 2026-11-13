@@ -10,6 +10,13 @@
     publishing: false,
     connected: false,
     renewAvailable: false,
+    connectionState: "not_connected",
+    username: null,
+    expiresAt: null,
+    missingScopes: [],
+    receiving: false,
+    expiringSoon: false,
+    owner: null,
   };
   let pending = null,
     busy = false;
@@ -28,9 +35,15 @@
     if (state.phase === "loading") return "Consultando…";
     if (state.phase === "error") return "Indisponível";
     if (!state.oauth) return "Não configurado";
+    if (state.connectionState === "connecting") return "Conectando";
+    if (state.connectionState === "attention") return "Requer atenção";
     return state.connected ? "Conectado" : "Não conectado";
   }
   function description() {
+    if (state.connectionState === "attention")
+      return state.missingScopes.length
+        ? "A autorização não inclui todas as permissões necessárias. Autorize a conta novamente pelo fluxo oficial."
+        : "A credencial expirou ou não pôde ser validada. Conecte novamente a conta profissional.";
     if (state.connected)
       return (
         "Conta conectada. " +
@@ -97,6 +110,10 @@
         if (busy) return;
         if (button.dataset.igAction === "connect") connect();
         else if (button.dataset.igAction === "renew") renew();
+        else if (button.dataset.igAction === "authorize") connect(button.dataset.igScope);
+        else if (button.dataset.igAction === "disconnect") confirmDisconnect();
+        else if (button.dataset.igAction === "disconnect-confirm")
+          disconnect(button.dataset.igScope);
         else if (button.dataset.igAction === "refresh") refresh().then(details);
         else details();
       },
@@ -107,6 +124,23 @@
       new MutationObserver(() => paint(doc)).observe(cards, { childList: true, subtree: true });
   }
   function paintAll() {
+    if (state.owner !== scope()) {
+      Object.assign(state, {
+        phase: state.owner === null ? "loading" : "error",
+        connected: false,
+        username: null,
+        expiresAt: null,
+        missingScopes: [],
+        receiving: false,
+        incoming: false,
+        sending: false,
+        publishing: false,
+        oauth: false,
+        renewAvailable: false,
+        connectionState: "not_connected",
+        owner: scope(),
+      });
+    }
     bind(document);
     paint(document);
     for (const frame of document.querySelectorAll("iframe")) {
@@ -131,12 +165,21 @@
         const ready = await host.request("/integrations/readiness");
         if (ready?.source !== "server" || typeof ready.instagram?.oauth_available !== "boolean")
           throw Error("Invalid readiness");
-        let connected = false;
+        let connected = false,
+          connection = {};
         if (ready.instagram.oauth_available) {
-          const connection = await host.request("/instagram/meta/status");
+          connection = await host.request("/instagram/meta/status");
           if (!["connected", "disconnected", "expired"].includes(connection?.status))
             throw Error("Invalid connection");
-          connected = connection.status === "connected" && connection.credential_available === true;
+          if (
+            connection.workspace_id !== undefined &&
+            connection.workspace_id !== host.identity?.negocio.id
+          )
+            throw Error("Different workspace");
+          connected =
+            connection.status === "connected" &&
+            connection.credential_available === true &&
+            (!connection.missing_scopes || connection.missing_scopes.length === 0);
         }
         if (scope() !== owner) throw Error("Identity changed");
         Object.assign(state, {
@@ -147,6 +190,28 @@
           publishing: ready.instagram.publishing_available === true,
           renewAvailable: ready.instagram.token_refresh_available === true,
           connected,
+          connectionState:
+            connection.connection_state ||
+            (connected
+              ? "connected"
+              : connection.status === "expired"
+                ? "attention"
+                : "not_connected"),
+          username: /^[A-Za-z0-9_.]{1,30}$/.test(connection.username || "")
+            ? connection.username
+            : null,
+          expiresAt:
+            typeof connection.expires_at === "string" &&
+            Number.isFinite(Date.parse(connection.expires_at))
+              ? connection.expires_at
+              : null,
+          missingScopes: Array.isArray(connection.missing_scopes) ? connection.missing_scopes : [],
+          receiving:
+            connected &&
+            ready.instagram.incoming_available === true &&
+            connection.receiving_messages === true,
+          expiringSoon: connection.renewal?.expiring_soon === true,
+          owner,
         });
       } catch {
         Object.assign(state, {
@@ -157,6 +222,12 @@
           publishing: false,
           connected: false,
           renewAvailable: false,
+          username: null,
+          expiresAt: null,
+          missingScopes: [],
+          receiving: false,
+          expiringSoon: false,
+          connectionState: "not_connected",
         });
       } finally {
         pending = null;
@@ -209,7 +280,7 @@
       throw Error("URL de autorização não permitida.");
     return url.href;
   }
-  async function connect() {
+  async function connect(confirmedScope) {
     if (busy) return;
     busy = true;
     paintAll();
@@ -220,6 +291,14 @@
       phase = "permission";
       if (!["owner", "admin"].includes(host.identity?.papel))
         throw Error("Somente responsáveis pelo negócio podem conectar a conta.");
+      if (!confirmedScope) {
+        info(
+          "Vincular Instagram",
+          `<p>Você está conectando uma conta ao negócio <strong>${esc(host.identity?.negocio.nome)}</strong>.</p><p>Na autorização oficial, confira o perfil profissional escolhido. Conectar não ativa respostas automáticas.</p><button type="button" class="btn" data-ig-action="authorize" data-ig-scope="${esc(scope())}">Confirmar negócio e autorizar</button>`,
+        );
+        return;
+      }
+      if (confirmedScope !== scope()) throw Error("A empresa mudou. Confira novamente.");
       phase = "request";
       const value = await host.request("/instagram/meta/oauth/start", "POST", {});
       phase = "validation";
@@ -273,7 +352,43 @@
       paintAll();
     }
   }
+  function confirmDisconnect() {
+    if (state.owner !== scope()) {
+      paintAll();
+      refresh().then(details);
+      return;
+    }
+    if (!["owner", "admin"].includes(host.identity?.papel)) return;
+    info(
+      "Desconectar Instagram",
+      `<p>Desconectar o perfil ${state.username ? "@" + esc(state.username) : "autorizado"} de <strong>${esc(host.identity?.negocio.nome)}</strong>?</p><p>O acesso local será removido, preservando mensagens e histórico. A autorização no aplicativo Meta pode ser revogada nas configurações do Instagram.</p><button type="button" class="btn" data-ig-action="disconnect-confirm" data-ig-scope="${esc(scope())}">Confirmar desconexão</button>`,
+    );
+  }
+  async function disconnect(confirmedScope) {
+    if (busy || confirmedScope !== scope() || !["owner", "admin"].includes(host.identity?.papel))
+      return;
+    busy = true;
+    paintAll();
+    try {
+      const result = await host.request("/instagram/meta/connection/disconnect", "POST", {});
+      if (result?.status !== "disconnected" || confirmedScope !== scope())
+        throw Error("Conexão mudou");
+      await refresh();
+      details();
+      toast("Instagram desconectado deste negócio. O histórico foi preservado.");
+    } catch {
+      details("IG_DISCONNECT", "disconnect");
+    } finally {
+      busy = false;
+      paintAll();
+    }
+  }
   function details(errorCode, operation) {
+    if (state.owner !== scope()) {
+      paintAll();
+      refresh().then(() => details());
+      return;
+    }
     const canConnect =
       state.phase === "ready" &&
       state.oauth &&
@@ -287,12 +402,14 @@
     const failureText =
       operation === "renew"
         ? "Não foi possível renovar a credencial. Confira a sessão e tente novamente."
-        : "Não foi possível iniciar a autorização. Confira a sessão e a configuração com o responsável.";
+        : operation === "disconnect"
+          ? "Não foi possível confirmar a desconexão. Consulte o estado atual antes de tentar novamente."
+          : "Não foi possível iniciar a autorização. Confira a sessão e a configuração com o responsável.";
     info(
       "Conexão Instagram",
-      `<p>${label()}</p><p>${description()}</p>${
+      `<p>${label()}</p><p>${description()}</p>${state.username ? "<p>Perfil verificado: <strong>@" + esc(state.username) + "</strong></p>" : ""}<p>Negócio: ${esc(host.identity?.negocio.nome)}</p>${state.expiresAt ? "<p>Credencial válida até " + esc(new Date(state.expiresAt).toLocaleString("pt-BR")) + ".</p>" : ""}${state.receiving ? "<p>Recebendo mensagens: há eventos autenticados nas últimas 24 horas.</p>" : ""}${state.expiringSoon ? '<p role="status">A credencial vence em breve. Renove ou autorize novamente para manter o atendimento.</p>' : ""}${
         typeof errorCode === "string" && /^(HTTP [45][0-9]{2}|IG_[A-Z_]+)$/.test(errorCode)
-          ? '<p role="alert">' + failureText + "</p><p>Referência: " + errorCode + "</p>"
+          ? '<p role="alert">' + failureText + "</p>"
           : ""
       }${
         canConnect
@@ -302,7 +419,7 @@
         canRenew
           ? '<button type="button" class="btn" data-ig-action="renew">Renovar credencial</button><p class="m sm">A renovação exige token válido emitido há pelo menos 24 horas. Não ativa publicações ou respostas.</p>'
           : ""
-      }<button type="button" class="btn o" data-ig-action="refresh">Consultar novamente</button>`,
+      }${state.oauth && ["owner", "admin"].includes(host.identity?.papel) && state.connectionState !== "not_connected" ? '<button type="button" class="btn o" data-ig-action="disconnect">Desconectar perfil</button>' : ""}<button type="button" class="btn o" data-ig-action="refresh">Consultar novamente</button>`,
     );
   }
   document.addEventListener(
@@ -325,8 +442,11 @@
     refresh,
     connect,
     renew,
+    disconnect,
+    details,
     authorization,
     get status() {
+      if (state.owner !== scope()) paintAll();
       return { ...state };
     },
   };

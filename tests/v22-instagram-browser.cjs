@@ -16,6 +16,10 @@ module.exports = async function (browser, origin) {
     "invalid-url",
     "start-error",
     "member",
+    "managed",
+    "expired",
+    "missing-scopes",
+    "wrong-scope",
   ]) {
     const page = await browser.newPage({
       viewport: { width: 390, height: 1000 },
@@ -28,6 +32,7 @@ module.exports = async function (browser, origin) {
     await page.addInitScript(() => localStorage.setItem("socialmei-auth-browser-scope", "91:17"));
     const state = "s".repeat(43);
     let enabled = false;
+    let disconnected = false;
     const identity = {
       usuario: { id: 91, nome: "Teste", email: "test@example.test" },
       negocio: { id: 17, nome: "Negócio de teste", slug: "teste", configuracao: {} },
@@ -72,7 +77,7 @@ module.exports = async function (browser, origin) {
             source: "server",
             instagram: {
               oauth_available: !["disabled", "forged-callback"].includes(mode),
-              incoming_available: enabled,
+              incoming_available: enabled || mode === "managed",
               send_enabled: enabled,
               publishing_available: enabled,
             },
@@ -81,12 +86,51 @@ module.exports = async function (browser, origin) {
       if (p === "/instagram/meta/status")
         return route.fulfill({
           json: {
-            status: ["connected", "successful-callback"].includes(mode)
-              ? "connected"
-              : "disconnected",
-            credential_available: ["connected", "successful-callback"].includes(mode),
+            status: disconnected
+              ? "disconnected"
+              : mode === "expired"
+                ? "expired"
+                : [
+                      "connected",
+                      "successful-callback",
+                      "managed",
+                      "missing-scopes",
+                      "wrong-scope",
+                    ].includes(mode)
+                  ? "connected"
+                  : "disconnected",
+            credential_available:
+              !disconnected &&
+              [
+                "connected",
+                "successful-callback",
+                "managed",
+                "missing-scopes",
+                "wrong-scope",
+              ].includes(mode),
+            workspace_id: mode === "wrong-scope" ? 999 : 17,
+            username: ["managed", "expired", "missing-scopes", "wrong-scope"].includes(mode)
+              ? "verified_test"
+              : null,
+            connection_state: disconnected
+              ? "disconnected"
+              : ["expired", "missing-scopes"].includes(mode)
+                ? "attention"
+                : ["managed", "wrong-scope"].includes(mode)
+                  ? "connected"
+                  : undefined,
+            missing_scopes: mode === "missing-scopes" ? ["instagram_business_manage_messages"] : [],
+            expires_at: "2027-01-01T12:00:00Z",
+            receiving_messages: mode === "managed",
+            renewal: { expiring_soon: mode === "managed" },
           },
         });
+      if (p === "/instagram/meta/connection/disconnect") {
+        assert.equal(request.headers()["x-socialmei-csrf"], "a".repeat(64));
+        posts.push(p);
+        disconnected = true;
+        return route.fulfill({ json: { status: "disconnected", provider_revoked: false } });
+      }
       if (p === "/instagram/meta/oauth/start") {
         if (mode === "start-error") {
           posts.push(p);
@@ -137,8 +181,39 @@ module.exports = async function (browser, origin) {
       await row.waitFor();
       assert.equal(
         await page.evaluate(() => SocialMEIInstagram.status.connected),
-        ["connected", "successful-callback"].includes(mode),
+        ["connected", "successful-callback", "managed"].includes(mode),
       );
+      if (["managed", "expired", "missing-scopes", "wrong-scope"].includes(mode)) {
+        await page.evaluate(() => SocialMEIInstagram.details());
+        const dialog = page.locator("dialog[open]");
+        const copy = await dialog.innerText();
+        if (mode === "wrong-scope") {
+          assert(!copy.includes("verified_test"));
+          assert.equal(await page.evaluate(() => SocialMEIInstagram.status.phase), "error");
+        } else {
+          assert(copy.includes("@verified_test"));
+          assert(copy.includes("Negócio de teste"));
+          if (mode === "managed") {
+            assert(copy.includes("Recebendo mensagens"));
+            assert(copy.includes("vence em breve"));
+            await page.screenshot({
+              path: path.join(output, "verified-management-mobile.png"),
+              fullPage: true,
+            });
+            await dialog.locator("[data-ig-action=disconnect]").click();
+            assert.equal(posts.length, 0);
+            await page.locator("dialog[open] [data-ig-action=disconnect-confirm]").click();
+            await page.waitForFunction(() => !SocialMEIInstagram.status.connected);
+            assert.deepEqual(posts, ["/instagram/meta/connection/disconnect"]);
+          } else {
+            assert(copy.includes("Requer atenção"));
+            assert(!copy.includes("Recebendo mensagens"));
+          }
+        }
+        assert.deepEqual(errors, []);
+        assert.deepEqual(external, []);
+        continue;
+      }
       // Permissions beyond the explicitly supported contract are rejected.
       assert.equal(
         await page.evaluate(() => {
@@ -182,6 +257,7 @@ module.exports = async function (browser, origin) {
         assert.equal(await authorize.count(), mode === "failed-callback" ? 1 : 0);
         if (mode === "failed-callback") {
           await authorize.click();
+          await page.locator("dialog[open] [data-ig-action=authorize]").click();
           await page.waitForURL("https://www.instagram.com/oauth/authorize?**");
           assert.equal(posts.length, 1);
         }
@@ -194,6 +270,12 @@ module.exports = async function (browser, origin) {
           await frame.locator("#dock button").nth(3).click();
           await frame.getByRole("button", { name: "Conectar Instagram", exact: true }).click();
         } else await row.getByRole("button", { name: "Conectar Instagram", exact: true }).click();
+        if (mode !== "member") {
+          await page.getByRole("heading", { name: "Vincular Instagram" }).waitFor();
+          assert.match(await page.locator("dialog[open]").innerText(), /Negócio de teste/);
+          assert.equal(posts.length, 0);
+          await page.locator("dialog[open] [data-ig-action=authorize]").click();
+        }
         if (["connect", "connect-frame"].includes(mode)) {
           await page.waitForURL("https://www.instagram.com/oauth/authorize?**");
           assert.equal(new URL(page.url()).searchParams.get("state"), state);
