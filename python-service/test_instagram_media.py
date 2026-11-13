@@ -80,7 +80,10 @@ class MediaPrivacyTests(unittest.IsolatedAsyncioTestCase):
                                        pass_fds=(listener.fileno(),), cwd=Path(__file__).parent,
                                        env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
             try:
-                for _ in range(100):
+                deadline = time.monotonic() + 20
+                while time.monotonic() < deadline:
+                    if process.poll() is not None:
+                        self.fail('Disposable Uvicorn exited during startup')
                     try:
                         client = http.client.HTTPConnection('127.0.0.1',port,timeout=1)
                         client.request('GET','/media/instagram/'+marker+'.jpg')

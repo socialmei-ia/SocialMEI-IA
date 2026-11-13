@@ -87,13 +87,16 @@ class HeaderContractTests(unittest.TestCase):
                 "instagram_n8n_ingress.persist_authenticated_events", return_value=dict(
                     received=True, processed=0, ignored=0, duplicates=0)):
             client = TestClient(app)
-            self.assertEqual(client.post(PATH, content=raw, headers=header_authenticated(raw)).status_code, 200)
-            bad = [list(header_authenticated(raw).items())+[("Authorization", "Bearer " + KEY)],
-                   list(header_authenticated(raw).items())+[("X-Hub-Signature-256", meta_signature(raw))],
-                   {**header_authenticated(raw), "X-SocialMEI-Signature": signed(raw)['X-SocialMEI-Signature']},
-                   signed(raw), header_authenticated(raw, key='bad'),
-                   {**header_authenticated(raw), 'Authorization': KEY},
-                   {**header_authenticated(raw), 'Authorization': 'Basic '+KEY}]
+            # HTTP uses the real clock, unlike direct service fixtures frozen at NOW.
+            stamp = int(time.time())
+            valid = header_authenticated(raw, timestamp=stamp)
+            self.assertEqual(client.post(PATH, content=raw, headers=valid).status_code, 200)
+            bad = [list(valid.items())+[("Authorization", "Bearer " + KEY)],
+                   list(valid.items())+[("X-Hub-Signature-256", meta_signature(raw))],
+                   {**valid, "X-SocialMEI-Signature": signed(raw, stamp)['X-SocialMEI-Signature']},
+                   signed(raw, stamp), header_authenticated(raw, stamp, key='bad'),
+                   {**valid, 'Authorization': KEY},
+                   {**valid, 'Authorization': 'Basic '+KEY}]
             for headers in bad:
                 response = client.post(PATH, content=raw, headers=headers)
                 self.assertEqual(response.status_code, 403)
