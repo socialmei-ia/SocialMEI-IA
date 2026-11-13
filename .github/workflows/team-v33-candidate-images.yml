@@ -44,6 +44,9 @@ on:
       - "tools/release-migration-rehearsal.mjs"
       - "tools/release038-migration-rehearsal.mjs"
       - "tools/release039-migration-rehearsal.mjs"
+      - "tools/release040-migration-rehearsal.py"
+      - "tests/test_team_release040_profile.py"
+      - "tests/test_release040_migration_rehearsal.py"
       - "tests/test_team_release039_profile.py"
       - "tests/release039-migration-rehearsal.test.cjs"
       - "tests/test_team_release038_profile.py"
@@ -81,9 +84,9 @@ jobs:
           profile = importlib.util.module_from_spec(spec); spec.loader.exec_module(profile)
           folder = Path("database/migrations")
           names = sorted(p.name for p in folder.glob("*.sql"))
-          verify = profile.verify039 if len(names) == 39 else profile.verify038 if len(names) == 38 else profile.verify
+          verify = profile.verify040 if len(names) == 40 else profile.verify039 if len(names) == 39 else profile.verify038 if len(names) == 38 else profile.verify
           result = verify(names, lambda name: (folder / name).read_bytes())
-          assert result["profile"] in ("035", "038", "039")
+          assert result["profile"] in ("035", "038", "039", "040")
           with open(os.environ["GITHUB_ENV"], "a") as out:
               out.write("RELEASE_PROFILE=" + result["profile"] + "\n")
           PY
@@ -104,6 +107,13 @@ jobs:
         run: |
           set -euo pipefail
           api_image_id="$(docker image inspect --format '{{.Id}}' "socialmei-v33/team-api:$CANDIDATE_SHA")"
+          if [ "$RELEASE_PROFILE" = 040 ]; then
+            python3 tools/release040-migration-rehearsal.py --run \
+              --source-sha "$CANDIDATE_SHA" \
+              --api-image "$api_image_id" \
+              --receipt migration-rehearsal.json
+            exit 0
+          fi
           rehearsal=tools/release-migration-rehearsal.mjs
           if [ "$RELEASE_PROFILE" = 038 ]; then rehearsal=tools/release038-migration-rehearsal.mjs; fi
           if [ "$RELEASE_PROFILE" = 039 ]; then rehearsal=tools/release039-migration-rehearsal.mjs; fi
@@ -132,7 +142,8 @@ jobs:
           profile = importlib.util.module_from_spec(spec)
           spec.loader.exec_module(profile)
           with open("migration-rehearsal.json") as f:
-              verifier = (profile.rehearsal039 if os.environ["RELEASE_PROFILE"] == "039"
+              verifier = (profile.rehearsal040 if os.environ["RELEASE_PROFILE"] == "040"
+                          else profile.rehearsal039 if os.environ["RELEASE_PROFILE"] == "039"
                           else profile.rehearsal038 if os.environ["RELEASE_PROFILE"] == "038"
                           else profile.rehearsal)
               proof = verifier(json.load(f), sha)
