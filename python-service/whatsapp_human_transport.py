@@ -66,6 +66,30 @@ class WahaHumanTransport:
     def __repr__(self):
         return 'WahaHumanTransport(private=<redacted>)'
 
+    def inspect_session(self):
+        """Read only the configured session; never pair, start, stop or send."""
+        config = self._configuration
+        token = _private_request.set(True)
+        _protect_logs()
+        try:
+            with self._client_factory(verify=True, follow_redirects=False, trust_env=False,
+                    timeout=httpx.Timeout(5, connect=2),
+                    limits=httpx.Limits(max_connections=1, max_keepalive_connections=0)) as client:
+                if config.engine == 'GOWS':
+                    if self._request(client, 'GET', '/api/version').get('engine') != 'GOWS':
+                        raise WahaTransportError()
+                session = self._request(client, 'GET', '/api/sessions/' + quote(config.session, safe=''))
+                status = session.get('status')
+                if session.get('name') != config.session or status not in {'WORKING', 'STOPPED', 'STARTING', 'SCAN_QR_CODE', 'FAILED'}:
+                    raise WahaTransportError()
+                if status == 'WORKING' and (not isinstance(session.get('me'), dict) or session['me'].get('id') != config.account_id):
+                    raise WahaTransportError()
+                return {'status': status}
+        except Exception:
+            raise WahaTransportError() from None
+        finally:
+            _private_request.reset(token)
+
     def validate_scope(self, item):
         config = self._configuration
         if (
