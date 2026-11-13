@@ -9,6 +9,27 @@ Preservar a produção e transformar a candidata validada em uma versão pronta 
 - **Sem publicação:** esta branch não representa aprovação de deploy, configuração de AWS, troca de banco ou habilitação de canais.
 - **Sem alterações no Prisma:** não alterar credenciais, DSN, schema, migrations ou executar restauração em produção.
 
+## Decisões fixadas — fonte única desta retomada
+
+| Decisão | Regra operacional |
+| --- | --- |
+| Base de referência | `3ce82445a6c87dcc3df3dc43890baa72ac83b127` — candidata funcional aprovada em ambiente isolado |
+| Linha de trabalho | Apenas `ops/readiness-sem-codex-20261113`; não alterar `main`, PR #223 ou branches de canais |
+| Prioridade até a volta do executor | Corrigir bugs verificáveis, melhorar testes e preparar evidências para homologação |
+| Produção e dados reais | Congelados. Sem deploy, troca de DSN, alteração de Prisma, migrations, envio, mudança de credenciais ou reinícios |
+| Canais automáticos | Permanecem opt-in; confirmar respondedor único antes de testes reais |
+| Evidência | Diferenciar testes históricos (`3ce8244`), verificações desta branch e homologação em produção |
+| Próximo marco | Validar os novos testes Node/navegador em ambiente isolado e conciliar o pacote completo; depois avaliar gates externos |
+
+**Não registrar uma nova decisão contraditória em conversa ou script sem atualizar primeiro esta seção.** Os bloqueios externos permanecem na seção de pendências abaixo.
+
+### Proteção adicional contra ativação acidental
+
+- `tests/release-activation-guards.test.cjs` protege padrões desativados para WhatsApp, Instagram, e-mail e agenda pública; confirma perfis opcionais dos workers, compartilhamento do override de banco da aplicação e isolamento de credenciais no gateway público.
+- O teste de navegador do botão **Tentar novamente** agora espera a resposta HTTP simulada, evitando afirmar sucesso antes da requisição.
+- **25 verificações de conteúdo e sintaxe feitas nesta sessão, todas aprovadas**, incluindo uma mutação simulada que habilitaria o agendamento sem autorização e foi detectada. Isso não substitui a execução completa do arquivo Node.
+- Ao retomar localmente: `node --test tests/release-activation-guards.test.cjs tests/public-booking-timeout.test.cjs`; depois `node tests/public-booking-browser.cjs` com Playwright em ambiente isolado. Nenhum desses testes exige banco Prisma real.
+
 ## Correções adicionais nesta branch — sem ativação
 
 - A tela real de agendamento público tinha chamadas `fetch` sem prazo máximo. Agora cada solicitação, incluindo a leitura do JSON, é limitada a 20 segundos. Uma confirmação interrompida continua sendo tratada como **resultado incerto**, permitindo reenviar **a mesma** solicitação idempotente para consultar o comprovante, sem anunciar falha definitiva.
