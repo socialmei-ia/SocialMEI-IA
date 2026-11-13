@@ -301,6 +301,7 @@
       if (confirmedScope !== scope()) throw Error("A empresa mudou. Confira novamente.");
       phase = "request";
       const value = await host.request("/instagram/meta/oauth/start", "POST", {});
+      if (confirmedScope !== scope()) throw Error("A empresa mudou. Confira novamente.");
       phase = "validation";
       const url = authorization(value);
       phase = "navigation";
