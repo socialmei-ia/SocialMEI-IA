@@ -36,15 +36,15 @@ de leitura para a base que deseja observar. O PostgreSQL 17 precisa ter psycopg
 3 instalado no ambiente de execução. Preparar a variável no arquivo de
 ambiente privado, sem colocá-la no shell history, logs, GitHub ou chat:
 
-~~~bash
+```bash
 python tools/postgres-workload-baseline.py --interval 60 --samples 2
-~~~
+```
 
 Para executar os testes offline, que **não** conectam a banco:
 
-~~~bash
+```bash
 python -m unittest discover -s tests -p 'test_postgres_workload_baseline.py'
-~~~
+```
 
 ## Como interpretar com segurança
 
@@ -83,3 +83,36 @@ forma pontual, não como polling em segundo plano.
 Branch preparada separadamente da produção para evitar workflows de PR que
 executam migrations em fixtures. Nenhuma alteração do Prisma ou do runtime foi
 necessária para este diagnóstico.
+
+## Continuação implementada — 12/11, coleta UTC em 13/11
+
+- Candidata única `release/functional-completion-20261112`, descendente de
+  `ea413f6`, preservando preparação AWS e correções anteriores.
+- Commit `683b61c`: `SOCIALMEI_QUEUE_WAKEUP_MODE=listen` opt-in; produtores API
+  e consumidores precisam da mesma flag. LISTEN antes da leitura, sinal vazio
+  transacional, fila persistida autoritativa e reconciliação: Instagram60s,
+  recuperação300s. Falhas de listener mantêm polling de segurança e backoff.
+  O padrão continua `poll`; nenhuma redução foi ativada em produção.
+- Heartbeat Instagram em arquivo separado, sem SQL, valida prontidão de leitura,
+  container e validade temporal. Não limpa o latch de envio incerto/em andamento.
+- 11 testes focados de fila/saúde aprovados, incluindo commit/rollback e
+  desconexão/reconexão em PostgreSQL descartável real. Sete testes existentes
+  do worker de recuperação e dois contratos JS também aprovados.
+- Em janela virtual900s, scans de fila vazia: Instagram60→15 (−75%);
+  recuperação60→3 (−95%), mais um LISTEN inicial. Não é cobrança do Prisma.
+- Ensaio real curto na AWS isolada, com janela escalada de seis segundos,
+  comparou seis consultas vazias/conexões com uma consulta e espera LISTEN.
+  O monitor existente observou xact_commit14→6, incluindo overhead dos
+  observadores e setup do listener. Sem registros escritos, deadlocks ou
+  arquivos temporários. Não equivale a fluxo completo de atendimento ou carga
+  de produção. Sinal transacional acordou o consumidor: espera total0,221s com
+  disparo programado após0,200s; inclui conexão e commit do produtor.
+- Amostra ociosa separada: duas consultas de monitoramento em11,301s,
+  duas transações observadas, zero escritas de registros e zero deadlocks.
+- Runtime lido sem alterações: um worker Instagram nomeado ativo em `poll`,
+  nenhum worker de recuperação nomeado ativo e SMTP desabilitado. Sender
+  WhatsApp nomeado usa GOWS. Healthcheck da API configurado em15s; presença
+  do cache de readiness e TTL300s confirmados no código/ambiente instalados.
+  Isso não atribui historicamente a cota a um consumidor específico.
+- Origem novamente recusou pg_dump com `planLimitReached`. Não foi ativada a
+  janela24h, nem alterada conexão, plano, dados ou configuração de produção.

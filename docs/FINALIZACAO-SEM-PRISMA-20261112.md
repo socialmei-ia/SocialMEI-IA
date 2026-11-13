@@ -136,3 +136,38 @@ migrations em fixtures e ensaio de restauração; abrir/atualizar uma PR os acio
 Por isso esta sessão prepara commits e branch separada, sem acionar esses
 workflows nem dispensar suas verificações. A evidência CI anterior continua
 restrita à base `cfb4011`.
+
+## Checkpoint da continuação funcional
+
+`release/functional-completion-20261112` consolida workload `ea413f6`,
+preparação AWS e candidata anterior. `683b61c` reduz polling via notificações
+opt-in e corrige saúde do worker; `6d9b4ba` registra a configuração de horários
+na auditoria do negócio correto, sem atribuir eventos antigos sem workspace.
+Vinte testes focados com PostgreSQL039 descartável passaram, incluindo jornadas
+WhatsApp/Instagram, persistência e isolamento da auditoria. A suíte JS teve
+424 aprovados, dois skips e zero falhas.
+
+A execução auxiliar do backend de agendamento público foi interrompida pelo
+limite de uso antes de gerar arquivos. O protótipo permanece apenas simulação;
+contrato de visitante, verificação de contato, persistência e frontend integrado
+continuam PENDENTES DE IMPLEMENTAÇÃO. Isso não foi classificado como limitação
+inevitável do Prisma ou do schema. Contrato discutido: publicação explícita em
+configuração do negócio, referências opacas, verificação de e-mail com limites
+duráveis, reserva idempotente e núcleo transacional de agenda existente.
+
+Produção, envio real e migração definitiva permanecem sem alteração. Dados
+atuais, SMTP privado, backup remoto24x7/capacidade e homologação real seguem os
+bloqueios registrados anteriormente. Este checkpoint NÃO declara missão integral
+concluída e permite retomar sem repetir as etapas já aprovadas.
+
+Validação final desta continuação:927 testes Python aprovados no containerLinux
+com PostgreSQL039 descartável;424 JavaScript aprovados,2skips,0falhas.
+A tentativa completa no Windows teve5falhas/10erros por recursos Linux
+(FIFO,UID,pass_fds e sandboxPDF); não foram removidos testes ou controles.
+A execução Linux resolveu essa limitação de ambiente e passou integralmente.
+Imagem local do código6d9b4ba052371534a128344aeeeff1280e63cf69:
+`sha256:6384eba94de81654d4c4bbac0482c272c5482fe997a0aa32ed7d64df0585000d`.
+Não houve publicação AWS, ativação de listen ou novo respondedor. Revisão
+independente aprovou os commits683b61c/6d9b4ba para a candidata, mantendo os
+gates de ativação. Medida isolada reproduzida em
+`docs/evidence/20261112-queue-wakeup-measurement.json`.

@@ -18,7 +18,7 @@ Se **um worker estiver ativo 24 horas por dia**:
 - **345.600 em 30 dias com dois workers ativos**, antes de contabilizar
   outros serviços e instruções de transação.
 
-São cálculos de *iterações de polling*, não uma medição do ambiente nem
+São cálculos de _iterações de polling_, não uma medição do ambiente nem
 conversão comprovada para operações faturadas pelo Prisma. Em especial,
 cada iteração executa ao menos um SELECT e o driver também gerencia a
 transação. A documentação da otimização anterior reserva 20.000 operações
@@ -100,3 +100,17 @@ a participação exata no faturamento.
 com componentes e intervalos concretos identificados; ainda faltam
 medidas do Prisma Console, confirmação do runtime ativo e correlação
 dos consumidores para concluir a causa do limite esgotado.
+
+## Continuação verificada
+
+A coleta posterior confirmou um workerInstagram nomeado ativo em polling,
+SMTP desabilitado e nenhum worker de recuperação nomeado ativo. Cache de
+readiness300s instalado foi confirmado; healthcheckDocker configurado15s,
+sem equivalência automática entre chamadas HTTP e SQL. O consumo histórico
+faturado continua sem atribuição comprovada.
+
+A correção opt-in, testes transacionais reais e medições isoladas estão
+registrados em [linha de base](POSTGRES-WORKLOAD-BASELINE-20261112.md).
+Não foi ativada em produção; exige imagens novas e flaglisten coerente nos
+produtores/consumidores, conexão PostgreSQL direta e capacidade para uma
+conexão persistente por listener. Não usar LISTEN por pool transacional.
