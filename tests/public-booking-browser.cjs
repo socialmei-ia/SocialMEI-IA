@@ -261,9 +261,10 @@ async function validate(browser, origin) {
       await page.getByRole("heading", { name: "Agendamento indisponível", exact: true }).waitFor();
       const beforeRetry = requests.length;
       await Promise.all([
-        page.waitForResponse((response) =>
-          new URL(response.url()).pathname === "/api/v1/public/booking/bella" &&
-          response.status() === 503,
+        page.waitForResponse(
+          (response) =>
+            new URL(response.url()).pathname === "/api/v1/public/booking/bella" &&
+            response.status() === 503,
         ),
         page.getByRole("button", { name: "Tentar novamente", exact: true }).click(),
       ]);

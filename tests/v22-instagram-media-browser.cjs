@@ -185,6 +185,8 @@ module.exports = async (browser, origin) => {
           );
           await box.getByRole("button", { name: "Fechar", exact: true }).click();
         }
+        // The native close event removes the dialog in a later task.
+        await box.waitFor({ state: "detached" });
         await waitForViewportFit(page);
         assert.equal(
           await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),

@@ -47,10 +47,11 @@ function harness(fetch) {
 }
 
 test("stalled response is aborted and reported as uncertain network outcome", async () => {
-  const h = harness((_url, { signal }) =>
-    new Promise((_resolve, reject) => {
-      signal.addEventListener("abort", () => reject(Error("aborted")), { once: true });
-    }),
+  const h = harness(
+    (_url, { signal }) =>
+      new Promise((_resolve, reject) => {
+        signal.addEventListener("abort", () => reject(Error("aborted")), { once: true });
+      }),
   );
   const pending = h.request("/confirm", { offer: "fake", proof: "fake", confirmed: true });
   h.expire();
@@ -87,10 +88,11 @@ test("HTTP errors retain their status and clear the timeout", async () => {
 });
 
 test("late response from a previous business remains stale", async () => {
-  const h = harness((_url, { signal }) =>
-    new Promise((_resolve, reject) => {
-      signal.addEventListener("abort", () => reject(Error("aborted")), { once: true });
-    }),
+  const h = harness(
+    (_url, { signal }) =>
+      new Promise((_resolve, reject) => {
+        signal.addEventListener("abort", () => reject(Error("aborted")), { once: true });
+      }),
   );
   const pending = h.request("");
   h.context.generation = 2;

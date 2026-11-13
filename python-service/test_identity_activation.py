@@ -41,6 +41,8 @@ class IdentityContracts(unittest.TestCase):
             self.assertFalse(identity.enabled())
         with patch.dict(os.environ, {'SOCIALMEI_IDENTITY_MODE': 'typo'}), self.assertRaises(Exception):
             identity.enabled()
+        with patch.dict(os.environ, {'SOCIALMEI_IDENTITY_MODE': 'typo'}), self.assertRaises(Exception):
+            identity.guard({'id': 1, '_email_required': False, '_email_verified': False}, '/api/v1/clientes')
 
     def test_tokens_and_email_validation(self):
         for email in ('a,b@example.test', 'Name<a@example.test>', 'a;b@example.test'):
@@ -84,6 +86,10 @@ class IdentityDatabaseTests(unittest.TestCase):
         client = self.register()
         self.assertEqual(client.identity['email_verification'], {'required': True, 'verified': False})
         self.assertEqual(client.get('/api/v1/clientes').status_code, 403)
+        with patch.dict(os.environ, {'SOCIALMEI_IDENTITY_MODE': 'disabled'}):
+            self.assertEqual(client.get('/api/v1/clientes').status_code, 403)
+            self.assertTrue(client.get('/api/v1/auth/me').json()['email_verification']['required'])
+            self.assertFalse(client.get('/api/v1/auth/me').json()['email_verification']['verified'])
         token = self.mail()
         self.assertEqual(self.confirm(token).status_code, 200)
         self.assertEqual(self.confirm(token).status_code, 400)

@@ -152,7 +152,7 @@ def verify_password(value, hashed):
         HASH_LIMIT.release()
 
 
-IDENTITY = "u.id, u.nome, u.email, u.telefone, c.administrador_plataforma, m.role, w.id AS workspace_id, w.slug AS workspace_slug, w.nome AS nome_negocio, w.configuracao"
+IDENTITY = "u.id, u.nome, u.email, u.telefone, c.administrador_plataforma, m.role, w.id AS workspace_id, w.slug AS workspace_slug, w.nome AS nome_negocio, w.configuracao, a.user_id IS NOT NULL AS _email_required, (a.verified_at IS NOT NULL AND a.email=u.email) AS _email_verified"
 
 
 def session_identity(token):
@@ -160,7 +160,7 @@ def session_identity(token):
         return None
     with connect() as conn, conn.cursor(row_factory=dict_row) as cur:
         cur.execute(
-            f"SELECT {IDENTITY} FROM socialmei.auth_sessoes s JOIN socialmei.users u ON u.id=s.user_id JOIN socialmei.auth_credenciais c ON c.user_id=u.id JOIN socialmei.workspace_members m ON m.user_id=u.id AND m.workspace_id=s.workspace_id JOIN socialmei.workspaces w ON w.id=m.workspace_id WHERE s.token_hash=%s AND s.revogada_em IS NULL AND s.expira_em>NOW() AND c.ativo",
+            f"SELECT {IDENTITY} FROM socialmei.auth_sessoes s JOIN socialmei.users u ON u.id=s.user_id JOIN socialmei.auth_credenciais c ON c.user_id=u.id LEFT JOIN socialmei.auth_email_activation a ON a.user_id=u.id JOIN socialmei.workspace_members m ON m.user_id=u.id AND m.workspace_id=s.workspace_id JOIN socialmei.workspaces w ON w.id=m.workspace_id WHERE s.token_hash=%s AND s.revogada_em IS NULL AND s.expira_em>NOW() AND c.ativo",
             (digest(token),),
         )
         return cur.fetchone()
@@ -181,8 +181,9 @@ def public_identity(user, token, activation=None):
         "papel": user["role"],
         "csrf_token": csrf(token),
     }
-    from identity_activation import state
-    activation = state(user['id']) if activation is None else activation
+    from identity_activation import enabled as activation_enabled
+    if activation is None and (user.get('_email_required') or activation_enabled()):
+        activation = {'required': bool(user.get('_email_required')), 'verified': bool(user.get('_email_verified'))}
     if activation is not None:
         result['email_verification'] = activation
     return result
@@ -429,7 +430,7 @@ def issue_session(conn, user_id, workspace_id, response, remember):
 def identity_in(conn, user_id, workspace_id):
     with conn.cursor(row_factory=dict_row) as cur:
         cur.execute(
-            f"SELECT {IDENTITY} FROM socialmei.users u JOIN socialmei.auth_credenciais c ON c.user_id=u.id JOIN socialmei.workspace_members m ON m.user_id=u.id JOIN socialmei.workspaces w ON w.id=m.workspace_id WHERE u.id=%s AND w.id=%s AND c.ativo",
+            f"SELECT {IDENTITY} FROM socialmei.users u JOIN socialmei.auth_credenciais c ON c.user_id=u.id LEFT JOIN socialmei.auth_email_activation a ON a.user_id=u.id JOIN socialmei.workspace_members m ON m.user_id=u.id JOIN socialmei.workspaces w ON w.id=m.workspace_id WHERE u.id=%s AND w.id=%s AND c.ativo",
             (user_id, workspace_id),
         )
         return cur.fetchone()

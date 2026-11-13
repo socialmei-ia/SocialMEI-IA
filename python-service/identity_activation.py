@@ -58,7 +58,8 @@ def state(user_id):
 
 
 def guard(user, path):
-    value = state(user['id'])
+    enforcement = enabled()
+    value = {'required': user['_email_required'], 'verified': user['_email_verified']} if '_email_required' in user else state(user['id']) if enforcement else None
     allowed = {'/api/v1/auth/me', '/api/v1/auth/session', '/api/v1/auth/logout', '/api/v1/auth/password'}
     if value and value['required'] and not value['verified'] and path not in allowed and not path.startswith('/api/v1/auth/verification/'):
         raise HTTPException(403, 'Confirme seu e-mail para ativar a conta.')

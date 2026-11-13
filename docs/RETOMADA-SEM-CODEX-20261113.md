@@ -11,15 +11,15 @@ Preservar a produção e transformar a candidata validada em uma versão pronta 
 
 ## Decisões fixadas — fonte única desta retomada
 
-| Decisão | Regra operacional |
-| --- | --- |
-| Base de referência | `3ce82445a6c87dcc3df3dc43890baa72ac83b127` — candidata funcional aprovada em ambiente isolado |
-| Linha de trabalho | Apenas `ops/readiness-sem-codex-20261113`; não alterar `main`, PR #223 ou branches de canais |
-| Prioridade até a volta do executor | Corrigir bugs verificáveis, melhorar testes e preparar evidências para homologação |
-| Produção e dados reais | Congelados. Sem deploy, troca de DSN, alteração de Prisma, migrations, envio, mudança de credenciais ou reinícios |
-| Canais automáticos | Permanecem opt-in; confirmar respondedor único antes de testes reais |
-| Evidência | Diferenciar testes históricos (`3ce8244`), verificações desta branch e homologação em produção |
-| Próximo marco | Validar os novos testes Node/navegador em ambiente isolado e conciliar o pacote completo; depois avaliar gates externos |
+| Decisão                            | Regra operacional                                                                                                       |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Base de referência                 | `3ce82445a6c87dcc3df3dc43890baa72ac83b127` — candidata funcional aprovada em ambiente isolado                           |
+| Linha de trabalho                  | Apenas `ops/readiness-sem-codex-20261113`; não alterar `main`, PR #223 ou branches de canais                            |
+| Prioridade até a volta do executor | Corrigir bugs verificáveis, melhorar testes e preparar evidências para homologação                                      |
+| Produção e dados reais             | Congelados. Sem deploy, troca de DSN, alteração de Prisma, migrations, envio, mudança de credenciais ou reinícios       |
+| Canais automáticos                 | Permanecem opt-in; confirmar respondedor único antes de testes reais                                                    |
+| Evidência                          | Diferenciar testes históricos (`3ce8244`), verificações desta branch e homologação em produção                          |
+| Próximo marco                      | Validar os novos testes Node/navegador em ambiente isolado e conciliar o pacote completo; depois avaliar gates externos |
 
 **Não registrar uma nova decisão contraditória em conversa ou script sem atualizar primeiro esta seção.** Os bloqueios externos permanecem na seção de pendências abaixo.
 
@@ -47,14 +47,14 @@ Preservar a produção e transformar a candidata validada em uma versão pronta 
 
 O commit `3ce8244` registra, em ambiente isolado e com PostgreSQL schema039 descartável:
 
-| Área | Evidência existente | Significado |
-| --- | --- | --- |
-| Backend | 947 testes Python aprovados | Cobertura automatizada, não homologação real |
-| Frontend | 426 testes JavaScript aprovados e dois skips anteriores | Cobertura local |
-| Gateway | 14 testes Docker aprovados | Contrato de encaminhamento |
-| Interface de agendamento público | 42 jornadas e 286 estados de layout | Navegador com API controlada |
-| WhatsApp, Instagram, Agenda e CRM | Implementações integradas na candidata | Exigem testes com provedores e contas reais |
-| Recuperação por e-mail | Worker opcional e fluxo implementado | SMTP privado e recebimento real não comprovados |
+| Área                              | Evidência existente                                     | Significado                                     |
+| --------------------------------- | ------------------------------------------------------- | ----------------------------------------------- |
+| Backend                           | 947 testes Python aprovados                             | Cobertura automatizada, não homologação real    |
+| Frontend                          | 426 testes JavaScript aprovados e dois skips anteriores | Cobertura local                                 |
+| Gateway                           | 14 testes Docker aprovados                              | Contrato de encaminhamento                      |
+| Interface de agendamento público  | 42 jornadas e 286 estados de layout                     | Navegador com API controlada                    |
+| WhatsApp, Instagram, Agenda e CRM | Implementações integradas na candidata                  | Exigem testes com provedores e contas reais     |
+| Recuperação por e-mail            | Worker opcional e fluxo implementado                    | SMTP privado e recebimento real não comprovados |
 
 Detalhes e evidências: `docs/FINALIZACAO-SEM-PRISMA-20261112.md` e `docs/evidence/20261113-functional-completion.json`.
 

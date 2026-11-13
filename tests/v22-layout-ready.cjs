@@ -3,7 +3,12 @@ async function waitForViewportFit(page) {
   await page.waitForFunction(() => {
     const width = Number.parseFloat(document.body.style.width);
     const zoom = Number.parseFloat(document.body.style.zoom) || 1;
-    return Number.isFinite(width) && Math.abs(width * zoom - innerWidth) <= 1;
+    return (
+      Number.isFinite(width) &&
+      Math.abs(width * zoom - innerWidth) <= 1 &&
+      document.documentElement.scrollWidth <= innerWidth + 1 &&
+      document.body.getBoundingClientRect().width <= innerWidth + 1
+    );
   });
 }
 
