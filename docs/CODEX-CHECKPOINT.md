@@ -1,5 +1,31 @@
 # Checkpoint SocialMEI-IA
 
+## Continuação de a912026 — cadeia040 concluída, 14/11
+
+- Branch `release/functional-completion-20261112`; worktree
+  `.preview/finalization-20261112`. Código de runtime permanece8db028c.
+- Novas imagens verificadas: APIc07fa5bd22b1, gatewayd121598bfbe8 e
+  fallbackB2c09248e80186. IDs completos e invocação em `RELEASE040-READINESS.md`.
+  A268 foi substituída apenas como artefato de ensaio por conter módulo antigo
+  excedente; fonte8db/backofffdf97ed preservados. Recibos antigos intactos.
+- `release040-artifact-chain.py` e preflight vinculam hashes completos de fonte,
+  imagens e provas novas. Histórico de migration vale somente para SQL inalterado.
+- Preflight executado realmente na AWS: `artifact_checks_passed=true`,
+  `artifact_chain_verified=true`, `production_ready=false`.
+  Evidências `20261114-release040-artifact-{chain,preflight}.json`.
+-14 testes direcionados aprovados (5 novos/9 existentes); Caddy validado;
+  probes reais nas imagens contra base somente sintética preservaram pendentes,
+  sessões, isolamento, fila não vazia e snapshot em dois processos novosB2.
+  Configurações dos16 serviços instalados permaneceram iguais. Sem migration,
+  restore, deploy, restart de serviço instalado, envio ou chamadaIAM.
+- Próximo passo: backup externo restaurável + capacidade aceita + overlay privado
+  final conciliado/preflight com IDs novos + autorização de corte. Nenhuma nova
+  implementação de canal, recuperação Prisma ou migração é necessária para
+  resolver a cadeia. Brevo e candidata040 real permanecem intocados.
+- Contextos/Dockerfiles e provas preservados em `publication-preflight/artifact-chain-8db`
+  na área operacional AWS existente. Não imprimir `results/state.private.json`.
+  Modelo de ensaio `compose-artifact-chain.private.json` não é overlay produtivo.
+
 ## Retomada prioritária — preflight de publicação após04da1bd
 
 - Gate **BLOCKED**; não confundir com PostgreSQL040 já aprovado. Nenhuma nova

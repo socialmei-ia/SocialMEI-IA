@@ -89,12 +89,29 @@ def database_identity(env):
     return tuple(values[key] for key in fields)
 
 
-def validate(model, images, sha, receipt, rollback, database_runtime=None):
+def artifact_chain_module():
+    spec = importlib.util.spec_from_file_location('release040_chain', ROOT / 'tools/release040-artifact-chain.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def validate(model, images, sha, receipt, rollback, database_runtime=None,
+             artifact_chain=None, source_manifest=None):
     require(re.fullmatch(r'[0-9a-f]{40}', sha) is not None, 'invalid_source_sha')
     folder = ROOT / 'database/migrations'
     profile.verify040(sorted(file.name for file in folder.glob('*.sql')),
                       lambda name: (folder / name).read_bytes())
-    profile.rehearsal040(receipt, sha)
+    if artifact_chain is None:
+        profile.rehearsal040(receipt, sha)
+        schema_source, schema_api = sha, receipt.get('api_image_id')
+    else:
+        chain = artifact_chain_module()
+        chain.validate(artifact_chain, source_manifest, receipt, profile)
+        require(sha == chain.SOURCE, 'artifact_chain_source_mismatch')
+        require(all(images[role].get('Id') == chain.IMAGES[role] for role in ('api', 'gateway')),
+                'artifact_chain_image_mismatch')
+        schema_source, schema_api = chain.BASE_SOURCE, receipt['api_image_id']
     services = model.get('services', {})
     api = services.get('team-api', {})
     require(api and services.get('team-gateway'), 'required_service_missing')
@@ -156,10 +173,11 @@ def validate(model, images, sha, receipt, rollback, database_runtime=None):
         ids[role] = info['Id']
     require(images['api'].get('Config', {}).get('Labels', {}).get('org.socialmei.release.profile') == '040',
             'release040_image_required')
-    require(receipt.get('api_image_id') == ids['api'], 'rehearsal_image_mismatch')
+    if artifact_chain is None:
+        require(receipt.get('api_image_id') == ids['api'], 'rehearsal_image_mismatch')
     require(rollback.get('profile') == '040' and rollback.get('mode') == 'executed'
-            and rollback.get('candidate_source_sha') == sha
-            and rollback.get('candidate_image_id') == ids['api']
+            and rollback.get('candidate_source_sha') == schema_source
+            and rollback.get('candidate_image_id') == schema_api
             and rollback.get('fallback_source_sha') == 'b2b839bae94f4eef18b670cf5a1ada68988dffe3'
             and rollback.get('fallback_api_image_id') == 'sha256:0de7e2eb7a959a21fd5a767213c69eec8f947c28092ad9bf1a736bb36e3331c7'
             and rollback.get('source_migrations') == profile.MIGRATIONS040
@@ -204,6 +222,9 @@ def validate(model, images, sha, receipt, rollback, database_runtime=None):
             require(all(env.get(key, 'false') == 'false' for key in OFF), 'optional_sending_enabled')
     return {'profile': '040', 'source_sha': sha, 'images': ids,
             'rollback_rehearsal_verified': True,
+            'artifact_chain_verified': artifact_chain is not None,
+            'migration_evidence_reused_without_execution': artifact_chain is not None,
+            'fallback_image_id': artifact_chain['images']['fallback'] if artifact_chain is not None else rollback['fallback_api_image_id'],
             'artifact_checks_passed': True, 'production_ready': False,
             'production_changed': False, 'required_external_gates': GATES}
 
@@ -216,6 +237,8 @@ def main():
     parser.add_argument('--rollback-rehearsal', type=Path, required=True)
     parser.add_argument('--database-runtime', type=Path,
                         help='Read-only network/PostgreSQL metadata for an existing external private network')
+    parser.add_argument('--artifact-chain', type=Path, help='New exact-image probe chain; historical receipts remain unchanged')
+    parser.add_argument('--source-manifest', type=Path, help='Pinned Git-source file hashes for artifact chain')
     parser.add_argument('--source-sha', required=True)
     parser.add_argument('--docker', default='docker')
     parser.add_argument('--api-image', required=True)
@@ -237,11 +260,18 @@ def main():
             result = subprocess.run([args.docker, 'image', 'inspect', image_id],
                                     capture_output=True, text=True, timeout=20, check=True)
             images[role] = json.loads(result.stdout)[0]
+        chain_receipt = json.loads(args.artifact_chain.read_text()) if args.artifact_chain else None
+        manifest = json.loads(args.source_manifest.read_text()) if args.source_manifest else None
+        if chain_receipt is not None:
+            chain = artifact_chain_module()
+            for role, identity in chain.IMAGES.items():
+                require(chain.audit(role, identity) == chain_receipt['audits'][role], 'live_artifact_audit_mismatch')
         result = validate(json.loads(args.compose_json.read_text(encoding='utf-8-sig')),
                           images, args.source_sha,
                           json.loads(args.rehearsal.read_text(encoding='utf-8-sig')),
                           json.loads(args.rollback_rehearsal.read_text(encoding='utf-8-sig')),
-                          json.loads(args.database_runtime.read_text(encoding='utf-8-sig')) if args.database_runtime else None)
+                          json.loads(args.database_runtime.read_text(encoding='utf-8-sig')) if args.database_runtime else None,
+                          chain_receipt, manifest)
         print(json.dumps(result, indent=2))
     except Exception:
         # Input/model/process errors can include private environment values.

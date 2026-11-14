@@ -1,5 +1,59 @@
 # Release040 — preparação, sem publicação
 
+## Cadeia de artefatos fechada — 14/11/2026
+
+**Artefatos aprovados; publicação ainda bloqueada pelos gates externos abaixo.**
+Esta seção substitui a pendência de imagens/recibos do checkpoint anterior.
+Nenhuma restauração, migration, deploy ou reinício de serviço instalado foi executado.
+
+| Papel | Fonte Git | Imagem Docker validada na AWS |
+| --- | --- | --- |
+| API e workers | `8db028cb630e7047c13e6dcca104bbcd17bf0c77` | `sha256:c07fa5bd22b143b24ddd505206a03b21d6aba7315e9b2d5d06a4dd831021d28e` |
+| Gateway | `8db028cb630e7047c13e6dcca104bbcd17bf0c77` | `sha256:d121598bfbe80da7901cfedab5dc37c9a55b5ba0c1c2a5a405fc912ea269feb5` |
+| Rollback040 B2 | `b2b839bae94f4eef18b670cf5a1ada68988dffe3` | `sha256:c09248e80186c0e78e5cfa9500c4d3c729ad671871a646d1105e65ac917715ee` |
+
+- A268 tinha também `/app/instagram_auto_menu_worker.py`, módulo excedente antigo.
+  A nova API remove somente esse excedente; preserva a fonte8db e o backofffdf97ed.
+  API/fallback têm183 arquivos de fonte exatos; gateway150, incluindo Caddyfile.
+- Gateway e fallback foram construídos isoladamente com os arquivos das fontes
+  indicadas. IDs, arquitetura, comandos, ausência de segredos nas variáveis da
+  imagem e conjuntos completos de arquivos foram conferidos nos containers.
+  `caddy validate` passou sem publicar portas.
+- Provas novas usam exclusivamente `socialmei_tests040_20261114`: cadastro,
+  sessão existente, conta pendente bloqueada mesmo com modo desligado,
+  isolamento entre negócios e fila não vazia preservados em duas execuções
+  novas do fallback. Snapshot de dados, sequências e ledger permaneceu igual
+  durante os probes. Fixtures sintéticas ficam nessa base, nunca na candidata real.
+- Recibos9b/B2 históricos **não foram editados**. Seu reaproveitamento comprova
+  somente os mesmos hashesSQL001–040; não atribui o ensaio antigo às imagens novas.
+  O novo recibo vincula separadamente IDs, fontes, runner e provas atuais.
+- Evidências públicas: `20261114-release040-artifact-chain.json` e
+  `20261114-release040-artifact-preflight.json`, em `docs/evidence/`.
+  Manifesto de fontes: `deploy/team/release040-artifact-sources.json`.
+  Testes direcionados:5 novos +9 existentes do preflight, todos aprovados.
+- O CLI do preflight reaudita as três imagens físicas antes de aceitar a cadeia.
+  Acrescentar `--artifact-chain docs/evidence/20261114-release040-artifact-chain.json`
+  e `--source-manifest deploy/team/release040-artifact-sources.json`, mantendo
+  os dois recibos históricos em `--rehearsal`/`--rollback-rehearsal` e os IDs acima.
+  O caminho legado continua recusando combinar fontes/imagens novas e recibos antigos.
+
+Artefatos operacionais preservados no servidor em
+`/home/ubuntu/.socialmei-backup038-release040-8db028c/publication-preflight/artifact-chain-8db`:
+Dockerfiles/contextos públicos exatos em `source/`, imagens locais identificadas,
+recibo e resultado do preflight. `results/` contém sessões sintéticas privadas;
+não copiar, imprimir ou versionar. O modeloCompose validado é uma cópia privada
+**de ensaio**, `compose-artifact-chain.private.json`, com os IDs novos. Não é
+aprovação automática do overlay produtivo nem alteração dos planos anteriores.
+
+**Próxima execução autorizável:** comprovar backup externo restaurável; aceitar
+capacidade do piloto ou aprovar ampliação; conciliar o overlay privado final com
+os três IDs acima e todos os escritores/envios desligados inicialmente; executar
+novamente somente o preflight desse overlay; obter autorização explícita para o
+corte coordenado do site. Rollback usa o novo B2 no **mesmo PostgreSQL040**, sem
+restaurar snapshot, perder gravações recentes ou retornar ao Prisma/038.
+SMTP/canais continuam com autorizações separadas. Nenhum gate externo foi liberado
+pelos testes de artefatos.
+
 ## Checkpoint de publicação — continuação de04da1bd
 
 **BLOCKED.** Banco040 aprovado anteriormente; não repetir restore/migrations.

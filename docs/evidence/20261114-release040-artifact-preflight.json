@@ -1,0 +1,23 @@
+{
+  "profile": "040",
+  "source_sha": "8db028cb630e7047c13e6dcca104bbcd17bf0c77",
+  "images": {
+    "api": "sha256:c07fa5bd22b143b24ddd505206a03b21d6aba7315e9b2d5d06a4dd831021d28e",
+    "gateway": "sha256:d121598bfbe80da7901cfedab5dc37c9a55b5ba0c1c2a5a405fc912ea269feb5"
+  },
+  "rollback_rehearsal_verified": true,
+  "artifact_chain_verified": true,
+  "migration_evidence_reused_without_execution": true,
+  "fallback_image_id": "sha256:c09248e80186c0e78e5cfa9500c4d3c729ad671871a646d1105e65ac917715ee",
+  "artifact_checks_passed": true,
+  "production_ready": false,
+  "production_changed": false,
+  "required_external_gates": [
+    "approved_source_backup_and_database_identity",
+    "external_restorable_backup",
+    "current_capacity_and_private_overlay_reconciliation",
+    "explicit_schema040_approval",
+    "explicit_publication_approval",
+    "separate_authorization_for_channels_and_smtp"
+  ]
+}
