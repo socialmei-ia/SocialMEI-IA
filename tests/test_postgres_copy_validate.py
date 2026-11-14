@@ -28,6 +28,32 @@ def manifest():
 
 
 class CopyValidatorTests(unittest.TestCase):
+    def test_postgres_constant_array_cast_rewrite_preserves_values_and_real_differences(self):
+        source = manifest()
+        source['structure'] = {
+            'constraints': [['socialmei', 'auth_identity_mail', 'role_check', 'c', True, False, False,
+                             "CHECK (role::text = ANY (ARRAY['admin'::character varying, 'member'::character varying]::text[]))"]],
+            'indexes': [['socialmei', 'auth_identity_mail', 'active', True, True, True,
+                         "CREATE UNIQUE INDEX active ON socialmei.auth_identity_mail (id) WHERE status::text = ANY ((ARRAY['pending'::character varying, 'sent'::character varying])::text[])"]],
+        }
+        target = copy.deepcopy(source)
+        target['structure']['constraints'][0][-1] = (
+            "CHECK (role::text = ANY (ARRAY['admin'::character varying::text, 'member'::character varying::text]))")
+        target['structure']['indexes'][0][-1] = (
+            "CREATE UNIQUE INDEX active ON socialmei.auth_identity_mail (id) WHERE status::text = ANY (ARRAY[('pending'::character varying)::text, ('sent'::character varying)::text])")
+        result = validator.compare(source, target)
+        self.assertTrue(result['equal'])
+        self.assertTrue(result['constant_array_cast_representation_only'])
+        self.assertIn('::text[]', source['structure']['constraints'][0][-1])
+        for field in ('constraints', 'indexes'):
+            changed = copy.deepcopy(target)
+            changed['structure'][field][0][-1] = changed['structure'][field][0][-1].replace(
+                "'admin'", "'owner'").replace("'sent'", "'uncertain'")
+            self.assertFalse(validator.compare(source, changed)['equal'])
+        changed = copy.deepcopy(target)
+        changed['structure']['constraints'][0][4] = False
+        self.assertFalse(validator.compare(source, changed)['equal'])
+
     def test_digest_preserves_duplicates_and_unambiguous_boundaries(self):
         first = validator.digest_rows(iter([('ab',), ('c',)]))
         second = validator.digest_rows(iter([('a',), ('bc',)]))
@@ -37,6 +63,20 @@ class CopyValidatorTests(unittest.TestCase):
         self.assertNotEqual(first['sha256'], duplicate['sha256'])
         self.assertEqual(first, validator.digest_rows(iter([('ab',), ('c',)])))
         self.assertEqual(len(validator.digest_rows([])['sha256']), 64)
+
+    def test_array_cast_normalization_never_rewrites_quoted_names_or_literal_contents(self):
+        first_name = "ARRAY['x'::character varying]::text[]"
+        second_name = "ARRAY[('x'::character varying)::text]"
+        source = manifest()
+        source['structure'] = {'constraints': [['schema', 'table', 'check', 'CHECK ("' + first_name + '" IS NOT NULL)']]}
+        target = copy.deepcopy(source)
+        target['structure']['constraints'][0][-1] = 'CHECK ("' + second_name + '" IS NOT NULL)'
+        self.assertFalse(validator.compare(source, target)['equal'])
+        for value in ("CHECK (note = 'ARRAY[''x''::character varying]::text[]')",
+                      "CHECK (note = E'escaped\\string ARRAY[''x''::character varying]::text[]')",
+                      "CHECK (note = $$ARRAY['x'::character varying]::text[]$$)"):
+            structure = {'constraints': [['schema', 'table', 'check', value]]}
+            self.assertEqual(validator.comparable_structure(structure), structure)
 
     def test_comparison_checks_content_sequences_schema_and_ledger_not_timestamp(self):
         source = manifest()

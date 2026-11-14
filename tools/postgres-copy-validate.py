@@ -9,6 +9,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import sys
 from datetime import datetime, timezone
@@ -233,6 +234,38 @@ def snapshot(dsn, *, exported_snapshot=None):
             'valid': not any(row['violations'] for row in fk)}
 
 
+def comparable_structure(structure):
+    """PG dump/restore can move varchar constant-array casts to each element."""
+    # Match constant literals only. Never rewrite arbitrary expressions or function bodies.
+    literal = r"'(?:[^']|'')*'::character varying"
+    items = literal + r'(?:,\s*' + literal + r')*'
+
+    def expression(value):
+        # Fail closed on identifiers and escaped/dollar strings needing a SQL lexer.
+        if any(character in value for character in ('"', '\\', '$')):
+            return value
+
+        def replace(pattern, replacement, text):
+            strings = [(match.start(), match.end()) for match in re.finditer(r"'(?:[^']|'')*'", text)]
+            return re.sub(pattern, lambda match: (
+                match[0] if any(start < match.start() < end for start, end in strings)
+                else replacement(match)), text)
+
+        def array(match):
+            values = re.findall(literal, match[1])
+            return 'ARRAY[' + ', '.join('(' + item + ')::text' for item in values) + ']'
+        for pattern in (r'\(ARRAY\[(' + items + r')\]\)::text\[\]',
+                        r'ARRAY\[(' + items + r')\]::text\[\]'):
+            value = replace(pattern, array, value)
+        return replace('(' + literal + r')::text\b', lambda match: '(' + match[1] + ')::text', value)
+
+    result = dict(structure)
+    for key in ('constraints', 'indexes'):
+        if key in structure:
+            result[key] = [list(row[:-1]) + [expression(row[-1])] for row in structure[key]]
+    return result
+
+
 def compare(source, target):
     if source.get('manifest_version') != 1 or target.get('manifest_version') != 1:
         raise ValueError('Unsupported manifest version')
@@ -242,10 +275,13 @@ def compare(source, target):
                 or any(not isinstance(manifest.get(key), list) for key in
                        ('tables', 'sequences', 'foreign_keys', 'migration_ledger', 'effective_permissions'))):
             raise ValueError('Incomplete snapshot manifest')
-    differing = [key for key in ('structure', 'tables', 'sequences', 'foreign_keys', 'migration_ledger')
-                 if source.get(key) != target.get(key)]
+    structure_equal = comparable_structure(source['structure']) == comparable_structure(target['structure'])
+    differing = ([] if structure_equal else ['structure']) + [
+        key for key in ('tables', 'sequences', 'foreign_keys', 'migration_ledger')
+        if source.get(key) != target.get(key)]
     return {'equal': not differing and source.get('valid') is True and target.get('valid') is True,
             'different_sections': differing,
+            'constant_array_cast_representation_only': structure_equal and source['structure'] != target['structure'],
             'source_valid': source.get('valid') is True, 'target_valid': target.get('valid') is True,
             'effective_permissions_equal': source.get('effective_permissions') == target.get('effective_permissions'),
             'effective_sequence_permissions_equal': source.get('effective_sequence_permissions') == target.get('effective_sequence_permissions'),
