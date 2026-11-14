@@ -45,6 +45,7 @@ class ExportTests(unittest.TestCase):
     def test_tls_identity_and_service_aliases_fail_closed(self):
         for dsn in ('host=source.invalid sslmode=require',
                     DSN + ' hostaddr=127.0.0.1', DSN + ' service=other',
+                    DSN.replace('source.invalid', '/tmp/postgres-socket'),
                     'dbname=fixture user=fixture sslmode=verify-full'):
             with self.subTest(dsn=dsn), self.assertRaises(ValueError):
                 exporter.source_environment(dsn)

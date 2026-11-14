@@ -29,6 +29,7 @@ def source_environment(dsn):
                 'connect_timeout': 'PGCONNECT_TIMEOUT', 'application_name': 'PGAPPNAME'}
     if (not all(values.get(key) for key in ('host', 'dbname', 'user', 'password', 'sslrootcert'))
             or values.get('sslmode') != 'verify-full'
+            or '/' in values.get('host', '')
             or set(values) - mappings.keys()):
         raise ValueError('Explicit TLS-verified source required')
     # Do not inherit another PG service, password, host or connection from the operator.
