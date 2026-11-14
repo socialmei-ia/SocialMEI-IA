@@ -1,0 +1,44 @@
+{
+  "base_commit": "7bc253e29afb0eb237b886388a271c3072895572",
+  "queue_backoff_commit": "fdf97ed",
+  "runtime_inspection": {
+    "method": "docker metadata read only",
+    "database_connections": 0,
+    "confirmed_direct_consumers": ["main API", "WhatsApp menu API", "Instagram worker"],
+    "same_host_port_database_identity": true,
+    "provider": "Prisma",
+    "main_api_healthcheck_seconds": 15,
+    "main_api_readiness_cache_seconds": 300,
+    "named_identity_or_recovery_worker_running": false,
+    "external_processes_and_workflow_credentials_inventoried": false,
+    "historical_billing_cause_proven": false
+  },
+  "export_preparation": {
+    "explicit_source_identity_required": true,
+    "shared_snapshot_for_dump_and_manifest": true,
+    "source_tls": "verify-full",
+    "postgres_client_major": 17,
+    "real_export_executed": false,
+    "synthetic_end_to_end_export_verified": false,
+    "local_linux_docker_available": false,
+    "aws_default_python_has_psycopg": false,
+    "current_source_restoration_verified": false,
+    "external_backup_verified": false,
+    "writers_quiescence_verified": false
+  },
+  "tests": {
+    "postgres_source_export": {"passed": 9},
+    "postgres_copy_validate": {"passed": 13},
+    "queue_wakeup": {"passed": 10, "skipped": 2, "reason": "No disposable TEST_DATABASE_URL"},
+    "backup_restore_rehearsal": {"passed": 5, "scope": "mocks"},
+    "release040_preflight": {"passed": 5},
+    "recovery_worker_safety": {"passed": 4},
+    "total_passed": 46,
+    "total_skipped": 2
+  },
+  "provider_window_activated": false,
+  "production_changed": false,
+  "real_data_transferred": false,
+  "cutover_executed": false,
+  "emails_or_messages_sent": false
+}

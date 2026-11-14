@@ -148,12 +148,15 @@ def foreign_keys(conn, sql):
     return result
 
 
-def snapshot(dsn):
+def snapshot(dsn, *, exported_snapshot=None):
     import psycopg
     from psycopg import sql
 
     with psycopg.connect(dsn, connect_timeout=10, application_name='socialmei-copy-validation') as conn:
         conn.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY')
+        if exported_snapshot is not None:
+            # Import before any catalog/data query; the exporting transaction stays open.
+            conn.execute(sql.SQL('SET TRANSACTION SNAPSHOT {}').format(sql.Literal(exported_snapshot)))
         conn.execute("SET LOCAL statement_timeout = '120s'")
         conn.execute("SET LOCAL lock_timeout = '5s'")
         conn.execute("SET LOCAL work_mem = '4MB'")

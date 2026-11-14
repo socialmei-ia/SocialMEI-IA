@@ -1,5 +1,24 @@
 # Checkpoint SocialMEI-IA
 
+## Continuidade migração PostgreSQL — 14-11-2026
+
+- Base7bc253e preservada. `fdf97ed` corrige backoff de listener que conecta mas
+  falha ao esperar; opt-in/poll/reconciliação preservados, nada instalado no runtime.
+- `tools/postgres-source-export.py`: plan sem rede; exportação futura autorizada
+  vincula DSN explícita ao fingerprint da API e usa snapshot comum no dump/manifesto.
+  Ver procedimento curto em AWS-POSTGRES-PREPARATION-20261112.md.
+- 48 testes direcionados:46 aprovados,2 integrações PG puladas sem base descartável.
+  Docker Linux local indisponível; exportador ainda precisa de ensaio real sintético.
+  Python padrão AWS não tem psycopg; preparar runtime isolado antes da janela24h.
+- Leitura atual sem SQL: três consumidores diretos na mesma base Prisma;
+  healthcheck15s/cache300s. Não atribui cobrança histórica nem inventaria processos
+  externos. Recibo público em evidence/20261114-postgres-migration-preparation.json.
+- Sem janela24h, exportação real, transferência, migration, troca de conexão,
+  restart, deploy ou envios. Brevo privado preservado e desativado.
+- Próximo: ensaio sintético do cliente; permissões/custo S3 e capacidade aprovados;
+  backup externo restaurável; só então autorizar janela/exportação atual. Restauração
+  em base NOVA, comparação integral e pausa final de escritores antecedem o corte.
+
 ## Continuidade release040 — Brevo privado (14-11-2026)
 
 - Base6a8914f preservada, runtime das imagens9b inalterado. Brevo externo homologado

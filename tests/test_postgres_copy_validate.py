@@ -153,6 +153,27 @@ class CopyValidatorTests(unittest.TestCase):
         self.assertIn(' OR ', full)
         self.assertTrue(simple.startswith('SELECT count(*)'))
 
+    def test_exported_snapshot_is_imported_before_any_catalog_read(self):
+        import psycopg
+        conn = MagicMock()
+        conn.__enter__.return_value = conn
+        conn.execute.return_value.__iter__.return_value = iter([])
+        conn.execute.return_value.fetchone.return_value = (170011, 'on', 'repeatable read')
+        conn.execute.side_effect = lambda query: (
+            MagicMock(fetchone=MagicMock(return_value=(0,)))
+            if query == 'SELECT count(*) FROM pg_catalog.pg_largeobject_metadata'
+            else conn.execute.return_value)
+        with patch.object(psycopg, 'connect', return_value=conn), \
+                patch.object(validator, 'catalog', return_value={'relations': []}), \
+                patch.object(validator, 'foreign_keys', return_value=[]):
+            validator.snapshot('private-source', exported_snapshot="00000003-00000010-1'")
+        statements = conn.execute.call_args_list
+        self.assertEqual(statements[0].args[0],
+                         'SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY')
+        self.assertEqual(statements[1].args[0].as_string(),
+                         "SET TRANSACTION SNAPSHOT '00000003-00000010-1'''" )
+        conn.rollback.assert_called_once()
+
     def test_foreign_tables_fail_closed_before_data_read(self):
         import psycopg
         conn = MagicMock()

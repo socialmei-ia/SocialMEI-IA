@@ -1,5 +1,57 @@
 # Preparação PostgreSQL próprio AWS — 12/11/2026
 
+## Continuação de 14/11 — exportação atual, ainda não executada
+
+- Leitura Docker atual, sem SQL: API principal, menu API WhatsApp e worker
+  Instagram continuam na mesma identidade de banco Prisma. Healthcheck da API
+  em15s, cache configurado300s. Nenhum worker nomeado de identidade/recuperação
+  encontrado. Isso não inventaria processos externos, cron ou credenciais n8n.
+- `683b61c` continua integrado e opt-in. Corrigido o backoff que voltava a15s
+  quando LISTEN era aceito, mas a espera falhava: agora cresce até300s, mantendo
+  polling de segurança, fila durável e reconciliação. Reset só após espera válida.
+  Não foi instalado/ativado no runtime; não é medição de cobrança Prisma.
+- Novo `tools/postgres-source-export.py`: default `plan`, sem conexão. Após
+  autorização específica, usa clientes17, DSN explícita privada
+  `SOCIALMEI_EXPORT_SOURCE_DSN` (sem fallback), TLS verify-full e CA explícita.
+  `SOCIALMEI_EXPORT_SOURCE_FINGERPRINT` deve coincidir com a identidade
+  host/porta/database previamente inventariada da API; divergência bloqueia antes
+  de qualquer conexão. O fingerprint não contém a senha e não comprova frescor.
+  Dump completo e manifesto importam o mesmo snapshot REPEATABLE READ READ ONLY;
+  SHA256s, índice do archive e nomes novos impedem confundir parcial com sucesso.
+  Credenciais só no ambiente filho, nunca em argumentos ou logs. Sem retry.
+- Executar no ambiente operacional POSIX isolado com psycopg3, clientes17 e CA
+  preparados. O Python padrão do host AWS não tem psycopg; o cliente precisa ser
+  ensaiado antes da janela. O Docker Linux local continua indisponível; não foi
+  iniciado. Testes novos são controlados/mocks, não certificação de dados reais.
+
+Comando futuro, **somente após autorização de exportação e ensaio sintético**;
+carregar DSN/CA por configuração privada, nunca pelo histórico do shell:
+
+```bash
+python tools/postgres-source-export.py --run --approved-data-export \
+  --output-directory /home/ubuntu/.socialmei-current-export-UTC_APROVADO
+```
+
+Não aciona a janela24h, não restaura nem aplica migrations. Exportação só é
+certificada depois de restaurar em base NOVA e vazia, comparar manifesto completo
+com `postgres-copy-validate.py`, verificar permissões com o papel da aplicação e
+restaurar cópia externa versionada. Divergências, inclusive extensões do provedor,
+exigem revisão explícita; não filtrar tabelas ou normalizar diferenças para passar.
+
+Antes de consumir a janela única: cliente ensaiado, espaço/capacidade aprovados,
+bucket/IAM e restauração externa comprovados, autorização específica de acesso e
+exportação. No corte: inventário completo dos escritores (inclusive n8n/HTTP),
+pausa coordenada autorizada, ingresso preservado, dump/manifesto FINAL e sequência
+conferida com escritores quiescentes. Sequências não são MVCC: snapshot comum não
+prova ausência de escritas, RPO0 nem autoriza corte. Validar039 original antes de
+qualquer040 em cópia; migration real exige autorização separada.
+
+API, menu API, Instagram, recuperação e identidade devem passar pelo gate de
+conexão única `release040-preflight.py`, com conexões diretas para LISTEN e flags
+coerentes nos produtores/consumidores. Depois de novas escritas no destino, rollback
+não é simples troca de URL: congelar, preservar ambos os lados e reconciliar sob
+aprovação. Não restaurar038 por cima dos dados atuais.
+
 ## Estado
 
 **Destino de recuperação preparado e validado com snapshot histórico. Corte
