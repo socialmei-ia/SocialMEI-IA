@@ -26,6 +26,7 @@ CRM_MIGRATIONS = {
     "008_workspace_transfer.sql",
 }
 AUTH_MIGRATION = "010_account_authentication.sql"
+IDENTITY_MIGRATION = "040_identity_activation.sql"
 CHANNEL_MIGRATION = "009_shared_channel_foundation.sql"
 
 
@@ -79,6 +80,12 @@ CRM_SCHEMA_QUERIES = (
 )
 
 AUTH_SCHEMA_QUERIES = (
+    "SELECT user_id, email, verified_at, created_at FROM socialmei.auth_email_activation LIMIT 0",
+    (
+        "SELECT id, purpose, user_id, workspace_id, created_by, email, role, status, "
+        "token_hash, created_at, started_at, expires_at, finished_at "
+        "FROM socialmei.auth_identity_mail LIMIT 0"
+    ),
     "SELECT id, nome, email, telefone FROM socialmei.users LIMIT 0",
     "SELECT id, slug, nome, configuracao FROM socialmei.workspaces LIMIT 0",
     "SELECT workspace_id, user_id, role FROM socialmei.workspace_members LIMIT 0",
@@ -186,6 +193,8 @@ def check_database(*, include_auth: bool = False) -> str:
             raise RuntimeError("Migrations do CRM incompletas.")
         if include_auth and AUTH_MIGRATION not in installed:
             raise RuntimeError("Migration de contas ausente.")
+        if include_auth and IDENTITY_MIGRATION not in installed:
+            raise RuntimeError("Migration de identidade ausente.")
         for query in CRM_SCHEMA_QUERIES:
             cur.execute(query)
         if include_auth:

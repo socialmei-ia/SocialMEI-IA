@@ -204,6 +204,7 @@ class ReadinessQueryTests(unittest.TestCase):
             def fetchall(self):
                 return [(name,) for name in database.CRM_MIGRATIONS | {
                     database.AUTH_MIGRATION, database.CHANNEL_MIGRATION,
+                    database.IDENTITY_MIGRATION,
                 }]
 
         with patch.dict(os.environ, {

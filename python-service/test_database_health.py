@@ -187,6 +187,14 @@ class DatabaseHealthIntegrationTests(unittest.TestCase):
             self.assertEqual(response.json()["capabilities"]["channels"]["schema"], "unavailable")
             self.assertEqual(response.json()["capabilities"]["channels"]["connection"], "not_checked")
 
+    def test_identity_schema_required_even_when_verification_disabled(self):
+        with patch.dict(os.environ, {"SOCIALMEI_IDENTITY_MODE": "disabled"}):
+            with self.missing_migration("040_identity_activation.sql"):
+                self.assertEqual(self.client.get("/health/db").status_code, 503)
+            for table in ("auth_email_activation", "auth_identity_mail"):
+                with self.subTest(table=table), self.renamed_table(table):
+                    self.assertEqual(self.client.get("/health/db").status_code, 503)
+
     def test_missing_channel_migration_is_not_prepared(self):
         with self.missing_migration("009_shared_channel_foundation.sql"):
             response = self.client.get("/health/db")
