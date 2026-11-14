@@ -1,0 +1,45 @@
+{
+  "complete": false,
+  "ssh_exit_code": 1,
+  "attempts": 1,
+  "reason": "bounded_readonly_collection_failed",
+  "stderr_suppressed": true,
+  "collector_error": {
+    "complete": false,
+    "error_type": "JSONDecodeError"
+  },
+  "candidate_source_sha": "f6d282f33a7d76dd75fbd35262bc271a92823e40",
+  "ssh_transport_reached_remote_python": true,
+  "current_capacity_verified": false,
+  "current_api_source_revision_verified": false,
+  "failure_analysis": "Projected network JSON lacked its final object delimiter. Fixed locally after the single remote attempt; no remote retry.",
+  "local_validation": {
+    "offline_regression_tests_passed": 4,
+    "real_local_docker_container_projection_parsed": true,
+    "real_local_docker_network_projection_parsed": true
+  },
+  "prior_evidence_only": {
+    "source": "20261112-aws-postgres-preparation.json",
+    "collected_at_utc": "2026-11-12T19:42:40Z",
+    "host_memory_available_kib": 525144,
+    "documentation_source": "../AWS-POSTGRES-PREPARATION-20261112.md",
+    "instance_type_previously_reported": "t3.small",
+    "logical_cpus_previously_reported": 2,
+    "host_memory_gib_approx": 1.9,
+    "swap_used_gib_approx": 1.4,
+    "root_free_gib_approx": 20,
+    "root_total_gib_approx": 58,
+    "is_current_measurement": false
+  },
+  "unchanged_gates": [
+    "Fresh capacity and effective API revision remain unverified by this attempt.",
+    "Prior memory pressure requires representative load and approved capacity before cutover.",
+    "Known IAM EC2/S3 and independent continuous-backup permissions remain unresolved; no permission probes repeated.",
+    "Historical schema038 recovery snapshot cannot replace current Prisma source."
+  ],
+  "aws_configuration_changed": false,
+  "containers_restarted_or_created": false,
+  "database_queried_or_changed": false,
+  "provider_requests_or_messages_sent": false,
+  "credentials_collected_or_printed": false
+}
