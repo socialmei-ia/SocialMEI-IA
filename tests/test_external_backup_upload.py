@@ -2,6 +2,7 @@
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
@@ -122,6 +123,55 @@ class ExternalUploadTests(unittest.TestCase):
         self.assertEqual(self.client.get_calls[0]['ExpectedBucketOwner'], '123456789012')
         self.assertTrue(self.client.last_body.closed)
         self.assertEqual(self.checkpoint()['phase'], 'verified')
+
+    def test_approved040_receipt_retains_explicit_post_cutover_provenance(self):
+        self.receipt.update(source='approved_schema040_destination', current_production_backup=True)
+        result = self.upload()
+        self.assertTrue(result['current_production_backup'])
+        self.assertEqual(result['source'], 'approved_schema040_destination')
+
+    def test_040_target_is_explicit_private_bound_to_restore_and_never_changes_legacy_default(self):
+        root = self.path.parent
+        os.chmod(root, 0o700)
+        receipt = root / 'validated.json'
+        receipt.write_text(json.dumps({'independent_restore_equal': True, 'comparison': {'equal': True}, 'sha256': 'a' * 64}))
+        os.chmod(receipt, 0o600)
+        config = {'backup_target_approved': True, 'container': backup.NAME, 'database': 'socialmei_candidate040_20261114',
+                  'admin_user': 'relocation_admin', 'schema': '040', 'source': 'approved_schema040_destination',
+                  'current_production_backup': False, 'restore_receipt_file': str(receipt), 'validated_backup_sha256': 'a' * 64}
+        path = root / 'destination.private.json'
+        path.write_text(json.dumps(config)); os.chmod(path, 0o600)
+        with patch.object(backup, 'ROOT', backup.ROOT):
+            backup.select_approved040_root(root)
+            self.assertEqual(backup.ROOT, root)
+        original_root = backup.ROOT
+        for key, value in [('backup_target_approved', False), ('database', 'socialmei_relocation'),
+                           ('container', 'production'), ('validated_backup_sha256', 'b' * 64),
+                           ('current_production_backup', 'true')]:
+            with self.subTest(key=key):
+                path.write_text(json.dumps({**config, key: value}))
+                with self.assertRaises(RuntimeError):
+                    backup.select_approved040_root(root)
+                self.assertEqual(backup.ROOT, original_root)
+
+    def test_backup_uses_validated_configuration_without_reopening_mutated_target(self):
+        root = self.path.parent
+        (root / 'destination.private.json').write_text(json.dumps({'database': 'unapproved', 'admin_user': 'wrong'}))
+        checked = {'database': 'socialmei_candidate040_20261114', 'admin_user': 'relocation_admin',
+                   'source': 'approved_schema040_destination', 'current_production_backup': False}
+        commands = []
+        def docker(args, **kwargs):
+            commands.append(args)
+            if 'pg_dump' in args:
+                kwargs['stdout'].write(b'SYNTHETIC ARCHIVE')
+            return SimpleNamespace(returncode=0)
+        with patch.object(backup, 'ROOT', root), patch.object(backup.subprocess, 'run', side_effect=docker), \
+                patch.object(backup.shutil, 'disk_usage', return_value=SimpleNamespace(free=10 * 1024**3)), \
+                patch('sys.stdout'):
+            backup.backup(config=checked)
+        dump = next(args for args in commands if 'pg_dump' in args)
+        self.assertEqual(dump[dump.index('-d') + 1], checked['database'])
+        self.assertNotIn('unapproved', dump)
 
     def test_uncertain_put_restart_reconciles_without_second_upload(self):
         self.client.uncertain_put = True

@@ -1,0 +1,9 @@
+# Proposal only; does not replace or disable the historical timer.
+[Unit]
+Description=Hourly SocialMEI PostgreSQL040 backup
+[Timer]
+OnCalendar=hourly
+RandomizedDelaySec=180
+Persistent=true
+[Install]
+WantedBy=timers.target

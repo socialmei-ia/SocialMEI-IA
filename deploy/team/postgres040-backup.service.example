@@ -1,0 +1,18 @@
+# Proposal only. Install after explicit approval, private target review and S3 validation.
+[Unit]
+Description=SocialMEI approved PostgreSQL040 external backup
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=root
+UMask=0077
+EnvironmentFile=/etc/socialmei/backup040.private.env
+ExecStart=/usr/bin/flock -n /run/lock/socialmei-backup040.lock /usr/bin/python3 ${SOCIALMEI_BACKUP_SCRIPT} --run --config-root /var/lib/socialmei/postgres040-backups backup
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/socialmei/postgres040-backups /run/lock
+MemoryMax=96M
+TimeoutStartSec=300

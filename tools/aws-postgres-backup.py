@@ -10,10 +10,68 @@ import time
 import shutil
 import secrets
 import re
+import stat
 from urllib.parse import urlsplit
 
 ROOT = Path('/home/ubuntu/.socialmei-postgres-relocation-20261112')
 NAME = 'socialmei-postgres-relocation-20261112'
+
+
+def file_sha256(path):
+    digest = hashlib.sha256()
+    with path.open('rb') as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b''):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def select_approved040_root(path):
+    """Explicit private opt-in; the existing historical timer retains its default."""
+    global ROOT
+    path = Path(path).absolute()
+    if (not path.is_dir() or any(parent.is_symlink() or (parent / '.git').exists()
+                               for parent in (path, *path.parents))):
+        raise RuntimeError('approved_backup_root_invalid')
+    config = path / 'destination.private.json'
+    if config.is_symlink() or not config.is_file():
+        raise RuntimeError('approved_backup_config_invalid')
+    private_ownership(path, config)
+    values = json.loads(config.read_text())
+    if (values.get('backup_target_approved') is not True
+            or values.get('container') != NAME
+            or values.get('database') != 'socialmei_candidate040_20261114'
+            or values.get('admin_user') != 'relocation_admin'
+            or values.get('schema') != '040'
+            or values.get('source') != 'approved_schema040_destination'
+            or type(values.get('current_production_backup')) is not bool):
+        raise RuntimeError('approved_backup_target_mismatch')
+    receipt = Path(values.get('restore_receipt_file', ''))
+    if not receipt.is_file() or any(item.is_symlink() for item in (receipt, *receipt.parents)):
+        raise RuntimeError('approved_backup_restore_receipt_missing')
+    private_ownership(receipt.parent, receipt)
+    verified = json.loads(receipt.read_text())
+    if (verified.get('independent_restore_equal') is not True
+            or verified.get('comparison', {}).get('equal') is not True
+            or verified.get('sha256') != values.get('validated_backup_sha256')
+            or re.fullmatch(r'[0-9a-f]{64}', str(values.get('validated_backup_sha256'))) is None):
+        raise RuntimeError('approved_backup_restore_not_verified')
+    ROOT = path
+    return values
+
+
+def private_ownership(folder, file):
+    if os.name == 'nt':
+        return  # POSIX ownership is checked on the actual Linux operational host.
+    owners = (0, os.getuid())
+    if (folder.stat().st_mode & 0o077 or file.stat().st_mode & 0o077
+            or file.stat().st_uid not in owners):
+        raise RuntimeError('approved_backup_config_not_private')
+    for parent in (folder, *folder.parents):
+        metadata = parent.stat()
+        # A root-owned sticky /tmp cannot rename another owner's private child.
+        sticky_root = metadata.st_uid == 0 and metadata.st_mode & stat.S_ISVTX
+        if metadata.st_uid not in owners or metadata.st_mode & 0o022 and not sticky_root:
+            raise RuntimeError('approved_backup_parent_not_trusted')
 
 
 def _private_checkpoint(path, value):
@@ -35,7 +93,7 @@ def _private_checkpoint(path, value):
 
 
 def upload_external_versioned(localdump, receipt, config, client):
-    """Upload only a verified historical artifact; resume uncertain PUT by HEAD.
+    """Upload a verified artifact with explicit provenance; resume uncertain PUT by HEAD.
 
     Caller owns authorization and single-flight scheduling. Private checkpoint
     is persisted before PUT. An uncertain missing object never triggers a PUT
@@ -55,8 +113,10 @@ def upload_external_versioned(localdump, receipt, config, client):
     checksum = digest.hexdigest()
     if (not 0 < size <= 5 * 1024**3 or receipt.get('sha256') != checksum
             or receipt.get('bytes') != size or receipt.get('archive_index_verified') is not True
-            or receipt.get('source') != 'isolated_historical_destination'
-            or receipt.get('current_production_backup') is not False):
+            or receipt.get('source') not in ('isolated_historical_destination', 'approved_schema040_destination')
+            or type(receipt.get('current_production_backup')) is not bool
+            or (receipt.get('source') == 'isolated_historical_destination'
+                and receipt.get('current_production_backup') is not False)):
         raise RuntimeError('external_artifact_receipt_invalid')
     endpoint = urlsplit(client.meta.endpoint_url)
     if endpoint.scheme != 'https' or not endpoint.hostname or endpoint.username or endpoint.password:
@@ -161,8 +221,9 @@ def upload_external_versioned(localdump, receipt, config, client):
                 external_object_sha256=checksum)
 
 
-def backup():
-    config = json.loads((ROOT / 'destination.private.json').read_text())
+def backup(config=None):
+    if config is None:
+        config = json.loads((ROOT / 'destination.private.json').read_text())
     if shutil.disk_usage(ROOT).free < 2 * 1024**3:
         raise RuntimeError('insufficient_backup_disk_space')
     folder = ROOT / 'backups'
@@ -205,8 +266,9 @@ def backup():
         raise RuntimeError('destination_backup_path_exists')
     partial.rename(path)
     receipt = {'created_at_utc': stamp, 'dump_path': str(path), 'bytes': path.stat().st_size,
-               'sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
-               'source': 'isolated_historical_destination', 'current_production_backup': False,
+               'sha256': file_sha256(path),
+               'source': config.get('source', 'isolated_historical_destination'),
+               'current_production_backup': config.get('current_production_backup', False),
                'external_uploaded': False, 'archive_index_verified': True, 'cutover_authorized': False}
     receipt['external_upload_requested'] = storage is not None
     receipt_path = path.with_suffix('.json')
@@ -281,9 +343,19 @@ def prepare_external():
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--run', action='store_true', required=True)
+    parser.add_argument('--config-root', type=Path,
+                        help='Explicit private, approved schema040 backup target; backup stage only')
     parser.add_argument('stage', choices=['backup', 'prepare-external', 'install-schedule'])
     args = parser.parse_args()
     try:
-        {'backup': backup, 'prepare-external': prepare_external, 'install-schedule': install_schedule}[args.stage]()
+        verified_config = None
+        if args.config_root is not None:
+            if args.stage != 'backup':
+                raise RuntimeError('explicit_root_cannot_install_or_create_resources')
+            verified_config = select_approved040_root(args.config_root)
+        if args.stage == 'backup':
+            backup(config=verified_config)
+        else:
+            {'prepare-external': prepare_external, 'install-schedule': install_schedule}[args.stage]()
     except Exception:
         raise SystemExit('Isolated backup unavailable; private configuration required.') from None

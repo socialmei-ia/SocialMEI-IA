@@ -1,0 +1,12 @@
+{
+  "explicit_authorization": false,
+  "scope": "isolated_restore",
+  "production_mutation": false,
+  "verification_mode": "archive_integrity",
+  "dump_sha256": "REPLACE_WITH_LATEST_VERSION_PINNED_VERIFIED_DUMP_SHA256",
+  "manifest_sha256": "REPLACE_WITH_APPROVED_PRIVATE_SCHEMA040_REFERENCE_SHA256",
+  "profile": "040",
+  "postgres_major": 17,
+  "postgres_image_id": "sha256:ff87138949ad9a46f32ff23bd6852b52ce024a13dffe9b4087be98292cdd3b4f",
+  "validator_api_image_id": "sha256:268a7b6523a0ada2ce27da2c1cd11549cac41c949e4ff19eda06de02fdff2840"
+}

@@ -1,0 +1,9 @@
+# Proposal only. A skipped memory condition is not a successful recovery test.
+[Unit]
+Description=Weekly SocialMEI PostgreSQL040 recovery verification
+[Timer]
+OnCalendar=Sun *-*-* 03:40:00
+RandomizedDelaySec=600
+Persistent=true
+[Install]
+WantedBy=timers.target

@@ -34,6 +34,33 @@ def fixture(folder, profile=40):
 
 
 class RestoreRehearsalTests(unittest.TestCase):
+    def test_periodic_integrity_requires_explicit_mode_and_does_not_claim_source_equality(self):
+        baseline = manifest()
+        baseline['tables'] = [{'schema': 'socialmei', 'table': 'fixture', 'rows': 1, 'sha256': 'a' * 64}]
+        baseline['sequences'] = [{'schema': 'socialmei', 'sequence': 'fixture_seq', 'definition': ['stable'], 'last_value': 1, 'is_called': True}]
+        evolved = copy.deepcopy(baseline)
+        evolved['tables'][0].update(rows=2, sha256='b' * 64)
+        evolved['sequences'][0]['last_value'] = 2
+        with self.assertRaises(ValueError):
+            runner.verify_manifest(baseline, evolved)
+        result = runner.verify_manifest(baseline, evolved, 'archive_integrity')
+        self.assertFalse(result['source_contents_compared'])
+        self.assertTrue(result['archive_integrity_verified'])
+        self.assertEqual(result['restored_rows'], 2)
+        for section, value in [('structure', {'changed': True}), ('tables', []),
+                               ('migration_ledger', []), ('sequences', []), ('valid', False)]:
+            with self.subTest(section=section), self.assertRaises(ValueError):
+                runner.verify_manifest(baseline, {**evolved, section: value}, 'archive_integrity')
+
+    def test_periodic_mode_rejects_unknown_modes_and_non040_profile(self):
+        with tempfile.TemporaryDirectory() as folder:
+            files = fixture(folder, 39)
+            approval = json.loads(files[2].read_text())
+            for mode in ('unknown', 'archive_integrity'):
+                files[2].write_text(json.dumps({**approval, 'verification_mode': mode}))
+                with self.assertRaises(ValueError):
+                    runner.inputs(*files)
+
     def test_default_plan_and_rejection_of_remote_or_apply_flags(self):
         with patch.object(runner, 'run') as calls, contextlib.redirect_stdout(io.StringIO()):
             runner.main([])
@@ -47,7 +74,8 @@ class RestoreRehearsalTests(unittest.TestCase):
             original = json.loads(approval.read_text())
             for key, value in [('explicit_authorization', False), ('scope', 'production'),
                                ('dump_sha256', 'bad'), ('manifest_sha256', 'bad'),
-                               ('profile', '041'), ('postgres_image_id', 'postgres:latest')]:
+                               ('profile', '041'), ('postgres_image_id', 'postgres:latest'),
+                               ('validator_api_image_id', 'mutable:tag')]:
                 with self.subTest(key=key), patch.object(runner, 'run') as calls:
                     approval.write_text(json.dumps({**original, key: value}))
                     with self.assertRaises(ValueError):

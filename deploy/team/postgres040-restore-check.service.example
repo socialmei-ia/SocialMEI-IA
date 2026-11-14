@@ -1,0 +1,21 @@
+# Proposal for an approved verification host. No new restore is authorized by this file.
+# A separately approved version-pinned downloader must stage the latest verified
+# dump and matching hash-bound approval. Never reuse a stale approval for a new dump.
+[Unit]
+Description=Verify approved PostgreSQL040 backup recovery
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=root
+UMask=0077
+EnvironmentFile=/etc/socialmei/restore040.private.env
+ExecCondition=/usr/bin/awk '$$1=="MemAvailable:" {exit ($$2<1048576)}' /proc/meminfo
+ExecStart=/usr/bin/flock -n /run/lock/socialmei-restore040.lock /usr/bin/python3 ${SOCIALMEI_RESTORE_SCRIPT} --run --dump /var/lib/socialmei/restore040/latest-verified.dump --manifest /var/lib/socialmei/restore040/schema040.private.json --approval-receipt /var/lib/socialmei/restore040/approval.private.json
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/socialmei/restore040 /run/lock
+MemoryMax=96M
+TimeoutStartSec=600

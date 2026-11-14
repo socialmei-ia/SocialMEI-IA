@@ -57,7 +57,33 @@ def inputs(dump, manifest, approval):
     versions = next((row['versions'] for row in expected['migration_ledger'] if row.get('schema') == 'socialmei'), [])
     require(len(versions) == int(auth['profile']) and [name[:3] for name in versions] ==
             [f'{index:03}' for index in range(1, int(auth['profile']) + 1)])
+    require(auth.get('verification_mode', 'full_comparison') in ('full_comparison', 'archive_integrity'))
+    require(auth.get('verification_mode') != 'archive_integrity' or auth['profile'] == '040')
+    require(re.fullmatch(r'sha256:[0-9a-f]{64}', str(auth.get('validator_api_image_id', API_IMAGE))) is not None)
     return auth, expected
+
+
+def verify_manifest(expected, restored, mode='full_comparison'):
+    comparison = validator.compare(expected, restored)
+    if mode == 'full_comparison':
+        require(comparison['equal'])
+    else:
+        require(mode == 'archive_integrity' and expected['valid'] is True and restored['valid'] is True)
+        # Production rows evolve. Verify the restored archive against the approved
+        # immutable schema, not against historical customer contents/counts.
+        require(validator.comparable_structure(expected['structure']) ==
+                validator.comparable_structure(restored['structure']))
+        require([(row['schema'], row['table']) for row in expected['tables']] ==
+                [(row['schema'], row['table']) for row in restored['tables']])
+        require(expected['migration_ledger'] == restored['migration_ledger'])
+        require([{key: row[key] for key in ('schema', 'sequence', 'definition')} for row in expected['sequences']] ==
+                [{key: row[key] for key in ('schema', 'sequence', 'definition')} for row in restored['sequences']])
+        require(expected['foreign_keys'] == restored['foreign_keys'])
+    return {'verification_mode': mode, 'source_contents_compared': mode == 'full_comparison',
+            'sequence_state_compared_to_reference': mode == 'full_comparison',
+            'sequence_max_value_safety_verified': False,
+            'restored_rows': sum(row['rows'] for row in restored['tables']),
+            'archive_integrity_verified': True}
 
 
 def run(docker, *args, stdin=None, timeout=180):
@@ -80,7 +106,8 @@ def rehearse(dump, manifest, approval, docker='docker'):
     context = json.loads(run(docker, 'context', 'inspect'))
     require(len(context) == 1 and context[0]['Endpoints']['docker']['Host'].startswith(('unix://', 'npipe://')))
     image = auth['postgres_image_id']
-    for identity in (image, API_IMAGE):
+    validator_image = auth.get('validator_api_image_id', API_IMAGE)
+    for identity in (image, validator_image):
         info = json.loads(run(docker, 'image', 'inspect', identity))
         require(len(info) == 1 and info[0]['Id'] == identity)
     token = secrets.token_hex(12)
@@ -123,11 +150,11 @@ def rehearse(dump, manifest, approval, docker='docker'):
             '--read-only', '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges',
             '--memory', '256m', '--cpus', '0.5', '--pids-limit', '64',
             '--mount', 'type=bind,src=' + str(ROOT / 'tools/postgres-copy-validate.py') + ',dst=/validator.py,readonly',
-            '--entrypoint', 'python', API_IMAGE, '-B', '-c', code).decode().strip()
+            '--entrypoint', 'python', validator_image, '-B', '-c', code).decode().strip()
         require(re.fullmatch(r'[0-9a-f]{64}', check_id) is not None)
         result = json.loads(run(docker, 'start', '-a', check_id))
+        verification = verify_manifest(expected, result, auth.get('verification_mode', 'full_comparison'))
         comparison = validator.compare(expected, result)
-        require(comparison['equal'])
         require(file_hash(dump) == auth['dump_sha256'] and file_hash(manifest) == auth['manifest_sha256'])
         proof = {'profile': auth['profile'], 'dump_sha256': auth['dump_sha256'],
                  'manifest_sha256': auth['manifest_sha256'], 'restoration_verified': True,
@@ -136,6 +163,8 @@ def rehearse(dump, manifest, approval, docker='docker'):
                  'effective_sequence_permissions_equal': comparison['effective_sequence_permissions_equal'],
                  'production_role_permissions_approved': False, 'migrations_executed': False,
                  'production_mutation': False, 'source_freshness_verified': False}
+        proof.update(verification)
+        proof['validator_api_image_id'] = validator_image
     finally:
         cleanup_errors = []
         for resource, network in reversed(created):
