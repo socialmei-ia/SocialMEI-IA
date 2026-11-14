@@ -1,0 +1,14 @@
+# NOT ACTIVE. Append after installed private overlays only after explicit approval.
+# Use EXISTING private paths on the server. No credentials are copied or replaced.
+# The approved gateway image supplies the versioned Caddyfile, not a stale bind.
+services:
+  team-gateway:
+    volumes: !override
+      - type: bind
+        source: ${SOCIALMEI_EXISTING_CADDY_PRIVATE_DIR:?Existing private Caddy directory required}
+        target: /etc/caddy/private
+        read_only: true
+      - type: bind
+        source: ${SOCIALMEI_EXISTING_FRONTEND_CONFIG_FILE:?Existing private frontend config required}
+        target: /srv/frontend/config.js
+        read_only: true
