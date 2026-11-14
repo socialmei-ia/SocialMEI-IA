@@ -1,0 +1,90 @@
+{
+  "branch": "release/functional-completion-20261112",
+  "runtime_source_sha": "9b34ac80ee5f2d9d6a12aa1b5c7e254bccb0c4d8",
+  "base_checkpoint": "f6d282f33a7d76dd75fbd35262bc271a92823e40",
+  "python": {
+    "tests": 987,
+    "failures": 0,
+    "seconds": 700.087,
+    "environment": "Linux, current source, disposable PostgreSQL"
+  },
+  "javascript": { "passed": 440, "skipped": 2, "failures": 0 },
+  "operational_linux": {
+    "tests": 422,
+    "skipped": 18,
+    "failures": 0,
+    "errors": 0,
+    "environment": "network-none container, source mounted read-only, no Docker socket"
+  },
+  "additional_directed": {
+    "runtime_snapshot_tests": 4,
+    "final_preflight_tests": 5,
+    "gateway_tests": 14,
+    "gateway_failures": 0,
+    "new_api_image_dependency_contract_tests": 83,
+    "new_api_image_contract_failures": 0,
+    "new_api_image_contract_environment": "Exact new image, current source mounted read-only, disposable PostgreSQL"
+  },
+  "windows_operational_attempt": {
+    "passed": false,
+    "reason": "POSIX-only tools and permission assertions",
+    "resolution": "Complete operational suite passed in disposable Linux; opt-in gateway passed separately"
+  },
+  "browser": {
+    "full_suite_passed": true,
+    "layout_states": 286,
+    "entry_flows": 5,
+    "public_booking_journeys": 42,
+    "identity_journeys": 8,
+    "real_provider_traffic": false
+  },
+  "images": {
+    "api": {
+      "id": "sha256:0a7050f73cab2b06b89b5b91fc0232c92fd0b41b029ac9710518d5255ca8a569",
+      "architecture": "amd64",
+      "location": "local only",
+      "profile": "040",
+      "instagram_worker_bundled_and_import_verified": true
+    },
+    "gateway": {
+      "id": "sha256:a66dcefbacb9f4b1d757e7ec2f4b59eafa85a8205d4817f0df33c87f8c4dd186",
+      "architecture": "amd64",
+      "location": "local only"
+    }
+  },
+  "schema040": {
+    "rehearsal": "20261113-mission3-schema040-rehearsal.json",
+    "readonly039_precheck_executed_on_disposable_database": true,
+    "migrations001_through039_unchanged": true,
+    "restored039_and040_verified": true
+  },
+  "rollback": {
+    "rehearsal": "20261113-schema040-rollback-rehearsal.json",
+    "distinct_candidate9b_to_fallbackB2_verified": true,
+    "persisted_identity_restrictions_preserved": true,
+    "no_schema_downgrade": true
+  },
+  "artifact_preflight": {
+    "real_image_ids_and_rehearsals_passed": true,
+    "configuration": "Synthetic private rendered Compose; not the installed AWS overlays",
+    "production_ready": false
+  },
+  "aws_readonly_snapshot": "20261113-runtime-capacity.json",
+  "production_runtime_changed": false,
+  "production_database_changed": false,
+  "production_migrations_executed": false,
+  "real_messages_or_emails_sent": false,
+  "aws_resources_created_or_resized": false,
+  "production_deployed": false,
+  "pull_request_created": false,
+  "external_gates": [
+    "current source export and database identity",
+    "external restorable backup and IAM",
+    "representative capacity validation; installed API unhealthy",
+    "private overlay and patch reconciliation",
+    "explicit040 and publication approvals",
+    "controlled SMTP delivery",
+    "Meta permissions and webhook homologation",
+    "WAHA controlled provisioning and single responder approval"
+  ]
+}

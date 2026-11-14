@@ -64,3 +64,6 @@ Código e imagens locais: `b2b839b`. Regressão:986 Python,440 JavaScript
 O ensaio040 dessa imagem restaurou039/040 e aprovou os gates de integridade.
 Recibos sanitizados: `docs/evidence/20261113-selfservice-release.json` e
 `docs/evidence/20261113-schema040-rehearsal.json`. Não comprovam produção.
+
+Preparação posterior da Missão3, imagens9b, preflight e rollback040:
+[RELEASE040-READINESS.md](RELEASE040-READINESS.md). A evidência acima permanece histórica.

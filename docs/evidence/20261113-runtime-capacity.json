@@ -5,11 +5,7 @@
     "logical_count": 2,
     "sample_seconds": 1,
     "busy_percent": 1.5,
-    "load_average": [
-      0.04248046875,
-      0.08251953125,
-      0.02783203125
-    ]
+    "load_average": [0.04248046875, 0.08251953125, 0.02783203125]
   },
   "memory_bytes": {
     "MemTotal": 1997692928,
@@ -30,9 +26,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 201326592,
       "revision": null,
-      "networks": [
-        "socialmei-postgres-relocation-20261112-isolated"
-      ]
+      "networks": ["socialmei-postgres-relocation-20261112-isolated"]
     },
     {
       "name": "socialmei-menu-worker-continuo",
@@ -42,9 +36,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 0,
       "revision": "994a103826791c532c1487891e971a44a8a2b674",
-      "networks": [
-        "socialmei-team_api"
-      ]
+      "networks": ["socialmei-team_api"]
     },
     {
       "name": "socialmei-menu-public-api-v3",
@@ -54,11 +46,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 0,
       "revision": null,
-      "networks": [
-        "socialmei-team_api",
-        "socialmei-team_database",
-        "socialmei_team_egress"
-      ]
+      "networks": ["socialmei-team_api", "socialmei-team_database", "socialmei_team_egress"]
     },
     {
       "name": "socialmei-team-team-api-1",
@@ -68,11 +56,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 0,
       "revision": "86cdd5b8a4309014a1f2bbabd08cd15c8d6b194b",
-      "networks": [
-        "socialmei-team_api",
-        "socialmei-team_database",
-        "socialmei_team_egress"
-      ]
+      "networks": ["socialmei-team_api", "socialmei-team_database", "socialmei_team_egress"]
     },
     {
       "name": "socialmei-team-team-api-1-before-list-20261112T023801Z",
@@ -82,11 +66,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 0,
       "revision": "86cdd5b8a4309014a1f2bbabd08cd15c8d6b194b",
-      "networks": [
-        "socialmei-team_api",
-        "socialmei-team_database",
-        "socialmei_team_egress"
-      ]
+      "networks": ["socialmei-team_api", "socialmei-team_database", "socialmei_team_egress"]
     },
     {
       "name": "socialmei-menu-worker-continuo-before-list-20261112T023801Z",
@@ -96,9 +76,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 0,
       "revision": "994a103826791c532c1487891e971a44a8a2b674",
-      "networks": [
-        "socialmei-team_api"
-      ]
+      "networks": ["socialmei-team_api"]
     },
     {
       "name": "socialmei-menu-public-api-v3-before-list-20261112T023801Z",
@@ -108,11 +86,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 0,
       "revision": null,
-      "networks": [
-        "socialmei-team_api",
-        "socialmei-team_database",
-        "socialmei_team_egress"
-      ]
+      "networks": ["socialmei-team_api", "socialmei-team_database", "socialmei_team_egress"]
     },
     {
       "name": "socialmei-menu-worker-continuo-before-list-20261112T013007Z",
@@ -122,9 +96,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 0,
       "revision": "994a103826791c532c1487891e971a44a8a2b674",
-      "networks": [
-        "socialmei-team_api"
-      ]
+      "networks": ["socialmei-team_api"]
     },
     {
       "name": "socialmei-menu-public-api-v3-before-list-20261112T013007Z",
@@ -134,11 +106,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 0,
       "revision": null,
-      "networks": [
-        "socialmei-team_api",
-        "socialmei-team_database",
-        "socialmei_team_egress"
-      ]
+      "networks": ["socialmei-team_api", "socialmei-team_database", "socialmei_team_egress"]
     },
     {
       "name": "socialmei-team-team-api-1-before-selection-20261112T015105Z",
@@ -148,11 +116,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 0,
       "revision": "86cdd5b8a4309014a1f2bbabd08cd15c8d6b194b",
-      "networks": [
-        "socialmei-team_api",
-        "socialmei-team_database",
-        "socialmei_team_egress"
-      ]
+      "networks": ["socialmei-team_api", "socialmei-team_database", "socialmei_team_egress"]
     },
     {
       "name": "socialmei-waha-gows-edge",
@@ -162,10 +126,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 268435456,
       "revision": null,
-      "networks": [
-        "socialmei-team_api",
-        "socialmei_team_web"
-      ]
+      "networks": ["socialmei-team_api", "socialmei_team_web"]
     },
     {
       "name": "socialmei-menu-worker-continuo-before-gows-20261112T010720Z",
@@ -175,9 +136,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 0,
       "revision": "994a103826791c532c1487891e971a44a8a2b674",
-      "networks": [
-        "socialmei-team_api"
-      ]
+      "networks": ["socialmei-team_api"]
     },
     {
       "name": "socialmei-waha-edge-before-gows-20261112T010720Z",
@@ -187,10 +146,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 268435456,
       "revision": null,
-      "networks": [
-        "socialmei-team_api",
-        "socialmei_team_web"
-      ]
+      "networks": ["socialmei-team_api", "socialmei_team_web"]
     },
     {
       "name": "socialmei-menu-public-api-v3-before-gows-20261112T010720Z",
@@ -200,11 +156,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 0,
       "revision": null,
-      "networks": [
-        "socialmei-team_api",
-        "socialmei-team_database",
-        "socialmei_team_egress"
-      ]
+      "networks": ["socialmei-team_api", "socialmei-team_database", "socialmei_team_egress"]
     },
     {
       "name": "socialmei-team-team-api-1-before-gows-20261112T010720Z",
@@ -214,11 +166,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 0,
       "revision": "86cdd5b8a4309014a1f2bbabd08cd15c8d6b194b",
-      "networks": [
-        "socialmei-team_api",
-        "socialmei-team_database",
-        "socialmei_team_egress"
-      ]
+      "networks": ["socialmei-team_api", "socialmei-team_database", "socialmei_team_egress"]
     },
     {
       "name": "socialmei-team-team-gateway-1",
@@ -228,10 +176,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 0,
       "revision": "8159c17d2fec67e77a5cc3a66136e2804c4f9c81",
-      "networks": [
-        "socialmei-team_api",
-        "socialmei_team_web"
-      ]
+      "networks": ["socialmei-team_api", "socialmei_team_web"]
     },
     {
       "name": "socialmei-instagram-menu-worker",
@@ -241,9 +186,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 268435456,
       "revision": "86cdd5b8a4309014a1f2bbabd08cd15c8d6b194b",
-      "networks": [
-        "socialmei_team_egress"
-      ]
+      "networks": ["socialmei_team_egress"]
     },
     {
       "name": "socialmei-team-team-api-1-before-recovery-20261112T004447Z",
@@ -253,11 +196,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 0,
       "revision": "86cdd5b8a4309014a1f2bbabd08cd15c8d6b194b",
-      "networks": [
-        "socialmei-team_api",
-        "socialmei-team_database",
-        "socialmei_team_egress"
-      ]
+      "networks": ["socialmei-team_api", "socialmei-team_database", "socialmei_team_egress"]
     },
     {
       "name": "socialmei-menu-worker-continuo-before-recovery-20261112T004447Z",
@@ -267,9 +206,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 0,
       "revision": "994a103826791c532c1487891e971a44a8a2b674",
-      "networks": [
-        "socialmei-team_api"
-      ]
+      "networks": ["socialmei-team_api"]
     },
     {
       "name": "socialmei-menu-public-api-v3-before-recovery-20261112T004447Z",
@@ -279,11 +216,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 0,
       "revision": null,
-      "networks": [
-        "socialmei-team_api",
-        "socialmei-team_database",
-        "socialmei_team_egress"
-      ]
+      "networks": ["socialmei-team_api", "socialmei-team_database", "socialmei_team_egress"]
     },
     {
       "name": "socialmei-menu-worker-continuo-before-continuous-20261111T195434Z",
@@ -293,9 +226,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 0,
       "revision": "994a103826791c532c1487891e971a44a8a2b674",
-      "networks": [
-        "socialmei-team_api"
-      ]
+      "networks": ["socialmei-team_api"]
     },
     {
       "name": "socialmei-menu-public-api-v3-before-continuous-20261111T195434Z",
@@ -305,11 +236,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 0,
       "revision": null,
-      "networks": [
-        "socialmei-team_api",
-        "socialmei-team_database",
-        "socialmei_team_egress"
-      ]
+      "networks": ["socialmei-team_api", "socialmei-team_database", "socialmei_team_egress"]
     },
     {
       "name": "socialmei-menu-public-api-v3-failed-20261111T192106Z",
@@ -319,11 +246,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 0,
       "revision": null,
-      "networks": [
-        "socialmei-team_api",
-        "socialmei-team_database",
-        "socialmei_team_egress"
-      ]
+      "networks": ["socialmei-team_api", "socialmei-team_database", "socialmei_team_egress"]
     },
     {
       "name": "socialmei-menu-worker-continuo-before-continuous-20261111T192200Z",
@@ -333,9 +256,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 0,
       "revision": "994a103826791c532c1487891e971a44a8a2b674",
-      "networks": [
-        "socialmei-team_api"
-      ]
+      "networks": ["socialmei-team_api"]
     },
     {
       "name": "socialmei-waha-gows-piloto",
@@ -345,10 +266,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 536870912,
       "revision": "c42f68ab25b93fd77f583e17477cbcc9d14471cc",
-      "networks": [
-        "socialmei-team_api",
-        "socialmei_team_egress"
-      ]
+      "networks": ["socialmei-team_api", "socialmei_team_egress"]
     },
     {
       "name": "socialmei-menu-public-api-v3-before-continuous-20261111T192200Z",
@@ -358,11 +276,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 0,
       "revision": null,
-      "networks": [
-        "socialmei-team_api",
-        "socialmei-team_database",
-        "socialmei_team_egress"
-      ]
+      "networks": ["socialmei-team_api", "socialmei-team_database", "socialmei_team_egress"]
     },
     {
       "name": "socialmei-menu-antes-catalogo-20261109",
@@ -372,9 +286,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 0,
       "revision": null,
-      "networks": [
-        "socialmei_team_egress"
-      ]
+      "networks": ["socialmei_team_egress"]
     },
     {
       "name": "socialmei-menu-prisma-antes-contato",
@@ -384,11 +296,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 0,
       "revision": null,
-      "networks": [
-        "socialmei-team_api",
-        "socialmei-team_database",
-        "socialmei_team_egress"
-      ]
+      "networks": ["socialmei-team_api", "socialmei-team_database", "socialmei_team_egress"]
     },
     {
       "name": "socialmei-menu-worker-continuo-backup-20261111T184358Z",
@@ -398,9 +306,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 268435456,
       "revision": null,
-      "networks": [
-        "socialmei-team_api"
-      ]
+      "networks": ["socialmei-team_api"]
     },
     {
       "name": "socialmei-menu-public-api-v3-rollback-prisma",
@@ -410,10 +316,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 402653184,
       "revision": null,
-      "networks": [
-        "socialmei-team_api",
-        "socialmei-team_database"
-      ]
+      "networks": ["socialmei-team_api", "socialmei-team_database"]
     },
     {
       "name": "socialmei-menu-public-api-v3-precontinuo-20261109",
@@ -423,10 +326,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 402653184,
       "revision": null,
-      "networks": [
-        "socialmei-team_api",
-        "socialmei-team_database"
-      ]
+      "networks": ["socialmei-team_api", "socialmei-team_database"]
     },
     {
       "name": "socialmei-menu-public-api-v3-backup-20261109",
@@ -436,10 +336,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 402653184,
       "revision": null,
-      "networks": [
-        "socialmei-team_api",
-        "socialmei-team_database"
-      ]
+      "networks": ["socialmei-team_api", "socialmei-team_database"]
     },
     {
       "name": "socialmei-waha-edge-before-recovery-20261112T004447Z",
@@ -449,10 +346,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 268435456,
       "revision": null,
-      "networks": [
-        "socialmei-team_api",
-        "socialmei_team_web"
-      ]
+      "networks": ["socialmei-team_api", "socialmei_team_web"]
     },
     {
       "name": "socialmei-python",
@@ -462,9 +356,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 0,
       "revision": null,
-      "networks": [
-        "socialmei_default"
-      ]
+      "networks": ["socialmei_default"]
     },
     {
       "name": "socialmei-caddy",
@@ -474,10 +366,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 0,
       "revision": null,
-      "networks": [
-        "socialmei_default",
-        "socialmei_team_web"
-      ]
+      "networks": ["socialmei_default", "socialmei_team_web"]
     },
     {
       "name": "socialmei-n8n",
@@ -487,9 +376,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 0,
       "revision": null,
-      "networks": [
-        "socialmei_default"
-      ]
+      "networks": ["socialmei_default"]
     },
     {
       "name": "socialmei-python-runners",
@@ -499,9 +386,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 0,
       "revision": null,
-      "networks": [
-        "socialmei_python_runners"
-      ]
+      "networks": ["socialmei_python_runners"]
     },
     {
       "name": "socialmei-team-team-migrate-1",
@@ -511,9 +396,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 0,
       "revision": null,
-      "networks": [
-        "socialmei-team_database"
-      ]
+      "networks": ["socialmei-team_database"]
     },
     {
       "name": "socialmei-team-team-postgres-1",
@@ -523,9 +406,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 0,
       "revision": null,
-      "networks": [
-        "socialmei-team_database"
-      ]
+      "networks": ["socialmei-team_database"]
     },
     {
       "name": "socialmei-waha",
@@ -535,10 +416,7 @@
       "restart_count": 2,
       "memory_limit_bytes": 0,
       "revision": "90ba445a0e765701c8910f0fac08176250c3e0fd",
-      "networks": [
-        "socialmei-team_api",
-        "socialmei_default"
-      ]
+      "networks": ["socialmei-team_api", "socialmei_default"]
     },
     {
       "name": "socialmei-pgadmin",
@@ -548,9 +426,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 0,
       "revision": null,
-      "networks": [
-        "socialmei_default"
-      ]
+      "networks": ["socialmei_default"]
     },
     {
       "name": "socialmei-postgres",
@@ -560,9 +436,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 0,
       "revision": null,
-      "networks": [
-        "socialmei_default"
-      ]
+      "networks": ["socialmei_default"]
     },
     {
       "name": "hardcore_gates",
@@ -572,9 +446,7 @@
       "restart_count": 0,
       "memory_limit_bytes": 0,
       "revision": null,
-      "networks": [
-        "bridge"
-      ]
+      "networks": ["bridge"]
     }
   ],
   "container_counts": {
