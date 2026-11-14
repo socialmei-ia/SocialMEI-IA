@@ -81,6 +81,11 @@ backup restaurável e manifestos privados de mounts/restart policies/sessões/fi
 Snapshot/AMI novo exige autorização/custo próprios. Não presumir preservação do
 IPv4 efêmero; não alocarEIP nem alterarDNS por iniciativa automática.
 
+Atualização Brevo: o responsável vinculou o SMTP ao IP de saída AWS autorizado.
+O checklist agora exige revisar essa autorização depois de stop/start; DNS
+preservado não comprova que o Brevo aceitará um IP novo. Não alterar allowlist
+automaticamente. Entrada privada e ativação em `BREVO-RELEASE040.md`.
+
 Sequência futura: pausa coordenada autorizada de escritores/respondedores; parada
 graciosa semforce; alterar sótipo; iniciar mesma instância; conferir volumes,
 rede/IP/DNS, sessões e proprietários antes de retomar uma única vez; medir carga.

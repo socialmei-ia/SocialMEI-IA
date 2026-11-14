@@ -12,6 +12,7 @@ REQUIRED = (
     'architecture_x86_64_verified', 'ebs_root_verified', 'all_state_volumes_preserved',
     'target_offered_in_current_az', 'ena_and_hvm_verified', 'no_unmanaged_autoscaling_controller',
     'elastic_ip_or_dns_rollback_verified', 'external_backup_restoration_verified',
+    'smtp_egress_allowlist_after_stop_start_reviewed',
     'waha_n8n_sessions_and_private_mounts_preserved', 'writers_and_responders_pause_plan_reviewed',
     'autostart_and_single_responder_recovery_reviewed', 'rollback_original_instance_type_reviewed',
 )
@@ -101,6 +102,7 @@ def preparation(inventory=None, prices=None, target='t3.medium'):
                        'pause_writers_and_single_responders_under_approved_maintenance',
                        'graceful_stop_no_force_no_terminate', 'change_only_existing_instance_type',
                        'start_and_verify_EBS_mounts_ENI_SG_IP_DNS_before_resume',
+                       'verify_smtp_egress_ip_still_authorized_by_provider_before_mail_canary',
                        'verify_private_services_and_identity_without_enabling_new_responders',
                        'resume_existing_owners_once_and_measure_load'],
                    'rollback': ['approved_graceful_stop', 'restore_original_instance_type_only',

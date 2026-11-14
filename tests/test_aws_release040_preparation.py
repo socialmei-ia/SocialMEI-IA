@@ -99,6 +99,15 @@ class AWSPreparationTests(unittest.TestCase):
         control = next(row for row in policy['Statement'] if isinstance(row['Action'], list))
         self.assertEqual(set(control['Action']), {'ec2:StopInstances', 'ec2:StartInstances'})
 
+    def test_smtp_ip_allowlist_is_a_separate_resize_gate_from_dns(self):
+        inventory = {key: True for key in prep.REQUIRED}
+        inventory['instance_type'] = 't3.small'
+        inventory['smtp_egress_allowlist_after_stop_start_reviewed'] = False
+        result = prep.preparation(inventory)
+        self.assertIn('smtp_egress_allowlist_after_stop_start_reviewed', result['resize']['blockers'])
+        self.assertFalse(result['resize']['technical_gates_passed'])
+        self.assertFalse(result['authorization_granted'])
+
 
 if __name__ == '__main__':
     unittest.main()
