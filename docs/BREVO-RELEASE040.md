@@ -94,10 +94,12 @@ bucket aprovado. Oito ações do caminho implementado; multipart não utilizado 
 é concedido. Instalação, transferência real e restauração têm aprovação separada.
 O produtor atual continua histórico: S3 não recupera dados atuais por si só.
 
-3. Responsável Prisma deve restabelecer acesso/exportação da origem efetiva daAPI,
-   sem mudar conexão, plano ou janela24h automaticamente. Depois de confirmar a
-   mudança e autorizar exportação: `sudo -n python3 tools/aws-postgres-prepare.py --run export-source`.
-   Verificar origem/schema/manifesto/restauração; nunca usar snapshot038 como atual.
+3. Decisão posterior do responsável: usar o snapshot038 autorizado de11/11, com
+   perda posterior aceita. Ele já foi restaurado e evoluído para040 em nova base
+   isolada AWS; não é necessário restabelecer/exportar Prisma nem usar janela24h.
+   Ver `AWS-POSTGRES-PREPARATION-20261112.md`. Conectar API e ambos os workers de
+   e-mail à mesma base040 somente durante corte autorizado; arquivo Brevo privado
+   permanece separado e sem ativação automática.
 4. Aprovar capacidade/janela só após inventário e backup restaurável. A proposta
    t3.medium segue em `AWS-RELEASE040-PREPARATION.md`. IP/DNS e IPde saída SMTP
    devem ser preservados/reautorizados: o Brevo está vinculado ao IP autorizado.

@@ -1,5 +1,30 @@
 # Checkpoint SocialMEI-IA
 
+## Estado prioritário — PostgreSQL040 restaurado na AWS,14/11
+
+- Decisão do responsável: backup038 de11/11 é a origem oficial; perda posterior
+  autorizada. Não voltar ao Prisma/exportação/janela24h. Original0076d3b… preservado.
+- Database NOVA `socialmei_candidate040_20261114`, no PG17 isolado existente,
+  restaurada e migrada039→040:78 tabelas/596 registros/146 FKs válidas/21 sequências.
+  594 registros originais preservados;2 entradas novas no ledger. Um contador de
+  revisãoWAHA conciliado com registro privado, com todas as identidades iguais;
+  demais campos conferidos. Não repetir restore/migrations nesta base.
+- Backup final `candidate040-final.dump` em
+  `/home/ubuntu/.socialmei-backup038-release040-8db028c`,SHA256e79bf521…,
+  restaurado em OUTRA database e manifesto integral equivalente.
+- 165 casos funcionais finais aprovados/zero skips em database sintética separada;
+  dois testesLISTEN reais na candidata; jornada com papelDML semCREATE/TRUNCATE.
+  37 regressões operacionais locais aprovadas. Fonte8db028c, imagem de ensaio7158915…;
+  cinco consumidores conectaram ao mesmo banco/papel porTLS. Sem workers/envios reais.
+- Corrigidos comparador de casts PG17 e preflight de rede externa/TLS, com negativos
+  de integridade/overrideslibpq. Overlay postgresAWS apenas renderizado, não aplicado.
+- Evidência: `docs/evidence/20261114-authorized-backup038-to040.json`.
+- Correções preservadas: `128a472` (comparação PG17) e `5104c26` (overlay/gate AWS).
+- Faltam backup externo contínuo (timer antigo ainda histórico), capacidade produtiva
+  aceita, imagens/recibos de publicação e conciliação privada final; depois aprovação
+  do corte coordenado. Banco já040: nenhuma migration de produção necessária neste
+  procedimento. SMTP/Meta/WAHA reais têm autorizações próprias. Brevo preservado.
+
 ## Continuidade migração PostgreSQL — 14-11-2026
 
 - Base7bc253e preservada. `fdf97ed` corrige backoff de listener que conecta mas

@@ -1,6 +1,84 @@
 # Preparação PostgreSQL próprio AWS — 12/11/2026
 
-## Continuação de 14/11 — exportação atual, ainda não executada
+## Estado autoritativo — backup038 escolhido e restaurado em14/11
+
+O responsável autorizou descartar gravações posteriores a11/11/2026 e escolheu
+o dump SHA256 `0076d3b68ac8f50306b04f671b4eec1c6708ee62c79a9b1a9749be910979708c`.
+**Não é necessário desbloquear/exportar Prisma nem consumir a janela24h.**
+Essa decisão substitui os requisitos de frescor/exportação das seções históricas.
+
+Executado no PostgreSQL17 existente, sem portas públicas e sem alterar produção:
+
+- Nova database `socialmei_candidate040_20261114`; original e databases anteriores
+  preservados. Restore038 transacional, omitindo somente extensão Prisma/comentário:
+  74tabelas/594registros/135FKs válidas/21sequências/ledger038.
+- Migrations039 e040 originais, hashes do perfil revisado conferidos, precheck039
+  aprovado:78tabelas/596registros/146FKs válidas/21sequências/ledger040. Acréscimo
+  de registros somente nas duas entradas do ledger; quatro tabelas novas vazias.
+- Dados, hashes de senhas, sessões e sequências preservados. Ajustado somente o
+  contador `crm_canais.versao` de um canal na cópia, para coincidir com o registro
+  privado atual; negócio/canal/conta/instância/sessão conferidos exatamente. Todos
+  os demais campos/linhas foram comparados; registro privado original inalterado.
+- Papel novo `socialmei_candidate040`: sem superuser/CREATEDB/CREATEROLE/replicação
+  ou CREATE de schema; DML/sequências concedidos após040. TLSverify-full comprovado;
+  conexão semTLS e acesso desse papel ao database histórico recusados.
+- API, menuWhatsApp, Instagram, recuperação e identidade conectaram ao mesmo banco
+  e papel porTLS, em processos isolados; nenhum worker real iniciado. API040 com
+  `/health`200, `/health/db`200, sessão anônima200 e CRM sem autorização401.
+- 165 testes funcionais distintos passaram em database sintética separada, com
+  zero skips finais. Primeira rodada teve12 falhas no módulo legadoCRM por modo
+  de autenticação inadequado ao teste; seus14 casos passaram no ambiente legado
+  correto, sem alterar autenticação da candidata. Jornada adicional com papel
+  DML semTRUNCATE/CREATE comprovou cadastro/login/CRM/Agenda/conflito/idempotência
+  e dois negócios isolados. Dois testes LISTEN reais também passaram na candidata.
+- Novo dump040 final SHA256
+  `e79bf521d19817616647b781e317ccff8df3245327c6891fc056367c8df3812a`,465335bytes,
+  restaurado em `socialmei_verify040_final_20261114`:manifestos iguais. Diferenças
+  textuais de casts constantesvarchar→text geradas pelo PG foram tratadas somente
+  na comparação; manifestos brutos preservados e regressões negativas aprovadas.
+
+Artefatos privados em `/home/ubuntu/.socialmei-backup038-release040-8db028c`;
+dump final `candidate040-final.dump`, manifestos/recibos e configuração de teste.
+Fonte de aplicação8db028c; imagem de ensaio
+`sha256:7158915e9414c7b48ddb145b684c267e4878364fb7c249baad395ed2b72b09e0`.
+Runtime derivado da API instalada, sem rede no build, dependências compatíveis
+conferidas. **Não substitui os recibos de publicação vinculados às imagens anteriores.**
+Gateway/fallback040 correspondentes e gate final ainda precisam estar disponíveis
+no ambiente de publicação. Não usar a API antiga como rollback sobre040.
+
+Ensaio: PostgreSQL80–89MiB/192MiB, amostraCPU31,73% durante testes e0,04% ocioso;
+host com aproximadamente638MiB disponíveis e1,61GiB de swap usada no postflight.
+Janela ociosa10,082s:duas transações do monitor, sem escritas/deadlocks/tempfiles;
+SELECT1 mediana0,163ms/p950,467ms,30amostras. **Não aprova capacidade produtiva**
+ou novos workers; não houve OOM reportado pelo ensaio. Limites192MiB/0,35CPU
+permanecem de teste. Capacidade operacional precisa de aceitação/ensaio de carga
+prevista ou ampliação autorizada; não tornar4GiB um requisito fictício dos testes.
+
+Preparado `compose.team-postgres-aws.yaml`: rede externa existente, DSN explícita
+comum, CAread-only, sem dependências do PostgreSQL legado; perfis opcionais e
+migrador preservados. Renderização real com `docker compose --profile '*' ...
+config --format json` aprovada, **sem up/run de serviços**. `--profile '*'` serve
+somente à inspeção; nunca copiar essa seleção para uma ativação.
+O preflight exige `--database-runtime` com metadados de redeInternal e PostgreSQL
+running/sem portas/rede única, hostname/porta/TLS/CA e sem overrides libpq.
+
+Antes do corte: backup externo contínuo/restaurável (S3 já preparado, não ativado),
+capacidade aceita, conciliação dos overlays privados/Caddy e recibos/imagens de
+publicação/rollback040. Depois solicitar aprovação única de pausa coordenada,
+troca de todos os consumidores e publicação incremental. Não aplicar migrations
+em produção: a database candidata já está040. Preservar volumes/sessões e manter
+envios desativados; renovar fronteiras temporais para não reprocessar eventos.
+Após primeiras gravações novas, rollback não pode voltar ao Prisma/038: conservar
+o banco040, congelar escritores e usar somente imagens040 aprovadas/reconciliadas.
+
+Os nomes Bella/Brilho não foram encontrados em `workspaces.nome` do snapshot;
+não foram criados negócios fictícios na candidata. Revisar cadastro/vínculos reais
+na homologação autorizada; isolamento funcional foi testado com dois negócios
+sintéticos em outra database. Nenhum envio Meta/WAHA/SMTP ou alteraçãoBrevo.
+
+Evidência: [ensaio autorizado](evidence/20261114-authorized-backup038-to040.json).
+
+## Histórico de14/11 — exportação, anterior à escolha autorizada do038
 
 - Leitura Docker atual, sem SQL: API principal, menu API WhatsApp e worker
   Instagram continuam na mesma identidade de banco Prisma. Healthcheck da API

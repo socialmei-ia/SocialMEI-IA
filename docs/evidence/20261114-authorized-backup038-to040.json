@@ -1,0 +1,277 @@
+{
+  "authorized_baseline": {
+    "date": "2026-11-11",
+    "schema": "038",
+    "sha256": "0076d3b68ac8f50306b04f671b4eec1c6708ee62c79a9b1a9749be910979708c",
+    "later_data_loss_explicitly_accepted": true,
+    "original_preserved": true,
+    "current_prisma_export_required": false
+  },
+  "source_revision": "8db028cb630e7047c13e6dcca104bbcd17bf0c77",
+  "operational_directory": "/home/ubuntu/.socialmei-backup038-release040-8db028c",
+  "candidate_database": "socialmei_candidate040_20261114",
+  "restored038": {
+    "tables": 74,
+    "rows": 594,
+    "fks": 135,
+    "fk_violations": 0,
+    "sequences": 21,
+    "ledger_entries": 38,
+    "valid": true
+  },
+  "upgraded040": {
+    "tables": 78,
+    "rows": 596,
+    "fks": 146,
+    "fk_violations": 0,
+    "sequences": 21,
+    "ledger_entries": 40,
+    "valid": true
+  },
+  "migration_data_preservation": {
+    "candidate_persisted_across_processes": true,
+    "migration_reapply_changed_nothing": true,
+    "only_expected_table_data_differences": [
+      "crm_canais",
+      "schema_migrations"
+    ],
+    "channel_non_revision_fields_preserved": true,
+    "postgres_running": true,
+    "postgres_public_ports": false,
+    "private_network_internal": true,
+    "production_api_image_unchanged": true,
+    "host_memory_available_kib": 653340,
+    "host_swap_used_kib": 1690888,
+    "postgres_stats": {
+      "CPUPerc": "0.04%",
+      "MemUsage": "80.02MiB / 192MiB",
+      "PIDs": "6"
+    },
+    "candidate_database_bytes": 13121203
+  },
+  "application_image": {
+    "id": "sha256:7158915e9414c7b48ddb145b684c267e4878364fb7c249baad395ed2b72b09e0",
+    "revision": "8db028cb630e7047c13e6dcca104bbcd17bf0c77",
+    "isolated_only": true
+  },
+  "application_smoke": {
+    "stage": "validate",
+    "original_table_data_preserved": true,
+    "original_sequences_preserved": true,
+    "new_tables_empty": true,
+    "constraints_validated": true,
+    "statuses": {
+      "/health": 200,
+      "/health/db": 200,
+      "/api/v1/auth/session": 200,
+      "/api/v1/clientes": 401
+    },
+    "tls": true,
+    "app_role_superuser": false,
+    "app_role_schema_create": false,
+    "bella_workspace_present": false,
+    "brilho_workspace_present": false,
+    "elapsed_seconds": 0.611
+  },
+  "least_privilege_functional_journey": {
+    "registration_login": true,
+    "crm": true,
+    "agenda": true,
+    "persistent_new_session": true,
+    "idempotent_booking": true,
+    "conflict_rejected": true,
+    "two_workspace_isolation": true,
+    "database_superuser": false,
+    "schema_create": false,
+    "truncate": false,
+    "provider_sends": 0
+  },
+  "permission_negative_tests": {
+    "dml_all_tables": true,
+    "superuser_createdb_createrole_replication": false,
+    "schema_create": false,
+    "non_tls_connection_refused": true,
+    "other_historical_database_connection_refused": true
+  },
+  "functional_tests": {
+    "unique_cases": 165,
+    "final_passed": 165,
+    "final_failures": 0,
+    "skipped": 0,
+    "initial_attempt": {
+      "run": 165,
+      "failures": 11,
+      "errors": 1,
+      "skipped": 0,
+      "seconds": 176.379
+    },
+    "correction": "legacy shared-data compatibility module needs auth-disabled test environment; candidate authentication remained enabled",
+    "legacy_rerun": {
+      "run": 14,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 10.243,
+      "scope": "legacy CRM compatibility only; candidate authentication remains enabled"
+    }
+  },
+  "consumer_connections": {
+    "stage": "consumers",
+    "isolated_connections": {
+      "api": {
+        "correct_database": true,
+        "tls": true,
+        "same_application_role": true
+      },
+      "recovery": {
+        "correct_database": true,
+        "tls": true,
+        "same_application_role": true
+      },
+      "identity": {
+        "correct_database": true,
+        "tls": true,
+        "same_application_role": true
+      },
+      "whatsapp-menu": {
+        "correct_database": true,
+        "tls": true,
+        "same_application_role": true
+      },
+      "instagram": {
+        "correct_database": true,
+        "tls": true,
+        "same_application_role": true
+      }
+    },
+    "real_workers_started": false,
+    "production_connections_changed": false
+  },
+  "channel_revision_reconciliation": {
+    "matching_private_bindings": 1,
+    "channel_revision_rows_updated": 1,
+    "account_session_instance_workspace_unchanged": true,
+    "private_registry_unchanged": true,
+    "production_unchanged": true,
+    "sends_enabled": false
+  },
+  "postgres_measurements": {
+    "collected_at_utc": "2026-11-14T13:54:06.091669+00:00",
+    "interpretation": "Database-wide cumulative counters, not provider operations or per-query attribution",
+    "measurements": {
+      "block_cache_hit_percent": 97.83,
+      "connections_first": 1,
+      "connections_last": 1,
+      "delta": {
+        "blks_hit": 270,
+        "blks_read": 6,
+        "deadlocks": 0,
+        "temp_bytes": 0,
+        "tup_deleted": 0,
+        "tup_fetched": 130,
+        "tup_inserted": 0,
+        "tup_returned": 131,
+        "tup_updated": 0,
+        "xact_commit": 2,
+        "xact_rollback": 0
+      },
+      "duration_seconds": 10.082,
+      "per_minute": {
+        "blks_hit": 1606.78,
+        "blks_read": 35.71,
+        "deadlocks": 0.0,
+        "temp_bytes": 0.0,
+        "tup_deleted": 0.0,
+        "tup_fetched": 773.63,
+        "tup_inserted": 0.0,
+        "tup_returned": 779.58,
+        "tup_updated": 0.0,
+        "xact_commit": 11.9,
+        "xact_rollback": 0.0
+      }
+    },
+    "read_only": true,
+    "samples": 2,
+    "source": "pg_stat_database",
+    "statement_count": 2,
+    "real_listen_tests_passed": 2,
+    "latency_samples": 30,
+    "select1_median_ms": 0.163,
+    "select1_p95_ms": 0.467,
+    "production_capacity_approved": false
+  },
+  "under_load_sample": {
+    "progress_passed": 62,
+    "failure_markers": 11,
+    "host_available_memory_kib": 540940,
+    "host_swap_used_kib": 1765868,
+    "postgres_stats": {
+      "CPUPerc": "31.73%",
+      "MemUsage": "89.11MiB / 192MiB",
+      "PIDs": "7"
+    }
+  },
+  "final_backup": {
+    "stage": "final-backup040",
+    "sha256": "e79bf521d19817616647b781e317ccff8df3245327c6891fc056367c8df3812a",
+    "bytes": 465335,
+    "archive_index_verified": true,
+    "independent_restore_equal": true,
+    "comparison": {
+      "equal": true,
+      "different_sections": [],
+      "constant_array_cast_representation_only": true,
+      "source_valid": true,
+      "target_valid": true,
+      "effective_permissions_equal": true,
+      "effective_sequence_permissions_equal": true,
+      "freshness_verified": false,
+      "cutover_authorized": false
+    },
+    "external_continuous_backup_verified": false,
+    "production_changed": false
+  },
+  "compose_preparation": {
+    "stage": "compose",
+    "rendered_only": true,
+    "consumer_count": 5,
+    "same_database_url": true,
+    "private_external_network": true,
+    "same_ca_read_only": true,
+    "implicit_local_database_dependencies": false,
+    "migrator_quarantined": true,
+    "legacy_local_database_profile_only": true,
+    "all_optional_workers_profile_guarded": true,
+    "production_overlays_reconciled": false,
+    "publication_preflight_approved": false,
+    "services_started": false
+  },
+  "no_production_deploy": true,
+  "no_production_database_switch": true,
+  "no_prisma_access": true,
+  "no_provider_messages_or_emails": true,
+  "no_new_workers_activated": true,
+  "no_existing_containers_restarted": true,
+  "no_aws_paid_resources_created": true,
+  "remaining_gates": [
+    "external continuous restorable backup activation",
+    "production capacity acceptance or authorized resize",
+    "production private overlays and channel cutoffs reconciliation",
+    "matching gateway and compatible040 rollback image/receipts available in deployment environment",
+    "explicit coordinated cutover and incremental publication approval",
+    "separate authorization for real SMTP and channel homologation"
+  ],
+  "operational_tests": {
+    "copy_validator": 15,
+    "release040_preflight": 8,
+    "restore_runner": 5,
+    "export_regression_offline_only": 9,
+    "passed": 37
+  },
+  "publication_preflight_approved": false,
+  "runtime_image_scope": "Isolated backend validation image; not a published release or replacement for the prior image-bound gateway/rollback receipts.",
+  "code_commits": {
+    "copy_validator": "128a472",
+    "external_postgres_overlay_and_preflight": "5104c26"
+  }
+}

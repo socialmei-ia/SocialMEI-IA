@@ -1,5 +1,15 @@
 # Preparação AWS — continuação de edc12d3
 
+Decisão14/11: backup038 de11/11 foi escolhido pelo responsável, com perda posterior
+aceita, restaurado realmente em nova database e migrado para040. Não exigir nova
+exportação Prisma. Estado/evidências em `AWS-POSTGRES-PREPARATION-20261112.md`.
+O S3 e os novos agendamentos de backup externo continuam não ativados; o timer
+antigo não foi redirecionado e continua histórico. Antes da produção, configurar
+explicitamente a rotina para a candidata040 e comprovar upload/restauração externa.
+Isso exige as autorizações de instalação/transferência e permissões já propostas.
+
+## Histórico da preparação anterior ao ensaio autorizado
+
 Somente código local, testes e propostas. Nenhum recurso criado, stop/start,
 redimensionamento, upload real, migration, troca de banco ou publicação.
 

@@ -1,5 +1,21 @@
 # Release040 — preparação, sem publicação
 
+Atualização14/11: o responsável escolheu o backup038 de11/11 e autorizou perda
+posterior. Esse backup foi restaurado em database nova na AWS e evoluído para040;
+exportação atual/recuperação Prisma não são mais requisitos. Evidência real e
+limites em [PostgreSQL AWS](AWS-POSTGRES-PREPARATION-20261112.md) e
+[recibo](evidence/20261114-authorized-backup038-to040.json).
+O banco candidato está040, com aplicação testada isoladamente. A imagem de ensaio
+7158915…/fonte8db028c não substitui os recibos abaixo, vinculados às imagens9b/B2.
+Antes de publicar, disponibilizar imagens correspondentes e validar o gate completo
+com os overlays privados conciliados. Não usar código anterior à guarda040.
+`compose.team-postgres-aws.yaml` prepara DSN/CA comum e rede externa privada;
+renderizar com todos os perfis somente para inspeção, nunca para ativação automática.
+Preflight de rede externa exige `--database-runtime`, com objetos `network`
+(Name/Internal) e `postgres` (Name/State/HostConfig.PortBindings/NetworkSettings.Networks)
+obtidos somente por leitura, sem ambiente/credenciais. Migrador fica isolado em perfil;
+o corte para esta database já040 não deve executar migrations.
+
 Código das imagens: `9b34ac80ee5f2d9d6a12aa1b5c7e254bccb0c4d8`.
 Commits posteriores de ferramentas/evidência não substituem essa identidade.
 Produção não foi publicada, migrada, reiniciada ou reconfigurada.
