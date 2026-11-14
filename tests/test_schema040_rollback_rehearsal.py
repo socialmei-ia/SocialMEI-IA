@@ -38,6 +38,34 @@ class Rollback040Tests(unittest.TestCase):
             with self.subTest(value=value), self.assertRaisesRegex(RuntimeError, 'approved_image_revision_mismatch'):
                 rollback.approved_image(value)
 
+    def test_candidate_requires_complete_immutable_identity_pair(self):
+        for argv in (['--candidate-image', 'sha256:' + 'b' * 64],
+                     ['--candidate-source-sha', 'a' * 40],
+                     ['--candidate-image', 'latest', '--candidate-source-sha', 'a' * 40],
+                     ['--candidate-image', 'sha256:' + 'b' * 64, '--candidate-source-sha', 'a' * 39]):
+            with self.subTest(argv=argv), self.assertRaisesRegex(RuntimeError, 'exact_candidate_image_and_source_required'):
+                rollback.options(argv)
+        args = rollback.options(['--candidate-image', 'sha256:' + 'b' * 64,
+                                 '--candidate-source-sha', 'a' * 40])
+        with patch.object(rollback.migration, 'run', side_effect=AssertionError('unexpected Docker')):
+            plan = rollback.rehearse(args)
+        self.assertEqual(plan['candidate_image_id'], args.candidate_image)
+        self.assertEqual(plan['candidate_source_sha'], args.candidate_source_sha)
+        self.assertEqual(plan['fallback_api_image_id'], rollback.IMAGE)
+        self.assertEqual(plan['fallback_source_sha'], rollback.SOURCE)
+
+    def test_candidate_revision_mismatch_creates_no_resources(self):
+        args = rollback.options(['--run', '--candidate-image', 'sha256:' + 'b' * 64,
+                                 '--candidate-source-sha', 'a' * 40])
+        replies = [json.dumps([{'Endpoints': {'docker': {'Host': 'unix:///var/run/docker.sock'}}}]).encode(),
+                   json.dumps(self.image()).encode(),
+                   json.dumps(self.image(image=args.candidate_image, revision='c' * 40)).encode()]
+        with patch.dict(rollback.os.environ, {'DOCKER_HOST': ''}), \
+                patch.object(rollback.migration, 'run', side_effect=replies) as command:
+            with self.assertRaisesRegex(RuntimeError, 'candidate_image_revision_mismatch'):
+                rollback.rehearse(args)
+        self.assertEqual(command.call_count, 3)
+
     def test_remote_daemon_stops_before_contact(self):
         with patch.dict(rollback.os.environ, {'DOCKER_HOST': 'ssh://live'}), \
                 patch.object(rollback.migration, 'run', side_effect=AssertionError('remote contact')):

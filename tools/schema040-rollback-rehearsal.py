@@ -104,13 +104,24 @@ def options(argv=None):
     parser.add_argument('--run', action='store_true')
     parser.add_argument('--docker', default='docker')
     parser.add_argument('--receipt')
-    return parser.parse_args(argv)
+    parser.add_argument('--candidate-image')
+    parser.add_argument('--candidate-source-sha')
+    args = parser.parse_args(argv)
+    if args.candidate_image is not None or args.candidate_source_sha is not None:
+        require(bool(re.fullmatch(r'sha256:[0-9a-f]{64}', args.candidate_image or ''))
+                and bool(re.fullmatch(r'[0-9a-f]{40}', args.candidate_source_sha or '')),
+                'exact_candidate_image_and_source_required')
+    return args
 
 
 def approved_image(value):
-    require(len(value) == 1 and value[0]['Id'] == IMAGE
-            and value[0]['Config'].get('Labels', {}).get('org.opencontainers.image.revision') == SOURCE,
-            'approved_image_revision_mismatch')
+    image_identity(value, IMAGE, SOURCE, 'approved_image_revision_mismatch')
+
+
+def image_identity(value, image, source, code):
+    require(len(value) == 1 and value[0]['Id'] == image
+            and value[0]['Config'].get('Labels', {}).get('org.opencontainers.image.revision') == source,
+            code)
 
 
 def owned_container(value, token, network):
@@ -125,8 +136,11 @@ def rehearse(args, root=ROOT):
     evidence = json.loads((root / 'docs/evidence/20261113-selfservice-release.json').read_text())
     require(evidence['source_sha'] == SOURCE and evidence['images']['api']['id'] == IMAGE,
             'approved_release_evidence_mismatch')
+    candidate_image = args.candidate_image or IMAGE
+    candidate_source = args.candidate_source_sha or SOURCE
     proof = dict(format='socialmei-rollback040-rehearsal-v1', profile='040',
                  fallback_source_sha=SOURCE, fallback_api_image_id=IMAGE,
+                 candidate_image_id=candidate_image, candidate_source_sha=candidate_source,
                  rehearsal_tool_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                  source_migrations=hashes, schema_downgraded=False,
                  production_runtime_changed=False, production_database_changed=False,
@@ -141,6 +155,8 @@ def rehearse(args, root=ROOT):
     require(len(context) == 1 and migration.local_docker(context[0]['Endpoints']['docker']['Host']),
             'local_docker_required')
     approved_image(json.loads(docker('image', 'inspect', IMAGE)))
+    image_identity(json.loads(docker('image', 'inspect', candidate_image)),
+                   candidate_image, candidate_source, 'candidate_image_revision_mismatch')
     postgres = json.loads(docker('image', 'inspect', 'postgres:16-alpine'))
     require(len(postgres) == 1 and re.fullmatch(r'sha256:[0-9a-f]{64}', postgres[0]['Id']),
             'local_postgres_image_required')
@@ -171,8 +187,8 @@ def rehearse(args, root=ROOT):
     env = ['-e', 'DATABASE_URL=', '-e', 'POSTGRES_HOST=127.0.0.1', '-e', 'POSTGRES_PORT=5432',
            '-e', 'POSTGRES_USER=rehearsal', '-e', 'POSTGRES_PASSWORD=', '-e', 'POSTGRES_DB=rollback040']
 
-    def start_api(mode):
-        api = create('container:' + database, IMAGE, *env,
+    def start_api(mode, image):
+        api = create('container:' + database, image, *env,
                      '-e', 'SOCIALMEI_AUTH_ENABLED=true', '-e', 'SOCIALMEI_SHARED_DATA_ENABLED=true',
                      '-e', 'SOCIALMEI_AUTH_ORIGIN=https://rollback.example.test',
                      '-e', 'SOCIALMEI_REGISTRATION_MODE=open', '-e', 'SOCIALMEI_IDENTITY_MODE=' + mode,
@@ -213,7 +229,7 @@ def rehearse(args, root=ROOT):
         docker('start', runner)
         docker('exec', '-i', runner, 'python', '-', data=(root / 'tools/team_migrate.py').read_bytes())
         require(sql('SELECT count(*) FROM socialmei.schema_migrations;') == '40', 'schema040_ledger_required')
-        candidate = start_api('enforced')
+        candidate = start_api('enforced', candidate_image)
         accounts = python(candidate, REGISTER)
         pending, verified = [account['identity'] for account in accounts]
         sql("UPDATE socialmei.auth_email_activation SET verified_at=NOW() WHERE user_id=" + str(verified['usuario']['id']) + ';'
@@ -225,7 +241,7 @@ def rehearse(args, root=ROOT):
         docker('kill', '--signal', 'KILL', candidate)
         require(json.loads(docker('inspect', candidate))[0]['State']['ExitCode'] == 137,
                 'candidate_failure_not_observed')
-        fallback = start_api('disabled')
+        fallback = start_api('disabled', IMAGE)
         first = python(fallback, PROBE, accounts)
         require(snapshot() == before, 'fallback_changed_durable_state')
         docker('restart', fallback)
@@ -233,14 +249,14 @@ def rehearse(args, root=ROOT):
         second = python(fallback, PROBE, accounts)
         require(first == second and snapshot() == before, 'restart_changed_durable_state')
         proof.update(mode='executed', candidate_failure='owned API SIGKILL exit 137',
-                     candidate_image_id=IMAGE, candidate_source_sha=SOURCE,
                      fallback_identity_mode='disabled', postgres_image_id=postgres[0]['Id'],
                      pending_email_guard_verified=True, existing_sessions_preserved=True,
                      users_credentials_business_data_preserved=True, durable_mail_queue_preserved=True,
                      business_isolation_verified=True, fallback_restart_verified=True,
                      schema040_ledger_preserved=True, durable_table_sha256=before,
                      real_smtp_or_provider_transport_executed=False,
-                     limitation='same approved image in both roles; simulates process failure, not an unapproved candidate binary')
+                     limitation='synthetic process failure only; does not certify production deployment or real provider delivery',
+                     distinct_candidate_image_verified=candidate_image != IMAGE)
     finally:
         for container, network in reversed(containers):
             owned_container(json.loads(docker('inspect', container)), token, network)
