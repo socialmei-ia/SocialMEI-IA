@@ -11,8 +11,7 @@ class BackupIAMProposalTests(unittest.TestCase):
         statements = json.loads(POLICY.read_text())['Statement']
         allowed = {'s3:ListBucket', 's3:PutObject', 's3:GetObject',
                    's3:GetObjectVersion', 's3:GetBucketVersioning', 's3:GetEncryptionConfiguration',
-                   's3:GetBucketPublicAccessBlock', 's3:GetBucketOwnershipControls',
-                   's3:AbortMultipartUpload', 's3:ListMultipartUploadParts'}
+                   's3:GetBucketPublicAccessBlock', 's3:GetBucketOwnershipControls'}
         found = set()
         for statement in statements:
             actions = statement['Action']
