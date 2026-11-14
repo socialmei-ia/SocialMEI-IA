@@ -1,0 +1,10 @@
+{
+  "explicit_authorization": false,
+  "scope": "isolated_restore",
+  "production_mutation": false,
+  "dump_sha256": "REPLACE_WITH_REVIEWED_DUMP_SHA256",
+  "manifest_sha256": "REPLACE_WITH_REVIEWED_PRIVATE_MANIFEST_SHA256",
+  "profile": "040",
+  "postgres_major": 17,
+  "postgres_image_id": "sha256:REPLACE_WITH_REVIEWED_LOCAL_IMAGE_ID"
+}
