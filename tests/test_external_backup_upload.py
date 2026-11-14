@@ -34,7 +34,7 @@ class Body:
 
 class FakeS3:
     def __init__(self):
-        self.meta = SimpleNamespace(endpoint_url='https://s3.example.invalid')
+        self.meta = SimpleNamespace(endpoint_url='https://s3.sa-east-1.amazonaws.com')
         self.versioning = 'Enabled'
         self.encryption = 'AES256'
         self.block = dict.fromkeys(('BlockPublicAcls', 'IgnorePublicAcls', 'BlockPublicPolicy', 'RestrictPublicBuckets'), True)
@@ -199,6 +199,29 @@ class ExternalUploadTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'expected_owner_required'):
             self.upload()
         self.assertEqual(self.client.put_calls, [])
+
+    def test_custom_https_endpoints_are_blocked_before_any_storage_request(self):
+        endpoints = (
+            'https://attacker.example.invalid',
+            'https://s3.us-east-1.amazonaws.com',
+            'https://s3.sa-east-1.amazonaws.com.attacker.example.invalid',
+            'https://s3.sa-east-1.amazonaws.com:444',
+            'https://s3.sa-east-1.amazonaws.com/unexpected-prefix',
+            'https://s3.sa-east-1.amazonaws.com?token=private-sentinel',
+            'https://s3.sa-east-1.amazonaws.com#unexpected',
+        )
+        for endpoint in endpoints:
+            with self.subTest(endpoint=endpoint):
+                self.client.meta.endpoint_url = endpoint
+                with patch.object(self.client, 'get_bucket_versioning') as first_request:
+                    with self.assertRaisesRegex(RuntimeError, 'aws_endpoint_required'):
+                        self.upload()
+                    first_request.assert_not_called()
+                self.assertEqual(self.client.put_calls, [])
+
+    def test_explicit_https_default_port_is_accepted(self):
+        self.client.meta.endpoint_url = 'https://s3.sa-east-1.amazonaws.com:443/'
+        self.assertTrue(self.upload()['external_uploaded'])
 
     def test_existing_object_without_version_cannot_be_certified(self):
         metadata = {'VersionId': 'null', 'ContentLength': self.receipt['bytes'],

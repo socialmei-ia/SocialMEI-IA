@@ -61,6 +61,11 @@ def upload_external_versioned(localdump, receipt, config, client):
     endpoint = urlsplit(client.meta.endpoint_url)
     if endpoint.scheme != 'https' or not endpoint.hostname or endpoint.username or endpoint.password:
         raise RuntimeError('external_https_required')
+    expected_endpoint = 's3.sa-east-1.amazonaws.com'
+    if (endpoint.hostname != expected_endpoint
+            or endpoint.netloc.lower() not in (expected_endpoint, expected_endpoint + ':443')
+            or endpoint.path not in ('', '/') or endpoint.query or endpoint.fragment):
+        raise RuntimeError('external_aws_endpoint_required')
     bucket = config.get('bucket')
     owner = config.get('expected_bucket_owner')
     if not isinstance(bucket, str) or not re.fullmatch(r'[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]', bucket):
