@@ -124,9 +124,10 @@ jobs:
           profile = importlib.util.module_from_spec(spec); spec.loader.exec_module(profile)
           folder = Path("database/migrations")
           names = sorted(p.name for p in folder.glob("*.sql"))
-          verify = profile.verify039 if len(names) == 39 else profile.verify038 if len(names) == 38 else profile.verify
+          verify = (profile.verify040 if len(names) == 40 else profile.verify039 if len(names) == 39
+                    else profile.verify038 if len(names) == 38 else profile.verify)
           result = verify(names, lambda name: (folder / name).read_bytes())
-          assert result["profile"] in ("035", "038", "039")
+          assert result["profile"] in ("035", "038", "039", "040")
           print(result["profile"])
           PY
           )
@@ -136,7 +137,11 @@ jobs:
             sha=$(git rev-parse HEAD)
             docker build --build-arg "SOCIALMEI_RELEASE_SHA=$sha" -t "socialmei-rehearsal:$sha" -f python-service/Dockerfile python-service
             image=$(docker image inspect --format '{{.Id}}' "socialmei-rehearsal:$sha")
-            node "tools/release${profile}-migration-rehearsal.mjs" --run --source-sha "$sha" --api-image "$image" --receipt "test-results/release-candidate/receipt${profile}.json"
+            if [ "$profile" = 040 ]; then
+              python tools/release040-migration-rehearsal.py --run --source-sha "$sha" --api-image "$image" --receipt "test-results/release-candidate/receipt${profile}.json"
+            else
+              node "tools/release${profile}-migration-rehearsal.mjs" --run --source-sha "$sha" --api-image "$image" --receipt "test-results/release-candidate/receipt${profile}.json"
+            fi
           fi
       - name: Save sanitized release candidate evidence
         if: always()
