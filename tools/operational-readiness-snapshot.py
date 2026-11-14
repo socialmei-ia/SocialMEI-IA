@@ -145,7 +145,8 @@ def backups():
         except Exception:
             result[unit] = {'inspection_available': False}
     receipts = sorted((path for path in (BACKUP / 'backups').glob('destination-*.json')
-                       if path.is_file() and not path.is_symlink() and path.stat().st_size < 16384),
+                       if not path.name.endswith('.external.private.json') and path.is_file()
+                       and not path.is_symlink() and path.stat().st_size < 16384),
                       key=lambda path: path.stat().st_mtime, reverse=True)
     result['local_receipt_count'] = len(receipts)
     if receipts:

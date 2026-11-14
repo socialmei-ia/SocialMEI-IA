@@ -65,8 +65,10 @@ class OperationalSnapshotTests(unittest.TestCase):
             receipt = {'sha256': ops.hashlib.sha256(data).hexdigest(), 'bytes': len(data),
                        'source': 'isolated_historical_destination', 'current_production_backup': False}
             dump.with_suffix('.json').write_text(json.dumps(receipt))
+            (base / 'backups/destination-new.external.private.json').write_text('{"phase":"verified"}')
             with patch.object(ops, 'BACKUP', base), patch.object(ops, 'run', return_value='ActiveState=active'):
                 result = ops.backups()
+                self.assertEqual(result['local_receipt_count'], 1)
                 self.assertTrue(result['latest_local_backup']['local_hash_and_size_verified'])
                 self.assertFalse(result['latest_local_backup']['current_production_backup'])
                 self.assertNotIn('synthetic-private-content', json.dumps(result))
