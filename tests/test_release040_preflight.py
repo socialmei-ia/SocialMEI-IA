@@ -35,8 +35,11 @@ def inputs():
             services[name]['command'] = gate.COMMANDS[name]
     for name, (required, _) in gate.NETWORKS.items():
         services[name]['networks'] = dict.fromkeys(required, {})
+    import json
+    rollback = json.loads((ROOT / 'docs/evidence/20261113-schema040-rollback-rehearsal.json').read_text())
+    rollback.update(candidate_source_sha=sha, candidate_image_id=images['api']['Id'])
     return {'services': services, 'networks': {name: {'internal': True}
-            for name in ('database', 'api', 'automation')}}, images, sha, receipt
+            for name in ('database', 'api', 'automation')}}, images, sha, receipt, rollback
 
 
 class Release040PreflightTests(unittest.TestCase):
@@ -74,15 +77,15 @@ class Release040PreflightTests(unittest.TestCase):
         ]
         for change in changes:
             with self.subTest(change=changes.index(change)):
-                model, images, sha, receipt = inputs()
+                model, images, sha, receipt, rollback = inputs()
                 change(model['services'])
                 with self.assertRaises(RuntimeError):
-                    gate.validate(model, images, sha, receipt)
+                    gate.validate(model, images, sha, receipt, rollback)
 
     def test_private_network_and_source_image_receipt_mismatch(self):
         for part in ('network', 'revision', 'profile', 'receipt', 'architecture'):
             with self.subTest(part=part):
-                model, images, sha, receipt = inputs()
+                model, images, sha, receipt, rollback = inputs()
                 if part == 'network':
                     model['networks']['database']['internal'] = False
                 elif part in ('revision', 'profile'):
@@ -93,7 +96,18 @@ class Release040PreflightTests(unittest.TestCase):
                 else:
                     receipt['api_image_id'] = 'sha256:' + 'f' * 64
                 with self.assertRaises(RuntimeError):
-                    gate.validate(model, images, sha, receipt)
+                    gate.validate(model, images, sha, receipt, rollback)
+
+    def test_wrong_or_incomplete_rollback_is_rejected(self):
+        for key, value in [('candidate_source_sha', 'f' * 40),
+                           ('pending_email_guard_verified', False),
+                           ('provider_messages_sent', True),
+                           ('fallback_api_image_id', 'sha256:' + 'f' * 64)]:
+            with self.subTest(key=key):
+                model, images, sha, receipt, rollback = inputs()
+                rollback[key] = value
+                with self.assertRaises(RuntimeError):
+                    gate.validate(model, images, sha, receipt, rollback)
 
 
 if __name__ == '__main__':

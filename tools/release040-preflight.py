@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Read-only release040 artifact gate. Never deploys, migrates or approves production."""
 import argparse
+import hashlib
 import importlib.util
 import json
 from pathlib import Path
@@ -25,7 +26,7 @@ OFF = ('SOCIALMEI_PUBLIC_BOOKING_ENABLED', 'SOCIALMEI_WHATSAPP_BOT_ENABLED',
        'SOCIALMEI_INSTAGRAM_AUTO_MENU_ENABLED', 'SOCIALMEI_PROVIDER_SENTIMENT_ENABLED')
 GATES = ['current_source_export_and_database_identity', 'external_restorable_backup',
          'current_capacity_and_private_overlay_reconciliation', 'explicit_schema040_approval',
-         'compatible040_rollback_rehearsal', 'explicit_publication_approval',
+         'explicit_publication_approval',
          'separate_authorization_for_channels_and_smtp']
 NETWORKS = {
     'team-postgres': ({'database'}, {'database'}),
@@ -65,7 +66,7 @@ def database_identity(env):
     return tuple(values[key] for key in fields)
 
 
-def validate(model, images, sha, receipt):
+def validate(model, images, sha, receipt, rollback):
     require(re.fullmatch(r'[0-9a-f]{40}', sha) is not None, 'invalid_source_sha')
     folder = ROOT / 'database/migrations'
     profile.verify040(sorted(file.name for file in folder.glob('*.sql')),
@@ -104,6 +105,24 @@ def validate(model, images, sha, receipt):
     require(images['api'].get('Config', {}).get('Labels', {}).get('org.socialmei.release.profile') == '040',
             'release040_image_required')
     require(receipt.get('api_image_id') == ids['api'], 'rehearsal_image_mismatch')
+    require(rollback.get('profile') == '040' and rollback.get('mode') == 'executed'
+            and rollback.get('candidate_source_sha') == sha
+            and rollback.get('candidate_image_id') == ids['api']
+            and rollback.get('fallback_source_sha') == 'b2b839bae94f4eef18b670cf5a1ada68988dffe3'
+            and rollback.get('fallback_api_image_id') == 'sha256:0de7e2eb7a959a21fd5a767213c69eec8f947c28092ad9bf1a736bb36e3331c7'
+            and rollback.get('source_migrations') == profile.MIGRATIONS040
+            and rollback.get('rehearsal_tool_sha256') == hashlib.sha256(
+                (ROOT / 'tools/schema040-rollback-rehearsal.py').read_bytes()).hexdigest(), 'rollback_proof_mismatch')
+    require(all(rollback.get(key) is True for key in (
+        'pending_email_guard_verified', 'existing_sessions_preserved',
+        'users_credentials_business_data_preserved', 'durable_mail_queue_preserved',
+        'business_isolation_verified', 'fallback_restart_verified',
+        'schema040_ledger_preserved', 'isolated_cleanup_verified',
+        'distinct_candidate_image_verified')), 'rollback_proof_incomplete')
+    require(all(rollback.get(key) is False for key in (
+        'schema_downgraded', 'production_runtime_changed', 'production_database_changed',
+        'production_data_used', 'provider_messages_sent',
+        'real_smtp_or_provider_transport_executed')), 'rollback_environment_invalid')
     for name in ('team-api', 'team-gateway', *WORKERS):
         service = services.get(name, {})
         require(service and not service.get('build'), 'immutable_service_image_required')
@@ -132,6 +151,7 @@ def validate(model, images, sha, receipt):
                     'optional_mode_enabled')
             require(all(env.get(key, 'false') == 'false' for key in OFF), 'optional_sending_enabled')
     return {'profile': '040', 'source_sha': sha, 'images': ids,
+            'rollback_rehearsal_verified': True,
             'artifact_checks_passed': True, 'production_ready': False,
             'production_changed': False, 'required_external_gates': GATES}
 
@@ -141,6 +161,7 @@ def main():
     parser.add_argument('--compose-json', type=Path, required=True,
                         help='Private docker compose config --format json; never commit this file')
     parser.add_argument('--rehearsal', type=Path, required=True)
+    parser.add_argument('--rollback-rehearsal', type=Path, required=True)
     parser.add_argument('--source-sha', required=True)
     parser.add_argument('--docker', default='docker')
     parser.add_argument('--api-image', required=True)
@@ -164,7 +185,8 @@ def main():
             images[role] = json.loads(result.stdout)[0]
         result = validate(json.loads(args.compose_json.read_text(encoding='utf-8-sig')),
                           images, args.source_sha,
-                          json.loads(args.rehearsal.read_text(encoding='utf-8-sig')))
+                          json.loads(args.rehearsal.read_text(encoding='utf-8-sig')),
+                          json.loads(args.rollback_rehearsal.read_text(encoding='utf-8-sig')))
         print(json.dumps(result, indent=2))
     except Exception:
         # Input/model/process errors can include private environment values.
