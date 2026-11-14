@@ -1,0 +1,33 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ListApprovedBackupPrefix",
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::REPLACE_WITH_APPROVED_BUCKET",
+      "Condition": {
+        "Bool": { "aws:SecureTransport": "true" },
+        "StringLike": {
+          "s3:prefix": ["postgres-relocation", "postgres-relocation/*"]
+        }
+      }
+    },
+    {
+      "Sid": "UploadEncryptedBackups",
+      "Effect": "Allow",
+      "Action": "s3:PutObject",
+      "Resource": "arn:aws:s3:::REPLACE_WITH_APPROVED_BUCKET/postgres-relocation/*",
+      "Condition": {
+        "Bool": { "aws:SecureTransport": "true" }
+      }
+    },
+    {
+      "Sid": "VerifyAndRecoverApprovedBackups",
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:AbortMultipartUpload", "s3:ListMultipartUploadParts"],
+      "Resource": "arn:aws:s3:::REPLACE_WITH_APPROVED_BUCKET/postgres-relocation/*",
+      "Condition": { "Bool": { "aws:SecureTransport": "true" } }
+    }
+  ]
+}

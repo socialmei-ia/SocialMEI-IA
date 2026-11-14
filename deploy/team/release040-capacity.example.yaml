@@ -1,0 +1,22 @@
+# NOT ACTIVE. Local proposal only; requires approved host capacity and load testing.
+# Append AFTER release040 overlays; never use it to start/migrate/recreate services now.
+# Soft reservations do not preallocate RAM; limits can cause OOM if undersized.
+services:
+  team-api:
+    mem_limit: 512m
+    mem_reservation: 128m
+  team-gateway:
+    mem_limit: 96m
+    mem_reservation: 32m
+  team-recovery-worker:
+    mem_limit: 192m
+    mem_reservation: 96m
+  team-identity-worker:
+    mem_limit: 192m
+    mem_reservation: 96m
+  team-instagram-menu-primary:
+    mem_limit: 192m
+    mem_reservation: 96m
+  team-instagram-menu-secondary:
+    mem_limit: 192m
+    mem_reservation: 96m
