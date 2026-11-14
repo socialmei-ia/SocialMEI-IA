@@ -135,7 +135,11 @@ jobs:
             python tests/release-candidate-db.py --run --output test-results/release-candidate
           else
             sha=$(git rev-parse HEAD)
-            docker build --build-arg "SOCIALMEI_RELEASE_SHA=$sha" -t "socialmei-rehearsal:$sha" -f python-service/Dockerfile python-service
+            if [ "$profile" = 040 ]; then
+              docker build --build-arg "SOCIALMEI_RELEASE_SHA=$sha" -t "socialmei-rehearsal:$sha" -f deploy/team/Dockerfile.release040-api .
+            else
+              docker build --build-arg "SOCIALMEI_RELEASE_SHA=$sha" -t "socialmei-rehearsal:$sha" -f python-service/Dockerfile python-service
+            fi
             image=$(docker image inspect --format '{{.Id}}' "socialmei-rehearsal:$sha")
             if [ "$profile" = 040 ]; then
               python tools/release040-migration-rehearsal.py --run --source-sha "$sha" --api-image "$image" --receipt "test-results/release-candidate/receipt${profile}.json"

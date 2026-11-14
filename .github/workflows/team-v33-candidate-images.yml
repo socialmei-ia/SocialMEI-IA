@@ -98,6 +98,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          if [ "$RELEASE_PROFILE" = 040 ]; then
+            docker build --pull --build-arg "SOCIALMEI_RELEASE_SHA=$CANDIDATE_SHA" \
+              --label "org.opencontainers.image.revision=$CANDIDATE_SHA" \
+              -t "socialmei-v33/team-api:$CANDIDATE_SHA" \
+              -f deploy/team/Dockerfile.release040-api .
+            exit 0
+          fi
           docker build --pull --build-arg "SOCIALMEI_RELEASE_SHA=$CANDIDATE_SHA" \
             --label "org.opencontainers.image.revision=$CANDIDATE_SHA" \
             -t "socialmei-v33/team-api:$CANDIDATE_SHA" \
