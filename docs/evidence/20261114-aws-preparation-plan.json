@@ -1,0 +1,201 @@
+{
+  "mode": "local_preparation_only",
+  "region": "sa-east-1",
+  "execution_supported": false,
+  "authorization_granted": false,
+  "permission_evidence": {
+    "sts_identity": {
+      "status": "previous_authentication_documented",
+      "not_an_admin_grant": true
+    },
+    "ec2:DescribeInstances": {
+      "status": "previous_denial_documented",
+      "retry_without_grant_change": false
+    },
+    "ec2:DescribeInstanceTypes": {
+      "status": "denied_in_single_readonly_probe",
+      "error_code": "UnauthorizedOperation",
+      "sdk_retries": 0
+    },
+    "s3:ListAllMyBuckets": {
+      "status": "previous_denial_summarized",
+      "required_for_prefix_backup": false
+    },
+    "s3:CreateBucket": {
+      "status": "previous_denial_summarized",
+      "retry_without_grant_change": false
+    },
+    "ec2_other_describe_and_s3_configuration": {
+      "status": "not_individually_proven",
+      "reason": "Earlier sequential calls can stop at the first denial; do not infer blanket denial."
+    },
+    "pricing_catalog": {
+      "status": "public_aws_catalog_available_without_account_credentials"
+    },
+    "billing_discounts_and_credits": {
+      "status": "not_verified",
+      "cost_explorer_not_called": true
+    }
+  },
+  "s3": {
+    "template": "deploy/team/postgres-backup-bucket.cloudformation.json",
+    "runtime_iam": "deploy/team/postgres-backup-iam.example.json",
+    "private": true,
+    "encryption": "AES256",
+    "versioned": true,
+    "retained_on_delete_or_replace": true,
+    "automatic_deletion_configured": false,
+    "bootstrap_separate_from_runtime_role": true,
+    "bootstrap_actions": [
+      "s3:CreateBucket",
+      "s3:PutBucketOwnershipControls",
+      "s3:PutBucketPublicAccessBlock",
+      "s3:PutEncryptionConfiguration",
+      "s3:PutBucketVersioning",
+      "s3:PutBucketPolicy",
+      "s3:PutBucketTagging"
+    ],
+    "bootstrap_actions_scope": "S3 actions only; not proof of permission and not a CloudFormation grant",
+    "cloudformation_review_path": [
+      "cloudformation:ValidateTemplate",
+      "cloudformation:GetTemplateSummary",
+      "cloudformation:CreateChangeSet",
+      "cloudformation:DescribeChangeSet",
+      "cloudformation:ExecuteChangeSet",
+      "cloudformation:DescribeStacks"
+    ],
+    "verification_actions": [
+      "s3:GetBucketLocation",
+      "s3:GetBucketOwnershipControls",
+      "s3:GetBucketPublicAccessBlock",
+      "s3:GetEncryptionConfiguration",
+      "s3:GetBucketVersioning",
+      "s3:GetBucketPolicyStatus"
+    ],
+    "activation_gates": [
+      "approved_unique_bucket_and_costs",
+      "bootstrap_admin_permission",
+      "private_properties_verified",
+      "runtime_prefix_policy_attached",
+      "explicit_real_data_transfer_authorization",
+      "version_pinned_readback_and_restore"
+    ]
+  },
+  "resize": {
+    "original_type": "unverified",
+    "proposed_type": "t3.medium",
+    "memory_gib": 4,
+    "preferred_same_family": true,
+    "arm_images_not_approved": true,
+    "checks": {
+      "architecture_x86_64_verified": false,
+      "ebs_root_verified": false,
+      "all_state_volumes_preserved": false,
+      "target_offered_in_current_az": false,
+      "ena_and_hvm_verified": false,
+      "no_unmanaged_autoscaling_controller": false,
+      "elastic_ip_or_dns_rollback_verified": false,
+      "external_backup_restoration_verified": false,
+      "waha_n8n_sessions_and_private_mounts_preserved": false,
+      "writers_and_responders_pause_plan_reviewed": false,
+      "autostart_and_single_responder_recovery_reviewed": false,
+      "rollback_original_instance_type_reviewed": false,
+      "original_instance_type_verified": false
+    },
+    "technical_gates_passed": false,
+    "blockers": [
+      "architecture_x86_64_verified",
+      "ebs_root_verified",
+      "all_state_volumes_preserved",
+      "target_offered_in_current_az",
+      "ena_and_hvm_verified",
+      "no_unmanaged_autoscaling_controller",
+      "elastic_ip_or_dns_rollback_verified",
+      "external_backup_restoration_verified",
+      "waha_n8n_sessions_and_private_mounts_preserved",
+      "writers_and_responders_pause_plan_reviewed",
+      "autostart_and_single_responder_recovery_reviewed",
+      "rollback_original_instance_type_reviewed",
+      "original_instance_type_verified"
+    ],
+    "separate_required_authorizations": [
+      "budget",
+      "downtime_stop_start",
+      "any_new_EBS_snapshot",
+      "instance_attribute_change"
+    ],
+    "sequence": [
+      "capture_private_instance_volumes_network_and_restart_manifest",
+      "verify_current_external_backup_and_approved_volume_recovery_point",
+      "pause_writers_and_single_responders_under_approved_maintenance",
+      "graceful_stop_no_force_no_terminate",
+      "change_only_existing_instance_type",
+      "start_and_verify_EBS_mounts_ENI_SG_IP_DNS_before_resume",
+      "verify_private_services_and_identity_without_enabling_new_responders",
+      "resume_existing_owners_once_and_measure_load"
+    ],
+    "rollback": [
+      "approved_graceful_stop",
+      "restore_original_instance_type_only",
+      "start_same_instance_with_same_current_volumes_and_network",
+      "verify_mounts_sessions_queues_DNS_and_single_responder_before_resume"
+    ],
+    "forbidden": [
+      "force_stop",
+      "terminate",
+      "detach_or_replace_volumes",
+      "restore_old_data_over_new_writes",
+      "change_database_connection",
+      "apply_migrations",
+      "rebuild_or_deploy_release",
+      "unapproved_DNS_or_EIP_change"
+    ]
+  },
+  "prices": {
+    "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/current/sa-east-1/index.csv",
+    "retrieved_at_utc": "2026-11-14T01:48:09.267055+00:00",
+    "rates": {
+      "t3.small": {
+        "vcpu": 2,
+        "memory_gib": 2,
+        "hourly_usd": "0.0336000000",
+        "monthly_730_hours_usd": "24.5280000000",
+        "effective_date": "2026-11-01"
+      },
+      "t3.medium": {
+        "vcpu": 2,
+        "memory_gib": 4,
+        "hourly_usd": "0.0672000000",
+        "monthly_730_hours_usd": "49.0560000000",
+        "effective_date": "2026-11-01",
+        "increment_over_t3_small_usd": "24.5280000000"
+      },
+      "t3a.medium": {
+        "vcpu": 2,
+        "memory_gib": 4,
+        "hourly_usd": "0.0605000000",
+        "monthly_730_hours_usd": "44.1650000000",
+        "effective_date": "2026-11-01",
+        "increment_over_t3_small_usd": "19.6370000000"
+      }
+    },
+    "excludes": [
+      "EBS",
+      "snapshots",
+      "public IPv4",
+      "CPU surplus credits",
+      "S3 storage/requests",
+      "taxes",
+      "currency conversion",
+      "account discounts/credits"
+    ]
+  },
+  "owner_minimum_actions": [
+    "approve_bucket_and_existing_backup_role",
+    "grant_or_delegate_bucket_bootstrap_and_prefix_runtime_permissions",
+    "grant_readonly_EC2_inventory_if_missing",
+    "confirm_billing_credits_and_resize_budget",
+    "approve_maintenance_after_preservation_and_rollback_gates",
+    "authorize_real_backup_transfer_and_restore_test_separately"
+  ]
+}

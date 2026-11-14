@@ -1,0 +1,55 @@
+{
+  "base_checkpoint": "edc12d3b0ba05a9a32ef7bc6cd2f5ec42f425bc8",
+  "branch": "release/functional-completion-20261112",
+  "targeted_tests": { "passed": 58, "failures": 0, "final_checklist_subset_passed": 6 },
+  "new_readonly_probe": {
+    "action": "ec2:DescribeInstanceTypes",
+    "error_code": "UnauthorizedOperation",
+    "sdk_retries": 0,
+    "additional_calls_after_denial": false
+  },
+  "previous_denied_operations_repeated": false,
+  "prices": {
+    "receipt": "20261113-aws-instance-prices.json",
+    "refetched_on_continuation": false,
+    "account_billing_verified": false
+  },
+  "s3": {
+    "template_prepared": true,
+    "runtime_policy_prepared": true,
+    "version_pinned_upload_and_resume_implemented": true,
+    "tests_use_fake_storage_only": true,
+    "bucket_created": false,
+    "real_data_uploaded": false
+  },
+  "restore": {
+    "approval_bound_runner_implemented": true,
+    "mock_tests_passed": 5,
+    "real_docker_rehearsal_executed": false,
+    "blocker": "Local Docker Desktop Linux daemon unavailable; not started",
+    "data_freshness_verified": false,
+    "production_role_permissions_verified": false
+  },
+  "resize": {
+    "plan_prepared": true,
+    "preferred_candidate": "t3.medium",
+    "target_memory_gib": 4,
+    "az_availability_verified": false,
+    "ebs_inventory_verified": false,
+    "elastic_ip_verified": false,
+    "budget_authorized": false,
+    "executed": false
+  },
+  "review": {
+    "coordinator_reviewed": true,
+    "modify_instance_attribute_scope_restricted": true,
+    "bootstrap_s3_and_cloudformation_permissions_distinguished": true
+  },
+  "production_runtime_changed": false,
+  "production_database_changed": false,
+  "schema_or_migrations_changed": false,
+  "new_aws_resources_or_costs": false,
+  "release_published": false,
+  "messages_or_emails_sent": false,
+  "images_rebuilt": false
+}
