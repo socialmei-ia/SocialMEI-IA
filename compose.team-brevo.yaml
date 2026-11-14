@@ -1,0 +1,21 @@
+# LAST SMTP overlay, after base/recovery/identity/release040 definitions.
+# Load the protected file LAST with --env-file; never shell-source or print it.
+# Dedicated BREVO_* variables avoid collisions with older SMTP_* settings.
+x-brevo-environment: &brevo-environment
+  SOCIALMEI_SMTP_HOST: ${SOCIALMEI_BREVO_HOST:?Protected Brevo configuration required}
+  SOCIALMEI_SMTP_PORT: ${SOCIALMEI_BREVO_PORT:?Protected Brevo configuration required}
+  SOCIALMEI_SMTP_USER: ${SOCIALMEI_BREVO_USER:?Protected Brevo configuration required}
+  SOCIALMEI_SMTP_PASSWORD: ${SOCIALMEI_BREVO_PASSWORD:?Protected Brevo configuration required}
+  SOCIALMEI_SMTP_FROM: ${SOCIALMEI_BREVO_FROM:?Protected Brevo configuration required}
+  SOCIALMEI_IDENTITY_MODE: "disabled"
+  SOCIALMEI_RECOVERY_MODE: "disabled"
+
+services:
+  team-api:
+    environment:
+      <<: *brevo-environment
+      SOCIALMEI_PUBLIC_BOOKING_ENABLED: "false"
+  team-recovery-worker:
+    environment: *brevo-environment
+  team-identity-worker:
+    environment: *brevo-environment

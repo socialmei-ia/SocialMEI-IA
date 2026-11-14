@@ -155,6 +155,8 @@ jobs:
           path: test-results/release-candidate/*.json
           if-no-files-found: ignore
       - name: Backup failure and recovery scenarios
+        env:
+          SOCIALMEI_BREVO_COMPOSE_TEST: "true"
         run: python -m unittest discover -s tests -p 'test_*.py'
       - name: Caddy OAuth privacy canary (disposable container only)
         env:
