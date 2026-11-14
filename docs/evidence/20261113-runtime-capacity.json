@@ -1,22 +1,752 @@
 {
-  "complete": false,
-  "ssh_exit_code": 1,
-  "attempts": 1,
-  "reason": "bounded_readonly_collection_failed",
-  "stderr_suppressed": true,
-  "collector_error": {
-    "complete": false,
-    "error_type": "JSONDecodeError"
+  "collected_at_utc": "2026-11-14T00:38:37Z",
+  "scope": "read-only host and Docker metadata; no database or provider requests",
+  "cpu": {
+    "logical_count": 2,
+    "sample_seconds": 1,
+    "busy_percent": 1.5,
+    "load_average": [
+      0.04248046875,
+      0.08251953125,
+      0.02783203125
+    ]
   },
-  "candidate_source_sha": "f6d282f33a7d76dd75fbd35262bc271a92823e40",
-  "ssh_transport_reached_remote_python": true,
-  "current_capacity_verified": false,
-  "current_api_source_revision_verified": false,
-  "failure_analysis": "Projected network JSON lacked its final object delimiter. Fixed locally after the single remote attempt; no remote retry.",
-  "local_validation": {
-    "offline_regression_tests_passed": 4,
-    "real_local_docker_container_projection_parsed": true,
-    "real_local_docker_network_projection_parsed": true
+  "memory_bytes": {
+    "MemTotal": 1997692928,
+    "MemAvailable": 561672192,
+    "SwapTotal": 2147479552,
+    "SwapFree": 484368384
+  },
+  "root_filesystem_bytes": {
+    "total": 61255049216,
+    "available": 20720422912
+  },
+  "containers": [
+    {
+      "name": "socialmei-postgres-relocation-20261112",
+      "image_id": "sha256:ff87138949ad9a46f32ff23bd6852b52ce024a13dffe9b4087be98292cdd3b4f",
+      "state": "running",
+      "health": null,
+      "restart_count": 0,
+      "memory_limit_bytes": 201326592,
+      "revision": null,
+      "networks": [
+        "socialmei-postgres-relocation-20261112-isolated"
+      ]
+    },
+    {
+      "name": "socialmei-menu-worker-continuo",
+      "image_id": "sha256:521592458af91adcc86c5169edc1664b6c01ea0262f5cfcb093b1b648bd05bc5",
+      "state": "running",
+      "health": null,
+      "restart_count": 0,
+      "memory_limit_bytes": 0,
+      "revision": "994a103826791c532c1487891e971a44a8a2b674",
+      "networks": [
+        "socialmei-team_api"
+      ]
+    },
+    {
+      "name": "socialmei-menu-public-api-v3",
+      "image_id": "sha256:0980261aa1ff881b08e826ba357c02e137c3f2b1c549b55848ed7043c9f923c3",
+      "state": "running",
+      "health": null,
+      "restart_count": 0,
+      "memory_limit_bytes": 0,
+      "revision": null,
+      "networks": [
+        "socialmei-team_api",
+        "socialmei-team_database",
+        "socialmei_team_egress"
+      ]
+    },
+    {
+      "name": "socialmei-team-team-api-1",
+      "image_id": "sha256:8aaa6f0f14fdabbe219eebdaf06c0688ab2f2248a05188cef812e192ee1dd45e",
+      "state": "running",
+      "health": "unhealthy",
+      "restart_count": 0,
+      "memory_limit_bytes": 0,
+      "revision": "86cdd5b8a4309014a1f2bbabd08cd15c8d6b194b",
+      "networks": [
+        "socialmei-team_api",
+        "socialmei-team_database",
+        "socialmei_team_egress"
+      ]
+    },
+    {
+      "name": "socialmei-team-team-api-1-before-list-20261112T023801Z",
+      "image_id": "sha256:b4d865fc26b7392973a1dbb360f5cbdb31b6a77c20d084cfd1bdb8ecedc99516",
+      "state": "exited",
+      "health": "unhealthy",
+      "restart_count": 0,
+      "memory_limit_bytes": 0,
+      "revision": "86cdd5b8a4309014a1f2bbabd08cd15c8d6b194b",
+      "networks": [
+        "socialmei-team_api",
+        "socialmei-team_database",
+        "socialmei_team_egress"
+      ]
+    },
+    {
+      "name": "socialmei-menu-worker-continuo-before-list-20261112T023801Z",
+      "image_id": "sha256:3627aa9c23b849d7ccdefa4c6d3eb632765a6b28a45ed0deb3d5b092a183ac8c",
+      "state": "exited",
+      "health": null,
+      "restart_count": 0,
+      "memory_limit_bytes": 0,
+      "revision": "994a103826791c532c1487891e971a44a8a2b674",
+      "networks": [
+        "socialmei-team_api"
+      ]
+    },
+    {
+      "name": "socialmei-menu-public-api-v3-before-list-20261112T023801Z",
+      "image_id": "sha256:677aa5ca433aae01b6e69a4cdb9e2bc529237acc9f350eb7fc8d59059ee16c0f",
+      "state": "exited",
+      "health": null,
+      "restart_count": 0,
+      "memory_limit_bytes": 0,
+      "revision": null,
+      "networks": [
+        "socialmei-team_api",
+        "socialmei-team_database",
+        "socialmei_team_egress"
+      ]
+    },
+    {
+      "name": "socialmei-menu-worker-continuo-before-list-20261112T013007Z",
+      "image_id": "sha256:44228cd1b85f2c0933c53b52ef34b4f1bf48c67316afdf69bfaffa1c656ae5b5",
+      "state": "exited",
+      "health": null,
+      "restart_count": 0,
+      "memory_limit_bytes": 0,
+      "revision": "994a103826791c532c1487891e971a44a8a2b674",
+      "networks": [
+        "socialmei-team_api"
+      ]
+    },
+    {
+      "name": "socialmei-menu-public-api-v3-before-list-20261112T013007Z",
+      "image_id": "sha256:9c743195482d33f3205d1bab2392df53fcc3575c0ccab3d88ae75a10a763267c",
+      "state": "exited",
+      "health": null,
+      "restart_count": 0,
+      "memory_limit_bytes": 0,
+      "revision": null,
+      "networks": [
+        "socialmei-team_api",
+        "socialmei-team_database",
+        "socialmei_team_egress"
+      ]
+    },
+    {
+      "name": "socialmei-team-team-api-1-before-selection-20261112T015105Z",
+      "image_id": "sha256:b98659188929ea6d7b55ac9e8a2f227526ca44be871c7aa8e2296040ff58d952",
+      "state": "exited",
+      "health": "unhealthy",
+      "restart_count": 0,
+      "memory_limit_bytes": 0,
+      "revision": "86cdd5b8a4309014a1f2bbabd08cd15c8d6b194b",
+      "networks": [
+        "socialmei-team_api",
+        "socialmei-team_database",
+        "socialmei_team_egress"
+      ]
+    },
+    {
+      "name": "socialmei-waha-gows-edge",
+      "image_id": "sha256:7024fa59aaae91e73df24989d3a1f29b7a2bf9e75ec48494e1a6ba1a788f5172",
+      "state": "running",
+      "health": null,
+      "restart_count": 0,
+      "memory_limit_bytes": 268435456,
+      "revision": null,
+      "networks": [
+        "socialmei-team_api",
+        "socialmei_team_web"
+      ]
+    },
+    {
+      "name": "socialmei-menu-worker-continuo-before-gows-20261112T010720Z",
+      "image_id": "sha256:205c9123910109b9eca49c4b1b68ca2cd7e2c46bd712bff839559809dc303a31",
+      "state": "exited",
+      "health": null,
+      "restart_count": 0,
+      "memory_limit_bytes": 0,
+      "revision": "994a103826791c532c1487891e971a44a8a2b674",
+      "networks": [
+        "socialmei-team_api"
+      ]
+    },
+    {
+      "name": "socialmei-waha-edge-before-gows-20261112T010720Z",
+      "image_id": "sha256:7024fa59aaae91e73df24989d3a1f29b7a2bf9e75ec48494e1a6ba1a788f5172",
+      "state": "exited",
+      "health": null,
+      "restart_count": 0,
+      "memory_limit_bytes": 268435456,
+      "revision": null,
+      "networks": [
+        "socialmei-team_api",
+        "socialmei_team_web"
+      ]
+    },
+    {
+      "name": "socialmei-menu-public-api-v3-before-gows-20261112T010720Z",
+      "image_id": "sha256:9c743195482d33f3205d1bab2392df53fcc3575c0ccab3d88ae75a10a763267c",
+      "state": "exited",
+      "health": null,
+      "restart_count": 0,
+      "memory_limit_bytes": 0,
+      "revision": null,
+      "networks": [
+        "socialmei-team_api",
+        "socialmei-team_database",
+        "socialmei_team_egress"
+      ]
+    },
+    {
+      "name": "socialmei-team-team-api-1-before-gows-20261112T010720Z",
+      "image_id": "sha256:cd6687e0871b667083b05dd7a51d66c9364eddc1d9c5f62a31e84e745e630a4c",
+      "state": "exited",
+      "health": "unhealthy",
+      "restart_count": 0,
+      "memory_limit_bytes": 0,
+      "revision": "86cdd5b8a4309014a1f2bbabd08cd15c8d6b194b",
+      "networks": [
+        "socialmei-team_api",
+        "socialmei-team_database",
+        "socialmei_team_egress"
+      ]
+    },
+    {
+      "name": "socialmei-team-team-gateway-1",
+      "image_id": "sha256:f9e43dfc3cdfd3d6eb556c53d9f7839ab28f31a5aa6f089009b94df17535c2f4",
+      "state": "running",
+      "health": null,
+      "restart_count": 0,
+      "memory_limit_bytes": 0,
+      "revision": "8159c17d2fec67e77a5cc3a66136e2804c4f9c81",
+      "networks": [
+        "socialmei-team_api",
+        "socialmei_team_web"
+      ]
+    },
+    {
+      "name": "socialmei-instagram-menu-worker",
+      "image_id": "sha256:cd6687e0871b667083b05dd7a51d66c9364eddc1d9c5f62a31e84e745e630a4c",
+      "state": "running",
+      "health": null,
+      "restart_count": 0,
+      "memory_limit_bytes": 268435456,
+      "revision": "86cdd5b8a4309014a1f2bbabd08cd15c8d6b194b",
+      "networks": [
+        "socialmei_team_egress"
+      ]
+    },
+    {
+      "name": "socialmei-team-team-api-1-before-recovery-20261112T004447Z",
+      "image_id": "sha256:cd6687e0871b667083b05dd7a51d66c9364eddc1d9c5f62a31e84e745e630a4c",
+      "state": "exited",
+      "health": "unhealthy",
+      "restart_count": 0,
+      "memory_limit_bytes": 0,
+      "revision": "86cdd5b8a4309014a1f2bbabd08cd15c8d6b194b",
+      "networks": [
+        "socialmei-team_api",
+        "socialmei-team_database",
+        "socialmei_team_egress"
+      ]
+    },
+    {
+      "name": "socialmei-menu-worker-continuo-before-recovery-20261112T004447Z",
+      "image_id": "sha256:205c9123910109b9eca49c4b1b68ca2cd7e2c46bd712bff839559809dc303a31",
+      "state": "exited",
+      "health": null,
+      "restart_count": 0,
+      "memory_limit_bytes": 0,
+      "revision": "994a103826791c532c1487891e971a44a8a2b674",
+      "networks": [
+        "socialmei-team_api"
+      ]
+    },
+    {
+      "name": "socialmei-menu-public-api-v3-before-recovery-20261112T004447Z",
+      "image_id": "sha256:9c743195482d33f3205d1bab2392df53fcc3575c0ccab3d88ae75a10a763267c",
+      "state": "exited",
+      "health": null,
+      "restart_count": 0,
+      "memory_limit_bytes": 0,
+      "revision": null,
+      "networks": [
+        "socialmei-team_api",
+        "socialmei-team_database",
+        "socialmei_team_egress"
+      ]
+    },
+    {
+      "name": "socialmei-menu-worker-continuo-before-continuous-20261111T195434Z",
+      "image_id": "sha256:205c9123910109b9eca49c4b1b68ca2cd7e2c46bd712bff839559809dc303a31",
+      "state": "exited",
+      "health": null,
+      "restart_count": 0,
+      "memory_limit_bytes": 0,
+      "revision": "994a103826791c532c1487891e971a44a8a2b674",
+      "networks": [
+        "socialmei-team_api"
+      ]
+    },
+    {
+      "name": "socialmei-menu-public-api-v3-before-continuous-20261111T195434Z",
+      "image_id": "sha256:9c743195482d33f3205d1bab2392df53fcc3575c0ccab3d88ae75a10a763267c",
+      "state": "exited",
+      "health": null,
+      "restart_count": 0,
+      "memory_limit_bytes": 0,
+      "revision": null,
+      "networks": [
+        "socialmei-team_api",
+        "socialmei-team_database",
+        "socialmei_team_egress"
+      ]
+    },
+    {
+      "name": "socialmei-menu-public-api-v3-failed-20261111T192106Z",
+      "image_id": "sha256:9c743195482d33f3205d1bab2392df53fcc3575c0ccab3d88ae75a10a763267c",
+      "state": "exited",
+      "health": null,
+      "restart_count": 0,
+      "memory_limit_bytes": 0,
+      "revision": null,
+      "networks": [
+        "socialmei-team_api",
+        "socialmei-team_database",
+        "socialmei_team_egress"
+      ]
+    },
+    {
+      "name": "socialmei-menu-worker-continuo-before-continuous-20261111T192200Z",
+      "image_id": "sha256:205c9123910109b9eca49c4b1b68ca2cd7e2c46bd712bff839559809dc303a31",
+      "state": "exited",
+      "health": null,
+      "restart_count": 0,
+      "memory_limit_bytes": 0,
+      "revision": "994a103826791c532c1487891e971a44a8a2b674",
+      "networks": [
+        "socialmei-team_api"
+      ]
+    },
+    {
+      "name": "socialmei-waha-gows-piloto",
+      "image_id": "sha256:1f7faeb0227ad5edb5711f7058bfce807ea65e5f92234af0778e4db140f6eb46",
+      "state": "running",
+      "health": null,
+      "restart_count": 0,
+      "memory_limit_bytes": 536870912,
+      "revision": "c42f68ab25b93fd77f583e17477cbcc9d14471cc",
+      "networks": [
+        "socialmei-team_api",
+        "socialmei_team_egress"
+      ]
+    },
+    {
+      "name": "socialmei-menu-public-api-v3-before-continuous-20261111T192200Z",
+      "image_id": "sha256:9c743195482d33f3205d1bab2392df53fcc3575c0ccab3d88ae75a10a763267c",
+      "state": "exited",
+      "health": null,
+      "restart_count": 0,
+      "memory_limit_bytes": 0,
+      "revision": null,
+      "networks": [
+        "socialmei-team_api",
+        "socialmei-team_database",
+        "socialmei_team_egress"
+      ]
+    },
+    {
+      "name": "socialmei-menu-antes-catalogo-20261109",
+      "image_id": "sha256:1e29002040858509487a6b72791c5fbc2aee2f99f8faa9de80af6905c08e2d9b",
+      "state": "exited",
+      "health": null,
+      "restart_count": 0,
+      "memory_limit_bytes": 0,
+      "revision": null,
+      "networks": [
+        "socialmei_team_egress"
+      ]
+    },
+    {
+      "name": "socialmei-menu-prisma-antes-contato",
+      "image_id": "sha256:1e29002040858509487a6b72791c5fbc2aee2f99f8faa9de80af6905c08e2d9b",
+      "state": "exited",
+      "health": null,
+      "restart_count": 0,
+      "memory_limit_bytes": 0,
+      "revision": null,
+      "networks": [
+        "socialmei-team_api",
+        "socialmei-team_database",
+        "socialmei_team_egress"
+      ]
+    },
+    {
+      "name": "socialmei-menu-worker-continuo-backup-20261111T184358Z",
+      "image_id": "sha256:1e29002040858509487a6b72791c5fbc2aee2f99f8faa9de80af6905c08e2d9b",
+      "state": "exited",
+      "health": null,
+      "restart_count": 0,
+      "memory_limit_bytes": 268435456,
+      "revision": null,
+      "networks": [
+        "socialmei-team_api"
+      ]
+    },
+    {
+      "name": "socialmei-menu-public-api-v3-rollback-prisma",
+      "image_id": "sha256:1e29002040858509487a6b72791c5fbc2aee2f99f8faa9de80af6905c08e2d9b",
+      "state": "exited",
+      "health": null,
+      "restart_count": 0,
+      "memory_limit_bytes": 402653184,
+      "revision": null,
+      "networks": [
+        "socialmei-team_api",
+        "socialmei-team_database"
+      ]
+    },
+    {
+      "name": "socialmei-menu-public-api-v3-precontinuo-20261109",
+      "image_id": "sha256:f05c4562b44df9ab36f7011682fea76a57a5010d866caea2eeb4481ce70210dd",
+      "state": "exited",
+      "health": null,
+      "restart_count": 0,
+      "memory_limit_bytes": 402653184,
+      "revision": null,
+      "networks": [
+        "socialmei-team_api",
+        "socialmei-team_database"
+      ]
+    },
+    {
+      "name": "socialmei-menu-public-api-v3-backup-20261109",
+      "image_id": "sha256:a625d8fcf7a512b5e85557a9a472851ec6700e54a5413696821b507694597db0",
+      "state": "exited",
+      "health": null,
+      "restart_count": 0,
+      "memory_limit_bytes": 402653184,
+      "revision": null,
+      "networks": [
+        "socialmei-team_api",
+        "socialmei-team_database"
+      ]
+    },
+    {
+      "name": "socialmei-waha-edge-before-recovery-20261112T004447Z",
+      "image_id": "sha256:7024fa59aaae91e73df24989d3a1f29b7a2bf9e75ec48494e1a6ba1a788f5172",
+      "state": "exited",
+      "health": null,
+      "restart_count": 0,
+      "memory_limit_bytes": 268435456,
+      "revision": null,
+      "networks": [
+        "socialmei-team_api",
+        "socialmei_team_web"
+      ]
+    },
+    {
+      "name": "socialmei-python",
+      "image_id": "sha256:d38945bfde2ae41d94d228ed66e7278c0ddca8bd9321e3dbf4519e3c6c3974d3",
+      "state": "running",
+      "health": "healthy",
+      "restart_count": 0,
+      "memory_limit_bytes": 0,
+      "revision": null,
+      "networks": [
+        "socialmei_default"
+      ]
+    },
+    {
+      "name": "socialmei-caddy",
+      "image_id": "sha256:de23def33b17fb5d1290b0f6c2add1d70780e52341896c00a4c8a2a2fe9d355e",
+      "state": "running",
+      "health": null,
+      "restart_count": 0,
+      "memory_limit_bytes": 0,
+      "revision": null,
+      "networks": [
+        "socialmei_default",
+        "socialmei_team_web"
+      ]
+    },
+    {
+      "name": "socialmei-n8n",
+      "image_id": "sha256:9f693fd5565539efd5e75ad168526c8041a6af516d9e50bc4d9cb1c9c5031523",
+      "state": "running",
+      "health": null,
+      "restart_count": 0,
+      "memory_limit_bytes": 0,
+      "revision": null,
+      "networks": [
+        "socialmei_default"
+      ]
+    },
+    {
+      "name": "socialmei-python-runners",
+      "image_id": "sha256:de290741c2c747a9af5c1490168b687db276149ec1a8bc06336877d213eb97d2",
+      "state": "running",
+      "health": null,
+      "restart_count": 0,
+      "memory_limit_bytes": 0,
+      "revision": null,
+      "networks": [
+        "socialmei_python_runners"
+      ]
+    },
+    {
+      "name": "socialmei-team-team-migrate-1",
+      "image_id": "sha256:c1841b2f41e8da262f42dcc08d4c2f6722f727bf60474a8b1c8e176616a69776",
+      "state": "exited",
+      "health": null,
+      "restart_count": 0,
+      "memory_limit_bytes": 0,
+      "revision": null,
+      "networks": [
+        "socialmei-team_database"
+      ]
+    },
+    {
+      "name": "socialmei-team-team-postgres-1",
+      "image_id": "sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea",
+      "state": "running",
+      "health": "healthy",
+      "restart_count": 0,
+      "memory_limit_bytes": 0,
+      "revision": null,
+      "networks": [
+        "socialmei-team_database"
+      ]
+    },
+    {
+      "name": "socialmei-waha",
+      "image_id": "sha256:280bdc8f860267a2488a45d00ec88529646f7468c0bf0283c595d6efdd1b5e3b",
+      "state": "running",
+      "health": null,
+      "restart_count": 2,
+      "memory_limit_bytes": 0,
+      "revision": "90ba445a0e765701c8910f0fac08176250c3e0fd",
+      "networks": [
+        "socialmei-team_api",
+        "socialmei_default"
+      ]
+    },
+    {
+      "name": "socialmei-pgadmin",
+      "image_id": "sha256:c332c5f6dfba995d9ebc4af261d93506d6876085d712eaaa3defc8dd1a3f26de",
+      "state": "running",
+      "health": null,
+      "restart_count": 0,
+      "memory_limit_bytes": 0,
+      "revision": null,
+      "networks": [
+        "socialmei_default"
+      ]
+    },
+    {
+      "name": "socialmei-postgres",
+      "image_id": "sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea",
+      "state": "running",
+      "health": "healthy",
+      "restart_count": 0,
+      "memory_limit_bytes": 0,
+      "revision": null,
+      "networks": [
+        "socialmei_default"
+      ]
+    },
+    {
+      "name": "hardcore_gates",
+      "image_id": "sha256:5e23090353324d887c48ad5e5c56d294eab81588df9605b07d1afe895f9cc8f8",
+      "state": "exited",
+      "health": null,
+      "restart_count": 0,
+      "memory_limit_bytes": 0,
+      "revision": null,
+      "networks": [
+        "bridge"
+      ]
+    }
+  ],
+  "container_counts": {
+    "total": 43,
+    "running": 16
+  },
+  "container_stats": [
+    {
+      "CPUPerc": "0.00%",
+      "MemUsage": "15.48MiB / 192MiB",
+      "MemPerc": "8.06%",
+      "name": "socialmei-postgres-relocation-20261112"
+    },
+    {
+      "CPUPerc": "0.00%",
+      "MemUsage": "20.56MiB / 1.86GiB",
+      "MemPerc": "1.08%",
+      "name": "socialmei-menu-worker-continuo"
+    },
+    {
+      "CPUPerc": "0.14%",
+      "MemUsage": "15.94MiB / 1.86GiB",
+      "MemPerc": "0.84%",
+      "name": "socialmei-menu-public-api-v3"
+    },
+    {
+      "CPUPerc": "0.14%",
+      "MemUsage": "21.02MiB / 1.86GiB",
+      "MemPerc": "1.10%",
+      "name": "socialmei-team-team-api-1"
+    },
+    {
+      "CPUPerc": "0.10%",
+      "MemUsage": "5.457MiB / 256MiB",
+      "MemPerc": "2.13%",
+      "name": "socialmei-waha-gows-edge"
+    },
+    {
+      "CPUPerc": "0.00%",
+      "MemUsage": "11.93MiB / 1.86GiB",
+      "MemPerc": "0.63%",
+      "name": "socialmei-team-team-gateway-1"
+    },
+    {
+      "CPUPerc": "0.00%",
+      "MemUsage": "7.035MiB / 256MiB",
+      "MemPerc": "2.75%",
+      "name": "socialmei-instagram-menu-worker"
+    },
+    {
+      "CPUPerc": "0.05%",
+      "MemUsage": "65.37MiB / 512MiB",
+      "MemPerc": "12.77%",
+      "name": "socialmei-waha-gows-piloto"
+    },
+    {
+      "CPUPerc": "0.16%",
+      "MemUsage": "11.13MiB / 1.86GiB",
+      "MemPerc": "0.58%",
+      "name": "socialmei-python"
+    },
+    {
+      "CPUPerc": "0.00%",
+      "MemUsage": "20.5MiB / 1.86GiB",
+      "MemPerc": "1.08%",
+      "name": "socialmei-caddy"
+    },
+    {
+      "CPUPerc": "0.40%",
+      "MemUsage": "298.5MiB / 1.86GiB",
+      "MemPerc": "15.67%",
+      "name": "socialmei-n8n"
+    },
+    {
+      "CPUPerc": "0.00%",
+      "MemUsage": "7.266MiB / 1.86GiB",
+      "MemPerc": "0.38%",
+      "name": "socialmei-python-runners"
+    },
+    {
+      "CPUPerc": "0.00%",
+      "MemUsage": "17.88MiB / 1.86GiB",
+      "MemPerc": "0.94%",
+      "name": "socialmei-team-team-postgres-1"
+    },
+    {
+      "CPUPerc": "1.56%",
+      "MemUsage": "369.4MiB / 1.86GiB",
+      "MemPerc": "19.39%",
+      "name": "socialmei-waha"
+    },
+    {
+      "CPUPerc": "0.04%",
+      "MemUsage": "38.95MiB / 1.86GiB",
+      "MemPerc": "2.04%",
+      "name": "socialmei-pgadmin"
+    },
+    {
+      "CPUPerc": "1.02%",
+      "MemUsage": "28.01MiB / 1.86GiB",
+      "MemPerc": "1.47%",
+      "name": "socialmei-postgres"
+    }
+  ],
+  "networks": [
+    {
+      "name": "bridge",
+      "internal": false,
+      "driver": "bridge"
+    },
+    {
+      "name": "socialmei-postgres-relocation-20261112-isolated",
+      "internal": true,
+      "driver": "bridge"
+    },
+    {
+      "name": "socialmei-team_api",
+      "internal": true,
+      "driver": "bridge"
+    },
+    {
+      "name": "socialmei-team_database",
+      "internal": true,
+      "driver": "bridge"
+    },
+    {
+      "name": "socialmei_default",
+      "internal": false,
+      "driver": "bridge"
+    },
+    {
+      "name": "socialmei_python_runners",
+      "internal": true,
+      "driver": "bridge"
+    },
+    {
+      "name": "socialmei_team_egress",
+      "internal": false,
+      "driver": "bridge"
+    },
+    {
+      "name": "socialmei_team_web",
+      "internal": false,
+      "driver": "bridge"
+    }
+  ],
+  "api_source_sha256": {
+    "app.py": "b0e6123621863cf9bb06169180152b84545bf7d2b31322d623267f31ce6f2373",
+    "account_auth.py": "4f131e73d9babce26d94f3344b740c53b48bac14807e434a30684d9ce8cd6f00",
+    "database.py": "16244d1204d7258b03431a9f3ac2d3d4a6089c3b3480021e3fe0938146630ef4"
+  },
+  "limitations": [
+    "Single low-load sample; no sustained-load capacity certification.",
+    "Revision label is image metadata; code hashes identify selected effective files only.",
+    "No IAM retry; known EC2/S3 access and external-backup gates remain unresolved.",
+    "No database health query, credentials, logs, customer data or configuration collected."
+  ],
+  "complete": true,
+  "ssh_attempts_total": 2,
+  "retry_authorized_after_template_fix": true,
+  "previous_failed_attempt": {
+    "ssh_exit_code": 1,
+    "collector_error": {
+      "complete": false,
+      "error_type": "JSONDecodeError"
+    },
+    "failure_analysis": "Projected network JSON lacked its final object delimiter. Fixed and locally validated; one separately authorized corrected retry succeeded.",
+    "local_validation": {
+      "offline_regression_tests_passed": 4,
+      "real_local_docker_container_projection_parsed": true,
+      "real_local_docker_network_projection_parsed": true
+    }
   },
   "prior_evidence_only": {
     "source": "20261112-aws-postgres-preparation.json",
@@ -31,15 +761,55 @@
     "root_total_gib_approx": 58,
     "is_current_measurement": false
   },
-  "unchanged_gates": [
-    "Fresh capacity and effective API revision remain unverified by this attempt.",
-    "Prior memory pressure requires representative load and approved capacity before cutover.",
-    "Known IAM EC2/S3 and independent continuous-backup permissions remain unresolved; no permission probes repeated.",
-    "Historical schema038 recovery snapshot cannot replace current Prisma source."
-  ],
   "aws_configuration_changed": false,
   "containers_restarted_or_created": false,
   "database_queried_or_changed": false,
   "provider_requests_or_messages_sent": false,
-  "credentials_collected_or_printed": false
+  "credentials_collected_or_printed": false,
+  "api_git_source_comparison": {
+    "86cdd5b8a4309014a1f2bbabd08cd15c8d6b194b": {
+      "source_hashes": {
+        "app.py": "b0e6123621863cf9bb06169180152b84545bf7d2b31322d623267f31ce6f2373",
+        "account_auth.py": "4f131e73d9babce26d94f3344b740c53b48bac14807e434a30684d9ce8cd6f00",
+        "database.py": "16244d1204d7258b03431a9f3ac2d3d4a6089c3b3480021e3fe0938146630ef4"
+      },
+      "matches_effective_file": {
+        "app.py": true,
+        "account_auth.py": true,
+        "database.py": true
+      }
+    },
+    "f6d282f33a7d76dd75fbd35262bc271a92823e40": {
+      "source_hashes": {
+        "app.py": "0adc55d132810758d59f374923843ed3eade6a2939b119fc77bbcce61203e1a5",
+        "account_auth.py": "d102ccc6e6acb994d02d21fbee300ddba11eab138751611eed8f35f253164cd8",
+        "database.py": "16244d1204d7258b03431a9f3ac2d3d4a6089c3b3480021e3fe0938146630ef4"
+      },
+      "matches_effective_file": {
+        "app.py": false,
+        "account_auth.py": false,
+        "database.py": true
+      }
+    }
+  },
+  "current_capacity_verified": true,
+  "api_identity_verified": {
+    "image_id": true,
+    "revision_label": true,
+    "selected_effective_file_hashes": true,
+    "full_source_tree": false
+  },
+  "capacity_summary": {
+    "available_memory_mib": 535.65,
+    "used_swap_gib": 1.55,
+    "available_disk_gib": 19.3,
+    "representative_load_validated": false,
+    "production_capacity_approved": false
+  },
+  "unchanged_gates": [
+    "API Docker health is unhealthy; this snapshot does not establish a root cause.",
+    "Host retains only about 536 MiB available with 1.55 GiB swap used; representative load and approved capacity remain required.",
+    "Current Prisma export and continuous offsite-backup IAM gates remain open; not probed again.",
+    "Image revision label and selected file hashes do not certify the entire effective source tree."
+  ]
 }
