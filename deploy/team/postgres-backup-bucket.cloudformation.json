@@ -1,0 +1,78 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Unapplied SocialMEI private versioned backup bucket. No database copy or compute changes.",
+  "Parameters": {
+    "BackupBucketName": {
+      "Type": "String",
+      "Description": "Globally unique approved bucket name; choose before approving costs.",
+      "MinLength": 3,
+      "MaxLength": 63,
+      "AllowedPattern": "^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$"
+    }
+  },
+  "Rules": {
+    "ApprovedRegion": {
+      "Assertions": [
+        {
+          "Assert": { "Fn::Equals": [{ "Ref": "AWS::Region" }, "sa-east-1"] },
+          "AssertDescription": "Reviewed for sa-east-1 only."
+        }
+      ]
+    }
+  },
+  "Resources": {
+    "BackupBucket": {
+      "Type": "AWS::S3::Bucket",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "BucketName": { "Ref": "BackupBucketName" },
+        "OwnershipControls": { "Rules": [{ "ObjectOwnership": "BucketOwnerEnforced" }] },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "IgnorePublicAcls": true,
+          "BlockPublicPolicy": true,
+          "RestrictPublicBuckets": true
+        },
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            { "ServerSideEncryptionByDefault": { "SSEAlgorithm": "AES256" } }
+          ]
+        },
+        "VersioningConfiguration": { "Status": "Enabled" },
+        "Tags": [
+          { "Key": "Application", "Value": "SocialMEI" },
+          { "Key": "Purpose", "Value": "PostgreSQLBackup" }
+        ]
+      }
+    },
+    "BackupBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "Bucket": { "Ref": "BackupBucket" },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "DenyInsecureTransport",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "s3:*",
+              "Resource": [
+                { "Fn::GetAtt": ["BackupBucket", "Arn"] },
+                { "Fn::Join": ["", [{ "Fn::GetAtt": ["BackupBucket", "Arn"] }, "/*"]] }
+              ],
+              "Condition": { "Bool": { "aws:SecureTransport": "false" } }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "BucketName": { "Value": { "Ref": "BackupBucket" } },
+    "BucketArn": { "Value": { "Fn::GetAtt": ["BackupBucket", "Arn"] } }
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/current/sa-east-1/index.csv",
+  "retrieved_at_utc": "2026-11-14T01:48:09.267055+00:00",
+  "scope": "Public AWS Price List; Linux shared on-demand, no account credits/taxes/EBS/IPv4/CPU surplus",
+  "rates": {
+    "t3.small": {
+      "SKU": "NVUUK68HKWKTGHGY",
+      "Instance Type": "t3.small",
+      "Operating System": "Linux",
+      "Tenancy": "Shared",
+      "Location": "South America (Sao Paulo)",
+      "vCPU": "2",
+      "Memory": "2 GiB",
+      "Processor Architecture": "64-bit",
+      "EffectiveDate": "2026-11-01",
+      "PriceDescription": "$0.0336 per On Demand Linux t3.small Instance Hour",
+      "hourly_usd": "0.0336000000",
+      "monthly_730_hours_usd": "24.5280000000"
+    },
+    "t3.medium": {
+      "SKU": "P8TYCUD23CFMB728",
+      "Instance Type": "t3.medium",
+      "Operating System": "Linux",
+      "Tenancy": "Shared",
+      "Location": "South America (Sao Paulo)",
+      "vCPU": "2",
+      "Memory": "4 GiB",
+      "Processor Architecture": "64-bit",
+      "EffectiveDate": "2026-11-01",
+      "PriceDescription": "$0.0672 per On Demand Linux t3.medium Instance Hour",
+      "hourly_usd": "0.0672000000",
+      "monthly_730_hours_usd": "49.0560000000"
+    },
+    "t3a.medium": {
+      "SKU": "R3J226M4QR44436W",
+      "Instance Type": "t3a.medium",
+      "Operating System": "Linux",
+      "Tenancy": "Shared",
+      "Location": "South America (Sao Paulo)",
+      "vCPU": "2",
+      "Memory": "4 GiB",
+      "Processor Architecture": "64-bit",
+      "EffectiveDate": "2026-11-01",
+      "PriceDescription": "$0.0605 per On Demand Linux t3a.medium Instance Hour",
+      "hourly_usd": "0.0605000000",
+      "monthly_730_hours_usd": "44.1650000000"
+    }
+  }
+}

@@ -2,6 +2,18 @@
   "Version": "2012-10-17",
   "Statement": [
     {
+      "Sid": "VerifyPrivateVersionedBackupBucket",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetBucketVersioning",
+        "s3:GetEncryptionConfiguration",
+        "s3:GetBucketPublicAccessBlock",
+        "s3:GetBucketOwnershipControls"
+      ],
+      "Resource": "arn:aws:s3:::REPLACE_WITH_APPROVED_BUCKET",
+      "Condition": { "Bool": { "aws:SecureTransport": "true" } }
+    },
+    {
       "Sid": "ListApprovedBackupPrefix",
       "Effect": "Allow",
       "Action": "s3:ListBucket",
@@ -14,7 +26,7 @@
       }
     },
     {
-      "Sid": "UploadEncryptedBackups",
+      "Sid": "UploadApprovedBackups",
       "Effect": "Allow",
       "Action": "s3:PutObject",
       "Resource": "arn:aws:s3:::REPLACE_WITH_APPROVED_BUCKET/postgres-relocation/*",
@@ -25,7 +37,12 @@
     {
       "Sid": "VerifyAndRecoverApprovedBackups",
       "Effect": "Allow",
-      "Action": ["s3:GetObject", "s3:AbortMultipartUpload", "s3:ListMultipartUploadParts"],
+      "Action": [
+        "s3:GetObject",
+        "s3:GetObjectVersion",
+        "s3:AbortMultipartUpload",
+        "s3:ListMultipartUploadParts"
+      ],
       "Resource": "arn:aws:s3:::REPLACE_WITH_APPROVED_BUCKET/postgres-relocation/*",
       "Condition": { "Bool": { "aws:SecureTransport": "true" } }
     }

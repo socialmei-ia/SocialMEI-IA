@@ -1,0 +1,20 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ApprovedExistingInstanceStopStart",
+      "Effect": "Allow",
+      "Action": ["ec2:StopInstances", "ec2:StartInstances"],
+      "Resource": "arn:aws:ec2:sa-east-1:REPLACE_ACCOUNT_ID:instance/REPLACE_INSTANCE_ID"
+    },
+    {
+      "Sid": "ChangeOnlyApprovedInstanceTypeIncludingRollback",
+      "Effect": "Allow",
+      "Action": "ec2:ModifyInstanceAttribute",
+      "Resource": "arn:aws:ec2:sa-east-1:REPLACE_ACCOUNT_ID:instance/REPLACE_INSTANCE_ID",
+      "Condition": {
+        "StringEquals": { "ec2:Attribute/InstanceType": ["t3.small", "t3.medium", "t3a.medium"] }
+      }
+    }
+  ]
+}
