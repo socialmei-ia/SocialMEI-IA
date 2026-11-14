@@ -1,0 +1,109 @@
+{
+  "base_checkpoint": "04da1bd",
+  "gate": "BLOCKED",
+  "production_changes": false,
+  "new_restores_or_migrations": false,
+  "new_iam_calls": false,
+  "tests_passed": 40,
+  "private_reconciliation": {
+    "staged_only": true,
+    "consumer_environments_reconciled": 4,
+    "same_explicit_database_url": true,
+    "credentials_and_unchanged_environment_preserved": true,
+    "installed_mounts_and_networks_recorded": true,
+    "new_ca_mount_required_on_consumers": true,
+    "old_gateway_caddyfile_bind_only_removed_in_plan": true,
+    "remaining_gateway_mounts_preserved": 2,
+    "gateway_image_for_8db_source_available": false,
+    "automatic_resume": false,
+    "production_changed": false,
+    "publication_gate_passed": false
+  },
+  "worker_bundle_correction": {
+    "api_image_id": "sha256:268a7b6523a0ada2ce27da2c1cd11549cac41c949e4ff19eda06de02fdff2840",
+    "revision": "8db028cb630e7047c13e6dcca104bbcd17bf0c77",
+    "worker": {
+      "worker_sha256": "378f9aad0eb0d4b12d13adefa67abf717781b69ad2a854e0496e7071cf604536",
+      "import_without_running_worker": true
+    },
+    "build_network_used": false,
+    "production_changed": false,
+    "old_receipts_reused_for_new_image": false,
+    "publication_preflight_approved": false,
+    "image_configuration_sensitive_fields_present": []
+  },
+  "pilot_linkage_readonly": {
+    "bellastore": {
+      "workspace_name_or_slug": 0,
+      "saved_profile_business_name": 0,
+      "channel_label": 0
+    },
+    "brilholimpeza": {
+      "workspace_name_or_slug": 0,
+      "saved_profile_business_name": 0,
+      "channel_label": 0
+    },
+    "existing_linkage": {
+      "waha_channels": 1,
+      "instagram_connections": 1,
+      "shared_waha_instagram_workspaces": 1,
+      "workspace_count": 16
+    },
+    "queues": {
+      "wa_bot_decisions": {
+        "confirmed": 24,
+        "skipped": 2
+      },
+      "ig_menu_replies": {},
+      "auth_identity_mail": {},
+      "auth_recuperacao_envios": {}
+    },
+    "business_identity_inferred_from_names": false,
+    "database_changed": false
+  },
+  "final_safety": {
+    "unit_syntax_verified": true,
+    "units_installed": false,
+    "units_started": false,
+    "boto3_available": true,
+    "production_configurations_unchanged": true
+  },
+  "capacity": {
+    "running_containers": 16,
+    "available_mib": 642.5,
+    "swap_used_mib": 1646.1,
+    "swap_activity": {
+      "sample_seconds": 3,
+      "page_bytes": 4096,
+      "pswpin_delta": 1,
+      "pswpout_delta": 0,
+      "pgmajfault_delta": 1
+    },
+    "pressure": [
+      "some avg10=0.00 avg60=0.00 avg300=0.00 total=1777235280",
+      "full avg10=0.00 avg60=0.00 avg300=0.00 total=1329185538"
+    ],
+    "cpu": {
+      "logical_count": 2,
+      "sample_seconds": 3,
+      "busy_percent": 3.87
+    },
+    "production_load_approved": false
+  },
+  "blockers": [
+    "8db API268/gateway and image-bound rehearsal/rollback chain not coherent with approved9b receipts",
+    "external backup role/bucket and authorized activation/transfer/verifier staging",
+    "controlled pilot capacity acceptance or separately authorized resize",
+    "explicit coordinated cutover/publication approval after technical gates"
+  ],
+  "technical_remaining": [
+    "materialize matching gateway/rollback artifacts and truthful image-bound proof chain without modifying old receipts",
+    "configure authorized version-pinned latest-backup downloader/staging before weekly restore service activation"
+  ],
+  "existing_data_preserved": true,
+  "brevo_original_unchanged": true,
+  "commits": {
+    "preflight_safety": "0d112b9",
+    "backup_and_periodic_restore_preparation": "63ac53c"
+  }
+}

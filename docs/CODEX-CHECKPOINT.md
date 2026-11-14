@@ -1,5 +1,42 @@
 # Checkpoint SocialMEI-IA
 
+## Retomada prioritária — preflight de publicação após04da1bd
+
+- Gate **BLOCKED**; não confundir com PostgreSQL040 já aprovado. Nenhuma nova
+  restauração/migration, chamadaIAM, deploy, restart, envio ou ativação nesta fase.
+-16 snapshots decontainers e15 fontesCompose protegidos na AWS em
+  `/home/ubuntu/.socialmei-backup038-release040-8db028c/publication-preflight`.
+  `cutover-connections.private.json` concilia quatro ambientes e gateway sem
+  aplicar; segredos, mounts/redes e Brevo original preservados. Não imprimir arquivos.
+- Imagem715 tinha workerIG ausente. Nova imagem isolada8db
+  `sha256:268a7b6523a0ada2ce27da2c1cd11549cac41c949e4ff19eda06de02fdff2840` tem
+  worker/hash/import comprovados sem execução. Não herda recibos9b/B2. Falta
+  gateway correspondente e cadeia de provas vinculada corretamente; não editar
+  recibos antigos, relabelar imagens ou descartar o backofffdf97ed.
+- Gate/planejador agora desligam também envio humanoWAHA e ingressos legados/n8n.
+  Backup aceita `--config-root`040 explicitamente aprovado, root-controlado em
+  `/var/lib/socialmei/postgres040-backups`, com receipt validado; usa configuração
+  verificada em memória, sem reabrir arquivo. Timer histórico permanece intacto.
+- Templates de backup horário/restore semanal não instalados, sintaxe verificada.
+  Restore padrão estrito; opt-in `archive_integrity` não compara dados/estado das
+  sequências com origem nem MAX(id). Atualizador/download versionado do último
+  backup/approval ainda deve ser configurado após autorização. Guard1GiB: não usar
+  skip por memória como sucesso. Não há nova proteção externa operacional.
+-40 testes direcionados aprovados. Sem repetir as suítes ou o ensaio038→040.
+  PSIzero,642,5MiB disponíveis,1646,1MiB swap ocupada; apenas1 página swapin em3s.
+  Preparar núcleo sem novosworkers é opção econômica, não capacidade certificada.
+- Bella/Brilho: sem rótulos em nome/slug/perfil/canal; nomes documentados como
+  exemplos visuais.16 negócios existentes; WAHA eIG compartilham workspace.
+  Não inferir dono pelo nome: conferir proprietário/vínculos, renomear existente
+  ou criar segundo negócio por interface após corte, sem duplicar sessão/OAuth.
+- Próximo trabalho técnico: fechar artefatos/recibos da candidata; manter o banco
+  pronto sem refazer migração. Solicitação únicaAWS e sequência de corte em
+  `docs/RELEASE040-READINESS.md`; evidência
+  `docs/evidence/20261114-publication-preflight-checkpoint.json`.
+- Aguardar concessão real antes de qualquer nova chamadaAWS negada. Depois:
+  backup externo/restore aprovado, capacidade aceita e autorização de corte;
+  rollback somenteB2 compatível040 sobre MESMO banco, nunca Prisma/038/86c.
+
 ## Estado prioritário — PostgreSQL040 restaurado na AWS,14/11
 
 - Decisão do responsável: backup038 de11/11 é a origem oficial; perda posterior
