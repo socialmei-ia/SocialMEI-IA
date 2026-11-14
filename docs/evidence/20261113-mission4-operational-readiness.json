@@ -1,0 +1,757 @@
+{
+  "mission": "4",
+  "base_checkpoint": "b66703e976e27230ae855c3c558efbacb41bba39",
+  "collected_at_utc": "2026-11-14T01:13:48Z",
+  "scope": "read-only OS/Docker, existing logs, liveness only; no SQL/provider/IAM probes",
+  "cpu": {
+    "logical_count": 2,
+    "sample_seconds": 3,
+    "busy_percent": 5.01
+  },
+  "memory": {
+    "total_mib": 1905.15,
+    "available_mib": 533.42,
+    "host_swap_used_mib": 1590.73,
+    "container_current_total_mib": 998.9,
+    "container_swap_total_mib": 1501.11,
+    "unlimited_running_containers": 12,
+    "note": "Current includes cache/kernel; configured limits/reservations are not allocated RAM. Swap occupancy is not evidence of current thrashing."
+  },
+  "swap_activity": {
+    "sample_seconds": 3,
+    "page_bytes": 4096,
+    "pswpin_delta": 0,
+    "pswpout_delta": 0,
+    "pgmajfault_delta": 0
+  },
+  "memory_pressure": [
+    "some avg10=0.00 avg60=0.00 avg300=0.00 total=1748305825",
+    "full avg10=0.00 avg60=0.00 avg300=0.00 total=1304253198"
+  ],
+  "container_counts": {
+    "running": 16,
+    "stopped": 27
+  },
+  "running_services": [
+    {
+      "name": "socialmei-postgres-relocation-20261112",
+      "image_id": "sha256:ff87138949ad9a46f32ff23bd6852b52ce024a13dffe9b4087be98292cdd3b4f",
+      "revision": null,
+      "health": null,
+      "database_provider": null,
+      "periodic_healthcheck_installed": false,
+      "health_interval_seconds": 0.0,
+      "networks": ["socialmei-postgres-relocation-20261112-isolated"],
+      "published_port_count": 0,
+      "optional_modes": {},
+      "role": "historical isolated PostgreSQL destination, not API production database",
+      "current_mib": 31.59,
+      "anon_mib": 0.86,
+      "file_mib": 25.86,
+      "swap_current_mib": 31.82,
+      "limit_mib": 192.0,
+      "reservation_mib": 0.0,
+      "oom_kill_events": 0,
+      "mounts": [
+        {
+          "type": "bind",
+          "target": "/var/lib/postgresql/data",
+          "writable": true,
+          "source_sha256": "a1bd678d26d2e2e7287281cb7521c8b9fd90b9fa47d0f6ad286d4f88263c1906"
+        }
+      ]
+    },
+    {
+      "name": "socialmei-menu-worker-continuo",
+      "image_id": "sha256:521592458af91adcc86c5169edc1664b6c01ea0262f5cfcb093b1b648bd05bc5",
+      "revision": "994a103826791c532c1487891e971a44a8a2b674",
+      "health": null,
+      "database_provider": null,
+      "periodic_healthcheck_installed": false,
+      "health_interval_seconds": 0.0,
+      "networks": ["socialmei-team_api"],
+      "published_port_count": 0,
+      "optional_modes": {},
+      "role": "existing WhatsApp responder; preserve ownership",
+      "current_mib": 20.56,
+      "anon_mib": 19.54,
+      "file_mib": 0.52,
+      "swap_current_mib": 12.97,
+      "limit_mib": 0.0,
+      "reservation_mib": 0.0,
+      "oom_kill_events": 0,
+      "mounts": [
+        {
+          "type": "bind",
+          "target": "/app/continuous_guard.py",
+          "writable": false,
+          "source_sha256": "428b544553e4543373f9f9f47a9593f9ad4947979b79506828fa2661562fd610"
+        },
+        {
+          "type": "bind",
+          "target": "/run/secrets/bot-token",
+          "writable": false,
+          "source_sha256": "2ec2b39c203c770ed1cb5c8aab0e5484b555f702957489033b677d5be72a1a01"
+        },
+        {
+          "type": "bind",
+          "target": "/run/secrets/waha-key",
+          "writable": false,
+          "source_sha256": "d5c563c2ad77fe2a4e2926453960b2d2f4f9ee39b476352c99b96b1cf26cdb31"
+        },
+        {
+          "type": "bind",
+          "target": "/run/socialmei/continuous-state",
+          "writable": true,
+          "source_sha256": "746e8203beed52bdbde8bbec4f22b2ec46554905d17a73aa1b63a65b53b27272"
+        },
+        {
+          "type": "bind",
+          "target": "/run/socialmei/pilot/allowed-contacts.json",
+          "writable": false,
+          "source_sha256": "dd256ff509ba0dc67ed474d823f25dc20ad9e09418665c79a8932853d067272f"
+        }
+      ]
+    },
+    {
+      "name": "socialmei-menu-public-api-v3",
+      "image_id": "sha256:0980261aa1ff881b08e826ba357c02e137c3f2b1c549b55848ed7043c9f923c3",
+      "revision": null,
+      "health": null,
+      "database_provider": "prisma",
+      "periodic_healthcheck_installed": false,
+      "health_interval_seconds": 0.0,
+      "networks": ["socialmei-team_api", "socialmei-team_database", "socialmei_team_egress"],
+      "published_port_count": 0,
+      "optional_modes": {
+        "SOCIALMEI_AUTH_ENABLED": "true",
+        "SOCIALMEI_WHATSAPP_BOT_ENABLED": "true",
+        "SOCIALMEI_WAHA_INGRESS_MODE": "configured_other"
+      },
+      "role": "existing WhatsApp menu API; Prisma target",
+      "current_mib": 16.46,
+      "anon_mib": 11.52,
+      "file_mib": 3.6,
+      "swap_current_mib": 32.44,
+      "limit_mib": 0.0,
+      "reservation_mib": 0.0,
+      "oom_kill_events": 0,
+      "mounts": [
+        {
+          "type": "bind",
+          "target": "/app/whatsapp_public_continuous.py",
+          "writable": false,
+          "source_sha256": "1d88ff58f30d23d3176bbcea07d047740b3cdcddee6ca2ea335f2bcd32e508a9"
+        },
+        {
+          "type": "bind",
+          "target": "/tmp/socialmei-ca.crt",
+          "writable": false,
+          "source_sha256": "b583d63728636e5fa4b2ec89e062e655992406c08430f1b44b12e33fc357b80e"
+        },
+        {
+          "type": "bind",
+          "target": "/run/socialmei/pilot/allowed-contacts.json",
+          "writable": false,
+          "source_sha256": "dd256ff509ba0dc67ed474d823f25dc20ad9e09418665c79a8932853d067272f"
+        }
+      ]
+    },
+    {
+      "name": "socialmei-team-team-api-1",
+      "image_id": "sha256:8aaa6f0f14fdabbe219eebdaf06c0688ab2f2248a05188cef812e192ee1dd45e",
+      "revision": "86cdd5b8a4309014a1f2bbabd08cd15c8d6b194b",
+      "health": "unhealthy",
+      "database_provider": "prisma",
+      "periodic_healthcheck_installed": true,
+      "health_interval_seconds": 15.0,
+      "networks": ["socialmei-team_api", "socialmei-team_database", "socialmei_team_egress"],
+      "published_port_count": 0,
+      "optional_modes": {
+        "SOCIALMEI_AUTH_ENABLED": "true",
+        "SOCIALMEI_INSTAGRAM_RUNTIME_MODE": "configured_other",
+        "SOCIALMEI_INSTAGRAM_RUNTIME_SEND_ENABLED": "true",
+        "SOCIALMEI_INSTAGRAM_AUTO_MENU_ENABLED": "true",
+        "SOCIALMEI_WHATSAPP_BOT_ENABLED": "false",
+        "SOCIALMEI_WAHA_INGRESS_MODE": "configured_other"
+      },
+      "role": "primary API; Prisma target",
+      "current_mib": 40.07,
+      "anon_mib": 18.35,
+      "file_mib": 19.45,
+      "swap_current_mib": 41.34,
+      "limit_mib": 0.0,
+      "reservation_mib": 0.0,
+      "oom_kill_events": 0,
+      "mounts": [
+        {
+          "type": "bind",
+          "target": "/run/socialmei/private",
+          "writable": false,
+          "source_sha256": "37b0bab739810a53e4879cfb47cd22243e201cb8cf3536a2ee62f5041df5f8a9"
+        }
+      ]
+    },
+    {
+      "name": "socialmei-waha-gows-edge",
+      "image_id": "sha256:7024fa59aaae91e73df24989d3a1f29b7a2bf9e75ec48494e1a6ba1a788f5172",
+      "revision": null,
+      "health": null,
+      "database_provider": null,
+      "periodic_healthcheck_installed": false,
+      "health_interval_seconds": 0.0,
+      "networks": ["socialmei-team_api", "socialmei_team_web"],
+      "published_port_count": 0,
+      "optional_modes": {},
+      "role": "existing channel ingress bridge",
+      "current_mib": 5.78,
+      "anon_mib": 4.02,
+      "file_mib": 0.98,
+      "swap_current_mib": 10.79,
+      "limit_mib": 256.0,
+      "reservation_mib": 0.0,
+      "oom_kill_events": 0,
+      "mounts": [
+        {
+          "type": "bind",
+          "target": "/app/waha_durable_receiver.py",
+          "writable": false,
+          "source_sha256": "1c4026568415c2079ad0958345e5b2624d4ae5faf5cf8de7fb99a014a6deed67"
+        },
+        {
+          "type": "bind",
+          "target": "/app/waha_durable_service.py",
+          "writable": false,
+          "source_sha256": "1df3e6d91a6f10ecaf4e86dccd8bf046cfe2a05f5fa71431ed06fe4d70e7f4f4"
+        },
+        {
+          "type": "bind",
+          "target": "/run/socialmei/private",
+          "writable": false,
+          "source_sha256": "e1dd0ef335f4ab353a1e9b05ff3519ddff315df202fc493ad32b8d8ed8137ad3"
+        },
+        {
+          "type": "bind",
+          "target": "/var/lib/socialmei/wa-edge",
+          "writable": true,
+          "source_sha256": "22a1070f26c1bceb6e484c9c499703b2c5aae5310a879ac24ac292b978a72256"
+        }
+      ]
+    },
+    {
+      "name": "socialmei-team-team-gateway-1",
+      "image_id": "sha256:f9e43dfc3cdfd3d6eb556c53d9f7839ab28f31a5aa6f089009b94df17535c2f4",
+      "revision": "8159c17d2fec67e77a5cc3a66136e2804c4f9c81",
+      "health": null,
+      "database_provider": null,
+      "periodic_healthcheck_installed": false,
+      "health_interval_seconds": 0.0,
+      "networks": ["socialmei-team_api", "socialmei_team_web"],
+      "published_port_count": 0,
+      "optional_modes": {},
+      "role": "team frontend/API gateway",
+      "current_mib": 13.93,
+      "anon_mib": 9.14,
+      "file_mib": 3.96,
+      "swap_current_mib": 1.39,
+      "limit_mib": 0.0,
+      "reservation_mib": 0.0,
+      "oom_kill_events": 0,
+      "mounts": [
+        {
+          "type": "bind",
+          "target": "/etc/caddy/Caddyfile",
+          "writable": false,
+          "source_sha256": "379c5b9be6126132e4f8a14abd412142224442e2d6d784377d8cff23d4c792e8"
+        },
+        {
+          "type": "bind",
+          "target": "/etc/caddy/private",
+          "writable": false,
+          "source_sha256": "f3d73ee6b05652d29055540c08c16f122e5423ae7bb66e3cee1f60406179d380"
+        },
+        {
+          "type": "bind",
+          "target": "/srv/frontend/config.js",
+          "writable": false,
+          "source_sha256": "03623f88d65e87a8a03a4858e5f4fcc5029f8a57c5cfe4c87cfe31319f2bd94f"
+        }
+      ]
+    },
+    {
+      "name": "socialmei-instagram-menu-worker",
+      "image_id": "sha256:cd6687e0871b667083b05dd7a51d66c9364eddc1d9c5f62a31e84e745e630a4c",
+      "revision": "86cdd5b8a4309014a1f2bbabd08cd15c8d6b194b",
+      "health": null,
+      "database_provider": "prisma",
+      "periodic_healthcheck_installed": false,
+      "health_interval_seconds": 0.0,
+      "networks": ["socialmei_team_egress"],
+      "published_port_count": 0,
+      "optional_modes": {
+        "SOCIALMEI_AUTH_ENABLED": "true",
+        "SOCIALMEI_INSTAGRAM_RUNTIME_MODE": "configured_other",
+        "SOCIALMEI_INSTAGRAM_RUNTIME_SEND_ENABLED": "true",
+        "SOCIALMEI_INSTAGRAM_AUTO_MENU_ENABLED": "true"
+      },
+      "role": "existing optional Instagram responder, currently running",
+      "current_mib": 7.07,
+      "anon_mib": 5.46,
+      "file_mib": 0.41,
+      "swap_current_mib": 39.85,
+      "limit_mib": 256.0,
+      "reservation_mib": 0.0,
+      "oom_kill_events": 0,
+      "mounts": [
+        {
+          "type": "bind",
+          "target": "/run/socialmei/instagram-menu-state",
+          "writable": true,
+          "source_sha256": "94bb7229b2690d14e6bb19428ed483dde9f0fd3b2cc1070d123673576e1a9882"
+        },
+        {
+          "type": "bind",
+          "target": "/run/socialmei/private",
+          "writable": false,
+          "source_sha256": "97098b479cbd8f766b0c80dc68c5fe89a7f35986fe62d403ae8ece7a6407f56f"
+        }
+      ]
+    },
+    {
+      "name": "socialmei-waha-gows-piloto",
+      "image_id": "sha256:1f7faeb0227ad5edb5711f7058bfce807ea65e5f92234af0778e4db140f6eb46",
+      "revision": "c42f68ab25b93fd77f583e17477cbcc9d14471cc",
+      "health": null,
+      "database_provider": null,
+      "periodic_healthcheck_installed": false,
+      "health_interval_seconds": 0.0,
+      "networks": ["socialmei-team_api", "socialmei_team_egress"],
+      "published_port_count": 0,
+      "optional_modes": {},
+      "role": "existing GOWS pilot, separate session storage",
+      "current_mib": 60.91,
+      "anon_mib": 33.6,
+      "file_mib": 16.68,
+      "swap_current_mib": 241.34,
+      "limit_mib": 512.0,
+      "reservation_mib": 0.0,
+      "oom_kill_events": 0,
+      "mounts": [
+        {
+          "type": "volume",
+          "target": "/app/.sessions",
+          "writable": true,
+          "source_sha256": "4c1e378cb93769a1b97f1e0542c91baf0b4d4348d6583b5e75a5d3ba92b9ddee"
+        }
+      ]
+    },
+    {
+      "name": "socialmei-python",
+      "image_id": "sha256:d38945bfde2ae41d94d228ed66e7278c0ddca8bd9321e3dbf4519e3c6c3974d3",
+      "revision": null,
+      "health": "healthy",
+      "database_provider": null,
+      "periodic_healthcheck_installed": false,
+      "health_interval_seconds": 30.0,
+      "networks": ["socialmei_default"],
+      "published_port_count": 1,
+      "optional_modes": {},
+      "role": "legacy integration API; route usage must be confirmed before removal",
+      "current_mib": 15.41,
+      "anon_mib": 7.59,
+      "file_mib": 5.53,
+      "swap_current_mib": 122.9,
+      "limit_mib": 0.0,
+      "reservation_mib": 0.0,
+      "oom_kill_events": 0,
+      "mounts": []
+    },
+    {
+      "name": "socialmei-caddy",
+      "image_id": "sha256:de23def33b17fb5d1290b0f6c2add1d70780e52341896c00a4c8a2a2fe9d355e",
+      "revision": null,
+      "health": null,
+      "database_provider": null,
+      "periodic_healthcheck_installed": false,
+      "health_interval_seconds": 0.0,
+      "networks": ["socialmei_default", "socialmei_team_web"],
+      "published_port_count": 2,
+      "optional_modes": {},
+      "role": "public edge gateway; preserve routes",
+      "current_mib": 20.5,
+      "anon_mib": 11.62,
+      "file_mib": 7.79,
+      "swap_current_mib": 2.56,
+      "limit_mib": 0.0,
+      "reservation_mib": 0.0,
+      "oom_kill_events": 0,
+      "mounts": [
+        {
+          "type": "volume",
+          "target": "/config",
+          "writable": true,
+          "source_sha256": "dfb24e1792aa5c95f5d4b531ce32859df0369bc5511b01f708606c78b18493f2"
+        },
+        {
+          "type": "volume",
+          "target": "/data",
+          "writable": true,
+          "source_sha256": "d67155bd9846416f70cadccf2eb02a52f71b06e798e0ed980e6eea0795229950"
+        },
+        {
+          "type": "bind",
+          "target": "/etc/caddy/Caddyfile",
+          "writable": false,
+          "source_sha256": "9a86b929acebc30da82ea20ea5bb9c06d221ae796a7dadb58301cecf8bdfc767"
+        }
+      ]
+    },
+    {
+      "name": "socialmei-n8n",
+      "image_id": "sha256:9f693fd5565539efd5e75ad168526c8041a6af516d9e50bc4d9cb1c9c5031523",
+      "revision": null,
+      "health": null,
+      "database_provider": null,
+      "periodic_healthcheck_installed": false,
+      "health_interval_seconds": 0.0,
+      "networks": ["socialmei_default"],
+      "published_port_count": 0,
+      "optional_modes": {},
+      "role": "existing automation orchestrator",
+      "current_mib": 310.91,
+      "anon_mib": 269.1,
+      "file_mib": 25.78,
+      "swap_current_mib": 85.21,
+      "limit_mib": 0.0,
+      "reservation_mib": 0.0,
+      "oom_kill_events": 0,
+      "mounts": [
+        {
+          "type": "volume",
+          "target": "/home/node/.n8n",
+          "writable": true,
+          "source_sha256": "8b003dbbfd05faf05bb88d6723a5a5637b908ca8d302fe483e7e67d4cf471cbf"
+        }
+      ]
+    },
+    {
+      "name": "socialmei-python-runners",
+      "image_id": "sha256:de290741c2c747a9af5c1490168b687db276149ec1a8bc06336877d213eb97d2",
+      "revision": null,
+      "health": null,
+      "database_provider": null,
+      "periodic_healthcheck_installed": false,
+      "health_interval_seconds": 0.0,
+      "networks": ["socialmei_python_runners"],
+      "published_port_count": 0,
+      "optional_modes": {},
+      "role": "existing n8n Python runner dependency",
+      "current_mib": 7.32,
+      "anon_mib": 3.65,
+      "file_mib": 2.86,
+      "swap_current_mib": 0.3,
+      "limit_mib": 0.0,
+      "reservation_mib": 0.0,
+      "oom_kill_events": 0,
+      "mounts": []
+    },
+    {
+      "name": "socialmei-team-team-postgres-1",
+      "image_id": "sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea",
+      "revision": null,
+      "health": "healthy",
+      "database_provider": null,
+      "periodic_healthcheck_installed": false,
+      "health_interval_seconds": 5.0,
+      "networks": ["socialmei-team_database"],
+      "published_port_count": 0,
+      "optional_modes": {},
+      "role": "local team database; not the API Prisma connection",
+      "current_mib": 18.08,
+      "anon_mib": 0.7,
+      "file_mib": 14.13,
+      "swap_current_mib": 25.35,
+      "limit_mib": 0.0,
+      "reservation_mib": 0.0,
+      "oom_kill_events": 0,
+      "mounts": [
+        {
+          "type": "volume",
+          "target": "/var/lib/postgresql/data",
+          "writable": true,
+          "source_sha256": "332e5f0e7b46c7dd1cc344aec9f5263c37f290f72762a0fa051df9d444918eee"
+        }
+      ]
+    },
+    {
+      "name": "socialmei-waha",
+      "image_id": "sha256:280bdc8f860267a2488a45d00ec88529646f7468c0bf0283c595d6efdd1b5e3b",
+      "revision": "90ba445a0e765701c8910f0fac08176250c3e0fd",
+      "health": null,
+      "database_provider": null,
+      "periodic_healthcheck_installed": false,
+      "health_interval_seconds": 0.0,
+      "networks": ["socialmei-team_api", "socialmei_default"],
+      "published_port_count": 1,
+      "optional_modes": {},
+      "role": "existing WEBJS/WAHA engine; session usage must be confirmed before removal",
+      "current_mib": 358.91,
+      "anon_mib": 222.75,
+      "file_mib": 107.22,
+      "swap_current_mib": 591.52,
+      "limit_mib": 0.0,
+      "reservation_mib": 0.0,
+      "oom_kill_events": 0,
+      "mounts": [
+        {
+          "type": "volume",
+          "target": "/app/.sessions",
+          "writable": true,
+          "source_sha256": "db07edf0686b123484346d51676f0479008ede04d50297203e3d47b411f01028"
+        }
+      ]
+    },
+    {
+      "name": "socialmei-pgadmin",
+      "image_id": "sha256:c332c5f6dfba995d9ebc4af261d93506d6876085d712eaaa3defc8dd1a3f26de",
+      "revision": null,
+      "health": null,
+      "database_provider": null,
+      "periodic_healthcheck_installed": false,
+      "health_interval_seconds": 0.0,
+      "networks": ["socialmei_default"],
+      "published_port_count": 0,
+      "optional_modes": {},
+      "role": "optional administration UI; removal requires approval",
+      "current_mib": 38.56,
+      "anon_mib": 20.6,
+      "file_mib": 14.6,
+      "swap_current_mib": 209.26,
+      "limit_mib": 0.0,
+      "reservation_mib": 0.0,
+      "oom_kill_events": 0,
+      "mounts": [
+        {
+          "type": "volume",
+          "target": "/var/lib/pgadmin",
+          "writable": true,
+          "source_sha256": "af654d2af5ff9a4de8bc5747b81d027e49c88e9c7a3480346312f05eadf57911"
+        }
+      ]
+    },
+    {
+      "name": "socialmei-postgres",
+      "image_id": "sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea",
+      "revision": null,
+      "health": "healthy",
+      "database_provider": null,
+      "periodic_healthcheck_installed": false,
+      "health_interval_seconds": 10.0,
+      "networks": ["socialmei_default"],
+      "published_port_count": 0,
+      "optional_modes": {},
+      "role": "existing stack PostgreSQL; dependencies must be preserved",
+      "current_mib": 32.85,
+      "anon_mib": 5.09,
+      "file_mib": 23.5,
+      "swap_current_mib": 52.07,
+      "limit_mib": 0.0,
+      "reservation_mib": 0.0,
+      "oom_kill_events": 0,
+      "mounts": [
+        {
+          "type": "volume",
+          "target": "/var/lib/postgresql/data",
+          "writable": true,
+          "source_sha256": "d966f509b5ccd12b521fb7da00184d2ef6e1e5fb3615bf14a47966000d853f56"
+        }
+      ]
+    }
+  ],
+  "networks": [
+    {
+      "Name": "bridge",
+      "Driver": "bridge",
+      "Internal": false
+    },
+    {
+      "Name": "socialmei-postgres-relocation-20261112-isolated",
+      "Driver": "bridge",
+      "Internal": true
+    },
+    {
+      "Name": "socialmei-team_api",
+      "Driver": "bridge",
+      "Internal": true
+    },
+    {
+      "Name": "socialmei-team_database",
+      "Driver": "bridge",
+      "Internal": true
+    },
+    {
+      "Name": "socialmei_default",
+      "Driver": "bridge",
+      "Internal": false
+    },
+    {
+      "Name": "socialmei_python_runners",
+      "Driver": "bridge",
+      "Internal": true
+    },
+    {
+      "Name": "socialmei_team_egress",
+      "Driver": "bridge",
+      "Internal": false
+    },
+    {
+      "Name": "socialmei_team_web",
+      "Driver": "bridge",
+      "Internal": false
+    }
+  ],
+  "api": {
+    "liveness": {
+      "http_status": 200,
+      "healthy": true
+    },
+    "existing_log_categories": {
+      "plan_limit_seen": false,
+      "health_db_503_seen": true,
+      "health_db_200_seen": false,
+      "readiness_unavailable_seen": false
+    },
+    "status": "running, Docker unhealthy, existing readiness503; no new database query",
+    "root_cause_limit": "Current sample does not contain literal planLimitReached. Previous source-export receipt proves an earlier provider account limit; live database identity/schema remains unverified."
+  },
+  "database_configuration_comparison": {
+    "both_explicit_dsns_present": true,
+    "host_equal": true,
+    "port_equal": true,
+    "db_equal": true,
+    "user_equal": true,
+    "password_equal": true,
+    "querykeys_equal": true
+  },
+  "gateway_reconciliation": {
+    "effective_caddyfile_sha256": "35fa06ca455881109a44bca97e8460a1eb512f59af8007da47a50ab49aff64c5",
+    "semantic_comparison": {
+      "complete": true,
+      "semantic_equal": false,
+      "effective_canonical_sha256": "cf19be39619f6cf3d5f2cce762a4bd3a8d7497d286ba362808fbeb6af3120ea3",
+      "public_canonical_sha256": "bac088186348ef5ae6ebf0c4f04c78996a774ddf4eea71fd5dcde0cbb2ad7690",
+      "missing_public_paths": [
+        "/api/v1/integracoes/relatorio",
+        "/api/v1/integracoes/whatsapp/menu",
+        "/api/v1/public/booking/*",
+        "/llms.txt",
+        "/robots.txt",
+        "/sitemap.xml",
+        "/sobre.html"
+      ],
+      "additional_private_path_count": 0
+    },
+    "private_configuration_exported": false,
+    "proposal": "deploy/team/release040-gateway-bind.example.yaml",
+    "offline_stale_bind_rejected_and_reconciled_model_passed": true,
+    "existing_private_sources_preserved_in_synthetic_fixture": true,
+    "production_applied": false,
+    "limit": "Missing explicit path matcher is not proof of endpoint inaccessibility; generic routes may match. No extra private path matchers does not prove complete policy equivalence."
+  },
+  "smtp_environment_presence": {
+    "SOCIALMEI_SMTP_HOST": false,
+    "SOCIALMEI_SMTP_PORT": false,
+    "SOCIALMEI_SMTP_USER": false,
+    "SOCIALMEI_SMTP_PASSWORD": false,
+    "SOCIALMEI_SMTP_FROM": false
+  },
+  "identity_and_recovery_environment_modes": {
+    "SOCIALMEI_IDENTITY_MODE": "absent",
+    "SOCIALMEI_RECOVERY_MODE": "absent"
+  },
+  "database_comparison_limit": "Equal configured components do not prove live schema/contents. Initial raw-DSN string groups are not different-database evidence.",
+  "backup": {
+    "scope": "isolated historical destination; not current production",
+    "s3_configuration_present": false,
+    "socialmei-postgres-relocation-backup.timer": {
+      "LoadState": "loaded",
+      "ActiveState": "active",
+      "SubState": "waiting",
+      "UnitFileState": "enabled",
+      "NextElapseUSecRealtime": "Fri 2026-11-13 23:00:03 -03",
+      "LastTriggerUSec": "Fri 2026-11-13 22:02:02 -03",
+      "Result": "success"
+    },
+    "socialmei-postgres-relocation-backup.service": {
+      "LoadState": "loaded",
+      "ActiveState": "inactive",
+      "SubState": "dead",
+      "UnitFileState": "static",
+      "Result": "success",
+      "ExecMainStatus": "0"
+    },
+    "local_receipt_count": 33,
+    "latest_local_backup": {
+      "created_at_utc": "20261114T010202Z-19a3b6da",
+      "bytes": 447575,
+      "sha256": "809755a7954883a08afed9ad4a402034690d6094947c9d4b185f6801b53b970c",
+      "source": "isolated_historical_destination",
+      "current_production_backup": false,
+      "external_uploaded": false,
+      "archive_index_verified": true,
+      "local_hash_and_size_verified": true
+    },
+    "previous_source_export": {
+      "source_export_succeeded": false,
+      "reason": "provider_account_limit",
+      "bytes": 0
+    }
+  },
+  "backup_inspection_limit": "Initial unprivileged glob was inconclusive; targeted sudo read of metadata/hash resolved access. Dumps were not copied or restored.",
+  "iam": "Previous access denial retained; no repeated IAM request. S3 configuration absent. Example policy unapplied; approved private encrypted versioned bucket and external upload/readback/restore remain required.",
+  "local_image_measurement": {
+    "scope": "isolated imports only; not traffic/load validation",
+    "peak_rss_kib": {
+      "api_import": 77888,
+      "identity_import": 79244,
+      "recovery_import": 78884,
+      "instagram_import": 78876
+    }
+  },
+  "capacity_planning": {
+    "additional_api_growth_mib": [80, 180],
+    "additional_postgres_growth_mib": [100, 220],
+    "four_optional_workers_mib": [320, 512],
+    "additional_total_mib": [500, 912],
+    "required_operational_headroom_mib": 384,
+    "basis": "Planning bands above isolated imports; not measured traffic demand. PostgreSQL192MiB current limit is rehearsal-only.",
+    "current_2gib_approved": false,
+    "first_host_size_to_validate_gib": 4,
+    "note": "4GiB is a load-test proposal, not sizing certification. Limits alone cannot reclaim essential working sets. Optional services cannot be stopped without approval."
+  },
+  "local_proposals": {
+    "capacity_overlay": "deploy/team/release040-capacity.example.yaml",
+    "backup_iam": "deploy/team/postgres-backup-iam.example.json",
+    "offline_compose_and_artifact_gate_passed": true,
+    "comparison_changed_only_six_service_memory_settings": true,
+    "production_applied": false
+  },
+  "tests": {
+    "snapshot_tests_passed": 7,
+    "iam_boundary_tests_passed": 2,
+    "full_suites_repeated": false,
+    "images_rebuilt": false
+  },
+  "production_changes": false,
+  "database_changes": false,
+  "messages_or_emails_sent": false,
+  "new_aws_costs_or_resources": false,
+  "remaining_gates": [
+    "current production export and identity",
+    "continuous external restorable backup/IAM",
+    "capacity approval and representative load",
+    "authorization and installed-path verification for prepared gateway reconciliation",
+    "explicit040/provider-cutover/deployment authorization",
+    "controlled SMTP/WhatsApp/Meta homologation"
+  ]
+}
