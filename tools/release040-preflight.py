@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 import re
 import subprocess
+from urllib.parse import parse_qs, urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location('release040_profile', ROOT / 'tools/team-release-profile.py')
@@ -24,7 +25,7 @@ OFF = ('SOCIALMEI_PUBLIC_BOOKING_ENABLED', 'SOCIALMEI_WHATSAPP_BOT_ENABLED',
        'SOCIALMEI_INSTAGRAM_RUNTIME_INGRESS_ENABLED', 'SOCIALMEI_INSTAGRAM_RUNTIME_SEND_ENABLED',
        'SOCIALMEI_INSTAGRAM_PUBLISH_ENABLED', 'SOCIALMEI_INSTAGRAM_TOKEN_REFRESH_ENABLED',
        'SOCIALMEI_INSTAGRAM_AUTO_MENU_ENABLED', 'SOCIALMEI_PROVIDER_SENTIMENT_ENABLED')
-GATES = ['current_source_export_and_database_identity', 'external_restorable_backup',
+GATES = ['approved_source_backup_and_database_identity', 'external_restorable_backup',
          'current_capacity_and_private_overlay_reconciliation', 'explicit_schema040_approval',
          'explicit_publication_approval',
          'separate_authorization_for_channels_and_smtp']
@@ -66,7 +67,7 @@ def database_identity(env):
     return tuple(values[key] for key in fields)
 
 
-def validate(model, images, sha, receipt, rollback):
+def validate(model, images, sha, receipt, rollback, database_runtime=None):
     require(re.fullmatch(r'[0-9a-f]{40}', sha) is not None, 'invalid_source_sha')
     folder = ROOT / 'database/migrations'
     profile.verify040(sorted(file.name for file in folder.glob('*.sql')),
@@ -78,8 +79,37 @@ def validate(model, images, sha, receipt, rollback):
     require('team-migrate' not in api.get('depends_on', {}), 'implicit_migration_dependency')
     require(services.get('team-migrate', {}).get('profiles') == ['maintenance040'], 'migration_not_quarantined')
     for name in ('database', 'api', 'automation'):
-        require(model.get('networks', {}).get(name, {}).get('internal') is True,
-                'private_network_required')
+        network = model.get('networks', {}).get(name, {})
+        if name == 'database' and network.get('external') is True:
+            runtime = database_runtime or {}
+            actual = runtime.get('network', {})
+            postgres = runtime.get('postgres', {})
+            require(actual.get('Internal') is True and actual.get('Name') == network.get('name')
+                    and bool(network.get('name')), 'external_database_network_unverified')
+            require(postgres.get('State', {}).get('Running') is True
+                    and 'PortBindings' in postgres.get('HostConfig', {})
+                    and not postgres.get('HostConfig', {}).get('PortBindings')
+                    and set(postgres.get('NetworkSettings', {}).get('Networks', {})) == {network['name']},
+                    'external_database_isolation_unverified')
+            connection = urlsplit(api.get('environment', {}).get('DATABASE_URL', ''))
+            query = parse_qs(connection.query, keep_blank_values=True, strict_parsing=True)
+            ca = '/run/socialmei/database-ca.crt'
+            require(connection.hostname == str(postgres.get('Name', '')).lstrip('/')
+                    and bool(connection.hostname) and (connection.port or 5432) == 5432
+                    and not set(query) - {'sslmode', 'sslrootcert', 'connect_timeout', 'application_name', 'channel_binding'}
+                    and query.get('sslmode') == ['verify-full']
+                    and query.get('sslrootcert') == [ca], 'external_database_tls_identity_mismatch')
+            certificate_sources = set()
+            for consumer in ('team-api', *WORKERS):
+                require(any(volume.get('type') == 'bind' and volume.get('source')
+                            and volume.get('target') == ca and volume.get('read_only') is True
+                            for volume in services.get(consumer, {}).get('volumes', [])),
+                        'external_database_ca_mount_missing')
+                certificate_sources.update(volume['source'] for volume in services[consumer]['volumes']
+                                           if volume.get('target') == ca)
+            require(len(certificate_sources) == 1, 'external_database_ca_mismatch')
+        else:
+            require(network.get('internal') is True, 'private_network_required')
     require(not services.get('team-postgres', {}).get('ports'), 'database_published_port')
     require(not api.get('ports'), 'api_published_port')
     require(api.get('healthcheck', {}).get('test'), 'api_healthcheck_missing')
@@ -162,6 +192,8 @@ def main():
                         help='Private docker compose config --format json; never commit this file')
     parser.add_argument('--rehearsal', type=Path, required=True)
     parser.add_argument('--rollback-rehearsal', type=Path, required=True)
+    parser.add_argument('--database-runtime', type=Path,
+                        help='Read-only network/PostgreSQL metadata for an existing external private network')
     parser.add_argument('--source-sha', required=True)
     parser.add_argument('--docker', default='docker')
     parser.add_argument('--api-image', required=True)
@@ -186,7 +218,8 @@ def main():
         result = validate(json.loads(args.compose_json.read_text(encoding='utf-8-sig')),
                           images, args.source_sha,
                           json.loads(args.rehearsal.read_text(encoding='utf-8-sig')),
-                          json.loads(args.rollback_rehearsal.read_text(encoding='utf-8-sig')))
+                          json.loads(args.rollback_rehearsal.read_text(encoding='utf-8-sig')),
+                          json.loads(args.database_runtime.read_text(encoding='utf-8-sig')) if args.database_runtime else None)
         print(json.dumps(result, indent=2))
     except Exception:
         # Input/model/process errors can include private environment values.

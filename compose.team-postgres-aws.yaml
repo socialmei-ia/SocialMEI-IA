@@ -1,0 +1,49 @@
+# Staged only. No service starts, migrations, database provisioning or channel activation.
+# Apply after release040, before the optional Brevo overlay. Preserve installed private overlays.
+x-database-ca: &database-ca
+  type: bind
+  source: ${SOCIALMEI_DATABASE_CA_FILE:?Private PostgreSQL CA file required}
+  target: /run/socialmei/database-ca.crt
+  read_only: true
+x-database-environment: &database-environment
+  DATABASE_URL: ${TEAM_APPLICATION_DATABASE_URL:?Explicit approved PostgreSQL040 DSN required}
+
+services:
+  team-postgres:
+    profiles: !override [legacy-local-db]
+  team-migrate:
+    environment: *database-environment
+    volumes:
+      - *database-ca
+    depends_on: !override {}
+  team-api:
+    environment: *database-environment
+    volumes:
+      - *database-ca
+    depends_on: !override {}
+  team-recovery-worker:
+    environment: *database-environment
+    volumes:
+      - *database-ca
+    depends_on: !override {}
+  team-identity-worker:
+    environment: *database-environment
+    volumes:
+      - *database-ca
+    depends_on: !override {}
+  team-instagram-menu-primary:
+    environment: *database-environment
+    volumes:
+      - *database-ca
+    depends_on: !override {}
+  team-instagram-menu-secondary:
+    environment: *database-environment
+    volumes:
+      - *database-ca
+    depends_on: !override {}
+
+networks:
+  database:
+    internal: !reset null
+    external: true
+    name: ${SOCIALMEI_DATABASE_NETWORK:?Existing verified private PostgreSQL network required}

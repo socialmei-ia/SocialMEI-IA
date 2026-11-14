@@ -43,10 +43,63 @@ def inputs():
 
 
 class Release040PreflightTests(unittest.TestCase):
+    def external_inputs(self):
+        model, images, sha, receipt, rollback = inputs()
+        model['networks']['database'] = {'external': True, 'name': 'isolated-db-network'}
+        url = ('postgresql://synthetic@isolated-pg/test?sslmode=verify-full'
+               '&sslrootcert=/run/socialmei/database-ca.crt')
+        for name in ('team-api', *gate.WORKERS):
+            model['services'][name]['environment']['DATABASE_URL'] = url
+            model['services'][name]['volumes'] = [{'type': 'bind', 'source': '/private/ca.crt',
+                'target': '/run/socialmei/database-ca.crt', 'read_only': True}]
+        runtime = {'network': {'Name': 'isolated-db-network', 'Internal': True},
+                   'postgres': {'Name': '/isolated-pg', 'State': {'Running': True},
+                                'HostConfig': {'PortBindings': {}},
+                                'NetworkSettings': {'Networks': {'isolated-db-network': {}}}}}
+        return model, images, sha, receipt, rollback, runtime
+
+    def test_external_private_postgres_requires_runtime_proof_and_ca_for_all_consumers(self):
+        args = self.external_inputs()
+        result = gate.validate(*args)
+        self.assertTrue(result['artifact_checks_passed'])
+        self.assertFalse(result['production_ready'])
+        with self.assertRaises(RuntimeError):
+            gate.validate(*args[:-1])
+
+    def test_external_database_rejects_public_network_wrong_identity_and_missing_tls(self):
+        changes = [
+            lambda m, r: r['network'].update(Internal=False),
+            lambda m, r: r['network'].update(Name='other-network'),
+            lambda m, r: r['postgres']['State'].update(Running=False),
+            lambda m, r: r['postgres']['HostConfig'].update(PortBindings={'5432/tcp': [{}]}),
+            lambda m, r: r['postgres'].pop('HostConfig'),
+            lambda m, r: r['postgres']['NetworkSettings']['Networks'].update(public={}),
+            lambda m, r: m['services']['team-api']['environment'].update(DATABASE_URL='postgresql://other/test'),
+            lambda m, r: m['services']['team-api']['environment'].update(DATABASE_URL='postgresql://synthetic@isolated-pg/test?sslmode=require'),
+            lambda m, r: m['services']['team-identity-worker'].update(volumes=[]),
+            lambda m, r: m['services']['team-api']['volumes'][0].update(read_only=False),
+            lambda m, r: m['services']['team-identity-worker']['volumes'][0].update(source='/other/ca.crt'),
+        ]
+        for index, change in enumerate(changes):
+            with self.subTest(change=index):
+                model, images, sha, receipt, rollback, runtime = self.external_inputs()
+                change(model, runtime)
+                with self.assertRaises(RuntimeError):
+                    gate.validate(model, images, sha, receipt, rollback, runtime)
+
     def test_whitespace_dsn_uses_real_fallback_and_default_port(self):
         env = {'DATABASE_URL': ' ', 'POSTGRES_HOST': 'private', 'POSTGRES_DB': 'a', 'POSTGRES_USER': 'u'}
         self.assertNotEqual(gate.database_identity(env), gate.database_identity({**env, 'POSTGRES_DB': 'b'}))
         self.assertEqual(gate.database_identity(env), gate.database_identity({**env, 'POSTGRES_PORT': ' 5432 '}))
+
+    def test_external_database_uri_query_cannot_override_effective_libpq_identity(self):
+        for override in ('host=other', 'host=', 'hostaddr=127.0.0.1', 'dbname=other',
+                         'user=other', 'port=5433', 'service=other', 'options=other'):
+            with self.subTest(override=override):
+                model, images, sha, receipt, rollback, runtime = self.external_inputs()
+                model['services']['team-api']['environment']['DATABASE_URL'] += '&' + override
+                with self.assertRaises(RuntimeError):
+                    gate.validate(model, images, sha, receipt, rollback, runtime)
 
     def test_approved_artifacts_never_approve_production(self):
         result = gate.validate(*inputs())
