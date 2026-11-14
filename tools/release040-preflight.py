@@ -19,12 +19,16 @@ DISABLED = {
     'SOCIALMEI_IDENTITY_MODE': 'disabled', 'SOCIALMEI_RECOVERY_MODE': 'disabled',
     'SOCIALMEI_INSTAGRAM_RUNTIME_MODE': 'disabled', 'SOCIALMEI_WAHA_INGRESS_MODE': 'disabled',
     'SOCIALMEI_QUEUE_WAKEUP_MODE': 'poll',
+    'SOCIALMEI_INSTAGRAM_DIRECT_MODE': 'disabled', 'SOCIALMEI_INSTAGRAM_INGRESS_MODE': 'disabled',
+    'SOCIALMEI_INSTAGRAM_OAUTH_MODE': 'disabled',
 }
 OFF = ('SOCIALMEI_PUBLIC_BOOKING_ENABLED', 'SOCIALMEI_WHATSAPP_BOT_ENABLED',
        'SOCIALMEI_WAHA_MANAGEMENT_ENABLED', 'SOCIALMEI_WAHA_MANAGEMENT_PROBE_ENABLED',
        'SOCIALMEI_INSTAGRAM_RUNTIME_INGRESS_ENABLED', 'SOCIALMEI_INSTAGRAM_RUNTIME_SEND_ENABLED',
        'SOCIALMEI_INSTAGRAM_PUBLISH_ENABLED', 'SOCIALMEI_INSTAGRAM_TOKEN_REFRESH_ENABLED',
        'SOCIALMEI_INSTAGRAM_AUTO_MENU_ENABLED', 'SOCIALMEI_PROVIDER_SENTIMENT_ENABLED')
+OFF += ('SOCIALMEI_WHATSAPP_HUMAN_SEND_ENABLED', 'SOCIALMEI_WHATSAPP_HUMAN_PUBLIC_INBOUND_ENABLED',
+        'SOCIALMEI_INSTAGRAM_N8N_INGRESS_ENABLED')
 GATES = ['approved_source_backup_and_database_identity', 'external_restorable_backup',
          'current_capacity_and_private_overlay_reconciliation', 'explicit_schema040_approval',
          'explicit_publication_approval',
@@ -46,6 +50,24 @@ COMMANDS = {
     'team-instagram-menu-primary': ['python', '/app/instagram-auto-menu-worker.py'],
     'team-instagram-menu-secondary': ['python', '/app/instagram-auto-menu-worker.py'],
 }
+
+
+def staged_environment(installed, database_url):
+    """Return private staged values only; callers must never print this mapping."""
+    connection = urlsplit(database_url)
+    query = parse_qs(connection.query, keep_blank_values=True, strict_parsing=True)
+    require(connection.hostname == 'socialmei-postgres-relocation-20261112'
+            and connection.path == '/socialmei_candidate040_20261114'
+            and (connection.port or 5432) == 5432
+            and not set(query) - {'sslmode', 'sslrootcert', 'connect_timeout', 'application_name', 'channel_binding'}
+            and query.get('sslmode') == ['verify-full']
+            and query.get('sslrootcert') == ['/run/socialmei/database-ca.crt'], 'staged_database_identity_invalid')
+    staged = dict(installed)
+    staged.update(DISABLED)
+    staged.update({name: 'false' for name in OFF})
+    staged.update(DATABASE_URL=database_url, SOCIALMEI_AUTH_ENABLED='true',
+                  SOCIALMEI_MENU_SENDER_ACTIVE='NO', SOCIALMEI_PUBLIC_MENU_EXPLICIT_ENABLE='NO')
+    return staged
 
 
 def require(ok, code):

@@ -43,6 +43,24 @@ def inputs():
 
 
 class Release040PreflightTests(unittest.TestCase):
+    def test_staged_environment_preserves_private_values_and_disables_all_sending(self):
+        installed = {'DATABASE_URL': 'postgresql://old.invalid/old', 'SOCIALMEI_SMTP_PASSWORD': 'synthetic-secret',
+                     'SOCIALMEI_INSTAGRAM_TOKEN_KEYRING': 'synthetic-keyring', 'OTHER_PRIVATE_KEY': 'synthetic',
+                     'SOCIALMEI_AUTH_ORIGIN': 'https://existing.example.test',
+                     'SOCIALMEI_INSTAGRAM_AUTO_MENU_ENABLED': 'true', 'SOCIALMEI_MENU_SENDER_ACTIVE': 'YES'}
+        url = ('postgresql://synthetic@socialmei-postgres-relocation-20261112/socialmei_candidate040_20261114'
+               '?sslmode=verify-full&sslrootcert=/run/socialmei/database-ca.crt')
+        result = gate.staged_environment(installed, url)
+        for key in ('SOCIALMEI_SMTP_PASSWORD', 'SOCIALMEI_INSTAGRAM_TOKEN_KEYRING', 'OTHER_PRIVATE_KEY', 'SOCIALMEI_AUTH_ORIGIN'):
+            self.assertEqual(result[key], installed[key])
+        self.assertEqual(installed['SOCIALMEI_MENU_SENDER_ACTIVE'], 'YES')
+        self.assertEqual(result['SOCIALMEI_MENU_SENDER_ACTIVE'], 'NO')
+        self.assertTrue(all(result[key] == 'false' for key in gate.OFF))
+        self.assertTrue(all(result[key] == value for key, value in gate.DISABLED.items()))
+        for wrong in (url.replace('verify-full', 'require'), url.replace('candidate040', 'other'), url + '&host=other'):
+            with self.assertRaises(RuntimeError):
+                gate.staged_environment(installed, wrong)
+
     def external_inputs(self):
         model, images, sha, receipt, rollback = inputs()
         model['networks']['database'] = {'external': True, 'name': 'isolated-db-network'}
