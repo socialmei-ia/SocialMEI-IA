@@ -88,7 +88,6 @@ class QueueWakeup:
             self.connection = psycopg.connect(database_url(), autocommit=True,
                 connect_timeout=5, application_name='socialmei-queue-wakeup')
             self.connection.execute(sql.SQL('LISTEN {}').format(sql.Identifier(self.channel)))
-            self.retry_delay = 15
         except Exception:
             self._failed()
 
@@ -113,6 +112,8 @@ class QueueWakeup:
                 events = self.connection.notifies(timeout=duration, stop_after=1)
                 received = next(events, None) is not None
                 events.close()
+                # A successful LISTEN alone does not prove this connection can wait.
+                self.retry_delay = 15
                 if received:
                     # A burst can leave many signals after all durable rows were drained.
                     pending = self.connection.notifies(timeout=0, stop_after=1000)

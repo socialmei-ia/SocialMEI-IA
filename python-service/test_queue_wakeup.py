@@ -78,6 +78,23 @@ class QueueWakeupTests(unittest.TestCase):
             self.assertFalse(queue.notify_queue(conn, queue.RECOVERY_CHANNEL))
             conn.rollback.assert_not_called()
 
+    def test_repeated_disconnect_after_listen_keeps_exponential_backoff(self):
+        conn = MagicMock()
+        conn.notifies.side_effect = psycopg.OperationalError('private')
+        with patch.dict(os.environ, {'SOCIALMEI_QUEUE_WAKEUP_MODE': 'listen'}), \
+                patch.object(queue, 'database_url', return_value='synthetic-dsn'), \
+                patch.object(queue.time, 'monotonic', return_value=100), \
+                patch.object(queue.psycopg, 'connect', return_value=conn):
+            with queue.QueueWakeup(queue.RECOVERY_CHANNEL, sleeper=lambda _: None) as wakeup:
+                for delay in (15, 30, 60, 120, 240, 300, 300):
+                    self.assertFalse(wakeup.wait())
+                    self.assertEqual(wakeup.retry_at, 100 + delay)
+                    wakeup.retry_at = 0
+                    wakeup.prepare()
+                conn.notifies.side_effect = lambda **kwargs: (value for value in [])
+                self.assertFalse(wakeup.wait())
+                self.assertEqual(wakeup.retry_delay, 15)
+
     def test_poll_producers_add_no_sql(self):
         conn = MagicMock()
         with patch.dict(os.environ, {'SOCIALMEI_QUEUE_WAKEUP_MODE': 'poll'}):
