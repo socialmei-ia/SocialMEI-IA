@@ -1,4 +1,6 @@
 # Exact base used by the installed a472 gateway; no incidental Caddy upgrade.
 FROM caddy:2-alpine@sha256:e70b164da81ef698b3ad19af799ea6086ce6d9e48ed4079eb9fe26f6fbf14ee5
+ARG SOCIALMEI_RELEASE_SHA=unknown
+LABEL org.opencontainers.image.revision=$SOCIALMEI_RELEASE_SHA
 COPY frontend/ /srv/frontend/
 COPY deploy/team/Caddyfile /etc/caddy/Caddyfile

@@ -1,0 +1,28 @@
+# LAST overlay, after recovery, identity and Instagram worker definitions.
+# Preparation only: never starts a migration or enables a worker profile.
+services:
+  team-migrate:
+    profiles: !override [maintenance040]
+  team-api:
+    image: ${SOCIALMEI_API_IMAGE:?Exact approved API image ID required}
+    build: !reset null
+    depends_on: !override {}
+  team-gateway:
+    image: ${SOCIALMEI_GATEWAY_IMAGE:?Exact approved gateway image ID required}
+    build: !reset null
+  team-recovery-worker:
+    image: ${SOCIALMEI_API_IMAGE:?Exact approved API image ID required}
+    build: !reset null
+  team-identity-worker:
+    image: ${SOCIALMEI_API_IMAGE:?Exact approved API image ID required}
+    build: !reset null
+  team-instagram-menu-primary:
+    image: ${SOCIALMEI_API_IMAGE:?Exact approved API image ID required}
+    build: !reset null
+    volumes: !override
+      - instagram_menu_primary_state:/run/socialmei/instagram-menu-state
+  team-instagram-menu-secondary:
+    image: ${SOCIALMEI_API_IMAGE:?Exact approved API image ID required}
+    build: !reset null
+    volumes: !override
+      - instagram_menu_secondary_state:/run/socialmei/instagram-menu-state

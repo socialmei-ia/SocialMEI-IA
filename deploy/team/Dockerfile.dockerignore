@@ -1,0 +1,7 @@
+**
+!frontend/
+!frontend/**
+!deploy/
+!deploy/team/
+!deploy/team/Caddyfile
+!deploy/team/Dockerfile

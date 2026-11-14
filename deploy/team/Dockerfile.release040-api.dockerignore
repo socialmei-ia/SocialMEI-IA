@@ -1,0 +1,9 @@
+**
+!python-service/
+!python-service/*.py
+!python-service/requirements.txt
+!tools/
+!tools/instagram-auto-menu-worker.py
+!deploy/
+!deploy/team/
+!deploy/team/Dockerfile.release040-api

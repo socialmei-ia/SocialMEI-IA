@@ -245,6 +245,7 @@ def rehearse(args, root=ROOT):
                         'postgres_16_required')
         migrate(baseline)
         profile.require([row['version'] for row in ledger()] == list(profile.MIGRATIONS039), 'baseline_ledger_invalid')
+        sql((root / 'tools/schema040-premigration.sql').read_text())
         sql(SEED)
         old_tables = tables()
         before, old_schema, old_sequences, old_ledger = snapshot(old_tables), snapshot(old_tables, True), sequences(), ledger()
