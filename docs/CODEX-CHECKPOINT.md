@@ -1,5 +1,21 @@
 # Checkpoint SocialMEI-IA
 
+## Continuidade release040 — Brevo privado (14-11-2026)
+
+- Base6a8914f preservada, runtime das imagens9b inalterado. Brevo externo homologado
+  pelo responsável; não repetir cadastro/remetente/chave/teste no notebook.
+- Novo tools/brevo-private-config.py prepara arquivo NOVO foraGit com entrada
+  oculta, ACL0600/owner-only, sem rede/envio. compose.team-brevo.yaml integra os
+  três consumidores e mantém modosdisabled/perfis inativos. Chave real não foi
+  solicitada/armazenada nesta execução; instalaçãoAWS ainda não autorizada.
+-23 verificações direcionadas aprovadas (14Brevo,7gateAWS/IPSMTP,2IAMmínimo).
+  Sem repetir as suítes anteriores, publicar, consultarPrisma ou repetir IAMnegado.
+- Próximo passo concreto: entrada privada pelo responsável; solicitações e comandos
+  consolidados em docs/BREVO-RELEASE040.md. Dados atuais, S3/restauração, capacidade,
+  autorização040/publicação e canários reais continuam gates externos.
+- Evidência nova: docs/evidence/20261114-brevo-release-preparation.json. Relatos e
+  checkpoints abaixo permanecem históricos, não são autorização atual de produção.
+
 ## Continuidade ChatGPT — testes isolados antes de liberar canais (12-11-2026)
 
 - Prisma de produção permanece indisponível por limite operacional e está fora do escopo desta rodada. Nenhum comando de banco real, corte ou disparo foi executado.

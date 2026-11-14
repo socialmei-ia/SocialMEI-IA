@@ -1,0 +1,49 @@
+{
+  "base_checkpoint": "6a8914f9608354cbb808ad286cc424d6483e5622",
+  "branch": "release/functional-completion-20261112",
+  "external_brevo_service": {
+    "status": "homologation_reported_by_owner",
+    "sender_verified": true,
+    "receipt_confirmed_by_owner": true,
+    "not_retested": true
+  },
+  "implementation": {
+    "hidden_interactive_entry": true,
+    "new_private_file_only": true,
+    "native_windows_owner_only_acl_tested": true,
+    "junction_redirect_tested": true,
+    "three_consumer_compose_integration": true,
+    "literal_credentials_roundtrip_tested": true,
+    "private_config_and_render_audit": true,
+    "same_database_and_primary_origin_checked": true,
+    "delivery_disabled_by_default": true
+  },
+  "tests": {
+    "brevo_passed": 14,
+    "aws_smtp_ip_gate_passed": 7,
+    "least_privilege_iam_passed": 2,
+    "real_email_sent": false,
+    "regression_suites_repeated": false,
+    "transport": "mocked SMTP only; Compose config only; synthetic credentials"
+  },
+  "runtime_source_sha": "9b34ac80ee5f2d9d6a12aa1b5c7e254bccb0c4d8",
+  "runtime_application_code_changed": false,
+  "real_credentials_requested_or_stored_this_run": false,
+  "aws_files_installed": false,
+  "aws_denied_calls_repeated": false,
+  "prisma_queries_repeated": false,
+  "production_schema_or_data_changed": false,
+  "workers_activated": false,
+  "channels_changed": false,
+  "images_rebuilt": false,
+  "production_published": false,
+  "remaining_gates": [
+    "private credential entry by owner in protected terminal",
+    "current source export and restorable external backup",
+    "AWS permissions and capacity/IP inventory",
+    "explicit040 and core-publication approval",
+    "approved AWS-origin mail canary and received messages",
+    "queue scope and worker activation authorization",
+    "real channel homologation for both businesses"
+  ]
+}
