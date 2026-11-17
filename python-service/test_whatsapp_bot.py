@@ -26,6 +26,32 @@ class BotClosedContracts(unittest.TestCase):
             with patch.dict(os.environ, {'SOCIALMEI_WHATSAPP_BOT_ALLOWED_CONTACTS': '["222@c.us"]'}):
                 self.assertEqual(settings.whatsapp_bot_allowed_contacts(), frozenset({'waha:222@c.us'}))
 
+    def test_public_inbound_requires_explicit_flag_and_authenticated_team_pilot(self):
+        import settings
+        env = {
+            'SOCIALMEI_WAHA_INGRESS_MODE': 'team-pilot',
+            'SOCIALMEI_WAHA_LAB_ENVIRONMENT': 'team-pilot',
+            'SOCIALMEI_WAHA_REGISTRY_FILE': '/run/socialmei/private/waha-registry.json',
+            'SOCIALMEI_AUTH_ENABLED': 'true',
+            'SOCIALMEI_SHARED_DATA_ENABLED': 'true',
+            'SOCIALMEI_WHATSAPP_BOT_ENABLED': 'true',
+            'SOCIALMEI_WHATSAPP_BOT_PUBLIC_INBOUND_ENABLED': 'true',
+        }
+        with patch.dict(os.environ, env, clear=True):
+            self.assertTrue(settings.whatsapp_bot_public_inbound_enabled())
+            self.assertIsNone(settings.whatsapp_bot_allowed_contacts())
+            for key, value in (
+                ('SOCIALMEI_WHATSAPP_BOT_ENABLED', 'false'),
+                ('SOCIALMEI_WHATSAPP_BOT_PUBLIC_INBOUND_ENABLED', 'false'),
+                ('SOCIALMEI_AUTH_ENABLED', 'false'),
+                ('SOCIALMEI_SHARED_DATA_ENABLED', 'false'),
+                ('SOCIALMEI_WAHA_INGRESS_MODE', 'workspace-inbox'),
+                ('SOCIALMEI_WAHA_REGISTRY_FILE', '/tmp/other-registry.json'),
+            ):
+                with self.subTest(key=key), patch.dict(os.environ, {key: value}):
+                    self.assertFalse(settings.whatsapp_bot_public_inbound_enabled())
+                    self.assertEqual(settings.whatsapp_bot_allowed_contacts(), frozenset())
+
     def test_pending_sources_are_closed_before_database_when_bot_disabled(self):
         with patch.dict(os.environ, {'SOCIALMEI_WHATSAPP_BOT_ENABLED': 'false'}), patch(
             'whatsapp_bot.connect', side_effect=AssertionError('unexpected database')
