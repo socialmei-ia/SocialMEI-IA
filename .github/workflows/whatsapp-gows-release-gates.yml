@@ -73,6 +73,11 @@ jobs:
           PYTHONPATH: python-service
         run: |
           python -m unittest test_waha_ingress test_waha_menu_selection test_whatsapp_bot test_channel_booking_flow test_channel_booking
+      - name: Validate professor demo modules with disposable PostgreSQL
+        env:
+          PYTHONPATH: python-service
+        run: |
+          python -m unittest test_public_booking test_instagram_booking_flow test_instagram_auto_menu test_inbox_customer test_service_appointments test_catalog test_sales test_finance
       - name: Validate immutable worker image source layout
         run: |
           docker build --build-arg SOCIALMEI_MENU_BASE_IMAGE=python:3.12-slim -t socialmei-worker-layout-check -f deploy/team/Dockerfile.whatsapp-menu-worker .
