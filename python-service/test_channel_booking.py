@@ -104,6 +104,104 @@ class BookingContractTests(unittest.TestCase):
                 self.assertIs(actual, conn)
 
 
+
+    def test_management_tokens_are_signed_and_bound_to_one_conversation(self):
+        appointment = uuid4()
+        value = {'purpose': 'channel-manage-v1', 'binding': 'contact-a',
+                 'appointment': str(appointment), 'revision': 3, 'expires': 2000000000}
+        token = booking.confirmation_token(value, KEY)
+        decoded, actual = booking._manage_claim(token, KEY, 'contact-a')
+        self.assertEqual((decoded, actual), (value, appointment))
+        for changed, binding in ((token, 'contact-b'), (token[:-1] + 'x', 'contact-a'),
+                                 (booking.confirmation_token({**value, 'purpose': 'admin'}, KEY), 'contact-a')):
+            with self.subTest(binding=binding), self.assertRaises(HTTPException):
+                booking._manage_claim(changed, KEY, binding)
+
+    def test_channel_changes_require_explicit_confirmation(self):
+        with patch.object(booking, 'transaction', side_effect=AssertionError('must not access database')):
+            with self.assertRaises(HTTPException) as cancel:
+                booking.cancel_for_message(1, 2, 3, 'waha', 'untrusted', KEY)
+            self.assertEqual(cancel.exception.status_code, 409)
+            with self.assertRaises(HTTPException) as move:
+                booking.reschedule_for_message(1, 2, 3, 'instagram', 'untrusted', 'slot', KEY)
+            self.assertEqual(move.exception.status_code, 409)
+
+    def test_manage_query_enforces_same_client_and_source_conversation(self):
+        from unittest.mock import MagicMock
+        conn = MagicMock()
+        conn.execute.return_value.fetchone.return_value = None
+        with self.assertRaises(HTTPException) as forbidden:
+            booking._owned_appointment(conn, 7, {'cliente_id': 11}, 8, 'instagram', uuid4())
+        self.assertEqual(forbidden.exception.status_code, 404)
+        query, args = conn.execute.call_args.args
+        self.assertIn('a.workspace_id=%s', query)
+        self.assertIn('a.cliente_id=%s', query)
+        self.assertIn('a.notes=%s', query)
+        self.assertEqual(args[0], 7)
+        self.assertEqual(args[2], 11)
+        self.assertEqual(args[3], 'Agendamento confirmado pelo canal instagram; conversa 8.')
+
+    def test_cancel_retry_does_not_write_a_second_history_event(self):
+        from unittest.mock import MagicMock
+        appointment, resource = uuid4(), uuid4()
+        token = booking.confirmation_token({
+            'purpose': 'channel-manage-v1', 'binding': 'authenticated-contact',
+            'appointment': str(appointment), 'revision': 1,
+            'expires': int(datetime.now(timezone.utc).timestamp()) + 600}, KEY)
+        row = {'id': appointment, 'resource_id': resource, 'revision': 2, 'status': 'cancelled'}
+        conn = MagicMock()
+        conn.execute.return_value.fetchone.return_value = row
+        with patch.object(booking, 'configure'), \
+             patch.object(booking, 'context_for_message',
+                          return_value={'binding': 'authenticated-contact', 'cliente_id': 4}), \
+             patch.object(appointments, 'lock_workspace'), \
+             patch.object(appointments, 'lock_resource', return_value={'nome': 'Equipe'}), \
+             patch.object(appointments, 'history') as record:
+            result = booking.cancel_for_message(1, 2, 3, 'waha', token, KEY,
+                                                confirmed=True, connection=conn)
+        self.assertEqual(result['status'], 'cancelled')
+        self.assertEqual(result['revision'], 2)
+        record.assert_not_called()
+        self.assertFalse(any('UPDATE' in call.args[0] for call in conn.execute.call_args_list))
+
+    def test_reschedule_rechecks_conflicts_and_does_not_write_when_busy(self):
+        from unittest.mock import MagicMock
+        appointment, resource = uuid4(), uuid4()
+        old_start = datetime.now(timezone.utc) + timedelta(days=1)
+        new_start = old_start + timedelta(days=1)
+        expires = int(datetime.now(timezone.utc).timestamp()) + 600
+        management = booking.confirmation_token({
+            'purpose': 'channel-manage-v1', 'binding': 'contact',
+            'appointment': str(appointment), 'revision': 1, 'expires': expires}, KEY)
+        slot = booking.confirmation_token({
+            'binding': 'contact', 'policy': 'active-policy',
+            'service': 5, 'service_revision': 3, 'resource': str(resource),
+            'resource_revision': 2, 'start': new_start.isoformat(), 'expires': expires}, KEY)
+        row = {'id': appointment, 'resource_id': resource, 'servico_id': 5, 'revision': 1,
+               'status': 'pending', 'scheduled_for': old_start, 'duration_minutes': 30}
+        conn = MagicMock()
+        conn.execute.return_value.fetchone.return_value = row
+        policy = booking.BookingPolicy(enabled=True, hours=[
+            {'weekday': day, 'opens': '09:00', 'closes': '17:00'} for day in range(7)])
+        with patch.object(booking, 'configure'), \
+             patch.object(booking, 'context_for_message',
+                          return_value={'binding': 'contact', 'cliente_id': 4}), \
+             patch.object(booking, 'active_policy', return_value=(policy, 'active-policy')), \
+             patch.object(booking, 'allowed_start', return_value=True), \
+             patch.object(appointments, 'lock_workspace'), \
+             patch.object(appointments, 'lock_resource',
+                          return_value={'id': resource, 'nome': 'Equipe', 'revision': 2, 'ativo': True}), \
+             patch.object(appointments, 'service',
+                          return_value={'versao': 3, 'duracao_minutos': 30}), \
+             patch.object(appointments, 'free', return_value=False), \
+             patch.object(appointments, 'history') as record:
+            with self.assertRaises(HTTPException) as conflict:
+                booking.reschedule_for_message(1, 2, 3, 'instagram',
+                    management, slot, KEY, confirmed=True, connection=conn)
+        self.assertEqual(conflict.exception.status_code, 409)
+        record.assert_not_called()
+        self.assertFalse(any('UPDATE' in call.args[0] for call in conn.execute.call_args_list))
+
 @unittest.skipUnless(accounts.DB, 'Disposable PostgreSQL required')
 class ChannelBookingDatabaseTests(unittest.TestCase):
     setUpClass = classmethod(accounts.AccountDatabaseTests.setUpClass.__func__)
