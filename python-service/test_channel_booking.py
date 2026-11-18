@@ -161,6 +161,45 @@ class ChannelBookingDatabaseTests(unittest.TestCase):
         return (client or self.client).post(PATH + '/confirm', json={**(context or self.context),
                                             'confirmation': token, 'confirmed': True})
 
+    def test_management_cancel_concurrent_replay_writes_one_history_revision(self):
+        created = self.confirm(self.offer()).json()
+        args = (self.workspace,self.context['conversation_id'],self.context['source_message_id'],'waha')
+        with psycopg.connect(accounts.DB, row_factory=dict_row) as conn:
+            reference=booking.appointments_for_message(*args,connection=conn)[0]['reference']
+        def cancel(_):
+            with psycopg.connect(accounts.DB,row_factory=dict_row) as conn:
+                return booking.change_for_message(*args,reference,confirmed=True,connection=conn)
+        with ThreadPoolExecutor(2) as pool:
+            results=list(pool.map(cancel,range(2)))
+        self.assertEqual(results[0],results[1])
+        self.assertEqual(results[0]['status'],'cancelled')
+        history=self.client.get('/api/v1/agenda/appointments/'+created['id']+'/history').json()['items']
+        self.assertEqual(len(history),2)
+
+    def test_management_competing_reschedules_preserve_original_id_and_one_winner(self):
+        created=self.confirm(self.offer()).json()
+        args=(self.workspace,self.context['conversation_id'],self.context['source_message_id'],'waha')
+        with psycopg.connect(accounts.DB,row_factory=dict_row) as conn:
+            reference=booking.appointments_for_message(*args,connection=conn)[0]['reference']
+            key=booking.signing_key_for_context(conn,*args)
+            offers=booking.slots_for_message(*args,self.service['id'],self.resource['id'],self.day,key,
+                connection=conn,appointment_reference=reference)['items']
+            tokens=[item['confirmation'] for item in offers if item['scheduled_for']!=created['scheduled_for']][:2]
+        self.assertEqual(len(tokens),2)
+        def move(token):
+            try:
+                with psycopg.connect(accounts.DB,row_factory=dict_row) as conn:
+                    result=booking.change_for_message(*args,reference,confirmation=token,signing_key=key,
+                        confirmed=True,connection=conn)
+                    self.assertEqual(result['id'],created['id'])
+                return 200
+            except HTTPException as error:
+                return error.status_code
+        with ThreadPoolExecutor(2) as pool:
+            self.assertEqual(sorted(pool.map(move,tokens)),[200,409])
+        history=self.client.get('/api/v1/agenda/appointments/'+created['id']+'/history').json()['items']
+        self.assertEqual(len(history),2)
+
     def test_same_user_in_two_stores_cannot_consume_other_stores_conversation(self):
         # A single login may own both stores, but the active session must scope
         # every channel-booking lookup to its currently selected workspace.

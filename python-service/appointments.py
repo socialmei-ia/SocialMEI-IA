@@ -366,21 +366,27 @@ def update_appointment(appointment_id: UUID, payload: AppointmentUpdate):
     with connect() as conn:
         configure(conn)
         lock_workspace(conn, user["workspace_id"])
-        row = conn.execute("SELECT resource_id FROM socialmei.agenda_appointments WHERE workspace_id=%s AND id=%s", (user["workspace_id"], appointment_id)).fetchone()
-        if not row:
-            raise HTTPException(404, "Agendamento não encontrado.")
-        resource = lock_resource(conn, user["workspace_id"], row["resource_id"], False)
-        row = conn.execute(f"SELECT {APPOINTMENT_COLUMNS} FROM socialmei.agenda_appointments WHERE workspace_id=%s AND id=%s FOR UPDATE", (user["workspace_id"], appointment_id)).fetchone()
-        if row["revision"] != payload.expected_revision or row["revision"] >= MAX_SAFE_ID:
-            raise HTTPException(409, "O agendamento mudou. Recarregue antes de salvar.")
-        start = payload.scheduled_for or row["scheduled_for"]
-        status = payload.status or row["status"]
-        end = end_time(start, row["duration_minutes"])
-        if status != "cancelled":
-            if not resource["ativo"] and (payload.scheduled_for is not None or row["status"]=="cancelled"):
-                raise HTTPException(422, "Reative o recurso antes de reagendar.")
-            if not free(conn, user["workspace_id"], row["resource_id"], start, end, appointment_id):
-                raise HTTPException(409, "Horário ocupado para este recurso. Escolha outro horário.")
-        saved = conn.execute(f"UPDATE socialmei.agenda_appointments SET scheduled_for=%s,ends_at=%s,status=%s,revision=revision+1,updated_at=NOW() WHERE workspace_id=%s AND id=%s RETURNING {APPOINTMENT_COLUMNS}", (start,end,status,user["workspace_id"],appointment_id)).fetchone()
-        history(conn,user["workspace_id"],saved)
+        return update_appointment_in(conn, user["workspace_id"], appointment_id, payload)
+
+
+def update_appointment_in(conn, workspace, appointment_id, payload):
+    """Shared locked write; callers must authorize workspace and appointment ownership."""
+    lock_workspace(conn, workspace)
+    row = conn.execute("SELECT resource_id FROM socialmei.agenda_appointments WHERE workspace_id=%s AND id=%s", (workspace, appointment_id)).fetchone()
+    if not row:
+        raise HTTPException(404, "Agendamento não encontrado.")
+    resource = lock_resource(conn, workspace, row["resource_id"], False)
+    row = conn.execute(f"SELECT {APPOINTMENT_COLUMNS} FROM socialmei.agenda_appointments WHERE workspace_id=%s AND id=%s FOR UPDATE", (workspace, appointment_id)).fetchone()
+    if row["revision"] != payload.expected_revision or row["revision"] >= MAX_SAFE_ID:
+        raise HTTPException(409, "O agendamento mudou. Recarregue antes de salvar.")
+    start = payload.scheduled_for or row["scheduled_for"]
+    status = payload.status or row["status"]
+    end = end_time(start, row["duration_minutes"])
+    if status != "cancelled":
+        if not resource["ativo"] and (payload.scheduled_for is not None or row["status"]=="cancelled"):
+            raise HTTPException(422, "Reative o recurso antes de reagendar.")
+        if not free(conn, workspace, row["resource_id"], start, end, appointment_id):
+            raise HTTPException(409, "Horário ocupado para este recurso. Escolha outro horário.")
+    saved = conn.execute(f"UPDATE socialmei.agenda_appointments SET scheduled_for=%s,ends_at=%s,status=%s,revision=revision+1,updated_at=NOW() WHERE workspace_id=%s AND id=%s RETURNING {APPOINTMENT_COLUMNS}", (start,end,status,workspace,appointment_id)).fetchone()
+    history(conn,workspace,saved)
     return view({**saved,"resource_name":resource["nome"]})

@@ -7,7 +7,8 @@ from fastapi import HTTPException
 import channel_booking as booking
 
 PAGE_SIZE = 3
-START = {'6', 'agendar', 'agendar horario', 'agendar horário'}
+MANAGE = {'8', 'meus agendamentos', 'cancelar agendamento', 'reagendar'}
+START = {'6', 'agendar', 'agendar horario', 'agendar horário'} | MANAGE
 EXIT = {'0', 'menu', 'inicio', 'início', '4', '5', 'atendente', 'humano', 'falar com atendente',
         'voltar', 'encerrar', 'sair', 'finalizar'}
 
@@ -33,6 +34,7 @@ def navigation():
 def with_entry(conn, workspace, result):
     if result.get('action') != 'menu':
         return result
+    result = {**result, 'choices': [*result['choices'], option('8', 'Meus agendamentos', 'appointments')]}
     try:
         policy = booking.read_policy(conn, workspace)['policy']
     except HTTPException:
@@ -73,7 +75,7 @@ def respond(conn, channel, message, state, *, native=False):
     if selected is None:
         if text not in START:
             return None
-        selected = {'route': 'booking', 'step': 'services'}
+        selected = {'route': 'booking', 'step': 'appointments' if text in MANAGE else 'services'}
     if selected.get('route') != 'booking':
         return None
     try:
@@ -88,7 +90,7 @@ def respond(conn, channel, message, state, *, native=False):
                         [option('6', 'Consultar horários', 'services'), *navigation()], native)
 
 
-def advance(conn, channel, message, target, native, *, origin='waha'):
+def _advance(conn, channel, message, target, native, *, origin='waha'):
     context = (channel['workspace_id'], message['conversation_id'], message['id'], origin)
     step = target.get('step')
     page = target.get('page', 0)
@@ -121,7 +123,8 @@ def advance(conn, channel, message, target, native, *, origin='waha'):
     elif step == 'slots':
         key = booking.signing_key_for_context(conn, *context)
         result = booking.slots_for_message(*context, target['service_id'], target['resource_id'],
-                                          target['day'], key, page=page, connection=conn)
+                                          target['day'], key, page=page, connection=conn,
+                                          appointment_reference=target.get('appointment'))
         rows = result['items']
         label = 'Escolha um horário disponível. A reserva só é feita após sua confirmação.'
         choices = page_choices(rows, lambda row: {'step': 'review', 'offer': row},
@@ -169,3 +172,67 @@ def advance(conn, channel, message, target, native, *, origin='waha'):
         choices.append(option('7', 'Opções anteriores', step, **{k: v for k, v in target.items()
                               if k not in {'route', 'step', 'page'}}, page=page - 1))
     return response('booking_' + step, label, choices + navigation(), native)
+
+
+def advance(conn, channel, message, target, native, *, origin='waha'):
+    from appointments import lock_workspace
+    context = (channel['workspace_id'], message['conversation_id'], message['id'], origin)
+    step = target.get('step')
+    reference = target.get('appointment')
+    if step == 'appointments':
+        rows = booking.appointments_for_message(*context, connection=conn)
+        page = target.get('page', 0)
+        if type(page) is not int or not 0 <= page <= 10:
+            raise HTTPException(409, 'Consulte seus agendamentos novamente.')
+        zone = ZoneInfo(booking.read_policy(conn, context[0])['policy']['timezone'])
+        choices = page_choices(rows, lambda row: {'step': 'manage', 'appointment': row['reference']},
+            lambda row: datetime.fromisoformat(str(row['scheduled_for'])).astimezone(zone).strftime('%d/%m %H:%M')
+                        + ' ' + row['service_name'], page=page)
+        if len(rows) > (page + 1) * PAGE_SIZE:
+            choices.append(option('6', 'Próximos agendamentos', 'appointments', page=page + 1))
+        if page:
+            choices.append(option('7', 'Agendamentos anteriores', 'appointments', page=page - 1))
+        return response('booking_appointments', 'Escolha seu agendamento.' if rows else
+                        'Não há agendamentos futuros vinculados ao seu cadastro.', choices + navigation(), native)
+    if reference is None:
+        return _advance(conn, channel, message, target, native, origin=origin)
+    lock_workspace(conn, context[0])
+    identity = booking.context_for_message(conn, *context)
+    row = booking.owned_appointment(conn, context[0], identity, reference)
+    if step not in {'cancel_confirm', 'confirm'} and (
+            row['revision'] != reference['revision'] or booking.appointment_snapshot(row) != reference.get('snapshot')
+            or row['status'] != 'pending' or row['scheduled_for'] <= datetime.now(timezone.utc)):
+        raise HTTPException(409, 'O agendamento mudou. Consulte seus agendamentos novamente.')
+    if step in {'manage', 'cancel_review'}:
+        zone = booking.read_policy(conn, context[0])['policy']['timezone']
+        start = row['scheduled_for'].astimezone(ZoneInfo(zone))
+        summary = row['service_name'] + '\n' + start.strftime('%d/%m/%Y às %H:%M')
+        if step == 'manage':
+            choices = [option('1', 'Cancelar agendamento', 'cancel_review', appointment=reference),
+                       option('2', 'Reagendar', 'days', appointment=reference,
+                              service_id=row['servico_id'], resource_id=str(row['resource_id']))]
+        else:
+            summary += '\nDeseja cancelar este agendamento? A vaga será liberada após confirmar.'
+            choices = [option('1', 'Confirmar cancelamento', 'cancel_confirm', appointment=reference)]
+        return response('booking_' + step, summary, choices + navigation(), native)
+    if step in {'cancel_confirm', 'confirm'}:
+        if step == 'confirm' and not isinstance(target.get('confirmation'), str):
+            raise HTTPException(409, 'Escolha e confirme um novo horário.')
+        key = booking.signing_key_for_context(conn, *context) if step == 'confirm' else None
+        booking.change_for_message(*context, reference, confirmed=True, connection=conn,
+            confirmation=target.get('confirmation') if step == 'confirm' else None, signing_key=key)
+        return response('booking_cancelled' if step == 'cancel_confirm' else 'booking_rescheduled',
+            'Agendamento cancelado.' if step == 'cancel_confirm' else 'Agendamento reagendado com sucesso.',
+            navigation(), native)
+    if step == 'review':
+        offer = target['offer']
+        if (offer['service_id'] != row['servico_id'] or offer['resource_id'] != str(row['resource_id'])
+                or offer['duration_minutes'] != row['duration_minutes'] or str(offer['price']) != str(row['price'])):
+            raise HTTPException(409, 'As condições do serviço mudaram. Fale com nossa equipe.')
+    state, result = _advance(conn, channel, message, target, native, origin=origin)
+    result['choices'] = [{**choice, 'target': {**choice['target'], 'appointment': reference}}
+                         if choice.get('target', {}).get('route') == 'booking' else choice
+                         for choice in result['choices']]
+    if step == 'review':
+        result['text'] = 'Confira o novo horário antes de reagendar.\n' + result['text']
+    return state, result

@@ -288,7 +288,7 @@ def decode_confirmation(token, key):
 
 
 def slots_for_message(workspace_id, conversation_id, source_message_id, origin, service_id,
-                      resource_id, day, signing_key, *, page=0, connection=None):
+                      resource_id, day, signing_key, *, page=0, connection=None, appointment_reference=None):
     from appointments import service, lock_resource, free, end_time
     try:
         day = date.fromisoformat(day) if isinstance(day, str) else day
@@ -302,10 +302,24 @@ def slots_for_message(workspace_id, conversation_id, source_message_id, origin, 
     offset = page * 3
     now = datetime.now(timezone.utc)
     with transaction(connection) as conn:
+        if appointment_reference is not None:
+            from appointments import lock_workspace
+            lock_workspace(conn, workspace_id)
         context = context_for_message(conn, workspace_id, conversation_id, source_message_id, origin)
+        existing = None
+        if appointment_reference is not None:
+            existing = owned_appointment(conn, workspace_id, context, appointment_reference)
+            if (appointment_snapshot(existing) != appointment_reference.get('snapshot')
+                    or existing['revision'] != appointment_reference['revision'] or existing['status'] != 'pending'
+                    or existing['scheduled_for'] <= now or existing['servico_id'] != service_id
+                    or str(existing['resource_id']) != str(resource_id)):
+                raise HTTPException(409, 'O agendamento mudou. Consulte novamente.')
         policy, policy_hash = active_policy(conn, workspace_id)
         resource = lock_resource(conn, workspace_id, resource_id)
         item = service(conn, workspace_id, service_id)
+        if existing is not None and (item['preco'] != existing['price']
+                or item['duracao_minutos'] != existing['duration_minutes']):
+            raise HTTPException(409, 'As condições do serviço mudaram. Fale com nossa equipe.')
         slots = []
         seen = 0
         for window in sorted(policy.hours, key=lambda item: (item.weekday, item.opens)):
@@ -316,7 +330,7 @@ def slots_for_message(workspace_id, conversation_id, source_message_id, origin, 
             while (end_time(start.astimezone(timezone.utc), item['duracao_minutos']).astimezone(start.tzinfo) <= end
                    and seen < offset + 4):
                 until = end_time(start.astimezone(timezone.utc), item['duracao_minutos']).astimezone(start.tzinfo)
-                if allowed_start(policy, start, item['duracao_minutos'], now) and free(conn, workspace_id, resource['id'], start, until):
+                if allowed_start(policy, start, item['duracao_minutos'], now) and free(conn, workspace_id, resource['id'], start, until, existing['id'] if existing is not None else None):
                     if seen >= offset:
                         value = {'binding': context['binding'], 'policy': policy_hash, 'service': service_id,
                         'service_revision': item['versao'], 'resource': str(resource['id']),
@@ -368,3 +382,79 @@ def confirm_for_message(workspace_id, conversation_id, source_message_id, origin
                 or not allowed_start(policy, start, item['duracao_minutos'], now)):
             raise HTTPException(409, 'O serviço ou horário mudou. Consulte a disponibilidade novamente.')
         return create_appointment_in(conn, workspace_id, payload)
+
+
+def appointment_snapshot(row):
+    fields = ('id', 'cliente_id', 'servico_id', 'resource_id', 'service_name',
+              'duration_minutes', 'price', 'scheduled_for', 'ends_at', 'status', 'revision')
+    return hashlib.sha256(json.dumps({key: str(row[key]) for key in fields},
+                                     sort_keys=True).encode()).hexdigest()
+
+
+def appointments_for_message(workspace, conversation, message, origin, *, connection):
+    context = context_for_message(connection, workspace, conversation, message, origin)
+    rows = connection.execute("SELECT * FROM socialmei.agenda_appointments WHERE workspace_id=%s "
+        "AND cliente_id=%s AND status='pending' AND scheduled_for>NOW() "
+        "ORDER BY scheduled_for,id LIMIT 31", (workspace, context['cliente_id'])).fetchall()
+    return [{**row, 'reference': {'id': str(row['id']), 'revision': row['revision'],
+             'snapshot': appointment_snapshot(row), 'binding': context['binding']}} for row in rows]
+
+
+def owned_appointment(conn, workspace, context, reference):
+    try:
+        identifier = UUID(reference['id'])
+        if (type(reference['revision']) is not int or reference['revision'] < 0
+                or reference['binding'] != context['binding']):
+            raise ValueError()
+    except (ValueError, TypeError, KeyError):
+        raise HTTPException(409, 'Esta seleção mudou. Consulte seus agendamentos novamente.') from None
+    row = conn.execute("SELECT * FROM socialmei.agenda_appointments WHERE workspace_id=%s "
+        "AND cliente_id=%s AND id=%s FOR UPDATE", (workspace, context['cliente_id'], identifier)).fetchone()
+    if not row:
+        raise HTTPException(404, 'Agendamento não disponível para esta conversa.')
+    return row
+
+
+def change_for_message(workspace, conversation, message, origin, reference, *,
+                       confirmation=None, signing_key=None, confirmed=False, connection):
+    """No visitor endpoint: only verified inbound context and server-stored menu references."""
+    from appointments import lock_workspace, update_appointment_in, AppointmentUpdate, view, service, lock_resource
+    if confirmed is not True:
+        raise HTTPException(409, 'Confirme a alteração antes de continuar.')
+    lock_workspace(connection, workspace)
+    context = context_for_message(connection, workspace, conversation, message, origin)
+    row = owned_appointment(connection, workspace, context, reference)
+    start = row['scheduled_for']
+    status = 'cancelled'
+    if confirmation is not None:
+        claims = decode_confirmation(confirmation, signing_key)
+        try:
+            start = datetime.fromisoformat(claims['start'])
+            if (start.tzinfo is None or claims['binding'] != context['binding']
+                    or claims['service'] != row['servico_id'] or claims['resource'] != str(row['resource_id'])):
+                raise ValueError()
+        except (ValueError, TypeError, KeyError):
+            raise HTTPException(409, 'A confirmação não pertence a esta conversa.') from None
+        status = 'pending'
+    # Exact repeat of the accepted transition returns its receipt without writing history again.
+    if (row['revision'] == reference['revision'] + 1 and row['status'] == status
+            and row['scheduled_for'] == start):
+        resource = lock_resource(connection, workspace, row['resource_id'], False)
+        return view({**row, 'resource_name': resource['nome']})
+    if (row['revision'] != reference['revision'] or appointment_snapshot(row) != reference.get('snapshot')
+            or row['status'] != 'pending' or row['scheduled_for'] <= datetime.now(timezone.utc)):
+        raise HTTPException(409, 'O agendamento mudou ou já ocorreu. Consulte novamente.')
+    if confirmation is not None:
+        policy, policy_hash = active_policy(connection, workspace)
+        resource = lock_resource(connection, workspace, row['resource_id'])
+        item = service(connection, workspace, row['servico_id'])
+        if (claims['policy'] != policy_hash or type(claims['expires']) is not int
+                or claims['expires'] < datetime.now(timezone.utc).timestamp()
+                or claims['service'] != row['servico_id'] or claims['resource'] != str(row['resource_id'])
+                or claims['service_revision'] != item['versao'] or claims['resource_revision'] != resource['revision']
+                or item['duracao_minutos'] != row['duration_minutes'] or item['preco'] != row['price']
+                or not allowed_start(policy, start, row['duration_minutes'], datetime.now(timezone.utc))):
+            raise HTTPException(409, 'As condições mudaram. Consulte os horários novamente.')
+    payload = AppointmentUpdate(expected_revision=reference['revision'], status=status,
+                                **({'scheduled_for': start} if confirmation is not None else {}))
+    return update_appointment_in(connection, workspace, row['id'], payload)
