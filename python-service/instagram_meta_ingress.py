@@ -304,11 +304,25 @@ def parse_message_events(raw, signature, app_secret):
                     if recipient_id != account or sender_id == account:
                         raise MetaContractError("Conta destinatária incompatível.")
                     unsupported = (
-                        set(details) - {"mid", "text", "is_echo"}
+                        set(details) - {"mid", "text", "is_echo", "reply_to", "quick_reply"}
                     ) or "text" not in details
+                    if not unsupported:
+                        # Only text reaches the bot; metadata cannot select a command.
+                        for name, key in (("reply_to", "mid"), ("quick_reply", "payload")):
+                            if name not in details:
+                                continue
+                            metadata = details[name]
+                            if not isinstance(metadata, dict) or set(metadata) != {key}:
+                                unsupported = True
+                                break
+                            if name == "reply_to":
+                                _mid(metadata[key])
+                            else:
+                                _text(metadata[key])
                     kind = "unsupported" if unsupported else "message"
                     text = _text(details["text"]) if kind == "message" else None
-                content_hash = fingerprint(details) if kind != "message" else None
+                has_metadata = "reply_to" in details or "quick_reply" in details
+                content_hash = fingerprint(details) if kind != "message" or has_metadata else None
                 events.append(
                     MessageEvent(
                         account,

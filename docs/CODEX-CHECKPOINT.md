@@ -1,5 +1,28 @@
 # Checkpoint SocialMEI-IA
 
+## Instagram Direct — continuação de 17/11/2026
+
+- Branch de correção `fix/instagram-direct-continuity-20261117`, baseada em
+  `2095c11` de `feature/whatsapp-public-inbound-20261117`, descendente de3551a89.
+  Preserva as melhorias GOWS/CRM/agendamento mais recentes; main local não usado.
+- Ingress agora aceita texto assinado com `reply_to.mid`/`quick_reply.payload`
+  estritamente validados. Apenas texto alimenta o bot; metadados participam do
+  fingerprint para detectar conflito no mesmo mid. Mídia/remoções desconhecidas
+  continuam sem promover texto ao processamento. Nenhuma assinatura relaxada.
+- Testes:28 executados,18 aprovados/10 skips por PostgreSQL descartável ausente
+  (ContractTests do ingress, contrato Meta e auto-menu). Incluem POST público
+  assinado, corpo adulterado recusado antes da persistência, metadados inválidos,
+  limites e identidade de contato. Persistência mockada; sem homologação real.
+- Fonte: https://developers.facebook.com/docs/graph-api/webhooks/reference/instagram
+- Produção/serviços/credenciais não acessados nem alterados. Usuário informa
+  release040 operante na AWS/GOWS piloto; não reabrir gates históricos abaixo
+  como se fossem estado atual. Instagram real segue não homologado.
+- Próximo passo exato: em ambiente PostgreSQL descartável autorizado, executar
+  testes de persistência do ingress e auto-menu; depois, sob autorização separada,
+  homologar Direct controlado → webhook assinado → Caixa → resposta única.
+  Este código novo não está nas imagens3551a89; exige build/validação antes de
+  eventual publicação. Não reconstruir nem publicar sem necessidade/autorização.
+
 ## Continuação de a912026 — cadeia040 concluída, 14/11
 
 - Branch `release/functional-completion-20261112`; worktree
