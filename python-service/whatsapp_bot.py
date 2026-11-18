@@ -149,7 +149,11 @@ def native_list_canary(channel, contact):
         and os.getenv('SOCIALMEI_MENU_WAHA_ENGINE') == 'GOWS'
         and contact in navigation.configured_contacts(os.environ)
     )
-    return reviewed and direct and (public or canary)
+    return (
+        reviewed and direct
+        and os.getenv('SOCIALMEI_MENU_WAHA_ENGINE') == 'GOWS'
+        and (public or canary)
+    )
 
 
 def render_waha(session, chat, text, choices, *, engine='WEBJS', list_verified=False):
