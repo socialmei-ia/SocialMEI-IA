@@ -44,6 +44,11 @@ def preparar(workspace_id=1):
             "agendamentos_nao_cancelados": contar("agenda_appointments", "AND status!='cancelled'"),
             "vendas_validas": contar("crm_vendas", "AND NOT excluida AND status IN ('Pago','Pendente')"),
         }
+        unlinked = conn.execute(
+            "SELECT COUNT(*) AS n FROM socialmei.me_conversations "
+            "WHERE workspace_id=%s AND origin='waha' AND cliente_id IS NULL",
+            (workspace_id,),
+        ).fetchone()["n"]
         channel = conn.execute(
             "SELECT COUNT(*) AS n FROM socialmei.crm_canais "
             "WHERE workspace_id=%s AND provedor='waha' AND ativo AND ingress_provisioned",
@@ -88,6 +93,8 @@ def preparar(workspace_id=1):
             pendencias.append("cadastrar_profissional_ou_recurso")
         if not booking_enabled or not isinstance(hours, list) or not hours:
             pendencias.append("configurar_politica_e_horarios_agendamento")
+        if unlinked:
+            pendencias.append("vincular_conversa_do_professor_ao_cliente_pelo_painel")
         if not public_enabled or not service_ids or not resource_ids or not public_server:
             pendencias.append("publicar_agendamento_site")
         if not channel or not whatsapp_bot or not whatsapp_public:
@@ -108,6 +115,7 @@ def preparar(workspace_id=1):
                 "listas_publicas_por_flag": interactive,
                 "eventos_processados_24h": received,
                 "decisoes_24h": statuses,
+                "conversas_sem_cliente_vinculado": unlinked,
             },
             "agenda": {
                 "politica_habilitada": booking_enabled,
