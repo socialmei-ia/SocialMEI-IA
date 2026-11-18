@@ -8,7 +8,8 @@ import channel_booking as booking
 
 PAGE_SIZE = 3
 START = {'6', 'agendar', 'agendar horario', 'agendar horário'}
-EXIT = {'0', 'menu', 'inicio', 'início', '4', '5', 'atendente', 'humano', 'falar com atendente'}
+EXIT = {'0', 'menu', 'inicio', 'início', '4', '5', 'atendente', 'humano', 'falar com atendente',
+        'voltar', 'encerrar', 'sair', 'finalizar'}
 
 
 def option(identifier, title, step, **values):

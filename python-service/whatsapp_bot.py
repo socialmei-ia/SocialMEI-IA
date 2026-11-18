@@ -32,6 +32,8 @@ OPTIONS = [
     {'id': '5', 'title': 'Falar com atendente'},
 ]
 HUMAN_CHOICES = {'4', '5', 'atendente', 'humano', 'falar com atendente'}
+MENU_CHOICES = {'0', 'menu', 'início', 'inicio', 'voltar'}
+CLOSE_CHOICES = {'encerrar', 'sair', 'finalizar'}
 
 
 class Strict(BaseModel):
@@ -120,6 +122,12 @@ def _catalog_answer(conn, workspace, state, text, target, enabled):
     routes = {'0': {'route':'main'}, '1': {'route':'browse','kind':'Produto'},
               '2': {'route':'browse','kind':'Produto'}, '3': {'route':'browse','kind':'Serviço'},
               '4': {'route':'quote'}, '5': {'route':'human'}}
+    if command in HUMAN_CHOICES:
+        return navigation.respond(conn, workspace, {'route': 'quote' if command == '4' else 'human'})
+    if command in MENU_CHOICES:
+        return navigation.main()
+    if command in CLOSE_CHOICES:
+        return navigation.respond(conn, workspace, {'route': 'close'})
     if state == 'ask_product' and command not in routes:
         return navigation.browse(conn, workspace, {'route':'browse','kind':'Produto','query':text})
     return navigation.respond(conn, workspace, routes.get(command, {'route':'main'}))
@@ -180,7 +188,10 @@ def answer(conn, workspace, state, text):
         return 'human', {**result, 'action': 'quote_handoff' if choice == '4' else 'human_handoff',
                          'text': 'Seu pedido ficou registrado nesta conversa para um atendente. Aguarde o atendimento.',
                          'choices': [], 'handoff': True}
-    if choice in {'0', 'menu', 'início', 'inicio'}:
+    if choice in CLOSE_CHOICES:
+        return 'menu', {**result, 'action': 'conversation_closed', 'choices': [],
+                        'text': 'Consulta encerrada. Quando precisar, digite menu para continuar.'}
+    if choice in MENU_CHOICES:
         return 'menu', result
     if choice == '2':
         return 'ask_product', {**result, 'action': 'ask_product', 'text': 'Qual produto deseja consultar? Informe o nome.',
