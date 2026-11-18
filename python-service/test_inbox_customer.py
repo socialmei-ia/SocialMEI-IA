@@ -177,6 +177,7 @@ class CustomerLinkDatabaseTests(unittest.TestCase):
                 "candidates": [{"id": self.customer["id"], "nome": "Cliente fictício"}],
                 "requires_confirmation": True, "ambiguous": False,
                 "contact_phone": "85999990001",
+                "registration_phone": None,
             })
             self.assertEqual(found.headers["cache-control"], "no-store")
             # No CRM write occurred; the operator must use the existing PATCH.
@@ -194,6 +195,7 @@ class CustomerLinkDatabaseTests(unittest.TestCase):
             self.assertEqual(ambiguous.json()["candidates"], [])
             self.assertTrue(ambiguous.json()["ambiguous"])
             self.assertEqual(ambiguous.json()["contact_phone"], "85999990001")
+            self.assertIsNone(ambiguous.json()["registration_phone"])
             other = self.register("other-customer-hints@example.test")
             self.assertEqual(other.get(url).status_code, 404)
             with patch.dict(os.environ, {
@@ -206,6 +208,7 @@ class CustomerLinkDatabaseTests(unittest.TestCase):
                 self.assertEqual(response.json()["candidates"], [])
                 self.assertFalse(response.json()["ambiguous"])
                 self.assertIsNone(response.json()["contact_phone"])
+                self.assertIsNone(response.json()["registration_phone"])
 
 
     def test_new_whatsapp_number_is_available_for_explicit_crm_registration_only(self):
@@ -226,6 +229,7 @@ class CustomerLinkDatabaseTests(unittest.TestCase):
             self.assertEqual(response.status_code, 200, response.text)
             result = response.json()
             self.assertEqual(result["contact_phone"], "558173286899")
+            self.assertIsNone(result["registration_phone"])
             self.assertEqual(result["candidates"], [])
             self.assertTrue(result["requires_confirmation"])
             self.assertIsNone(self.client.get(url.replace("/customer-suggestions", "/customer")).json()["cliente_id"])
