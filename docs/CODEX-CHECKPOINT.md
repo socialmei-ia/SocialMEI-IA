@@ -1,5 +1,33 @@
 # Checkpoint SocialMEI-IA
 
+
+## Autoatendimento de agenda por canal — proposta de 18/11/2026
+
+- Branch fix/channel-self-service-20261118, partindo de a47ce4e;
+  PR de rascunho #230 para revisao. Producao/AWS/Meta/Prisma intactos.
+- WhatsApp GOWS e Instagram: comandos "meus agendamentos", "cancelar agendamento"
+  e "reagendar", lista de reservas futuras pendentes da mesma conversa,
+  revisao/confirmacao explicita, datas/horarios com navegacao por paginas.
+- Operacoes no nucleo compartilhado: token HMAC com vinculo ao cliente,
+  workspace/canal/conversa, revision e expiracao; SQL restringe cliente_id
+  e origem da reserva pela nota criada no canal. Nao permite alterar agenda
+  criada pelo site/outras conversas sem verificacao independente.
+- Cancelamento persiste status cancelled, incrementa revisao e grava historico;
+  reagendamento preserva cliente, servico e profissional, confere politica,
+  duracao, janela, disponibilidade e concorrencia. Repeticoes identicas
+  retornam o resultado ja persistido sem nova escrita.
+- Protecao de atendimento humano existente mantida. Rotas publicas e envios
+  reais nao foram criados. Testes de contrato adicionados, MAS NAO EXECUTADOS
+  nesta conversa (sem Python/PG descartavel conectado ao checkout).
+- Antes de merge/build/publicacao: executar testes unitarios e integracao
+  exclusivamente com PostgreSQL040 descartavel, incluir casos reais de
+  concorrencia/isolamento; validar renderizacao do Instagram (limite 1000B)
+  e listas nativas do GOWS; homologar mensagens reais com autorizacao.
+- A proposta limita a alteracao de data/hora ao mesmo servico e profissional;
+  reserva cancelada/concluida ou de outra origem nao e elegivel. Nao declarar
+  funcionalidade aprovada em producao.
+
+
 ## Implementação intensiva após12e9ff4 — 17/11/2026
 
 - Mesma branch `fix/instagram-direct-continuity-20261117`, sem alterar produção.
