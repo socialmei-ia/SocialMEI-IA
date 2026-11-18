@@ -332,6 +332,164 @@ def slots_for_message(workspace_id, conversation_id, source_message_id, origin, 
             'reservation_created': False, 'timezone': policy.timezone}
 
 
+
+# Customer self-service is limited to appointments originated by this exact
+# authenticated conversation. Site/admin bookings are intentionally excluded.
+def _channel_note(origin, conversation_id):
+    return 'Agendamento confirmado pelo canal ' + origin + '; conversa ' + str(conversation_id) + '.'
+
+
+def _manage_claim(token, key, binding):
+    try:
+        value = decode_confirmation(token, key)
+        if (not isinstance(value, dict)
+                or set(value) != {'purpose', 'binding', 'appointment', 'revision', 'expires'}
+                or value['purpose'] != 'channel-manage-v1'
+                or value['binding'] != binding
+                or type(value['revision']) is not int or not 1 <= value['revision'] <= MAX_SAFE_ID
+                or type(value['expires']) is not int):
+            raise ValueError()
+        appointment = UUID(value['appointment'])
+    except (KeyError, ValueError, TypeError, AttributeError):
+        raise HTTPException(409, 'Esta opção de agendamento expirou. Consulte novamente.') from None
+    return value, appointment
+
+
+def _owned_appointment(conn, workspace, context, conversation_id, origin, appointment_id, *, lock=False):
+    from appointments import APPOINTMENT_COLUMNS
+    cols = ','.join('a.' + item for item in APPOINTMENT_COLUMNS.split(','))
+    row = conn.execute(
+        f"SELECT {cols},r.nome AS resource_name FROM socialmei.agenda_appointments a "
+        "JOIN socialmei.agenda_resources r ON r.workspace_id=a.workspace_id AND r.id=a.resource_id "
+        "WHERE a.workspace_id=%s AND a.id=%s AND a.cliente_id=%s AND a.notes=%s "
+        + ("FOR UPDATE OF a" if lock else ""),
+        (workspace, appointment_id, context['cliente_id'], _channel_note(origin, conversation_id)),
+    ).fetchone()
+    if not row:
+        raise HTTPException(404, 'Agendamento não encontrado nesta conversa.')
+    return row
+
+
+def manageable_for_message(workspace_id, conversation_id, source_message_id, origin, key, *, connection=None):
+    from appointments import view
+    with transaction(connection) as conn:
+        context = context_for_message(conn, workspace_id, conversation_id, source_message_id, origin)
+        active_policy(conn, workspace_id)
+        rows = conn.execute(
+            "SELECT a.id,a.revision,a.service_name,a.scheduled_for,a.status "
+            "FROM socialmei.agenda_appointments a "
+            "WHERE a.workspace_id=%s AND a.cliente_id=%s AND a.notes=%s "
+            "AND a.status='pending' AND a.scheduled_for>NOW() "
+            "ORDER BY a.scheduled_for,a.id LIMIT 31",
+            (workspace_id, context['cliente_id'], _channel_note(origin, conversation_id)),
+        ).fetchall()
+        now = int(datetime.now(timezone.utc).timestamp())
+        items = []
+        for row in rows[:30]:
+            value = {'purpose': 'channel-manage-v1', 'binding': context['binding'],
+                     'appointment': str(row['id']), 'revision': row['revision'],
+                     'expires': now + 600}
+            items.append({**view(row), 'management': confirmation_token(value, key)})
+    return {'items': items, 'truncated': len(rows) > 30}
+
+
+def managed_for_message(workspace_id, conversation_id, source_message_id, origin, management, key,
+                        *, connection=None):
+    from appointments import view
+    with transaction(connection) as conn:
+        context = context_for_message(conn, workspace_id, conversation_id, source_message_id, origin)
+        active_policy(conn, workspace_id)
+        value, appointment = _manage_claim(management, key, context['binding'])
+        if value['expires'] < datetime.now(timezone.utc).timestamp():
+            raise HTTPException(409, 'Esta opção expirou. Consulte seus agendamentos novamente.')
+        row = _owned_appointment(conn, workspace_id, context, conversation_id, origin, appointment)
+        if row['revision'] != value['revision'] or row['status'] != 'pending' or row['scheduled_for'] <= datetime.now(timezone.utc):
+            raise HTTPException(409, 'O agendamento mudou. Consulte novamente.')
+        return view(row)
+
+
+def cancel_for_message(workspace_id, conversation_id, source_message_id, origin, management, key,
+                       *, confirmed=False, connection=None):
+    from appointments import APPOINTMENT_COLUMNS, history, lock_workspace, lock_resource, view
+    if confirmed is not True:
+        raise HTTPException(409, 'Confirme o cancelamento antes de continuar.')
+    with transaction(connection) as conn:
+        lock_workspace(conn, workspace_id)
+        context = context_for_message(conn, workspace_id, conversation_id, source_message_id, origin)
+        value, appointment = _manage_claim(management, key, context['binding'])
+        preview = _owned_appointment(conn, workspace_id, context, conversation_id, origin, appointment)
+        resource = lock_resource(conn, workspace_id, preview['resource_id'], False)
+        row = _owned_appointment(conn, workspace_id, context, conversation_id, origin, appointment, lock=True)
+        if row['status'] == 'cancelled' and row['revision'] == value['revision'] + 1:
+            return view(row)  # Retries do not add duplicate history.
+        if (value['expires'] < datetime.now(timezone.utc).timestamp()
+                or row['revision'] != value['revision'] or row['status'] != 'pending'
+                or row['scheduled_for'] <= datetime.now(timezone.utc)):
+            raise HTTPException(409, 'O agendamento mudou. Consulte novamente.')
+        cols = ','.join(APPOINTMENT_COLUMNS.split(','))
+        saved = conn.execute(
+            f"UPDATE socialmei.agenda_appointments SET status='cancelled',"
+            f"revision=revision+1,updated_at=NOW() WHERE workspace_id=%s AND id=%s RETURNING {cols}",
+            (workspace_id, appointment),
+        ).fetchone()
+        history(conn, workspace_id, saved)
+        return view({**saved, 'resource_name': resource['nome']})
+
+
+def reschedule_for_message(workspace_id, conversation_id, source_message_id, origin,
+                           management, slot_confirmation, key, *, confirmed=False, connection=None):
+    from appointments import (APPOINTMENT_COLUMNS, end_time, free, history, lock_resource,
+                              lock_workspace, service, view)
+    if confirmed is not True:
+        raise HTTPException(409, 'Confirme o reagendamento antes de continuar.')
+    slot = decode_confirmation(slot_confirmation, key)
+    try:
+        start = datetime.fromisoformat(slot['start'])
+        resource_id = UUID(slot['resource'])
+        if start.tzinfo is None or type(slot['expires']) is not int:
+            raise ValueError()
+    except (KeyError, ValueError, TypeError):
+        raise HTTPException(409, 'Este horário expirou. Consulte novamente.') from None
+    with transaction(connection) as conn:
+        lock_workspace(conn, workspace_id)
+        context = context_for_message(conn, workspace_id, conversation_id, source_message_id, origin)
+        value, appointment = _manage_claim(management, key, context['binding'])
+        if slot.get('binding') != context['binding']:
+            raise HTTPException(409, 'Este horário não pertence à conversa.')
+        preview = _owned_appointment(conn, workspace_id, context, conversation_id, origin, appointment)
+        resource = lock_resource(conn, workspace_id, preview['resource_id'], False)
+        row = _owned_appointment(conn, workspace_id, context, conversation_id, origin, appointment, lock=True)
+        if (row['status'] == 'pending' and row['revision'] == value['revision'] + 1
+                and row['scheduled_for'] == start):
+            return view(row)  # Idempotent confirmed retry.
+        now = datetime.now(timezone.utc)
+        if (value['expires'] < now.timestamp() or slot['expires'] < now.timestamp()
+                or row['revision'] != value['revision'] or row['status'] != 'pending'
+                or row['scheduled_for'] <= now or row['scheduled_for'] == start):
+            raise HTTPException(409, 'O agendamento mudou. Consulte novamente.')
+        policy, policy_hash = active_policy(conn, workspace_id)
+        if slot.get('policy') != policy_hash:
+            raise HTTPException(409, 'Os horários mudaram. Consulte novamente.')
+        if (not resource['ativo'] or resource_id != row['resource_id']
+                or slot.get('service') != row['servico_id']
+                or slot.get('resource_revision') != resource['revision']):
+            raise HTTPException(409, 'O serviço ou profissional mudou. Consulte novamente.')
+        item = service(conn, workspace_id, row['servico_id'])
+        if (slot.get('service_revision') != item['versao']
+                or not allowed_start(policy, start, item['duracao_minutos'], now)):
+            raise HTTPException(409, 'Este horário não está mais disponível.')
+        end = end_time(start, row['duration_minutes'])
+        if not free(conn, workspace_id, resource_id, start, end, appointment):
+            raise HTTPException(409, 'Horário ocupado. Escolha outro.')
+        cols = ','.join(APPOINTMENT_COLUMNS.split(','))
+        saved = conn.execute(
+            f"UPDATE socialmei.agenda_appointments SET scheduled_for=%s,ends_at=%s,"
+            f"revision=revision+1,updated_at=NOW() WHERE workspace_id=%s AND id=%s RETURNING {cols}",
+            (start, end, workspace_id, appointment),
+        ).fetchone()
+        history(conn, workspace_id, saved)
+        return view({**saved, 'resource_name': resource['nome']})
+
 def confirm_for_message(workspace_id, conversation_id, source_message_id, origin, confirmation,
                         signing_key, *, confirmed=False, connection=None):
     from appointments import (AppointmentCreate, service, lock_workspace, lock_resource,
