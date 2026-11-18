@@ -42,7 +42,7 @@ module.exports = async (browser, origin) => {
           if (request.method() === "POST") {
             assert.equal(role, "owner");
             const payload = request.postDataJSON();
-            assert.equal(payload.telefone, "5581990001234");
+            assert.equal(payload.telefone, "+5581990001234");
             assert.equal(payload.nome, "Contato de teste");
             const customer = { id: 13, ...payload };
             clients.push(customer);
@@ -83,6 +83,7 @@ module.exports = async (browser, origin) => {
               ambiguous: false,
               requires_confirmation: true,
               contact_phone: "5581990001234",
+              registration_phone: "+5581990001234",
             },
           });
         if (p === "/message-enrichment/conversations/1/customer") {
