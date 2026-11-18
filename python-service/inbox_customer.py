@@ -107,12 +107,13 @@ def customer_suggestions(conversation_id: Id, request: Request, response: Respon
         # readers. Never infer a telephone from Instagram IDs or LID handles.
         # This is a registration hint, not proof that a CRM customer is linked.
         result["contact_phone"] = number
-        try:
-            # Some historical WAHA IDs are not valid dialable Brazilian phone
-            # fields. Show the received contact, but never bypass CRM validation.
-            result["registration_phone"] = validate_phone("+" + number)
-        except ValueError:
-            pass
+        if number.startswith("55"):
+            try:
+                # Some historical WAHA IDs are not valid dialable Brazilian
+                # phones. Show the contact without bypassing CRM validation.
+                result["registration_phone"] = validate_phone("+" + number)
+            except ValueError:
+                pass
         customers = conn.execute(
             "SELECT id,nome FROM socialmei.crm_clientes "
             "WHERE workspace_id=%s AND regexp_replace(COALESCE(telefone,''),"
