@@ -160,6 +160,71 @@ class InstagramBookingFlowTests(unittest.TestCase):
         self.assertEqual(advance.call_args.kwargs['origin'], 'instagram')
         self.assertIsNone(ig.respond(RecentReply({**row, 'status': 'uncertain'}), 77, self.message('1')))
 
+
+    def test_my_bookings_starts_as_an_explicit_customer_command(self):
+        with patch('instagram_booking_flow.flow.advance',
+                   return_value=shared.response('booking_manage', 'Seus horarios.', [], False)) as advance:
+            state, result, selected = ig.respond(RecentReply(), 77, self.message('meus agendamentos'))
+        self.assertEqual(result['action'], 'booking_manage')
+        self.assertEqual(selected['step'], 'manage')
+        self.assertEqual(advance.call_args.kwargs['origin'], 'instagram')
+        with patch('instagram_booking_flow.flow.advance',
+                   return_value=shared.response('booking_manage', 'Seus horarios.', [], False)):
+            self.assertEqual(ig.respond(RecentReply(), 77, self.message('8'))[2]['step'], 'manage')
+
+    def test_cancel_reference_is_server_stored_and_not_sent_to_customer(self):
+        management = 'OPAQUE_OWNER_SIGNED_MANAGEMENT_TOKEN'
+        selected = {'step': 'manage_review', 'management': management}
+        result = shared.response('booking_cancel_review', 'Tem certeza?',
+            [shared.option('1', 'Confirmar cancelamento', 'cancel_confirm',
+                           management=management), *shared.navigation()], False)[1]
+        stored = ig.render(result, selected)
+        self.assertNotIn(management, ig.public_text(stored))
+        target = ig._decode_reference(stored)[0][1]
+        self.assertEqual(target, {'step': 'cancel_confirm', 'management': management, 'route': 'booking'})
+        row = {'status': 'confirmed', 'text': stored, 'created_at': datetime.now(timezone.utc)}
+        with patch('instagram_booking_flow.flow.advance',
+                   return_value=shared.response('booking_cancelled', 'Cancelado.', [], False)) as advance:
+            plan = ig.respond(RecentReply(row), 77, self.message('1'))
+        self.assertEqual(plan[2]['management'], management)
+        self.assertEqual(advance.call_args.args[2]['id'], 38)
+
+    def test_reschedule_reference_never_leaks_slot_signature(self):
+        resource = str(uuid4())
+        management = 'MANAGEMENT_TOKEN'
+        offer = {'service_id': 31, 'resource_id': resource,
+                 'scheduled_for': '2026-11-25T09:00:00-03:00',
+                 'service_name': 'Corte', 'resource_name': 'Equipe',
+                 'duration_minutes': 30, 'price': '25.00',
+                 'ends_at': '2026-11-25T09:30:00-03:00',
+                 'confirmation': self.token(resource)}
+        selection = {'step': 'move_slots', 'day': '2026-11-25', 'page': 0,
+                     'management': management}
+        result = shared.response('booking_move_slots', 'Novo horario?',
+            [shared.option('1', '09:00', 'move_review',
+                           offer=offer, management=management, day='2026-11-25', page=0)],
+            False)[1]
+        stored = ig.render(result, selection)
+        self.assertNotIn(offer['confirmation'], stored)
+        target = ig._decode_reference(stored)[0][1]
+        self.assertEqual((target['step'], target['management']),
+                         ('move_review_ref', management))
+        with patch('instagram_booking_flow.booking.signing_key_for_context', return_value='key'), \
+             patch('instagram_booking_flow.booking.slots_for_message',
+                   return_value={'items': [offer]}):
+            reviewed = ig._review_offer(RecentReply(), 77, self.message('1'), target)
+        self.assertEqual(reviewed['step'], 'move_review')
+        self.assertEqual(reviewed['offer'], offer)
+        confirm = shared.response('booking_move_review', 'Confirmar nova data?',
+            [shared.option('1', 'Confirmar', 'move_confirm',
+                           management=management, offer=offer,
+                           day='2026-11-25', page=0, confirmation=offer['confirmation'])],
+            False)[1]
+        confirmation = ig.render(confirm, reviewed)
+        self.assertNotIn(offer['confirmation'], confirmation)
+        self.assertEqual(ig._decode_reference(confirmation)[0][1]['step'], 'move_confirm_ref')
+
+
     def test_bounded_decoding_and_oversized_reply_fail_closed(self):
         self.assertEqual(ig._decode_reference('No booking reference'), [])
         self.assertEqual(ig._decode_reference(ig.MARKER + '!' * 100), [])
