@@ -259,6 +259,48 @@ class ChannelBookingDatabaseTests(unittest.TestCase):
         return (client or self.client).post(PATH + '/confirm', json={**(context or self.context),
                                             'confirmation': token, 'confirmed': True})
 
+
+    def test_customer_reschedules_and_cancels_with_history_and_isolation(self):
+        ctx = self.context
+        original = self.confirm(self.offer())
+        self.assertEqual(original.status_code, 200, original.text)
+        appointment = original.json()
+        first = booking.manageable_for_message(
+            self.workspace, ctx['conversation_id'], ctx['source_message_id'], 'waha', KEY)
+        self.assertEqual(len(first['items']), 1)
+        management = first['items'][0]['management']
+        slot = self.offer()
+        moved = booking.reschedule_for_message(
+            self.workspace, ctx['conversation_id'], ctx['source_message_id'], 'waha',
+            management, slot, KEY, confirmed=True)
+        self.assertEqual((moved['id'], moved['status']), (appointment['id'], 'pending'))
+        retry = booking.reschedule_for_message(
+            self.workspace, ctx['conversation_id'], ctx['source_message_id'], 'waha',
+            management, slot, KEY, confirmed=True)
+        self.assertEqual((retry['id'], retry['revision']), (moved['id'], moved['revision']))
+        other = self.incoming('333@c.us')
+        with self.assertRaises(HTTPException):
+            booking.cancel_for_message(
+                self.workspace, other['conversation_id'], other['source_message_id'],
+                'waha', management, KEY, confirmed=True)
+        fresh = booking.manageable_for_message(
+            self.workspace, ctx['conversation_id'], ctx['source_message_id'], 'waha', KEY)
+        cancelled = booking.cancel_for_message(
+            self.workspace, ctx['conversation_id'], ctx['source_message_id'], 'waha',
+            fresh['items'][0]['management'], KEY, confirmed=True)
+        self.assertEqual(cancelled['status'], 'cancelled')
+        second = booking.cancel_for_message(
+            self.workspace, ctx['conversation_id'], ctx['source_message_id'], 'waha',
+            fresh['items'][0]['management'], KEY, confirmed=True)
+        self.assertEqual(second['revision'], cancelled['revision'])
+        with psycopg.connect(accounts.DB) as conn:
+            rows = conn.execute(
+                'SELECT revision,status FROM socialmei.agenda_appointment_history '
+                'WHERE workspace_id=%s AND appointment_id=%s ORDER BY revision',
+                (self.workspace, appointment['id'])).fetchall()
+        self.assertEqual([item[1] for item in rows],
+                         ['pending', 'pending', 'cancelled'])
+
     def test_same_user_in_two_stores_cannot_consume_other_stores_conversation(self):
         # A single login may own both stores, but the active session must scope
         # every channel-booking lookup to its currently selected workspace.
