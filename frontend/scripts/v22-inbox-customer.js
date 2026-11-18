@@ -148,6 +148,11 @@
       /^[1-9][0-9]{7,14}$/.test(suggestions.contact_phone)
         ? suggestions.contact_phone
         : null;
+    const registrationPhone =
+      typeof suggestions?.registration_phone === "string" &&
+      suggestions.registration_phone === "+" + phone
+        ? suggestions.registration_phone
+        : null;
     let createContact = null;
     if (phone && original.cliente_id === null) {
       form.append(
@@ -155,7 +160,9 @@
           "p",
           "WhatsApp desta conversa: +" +
             phone +
-            ". Se o número não está no CRM, cadastre um cliente antes de associar.",
+            (registrationPhone
+              ? ". Se não existir no CRM, cadastre um cliente antes de associar."
+              : ". O formato recebido não é aceito como telefone CRM; o cadastro será feito sem copiar esse campo, mas vinculado à conversa."),
         ),
       );
       const matches = clients.filter(
@@ -178,7 +185,10 @@
         nameInput.className = "form-control";
         nameInput.setAttribute("aria-label", "Nome do novo cliente");
         nameLabel.append(nameInput);
-        const button = element("button", "Cadastrar número e associar");
+        const button = element(
+          "button",
+          registrationPhone ? "Cadastrar número e associar" : "Cadastrar cliente e associar",
+        );
         button.type = "button";
         button.className = "btn o";
         form.append(nameLabel, button);
@@ -205,11 +215,15 @@
         try {
           // The operator explicitly creates the customer. No auto-matching
           // by phone and no message is sent to this WhatsApp contact.
-          created = await host.request("/clientes", "POST", { nome, telefone: phone });
+          created = await host.request(
+            "/clientes",
+            "POST",
+            registrationPhone ? { nome, telefone: registrationPhone } : { nome },
+          );
           if (!Number.isSafeInteger(created?.id) || created.id < 1)
             throw Error("O CRM não confirmou o novo cliente.");
           clients.push(created);
-          const newOption = element("option", created.nome + " · +" + phone);
+          const newOption = element("option", created.nome + " · +" + phone + " (WhatsApp)");
           newOption.value = String(created.id);
           select.append(newOption);
           select.value = String(created.id);
