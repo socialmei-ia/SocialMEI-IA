@@ -374,7 +374,7 @@ def manageable_for_message(workspace_id, conversation_id, source_message_id, ori
     from appointments import view
     with transaction(connection) as conn:
         context = context_for_message(conn, workspace_id, conversation_id, source_message_id, origin)
-        active_policy(conn, workspace_id)
+        # Existing reservations may still be cancelled when new booking is disabled.
         rows = conn.execute(
             "SELECT a.id,a.revision,a.service_name,a.scheduled_for,a.status "
             "FROM socialmei.agenda_appointments a "
@@ -398,7 +398,6 @@ def managed_for_message(workspace_id, conversation_id, source_message_id, origin
     from appointments import view
     with transaction(connection) as conn:
         context = context_for_message(conn, workspace_id, conversation_id, source_message_id, origin)
-        active_policy(conn, workspace_id)
         value, appointment = _manage_claim(management, key, context['binding'])
         if value['expires'] < datetime.now(timezone.utc).timestamp():
             raise HTTPException(409, 'Esta opção expirou. Consulte seus agendamentos novamente.')
