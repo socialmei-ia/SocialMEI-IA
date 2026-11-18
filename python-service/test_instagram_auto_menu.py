@@ -62,13 +62,23 @@ class AutoMenuDatabaseTests(unittest.TestCase):
     def test_disconnected_or_expired_account_does_not_starve_next_source(self):
         self.assertEqual(menu.next_source(self.workspace, self.start), self.source)
         with menu.db() as conn:
-            conn.execute("UPDATE socialmei.ig_meta_connections SET status='disconnected' "
-                         "WHERE workspace_id=%s", (self.workspace,))
+            previous = conn.execute(
+                "SELECT encrypted_token FROM socialmei.ig_meta_connections "
+                "WHERE workspace_id=%s AND status='connected'", (self.workspace,)
+            ).fetchone()
+            self.assertIsNotNone(previous)
+            # Mirror the real disconnect contract; the database forbids
+            # retaining an encrypted access token for a disconnected account.
+            conn.execute("UPDATE socialmei.ig_meta_connections "
+                         "SET status='disconnected',encrypted_token=NULL,disconnected_at=NOW(),"
+                         "revision=revision+1 WHERE workspace_id=%s", (self.workspace,))
         self.assertIsNone(menu.next_source(self.workspace, self.start))
         with menu.db() as conn:
             conn.execute("UPDATE socialmei.ig_meta_connections SET status='connected', "
+                         "encrypted_token=%s,disconnected_at=NULL,revision=revision+1,"
                          "issued_at=NOW()-INTERVAL '2 days',expires_at=NOW()-INTERVAL '1 day' "
-                         "WHERE workspace_id=%s", (self.workspace,))
+                         "WHERE workspace_id=%s",
+                         (previous['encrypted_token'], self.workspace))
         self.assertIsNone(menu.next_source(self.workspace, self.start))
         self.assertEqual(self.send_calls, [])
 
