@@ -1,5 +1,34 @@
 # Checkpoint SocialMEI-IA
 
+## Implementação intensiva após12e9ff4 — 17/11/2026
+
+- Mesma branch `fix/instagram-direct-continuity-20261117`, sem alterar produção.
+-61f89f5: comandos textuais de atendente, menu/voltar e encerrar/sair/finalizar
+  funcionam no catálogo nativo GOWS e no fallback compartilhado comInstagram.
+  Saem também do fluxo de escolha do agendamento; nunca liberam estado humano.
+  Encerrar termina somente a consulta, sem cancelar reservas existentes.
+-0cdd027: filaIG filtra vínculo da conta/conversa, conexão expirada/desconectada
+  e escopos ausentes antes da seleção, evitando escolher repetidamente mensagem
+  que o próprio dispatcher recusa. Pedido de atendente ultrapassa somente o
+  filtro de seleção do limite; o processamento registra estado humano/skipped
+  sem abrir token nem enviar confirmação quando a cota de envio foi alcançada.
+  Testes PostgreSQL novos para conexão/escopos preparados, ainda não executados.
+-e30c695: disponibilidade dos canais ordena janelas por dia/abertura antes da
+  paginação. Duas páginas e os dois canais cobertos com armazenamento simulado;
+  não cria reserva para consultar horários e preserva regras/conflitos existentes.
+- Validação direcionada consolidada:55 testes,43 aprovados/12 skips por ausência
+  de PostgreSQL descartável. DockerCLI disponível, daemon local indisponível.
+  Sem novas migrations, envio externo, credenciais ou alteraçõesAWS.
+- Próximo passo: executar `test_instagram_auto_menu` e os testes de jornada de
+  canal em PostgreSQL040 EXCLUSIVAMENTE descartável (as fixtures de integração
+  podem limpar tabelas/reaplicarSQL; nunca apontar TEST_DATABASE_URL para produção
+  ou candidata com dados reais). Os12 skips não são aprovação de persistência.
+  Depois construir imagens desta fonte e solicitar homologação real controlada
+  de Direct/WAHA, com recibo único, Caixa e Agenda; sem ativação nesta sessão.
+- Não foi implementado cancelamento/reagendamento pelo cliente nos canais nesta
+  continuação. As ações administrativas existentes foram preservadas. Não houve
+  alteração emBrevo, onboarding ou IA; não declarar novas homologações nesses fluxos.
+
 ## Instagram Direct — continuação de 17/11/2026
 
 - Branch de correção `fix/instagram-direct-continuity-20261117`, baseada em
