@@ -1,5 +1,33 @@
 # Checkpoint SocialMEI-IA
 
+## Autoatendimento de agenda — continuação apósa47ce4e
+
+- e333204: menu8/“Meus agendamentos” nos dois canais. Lista apenas reservas
+  futuras pending do clienteCRM associado à conversa recebida autenticada.
+  Sem vínculo, atendimento humano; nunca associa por telefone/nome não verificado.
+- Cancelamento: seleção → resumo → confirmação explícita → statuscancelled,
+  sem apagar dados; libera a vaga usando a operação administrativa compartilhada.
+- Reagendamento: seleção → datas/horários → novo resumo → confirmação. Mantém
+  mesmoID, cliente, serviço/recurso, preço e duração; mudanças nessas condições
+  exigem nova avaliação da equipe. Disponibilidade ignora somente a própria reserva
+  após validar proprietário/referência. Revalida assinatura, vínculo, política,
+  revisões, antecedência e conflito antes da gravação.
+- Referências ficam somente nas escolhas persistidas do servidor; nenhuma rota
+  pública nova. Revisão/snapshot/vínculo impedem alterar reserva alheia ou antiga.
+  Repetição exata devolve o recibo sem incrementar histórico; outra alteração
+  concorrente deve receber409. Escrita, conflito e histórico reutilizam o mesmo
+  helper transacional da Agenda administrativa. Pausa humana preservada.
+- af105d5: jornadas controladas Instagram e WAHA textual/nativo, consentimento,
+  autorização, falhas e repetição. Validação dirigida final:81 testes executados,
+  44 aprovados/37 skips PostgreSQL descartável. Dois testes novos de concorrência
+  real estão preparados emtest_channel_booking, mas não executados. Não homologar
+  concorrência/persistência com base nos mocks. Não houve migration ou produção.
+- Próximo: executar as fixtures SOMENTE emPostgreSQL040 descartável (podem limpar
+  tabelas/reaplicarSQL), sobretudo cancelamento concorrente e reagendamentos
+  disputando revisão. Em seguida build desta fonte, prévia controlada e autorização
+  separada para homologar canais e publicar. Não usar imagens antigas como prova
+  destas mudanças. Credenciais, AWS, Meta, Brevo e serviços reais intocados.
+
 ## Implementação intensiva após12e9ff4 — 17/11/2026
 
 - Mesma branch `fix/instagram-direct-continuity-20261117`, sem alterar produção.
