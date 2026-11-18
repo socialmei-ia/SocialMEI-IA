@@ -190,9 +190,10 @@ def manage_advance(conn, channel, message, target, native, *, origin):
             return response('booking_manage_empty',
                 'Não encontrei horários futuros pendentes marcados nesta conversa. Nossa equipe pode ajudar.',
                 navigation(), native)
+        zone = ZoneInfo(booking.read_policy(conn, context[0])['policy']['timezone'])
         choices = page_choices(rows, lambda row: {'step': 'manage_review', 'management': row['management']},
             lambda row: row['service_name'][:11] + ' ' +
-                datetime.fromisoformat(row['scheduled_for']).strftime('%d/%m %H:%M'), page=page)
+                datetime.fromisoformat(row['scheduled_for']).astimezone(zone).strftime('%d/%m %H:%M'), page=page)
         if len(rows) > (page + 1) * PAGE_SIZE:
             choices.append(option('6', 'Próximos horários', 'manage', page=page + 1))
         if page:
@@ -201,6 +202,20 @@ def manage_advance(conn, channel, message, target, native, *, origin):
                         choices + navigation(), native)
 
     management = target['management']
+    # Complete before re-reading the previous revision: a successful retry
+    # must return the already-updated booking without adding more history.
+    if step == 'cancel_confirm':
+        booking.cancel_for_message(*context, management, key, confirmed=True, connection=conn)
+        return response('booking_cancelled', 'Agendamento cancelado. Seu horário foi liberado.',
+                        [option('8', 'Meus agendamentos', 'manage'), *navigation()], native)
+    if step == 'move_confirm':
+        result = booking.reschedule_for_message(*context, management, target['confirmation'],
+                                                key, confirmed=True, connection=conn)
+        zone = booking.read_policy(conn, context[0])['policy']['timezone']
+        new_time = datetime.fromisoformat(result['scheduled_for']).astimezone(ZoneInfo(zone))
+        return response('booking_rescheduled',
+            'Agendamento reagendado para ' + new_time.strftime('%d/%m/%Y às %H:%M') + '.',
+            [option('8', 'Meus agendamentos', 'manage'), *navigation()], native)
     row = booking.managed_for_message(*context, management, key, connection=conn)
     start = datetime.fromisoformat(row['scheduled_for'])
     zone = booking.read_policy(conn, context[0])['policy']['timezone']
@@ -216,11 +231,6 @@ def manage_advance(conn, channel, message, target, native, *, origin):
             '*Confirmar cancelamento?*\n' + summary + '\n\nO horário será liberado.',
             [option('1', 'Confirmar cancelamento', 'cancel_confirm', management=management),
              option('2', 'Não cancelar', 'manage_review', management=management), *navigation()], native)
-    if step == 'cancel_confirm':
-        booking.cancel_for_message(*context, management, key, confirmed=True, connection=conn)
-        return response('booking_cancelled',
-            'Agendamento cancelado. Seu horário foi liberado.',
-            [option('8', 'Meus agendamentos', 'manage'), *navigation()], native)
     if step == 'move_days':
         policy, _ = booking.active_policy(conn, context[0])
         today = datetime.now(ZoneInfo(policy.timezone)).date()
@@ -264,11 +274,4 @@ def manage_advance(conn, channel, message, target, native, *, origin):
             [option('1', 'Confirmar nova data', 'move_confirm', management=management,
                     confirmation=offer['confirmation'], offer=offer, day=target['day'], page=page),
              *navigation()], native)
-    if step == 'move_confirm':
-        result = booking.reschedule_for_message(*context, management, target['confirmation'],
-                                                key, confirmed=True, connection=conn)
-        new_time = datetime.fromisoformat(result['scheduled_for']).astimezone(ZoneInfo(zone))
-        return response('booking_rescheduled',
-            'Agendamento reagendado para ' + new_time.strftime('%d/%m/%Y às %H:%M') + '.',
-            [option('8', 'Meus agendamentos', 'manage'), *navigation()], native)
     raise HTTPException(409, 'Esta opção mudou. Consulte seus agendamentos novamente.')
