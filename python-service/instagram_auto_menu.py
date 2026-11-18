@@ -13,7 +13,7 @@ from database import connect
 from instagram_meta_adapter import ProviderError
 from instagram_persistent_oauth import _lock
 from instagram_token_vault import TokenBinding
-from whatsapp_bot import answer
+from whatsapp_bot import answer, HUMAN_CHOICES
 import channel_booking_flow
 import instagram_booking_flow
 
@@ -69,16 +69,23 @@ def next_source(workspace, start):
         row = conn.execute(
             "SELECT m.id FROM socialmei.me_messages m "
             "JOIN socialmei.ig_meta_ingress_events e ON e.workspace_id=m.workspace_id AND e.message_id=m.id "
+            "JOIN socialmei.me_conversations v ON v.workspace_id=m.workspace_id AND v.id=m.conversation_id "
+            "JOIN socialmei.ig_meta_connections c ON c.workspace_id=e.workspace_id AND c.id=e.connection_id "
+            "AND c.external_account_id=e.external_account_id "
             "WHERE m.workspace_id=%s AND m.origin='instagram' AND e.kind='message' AND e.status='processed' "
+            "AND v.origin='instagram' AND v.account_ref='instagram:' || c.external_account_id "
+            "AND v.contact_ref ~ '^instagram:[0-9]{1,40}$' "
+            "AND c.status='connected' AND c.expires_at>NOW() "
+            "AND c.scopes @> ARRAY['instagram_business_basic','instagram_business_manage_messages']::text[] "
             "AND e.received_at>=%s AND m.occurred_at>=%s "
             "AND m.occurred_at>=NOW()-INTERVAL '2 minutes' AND m.occurred_at<=NOW()+INTERVAL '30 seconds' "
             "AND NOT EXISTS(SELECT 1 FROM socialmei.ig_menu_replies r WHERE r.workspace_id=m.workspace_id AND r.source_message_id=m.id) "
-            "AND (SELECT COUNT(*) FROM socialmei.ig_menu_replies r WHERE r.workspace_id=m.workspace_id "
+            "AND (lower(btrim(m.text))=ANY(%s) OR ((SELECT COUNT(*) FROM socialmei.ig_menu_replies r WHERE r.workspace_id=m.workspace_id "
             "AND r.conversation_id=m.conversation_id AND r.status IN ('dispatching','confirmed','uncertain') "
             "AND r.created_at>NOW()-INTERVAL '15 minutes')<10 "
             "AND (SELECT COUNT(*) FROM socialmei.ig_menu_replies r WHERE r.workspace_id=m.workspace_id "
             "AND r.status IN ('dispatching','confirmed','uncertain') AND r.created_at>NOW()-INTERVAL '15 minutes')<60 "
-            "ORDER BY m.occurred_at,m.id LIMIT 1", (workspace, start, start),
+            ")) ORDER BY m.occurred_at,m.id LIMIT 1", (workspace, start, start, sorted(HUMAN_CHOICES)),
         ).fetchone()
     return row['id'] if row else None
 
@@ -107,7 +114,8 @@ def reply(runtime, workspace, message, start):
                               "FROM socialmei.ig_menu_replies WHERE workspace_id=%s "
                               "AND status IN ('dispatching','confirmed','uncertain') "
                               "AND created_at>NOW()-INTERVAL '15 minutes'", (row['conversation_id'], workspace)).fetchone()
-        if counts['total'] >= 60 or counts['contact'] >= 10:
+        limited = counts['total'] >= 60 or counts['contact'] >= 10
+        if limited and row['text'].strip().casefold() not in HUMAN_CHOICES:
             return 'rate_limited'
         conn.execute("INSERT INTO socialmei.ig_menu_conversations(workspace_id,conversation_id) VALUES(%s,%s) "
                      "ON CONFLICT DO NOTHING", (workspace, row['conversation_id']))
@@ -119,6 +127,9 @@ def reply(runtime, workspace, message, start):
         resume = row['text'].strip().casefold() in {'0','menu','inicio','início'}
         current_state = 'menu' if resume and not pending else state['state']
         stale = state['last_occurred_at'] is not None and row['occurred_at'] < state['last_occurred_at']
+        # A customer's human handoff survives send limits without sending an acknowledgement.
+        if limited and not stale:
+            current_state = 'human'
         blocked = bool(pending) or current_state == 'human' or stale
         text = ''
         if blocked:

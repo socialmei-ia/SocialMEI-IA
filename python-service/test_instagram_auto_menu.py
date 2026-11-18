@@ -13,6 +13,33 @@ import test_instagram_direct_outbox as fixtures
 from test_instagram_simulation import DB
 
 
+class AutoMenuHandoffContracts(unittest.TestCase):
+    def test_send_limits_preserve_handoff_without_sending_or_opening_token(self):
+        from unittest.mock import MagicMock
+        now = datetime.now(timezone.utc)
+        row = {'conversation_id': 12, 'text': 'ATENDENTE', 'occurred_at': now,
+               'connection_id': str(uuid4()), 'external_account_id': '987',
+               'contact_ref': 'instagram:123'}
+        state = {'state': 'menu', 'last_message_id': None, 'last_occurred_at': None}
+        for counts in ({'total': 60, 'contact': 1}, {'total': 10, 'contact': 10}):
+            conn = MagicMock()
+            conn.execute.return_value.fetchone.side_effect = [True, None, None, counts, state, None]
+            runtime = MagicMock(send=True)
+            with patch.object(menu, 'enabled', return_value=True), patch.object(menu, 'db') as db, \
+                    patch.object(menu, '_lock'), patch.object(menu, 'source', return_value=row):
+                db.return_value.__enter__.return_value = conn
+                self.assertEqual(menu.reply(runtime, 7, 99, now), 'skipped')
+            runtime.direct.vault.open.assert_not_called()
+            runtime.direct.adapter.send_direct.assert_not_called()
+            inserts = [call.args[1] for call in conn.execute.call_args_list
+                       if 'INSERT INTO socialmei.ig_menu_replies' in call.args[0]]
+            self.assertEqual(len(inserts), 1)
+            self.assertEqual(inserts[0][-2], 'skipped')
+            updates = [call.args[1] for call in conn.execute.call_args_list
+                       if 'UPDATE socialmei.ig_menu_conversations' in call.args[0]]
+            self.assertEqual(updates[0][0], 'human')
+
+
 @unittest.skipUnless(DB, 'Disposable PostgreSQL required')
 class AutoMenuDatabaseTests(unittest.TestCase):
     setUpClass=classmethod(fixtures.DatabaseTests.setUpClass.__func__)
@@ -31,6 +58,26 @@ class AutoMenuDatabaseTests(unittest.TestCase):
         flags.start(); self.addCleanup(flags.stop)
         self.runtime=SimpleNamespace(send=True,direct=self.direct)
         self.start=datetime.now(timezone.utc)-timedelta(seconds=5)
+
+    def test_disconnected_or_expired_account_does_not_starve_next_source(self):
+        self.assertEqual(menu.next_source(self.workspace, self.start), self.source)
+        with menu.db() as conn:
+            conn.execute("UPDATE socialmei.ig_meta_connections SET status='disconnected' "
+                         "WHERE workspace_id=%s", (self.workspace,))
+        self.assertIsNone(menu.next_source(self.workspace, self.start))
+        with menu.db() as conn:
+            conn.execute("UPDATE socialmei.ig_meta_connections SET status='connected', "
+                         "issued_at=NOW()-INTERVAL '2 days',expires_at=NOW()-INTERVAL '1 day' "
+                         "WHERE workspace_id=%s", (self.workspace,))
+        self.assertIsNone(menu.next_source(self.workspace, self.start))
+        self.assertEqual(self.send_calls, [])
+
+    def test_missing_message_scope_does_not_enter_dispatch_queue(self):
+        with menu.db() as conn:
+            conn.execute("UPDATE socialmei.ig_meta_connections SET scopes=ARRAY['instagram_business_basic'] "
+                         "WHERE workspace_id=%s", (self.workspace,))
+        self.assertIsNone(menu.next_source(self.workspace, self.start))
+        self.assertEqual(self.send_calls, [])
 
     def test_concurrent_workers_dispatch_once_and_preserve_receipt(self):
         from concurrent.futures import ThreadPoolExecutor
