@@ -90,6 +90,62 @@ class ContractTests(unittest.TestCase):
         )
         self.assertEqual(events[0].text, "  Mensagem original\n")
 
+    def test_text_reply_metadata_reaches_persistence_but_payload_is_not_a_command(self):
+        for metadata in ({"reply_to": {"mid": "prior-message"}},
+                         {"quick_reply": {"payload": "untrusted-command"}}):
+            raw = encoded(payload(text="1", **metadata))
+            with patch("instagram_meta_ingress.persist_authenticated_events",
+                       return_value={"received": True}) as persist:
+                self.service.receive(raw, signature(raw))
+                event = persist.call_args.args[0][0]
+                self.assertEqual((event.kind, event.text), ("message", "1"))
+                self.assertEqual(event.contact_ref, "instagram:123456789")
+                self.assertIsNotNone(event.content_hash)
+            changed = encoded(payload(text="1", quick_reply={"payload": "changed"}))
+            updated = parse_message_events(changed, signature(changed), KEY)[0]
+            self.assertEqual(event.event_key, updated.event_key)
+            self.assertNotEqual(event.canonical_fingerprint, updated.canonical_fingerprint)
+            with patch("instagram_meta_ingress.persist_authenticated_events") as persist:
+                with self.assertRaises(HTTPException):
+                    self.service.receive(raw, "sha256=" + "0" * 64)
+                persist.assert_not_called()
+
+    def test_public_webhook_accepts_signed_reply_text_and_rejects_tampering(self):
+        raw = encoded(payload(text="1", reply_to={"mid": "prior-message"}))
+        app.dependency_overrides[ingress_service] = lambda: self.service
+        try:
+            with patch.dict(os.environ, {**ENV, **FLAGS}), patch(
+                "instagram_meta_ingress.persist_authenticated_events",
+                return_value={"received": True, "processed": 1}) as persist:
+                client = TestClient(app)
+                headers = {"Content-Type": "application/json",
+                           "X-Hub-Signature-256": signature(raw)}
+                response = client.post("/webhooks/instagram", content=raw, headers=headers)
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(persist.call_args.args[0][0].text, "1")
+                persist.reset_mock()
+                altered = encoded(payload(text="5", reply_to={"mid": "prior-message"}))
+                self.assertEqual(client.post("/webhooks/instagram", content=altered,
+                                             headers=headers).status_code, 403)
+                persist.assert_not_called()
+        finally:
+            app.dependency_overrides.pop(ingress_service, None)
+
+    def test_reply_metadata_does_not_promote_unknown_media_or_deleted_messages(self):
+        for metadata in ({"reply_to": {"story": {"id": "123"}}},
+                         {"quick_reply": {"payload": "1", "unexpected": True}},
+                         {"reply_to": {"mid": "prior"}, "is_deleted": True},
+                         {"quick_reply": {"payload": "1"}, "attachments": []}):
+            raw = encoded(payload(**metadata))
+            event = parse_message_events(raw, signature(raw), KEY)[0]
+            self.assertEqual((event.kind, event.text), ("unsupported", None))
+        for metadata in ({"reply_to": {"mid": "bad id"}},
+                         {"quick_reply": {"payload": 1}},
+                         {"quick_reply": {"payload": "x" * 8193}}):
+            raw = encoded(payload(**metadata))
+            with self.assertRaises(Exception):
+                parse_message_events(raw, signature(raw), KEY)
+
     def test_direct_alias_requires_signed_meta_event_and_server_mapping(self):
         aliases = json.dumps({
             "555444333": {"workspace_id": 1, "connection_account_id": "987654321"}

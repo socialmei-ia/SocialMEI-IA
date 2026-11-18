@@ -25,6 +25,32 @@ PATH = '/api/v1/agenda/channel-booking'
 
 
 class BookingContractTests(unittest.TestCase):
+    def test_slot_pages_are_chronological_even_when_hours_were_saved_out_of_order(self):
+        from unittest.mock import MagicMock
+        from decimal import Decimal
+        resource = uuid4()
+        policy = booking.BookingPolicy(enabled=True, timezone='America/Sao_Paulo',
+            hours=[{'weekday': 0, 'opens': '09:00', 'closes': '10:00'},
+                   {'weekday': 0, 'opens': '08:00', 'closes': '09:00'}])
+        product = {'nome': 'Serviço teste', 'duracao_minutos': 15,
+                   'preco': Decimal('25.00'), 'versao': 1}
+        for origin in ('waha', 'instagram'):
+            with patch.object(booking, 'context_for_message', return_value={'binding': 'test-binding'}), \
+                    patch.object(booking, 'active_policy', return_value=(policy, 'policy-hash')), \
+                    patch.object(booking, 'allowed_start', return_value=True), \
+                    patch.object(appointments, 'lock_resource', return_value={'id': resource, 'nome': 'Equipe', 'revision': 1}), \
+                    patch.object(appointments, 'service', return_value=product), \
+                    patch.object(appointments, 'free', return_value=True):
+                pages = [booking.slots_for_message(7, 12, 13, origin, 31, resource,
+                    '2026-11-23', 'controlled-test-signing-key-32-bytes', page=page,
+                    connection=MagicMock()) for page in (0, 1)]
+            times = [datetime.fromisoformat(item['scheduled_for']).strftime('%H:%M')
+                     for page in pages for item in page['items']]
+            self.assertEqual(times, ['08:00', '08:15', '08:30', '08:45', '09:00', '09:15'])
+            self.assertTrue(all(page['has_more'] for page in pages))
+            self.assertTrue(all(page['reservation_created'] is False for page in pages))
+            self.assertEqual(len(set(times)), len(times))
+
     def test_policy_fails_closed_and_rejects_invalid_hours_and_client_identity(self):
         self.assertFalse(booking.BookingPolicy().enabled)
         for value in ({'enabled': True}, {'timezone': 'unknown/zone'},
@@ -134,6 +160,45 @@ class ChannelBookingDatabaseTests(unittest.TestCase):
     def confirm(self, token, context=None, client=None):
         return (client or self.client).post(PATH + '/confirm', json={**(context or self.context),
                                             'confirmation': token, 'confirmed': True})
+
+    def test_management_cancel_concurrent_replay_writes_one_history_revision(self):
+        created = self.confirm(self.offer()).json()
+        args = (self.workspace,self.context['conversation_id'],self.context['source_message_id'],'waha')
+        with psycopg.connect(accounts.DB, row_factory=dict_row) as conn:
+            reference=booking.appointments_for_message(*args,connection=conn)[0]['reference']
+        def cancel(_):
+            with psycopg.connect(accounts.DB,row_factory=dict_row) as conn:
+                return booking.change_for_message(*args,reference,confirmed=True,connection=conn)
+        with ThreadPoolExecutor(2) as pool:
+            results=list(pool.map(cancel,range(2)))
+        self.assertEqual(results[0],results[1])
+        self.assertEqual(results[0]['status'],'cancelled')
+        history=self.client.get('/api/v1/agenda/appointments/'+created['id']+'/history').json()['items']
+        self.assertEqual(len(history),2)
+
+    def test_management_competing_reschedules_preserve_original_id_and_one_winner(self):
+        created=self.confirm(self.offer()).json()
+        args=(self.workspace,self.context['conversation_id'],self.context['source_message_id'],'waha')
+        with psycopg.connect(accounts.DB,row_factory=dict_row) as conn:
+            reference=booking.appointments_for_message(*args,connection=conn)[0]['reference']
+            key=booking.signing_key_for_context(conn,*args)
+            offers=booking.slots_for_message(*args,self.service['id'],self.resource['id'],self.day,key,
+                connection=conn,appointment_reference=reference)['items']
+            tokens=[item['confirmation'] for item in offers if item['scheduled_for']!=created['scheduled_for']][:2]
+        self.assertEqual(len(tokens),2)
+        def move(token):
+            try:
+                with psycopg.connect(accounts.DB,row_factory=dict_row) as conn:
+                    result=booking.change_for_message(*args,reference,confirmation=token,signing_key=key,
+                        confirmed=True,connection=conn)
+                    self.assertEqual(result['id'],created['id'])
+                return 200
+            except HTTPException as error:
+                return error.status_code
+        with ThreadPoolExecutor(2) as pool:
+            self.assertEqual(sorted(pool.map(move,tokens)),[200,409])
+        history=self.client.get('/api/v1/agenda/appointments/'+created['id']+'/history').json()['items']
+        self.assertEqual(len(history),2)
 
     def test_same_user_in_two_stores_cannot_consume_other_stores_conversation(self):
         # A single login may own both stores, but the active session must scope

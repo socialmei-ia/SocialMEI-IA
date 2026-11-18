@@ -14,8 +14,8 @@ MARKER = '\n\nRef. agendamento: '
 MAX_OUTPUT_BYTES = 1000
 MAX_DECODED_BYTES = 7000
 REPLY_TTL = timedelta(minutes=10)
-CHOICE_IDS = {'1', '2', '3', '6', '7'}
-STEPS = {'services', 'resources', 'days', 'slots', 'review_ref', 'confirm_ref'}
+CHOICE_IDS = {'1', '2', '3', '6', '7', '8'}
+STEPS = {'services', 'resources', 'days', 'slots', 'review_ref', 'confirm_ref', 'appointments', 'manage', 'cancel_review', 'cancel_confirm'}
 
 
 def _offer_details(offer):
@@ -62,6 +62,8 @@ def _snapshot_target(target, selected):
         'page': selected.get('page', 0),
         'scheduled_for': offer['scheduled_for'],
     }
+    if selected.get('appointment') is not None:
+        snapshot['appointment'] = selected['appointment']
     if step == 'confirm':
         snapshot['details'] = _offer_details(offer)
     return snapshot
@@ -148,10 +150,14 @@ def _recent_choices(row):
 
 def _review_offer(conn, workspace, message, target):
     context = (workspace, message['conversation_id'], message['id'], 'instagram')
+    if target.get('appointment') is not None:
+        from appointments import lock_workspace
+        lock_workspace(conn, workspace)
     key = booking.signing_key_for_context(conn, *context)
     result = booking.slots_for_message(*context, target['service_id'],
         target['resource_id'], target['day'], key, page=target['page'],
-        connection=conn)
+        connection=conn, **({'appointment_reference': target['appointment']}
+                           if target.get('appointment') is not None else {}))
     offer = next((item for item in result['items']
                   if item['scheduled_for'] == target['scheduled_for']), None)
     if offer is None:
@@ -159,7 +165,8 @@ def _review_offer(conn, workspace, message, target):
     if target['step'] == 'confirm_ref' and target.get('details') != _offer_details(offer):
         raise HTTPException(409, 'Os detalhes do atendimento mudaram. Consulte os horários novamente antes de confirmar.')
     return {'route': 'booking', 'step': 'review', 'offer': offer,
-            'day': target['day'], 'page': target['page']}
+            'day': target['day'], 'page': target['page'],
+            **({'appointment': target['appointment']} if target.get('appointment') is not None else {})}
 
 
 def respond(conn, workspace, message):
@@ -181,7 +188,7 @@ def respond(conn, workspace, message):
     selected = next((target for number, target in choices if number == value), None)
     if selected is None:
         if value in flow.START:
-            selected = {'route': 'booking', 'step': 'services'}
+            selected = {'route': 'booking', 'step': 'appointments' if value in flow.MANAGE else 'services'}
         elif not choices:
             return None
         else:
@@ -196,7 +203,8 @@ def respond(conn, workspace, message):
             selected = _review_offer(conn, workspace, message, selected)
             if confirming:
                 selected = {'route': 'booking', 'step': 'confirm',
-                            'confirmation': selected['offer']['confirmation']}
+                            'confirmation': selected['offer']['confirmation'],
+                            **({'appointment': selected['appointment']} if selected.get('appointment') is not None else {})}
         state, result = flow.advance(conn, {'workspace_id': workspace}, message,
                                      selected, False, origin='instagram')
         return state, result, selected

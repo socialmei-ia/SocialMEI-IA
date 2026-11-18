@@ -1,0 +1,84 @@
+name: WhatsApp GOWS release gates
+
+on:
+  pull_request:
+    branches:
+      - release/functional-completion-20261112
+    paths:
+      - ".github/workflows/whatsapp-gows-release-gates.yml"
+      - "tools/whatsapp-menu-worker.py"
+      - "tools/whatsapp-continuous-guard.py"
+      - "tools/release040-professor-readiness.py"
+      - "python-service/whatsapp_bot.py"
+      - "python-service/settings.py"
+      - "python-service/waha_ingress.py"
+      - "python-service/channel_booking.py"
+      - "python-service/channel_booking_flow.py"
+      - "python-service/whatsapp_catalog_navigation.py"
+      - "python-service/test_whatsapp_bot.py"
+      - "python-service/test_waha_ingress.py"
+      - "python-service/test_waha_menu_selection.py"
+      - "python-service/test_channel_booking.py"
+      - "python-service/test_channel_booking_flow.py"
+      - "tests/test_whatsapp_menu_worker.py"
+      - "tests/test_whatsapp_continuous_guard.py"
+      - "deploy/team/Dockerfile.whatsapp-menu-worker"
+
+permissions:
+  contents: read
+
+jobs:
+  verified-whatsapp-and-booking:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: socialmei_test
+          POSTGRES_PASSWORD: socialmei_test
+          POSTGRES_DB: socialmei_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U socialmei_test -d socialmei_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://socialmei_test:socialmei_test@127.0.0.1:5432/socialmei_test
+      DATABASE_URL: postgresql://socialmei_test:socialmei_test@127.0.0.1:5432/socialmei_test
+      SOCIALMEI_SHARED_DATA_ENABLED: "true"
+      SOCIALMEI_WORKSPACE_SLUG: ci-shared-data
+      SOCIALMEI_WORKSPACE_NAME: CI Shared Data
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install backend test dependencies
+        run: python -m pip install -r python-service/requirements.txt
+      - name: Compile worker, guard and readiness scripts
+        run: |
+          python -m py_compile tools/whatsapp-menu-worker.py tools/whatsapp-continuous-guard.py tools/release040-professor-readiness.py
+      - name: Validate real worker and uncertainty guard
+        run: |
+          python -m unittest discover -s tests -p 'test_whatsapp_menu_worker.py'
+          python -m unittest discover -s tests -p 'test_whatsapp_continuous_guard.py'
+      - name: Validate GOWS webhook, menu, and transactional booking
+        env:
+          PYTHONPATH: python-service
+        run: |
+          python -m unittest test_waha_ingress test_waha_menu_selection test_whatsapp_bot test_channel_booking_flow test_channel_booking
+      - name: Validate professor demo modules with disposable PostgreSQL
+        env:
+          PYTHONPATH: python-service
+        run: |
+          python -m unittest test_public_booking test_instagram_booking_flow test_instagram_auto_menu test_inbox_customer test_service_appointments test_catalog test_sales test_finance
+      - name: Validate immutable worker image source layout
+        run: |
+          docker build --build-arg SOCIALMEI_MENU_BASE_IMAGE=python:3.12-slim -t socialmei-worker-layout-check -f deploy/team/Dockerfile.whatsapp-menu-worker .
+          docker run --rm --entrypoint python socialmei-worker-layout-check -m py_compile /app/public_worker.py /app/continuous_guard.py

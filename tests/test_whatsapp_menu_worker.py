@@ -69,6 +69,54 @@ class ContinuousWorkerTests(unittest.TestCase):
         self.assertEqual(result,'RESULTADO_INCERTO_NAO_REENVIAR')
         self.assertFalse(any(url.endswith(('/api/sendList','/api/sendText')) for _,url in calls))
 
+    def test_api040_private_target_remains_fail_closed(self):
+        self.assertEqual(worker.API_URL, 'http://team-api:8000')
+
+    def test_public_native_list_requires_explicit_flags_and_verified_direct_contact(self):
+        import os
+        public_flags = {
+            'SOCIALMEI_MENU_PUBLIC_INBOUND_ACTIVE': 'YES',
+            'SOCIALMEI_PUBLIC_MENU_EXPLICIT_ENABLE': 'YES',
+            'SOCIALMEI_WHATSAPP_GOWS_PUBLIC_LISTS_ENABLED': 'YES',
+        }
+        with patch.dict(os.environ, public_flags):
+            result, calls, receipts = self.gows_attempt(native=True, unapproved=True)
+            self.assertEqual(result, 'ENVIO_CONFIRMADO')
+            self.assertEqual(
+                sum(method == 'POST' and url.endswith('/api/sendList')
+                    for method, url in calls), 1
+            )
+            self.assertEqual(len(receipts), 1)
+
+        for missing in public_flags:
+            flags = dict(public_flags)
+            flags[missing] = 'NO'
+            with self.subTest(missing=missing), patch.dict(os.environ, flags):
+                result, calls, receipts = self.gows_attempt(native=True, unapproved=True)
+                self.assertEqual(result, 'RESULTADO_INCERTO_NAO_REENVIAR')
+                self.assertFalse(any(
+                    method == 'POST' and url.endswith(('/api/sendList', '/api/sendText'))
+                    for method, url in calls
+                ))
+                self.assertEqual(receipts, [{'status':'uncertain','provider_message_id':None}])
+
+        cfg = worker.Config('trusted-a', '01', '111@c.us',
+                            'synthetic-token-123456', 'synthetic-waha-key-123456',
+                            'GOWS', worker.GOWS_URL)
+        good = {'path':'/api/sendList','body':{'session':'01','chatId':'222@c.us','message':{
+            'title':'Atendimento','description':'Menu','footer':'SocialMEI',
+            'button':'Ver opções','sections':[{'title':'Escolha',
+            'rows':[{'rowId':'1','title':'Produtos','description':None}]}]}}}
+        import copy
+        with patch.dict(os.environ, public_flags):
+            self.assertEqual(worker._delivery(good, cfg)['chatId'], '222@c.us')
+            for invalid_chat in ('333@g.us', '111@c.us', 'bad/chat', ''):
+                with self.subTest(chat=invalid_chat):
+                    modified = copy.deepcopy(good)
+                    modified['body']['chatId'] = invalid_chat
+                    with self.assertRaises(worker.Blocked):
+                        worker._delivery(modified, cfg)
+
     def test_native_list_rejects_other_contact_duplicate_options_and_arbitrary_action(self):
         import copy
         cfg=worker.Config('trusted-a','01','111@c.us','synthetic-token-123456',

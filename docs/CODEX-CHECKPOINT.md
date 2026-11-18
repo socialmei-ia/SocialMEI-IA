@@ -1,5 +1,85 @@
 # Checkpoint SocialMEI-IA
 
+## Autoatendimento de agenda — continuação apósa47ce4e
+
+- e333204: menu8/“Meus agendamentos” nos dois canais. Lista apenas reservas
+  futuras pending do clienteCRM associado à conversa recebida autenticada.
+  Sem vínculo, atendimento humano; nunca associa por telefone/nome não verificado.
+- Cancelamento: seleção → resumo → confirmação explícita → statuscancelled,
+  sem apagar dados; libera a vaga usando a operação administrativa compartilhada.
+- Reagendamento: seleção → datas/horários → novo resumo → confirmação. Mantém
+  mesmoID, cliente, serviço/recurso, preço e duração; mudanças nessas condições
+  exigem nova avaliação da equipe. Disponibilidade ignora somente a própria reserva
+  após validar proprietário/referência. Revalida assinatura, vínculo, política,
+  revisões, antecedência e conflito antes da gravação.
+- Referências ficam somente nas escolhas persistidas do servidor; nenhuma rota
+  pública nova. Revisão/snapshot/vínculo impedem alterar reserva alheia ou antiga.
+  Repetição exata devolve o recibo sem incrementar histórico; outra alteração
+  concorrente deve receber409. Escrita, conflito e histórico reutilizam o mesmo
+  helper transacional da Agenda administrativa. Pausa humana preservada.
+- af105d5: jornadas controladas Instagram e WAHA textual/nativo, consentimento,
+  autorização, falhas e repetição. Validação dirigida final:81 testes executados,
+  44 aprovados/37 skips PostgreSQL descartável. Dois testes novos de concorrência
+  real estão preparados emtest_channel_booking, mas não executados. Não homologar
+  concorrência/persistência com base nos mocks. Não houve migration ou produção.
+- Próximo: executar as fixtures SOMENTE emPostgreSQL040 descartável (podem limpar
+  tabelas/reaplicarSQL), sobretudo cancelamento concorrente e reagendamentos
+  disputando revisão. Em seguida build desta fonte, prévia controlada e autorização
+  separada para homologar canais e publicar. Não usar imagens antigas como prova
+  destas mudanças. Credenciais, AWS, Meta, Brevo e serviços reais intocados.
+
+## Implementação intensiva após12e9ff4 — 17/11/2026
+
+- Mesma branch `fix/instagram-direct-continuity-20261117`, sem alterar produção.
+-61f89f5: comandos textuais de atendente, menu/voltar e encerrar/sair/finalizar
+  funcionam no catálogo nativo GOWS e no fallback compartilhado comInstagram.
+  Saem também do fluxo de escolha do agendamento; nunca liberam estado humano.
+  Encerrar termina somente a consulta, sem cancelar reservas existentes.
+-0cdd027: filaIG filtra vínculo da conta/conversa, conexão expirada/desconectada
+  e escopos ausentes antes da seleção, evitando escolher repetidamente mensagem
+  que o próprio dispatcher recusa. Pedido de atendente ultrapassa somente o
+  filtro de seleção do limite; o processamento registra estado humano/skipped
+  sem abrir token nem enviar confirmação quando a cota de envio foi alcançada.
+  Testes PostgreSQL novos para conexão/escopos preparados, ainda não executados.
+-e30c695: disponibilidade dos canais ordena janelas por dia/abertura antes da
+  paginação. Duas páginas e os dois canais cobertos com armazenamento simulado;
+  não cria reserva para consultar horários e preserva regras/conflitos existentes.
+- Validação direcionada consolidada:55 testes,43 aprovados/12 skips por ausência
+  de PostgreSQL descartável. DockerCLI disponível, daemon local indisponível.
+  Sem novas migrations, envio externo, credenciais ou alteraçõesAWS.
+- Próximo passo: executar `test_instagram_auto_menu` e os testes de jornada de
+  canal em PostgreSQL040 EXCLUSIVAMENTE descartável (as fixtures de integração
+  podem limpar tabelas/reaplicarSQL; nunca apontar TEST_DATABASE_URL para produção
+  ou candidata com dados reais). Os12 skips não são aprovação de persistência.
+  Depois construir imagens desta fonte e solicitar homologação real controlada
+  de Direct/WAHA, com recibo único, Caixa e Agenda; sem ativação nesta sessão.
+- Não foi implementado cancelamento/reagendamento pelo cliente nos canais nesta
+  continuação. As ações administrativas existentes foram preservadas. Não houve
+  alteração emBrevo, onboarding ou IA; não declarar novas homologações nesses fluxos.
+
+## Instagram Direct — continuação de 17/11/2026
+
+- Branch de correção `fix/instagram-direct-continuity-20261117`, baseada em
+  `2095c11` de `feature/whatsapp-public-inbound-20261117`, descendente de3551a89.
+  Preserva as melhorias GOWS/CRM/agendamento mais recentes; main local não usado.
+- Ingress agora aceita texto assinado com `reply_to.mid`/`quick_reply.payload`
+  estritamente validados. Apenas texto alimenta o bot; metadados participam do
+  fingerprint para detectar conflito no mesmo mid. Mídia/remoções desconhecidas
+  continuam sem promover texto ao processamento. Nenhuma assinatura relaxada.
+- Testes:28 executados,18 aprovados/10 skips por PostgreSQL descartável ausente
+  (ContractTests do ingress, contrato Meta e auto-menu). Incluem POST público
+  assinado, corpo adulterado recusado antes da persistência, metadados inválidos,
+  limites e identidade de contato. Persistência mockada; sem homologação real.
+- Fonte: https://developers.facebook.com/docs/graph-api/webhooks/reference/instagram
+- Produção/serviços/credenciais não acessados nem alterados. Usuário informa
+  release040 operante na AWS/GOWS piloto; não reabrir gates históricos abaixo
+  como se fossem estado atual. Instagram real segue não homologado.
+- Próximo passo exato: em ambiente PostgreSQL descartável autorizado, executar
+  testes de persistência do ingress e auto-menu; depois, sob autorização separada,
+  homologar Direct controlado → webhook assinado → Caixa → resposta única.
+  Este código novo não está nas imagens3551a89; exige build/validação antes de
+  eventual publicação. Não reconstruir nem publicar sem necessidade/autorização.
+
 ## Continuação de a912026 — cadeia040 concluída, 14/11
 
 - Branch `release/functional-completion-20261112`; worktree
