@@ -14,6 +14,41 @@ PATH = bot_fixtures.PATH
 BOT_ACCOUNT = bot_fixtures.BOT_ACCOUNT
 
 
+
+class ChannelSelfServiceContracts(unittest.TestCase):
+    def test_future_bookings_are_listed_in_local_timezone(self):
+        from unittest.mock import MagicMock
+        from zoneinfo import ZoneInfo
+        import channel_booking_flow as flow
+        row = {'service_name': 'Consulta', 'scheduled_for': '2026-11-19T12:00:00+00:00',
+               'management': 'OPAQUE_SIGNED_MANAGEMENT_TOKEN'}
+        message = {'id': 13, 'conversation_id': 12, 'text': 'meus agendamentos'}
+        with patch.object(flow.booking, 'signing_key_for_context', return_value='secret'), \
+             patch.object(flow.booking, 'manageable_for_message', return_value={'items': [row]}), \
+             patch.object(flow.booking, 'read_policy',
+                          return_value={'policy': {'timezone': 'America/Recife'}}):
+            state, result = flow.advance(MagicMock(), {'workspace_id': 1},
+                                         message, {'step': 'manage'}, True)
+        self.assertEqual(state, 'menu')
+        self.assertEqual(result['action'], 'booking_manage')
+        self.assertEqual(result['choices'][0]['title'], 'Consulta 19/11 09:00')
+        self.assertEqual(result['choices'][0]['target']['management'], row['management'])
+
+    def test_confirmation_routes_directly_to_idempotent_cancel(self):
+        from unittest.mock import MagicMock
+        import channel_booking_flow as flow
+        message = {'id': 13, 'conversation_id': 12, 'text': '1'}
+        with patch.object(flow.booking, 'signing_key_for_context', return_value='secret'), \
+             patch.object(flow.booking, 'managed_for_message',
+                          side_effect=AssertionError('retries must not recheck old revision')), \
+             patch.object(flow.booking, 'cancel_for_message', return_value={'status': 'cancelled'}) as cancel:
+            state, result = flow.advance(MagicMock(), {'workspace_id': 1}, message,
+                {'step': 'cancel_confirm', 'management': 'signed'}, True)
+        self.assertEqual(result['action'], 'booking_cancelled')
+        self.assertEqual(state, 'menu')
+        self.assertEqual(cancel.call_args.kwargs['confirmed'], True)
+
+
 @unittest.skipUnless(accounts.DB, 'Disposable PostgreSQL required')
 class ChannelBookingFlowTests(unittest.TestCase):
     setUpClass = classmethod(accounts.AccountDatabaseTests.setUpClass.__func__)
