@@ -201,3 +201,62 @@ class ManagementTests(unittest.TestCase):
             self.assertEqual(done['action'],'booking_rescheduled')
             self.assertEqual(len(self.writes),1)
             self.assertEqual(self.row['scheduled_for'].isoformat(),offer['scheduled_for'])
+
+    def test_other_workspace_cannot_change_reference_even_with_same_customer_number(self):
+        with self.assertRaises(HTTPException):
+            core.change_for_message(8,12,13,'instagram',self.reference,confirmed=True,connection=self.conn)
+        self.assertFalse(self.writes)
+
+    def test_whatsapp_cancellation_walks_existing_text_and_native_menus(self):
+        for native in (False,True):
+            original=dict(self.row)
+            self.writes.clear()
+            previous=None
+            conn=MagicMock()
+            conn.execute.return_value.fetchone.side_effect=lambda: {'result':previous} if previous else None
+            channel={'workspace_id':7,'channel_id':2,'binding_hash':'channel-test'}
+            listed={**self.row,'reference':self.reference}
+            with patch.object(core,'appointments_for_message',return_value=[listed]), \
+                 patch.object(core,'read_policy',return_value={'policy':{'timezone':'UTC'}}), \
+                 patch.object(core,'owned_appointment',side_effect=lambda *args:dict(self.row)):
+                expected=['booking_appointments','booking_manage','booking_cancel_review','booking_cancelled']
+                for index,command in enumerate(('8','1','1','1')):
+                    message={'id':13+index,'conversation_id':12,'text':command}
+                    if native and previous:
+                        message['catalog_target']=previous['choices'][0]['target']
+                    state,result=flow.respond(conn,channel,message,{'state':'menu'},native=native)
+                    self.assertEqual(result['action'],expected[index])
+                    if index<3:self.assertFalse(self.writes)
+                    previous=result
+                self.assertEqual(len(self.writes),1)
+                self.assertEqual(self.row['status'],'cancelled')
+            self.row=original
+
+    def test_shared_reschedule_slots_review_confirm_keep_reference_without_new_booking(self):
+        for origin in ('waha','instagram'):
+            original=dict(self.row)
+            self.writes.clear()
+            token=self.token()
+            offer=dict(service_id=31,service_name='Consulta',resource_id=str(self.row['resource_id']),
+                resource_name='Equipe',price='50.00',duration_minutes=30,confirmation=token,
+                scheduled_for=(self.row['scheduled_for']+timedelta(hours=1)).isoformat(),
+                ends_at=(self.row['ends_at']+timedelta(hours=1)).isoformat())
+            target={'step':'slots','day':'2026-11-20','service_id':31,
+                    'resource_id':str(self.row['resource_id']),'appointment':self.reference}
+            with patch.object(core,'signing_key_for_context',return_value=self.key), \
+                 patch.object(core,'slots_for_message',return_value={'items':[offer],'has_more':False}) as slots, \
+                 patch.object(core,'read_policy',return_value={'policy':{'timezone':'UTC'}}), \
+                 patch.object(core,'owned_appointment',side_effect=lambda *args:dict(self.row)), \
+                 patch.object(appointments,'create_appointment_in') as create:
+                for action in ('booking_slots','booking_review','booking_rescheduled'):
+                    _,result=flow.advance(self.conn,{'workspace_id':7},{'id':13,'conversation_id':12},
+                                          target,False,origin=origin)
+                    self.assertEqual(result['action'],action)
+                    if action!='booking_rescheduled':
+                        self.assertFalse(self.writes)
+                        target=result['choices'][0]['target']
+                        self.assertEqual(target['appointment'],self.reference)
+                self.assertEqual(slots.call_args.kwargs['appointment_reference'],self.reference)
+                create.assert_not_called()
+                self.assertEqual(len(self.writes),1)
+            self.row=original
