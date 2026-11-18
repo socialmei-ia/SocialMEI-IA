@@ -23,3 +23,10 @@ frontend/telas/divulgacao.html
 frontend/scripts/hero-wall.js
 frontend/scripts/sections-anim.js
 frontend/scripts/app-perfil.js
+
+# Historical release040 receipts are immutable evidence; do not rewrite hashes or layout.
+docs/evidence/20261114-authorized-backup038-to040.json
+docs/evidence/20261114-postgres-migration-preparation.json
+docs/evidence/20261114-release040-artifact-chain.json
+# Historical release readiness notes preserve the original operational record.
+docs/RELEASE040-READINESS.md

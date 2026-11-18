@@ -220,9 +220,23 @@ def waha_ingress_enabled() -> bool:
     )
 
 
+def whatsapp_bot_public_inbound_enabled() -> bool:
+    """Allow replies to signed inbound direct messages without per-contact approval.
+
+    This is an explicit opt-in for the authenticated, single-channel Team pilot.
+    It never enables sending by itself, nor bypasses the signed WAHA ingress,
+    channel-bound worker token, human handoff or deduplication checks.
+    """
+    return (
+        os.getenv("SOCIALMEI_WHATSAPP_BOT_PUBLIC_INBOUND_ENABLED", "false").strip().lower() == "true"
+        and os.getenv("SOCIALMEI_WHATSAPP_BOT_ENABLED", "false").strip().lower() == "true"
+        and waha_ingress_team_pilot_enabled()
+    )
+
+
 def whatsapp_bot_allowed_contacts():
-    """Unrestricted fixtures only in isolated mode; live pilot needs explicit contacts."""
-    if waha_ingress_isolated_enabled():
+    """Return None for explicit inbound-only public service, else require a tested allowlist."""
+    if waha_ingress_isolated_enabled() or whatsapp_bot_public_inbound_enabled():
         return None
     try:
         values = json.loads(os.getenv("SOCIALMEI_WHATSAPP_BOT_ALLOWED_CONTACTS", "[]"))

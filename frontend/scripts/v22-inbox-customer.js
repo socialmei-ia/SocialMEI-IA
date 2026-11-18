@@ -141,10 +141,120 @@
       };
       form.append(suggestion, choose);
     }
+    // A WhatsApp conversation may exist before a CRM customer does. Only the
+    // server's authenticated @c.us contact_ref can supply a phone here.
+    const phone =
+      typeof suggestions?.contact_phone === "string" &&
+      /^[1-9][0-9]{7,14}$/.test(suggestions.contact_phone)
+        ? suggestions.contact_phone
+        : null;
+    const registrationPhone =
+      typeof suggestions?.registration_phone === "string" &&
+      suggestions.registration_phone === "+" + phone
+        ? suggestions.registration_phone
+        : null;
+    let createContact = null;
+    if (phone && original.cliente_id === null) {
+      form.append(
+        element(
+          "p",
+          "WhatsApp desta conversa: +" +
+            phone +
+            (registrationPhone
+              ? ". Se não existir no CRM, cadastre um cliente antes de associar."
+              : ". O formato recebido não é aceito como telefone CRM; o cadastro será feito sem copiar esse campo, mas vinculado à conversa."),
+        ),
+      );
+      const matches = clients.filter(
+        (client) => String(client.telefone || "").replace(/[^0-9]/g, "") === phone,
+      );
+      if (!hint && !suggestions?.ambiguous && matches.length === 1) {
+        const existing = element(
+          "p",
+          "Este número já pertence a " +
+            matches[0].nome +
+            ". Selecione esse cadastro e confirme o vínculo.",
+        );
+        form.append(existing);
+      } else if (!hint && !suggestions?.ambiguous && matches.length === 0) {
+        const nameLabel = element("label", "Nome para cadastrar este WhatsApp");
+        const nameInput = element("input");
+        nameInput.type = "text";
+        nameInput.maxLength = 120;
+        nameInput.placeholder = "Nome do novo cliente";
+        nameInput.className = "form-control";
+        nameInput.setAttribute("aria-label", "Nome do novo cliente");
+        nameLabel.append(nameInput);
+        const button = element(
+          "button",
+          registrationPhone ? "Cadastrar número e associar" : "Cadastrar cliente e associar",
+        );
+        button.type = "button";
+        button.className = "btn o";
+        form.append(nameLabel, button);
+        createContact = { nameInput, button };
+      }
+    }
     const feedback = element("p");
     feedback.setAttribute("role", "status");
     form.append(feedback);
     let submitting = false;
+    if (createContact) {
+      createContact.button.onclick = async () => {
+        if (submitting || !current(s) || !owns() || !writer()) return;
+        const nome = createContact.nameInput.value.trim();
+        if (nome.length < 2 || nome.length > 120) {
+          feedback.textContent = "Informe o nome do cliente (2 a 120 caracteres).";
+          return;
+        }
+        submitting = true;
+        s.busy = true;
+        form.querySelectorAll("button").forEach((b) => (b.disabled = true));
+        paint(s);
+        let created = null;
+        try {
+          // The operator explicitly creates the customer. No auto-matching
+          // by phone and no message is sent to this WhatsApp contact.
+          created = await host.request(
+            "/clientes",
+            "POST",
+            registrationPhone ? { nome, telefone: registrationPhone } : { nome },
+          );
+          if (!Number.isSafeInteger(created?.id) || created.id < 1)
+            throw Error("O CRM não confirmou o novo cliente.");
+          clients.push(created);
+          const newOption = element("option", created.nome + " · +" + phone + " (WhatsApp)");
+          newOption.value = String(created.id);
+          select.append(newOption);
+          select.value = String(created.id);
+          createContact.button.onclick = null; // Prevent accidental duplicate registration.
+          const data = await host.request(
+            `/message-enrichment/conversations/${s.id}/customer`,
+            "PATCH",
+            { expected_revision: original.revision, cliente_id: created.id },
+          );
+          if (!current(s)) return;
+          valid(data, s);
+          if (data.cliente_id !== created.id || data.revision !== original.revision + 1)
+            throw Error("O CRM não confirmou o vínculo.");
+          s.data = data;
+          s.error = "";
+          if (owns()) box.close();
+        } catch (error) {
+          if (current(s) && owns()) {
+            feedback.textContent = created
+              ? "Cliente cadastrado, mas vínculo não confirmado. Atualize a conversa e associe esse cliente pela lista; não cadastre de novo."
+              : error.message || "Cadastro não confirmado. Confira antes de repetir.";
+          }
+        } finally {
+          submitting = false;
+          s.busy = false;
+          if (owns()) form.querySelectorAll("button").forEach((b) => (b.disabled = false));
+          if (created && owns()) createContact.button.disabled = true;
+          paint(s);
+        }
+      };
+    }
     form.onsubmit = async (event) => {
       event.preventDefault();
       if (submitting) return;

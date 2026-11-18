@@ -30,6 +30,25 @@ class EmptyCatalogReplyTests(unittest.TestCase):
                 self.assertIn("status='Ativo'", sql)
                 self.assertEqual(args[0], 1)
 
+    def test_text_commands_work_in_both_transports_and_preserve_human_pause(self):
+        from whatsapp_bot import _catalog_answer
+        from channel_booking_flow import respond
+        import instagram_booking_flow
+        for native in (False, True):
+            for command in ('encerrar', 'sair', 'finalizar', 'voltar', 'menu', 'atendente', 'humano'):
+                conn = MagicMock()
+                state, result = _catalog_answer(conn, 7, 'ask_product', command, None, native)
+                self.assertEqual(state, 'human' if command in {'atendente', 'humano'} else 'menu')
+                self.assertNotEqual(result['action'], 'ask_product')
+                conn.execute.assert_not_called()
+                state, result = _catalog_answer(conn, 7, 'human', command, None, native)
+                self.assertEqual((state, result['action'], result['text']), ('human', 'human_wait', ''))
+                conn.execute.assert_not_called()
+                message = {'text': command}
+                self.assertIsNone(respond(conn, {}, message, {'state': 'menu'}))
+                self.assertIsNone(instagram_booking_flow.respond(conn, 7, message))
+                conn.execute.assert_not_called()
+
     def test_menu_and_handoff_still_work_without_catalog(self):
         database = MagicMock()
         for state, message, expected in (

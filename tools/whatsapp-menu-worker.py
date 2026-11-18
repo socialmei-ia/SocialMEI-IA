@@ -16,7 +16,7 @@ def valid_token(value):
     return isinstance(value, str) and re.fullmatch(r'sm:[0-9a-f]{32}:[0-9]', value) is not None
 
 
-API_URL = 'http://socialmei-menu-public-api-v3:8019'
+API_URL = 'http://team-api:8000'  # Private Team API 040 (release040 network)
 WAHA_URL = 'http://socialmei-waha:3000'
 GOWS_URL = 'http://socialmei-waha-gows-piloto:3000'
 WAHA_ENDPOINTS = {'WEBJS': WAHA_URL, 'GOWS': GOWS_URL}
@@ -162,9 +162,18 @@ def _delivery(data, cfg):
         if set(body) != {'session', 'chatId', 'text'} or not _plain(body['text'], 4096):
             raise Blocked('Texto invalido')
     elif data['path'] == '/api/sendList':
-        if (cfg.engine != 'GOWS' or body['chatId'] not in (cfg.native_list_contacts or (cfg.native_list_contact,))
+        # Public native lists are a separate, explicit opt-in; the API must
+        # independently authorize each signed inbound conversation and delivery.
+        # The validated target above is always a single direct contact.
+        public_lists = (
+            os.getenv('SOCIALMEI_MENU_PUBLIC_INBOUND_ACTIVE') == 'YES'
+            and os.getenv('SOCIALMEI_PUBLIC_MENU_EXPLICIT_ENABLE') == 'YES'
+            and os.getenv('SOCIALMEI_WHATSAPP_GOWS_PUBLIC_LISTS_ENABLED') == 'YES'
+        )
+        allowed_canary = body['chatId'] in (cfg.native_list_contacts or (cfg.native_list_contact,))
+        if (cfg.engine != 'GOWS' or not (allowed_canary or public_lists)
                 or set(body) != {'session', 'chatId', 'message'}):
-            raise Blocked('Lista fora do contato de homologacao')
+            raise Blocked('Lista fora do escopo autorizado')
         message = body['message']
         if (not isinstance(message, dict)
                 or set(message) != {'title', 'description', 'footer', 'button', 'sections'}

@@ -10,6 +10,7 @@ from pydantic import Field, StrictInt
 
 import settings
 from message_enrichment import Id, SAFE_MAX, Strict, db, guard, lock_workspace
+from contact_validation import validate_phone
 
 router = APIRouter(prefix="/api/v1/message-enrichment", tags=["inbox CRM"])
 
@@ -93,7 +94,8 @@ def customer_suggestions(conversation_id: Id, request: Request, response: Respon
         if not row:
             raise HTTPException(404, "Conversa não encontrada.")
         result = {"conversation_id": conversation_id, "candidates": [],
-                  "requires_confirmation": True, "ambiguous": False}
+                  "requires_confirmation": True, "ambiguous": False,
+                  "contact_phone": None, "registration_phone": None}
         if row["cliente_id"] is not None:
             return result
         if row["origin"] != "waha":
@@ -101,6 +103,17 @@ def customer_suggestions(conversation_id: Id, request: Request, response: Respon
         number = exact_whatsapp_phone(row["contact_ref"])
         if number is None:
             return result
+        # Verified direct WhatsApp number, visible only to authenticated inbox
+        # readers. Never infer a telephone from Instagram IDs or LID handles.
+        # This is a registration hint, not proof that a CRM customer is linked.
+        result["contact_phone"] = number
+        if number.startswith("55"):
+            try:
+                # Some historical WAHA IDs are not valid dialable Brazilian
+                # phones. Show the contact without bypassing CRM validation.
+                result["registration_phone"] = validate_phone("+" + number)
+            except ValueError:
+                pass
         customers = conn.execute(
             "SELECT id,nome FROM socialmei.crm_clientes "
             "WHERE workspace_id=%s AND regexp_replace(COALESCE(telefone,''),"

@@ -18,7 +18,9 @@ module.exports = async (browser, origin) => {
         { id: 12, nome: "Nome repetido", email: "dois@example.test" },
       ];
       let linked = { conversation_id: 1, revision: 1, cliente_id: null, customer: null },
-        conflict = false;
+        conflict = false,
+        suggestExisting = true;
+      const created = [];
       page.on("pageerror", (e) => errors.push(e.message));
       await page.addInitScript(() => localStorage.setItem("socialmei-auth-browser-scope", "91:17"));
       await page.route("**/*", (route) => {
@@ -36,7 +38,19 @@ module.exports = async (browser, origin) => {
         if (p === "/auth/preferences")
           return route.fulfill({ json: { preferences: {}, revision: 0 } });
         if (p === "/workspace-profile") return route.fulfill({ json: { profile: {} } });
-        if (p === "/clientes") return route.fulfill({ json: clients });
+        if (p === "/clientes") {
+          if (request.method() === "POST") {
+            assert.equal(role, "owner");
+            const payload = request.postDataJSON();
+            assert.equal(payload.telefone, "+5581990001234");
+            assert.equal(payload.nome, "Contato de teste");
+            const customer = { id: 13, ...payload };
+            clients.push(customer);
+            created.push(customer);
+            return route.fulfill({ status: 201, json: customer });
+          }
+          return route.fulfill({ json: clients });
+        }
         if (p === "/message-enrichment/capabilities")
           return route.fulfill({ json: { mode: "disabled", waha_inbox: true } });
         if (p === "/message-enrichment/conversations")
@@ -62,9 +76,14 @@ module.exports = async (browser, origin) => {
           return route.fulfill({
             json: {
               conversation_id: 1,
-              candidates: linked.cliente_id === null ? [{ id: 11, nome: "Nome repetido" }] : [],
+              candidates:
+                linked.cliente_id === null && suggestExisting
+                  ? [{ id: 11, nome: "Nome repetido" }]
+                  : [],
               ambiguous: false,
               requires_confirmation: true,
+              contact_phone: "5581990001234",
+              registration_phone: "+5581990001234",
             },
           });
         if (p === "/message-enrichment/conversations/1/customer") {
@@ -162,6 +181,26 @@ module.exports = async (browser, origin) => {
           writes.length,
           count,
           "Forms from another workspace or session must not write",
+        );
+        assert.deepEqual(errors, []);
+        // A phone can be visible in the inbox but absent from the CRM.
+        // Its registration must require an explicit name and button click.
+        await page.reload();
+        suggestExisting = false;
+        await panel.getByRole("button", { name: "Associar cliente do CRM", exact: true }).click();
+        await page.getByText("WhatsApp desta conversa: +5581990001234", { exact: false }).waitFor();
+        assert.equal(created.length, 0, "Showing a phone must never auto-register it");
+        await page.getByRole("button", { name: "Cadastrar número e associar" }).click();
+        assert.equal(created.length, 0, "Empty name cannot create a customer");
+        await page.getByRole("textbox", { name: "Nome do novo cliente" }).fill("Contato de teste");
+        await page.getByRole("button", { name: "Cadastrar número e associar" }).click();
+        await page.locator("dialog[open]").waitFor({ state: "hidden" });
+        assert.equal(created.length, 1);
+        assert.equal(linked.cliente_id, 13, "The newly registered CRM record is linked");
+        assert.equal(
+          await page.locator(".ct .hd b").first().textContent(),
+          "+5581990001234",
+          "Customer association must preserve the original WhatsApp contact",
         );
         assert.deepEqual(errors, []);
         assert.equal(

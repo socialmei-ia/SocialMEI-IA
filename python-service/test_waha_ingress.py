@@ -74,6 +74,26 @@ class ContractTests(unittest.TestCase):
         with self.assertRaises(HTTPException):
             parse_event(raw(wrong_account), sign(raw(wrong_account)), "sha512", b)
 
+    def test_gows_catalog_row_token_is_preserved_for_navigation_without_forgery(self):
+        b = binding(engine="GOWS")
+        token = "sm:" + "a" * 32 + ":2"
+        sample = gows_list_payload(token)
+        body = raw(sample)
+        event = parse_event(body, sign(body), "sha512", b)
+        self.assertEqual(event.kind, "message")
+        self.assertEqual(event.selection, token)
+        self.assertEqual(event.text, "Ver produtos")
+        with self.assertRaises(HTTPException):
+            parse_event(body, "0" * 128, "sha512", b)
+
+        for value in ("sm:" + "a" * 32 + ":10", "sm:" + "z" * 32 + ":2",
+                      "sm:" + "a" * 32 + ":-1", "sm:" + "a" * 32 + ":2 extra"):
+            with self.subTest(value=value):
+                invalid_sample = gows_list_payload(value)
+                invalid_body = raw(invalid_sample)
+                parsed = parse_event(invalid_body, sign(invalid_body), "sha512", b)
+                self.assertEqual((parsed.kind, parsed.selection), ("unsupported", None))
+
     def test_gows_protobuf_list_reply_rejects_malformed_conflicting_and_unknown_ids(self):
         b = binding(engine="GOWS")
         for invalid in [None, 1, True, [], {}, "", " 1", "9", "external-action"]:
