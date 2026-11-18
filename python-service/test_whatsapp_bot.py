@@ -26,6 +26,32 @@ class BotClosedContracts(unittest.TestCase):
             with patch.dict(os.environ, {'SOCIALMEI_WHATSAPP_BOT_ALLOWED_CONTACTS': '["222@c.us"]'}):
                 self.assertEqual(settings.whatsapp_bot_allowed_contacts(), frozenset({'waha:222@c.us'}))
 
+    def test_public_inbound_requires_explicit_flag_and_authenticated_team_pilot(self):
+        import settings
+        env = {
+            'SOCIALMEI_WAHA_INGRESS_MODE': 'team-pilot',
+            'SOCIALMEI_WAHA_LAB_ENVIRONMENT': 'team-pilot',
+            'SOCIALMEI_WAHA_REGISTRY_FILE': '/run/socialmei/private/waha-registry.json',
+            'SOCIALMEI_AUTH_ENABLED': 'true',
+            'SOCIALMEI_SHARED_DATA_ENABLED': 'true',
+            'SOCIALMEI_WHATSAPP_BOT_ENABLED': 'true',
+            'SOCIALMEI_WHATSAPP_BOT_PUBLIC_INBOUND_ENABLED': 'true',
+        }
+        with patch.dict(os.environ, env, clear=True):
+            self.assertTrue(settings.whatsapp_bot_public_inbound_enabled())
+            self.assertIsNone(settings.whatsapp_bot_allowed_contacts())
+            for key, value in (
+                ('SOCIALMEI_WHATSAPP_BOT_ENABLED', 'false'),
+                ('SOCIALMEI_WHATSAPP_BOT_PUBLIC_INBOUND_ENABLED', 'false'),
+                ('SOCIALMEI_AUTH_ENABLED', 'false'),
+                ('SOCIALMEI_SHARED_DATA_ENABLED', 'false'),
+                ('SOCIALMEI_WAHA_INGRESS_MODE', 'workspace-inbox'),
+                ('SOCIALMEI_WAHA_REGISTRY_FILE', '/tmp/other-registry.json'),
+            ):
+                with self.subTest(key=key), patch.dict(os.environ, {key: value}):
+                    self.assertFalse(settings.whatsapp_bot_public_inbound_enabled())
+                    self.assertEqual(settings.whatsapp_bot_allowed_contacts(), frozenset())
+
     def test_pending_sources_are_closed_before_database_when_bot_disabled(self):
         with patch.dict(os.environ, {'SOCIALMEI_WHATSAPP_BOT_ENABLED': 'false'}), patch(
             'whatsapp_bot.connect', side_effect=AssertionError('unexpected database')
@@ -67,6 +93,38 @@ class BotClosedContracts(unittest.TestCase):
             self.assertFalse(native_list_canary({**channel,'sessao':'other'},'waha:222@c.us'))
             with patch.dict(os.environ, {'SOCIALMEI_MENU_WAHA_ENGINE':'WEBJS'}):
                 self.assertFalse(native_list_canary(channel,'waha:222@c.us'))
+
+    def test_public_gows_lists_are_opt_in_and_scoped_to_signed_team_directs(self):
+        from whatsapp_bot import native_list_canary
+        channel = dict(workspace_id=1, channel_id=1,
+                       instancia='socialmei-equipe-piloto', sessao='01')
+        env = {
+            'SOCIALMEI_AUTH_ENABLED': 'true',
+            'SOCIALMEI_SHARED_DATA_ENABLED': 'true',
+            'SOCIALMEI_WAHA_INGRESS_MODE': 'team-pilot',
+            'SOCIALMEI_WAHA_LAB_ENVIRONMENT': 'team-pilot',
+            'SOCIALMEI_WAHA_REGISTRY_FILE': '/run/socialmei/private/waha-registry.json',
+            'SOCIALMEI_WHATSAPP_BOT_ENABLED': 'true',
+            'SOCIALMEI_WHATSAPP_BOT_PUBLIC_INBOUND_ENABLED': 'true',
+            'SOCIALMEI_MENU_WAHA_ENGINE': 'GOWS',
+            'SOCIALMEI_WHATSAPP_GOWS_PUBLIC_LISTS_ENABLED': 'YES',
+        }
+        with patch.dict(os.environ, env, clear=True):
+            self.assertTrue(native_list_canary(channel,'waha:222@c.us'))
+            self.assertTrue(native_list_canary(channel,'waha:contact-id@lid'))
+            self.assertFalse(native_list_canary(channel,'waha:222@g.us'))
+            self.assertFalse(native_list_canary({**channel,'workspace_id':2},'waha:222@c.us'))
+            self.assertFalse(native_list_canary({**channel,'sessao':'other'},'waha:222@c.us'))
+            for key, value in (
+                ('SOCIALMEI_WHATSAPP_GOWS_PUBLIC_LISTS_ENABLED', 'NO'),
+                ('SOCIALMEI_WHATSAPP_BOT_PUBLIC_INBOUND_ENABLED', 'false'),
+                ('SOCIALMEI_WHATSAPP_BOT_ENABLED', 'false'),
+                ('SOCIALMEI_MENU_WAHA_ENGINE', 'WEBJS'),
+                ('SOCIALMEI_AUTH_ENABLED', 'false'),
+                ('SOCIALMEI_WAHA_INGRESS_MODE', 'workspace-inbox'),
+            ):
+                with self.subTest(key=key), patch.dict(os.environ, {key:value}):
+                    self.assertFalse(native_list_canary(channel,'waha:222@c.us'))
 
     def test_menu_renderer_is_explicit_about_engine_support(self):
         from whatsapp_bot import render_waha

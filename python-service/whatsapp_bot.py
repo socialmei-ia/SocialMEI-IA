@@ -126,12 +126,33 @@ def _catalog_answer(conn, workspace, state, text, target, enabled):
 
 
 def native_list_canary(channel, contact):
-    return (
+    """Enable signed inbound interactive lists only on the reviewed GOWS channel.
+
+    Public native lists require a separate explicit feature flag and the
+    authenticated public-bot opt-in. The legacy canary remains unchanged.
+    Both modes require a valid direct WhatsApp contact, never a group.
+    """
+    reviewed = (
+        (channel['workspace_id'], channel['channel_id'], channel['instancia'], channel['sessao'])
+        == (1, 1, 'socialmei-equipe-piloto', '01')
+    )
+    direct = isinstance(contact, str) and re.fullmatch(
+        r'waha:(?:[0-9]{1,40}@c\.us|[A-Za-z0-9][A-Za-z0-9_.:-]{0,79}@lid)',
+        contact,
+    ) is not None
+    public = (
+        os.getenv('SOCIALMEI_WHATSAPP_GOWS_PUBLIC_LISTS_ENABLED') == 'YES'
+        and settings.whatsapp_bot_public_inbound_enabled()
+    )
+    canary = (
         os.getenv('SOCIALMEI_MENU_GOWS_LIST_CANARY_ACTIVE') == 'YES'
         and os.getenv('SOCIALMEI_MENU_WAHA_ENGINE') == 'GOWS'
-        and (channel['workspace_id'], channel['channel_id'], channel['instancia'], channel['sessao'])
-        == (1, 1, 'socialmei-equipe-piloto', '01')
         and contact in navigation.configured_contacts(os.environ)
+    )
+    return (
+        reviewed and direct
+        and os.getenv('SOCIALMEI_MENU_WAHA_ENGINE') == 'GOWS'
+        and (public or canary)
     )
 
 
