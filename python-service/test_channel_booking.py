@@ -25,6 +25,32 @@ PATH = '/api/v1/agenda/channel-booking'
 
 
 class BookingContractTests(unittest.TestCase):
+    def test_slot_pages_are_chronological_even_when_hours_were_saved_out_of_order(self):
+        from unittest.mock import MagicMock
+        from decimal import Decimal
+        resource = uuid4()
+        policy = booking.BookingPolicy(enabled=True, timezone='America/Sao_Paulo',
+            hours=[{'weekday': 0, 'opens': '09:00', 'closes': '10:00'},
+                   {'weekday': 0, 'opens': '08:00', 'closes': '09:00'}])
+        product = {'nome': 'Serviço teste', 'duracao_minutos': 15,
+                   'preco': Decimal('25.00'), 'versao': 1}
+        for origin in ('waha', 'instagram'):
+            with patch.object(booking, 'context_for_message', return_value={'binding': 'test-binding'}), \
+                    patch.object(booking, 'active_policy', return_value=(policy, 'policy-hash')), \
+                    patch.object(booking, 'allowed_start', return_value=True), \
+                    patch.object(appointments, 'lock_resource', return_value={'id': resource, 'nome': 'Equipe', 'revision': 1}), \
+                    patch.object(appointments, 'service', return_value=product), \
+                    patch.object(appointments, 'free', return_value=True):
+                pages = [booking.slots_for_message(7, 12, 13, origin, 31, resource,
+                    '2026-11-23', 'controlled-test-signing-key-32-bytes', page=page,
+                    connection=MagicMock()) for page in (0, 1)]
+            times = [datetime.fromisoformat(item['scheduled_for']).strftime('%H:%M')
+                     for page in pages for item in page['items']]
+            self.assertEqual(times, ['08:00', '08:15', '08:30', '08:45', '09:00', '09:15'])
+            self.assertTrue(all(page['has_more'] for page in pages))
+            self.assertTrue(all(page['reservation_created'] is False for page in pages))
+            self.assertEqual(len(set(times)), len(times))
+
     def test_policy_fails_closed_and_rejects_invalid_hours_and_client_identity(self):
         self.assertFalse(booking.BookingPolicy().enabled)
         for value in ({'enabled': True}, {'timezone': 'unknown/zone'},

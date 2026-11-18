@@ -308,7 +308,7 @@ def slots_for_message(workspace_id, conversation_id, source_message_id, origin, 
         item = service(conn, workspace_id, service_id)
         slots = []
         seen = 0
-        for window in policy.hours:
+        for window in sorted(policy.hours, key=lambda item: (item.weekday, item.opens)):
             if window.weekday != day.weekday():
                 continue
             start = datetime.combine(day, time.fromisoformat(window.opens), tzinfo=ZoneInfo(policy.timezone))
