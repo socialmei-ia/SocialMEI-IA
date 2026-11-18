@@ -186,12 +186,8 @@ module.exports = async (browser, origin) => {
         // Its registration must require an explicit name and button click.
         await page.reload();
         suggestExisting = false;
-        await panel
-          .getByRole("button", { name: "Associar cliente do CRM", exact: true })
-          .click();
-        await page
-          .getByText("WhatsApp desta conversa: +5581990001234", { exact: false })
-          .waitFor();
+        await panel.getByRole("button", { name: "Associar cliente do CRM", exact: true }).click();
+        await page.getByText("WhatsApp desta conversa: +5581990001234", { exact: false }).waitFor();
         assert.equal(created.length, 0, "Showing a phone must never auto-register it");
         await page.getByRole("button", { name: "Cadastrar número e associar" }).click();
         assert.equal(created.length, 0, "Empty name cannot create a customer");
