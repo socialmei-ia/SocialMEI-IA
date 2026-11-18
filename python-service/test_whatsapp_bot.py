@@ -119,6 +119,7 @@ class BotClosedContracts(unittest.TestCase):
                 ('SOCIALMEI_WHATSAPP_GOWS_PUBLIC_LISTS_ENABLED', 'NO'),
                 ('SOCIALMEI_WHATSAPP_BOT_PUBLIC_INBOUND_ENABLED', 'false'),
                 ('SOCIALMEI_WHATSAPP_BOT_ENABLED', 'false'),
+                ('SOCIALMEI_MENU_WAHA_ENGINE', 'WEBJS'),
                 ('SOCIALMEI_AUTH_ENABLED', 'false'),
                 ('SOCIALMEI_WAHA_INGRESS_MODE', 'workspace-inbox'),
             ):
