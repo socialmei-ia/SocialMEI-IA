@@ -476,7 +476,8 @@ def reschedule_for_message(workspace_id, conversation_id, source_message_id, ori
             raise HTTPException(409, 'O serviço ou profissional mudou. Consulte novamente.')
         item = service(conn, workspace_id, row['servico_id'])
         if (slot.get('service_revision') != item['versao']
-                or not allowed_start(policy, start, item['duracao_minutos'], now)):
+                or item['duracao_minutos'] != row['duration_minutes']
+                or not allowed_start(policy, start, row['duration_minutes'], now)):
             raise HTTPException(409, 'Este horário não está mais disponível.')
         end = end_time(start, row['duration_minutes'])
         if not free(conn, workspace_id, resource_id, start, end, appointment):
