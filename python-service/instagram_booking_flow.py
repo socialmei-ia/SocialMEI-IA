@@ -14,8 +14,10 @@ MARKER = '\n\nRef. agendamento: '
 MAX_OUTPUT_BYTES = 1000
 MAX_DECODED_BYTES = 7000
 REPLY_TTL = timedelta(minutes=10)
-CHOICE_IDS = {'1', '2', '3', '6', '7'}
-STEPS = {'services', 'resources', 'days', 'slots', 'review_ref', 'confirm_ref'}
+CHOICE_IDS = {'1', '2', '3', '6', '7', '8'}
+STEPS = {'services', 'resources', 'days', 'slots', 'review_ref', 'confirm_ref',
+         'manage', 'manage_review', 'cancel_review', 'cancel_confirm',
+         'move_days', 'move_slots', 'move_review_ref', 'move_confirm_ref'}
 
 
 def _offer_details(offer):
@@ -45,6 +47,21 @@ def _snapshot_target(target, selected):
     if target.get('route') != 'booking':
         return None
     step = target.get('step')
+    if step in {'move_review', 'move_confirm'}:
+        expected = 'move_slots' if step == 'move_review' else 'move_review'
+        if selected.get('step') != expected:
+            raise ValueError('Rebooking offer has no originating slot page')
+        offer = target['offer'] if step == 'move_review' else selected['offer']
+        snapshot = {
+            'step': 'move_review_ref' if step == 'move_review' else 'move_confirm_ref',
+            'management': target['management'],
+            'service_id': offer['service_id'], 'resource_id': offer['resource_id'],
+            'day': target['day'], 'page': target.get('page', 0),
+            'scheduled_for': offer['scheduled_for'],
+        }
+        if step == 'move_confirm':
+            snapshot['details'] = _offer_details(offer)
+        return snapshot
     if step not in {'review', 'confirm'}:
         return {key: value for key, value in target.items() if key != 'route'}
     # Signed offer tokens are never embedded in customer-visible text.
@@ -156,10 +173,12 @@ def _review_offer(conn, workspace, message, target):
                   if item['scheduled_for'] == target['scheduled_for']), None)
     if offer is None:
         raise HTTPException(409, 'O horário mudou. Consulte a disponibilidade novamente.')
-    if target['step'] == 'confirm_ref' and target.get('details') != _offer_details(offer):
+    if target['step'] in {'confirm_ref', 'move_confirm_ref'} and target.get('details') != _offer_details(offer):
         raise HTTPException(409, 'Os detalhes do atendimento mudaram. Consulte os horários novamente antes de confirmar.')
-    return {'route': 'booking', 'step': 'review', 'offer': offer,
-            'day': target['day'], 'page': target['page']}
+    return {'route': 'booking',
+            'step': 'move_review' if target['step'].startswith('move_') else 'review',
+            'offer': offer, 'day': target['day'], 'page': target['page'],
+            **({'management': target['management']} if target['step'].startswith('move_') else {})}
 
 
 def respond(conn, workspace, message):
@@ -180,8 +199,8 @@ def respond(conn, workspace, message):
     choices = _recent_choices(latest)
     selected = next((target for number, target in choices if number == value), None)
     if selected is None:
-        if value in flow.START:
-            selected = {'route': 'booking', 'step': 'services'}
+        if value in flow.START | flow.MANAGE_START:
+            selected = {'route': 'booking', 'step': 'manage' if value in flow.MANAGE_START else 'services'}
         elif not choices:
             return None
         else:
@@ -191,12 +210,15 @@ def respond(conn, workspace, message):
                  *flow.navigation()], False)
             return response[0], response[1], {'step': 'services'}
     try:
-        if selected.get('step') in {'review_ref', 'confirm_ref'}:
-            confirming = selected['step'] == 'confirm_ref'
+        if selected.get('step') in {'review_ref', 'confirm_ref', 'move_review_ref', 'move_confirm_ref'}:
+            confirming = selected['step'] in {'confirm_ref', 'move_confirm_ref'}
             selected = _review_offer(conn, workspace, message, selected)
             if confirming:
-                selected = {'route': 'booking', 'step': 'confirm',
-                            'confirmation': selected['offer']['confirmation']}
+                selected = {'route': 'booking',
+                            'step': 'move_confirm' if selected['step'] == 'move_review' else 'confirm',
+                            'confirmation': selected['offer']['confirmation'],
+                            **({'management': selected['management']}
+                               if 'management' in selected else {})}
         state, result = flow.advance(conn, {'workspace_id': workspace}, message,
                                      selected, False, origin='instagram')
         return state, result, selected
