@@ -1,0 +1,181 @@
+{
+  "date": "2026-11-20",
+  "authorization": "Explicit project-account registration, Bella default-workspace profile and additive owner grant; no demo apply, channel changes or visual publication.",
+  "source_pr": 235,
+  "source_commit": "5b0b977497742b7cb203a556784f69296b8a4fcb",
+  "user_id": 34,
+  "platform_admin": false,
+  "memberships": [
+    {
+      "workspace_id": 60,
+      "user_id": 33,
+      "role": "owner"
+    },
+    {
+      "workspace_id": 60,
+      "user_id": 34,
+      "role": "owner"
+    },
+    {
+      "workspace_id": 61,
+      "user_id": 34,
+      "role": "owner"
+    }
+  ],
+  "original_owner33_account_credential_sessions_unchanged": true,
+  "api_image_id_preserved": "sha256:6cf2bc60fec3f31e5e0cc24d4e276a7ba43911e94343e1439dce75d84a5673f8",
+  "schema_migrations": 40,
+  "private_backups_local_and_remote": true,
+  "rollback_readonly_inspection": "passed",
+  "rollback_applied": false,
+  "aws_browser": {
+    "origin": "https://socialmei-ia.54-94-213-7.sslip.io",
+    "userId": 34,
+    "businesses": [
+      {
+        "workspaceId": 60,
+        "name": "Brilho&Limpeza Service",
+        "role": "owner",
+        "clients": 0,
+        "products": 0,
+        "conversations": 0,
+        "reportCountsMatchWorkspaceClients": true
+      },
+      {
+        "workspaceId": 61,
+        "name": "Bella Store",
+        "role": "owner",
+        "clients": 0,
+        "products": 0,
+        "conversations": 0,
+        "reportCountsMatchWorkspaceClients": true
+      },
+      {
+        "workspaceId": 60,
+        "name": "Brilho&Limpeza Service",
+        "role": "owner",
+        "clients": 0,
+        "products": 0,
+        "conversations": 0,
+        "reportCountsMatchWorkspaceClients": true
+      }
+    ],
+    "commercialWrites": 0,
+    "providerCalls": 0,
+    "complete": true,
+    "crossWorkspaceDenied": 403,
+    "reloadPreservedContext": true,
+    "pageErrors": []
+  },
+  "authenticated_dry_runs": [
+    {
+      "workspaceId": 60,
+      "userId": 34,
+      "business": "Brilho&Limpeza Service",
+      "planned": {
+        "clients": 4,
+        "products": 3,
+        "resources": 2,
+        "appointments": 4,
+        "sales": 2,
+        "finance": 3,
+        "opportunities": 2,
+        "reminders": 2
+      },
+      "existing": {
+        "clients": 0,
+        "products": 0,
+        "resources": 0,
+        "appointments": 0,
+        "sales": 0,
+        "finance": 0,
+        "opportunities": 0,
+        "reminders": 0
+      },
+      "profile": "create",
+      "bookingPolicy": "create-disabled",
+      "appointmentDates": [
+        {
+          "date": "2026-11-17T09:00:00-03:00",
+          "status": "done"
+        },
+        {
+          "date": "2026-11-18T09:00:00-03:00",
+          "status": "cancelled"
+        },
+        {
+          "date": "2026-11-23T09:00:00-03:00",
+          "status": "pending"
+        },
+        {
+          "date": "2026-11-24T09:00:00-03:00",
+          "status": "pending"
+        }
+      ],
+      "conflicts": 0,
+      "businessSnapshotsUnchanged": true,
+      "businessWrites": 0
+    },
+    {
+      "workspaceId": 61,
+      "userId": 34,
+      "business": "Bella Store",
+      "planned": {
+        "clients": 4,
+        "products": 3,
+        "resources": 0,
+        "appointments": 0,
+        "sales": 2,
+        "finance": 3,
+        "opportunities": 2,
+        "reminders": 2
+      },
+      "existing": {
+        "clients": 0,
+        "products": 0,
+        "resources": 0,
+        "appointments": 0,
+        "sales": 0,
+        "finance": 0,
+        "opportunities": 0,
+        "reminders": 0
+      },
+      "profile": "preserved",
+      "bookingPolicy": "not-applicable",
+      "appointmentDates": [],
+      "conflicts": 0,
+      "businessSnapshotsUnchanged": true,
+      "businessWrites": 0
+    }
+  ],
+  "channel_status_by_workspace": [
+    {
+      "workspaceId": 60,
+      "whatsappState": "not_connected",
+      "whatsappBindingVerified": false,
+      "instagramState": "not_connected",
+      "instagramCredentialAvailable": false
+    },
+    {
+      "workspaceId": 61,
+      "whatsappState": "not_connected",
+      "whatsappBindingVerified": false,
+      "instagramState": "not_connected",
+      "instagramCredentialAvailable": false
+    }
+  ],
+  "commercial_records_created": 0,
+  "production_scope_changes": [
+    "official_user_registration_34",
+    "default_workspace_61_named_Bella_Store",
+    "workspace61_business_profile",
+    "audited_owner_membership_34_60",
+    "authentication_sessions_and_audit_for_new_account_only"
+  ],
+  "migrations_applied": false,
+  "api_gateway_worker_restarts": false,
+  "external_messages": 0,
+  "channels_changed": false,
+  "visual_publication": false,
+  "private_artifacts_not_committed": true
+}
