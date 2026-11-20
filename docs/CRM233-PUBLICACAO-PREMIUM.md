@@ -1,8 +1,11 @@
 # Publicação CRM233 preservando o gateway premium
 
-Preflight SSH de 19/11/2026 local/20/11 UTC, somente leitura. PR #233 continua
-Draft em17cfd1956416c2d4c8431fec11800f73254bde12. Nenhum deploy foi executado
-nesta retomada. A aprovação operacional específica está pendente.
+Publicação autorizada e concluída em20/11/2026, com o mesmo plano do preflight
+aprovado. API em17cfd1956416c2d4c8431fec11800f73254bde12; premium preservado.
+API/DB200, siteHTTPS200, navegador sem erros e consulta de clientes protegida
+por401 sem sessão. Dos171 arquivos do frontend, somente o JS autorizado mudou;
+os outros15 contêineres mantiveram IDs, imagens e configurações.
+Evidência: `docs/evidence/20261120-crm233-publication.json`.
 
 ## Causa e correção preparada
 
@@ -32,8 +35,8 @@ Não baixar/reconstruir/importar novamente.
 
 | Item                        | Identidade                                                              |
 | --------------------------- | ----------------------------------------------------------------------- |
-| API ativa                   | sha256:4397c7882dbadbc135d95c6cc7893ed3c384ba4c03310670da546f448ddedad5 |
-| API candidata carregada     | sha256:6cf2bc60fec3f31e5e0cc24d4e276a7ba43911e94343e1439dce75d84a5673f8 |
+| API anterior para rollback  | sha256:4397c7882dbadbc135d95c6cc7893ed3c384ba4c03310670da546f448ddedad5 |
+| API publicada               | sha256:6cf2bc60fec3f31e5e0cc24d4e276a7ba43911e94343e1439dce75d84a5673f8 |
 | Premium preservado          | sha256:b93aeac93d11ea0e88dd2c44961bc8f13df9bcb928d960b3562563e68b6cc8ec |
 | JavaScript candidato        | b50ce7dc0a29c7da8d2d972a31ab252d5cfb90778fc28f0c511d9e0322c87a85        |
 | Plano aprovado tecnicamente | 0ef8cf6b6223e0775d7b8011c29caf159ae73a5edc807b3debc13066cb7e051e        |
@@ -66,3 +69,14 @@ Testes puros cobrem mudanças indevidas, drift de tag/rede/recursos, alteração
 Compose originais durante aplicação e falha de rollback. Não equivalem a deploy
 ou homologação real. O backup externo atual ainda precisa de preparação própria;
 o backup deste incremento protege configuração e imagens, não substitui DR.
+
+## Resultado operacional de20/11/2026
+
+Backup/rollback congelado em pasta privada `approved-release-20261120T123408Z`
+dentro do pacote. Scripts revisados preservados em `reviewed235-ab647b7`.
+Nenhuma migration, carga de dados, transferência de canal ou alteração de worker
+foi executada. A ação de cadastro/associação está disponível; criação real de
+cliente e associação não foram exercitadas, conforme o escopo autorizado.
+
+Workspace60/proprietário33 revalidado somente leitura, nome exato e conta ativa.
+O dry-run autenticado aguarda arquivo privado da conta, sem redefinição de senha.

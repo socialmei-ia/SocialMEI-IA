@@ -2,6 +2,7 @@
 
 Inventário SSH de 19/11/2026, America/Fortaleza (20/11 UTC). Base candidata
 `17cfd1956416c2d4c8431fec11800f73254bde12`, PR #233 aberta/Draft.
+Atualização20/11: CRM233 publicado, API17cfd19 e premium preservado.
 Este roteiro é um critério de homologação. A apresentação integral ainda não foi
 homologada em produção; confira a tabela de pendências antes de agendá-la.
 
@@ -122,23 +123,29 @@ Origin/CSRF/identidade existentes. Workspace é resolvido pela sessão no servid
 | Indicadores/CSV             | `/reporting/overview`, `/sales`, `/appointments`, `/products`, `/overview.csv` no prefixo reporting |
 | Equipe/acesso do professor  | `/team/members`; convites somente com identidade habilitada                                         |
 
-Não foi alterado nenhum arquivo do frontend, Hero, layout, animação ou navegação.
+A publicação restrita alterou somente `v22-inbox-customer.js` por bind readonly.
+Hero, layout, animação, navegação e imagem premium foram preservados.
 
 ## Pendências priorizadas
 
-| Prioridade | Pendência                                     | Estado/evidência atual                                                                    |
-| ---------- | --------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| P0         | Publicar CRM233 preservando premium           | Imagens já carregadas; preflight somente leitura aprovado; aguarda aprovação operacional  |
-| P0         | Popular Brilho existente                      | Provisionador testado API/PG; sem aplicação na AWS; acesso e destino precisam confirmação |
-| P0         | Fontes de banco e vínculos WhatsApp/Instagram | WhatsApp ativo→API PG17/schema040; IGworker→Prisma indisponível; canais no workspace1     |
-| P0         | Jornada real de reserva e respondedor único   | Corrida WA/IG testada localmente; provedor real/workspace60 pendentes                     |
-| P0         | Segundo negócio independente                  | Bella ausente na API; Prisma não inventariado; não criar duplicata                        |
-| P1         | Professor/equipe e e-mails                    | Fluxos testados sinteticamente; identity disabled; nenhum convite/envio feito             |
-| P1         | Consulta segura e backup atual externo        | Role readonly ausente; pgAdmin aponta n8n; S3 AccessDenied                                |
-| P1         | Relatórios e segurança em produção            | Regressão isolada; homologação do destino/canais após P0                                  |
-| P2         | Autoconfiguração/escala/IA adicional          | Preservar contratos; não bloqueia primeira apresentação validada                          |
+| Prioridade | Pendência                                     | Estado/evidência atual                                                                 |
+| ---------- | --------------------------------------------- | -------------------------------------------------------------------------------------- |
+| P0         | Publicar CRM233 preservando premium           | Publicado20/11: API17cfd19, premium preservado, saúde/site200                          |
+| P0         | Popular Brilho existente                      | Destino60/33 validado; dry-run aguarda credenciais privadas; carga real não autorizada |
+| P0         | Fontes de banco e vínculos WhatsApp/Instagram | WhatsApp ativo→API PG17/schema040; IGworker→Prisma indisponível; canais no workspace1  |
+| P0         | Jornada real de reserva e respondedor único   | Corrida WA/IG testada localmente; provedor real/workspace60 pendentes                  |
+| P0         | Segundo negócio independente                  | Bella ausente na API; Prisma não inventariado; não criar duplicata                     |
+| P1         | Professor/equipe e e-mails                    | Fluxos testados sinteticamente; identity disabled; nenhum convite/envio feito          |
+| P1         | Consulta segura e backup atual externo        | Role readonly ausente; pgAdmin aponta n8n; S3 AccessDenied                             |
+| P1         | Relatórios e segurança em produção            | Regressão isolada; homologação do destino/canais após P0                               |
+| P2         | Autoconfiguração/escala/IA adicional          | Preservar contratos; não bloqueia primeira apresentação validada                       |
 
-Estados separados: provisionador implementado/testado; CRM233 tem imagem pronta;
-API ativa continua d4618e8; gateway premium atual preservado. Nenhum desses fatos
+Estados separados: provisionador implementado/testado; CRM233 publicado;
+API ativa17cfd19; gateway premium preservado. Nenhum desses fatos
 certifica a jornada completa do professor. A evidência desta retomada fica em
 `docs/evidence/20261119-mei-demo-readiness.json`.
+
+Atualização de publicação e testes de saúde/site:
+`docs/evidence/20261120-crm233-publication.json`. O inventário anterior permanece
+como evidência histórica. O dry-run autenticado não foi executado sem a conta
+proprietária; nenhum cliente ou outro dado comercial foi criado.
