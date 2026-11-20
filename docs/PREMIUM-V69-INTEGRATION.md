@@ -41,6 +41,12 @@ O incremento visual precisa de aprovação própria e de preflight no estado ent
 
 O pacote de revisão incremental e o inventário de hashes ficam em `test-results/`. Não são um instalador e não devem ser aplicados sem a comparação com o runtime e plano aprovado.
 
+## Validação concluída
+
+PR #236, fonte `889aec8`: 454 testes JavaScript aprovados e 2 ignorados; formatação aprovada. Regressão completa de navegador aprovada: 286 estados de layout, 5 fluxos de entrada, CRM233, teclado, temas, agenda, agendamento público, rascunhos, falhas/recuperação, respostas sintéticas dos canais, catálogo, vendas, financeiro e relatórios. O fluxo real local API/PostgreSQL comprovou duas contas isoladas, dois negócios no mesmo login, dados persistidos, duas abas, recarga e novo login. O provisionador passou em dry-run, resposta perdida e repetição sem duplicação no banco descartável. Outros 50 testes PostgreSQL de canais/agenda e 12 de concessão/rollback aprovados. Não representam homologação com os provedores reais.
+
+Evidência verificável, hashes de 45 arquivos candidatos e 11 contratos preservados byte a byte: [20261120-premium-v69-integration.json](evidence/20261120-premium-v69-integration.json). A CI da PR #235 em `b02c7f2` passou; a CI visual própria da PR #236 acompanha a validação local.
+
 ## Dependências ainda reais
 
 | Prioridade | Dependência                                            | Estado                                                                                                                    |

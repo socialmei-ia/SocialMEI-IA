@@ -268,7 +268,12 @@
     "channel_and_booking_pg": 50,
     "demo_pg_replay_and_isolation": true,
     "real_preview_two_businesses": true,
-    "browser_full": "pending",
+    "browser_full": {
+      "status": "passed",
+      "layout_states": 286,
+      "entry_flows": 5,
+      "external_provider_calls": 0
+    },
     "format": "passed",
     "real_preview_two_accounts": true,
     "focused_provider_recovery_browser": "passed_synthetic_only",
@@ -279,5 +284,7 @@
     "production_demo_apply_not_authorized",
     "channel_cutovers_and_real_meta_tests_not_authorized",
     "premium_publication_not_authorized"
-  ]
+  ],
+  "source_commit": "889aec861adcead18735011b9a32676dc413ae10",
+  "pull_request": 236
 }
