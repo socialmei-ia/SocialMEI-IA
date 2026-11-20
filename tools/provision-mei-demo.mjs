@@ -26,7 +26,13 @@ export function validateTarget(target) {
     target.userId < 1 ||
     !/^\d{4}-\d{2}-\d{2}$/.test(target.anchorDate) ||
     Number.isNaN(Date.parse(target.anchorDate)) ||
-    new Date(target.anchorDate).toISOString().slice(0, 10) !== target.anchorDate
+    new Date(target.anchorDate).toISOString().slice(0, 10) !== target.anchorDate ||
+    (target.pendingStartDate !== undefined &&
+      (typeof target.pendingStartDate !== "string" ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(target.pendingStartDate) ||
+        Number.isNaN(Date.parse(target.pendingStartDate)) ||
+        new Date(target.pendingStartDate).toISOString().slice(0, 10) !== target.pendingStartDate ||
+        target.pendingStartDate <= target.anchorDate))
   )
     throw Error("Informe negócio autorizado, IDs positivos e data fixa válida no manifesto.");
   return target;
@@ -136,7 +142,12 @@ export function fixture(target) {
     lead_minutes: 120,
     horizon_days: 30,
   };
-  return { services, products, clients, profile, policy };
+  const appointmentDates = [0, 1, 2, 3].map((index) =>
+    index >= 2 && target.pendingStartDate
+      ? day({ anchorDate: target.pendingStartDate }, index - 2)
+      : day(target, index - 2),
+  );
+  return { services, products, clients, profile, policy, appointmentDates };
 }
 
 // All writes use the normal account/CSRF/identity contracts. No SQL or transport APIs.
@@ -152,6 +163,7 @@ export async function provisionDemo(api, target, { apply = false, checkpoint = (
     business: target.business,
     expectedBusinessName: businessName(target),
     anchorDate: target.anchorDate,
+    pendingStartDate: target.pendingStartDate ?? null,
     notice,
     records: owned,
     complete: false,
@@ -212,6 +224,7 @@ export async function provisionDemo(api, target, { apply = false, checkpoint = (
     opportunities: 2,
     reminders: 2,
   };
+  report.appointmentDates = data.services ? data.appointmentDates : [];
   save();
   if (!apply) return report;
   if (!profile.profile) {
@@ -262,7 +275,7 @@ export async function provisionDemo(api, target, { apply = false, checkpoint = (
         cliente_id: client(index),
         servico_id: product(index % 3),
         resource_id: operationId(target, `resource-${index % 2}`),
-        scheduled_for: `${day(target, index - 2)}T09:00:00-03:00`,
+        scheduled_for: `${data.appointmentDates[index]}T09:00:00-03:00`,
         notes: notice,
       });
       record("appointment", key, result.id);

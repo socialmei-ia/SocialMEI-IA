@@ -24,6 +24,19 @@ acidental. Fixe `anchorDate` uma única vez: ela ancora os históricos e deve se
 preservada em todas as reexecuções. Alterá-la depois provoca conflito nas
 operações existentes em vez de criar registros novos.
 
+Antes da primeira aplicação, `pendingStartDate` pode fixar uma data separada
+para a primeira reserva pendente; a segunda fica no dia seguinte. O manifesto
+Brilho preserva `anchorDate=2026-11-19`, históricos em17/18 e fixa as pendentes
+em23/24 de novembro com `pendingStartDate=2026-11-23`. Não há avanço automático
+pelo relógio. Preserve os dois campos nas reexecuções: os IDs não mudam e tentar
+alterar a data de uma operação já persistida causa409, sem mover reservas.
+Manifestos antigos sem esse campo mantêm o comportamento anterior.
+
+Diagnóstico de20/11: o arquivo privado existe e é válido, porém seu e-mail
+normalizado não corresponde ao usuário33. A credencial33 está ativa e possui
+papel owner no workspace60. Não foi testada a senha, repetido login ou efetuado
+reset. Corrigir a identidade no arquivo privado antes de tentar novamente.
+
 Prepare separadamente um arquivo privado de conta com os campos `email` e
 `senha`. Se o gateway exigir Basic, acrescente `basic` no formato
 `usuário:senha`. Nunca coloque esse arquivo no Git nem passe segredos na linha de

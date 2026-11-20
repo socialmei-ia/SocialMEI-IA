@@ -178,6 +178,57 @@ test("repeated apply retains IDs, booking states and exact write fingerprints", 
   assert.equal(fake.calls.find((call) => call.method === "PUT").body.policy.enabled, false);
 });
 
+test("fixed pending dates preserve historical dates, anchor and operation IDs across replay", async () => {
+  const planned = { ...target, pendingStartDate: "2026-11-23" };
+  assert.deepEqual(fixture(planned).appointmentDates, [
+    "2026-11-17",
+    "2026-11-18",
+    "2026-11-23",
+    "2026-11-24",
+  ]);
+  assert.deepEqual(fixture(target).appointmentDates, [
+    "2026-11-17",
+    "2026-11-18",
+    "2026-11-19",
+    "2026-11-20",
+  ]);
+  for (let index = 0; index < 4; index++)
+    assert.equal(
+      operationId(planned, `appointment-${index}`),
+      operationId(target, `appointment-${index}`),
+    );
+  const fake = fakeApi();
+  const dry = await provisionDemo(fake.api, planned);
+  assert.deepEqual(dry.appointmentDates, fixture(planned).appointmentDates);
+  assert.equal(dry.anchorDate, target.anchorDate);
+  assert.equal(dry.pendingStartDate, "2026-11-23");
+  await provisionDemo(fake.api, planned, { apply: true });
+  const count = fake.operations.size;
+  await provisionDemo(fake.api, planned, { apply: true });
+  assert.equal(fake.operations.size, count);
+  const writes = fake.calls.filter(
+    (call) => call.path === "/agenda/appointments" && call.method === "POST",
+  );
+  assert.deepEqual(
+    writes.slice(0, 4).map((call) => call.body),
+    writes.slice(4).map((call) => call.body),
+  );
+  assert.deepEqual(
+    writes.slice(0, 4).map((call) => call.body.scheduled_for),
+    fixture(planned).appointmentDates.map((date) => `${date}T09:00:00-03:00`),
+  );
+  assert.ok(new Date(writes[2].body.scheduled_for) > new Date("2026-11-20T13:00:00Z"));
+});
+
+test("pending start date rejects invalid dates and preserves an explicit fixed future date", () => {
+  for (const pendingStartDate of [null, 1, "2026-02-30", "2026-11-19", "2026-11-18", "bad"])
+    assert.throws(() => validateTarget({ ...target, pendingStartDate }));
+  assert.equal(
+    validateTarget({ ...target, pendingStartDate: "2026-11-23" }).pendingStartDate,
+    "2026-11-23",
+  );
+});
+
 test("lost response after persistence resumes without duplicate records", async () => {
   const fake = fakeApi({ failOnce: "/financeiro" });
   let inventory;

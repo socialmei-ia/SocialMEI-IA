@@ -85,6 +85,7 @@ try {
       workspaceId: response.body.negocio.id,
       userId: response.body.usuario.id,
       anchorDate: "2026-11-19",
+      ...(account === "brilho" ? { pendingStartDate: "2026-11-23" } : {}),
     };
   }
   const a = apiFor("brilho"),
@@ -120,6 +121,15 @@ try {
   assert.equal(againA.complete, true);
   assert.deepEqual(await snapshot("brilho"), afterA, "Replay must retain persisted counts");
   assert.deepEqual(await snapshot("bella"), beforeB, "Other workspace must remain unchanged");
+  await assert.rejects(
+    provisionDemo(a, { ...targets.brilho, pendingStartDate: "2026-11-24" }, { apply: true }),
+    /409/,
+  );
+  assert.deepEqual(
+    await snapshot("brilho"),
+    afterA,
+    "Changed pending date must conflict without rewriting persisted bookings",
+  );
   for (const [table, count] of Object.entries({
     crm_clientes: 4,
     crm_produtos: 3,
@@ -156,6 +166,20 @@ try {
   assert.deepEqual(await snapshot("bella"), afterB);
   const appointments = await a(
     "/agenda/appointments?from_date=2026-11-01&to_date=2026-11-30&include_cancelled=true",
+  );
+  assert.deepEqual(
+    appointments.items
+      .filter((row) => row.status === "pending")
+      .map((row) => new Date(row.scheduled_for).toISOString())
+      .sort(),
+    ["2026-11-23T12:00:00.000Z", "2026-11-24T12:00:00.000Z"],
+  );
+  assert.deepEqual(
+    appointments.items
+      .filter((row) => row.status !== "pending")
+      .map((row) => new Date(row.scheduled_for).toISOString())
+      .sort(),
+    ["2026-11-17T12:00:00.000Z", "2026-11-18T12:00:00.000Z"],
   );
   assert.deepEqual(appointments.items.map((row) => row.status).sort(), [
     "cancelled",
