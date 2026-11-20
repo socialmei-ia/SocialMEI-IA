@@ -366,7 +366,8 @@ export async function provisionDemo(api, target, { apply = false, checkpoint = (
   return report;
 }
 
-export async function createApi(origin, credentials) {
+export async function createApi(origin, credentials, target) {
+  if (target) validateTarget(target);
   const url = new URL(origin);
   if (
     url.protocol !== "https:" ||
@@ -410,6 +411,25 @@ export async function createApi(origin, credentials) {
     return result;
   };
   await api("/auth/login", "POST", { email: credentials.email, senha: credentials.senha });
+  if (target) {
+    if (
+      identity?.usuario?.id !== target.userId ||
+      identity.usuario.administrador_plataforma !== false
+    )
+      throw Error("Conta autenticada diferente da identidade autorizada no manifesto.");
+    if (identity?.negocio?.id !== target.workspaceId) {
+      const workspaces = await api("/auth/workspaces");
+      const matches = workspaces.items?.filter((item) => item.id === target.workspaceId);
+      if (
+        matches?.length !== 1 ||
+        matches[0].nome !== businessName(target) ||
+        matches[0].role !== "owner"
+      )
+        throw Error("Negócio autorizado ausente ou sem propriedade na conta autenticada.");
+      await api("/auth/workspaces/switch", "POST", { workspace_id: target.workspaceId });
+    }
+    guardIdentity(target, await api("/auth/session"));
+  }
   return api;
 }
 
@@ -431,7 +451,7 @@ async function main() {
   const inventory = resolve(option("--inventory"));
   if ([option("--target"), option("--account-file")].some((path) => resolve(path) === inventory))
     throw Error("Inventário precisa de arquivo separado do alvo e das credenciais.");
-  const api = await createApi(target.origin, credentials);
+  const api = await createApi(target.origin, credentials, target);
   const report = await provisionDemo(api, target, {
     apply: args.includes("--apply"),
     checkpoint: (value) => {

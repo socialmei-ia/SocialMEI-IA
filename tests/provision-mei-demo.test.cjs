@@ -368,3 +368,77 @@ test("native fetch adapter authenticates and carries cookie, CSRF and exact acco
     globalThis.fetch = original;
   }
 });
+
+test("demo selects only a verified owner membership of the exact account and workspace", async () => {
+  const original = globalThis.fetch;
+  try {
+    for (const scenario of [
+      "valid",
+      "wrong-account",
+      "wrong-name",
+      "member",
+      "missing",
+      "wrong-switch",
+    ]) {
+      const calls = [];
+      let current = {
+        usuario: { id: scenario === "wrong-account" ? 72 : 71, administrador_plataforma: false },
+        negocio: { id: 99, nome: "Outro negócio", slug: "other" },
+        papel: "owner",
+        csrf_token: "synthetic-csrf",
+      };
+      globalThis.fetch = async (url, options) => {
+        const path = new URL(url).pathname.replace("/api/v1", "");
+        calls.push({ path, options });
+        let result = current;
+        if (path === "/auth/workspaces")
+          result = {
+            items:
+              scenario === "missing"
+                ? []
+                : [
+                    {
+                      id: 23,
+                      nome: scenario === "wrong-name" ? "Outra empresa" : "Brilho Limpeza",
+                      role: scenario === "member" ? "member" : "owner",
+                    },
+                  ],
+          };
+        if (path === "/auth/workspaces/switch") {
+          assert.equal(options.headers["X-SocialMEI-Identity"], "71:99");
+          assert.deepEqual(JSON.parse(options.body), { workspace_id: 23 });
+          current = {
+            ...current,
+            negocio: {
+              id: scenario === "wrong-switch" ? 24 : 23,
+              nome: "Brilho Limpeza",
+              slug: "brilho",
+            },
+          };
+          result = current;
+        }
+        return new Response(JSON.stringify(result), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      };
+      const run = createApi(
+        "https://demo.example.test",
+        { email: "owner@example.test", senha: "synthetic" },
+        target,
+      );
+      if (scenario === "valid") {
+        const api = await run;
+        assert.equal((await api("/auth/session")).negocio.id, 23);
+      } else await assert.rejects(run);
+      assert(calls.every(({ path }) => path.startsWith("/auth/")));
+      if (["wrong-account", "wrong-name", "member", "missing"].includes(scenario))
+        assert.equal(
+          calls.some(({ path }) => path === "/auth/workspaces/switch"),
+          false,
+        );
+    }
+  } finally {
+    globalThis.fetch = original;
+  }
+});
