@@ -16,13 +16,30 @@
       "failed": 0,
       "skipped": 0
     },
-    "linux_pilot_registry_workspace_inbox_guards": { "passed": 18, "failed": 0, "skipped": 1 },
-    "instagram_worker_lease": { "passed": 4, "failed": 0, "skipped": 0 }
+    "linux_pilot_registry_workspace_inbox_guards": {
+      "passed": 18,
+      "failed": 0,
+      "skipped": 1
+    },
+    "instagram_worker_lease": {
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0
+    }
   },
   "limitations": [
     "No production migration, channel handover or provider message performed",
     "Pause proof is a private operator attestation, not runtime measurement",
     "Instagram lock coordinates Python workers using this contract, not legacy n8n",
     "Real Meta and GOWS homologation pending separate operational approval"
-  ]
+  ],
+  "delta_tests": {
+    "handover_wall_clock_and_runtime_plan": {
+      "passed": 19,
+      "failed": 0,
+      "skipped": 0
+    },
+    "formatting": "passed",
+    "prior_c013052_ci": "44815381643 success"
+  }
 }

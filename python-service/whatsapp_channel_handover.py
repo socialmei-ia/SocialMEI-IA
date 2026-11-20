@@ -162,19 +162,20 @@ def reserve(request, approved_plan, operation_id, pause_proof, *, receipt_path):
             return receipt(previous)
         source, drafts = scope(conn, request, lock=True)
         require(plan_for(request, source, drafts)['plan_sha256'] == approved_plan, 'APPROVED_BASELINE_CHANGED')
-        conn.execute('UPDATE socialmei.crm_canais SET ativo=false,ingress_provisioned=false,retired_at=NOW(),'
-                     'versao=versao+1,atualizado_em=NOW() WHERE id=%s', (source['id'],))
+        cutoff = conn.execute('SELECT clock_timestamp() AS cutoff').fetchone()['cutoff']
+        conn.execute('UPDATE socialmei.crm_canais SET ativo=false,ingress_provisioned=false,retired_at=%s,'
+                     'versao=versao+1,atualizado_em=%s WHERE id=%s', (cutoff,cutoff,source['id']))
         target = conn.execute("INSERT INTO socialmei.crm_canais(workspace_id,provedor,instancia,sessao,nome,"
                               "identificador_conta) VALUES(%s,'waha',%s,%s,%s,%s) RETURNING id",
                               (request.target_workspace_id,request.expected_instance,request.expected_session,
                                source['nome'],request.expected_account)).fetchone()['id']
         row = conn.execute("INSERT INTO socialmei.wa_channel_handovers(id,actor_id,target_owner_id,source_workspace_id,"
                            "source_channel_id,target_workspace_id,target_channel_id,status,fingerprint,previous_channel,"
-                           "reviewed_draft_ids,ingress_after) VALUES(%s,%s,%s,%s,%s,%s,%s,'reserved',%s,%s,%s,NOW()) RETURNING *",
+                           "reviewed_draft_ids,ingress_after) VALUES(%s,%s,%s,%s,%s,%s,%s,'reserved',%s,%s,%s,%s) RETURNING *",
                            (UUID(str(operation_id)),request.actor_id,request.target_owner_id,request.source_workspace_id,
                             source['id'],request.target_workspace_id,target,digest(request.__dict__),
                             Jsonb({k: str(v) if isinstance(v,datetime) else v for k,v in source.items()}),
-                            Jsonb(list(request.reviewed_draft_ids)))).fetchone()
+                            Jsonb(list(request.reviewed_draft_ids)),cutoff)).fetchone()
         conn.execute("INSERT INTO socialmei.auth_auditoria(user_id,alvo_user_id,acao) VALUES(%s,%s,'wa_handover_reserved')",
                      (request.actor_id,request.target_owner_id))
         _save_receipt(receipt_path, receipt(row))

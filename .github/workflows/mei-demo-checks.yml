@@ -63,6 +63,7 @@ jobs:
           python -m unittest test_channel_booking test_inbox_customer
           test_account_workspaces test_workspace_profile test_workspace_integrity test_workspace_access
           test_whatsapp_channel_handover test_waha_pilot_scope
+          test_whatsapp_handover_runtime_plan
           test_instagram_worker_lease
       - name: Authenticated API demo replay and business isolation
         run: node tests/provision-mei-demo-integration.mjs

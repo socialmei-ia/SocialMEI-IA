@@ -1,6 +1,6 @@
 """Only opted-in loopback disposable PostgreSQL; signed synthetic events only."""
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import replace
+from dataclasses import asdict, replace
 from datetime import timedelta
 import math
 import os
@@ -115,6 +115,22 @@ class HandoverTests(unittest.TestCase):
             with self.subTest(change=change),self.assertRaises(AccessError):
                 handover.reserve(self.request,plan['plan_sha256'],uuid4(),{**self.proof(),**change},receipt_path=self.root/'bad-proof.json')
 
+    def test_cutoff_uses_wall_clock_after_transaction_work_not_transaction_start(self):
+        approved=handover.inspect_handover(self.request)['plan_sha256']
+        original=handover.scope;observed=[]
+        def delayed_scope(conn,request,**options):
+            result=original(conn,request,**options)
+            conn.execute('SELECT pg_sleep(0.02)')
+            observed.append(conn.execute('SELECT clock_timestamp() AS stamp').fetchone()['stamp'])
+            return result
+        with patch('whatsapp_channel_handover.scope',side_effect=delayed_scope):
+            result=handover.reserve(self.request,approved,uuid4(),self.proof(),receipt_path=self.root/'clock.json')
+        from datetime import datetime
+        cutoff=datetime.fromisoformat(result['ingress_after'])
+        self.assertGreaterEqual(cutoff,observed[0])
+        with psycopg.connect(accounts.DB) as c:
+            self.assertEqual(c.execute('SELECT retired_at FROM socialmei.crm_canais WHERE id=%s',(self.cid,)).fetchone()[0],cutoff)
+
     def test_human_draft_requires_explicit_review_and_is_never_moved_or_sent(self):
         draft=uuid4()
         with psycopg.connect(accounts.DB) as c:
@@ -190,6 +206,13 @@ class HandoverTests(unittest.TestCase):
         self.assertEqual(len(self.rows('me_messages',self.target)),1)
         with self.assertRaisesRegex(AccessError,'TARGET_TRAFFIC_REQUIRES_REVERSE_HANDOVER'):
             handover.rollback(self.request,result['id'],self.proof())
+
+    def test_generated_registry_is_accepted_by_the_activation_contract(self):
+        from whatsapp_handover_runtime_plan import prepare_runtime_plan
+        result=self.reserve()
+        plan=prepare_runtime_plan(self.request,result,{'version':1,'bindings':[asdict(self.binding)]})
+        candidate=WahaBinding(**plan['candidate_registry']['bindings'][0])
+        self.assertEqual(self.activate(result,candidate)['workspace_id'],self.target)
 
     def test_global_provider_deduplication_is_retained_across_generations(self):
         result=self.reserve()
