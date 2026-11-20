@@ -12,25 +12,24 @@ Existe no banco efetivo da API o negócio **Brilho&Limpeza Service**, workspace
 **60**, proprietário individual **33**, ativo e sem privilégio de plataforma.
 Ele é o cenário preferencial Brilho Limpeza. Não renomear nem criar duplicata.
 Não há clientes, catálogo, recursos ou reservas desse negócio no inventário.
-O usuário 33 permanece preservado. A conta do projeto solicitada pelo responsável
-ainda não existe no banco efetivo da API; o arquivo privado corresponde ao e-mail
-do projeto, não ao usuário 33. Não insistir nesse login nem alterar suas credenciais.
-O acesso aditivo está preparado em [PROJECT-MULTIWORKSPACE-ACCESS.md](PROJECT-MULTIWORKSPACE-ACCESS.md),
-com 12 testes PostgreSQL aprovados. Cadastro e concessão produtivos exigem aprovação específica.
+O usuário33 permanece preservado. A conta do projeto é o usuário34 e já possui
+acesso owner aditivo ao Brilho60 e à Bella61 na AWS. Login, alternância e recarga
+foram comprovados; não cadastrar novamente nem alterar credenciais do usuário33.
+Os recibos privados e a reversão do vínculo seguem
+[PROJECT-MULTIWORKSPACE-ACCESS.md](PROJECT-MULTIWORKSPACE-ACCESS.md).
 
-Bella Store não foi encontrada nesse banco. A referência histórica de Instagram
-Bella pertence a outro checkpoint/conexão e não prova um workspace atual.
+Bella Store existe no banco efetivo da API como workspace61, proprietário34.
+A referência histórica de Instagram não comprova uma conexão nessa empresa.
 SorriaOdonto e She Style são fixtures de `test_business_fixture_flows.py`.
 O banco Prisma do worker Instagram/serviço antigo de menu não pôde ser consultado (OperationalError); a
-ausência desses negócios ali permanece não confirmada. Não criar Bella antes
-de reconciliar esse inventário e aprovar seu cadastro independente.
+ausência desses negócios ali permanece não confirmada. Não criar outra Bella.
 
 O [provisionador](MEI-DEMO-PROVISIONER.md) usa as APIs autenticadas existentes.
 [Manifesto histórico preparado](../tools/mei-demo-brilho.prepared.json): workspace60/user33,
-nome exato e data fixa. Atualizar somente o `userId` após conhecer e validar a
-nova identidade autorizada como proprietária. Sua existência **não autoriza aplicar em produção**.
-Aplicação depende da confirmação do destino e de autenticação privada da conta
-proprietária. Não enviar senha ou cookie pelo chat. O dry-run autentica e cria
+nome exato e data fixa: não é o manifesto atual de aplicação. Os manifestos privados
+`project-brilho-target.json` e `project-bella-target.json` usam usuário34/workspaces60/61.
+Os dois dry-runs autenticados passaram sem conflitos; a carga comercial ainda
+exige aprovação própria. Não enviar senha ou cookie pelo chat. O dry-run autentica e cria
 uma sessão, mas não escreve dados comerciais; previews são somente consulta.
 
 Para acesso do professor, usar conta individual e papel `report_viewer` para
@@ -133,17 +132,17 @@ Hero, layout, animação, navegação e imagem premium foram preservados.
 
 ## Pendências priorizadas
 
-| Prioridade | Pendência                                     | Estado/evidência atual                                                                 |
-| ---------- | --------------------------------------------- | -------------------------------------------------------------------------------------- |
-| P0         | Publicar CRM233 preservando premium           | Publicado20/11: API17cfd19, premium preservado, saúde/site200                          |
-| P0         | Popular Brilho existente                      | Destino60/33 validado; dry-run aguarda credenciais privadas; carga real não autorizada |
-| P0         | Fontes de banco e vínculos WhatsApp/Instagram | WhatsApp ativo→API PG17/schema040; IGworker→Prisma indisponível; canais no workspace1  |
-| P0         | Jornada real de reserva e respondedor único   | Corrida WA/IG testada localmente; provedor real/workspace60 pendentes                  |
-| P0         | Segundo negócio independente                  | Bella ausente na API; Prisma não inventariado; não criar duplicata                     |
-| P1         | Professor/equipe e e-mails                    | Fluxos testados sinteticamente; identity disabled; nenhum convite/envio feito          |
-| P1         | Consulta segura e backup atual externo        | Role readonly ausente; pgAdmin aponta n8n; S3 AccessDenied                             |
-| P1         | Relatórios e segurança em produção            | Regressão isolada; homologação do destino/canais após P0                               |
-| P2         | Autoconfiguração/escala/IA adicional          | Preservar contratos; não bloqueia primeira apresentação validada                       |
+| Prioridade | Pendência                                     | Estado/evidência atual                                                                |
+| ---------- | --------------------------------------------- | ------------------------------------------------------------------------------------- |
+| P0         | Publicar CRM233 preservando premium           | Publicado20/11: API17cfd19, premium preservado, saúde/site200                         |
+| P0         | Popular Brilho e Bella                        | Usuário34/60/61; dois dry-runs aprovados; aplicação aguarda aprovação própria         |
+| P0         | Fontes de banco e vínculos WhatsApp/Instagram | WhatsApp ativo→API PG17/schema040; IGworker→Prisma indisponível; canais no workspace1 |
+| P0         | Jornada real de reserva e respondedor único   | Corrida WA/IG testada localmente; provedor real/workspace60 pendentes                 |
+| P0         | Segundo negócio independente                  | Bella61 criada; login único e isolamento comprovados na AWS                           |
+| P1         | Professor/equipe e e-mails                    | Fluxos testados sinteticamente; identity disabled; nenhum convite/envio feito         |
+| P1         | Consulta segura e backup atual externo        | Role readonly ausente; pgAdmin aponta n8n; S3 AccessDenied                            |
+| P1         | Relatórios e segurança em produção            | Regressão isolada; homologação do destino/canais após P0                              |
+| P2         | Autoconfiguração/escala/IA adicional          | Preservar contratos; não bloqueia primeira apresentação validada                      |
 
 Estados separados: provisionador implementado/testado; CRM233 publicado;
 API ativa17cfd19; gateway premium preservado. Nenhum desses fatos
