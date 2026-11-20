@@ -108,9 +108,9 @@ module.exports = async function v22EntryFlow(browser, origin) {
     if (mode === "register") {
       assert.equal(await page.locator("#panC > .pxb, #panE > .pxb").count(), 0);
       assert.equal(await page.locator("#panC .chk span.m").count(), 0);
-      assert.match(await page.locator(".hero-top .badge").innerText(), /negócio/i);
+      assert.match(await page.locator(".hero-top .brand-line .bd").innerText(), /negócio/i);
       assert.doesNotMatch(
-        await page.locator(".steps .step").first().locator("p").textContent(),
+        await page.locator(".sx-steps .step").first().locator("p").textContent(),
         /nada é enviado/i,
       );
       assert.match(

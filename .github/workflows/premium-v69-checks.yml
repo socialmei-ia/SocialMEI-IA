@@ -1,0 +1,29 @@
+name: Premium v6.9 integration
+
+on:
+  pull_request:
+    branches:
+      - feat/mei-demo-20261119
+    paths:
+      - "frontend/**"
+      - "tests/**"
+      - ".github/workflows/premium-v69-checks.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm test
+      - run: npm run format:check
+      - run: npm run test:browser

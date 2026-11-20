@@ -305,7 +305,7 @@
   top: 84px;
 } /* phone */
 #contentStudioView #exactV4-root .phone {
-  width: min(300px, 100%);
+  width: min(300px, 100%, max(200px, calc((100vh - 240px) * 0.484)));
   margin: auto;
   aspect-ratio: 9/18.6;
   border-radius: 44px;

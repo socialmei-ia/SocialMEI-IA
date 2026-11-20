@@ -144,6 +144,7 @@ async function run() {
             );
           }
           if (
+            process.env.SOCIALMEI_CAPTURE_SCREENSHOTS === "1" &&
             [390, 768, 1440].includes(width) &&
             ["inicio", "oport", "divul", "relatorios"].includes(route)
           )
@@ -161,6 +162,7 @@ async function run() {
     await page.waitForFunction(() => !!window.SocialMEIV22);
     await page.evaluate(() => go("/oport"));
     const op = page.frameLocator("#v iframe");
+    await op.getByRole("button", { name: "Nova oportunidade", exact: true }).click();
     await op.locator("#client").selectOption({ index: 1 });
     await op.locator("#what").fill("Interesse demonstrativo de teste");
     await op.locator("#form button[type=submit]").click();
@@ -199,6 +201,7 @@ async function run() {
       await touch.evaluate(() => document.fonts.ready);
       await touch.evaluate(() => go("/oport"));
       const mobile = touch.frameLocator("#v iframe");
+      await mobile.getByRole("button", { name: "Nova oportunidade", exact: true }).tap();
       await mobile.locator("#client").selectOption({ index: 1 });
       await mobile.locator("#what").tap();
       await mobile.locator("#what").fill("Interesse por toque no celular");

@@ -58,6 +58,13 @@
     document.body.appendChild(script);
   });
   await window.SocialMEIV22.ready;
+  // Premium behaviors start only after account scope and the application exist.
+  for (const source of ["scripts/v64-caixa.js", "scripts/v65-shell.js"]) {
+    const premium = document.createElement("script");
+    premium.src = source;
+    premium.onerror = () => console.warn("Complemento Premium indisponível.");
+    document.body.appendChild(premium);
+  }
   if (auth.remote) {
     const agenda = document.createElement("script");
     agenda.src = "scripts/v22-agenda.js";

@@ -1,0 +1,185 @@
+/* SocialMEI v6.2 · Refino UX da landing e da criação de conta.
+   Carrega depois de premium-v5.css. Só usa tokens existentes. */
+
+/* ---------- Hero: lado esquerdo mais limpo ---------- */
+.hero.hx .lead {
+  max-width: 33em;
+}
+.hx-ramo {
+  margin-top: clamp(18px, 2vw, 26px);
+}
+.hx-ramo-l {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0 0 10px;
+}
+.hx-ramo-l small {
+  display: block;
+  margin-top: 3px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--m);
+}
+.hero.hx .rail {
+  margin-top: clamp(18px, 2.2vw, 28px);
+  gap: 6px 16px;
+  font-size: 13px;
+  color: var(--m);
+}
+.hero.hx .rail > .pill {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  padding: 2px 0;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--m);
+}
+.hero.hx .rail > .pill .i {
+  width: 16px;
+  height: 16px;
+  opacity: 0.85;
+}
+.hero.hx .tag-ex,
+.wall-w .tag-ex {
+  opacity: 0.7;
+  font-size: 12px;
+}
+
+/* ---------- História: o palco "segura" mais a rolagem no desktop ---------- */
+@media (min-width: 1001px) {
+  .sx-tab {
+    min-height: clamp(200px, 29vh, 280px);
+  }
+}
+
+/* ---------- "Cada parte do negócio": cabeçalho à esquerda, índice ao lado, cartão sem corte ---------- */
+@media (min-width: 1025px) {
+  .sx-prod .wrap {
+    display: grid;
+    grid-template-columns: minmax(0, 8fr) minmax(0, 4fr);
+    column-gap: clamp(24px, 3vw, 48px);
+    align-items: start;
+  }
+  .sx-prod .sx-head {
+    grid-column: 1;
+    grid-row: 1;
+    max-width: none;
+  }
+  .sx-prod .pvx {
+    display: contents;
+  }
+  .sx-prod .pv-stage {
+    grid-column: 1;
+    grid-row: 2;
+    margin-top: clamp(28px, 3.2vw, 48px);
+  }
+  .sx-prod .pv-idx {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: start;
+    position: sticky;
+    top: clamp(92px, 12vh, 124px);
+    padding-top: clamp(10px, 2vw, 28px);
+  }
+  .sx-prod .wrap > .sx-note {
+    grid-column: 1 / -1;
+  }
+}
+.pv-panel {
+  min-height: clamp(380px, 36vw, 500px);
+}
+.pv-panel.sx-b-caixa .sx-bc-vis {
+  width: 100%;
+  margin: auto 0 calc(var(--bp) * -1) 0;
+}
+@media (min-width: 901px) {
+  .pv-panel:not(.sx-b-caixa) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    align-items: center;
+    column-gap: clamp(20px, 3vw, 44px);
+  }
+  .pv-panel:not(.sx-b-caixa) .sx-bc-vis {
+    margin: 0 !important;
+    width: 100% !important;
+    align-self: center;
+  }
+  .pv-panel:not(.sx-b-caixa) .sx-scr {
+    font-size: 1.06em;
+    padding: clamp(18px, 2vw, 28px);
+  }
+}
+.pv-idx .pv-t {
+  min-height: 60px;
+}
+
+/* ---------- Criação de conta: menos ruído, mais confiança ---------- */
+#v-auth .pxb {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 14px 0 0;
+  order: 99;
+  font-size: 12.5px;
+  color: var(--m);
+  gap: 8px;
+  line-height: 1.45;
+}
+#v-auth .pxb svg {
+  color: var(--m);
+  margin-top: 1px;
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+#fC .form-b {
+  margin-top: 6px;
+}
+#fC .fld {
+  transition: transform 0.2s ease;
+}
+#fC .in {
+  transition:
+    border-color 0.18s,
+    box-shadow 0.18s,
+    background 0.18s;
+}
+#fC .in:focus {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pb) 22%, transparent);
+}
+#fC .in[aria-invalid="true"] {
+  border-color: var(--r);
+}
+#fC .err:not(:empty) {
+  animation: lrv-err 0.22s ease both;
+}
+@keyframes lrv-err {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.wsx {
+  transition: box-shadow 0.3s ease;
+}
+@media (min-width: 1001px) {
+  #v-auth .wsx {
+    position: sticky;
+    top: 96px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #fC .err:not(:empty) {
+    animation: none;
+  }
+  #fC .in,
+  #fC .fld,
+  .wsx {
+    transition: none;
+  }
+}

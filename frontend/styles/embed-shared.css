@@ -1,0 +1,248 @@
+/* Telas embutidas (telas/*.html): mesmos tokens e componentes base do app (socialmei-app.html).
+   Carregado ANTES do <style> de cada tela. Valores espelham :root / [data-theme=dark] do app.
+   O app envia tema e cor da marca por postMessage (ver bloco smei-embed em cada tela). */
+@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("../assets/inter-variable.woff2") format("woff2");
+}
+:root {
+  color-scheme: light;
+  /* nomes do app */
+  --w: #fff;
+  --h1: #f7faff;
+  --h2: #e6edf8;
+  --bg2: #f8fafd;
+  --b: #dfe7f3;
+  --t: #0b1240;
+  --m: #52648f;
+  --s: #f3f6fb;
+  --p: #0a5cf5;
+  --pb: #0a5cf5;
+  --pl: #e8f0ff;
+  --bl: #b9cdf5;
+  --y: #f5b301;
+  --g: #0f7a40;
+  --r: #d4202f;
+  /* aliases usados pelas telas embutidas */
+  --bg: var(--bg2);
+  --sf: var(--w);
+  --sf2: var(--h2);
+  --bd: var(--b);
+  --tx: var(--t);
+  --mu: var(--m);
+  --ac: var(--p);
+  --ac2: var(--p);
+  --on: #fff;
+  --ok: var(--g);
+  --late: var(--r);
+  --hov: #f1f6ff;
+  --warm: #a56f00;
+  --cold: #1d4fb8;
+  --s1: var(--sf);
+  --s2: var(--sf2);
+  --ln: var(--bd);
+  --er: var(--r);
+  --wa: var(--warm);
+  /* forma e movimento */
+  --rad: 12px;
+  --rad-ctl: 8px;
+  --shadow-btn: 0 6px 14px #0a5cf533;
+  --shadow-pop: 0 18px 40px #0b124022;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ez: var(--ease);
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --w: #121830;
+  --h1: #0f1428;
+  --h2: #1c2646;
+  --bg2: #0d1226;
+  --b: #2b3556;
+  --t: #e9eefc;
+  --m: #9aa7c9;
+  --s: #171d33;
+  --p: #6b9bff;
+  --pb: #2f6df0;
+  --pl: #1a2850;
+  --bl: #3a4a78;
+  --y: #f5c542;
+  --g: #43c47d;
+  --r: #ff7280;
+  --hov: #18223f;
+  --warm: #f5c542;
+  --cold: #8fb4ff;
+  --shadow-btn: 0 6px 14px #2f6df044;
+  --shadow-pop: 0 18px 40px #0008;
+}
+html {
+  background: var(--bg2);
+}
+body {
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+}
+
+/* Botões: primário (gradiente azul do app), secundário (contorno) e discreto */
+.btn {
+  border-radius: var(--rad-ctl);
+  font-weight: 600;
+  font-size: 14px;
+  transition:
+    transform 0.18s,
+    box-shadow 0.2s,
+    filter 0.2s,
+    border-color 0.15s,
+    background 0.15s;
+}
+.btn.pri {
+  background: linear-gradient(135deg, var(--pb), #3d86ff);
+  border: 0;
+  color: #fff;
+  box-shadow: var(--shadow-btn);
+}
+.btn.pri:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.07);
+}
+.btn.pri:active {
+  transform: scale(0.97);
+}
+.btn[disabled] {
+  background: var(--h2);
+  background-image: none;
+  color: var(--m);
+  border-color: var(--b);
+  box-shadow: none;
+  transform: none;
+  cursor: not-allowed;
+  opacity: 1;
+}
+.btn.quiet {
+  border-color: transparent;
+  background: none;
+  color: var(--m);
+}
+.btn.quiet:hover {
+  background: var(--hov);
+  color: var(--t);
+}
+.btn.danger {
+  color: var(--r);
+  border-color: color-mix(in srgb, var(--r) 45%, var(--b));
+}
+.btn.danger:hover {
+  background: color-mix(in srgb, var(--r) 8%, var(--w));
+  border-color: var(--r);
+}
+:focus-visible {
+  outline: 2px solid var(--p);
+  outline-offset: 2px;
+}
+
+/* Campos */
+.f input,
+.f select,
+.f textarea,
+.in input,
+.in select,
+.q input,
+.s select,
+#ci {
+  background: var(--w);
+  border-color: var(--b);
+  border-radius: var(--rad-ctl);
+}
+.f input:focus,
+.f select:focus,
+.in input:focus,
+.q input:focus,
+.s select:focus,
+#ci:focus {
+  border-color: var(--p);
+  box-shadow: 0 0 0 3px var(--pl);
+  outline: none;
+}
+label {
+  color: var(--m);
+  font-size: 13px;
+  font-weight: 500;
+}
+.em {
+  color: var(--r);
+}
+
+/* Cartões, listas e menus */
+.panel,
+.list,
+.board,
+.dc,
+.info,
+.td,
+.menu,
+.cpb {
+  border-color: var(--b);
+  border-radius: var(--rad);
+  background: var(--w);
+}
+.menu,
+.cpb {
+  box-shadow: var(--shadow-pop);
+}
+.mi:hover,
+.mi:focus-visible {
+  background: var(--hov);
+}
+.chip {
+  border-color: var(--b);
+  background: var(--w);
+  color: var(--t);
+}
+.chip:hover {
+  border-color: var(--p);
+  background: var(--hov);
+}
+
+/* Cabeçalho de página: mesma escala do app (h1 30px, apoio em --m) */
+.page-h {
+  padding: 6px 0 4px;
+}
+.page-h h1 {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin: 0;
+}
+.page-h .lead {
+  font-size: 15px;
+  color: var(--m);
+  margin: 6px 0 0;
+}
+
+/* Avisos (toast): sucesso padrão, erro em vermelho */
+.t {
+  background: var(--t);
+  color: var(--w);
+  border-radius: var(--rad-ctl);
+}
+.t.e {
+  background: var(--r);
+  color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

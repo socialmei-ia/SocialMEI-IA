@@ -1,0 +1,283 @@
+{
+  "date": "2026-11-20",
+  "source_zip_sha256": "be40d188538781d4169f043b522516a0c6bf4c73fcc95c6450b20e875bb45872",
+  "base_sha": "0ef493a9e16028757c420496a2bdded45febc260",
+  "mode": "local-isolated-review-only",
+  "production_changed": false,
+  "migrations": false,
+  "real_channel_changes": false,
+  "external_messages": 0,
+  "protected_files": [
+    {
+      "path": "frontend/config.js",
+      "sha256": "02f51a00374474c35c50c34c9bafb704b3eea350682e45de5d4fc347b7f97430"
+    },
+    {
+      "path": "frontend/scripts/auth-store.js",
+      "sha256": "3becca656a6c638ba1cb8ca5e38fa6811a34cff61213fcb1c54e11d124d94221"
+    },
+    {
+      "path": "frontend/scripts/v22-inbox-customer.js",
+      "sha256": "b50ce7dc0a29c7da8d2d972a31ab252d5cfb90778fc28f0c511d9e0322c87a85"
+    },
+    {
+      "path": "frontend/scripts/v22-appointments.js",
+      "sha256": "148d458455441437c218f706c52e15d29ee554b63da3c146be3df3cc72f9c01a"
+    },
+    {
+      "path": "frontend/scripts/v22-businesses.js",
+      "sha256": "e5a00bcd66339dd40984b694a5473805f8f15e6f7121f966ddc7237b79edc95a"
+    },
+    {
+      "path": "frontend/scripts/v22-business-start.js",
+      "sha256": "54c7de59d2b59d84da8ea0e7ac8ba413bc17fb3b887d2d82329069284dd50c98"
+    },
+    {
+      "path": "frontend/scripts/v22-instagram-direct.js",
+      "sha256": "561852e21f7eff163136efccfc048d076ae467b2fb2f2ac5b26a37a493fc115b"
+    },
+    {
+      "path": "frontend/scripts/v22-instagram.js",
+      "sha256": "983c836347fd4e65e09ed95e79dd51b0f1f85055d14216b11793d8ac609010d6"
+    },
+    {
+      "path": "frontend/scripts/v22-whatsapp-replies.js",
+      "sha256": "7aa466102bcc15ae0e76fec10613a956f2d69511afb3af0f1e8c2d9a0c66265e"
+    },
+    {
+      "path": "frontend/scripts/v22-whatsapp-bot.js",
+      "sha256": "fefe776de839d4ecbf2b6d1c3780590233d0ed4dfec6f4484824d3be43eef79d"
+    },
+    {
+      "path": "frontend/scripts/v22-team-members.js",
+      "sha256": "9f0707a9cfb313f8cb78c559f57a5af568519c8b4e1504d06070333884e4a862"
+    }
+  ],
+  "candidate_files": [
+    {
+      "path": "frontend/admin.html",
+      "sha256": "5df296d94e98cd4f827843ab9602320c2424d8bbe5dce63a90788596231d5892"
+    },
+    {
+      "path": "frontend/assets/apple-touch-icon.png",
+      "sha256": "264427a13001f7ffaec0ea759f62f8c5ea24dccbe8cddbfce018c9e5a8353499"
+    },
+    {
+      "path": "frontend/assets/favicon-32.png",
+      "sha256": "f105119f0ef1507b30c09eee1d8bdb84dc80bf1258dc3d372d70c2b9c0e05370"
+    },
+    {
+      "path": "frontend/assets/favicon-64.png",
+      "sha256": "8cc5626dfc10bedfed580137dbf0a62a35c80f6ec3da93dbb8a62f38383f9978"
+    },
+    {
+      "path": "frontend/assets/icon-192.png",
+      "sha256": "3a6dcc8e31dac7213a181e0cf570f805ca0fd3e1e8416aad59d7fa464b07479c"
+    },
+    {
+      "path": "frontend/assets/icon-512.png",
+      "sha256": "53bf005167dad6fdc6e3500b2d135b336376ba42c85d18c35ef96c71e22d388e"
+    },
+    {
+      "path": "frontend/entrada.html",
+      "sha256": "6069b391a193d4cace087a672ce2cc328fda2eea9995004fa6813267e1e17a12"
+    },
+    {
+      "path": "frontend/scripts/account-access.js",
+      "sha256": "cb7ee5344d5ac356b615fd8cdaa7796b8b5855a64fbc75a81d82be3e26aaef10"
+    },
+    {
+      "path": "frontend/scripts/agenda-hours.js",
+      "sha256": "a7ef5f137d4c214b5b50ebf4059420e13efe0cfbbfdec1cd8d71e81b34e3b891"
+    },
+    {
+      "path": "frontend/scripts/connections-hub.js",
+      "sha256": "91e64d83d5fdb519ec8963130a5c1df05bbd8c869c56062c7d7c57ea399ae3c3"
+    },
+    {
+      "path": "frontend/scripts/entrada.js",
+      "sha256": "66ad0964227f808829884f3093a260161cc6dcfb80b68dad753d43e9044be333"
+    },
+    {
+      "path": "frontend/scripts/hero-live-v65.js",
+      "sha256": "0c894c3563803fcb74fdc3b80e3897d14a6cf71859ded0df89b57a42c44455f5"
+    },
+    {
+      "path": "frontend/scripts/hero-wall.js",
+      "sha256": "441786b315af2d058a8599a68f4ec570d94f52ca870bd3e86d11a34aa18251b3"
+    },
+    {
+      "path": "frontend/scripts/inbox-assist.js",
+      "sha256": "7fb04022925af211f55949110cee2a22a57e88eefca9193f58066818e345ecbd"
+    },
+    {
+      "path": "frontend/scripts/landing-content.js",
+      "sha256": "1a24b05123b7495a6ca18adb992317aad55daf84e79c5aa6b5eeb844597a5cc1"
+    },
+    {
+      "path": "frontend/scripts/landing-flow-v62.js",
+      "sha256": "f60e45889d74c099d55e7dfbd61b990fc943b8fc48f74274cf7c960ef981faea"
+    },
+    {
+      "path": "frontend/scripts/landing-v2.js",
+      "sha256": "079527248e8506c81c177b7caee337b8b81676bad1731f3b213d7c38492a7093"
+    },
+    {
+      "path": "frontend/scripts/premium-v5.js",
+      "sha256": "d32697235d408290a9e56d82dd7878531c42df571ec3a79dbf56441c0a410cf6"
+    },
+    {
+      "path": "frontend/scripts/pv-auto-v65.js",
+      "sha256": "06c3ef97de204f5749d0af6ed988dd93185fa06676ca6855aa153b4925a03e61"
+    },
+    {
+      "path": "frontend/scripts/sections-anim.js",
+      "sha256": "58a1e4269bbcf1e00ed0a9e6c453e05113e86d2604d6ea6d39961ea48f4dc4ce"
+    },
+    {
+      "path": "frontend/scripts/sections-v3.js",
+      "sha256": "52ff71a9fc2ff8eedaf139a59046150e62dbafc2119564a10ac3b29e5041277f"
+    },
+    {
+      "path": "frontend/scripts/v22-agenda.js",
+      "sha256": "55c6c77356e4800243fa2029527a2c6cbe63020586d5e64db962558b2d67462c"
+    },
+    {
+      "path": "frontend/scripts/v22-backend.js",
+      "sha256": "76fa237d675b3656644792f103987b98a24f57ff89f54b9ed639148f44e05540"
+    },
+    {
+      "path": "frontend/scripts/v22-bootstrap.js",
+      "sha256": "7aab10f814b46bab4153b75c8f2de9362556a20a8f4ee1df26193df9a2623ba7"
+    },
+    {
+      "path": "frontend/scripts/v22-inbox-layout.js",
+      "sha256": "04fd342e6c164ab68fd1c15730de15afe47764467fc5a4bb8948964e39c6ff6c"
+    },
+    {
+      "path": "frontend/scripts/v64-caixa.js",
+      "sha256": "6b31455756309ea8e6e2da35543a3d88e829edfb6b5bde126dd3e35cf1fe6638"
+    },
+    {
+      "path": "frontend/scripts/v65-shell.js",
+      "sha256": "9ca2026e9055c23f08ae3c1f21d36616b96878fa783f33626326242a18256044"
+    },
+    {
+      "path": "frontend/sobre.html",
+      "sha256": "f238696ee9164eacde7cb44975e3e48e835f123d0406449b595977488a12cdba"
+    },
+    {
+      "path": "frontend/socialmei-app.html",
+      "sha256": "e3f6fb77f745011fbe176af6df73d3a1961bdc7184bae2a22e7bd84c3cce7698"
+    },
+    {
+      "path": "frontend/styles/connections-hub.css",
+      "sha256": "4c7b7bace288a12898ab3ee6b237907eb233e730e5ab945d632b7f16e3561e42"
+    },
+    {
+      "path": "frontend/styles/divulgacao-v4.css",
+      "sha256": "b487d1c199a2a672f699191ebbf772815404262f9ae810307106f8d0b1e29d0f"
+    },
+    {
+      "path": "frontend/styles/embed-shared.css",
+      "sha256": "507b229db186dabff953bf44e1770a070fe134ed76c041105876f76e4d244816"
+    },
+    {
+      "path": "frontend/styles/entrada.css",
+      "sha256": "a1a89aa53f7e80ad32f533783c71a90c6ef678441672973a40d98b93eb19062a"
+    },
+    {
+      "path": "frontend/styles/hero-live-v65.css",
+      "sha256": "4495e32587f919cc7d3404e0a778f4978b0edd4607c507267efd8956ac5a8f86"
+    },
+    {
+      "path": "frontend/styles/hero-v3.css",
+      "sha256": "b3f13d6e045ede247875d43b572f5dedd8c88095f9ec330c2815c1edf39c9237"
+    },
+    {
+      "path": "frontend/styles/landing-refino-v62.css",
+      "sha256": "c335ce620d83e25a377e83878dab60f05ca6863c4af9b9260eb6a23206a67279"
+    },
+    {
+      "path": "frontend/styles/landing-v2.css",
+      "sha256": "dce3d77e819df8ef2e64badef79894df77a6355d725b1cd2f3e72f4a07a2754a"
+    },
+    {
+      "path": "frontend/styles/premium-v5-app.css",
+      "sha256": "d313a8c389f2812651a5c56ddfc73cef2097fe40876db533ef40533129827b8f"
+    },
+    {
+      "path": "frontend/styles/premium-v5.css",
+      "sha256": "dd48b8d3e2d2e02cc980296edd3690d29ce2790c4d47d7ddfdcc3c7af4683410"
+    },
+    {
+      "path": "frontend/styles/refino-v62-app.css",
+      "sha256": "62c62194f31f566b6888ed0255c1167f785dea605fc0920032862bdacb933901"
+    },
+    {
+      "path": "frontend/styles/sections-v3.css",
+      "sha256": "59568215e7d6ae066d473b0796899c7e27ec6a9cc303ead1f319255760c460cc"
+    },
+    {
+      "path": "frontend/styles/v64-app.css",
+      "sha256": "c8de18507d20d637b10bf38ac652b632187842e19d058b6b87005250952c9714"
+    },
+    {
+      "path": "frontend/telas/divulgacao.html",
+      "sha256": "f30ddf7a5b81175291675b31a26f959e8ad0a618a6a744cf29cd079871a774d0"
+    },
+    {
+      "path": "frontend/telas/oportunidades.html",
+      "sha256": "fb2f3980e61c53e894a32d1f121ea2cf88b9fdf5cdafe30351f3a0aa860f0477"
+    },
+    {
+      "path": "frontend/testes-publicos.html",
+      "sha256": "d53b6240d854f08c23dee45009b8b8ed5ed3a548a3013d984a717c33936db990"
+    }
+  ],
+  "artifact": {
+    "path": "test-results/premium-v69-increment-review.zip",
+    "sha256": "3a95216706f3b176d9a290aa986fa04de3e089d55968cdaaa7a27c66f745d5cf"
+  },
+  "local_fixture_counts": {
+    "brilho": {
+      "clients": 4,
+      "services": 3,
+      "resources": 2,
+      "appointments": 4,
+      "sales": 2,
+      "finance": 3,
+      "opportunities": 2,
+      "reminders": 2
+    },
+    "bella": {
+      "clients": 4,
+      "products": 3,
+      "sales": 2,
+      "finance": 3,
+      "opportunities": 2,
+      "reminders": 2
+    }
+  },
+  "checks": {
+    "javascript": {
+      "passed": 454,
+      "skipped": 2
+    },
+    "private_access_pg": 12,
+    "channel_and_booking_pg": 50,
+    "demo_pg_replay_and_isolation": true,
+    "real_preview_two_businesses": true,
+    "browser_full": "pending",
+    "format": "passed",
+    "real_preview_two_accounts": true,
+    "focused_provider_recovery_browser": "passed_synthetic_only",
+    "source_protected_contracts_verified": true
+  },
+  "production_blockers": [
+    "project_account_registration_and_additive_owner_grant_require_specific_approval",
+    "production_demo_apply_not_authorized",
+    "channel_cutovers_and_real_meta_tests_not_authorized",
+    "premium_publication_not_authorized"
+  ]
+}

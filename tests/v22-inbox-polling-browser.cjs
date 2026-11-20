@@ -165,13 +165,16 @@ module.exports = async function (browser, origin) {
       );
       assert.equal(documents, documentCount, "Confirmed menu replies update without reloading");
       await page.evaluate(() => go("/caixa"));
-      await page.getByRole("link", { name: "Contato Direct B", exact: true }).waitFor();
+      await page.getByRole("link", { name: "Contato Direct B, Instagram", exact: true }).waitFor();
       assert.match(await page.locator("#v").innerText(), /Recebimento habilitado no servidor/);
       assert(!/Demonstração local|Canal não conectado/.test(await page.locator("#v").innerText()));
       enabled = false;
       await page.clock.fastForward(60001);
       await page.getByText("Recebimento não habilitado", { exact: true }).waitFor();
-      assert.equal(await page.locator('.rw[href^="#/caixa/me-"]').count(), 0);
+      assert.equal(
+        await page.locator('.rw[href^="#/caixa/me-"], .ci[href^="#/caixa/me-"]').count(),
+        0,
+      );
       assert(
         !/Demonstração local|Recebimento habilitado no servidor/.test(
           await page.locator("#v").innerText(),

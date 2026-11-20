@@ -2244,9 +2244,12 @@
     $$("#panC > .pxb, #panE > .pxb").forEach(function (note) {
       note.remove();
     });
-    trocar(".hero-top .badge", "Atendimento e gestão para o seu negócio");
     trocar(
-      "#como .step:first-child p",
+      ".hero-top .badge, .hero-top .brand-line .bd",
+      "Atendimento e gestão para o seu negócio",
+    );
+    trocar(
+      "#como .step:first-child p, #comoTrack .step:first-child p",
       "Nome, e-mail e uma senha. Sua conta e seu negócio são armazenados no SocialMEI.",
     );
     $$(".faq").forEach(function (item) {

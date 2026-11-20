@@ -26,17 +26,14 @@ module.exports = async function (browser, origin) {
       });
       try {
         await page.goto(origin + "/frontend/entrada.html");
-        const combo = page.locator(".rs-b");
-        await combo.waitFor();
-        await combo.focus();
-        await page.keyboard.press("ArrowDown");
-        await page.keyboard.press("ArrowDown");
-        await page.keyboard.press("Enter");
-        assert.equal(await combo.getAttribute("aria-expanded"), "false");
-        assert.equal(
-          await combo.locator(".rs-v").innerText(),
-          await page.locator("#ramo option:checked").innerText(),
-        );
+        const choice = page.locator('.hx-chip[data-ramo="moda"]');
+        await choice.waitFor();
+        await choice.focus();
+        await page.keyboard.press("Space");
+        assert.equal(await choice.getAttribute("aria-pressed"), "true");
+        assert.equal(await page.evaluate(() => localStorage.getItem("smei-ramo")), "moda");
+        await page.keyboard.press("Space");
+        assert.equal(await choice.getAttribute("aria-pressed"), "false");
         for (const route of ["", "entrar", "recuperar"]) {
           await page.goto(origin + "/frontend/entrada.html#/" + route);
           await page.evaluate(() => document.fonts.ready);
@@ -49,11 +46,12 @@ module.exports = async function (browser, origin) {
             () =>
               new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
           );
-          await page.screenshot({
-            animations: "disabled",
-            path: path.join(out, `${route || "landing"}-${width}-${theme}.png`),
-            fullPage: true,
-          });
+          if (process.env.SOCIALMEI_CAPTURE_SCREENSHOTS === "1")
+            await page.screenshot({
+              animations: "disabled",
+              path: path.join(out, `${route || "landing"}-${width}-${theme}.png`),
+              fullPage: true,
+            });
         }
         assert.deepEqual(errors, []);
       } finally {
@@ -61,6 +59,6 @@ module.exports = async function (browser, origin) {
       }
     }
   console.log(
-    "V25 entry: original selector, keyboard, landing/login/recovery at 3 widths and 2 themes passed.",
+    "Premium v6.9 entry: business chips, keyboard, landing/login/recovery at 3 widths and 2 themes passed.",
   );
 };

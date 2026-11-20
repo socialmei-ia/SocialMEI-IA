@@ -128,7 +128,7 @@
       } catch {}
     };
     settings.append(reset);
-    list.querySelector(".row")?.after(settings);
+    (list.querySelector(".row") || list.querySelector(".cx4-ph"))?.after(settings);
   }
   const render = window.render;
   if (typeof render === "function")
