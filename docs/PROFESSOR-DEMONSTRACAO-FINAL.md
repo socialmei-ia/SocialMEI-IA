@@ -161,3 +161,5 @@ foi criado. Evidência atual: `docs/evidence/20261120-project-access-production.
 
 Publicação visual v6.9 preparada, sem aplicação: [plano incremental e rollback](PREMIUM-V69-PUBLICACAO-PLANO.md).
 O contrato ainda necessário para canais está em [BRILHO-CHANNEL-HANDOVER-NEXT.md](BRILHO-CHANNEL-HANDOVER-NEXT.md).
+
+Atualiza??o Premium: a tentativa produtiva de46 arquivos foi revertida ap?s falha no smoke. Gateway anterior, API e CRM233 preservados. A candidata corretiva de48 arquivos passou localmente; publica??o e homologa??o real continuam pendentes conforme [plano atual](PREMIUM-V69-PUBLICACAO-PLANO.md). Dados comerciais n?o aplicados.

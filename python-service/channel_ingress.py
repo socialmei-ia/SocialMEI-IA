@@ -110,7 +110,7 @@ def create_account(payload:Channel,request:Request,response:Response):
     with enrichment.db() as conn:
         enrichment.lock_workspace(conn,user['workspace_id'])
         enrichment.rate_limit(conn,user['workspace_id'])
-        row=conn.execute("INSERT INTO socialmei.crm_canais(workspace_id,provedor,instancia,sessao,nome) VALUES(%s,'waha',%s,%s,%s) ON CONFLICT(provedor,instancia,sessao) DO NOTHING RETURNING id",(user['workspace_id'],payload.instance,payload.session,payload.name)).fetchone()
+        row=conn.execute("INSERT INTO socialmei.crm_canais(workspace_id,provedor,instancia,sessao,nome) VALUES(%s,'waha',%s,%s,%s) ON CONFLICT DO NOTHING RETURNING id",(user['workspace_id'],payload.instance,payload.session,payload.name)).fetchone()
         if not row:
             row=conn.execute("SELECT id,nome FROM socialmei.crm_canais WHERE workspace_id=%s AND provedor='waha' AND instancia=%s AND sessao=%s AND NOT ativo AND NOT envio_habilitado",(user['workspace_id'],payload.instance,payload.session)).fetchone()
             if not row or row['nome']!=payload.name:
