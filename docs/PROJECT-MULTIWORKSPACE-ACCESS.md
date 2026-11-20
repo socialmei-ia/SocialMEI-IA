@@ -1,5 +1,7 @@
 # Acesso do projeto aos dois negócios
 
+**Atualização produtiva:** cadastro e vínculo autorizados foram concluídos. Usuário34 administra Brilho/60 e Bella/61, preservando proprietário33. [Estado atual, dry-runs e recibos](PROJECT-ACCESS-PRODUCTION-20261120.md). As seções de preparação abaixo descrevem o estado anterior à execução.
+
 ## Estado confirmado em 20/11/2026
 
 - Brilho&Limpeza Service: workspace 60, proprietário 33 preservado.
