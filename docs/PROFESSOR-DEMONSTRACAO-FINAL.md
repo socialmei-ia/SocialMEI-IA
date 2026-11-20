@@ -12,8 +12,11 @@ Existe no banco efetivo da API o negócio **Brilho&Limpeza Service**, workspace
 **60**, proprietário individual **33**, ativo e sem privilégio de plataforma.
 Ele é o cenário preferencial Brilho Limpeza. Não renomear nem criar duplicata.
 Não há clientes, catálogo, recursos ou reservas desse negócio no inventário.
-O login dessa conta ainda exige validação pelo responsável; nenhum segredo foi
-obtido, redefinido ou registrado nesta entrega.
+O usuário 33 permanece preservado. A conta do projeto solicitada pelo responsável
+ainda não existe no banco efetivo da API; o arquivo privado corresponde ao e-mail
+do projeto, não ao usuário 33. Não insistir nesse login nem alterar suas credenciais.
+O acesso aditivo está preparado em [PROJECT-MULTIWORKSPACE-ACCESS.md](PROJECT-MULTIWORKSPACE-ACCESS.md),
+com 12 testes PostgreSQL aprovados. Cadastro e concessão produtivos exigem aprovação específica.
 
 Bella Store não foi encontrada nesse banco. A referência histórica de Instagram
 Bella pertence a outro checkpoint/conexão e não prova um workspace atual.
@@ -23,8 +26,9 @@ ausência desses negócios ali permanece não confirmada. Não criar Bella antes
 de reconciliar esse inventário e aprovar seu cadastro independente.
 
 O [provisionador](MEI-DEMO-PROVISIONER.md) usa as APIs autenticadas existentes.
-[Manifesto preparado](../tools/mei-demo-brilho.prepared.json): workspace60/user33,
-nome exato e data fixa. Sua existência **não autoriza aplicar em produção**.
+[Manifesto histórico preparado](../tools/mei-demo-brilho.prepared.json): workspace60/user33,
+nome exato e data fixa. Atualizar somente o `userId` após conhecer e validar a
+nova identidade autorizada como proprietária. Sua existência **não autoriza aplicar em produção**.
 Aplicação depende da confirmação do destino e de autenticação privada da conta
 proprietária. Não enviar senha ou cookie pelo chat. O dry-run autentica e cria
 uma sessão, mas não escreve dados comerciais; previews são somente consulta.
@@ -41,8 +45,9 @@ administrativo compartilhado como substituto da conta individual.
 
 ## Pré-requisitos de homologação
 
-1. Publicar correção CRM sob aprovação própria, mantendo gateway premium.
-2. Confirmar conta33/destino60 e executar dry-run; aplicar o manifesto aprovado
+1. CRM233 já publicado; preservar API17cfd19 e gateway premium.
+2. Aprovar cadastro normal da conta do projeto, Bella e concessão aditiva ao Brilho,
+   preservando proprietário33. Confirmar a nova identidade/destino60 e executar dry-run; aplicar o manifesto aprovado
    com inventário privado e repetir para comprovar ausência de duplicações.
 3. Reconciliar fontes de banco: API/recuperação usam PostgreSQL17 realocado;
    o worker WhatsApp ativo chama essa API por hotfix. O worker Instagram ainda
