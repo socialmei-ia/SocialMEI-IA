@@ -44,6 +44,16 @@ class PremiumReleaseTests(unittest.TestCase):
         before['services']['team-gateway']['volumes'].append({'type':'bind','source':'/old/example.js','target':'/srv/frontend/scripts/example.js','read_only':True})
         m.validate_delta(before,self.after,self.files,self.root)
 
+    def test_exact_immutable_premium_reference_after_rollback_remains_supported(self):
+        before=copy.deepcopy(self.before);after=copy.deepcopy(self.after)
+        before['services']['team-gateway']['image']=m.PREMIUM_ID
+        after['services']['team-gateway']['image']=m.PREMIUM_ID
+        m.validate_delta(before,after,self.files,self.root)
+        before['services']['team-gateway']['image']='sha256:'+'0'*64
+        after['services']['team-gateway']['image']='sha256:'+'0'*64
+        with self.assertRaisesRegex(RuntimeError,'COMPOSE_PREMIUM_DIVERGENTE'):
+            m.validate_delta(before,after,self.files,self.root)
+
     def test_changed_frozen_plan_is_rejected_before_docker(self):
         with tempfile.TemporaryDirectory() as tmp,patch.object(m.base,'inspect') as inspect:
             stage=Path(tmp)/'frozen-plan';stage.mkdir()
@@ -60,5 +70,32 @@ class PremiumReleaseTests(unittest.TestCase):
             for name in ['baseline-compose.json','candidate-compose.json','rollback-compose.json']:(stage/name).write_text('{}')
             with self.assertRaisesRegex(RuntimeError,'FROZEN_COMPOSE_CHANGED'):m.verify(tmp)
             inspect.assert_not_called()
+
+    def test_dynamic_bootstrap_dependency_missing_from_runtime_is_detected(self):
+        candidate={'frontend/socialmei-app.html':b'<script src="scripts/v22-bootstrap.js"></script>',
+                   'frontend/entrada.html':b'<main>Login</main>',
+                   'frontend/scripts/v22-bootstrap.js':b'const s=document.createElement("script");s.src="scripts/v22-whatsapp-management.js";'}
+        result=m.frontend_dependencies(candidate,lambda path:None)
+        self.assertEqual(result['missing'],['frontend/scripts/v22-whatsapp-management.js'])
+
+    def test_candidate_overlay_can_supply_dependency_missing_in_premium_image(self):
+        candidate={'frontend/socialmei-app.html':b'<script src="scripts/v22-bootstrap.js"></script>',
+                   'frontend/entrada.html':b'',
+                   'frontend/scripts/v22-bootstrap.js':b'for(const s of ["scripts/v64-caixa.js","styles/inbox.css"]){}',
+                   'frontend/scripts/v64-caixa.js':b'',
+                   'frontend/styles/inbox.css':b'@font-face{src:url(../assets/font.woff2)}',
+                   'frontend/assets/font.woff2':b'font'}
+        self.assertEqual(m.frontend_dependencies(candidate,lambda path:None)['missing'],[])
+
+    def test_external_template_api_and_fragment_references_are_not_local_assets(self):
+        candidate={'frontend/socialmei-app.html':b'<script src="https://example.test/app.js"></script><a href="#/config/conta">Conta</a><img src="data:image/png;base64,abc"><script>e.src="${dynamic}";fetch("/api/v1/auth/session")</script>',
+                   'frontend/entrada.html':b''}
+        self.assertEqual(m.frontend_dependencies(candidate,lambda path:None)['missing'],[])
+
+    def test_dependency_gate_stops_before_publication(self):
+        with patch.object(m,'runtime_asset',return_value=None):
+            with self.assertRaisesRegex(RuntimeError,'MISSING_FRONTEND_DEPENDENCIES'):
+                m.require_dependencies({'frontend/socialmei-app.html':b'<script src="scripts/missing.js"></script>',
+                                        'frontend/entrada.html':b''})
 
 if __name__=='__main__':unittest.main()

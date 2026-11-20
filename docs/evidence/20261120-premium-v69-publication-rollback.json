@@ -1,0 +1,76 @@
+{
+  "recorded_at": "2026-11-20T23:16:29.911356+00:00",
+  "authorized_plan": "a846c5a6335dfa5f7af73e4dc09cf3a6157e12bbad3e70979409a991e0d237f5",
+  "attempted_files": 46,
+  "result": "rolled_back",
+  "rollback_verified": true,
+  "other_services_unchanged": true,
+  "premium_image_preserved": "sha256:b93aeac93d11ea0e88dd2c44961bc8f13df9bcb928d960b3562563e68b6cc8ec",
+  "api_preserved": "17cfd1956416c2d4c8431fec11800f73254bde12",
+  "production_schema": "040",
+  "https_after_rollback": 200,
+  "crm233_sha256": "b50ce7dc0a29c7da8d2d972a31ab252d5cfb90778fc28f0c511d9e0322c87a85",
+  "production_smoke": {
+    "form_login": "passed_user34",
+    "business_switch_full_journey": "not_passed",
+    "reason": "API read timeout during browser smoke; two missing frontend dependencies observed",
+    "business_writes": 0,
+    "external_messages": 0
+  },
+  "corrected_candidate": {
+    "files": 48,
+    "new_operational_approval_required": true,
+    "published": false,
+    "local_browser": {
+      "mode": "local_real_api_postgresql_r2",
+      "complete": true,
+      "states": [
+        {
+          "width": 390,
+          "route": "caixa",
+          "noOverflow": true
+        },
+        {
+          "width": 390,
+          "route": "agenda",
+          "noOverflow": true
+        },
+        {
+          "width": 390,
+          "route": "config/integracoes",
+          "noOverflow": true
+        },
+        {
+          "width": 1440,
+          "route": "caixa",
+          "noOverflow": true
+        },
+        {
+          "width": 1440,
+          "route": "agenda",
+          "noOverflow": true
+        },
+        {
+          "width": 1440,
+          "route": "config/integracoes",
+          "noOverflow": true
+        }
+      ],
+      "switchAndReload": true,
+      "installedExtensionsPreserved": true,
+      "businessWrites": 0
+    },
+    "preflight_tests": 10,
+    "bootstrap_tests": 2,
+    "runtime_dependency_closure": {
+      "checked": 89,
+      "missing": []
+    }
+  },
+  "demo_data": {
+    "prepared": "project-demo-next-apply-plan.json",
+    "workspaces": [60, 61],
+    "applied": false,
+    "approval_required": true
+  }
+}

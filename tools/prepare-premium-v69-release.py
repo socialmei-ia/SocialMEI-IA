@@ -1,11 +1,13 @@
 """Stage and inspect the approved v6.9 files; never deploy or restart a service."""
 import argparse
+import base64
 import copy
 import hashlib
 import importlib.util
 import json
 import os
 import re
+import posixpath
 from pathlib import Path, PurePosixPath
 import zipfile
 
@@ -17,9 +19,55 @@ GATEWAY='socialmei-team-team-gateway-1'
 API='socialmei-team-team-api-1'
 PREMIUM_ID='sha256:b93aeac93d11ea0e88dd2c44961bc8f13df9bcb928d960b3562563e68b6cc8ec'
 API_ID='sha256:6cf2bc60fec3f31e5e0cc24d4e276a7ba43911e94343e1439dce75d84a5673f8'
+REVIEWED_FILE_COUNT=48
 PROTECTED={'frontend/config.js','frontend/scripts/auth-store.js','frontend/scripts/v22-inbox-customer.js'}
 
 def sha(value):return hashlib.sha256(value).hexdigest()
+
+
+def frontend_dependencies(candidate, read_runtime):
+    """Resolve static document/script/style references against the actual overlay."""
+    queue=list(candidate)+['frontend/entrada.html','frontend/socialmei-app.html']
+    checked=set();missing=set()
+    while queue:
+        path=queue.pop()
+        if path in checked:continue
+        checked.add(path)
+        content=candidate.get(path)
+        if content is None:content=read_runtime(path)
+        if content is None:
+            missing.add(path);continue
+        if not path.endswith(('.html','.js','.css')):continue
+        source=content.decode('utf-8',errors='replace')
+        refs=re.findall(r'''(?:\b(?:src|href)\s*=|\.(?:src|href)\s*=)\s*["']([^"']+)["']''',source)
+        refs+=re.findall(r'''["']((?:scripts|styles|assets|telas)/[A-Za-z0-9_./-]+\.(?:js|css|html|png|svg|ico|jpg|webp|woff2?))(?:[?#][^"']*)?["']''',source)
+        css_refs=re.findall(r'''url\(\s*["']?([^\s'"\)]+)["']?\s*\)''',source) if path.endswith('.css') else []
+        for ref in refs+css_refs:
+            ref=ref.split('#')[0].split('?')[0]
+            if not ref or ':' in ref or ref.startswith('//'):continue
+            if not re.fullmatch(r'[A-Za-z0-9_./-]+',ref):continue
+            if ref.startswith('/'):
+                target=posixpath.normpath(ref.lstrip('/'))
+            else:
+                parent=posixpath.dirname(path) if not path.endswith('.js') else 'frontend'
+                target=posixpath.normpath(posixpath.join(parent,ref))
+            # Navigation outside /frontend is not a static frontend asset.
+            if target.startswith('frontend/') and '.' in PurePosixPath(target).name:queue.append(target)
+    return {'checked':len(checked),'missing':sorted(missing)}
+
+
+def runtime_asset(path):
+    require(bool(re.fullmatch(r'frontend/[A-Za-z0-9_./-]+',path)) and '..' not in PurePosixPath(path).parts,
+            'INVALID_DEPENDENCY_PATH')
+    value=base.run(['docker','exec',GATEWAY,'sh','-c',
+                   'if [ -f /srv/'+path+' ]; then base64 /srv/'+path+'; else printf MISSING; fi'])
+    return None if value=='MISSING' else base64.b64decode(value,validate=False)
+
+
+def require_dependencies(candidate):
+    result=frontend_dependencies(candidate,runtime_asset)
+    require(not result['missing'],'MISSING_FRONTEND_DEPENDENCIES:'+','.join(result['missing']))
+    return result
 
 def candidate_files(manifest):
     rows=manifest['candidate_files']
@@ -37,7 +85,7 @@ def candidate_files(manifest):
 def validate_delta(before,after,files,directory):
     expected=copy.deepcopy(before)
     service=expected['services']['team-gateway']
-    require(service['image']==base.PREMIUM,'COMPOSE_PREMIUM_DIVERGENTE')
+    require(service['image'] in {base.PREMIUM,PREMIUM_ID},'COMPOSE_PREMIUM_DIVERGENTE')
     new={}
     for row in files:
         target='/srv/'+row['path']
@@ -60,20 +108,22 @@ def prepare(package):
     require(package.is_dir() and not package.is_symlink(),'INVALID_PACKAGE')
     manifest=json.loads((package/'integration.json').read_text())
     files=candidate_files(manifest)
-    require(len(files)==46,'REVIEWED_FILE_COUNT_CHANGED')
+    require(len(files)==REVIEWED_FILE_COUNT,'REVIEWED_FILE_COUNT_CHANGED')
     archive=package/'candidate.zip'
     require(sha(archive.read_bytes())==manifest['artifact']['sha256'],'ARCHIVE_HASH_MISMATCH')
     with zipfile.ZipFile(archive) as z:
         require(sorted(z.namelist())==sorted(r['path'] for r in files),'ARCHIVE_FILE_LIST_DIFFERS')
         for row in files:
             require(sha(z.read(row['path']))==row['sha256'],'ARCHIVE_ASSET_HASH_MISMATCH')
+        candidate={row['path']:z.read(row['path']) for row in files}
     gateway,api=base.inspect(GATEWAY),base.inspect(API)
-    require(gateway['Image']==PREMIUM_ID and gateway['Config']['Image']==base.PREMIUM,'PREMIUM_IMAGE_CHANGED')
+    require(gateway['Image']==PREMIUM_ID and gateway['Config']['Image'] in {base.PREMIUM,PREMIUM_ID},'PREMIUM_IMAGE_CHANGED')
     require(api['Image']==API_ID and api['State'].get('Health',{}).get('Status')=='healthy','API_IMAGE_OR_HEALTH_CHANGED')
     require(gateway['State']['Running'],'GATEWAY_NOT_RUNNING')
     command,folder,chain=base.chain(gateway,'team-gateway')
     before=json.loads(base.run(command+['config','--format','json'],cwd=folder))
     base.validate_runtime(before['services']['team-gateway'],gateway,before)
+    require_dependencies(candidate)
     stage=package/'frozen-plan'
     stage.mkdir(mode=0o700)
     assets=stage/'candidate'
@@ -133,7 +183,7 @@ def prepare(package):
       'mounted_private_file_hashes':mounted_files,
       'compose_chain_sha256':base.digest(chain),'baseline_sha256':base.digest(before),'candidate_sha256':base.digest(after),
       'rollback_sha256':base.digest(rollback),
-      'permitted_delta':'46_reviewed_frontend_readonly_file_binds_only','affected_services':['team-gateway'],
+      'permitted_delta':str(REVIEWED_FILE_COUNT)+'_reviewed_frontend_readonly_file_binds_only','affected_services':['team-gateway'],
       'restart_required_after_approval':['team-gateway'],'api_restart':False,'migrations':False,'database_writes':False,
       'workers_changed':False,'channels_changed':False,'production_services_modified':False,
       'rollback':'Frozen rollback-compose.json with immutable premium image ID; recreate only team-gateway with --no-deps --no-build --pull never. Keep original CRM233 bind and all private mounts.',
@@ -162,6 +212,7 @@ def verify(package):
     require(json.loads(base.run(['docker','image','inspect',base.PREMIUM]))[0]['Id']==plan['premium_image_id'],'PREMIUM_TAG_CHANGED')
     for row in plan['candidate_files']:
         require(sha((stage/'candidate'/row['path']).read_bytes())==row['sha256'],'STAGED_ASSET_CHANGED')
+    require_dependencies({row['path']:(stage/'candidate'/row['path']).read_bytes() for row in plan['candidate_files']})
     for name,expected in plan['protected_runtime_hashes'].items():
         require(base.run(['docker','exec',GATEWAY,'sh','-c','sha256sum /srv/'+name]).split()[0]==expected,'PROTECTED_RUNTIME_ASSET_CHANGED')
     for name,expected in plan['prior_asset_hashes'].items():

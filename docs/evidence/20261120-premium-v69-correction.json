@@ -1,0 +1,221 @@
+{
+  "revision": "r2",
+  "supersedes_rolled_back_plan": "a846c5a6335dfa5f7af73e4dc09cf3a6157e12bbad3e70979409a991e0d237f5",
+  "candidate_files": [
+    {
+      "path": "frontend/admin.html",
+      "sha256": "5df296d94e98cd4f827843ab9602320c2424d8bbe5dce63a90788596231d5892"
+    },
+    {
+      "path": "frontend/assets/apple-touch-icon.png",
+      "sha256": "264427a13001f7ffaec0ea759f62f8c5ea24dccbe8cddbfce018c9e5a8353499"
+    },
+    {
+      "path": "frontend/assets/favicon-32.png",
+      "sha256": "f105119f0ef1507b30c09eee1d8bdb84dc80bf1258dc3d372d70c2b9c0e05370"
+    },
+    {
+      "path": "frontend/assets/favicon-64.png",
+      "sha256": "8cc5626dfc10bedfed580137dbf0a62a35c80f6ec3da93dbb8a62f38383f9978"
+    },
+    {
+      "path": "frontend/assets/icon-192.png",
+      "sha256": "3a6dcc8e31dac7213a181e0cf570f805ca0fd3e1e8416aad59d7fa464b07479c"
+    },
+    {
+      "path": "frontend/assets/icon-512.png",
+      "sha256": "53bf005167dad6fdc6e3500b2d135b336376ba42c85d18c35ef96c71e22d388e"
+    },
+    {
+      "path": "frontend/entrada.html",
+      "sha256": "6069b391a193d4cace087a672ce2cc328fda2eea9995004fa6813267e1e17a12"
+    },
+    {
+      "path": "frontend/relatorios-leitura.html",
+      "sha256": "ec30a32c4448d261982936aa388dded1060f121bb52a886d39bca747408484b3"
+    },
+    {
+      "path": "frontend/scripts/account-access.js",
+      "sha256": "cb7ee5344d5ac356b615fd8cdaa7796b8b5855a64fbc75a81d82be3e26aaef10"
+    },
+    {
+      "path": "frontend/scripts/agenda-hours.js",
+      "sha256": "a7ef5f137d4c214b5b50ebf4059420e13efe0cfbbfdec1cd8d71e81b34e3b891"
+    },
+    {
+      "path": "frontend/scripts/connections-hub.js",
+      "sha256": "91e64d83d5fdb519ec8963130a5c1df05bbd8c869c56062c7d7c57ea399ae3c3"
+    },
+    {
+      "path": "frontend/scripts/entrada.js",
+      "sha256": "66ad0964227f808829884f3093a260161cc6dcfb80b68dad753d43e9044be333"
+    },
+    {
+      "path": "frontend/scripts/hero-live-v65.js",
+      "sha256": "0c894c3563803fcb74fdc3b80e3897d14a6cf71859ded0df89b57a42c44455f5"
+    },
+    {
+      "path": "frontend/scripts/hero-wall.js",
+      "sha256": "441786b315af2d058a8599a68f4ec570d94f52ca870bd3e86d11a34aa18251b3"
+    },
+    {
+      "path": "frontend/scripts/inbox-assist.js",
+      "sha256": "7fb04022925af211f55949110cee2a22a57e88eefca9193f58066818e345ecbd"
+    },
+    {
+      "path": "frontend/scripts/landing-content.js",
+      "sha256": "1a24b05123b7495a6ca18adb992317aad55daf84e79c5aa6b5eeb844597a5cc1"
+    },
+    {
+      "path": "frontend/scripts/landing-flow-v62.js",
+      "sha256": "f60e45889d74c099d55e7dfbd61b990fc943b8fc48f74274cf7c960ef981faea"
+    },
+    {
+      "path": "frontend/scripts/landing-v2.js",
+      "sha256": "079527248e8506c81c177b7caee337b8b81676bad1731f3b213d7c38492a7093"
+    },
+    {
+      "path": "frontend/scripts/premium-v5.js",
+      "sha256": "d32697235d408290a9e56d82dd7878531c42df571ec3a79dbf56441c0a410cf6"
+    },
+    {
+      "path": "frontend/scripts/pv-auto-v65.js",
+      "sha256": "06c3ef97de204f5749d0af6ed988dd93185fa06676ca6855aa153b4925a03e61"
+    },
+    {
+      "path": "frontend/scripts/sections-anim.js",
+      "sha256": "58a1e4269bbcf1e00ed0a9e6c453e05113e86d2604d6ea6d39961ea48f4dc4ce"
+    },
+    {
+      "path": "frontend/scripts/sections-v3.js",
+      "sha256": "52ff71a9fc2ff8eedaf139a59046150e62dbafc2119564a10ac3b29e5041277f"
+    },
+    {
+      "path": "frontend/scripts/v22-agenda.js",
+      "sha256": "55c6c77356e4800243fa2029527a2c6cbe63020586d5e64db962558b2d67462c"
+    },
+    {
+      "path": "frontend/scripts/v22-backend.js",
+      "sha256": "76fa237d675b3656644792f103987b98a24f57ff89f54b9ed639148f44e05540"
+    },
+    {
+      "path": "frontend/scripts/v22-bootstrap.js",
+      "sha256": "f120122876c297e0b9202f01ac13b68c4a662a495d86264fc3557cd51c20cf74"
+    },
+    {
+      "path": "frontend/scripts/v22-inbox-layout.js",
+      "sha256": "04fd342e6c164ab68fd1c15730de15afe47764467fc5a4bb8948964e39c6ff6c"
+    },
+    {
+      "path": "frontend/scripts/v22-whatsapp-management.js",
+      "sha256": "3b8c34dc93bce40977a1db622dda02c28941680010de270206006e0661127d76"
+    },
+    {
+      "path": "frontend/scripts/v64-caixa.js",
+      "sha256": "6b31455756309ea8e6e2da35543a3d88e829edfb6b5bde126dd3e35cf1fe6638"
+    },
+    {
+      "path": "frontend/scripts/v65-shell.js",
+      "sha256": "9ca2026e9055c23f08ae3c1f21d36616b96878fa783f33626326242a18256044"
+    },
+    {
+      "path": "frontend/sobre.html",
+      "sha256": "f238696ee9164eacde7cb44975e3e48e835f123d0406449b595977488a12cdba"
+    },
+    {
+      "path": "frontend/socialmei-app.html",
+      "sha256": "e3f6fb77f745011fbe176af6df73d3a1961bdc7184bae2a22e7bd84c3cce7698"
+    },
+    {
+      "path": "frontend/styles/connections-hub.css",
+      "sha256": "4c7b7bace288a12898ab3ee6b237907eb233e730e5ab945d632b7f16e3561e42"
+    },
+    {
+      "path": "frontend/styles/divulgacao-v4.css",
+      "sha256": "b487d1c199a2a672f699191ebbf772815404262f9ae810307106f8d0b1e29d0f"
+    },
+    {
+      "path": "frontend/styles/embed-shared.css",
+      "sha256": "507b229db186dabff953bf44e1770a070fe134ed76c041105876f76e4d244816"
+    },
+    {
+      "path": "frontend/styles/entrada.css",
+      "sha256": "a1a89aa53f7e80ad32f533783c71a90c6ef678441672973a40d98b93eb19062a"
+    },
+    {
+      "path": "frontend/styles/hero-live-v65.css",
+      "sha256": "4495e32587f919cc7d3404e0a778f4978b0edd4607c507267efd8956ac5a8f86"
+    },
+    {
+      "path": "frontend/styles/hero-v3.css",
+      "sha256": "b3f13d6e045ede247875d43b572f5dedd8c88095f9ec330c2815c1edf39c9237"
+    },
+    {
+      "path": "frontend/styles/landing-refino-v62.css",
+      "sha256": "c335ce620d83e25a377e83878dab60f05ca6863c4af9b9260eb6a23206a67279"
+    },
+    {
+      "path": "frontend/styles/landing-v2.css",
+      "sha256": "dce3d77e819df8ef2e64badef79894df77a6355d725b1cd2f3e72f4a07a2754a"
+    },
+    {
+      "path": "frontend/styles/premium-v5-app.css",
+      "sha256": "d313a8c389f2812651a5c56ddfc73cef2097fe40876db533ef40533129827b8f"
+    },
+    {
+      "path": "frontend/styles/premium-v5.css",
+      "sha256": "dd48b8d3e2d2e02cc980296edd3690d29ce2790c4d47d7ddfdcc3c7af4683410"
+    },
+    {
+      "path": "frontend/styles/refino-v62-app.css",
+      "sha256": "62c62194f31f566b6888ed0255c1167f785dea605fc0920032862bdacb933901"
+    },
+    {
+      "path": "frontend/styles/sections-v3.css",
+      "sha256": "59568215e7d6ae066d473b0796899c7e27ec6a9cc303ead1f319255760c460cc"
+    },
+    {
+      "path": "frontend/styles/v22-inbox-layout.css",
+      "sha256": "bd5d36095d9bddd0d97395b198d6ca8562cfeeee0c04c5aa529e0e1b5ea4f07a"
+    },
+    {
+      "path": "frontend/styles/v64-app.css",
+      "sha256": "c8de18507d20d637b10bf38ac652b632187842e19d058b6b87005250952c9714"
+    },
+    {
+      "path": "frontend/telas/divulgacao.html",
+      "sha256": "f30ddf7a5b81175291675b31a26f959e8ad0a618a6a744cf29cd079871a774d0"
+    },
+    {
+      "path": "frontend/telas/oportunidades.html",
+      "sha256": "fb2f3980e61c53e894a32d1f121ea2cf88b9fdf5cdafe30351f3a0aa860f0477"
+    },
+    {
+      "path": "frontend/testes-publicos.html",
+      "sha256": "d53b6240d854f08c23dee45009b8b8ed5ed3a548a3013d984a717c33936db990"
+    }
+  ],
+  "artifact": {
+    "path": "test-results/premium-v69-increment-review-r2.zip",
+    "sha256": "ae1b20f84cb6b28438b3286f42b4beb7e73189c80aff2cbd71e80521ad2b4484"
+  },
+  "additional_missing_dependencies": [
+    "frontend/scripts/v22-whatsapp-management.js",
+    "frontend/styles/v22-inbox-layout.css"
+  ],
+  "bootstrap_preserved_installed_extensions": [
+    "agenda-hours.js",
+    "connections-hub.js",
+    "inbox-assist.js",
+    "account-access.js"
+  ],
+  "local_dependency_closure": {
+    "checked": 92,
+    "missing": []
+  },
+  "candidate_published": false,
+  "new_operational_approval_required": true,
+  "known_blockers": [
+    "Authenticated production smoke encountered timeouts during the first attempt; corrected candidate is not homologated in production."
+  ]
+}

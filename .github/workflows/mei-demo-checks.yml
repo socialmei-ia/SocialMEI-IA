@@ -55,7 +55,7 @@ jobs:
           npm test
           npm run format:check
       - name: Preflight rollback and dump comparison contracts
-        run: python -m unittest tools/test_prepare_crm233_release.py tests/test_postgres_copy_validate.py
+        run: python -m unittest tools/test_prepare_crm233_release.py tools/test_prepare_premium_v69_release.py tests/test_postgres_copy_validate.py
       - name: Disposable PostgreSQL concurrency and identity contracts
         run: >-
           python -m unittest test_channel_booking test_inbox_customer
