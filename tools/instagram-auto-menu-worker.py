@@ -10,6 +10,7 @@ from instagram_auto_menu import enabled, next_source, reply, db
 from instagram_contact_identity import refresh_contacts
 from instagram_runtime import build_runtime
 from instagram_worker_health import heartbeat
+from instagram_worker_lease import worker_lease
 from queue_wakeup import QueueWakeup, instagram_channel
 
 
@@ -32,13 +33,14 @@ def main():
         assert enabled(workspace)
         start = datetime.fromisoformat(os.environ['SOCIALMEI_INSTAGRAM_AUTO_MENU_START_UTC'])
         assert start.tzinfo is not None
-        run_sender(workspace, start, folder)
+        with worker_lease(workspace) as check_lease:
+            run_sender(workspace, start, folder, check_lease)
     except Exception:
         heartbeat('blocked', 'unavailable')
         raise
 
 
-def run_sender(workspace, start, folder):
+def run_sender(workspace, start, folder, check_lease):
     path = folder/'state.json'
     state = json.loads(path.read_text()) if path.exists() else {'status':'running','in_flight':False,'confirmed':0,'start':start.isoformat()}
     assert state['status']=='running' and not state['in_flight'] and state['start']==start.isoformat()
@@ -58,6 +60,7 @@ def run_sender(workspace, start, folder):
         with QueueWakeup(instagram_channel(workspace), interval=15, reconcile=60,
                          sleeper=time.sleep, heartbeat=touch) as wakeup:
             while True:
+                check_lease()
                 wakeup.prepare()
                 try:
                     message=next_source(workspace,start)
@@ -80,6 +83,7 @@ def run_sender(workspace, start, folder):
                         except Exception: pass
                     wakeup.wait(); continue
                 state['in_flight']=True; save(path,state)
+                check_lease()
                 result=reply(runtime,workspace,message,start)
                 if result not in {'confirmed','skipped','duplicate','rate_limited'}:
                     raise RuntimeError('Unconfirmed automatic reply')
