@@ -45,6 +45,8 @@ administrativo compartilhado como substituto da conta individual.
 
 ## Pré-requisitos de homologação
 
+Uma prévia **local isolada** da Premium v6.9 já contém Brilho e Bella com dados persistidos, um proprietário comum e conta individual fictícia do professor com acesso aos relatórios dos dois negócios. Troca de empresa, proibição de escrita e revogação foram testadas com API/PostgreSQL reais locais. Acesso e roteiro em [PREMIUM-V69-INTEGRATION.md](PREMIUM-V69-INTEGRATION.md). Essa prévia não representa cadastro, carga ou vínculo de canal em produção.
+
 1. CRM233 já publicado; preservar API17cfd19 e gateway premium.
 2. Aprovar cadastro normal da conta do projeto, Bella e concessão aditiva ao Brilho,
    preservando proprietário33. Confirmar a nova identidade/destino60 e executar dry-run; aplicar o manifesto aprovado

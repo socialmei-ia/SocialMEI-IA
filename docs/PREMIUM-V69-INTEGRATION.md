@@ -20,6 +20,8 @@ Abra **https://127.0.0.1:8443/frontend/entrada.html#/login**. É um ambiente loc
 
 Conta fictícia e senha exclusiva estão no arquivo privado `%LOCALAPPDATA%\SocialMEI-Privado\premium-v69-local.json`; não copiar seu conteúdo para Git, relatórios ou chat. Uma conta local possui Bella Store (workspace 7) e Brilho&Limpeza Service (workspace 8). Esses IDs são apenas locais; não representam a produção.
 
+Há também uma conta individual fictícia do professor, com senha própria no arquivo privado `premium-v69-professor-local.json` nessa pasta. Foi concedido `report_viewer` nas duas empresas por `/team/members`. Consulta de indicadores permitida; leitura de clientes e escrita recusadas (403). Revogação invalidou a sessão daquele vínculo, e o acesso foi concedido novamente. A troca entre empresas na área de relatórios foi comprovada com API/PostgreSQL e navegador reais locais. Corrigida a navegação dessa tela para usar `auth.switchWorkspace`, evitando retorno indevido ao login e mantendo a limpeza de contexto. Nenhuma conta ou permissão produtiva foi criada.
+
 | Dados fictícios persistidos por empresa | Brilho | Bella |
 | --------------------------------------- | -----: | ----: |
 | Clientes                                |      4 |     4 |
@@ -43,9 +45,9 @@ O pacote de revisão incremental e o inventário de hashes ficam em `test-result
 
 ## Validação concluída
 
-PR #236, fonte `889aec8`: 454 testes JavaScript aprovados e 2 ignorados; formatação aprovada. Regressão completa de navegador aprovada: 286 estados de layout, 5 fluxos de entrada, CRM233, teclado, temas, agenda, agendamento público, rascunhos, falhas/recuperação, respostas sintéticas dos canais, catálogo, vendas, financeiro e relatórios. O fluxo real local API/PostgreSQL comprovou duas contas isoladas, dois negócios no mesmo login, dados persistidos, duas abas, recarga e novo login. O provisionador passou em dry-run, resposta perdida e repetição sem duplicação no banco descartável. Outros 50 testes PostgreSQL de canais/agenda e 12 de concessão/rollback aprovados. Não representam homologação com os provedores reais.
+PR #236, fonte visual `889aec8`: 454 testes JavaScript aprovados e 2 ignorados; formatação aprovada. Regressão completa de navegador aprovada: 286 estados de layout, 5 fluxos de entrada, CRM233, teclado, temas, agenda, agendamento público, rascunhos, falhas/recuperação, respostas sintéticas dos canais, catálogo, vendas, financeiro e relatórios. O fluxo real local API/PostgreSQL comprovou duas contas isoladas, dois negócios no mesmo login, dados persistidos, duas abas, recarga e novo login. O provisionador passou em dry-run, resposta perdida e repetição sem duplicação no banco descartável. Outros 50 testes PostgreSQL de canais/agenda e 12 de concessão/rollback aprovados. Não representam homologação com os provedores reais.
 
-Evidência verificável, hashes de 45 arquivos candidatos e 11 contratos preservados byte a byte: [20261120-premium-v69-integration.json](evidence/20261120-premium-v69-integration.json). A CI da PR #235 em `b02c7f2` passou; a CI visual própria da PR #236 acompanha a validação local.
+Evidência verificável e 11 contratos preservados byte a byte: [20261120-premium-v69-integration.json](evidence/20261120-premium-v69-integration.json). A CI da PR #235 em `b02c7f2` passou; a CI visual da PR #236 em `1b21ecf` também passou: [execução 44788569962](https://github.com/socialmei-ia/SocialMEI-IA/actions/runs/44788569962). A correção posterior da troca do professor tem regressão específica e confirmação no preview real; consultar também a CI do commit correspondente.
 
 ## Dependências ainda reais
 

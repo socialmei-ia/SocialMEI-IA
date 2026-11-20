@@ -63,7 +63,9 @@
       const auth=window.SocialMEIAuth;
       await auth.ready;
       const account=auth.current;
-      if(!auth.remote||!account){location.replace("entrada.html#/entrar");return}
+      if(!auth.remote||!account){
+      if(auth.remote&&!auth.problem&&localStorage.getItem("socialmei-auth-browser-scope"))return;
+      location.replace("entrada.html#/entrar");return}
       if(account.papel!=="report_viewer"){location.replace("socialmei-app.html#/relatorios");return}
       const byId=id=>document.getElementById(id),status=byId("status"),ov=byId("overview"),br=byId("breakdown");
       const item=(tag,text)=>{const e=document.createElement(tag);e.textContent=String(text);return e};
@@ -94,8 +96,7 @@
       byId("change").addEventListener("click",async()=>{
       const button=byId("change");button.disabled=true;
       try{
-      const result=await auth.request("/auth/workspaces/switch","POST",{workspace_id:Number(byId("workspace").value)});
-      location.replace(result.papel==="report_viewer"?"relatorios-leitura.html":"socialmei-app.html#/relatorios");
+      await auth.switchWorkspace(Number(byId("workspace").value));
       }catch(e){error(e);button.disabled=false}
       });
       byId("refresh").addEventListener("click",load);

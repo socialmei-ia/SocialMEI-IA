@@ -83,6 +83,10 @@
       "sha256": "6069b391a193d4cace087a672ce2cc328fda2eea9995004fa6813267e1e17a12"
     },
     {
+      "path": "frontend/relatorios-leitura.html",
+      "sha256": "ec30a32c4448d261982936aa388dded1060f121bb52a886d39bca747408484b3"
+    },
+    {
       "path": "frontend/scripts/account-access.js",
       "sha256": "cb7ee5344d5ac356b615fd8cdaa7796b8b5855a64fbc75a81d82be3e26aaef10"
     },
@@ -237,7 +241,7 @@
   ],
   "artifact": {
     "path": "test-results/premium-v69-increment-review.zip",
-    "sha256": "3a95216706f3b176d9a290aa986fa04de3e089d55968cdaaa7a27c66f745d5cf"
+    "sha256": "816993a31ca094944756afde403647a053164eeefd9ec3e3510905cf16384471"
   },
   "local_fixture_counts": {
     "brilho": {
@@ -272,12 +276,28 @@
       "status": "passed",
       "layout_states": 286,
       "entry_flows": 5,
-      "external_provider_calls": 0
+      "external_provider_calls": 0,
+      "source_commit": "889aec861adcead18735011b9a32676dc413ae10"
     },
     "format": "passed",
     "real_preview_two_accounts": true,
     "focused_provider_recovery_browser": "passed_synthetic_only",
-    "source_protected_contracts_verified": true
+    "source_protected_contracts_verified": true,
+    "professor_switch_focused_browser": "passed",
+    "professor_real_api_browser": {
+      "status": "passed",
+      "separate_account": true,
+      "both_businesses_report_viewer": true,
+      "client_read_write_403": true,
+      "revocation_invalidated_session": true,
+      "restored_access": true,
+      "workspace_switch": true
+    },
+    "ci_visual": {
+      "commit": "1b21ecfd67a4ee71dafb9a0cf133cd80c9cd74d9",
+      "status": "success",
+      "run_id": 44788569962
+    }
   },
   "production_blockers": [
     "project_account_registration_and_additive_owner_grant_require_specific_approval",
@@ -285,6 +305,7 @@
     "channel_cutovers_and_real_meta_tests_not_authorized",
     "premium_publication_not_authorized"
   ],
-  "source_commit": "889aec861adcead18735011b9a32676dc413ae10",
-  "pull_request": 236
+  "pull_request": 236,
+  "visual_source_commit": "889aec861adcead18735011b9a32676dc413ae10",
+  "additional_correction": "read_only_report_workspace_switch_uses_shared_auth_lifecycle"
 }
