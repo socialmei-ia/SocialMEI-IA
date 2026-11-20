@@ -1,0 +1,32 @@
+{
+  "mode": "prepared_not_applied",
+  "api_image_id": "sha256:6cf2bc60fec3f31e5e0cc24d4e276a7ba43911e94343e1439dce75d84a5673f8",
+  "premium_image_id": "sha256:b93aeac93d11ea0e88dd2c44961bc8f13df9bcb928d960b3562563e68b6cc8ec",
+  "compose_chain_sha256": "3b513d7deb54a8ad7782fcb70a50b43f742a268789a172c77613930bac058666",
+  "baseline_sha256": "62a181812697f9ba880659bf5592cf234e643a033dad888d0f6caacfdf3c92a3",
+  "candidate_sha256": "6fbbd75b7fc70ab8f68cf1d0ea1f7e7a2ff6d9a1bc7d02ba5be330f31e57bf8a",
+  "rollback_sha256": "22ee59aa17d1d63eae10edebf772e51a61fc9a2c0e615fb4bc5c367e04e8e3d6",
+  "permitted_delta": "46_reviewed_frontend_readonly_file_binds_only",
+  "affected_services": ["team-gateway"],
+  "restart_required_after_approval": ["team-gateway"],
+  "api_restart": false,
+  "migrations": false,
+  "database_writes": false,
+  "workers_changed": false,
+  "channels_changed": false,
+  "production_services_modified": false,
+  "rollback": "Frozen rollback-compose.json with immutable premium image ID; recreate only team-gateway with --no-deps --no-build --pull never. Keep original CRM233 bind and all private mounts.",
+  "approval_required": true,
+  "plan_sha256": "a846c5a6335dfa5f7af73e4dc09cf3a6157e12bbad3e70979409a991e0d237f5",
+  "date": "2026-11-20",
+  "source_visual_commit": "7eaf796d9938c91437f9d8315ccf2ce39f9fbb9d",
+  "candidate_file_count": 46,
+  "fresh_verification": {
+    "mode": "verified_not_applied",
+    "plan_sha256": "a846c5a6335dfa5f7af73e4dc09cf3a6157e12bbad3e70979409a991e0d237f5",
+    "production_services_modified": false
+  },
+  "preflight_script_sha256": "1c357ea19f671074ca14c59c7a0fa77ff4e63f36b4c101225f69bc0a2c7150e5",
+  "focused_release_tests": 5,
+  "private_configurations_not_published": true
+}
