@@ -51,12 +51,12 @@ Evidência verificável e 11 contratos preservados byte a byte: [20261120-premiu
 
 ## Dependências ainda reais
 
-| Prioridade | Dependência                                            | Estado                                                                                                                    |
-| ---------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| P0         | Conta do projeto e acesso aos dois negócios produtivos | Conta ausente; cadastro normal e concessão aditiva preparados, aguardando aprovação específica                            |
-| P0         | Dados demonstrativos produtivos                        | Provisionador pronto e testado; dry-run depende da identidade legitimamente associada; aplicação exige aprovação separada |
-| P0         | WhatsApp do Brilho                                     | Binding histórico no workspace 1; transferência com filas, backup e rollback exige aprovação                              |
-| P0         | Dois Instagram reais                                   | OAuth por empresa e exclusividade com n8n/worker ainda precisam de homologação; nenhum novo sender habilitado             |
-| P1         | Acesso individual do professor                         | Conceder por equipe/convite aprovado; não compartilhar proprietário nem acesso PostgreSQL                                 |
-| P1         | Publicação v6.9, backup externo e operação             | Versão apenas local; infraestrutura produtiva preservada                                                                  |
-| P2         | Automação adicional e escala                           | Após homologar as jornadas principais                                                                                     |
+| Prioridade | Dependência                        | Estado                                                                                                        |
+| ---------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| P0         | Conta do projeto nos dois negócios | Concluído na AWS: usuário34, Brilho60/Bella61; proprietário33 preservado                                      |
+| P0         | Dados demonstrativos produtivos    | Ambos dry-runs aprovados; aplicação ainda exige aprovação                                                     |
+| P0         | WhatsApp do Brilho                 | Ainda no1; falta lifecycle/autorização de transferência seguro antes do corte                                 |
+| P0         | Dois Instagram reais               | OAuth por empresa e exclusividade com n8n/worker ainda precisam de homologação; nenhum novo sender habilitado |
+| P1         | Acesso individual do professor     | Conceder por equipe/convite aprovado; não compartilhar proprietário nem acesso PostgreSQL                     |
+| P1         | Publicação v6.9                    | Pacote46 arquivos e rollback congelados na AWS; aguardando aprovação, serviços preservados                    |
+| P2         | Automação adicional e escala       | Após homologar as jornadas principais                                                                         |
