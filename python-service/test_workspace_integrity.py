@@ -48,7 +48,10 @@ class WorkspaceIntegrityTests(unittest.TestCase):
     def setUpClass(cls):
         with psycopg.connect(DB) as conn:
             for path in sorted((ROOT / "database/migrations").glob("*.sql")):
-                conn.execute(path.read_text(), prepare=False)
+                conn.execute(path.read_text(encoding="utf-8"), prepare=False)
+            # The CLI creates this ledger separately from the migrations.
+            conn.execute("CREATE TABLE IF NOT EXISTS socialmei.schema_migrations "
+                         "(version TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW())")
 
     def setUp(self):
         self.conn = psycopg.connect(DB)
@@ -223,7 +226,7 @@ class WorkspaceIntegrityTests(unittest.TestCase):
 
     def test_internal_readonly_profile_excludes_auth_and_writes(self):
         self.conn.execute(
-            (ROOT / "database/team-readonly-access.sql").read_text(), prepare=False
+            (ROOT / "database/team-readonly-access.sql").read_text(encoding="utf-8"), prepare=False
         )
         self.assertEqual(
             self.conn.execute(
