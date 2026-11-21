@@ -2,8 +2,10 @@
 from datetime import datetime, timezone
 import unittest
 from unittest.mock import MagicMock, patch
+from uuid import uuid4
 
 import channel_booking_flow as flow
+import whatsapp_catalog_navigation as navigation
 
 
 class BookingExpiryTests(unittest.TestCase):
@@ -36,6 +38,24 @@ class BookingExpiryTests(unittest.TestCase):
                 self.assertIsNone(flow.respond(self.conn, self.channel,
                     {**self.message, 'text': text}, {'state': state}))
             advance.assert_not_called()
+
+    def test_native_expired_confirmation_and_cancellation_do_not_outlive_textual_ttl(self):
+        identifier = uuid4()
+        for step in ('review', 'confirm', 'cancel_confirm'):
+            self.offer['choices'] = [flow.option('1', 'Confirmar', step)]
+            self.conn.execute.return_value.fetchone.return_value = {'id': identifier, 'result': self.offer}
+            result = navigation.resolve(self.conn, self.channel, 7, 'sm:' + identifier.hex + ':0')
+            self.assertEqual(result, {'route': 'expired'})
+
+    def test_native_fresh_booking_and_human_navigation_remain_available(self):
+        identifier = uuid4()
+        for fresh, target in ((True, {'route': 'booking', 'step': 'confirm'}),
+                              (False, {'route': 'human'}), (False, {'route': 'main'})):
+            self.offer['booking_expires'] = int(datetime.now(timezone.utc).timestamp()) + 600 if fresh else 1
+            self.offer['choices'] = [{'target': target}]
+            self.conn.execute.return_value.fetchone.return_value = {'id': identifier, 'result': self.offer}
+            self.assertEqual(navigation.resolve(self.conn, self.channel, 7,
+                'sm:' + identifier.hex + ':0'), target)
 
 
 if __name__ == '__main__':

@@ -178,7 +178,11 @@ def resolve(conn, channel, conversation, token):
     if not row or row['id']!=UUID(hex=match[1]):return {'route':'expired'}
     choices=row['result'].get('choices',[]);index=int(match[2])
     if index>=len(choices) or not isinstance(choices[index].get('target'),dict):return {'route':'expired'}
-    return choices[index]['target']
+    target=choices[index]['target']
+    if (target.get('route')=='booking' and row['result'].get('channel_booking')
+            and row['result'].get('booking_expires',0)<datetime.now(timezone.utc).timestamp()):
+        return {'route':'expired'}
+    return target
 
 
 def offered_choices(decision):
