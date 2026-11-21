@@ -8,6 +8,9 @@
   "current_production_backup": false,
   "export_helper_image_id": "",
   "export_source_dsn": "",
+  "export_transport": "tls_verify_full",
+  "export_tls_ca_file": "/var/lib/socialmei/postgres040-backups/database-ca.crt",
+  "export_tls_ca_sha256": "",
   "restore_receipt_file": "/var/lib/socialmei/postgres040-backups/restore040.private.json",
   "validated_backup_sha256": "e79bf521d19817616647b781e317ccff8df3245327c6891fc056367c8df3812a"
 }

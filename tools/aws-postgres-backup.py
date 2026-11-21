@@ -241,16 +241,33 @@ def consistent_export(config, folder, stamp):
     if profile not in ('040', '041'):
         raise RuntimeError('consistent_export_profile_not_reviewed')
     dsn = config.get('export_source_dsn', '')
+    transport = config.get('export_transport', 'isolated_loopback')
+    if transport not in ('isolated_loopback', 'tls_verify_full'):
+        raise RuntimeError('consistent_export_transport_not_reviewed')
+    ca_mount = ()
     try:
         target = urlsplit(dsn)
-        valid = (target.scheme in ('postgres', 'postgresql') and target.hostname == '127.0.0.1'
+        options = parse_qsl(target.query)
+        if transport == 'tls_verify_full':
+            transport_valid = (target.hostname in (NAME, '127.0.0.1') and len(options) == 2
+                               and dict(options) == {'sslmode': 'verify-full', 'sslrootcert': '/certs/source-ca.crt'})
+        else:
+            transport_valid = target.hostname == '127.0.0.1' and options == [('sslmode', 'disable')]
+        valid = (target.scheme in ('postgres', 'postgresql') and transport_valid
                  and target.port in (None, 5432) and target.username and target.password
-                 and unquote(target.path[1:]) == config['database'] and not target.fragment
-                 and parse_qsl(target.query) == [('sslmode', 'disable')])
+                 and unquote(target.path[1:]) == config['database'] and not target.fragment)
     except (TypeError, ValueError):
         valid = False
     if not valid or re.fullmatch(r'sha256:[0-9a-f]{64}', image) is None:
         raise RuntimeError('consistent_export_private_configuration_required')
+    if transport == 'tls_verify_full':
+        ca = Path(config.get('export_tls_ca_file', '')).absolute()
+        if (not ca.is_file() or any(p.is_symlink() for p in (ca, *ca.parents))
+                or ca.stat().st_size > 128 * 1024
+                or file_sha256(ca) != config.get('export_tls_ca_sha256')):
+            raise RuntimeError('consistent_export_ca_not_verified')
+        private_ownership(ca.parent, ca)
+        ca_mount = ('--mount', 'type=bind,src=' + str(ca) + ',dst=/certs/source-ca.crt,readonly')
     def docker(*args, timeout=30, env=None):
         result = subprocess.run(['docker', *args], capture_output=True, text=True,
                                 check=True, timeout=timeout, env=env)
@@ -265,7 +282,7 @@ def consistent_export(config, folder, stamp):
     owner = directory.stat()
     token = secrets.token_hex(12); name = 'socialmei-backup040-export-' + token
     network = 'container:' + source['Id']
-    identity = hashlib.sha256(json.dumps(['127.0.0.1', 5432, config['database']]).encode()).hexdigest()
+    identity = hashlib.sha256(json.dumps([target.hostname, 5432, config['database']]).encode()).hexdigest()
     env = dict(os.environ, SOCIALMEI_EXPORT_SOURCE_DSN=dsn,
                SOCIALMEI_EXPORT_SOURCE_FINGERPRINT=identity)
     try:
@@ -275,15 +292,17 @@ def consistent_export(config, folder, stamp):
                '--security-opt', 'no-new-privileges', '--memory', '256m', '--cpus', '0.5',
                '--pids-limit', '64', '--restart', 'no',
                '--mount', 'type=bind,src=' + str(directory) + ',dst=/artifacts',
+               *ca_mount,
                '-e', 'SOCIALMEI_EXPORT_SOURCE_DSN', '-e', 'SOCIALMEI_EXPORT_SOURCE_FINGERPRINT', image,
-               '--run', '--approved-data-export', '--isolated-loopback', '--profile', profile,
+               '--run', '--approved-data-export', *(('--isolated-loopback',) if transport == 'isolated_loopback' else ()),
+               '--profile', profile,
                '--output-directory', '/artifacts/export', env=env)
         # No credentials in argv. A timeout never starts another helper.
         output = docker('start', '-a', name, timeout=180)
         receipt = json.loads(output)
         if not (receipt.get('source_export_succeeded') is True and receipt.get('shared_snapshot') is True
                 and receipt.get('profile') == profile and receipt.get('sequence_state_unchanged_during_export') is True
-                and receipt.get('source_database_fingerprint') == identity):
+                and receipt.get('source_database_fingerprint') == identity and receipt.get('transport') == transport):
             raise RuntimeError('consistent_export_receipt_invalid')
         exported = directory / 'export'
         dump, manifest = exported / 'source.dump', exported / 'source-manifest.private.json'
@@ -349,7 +368,8 @@ def backup(config=None, *, with_manifest=False):
     receipt.update(provenance)
     if manifest_path is not None:
         receipt.update(manifest_path=str(manifest_path), manifest_sha256=file_sha256(manifest_path),
-                       shared_snapshot=True, sequence_state_unchanged_during_export=True)
+                       shared_snapshot=True, sequence_state_unchanged_during_export=True,
+                       transport=config.get('export_transport', 'isolated_loopback'))
     receipt['external_upload_requested'] = storage is not None
     receipt_path = path.with_suffix('.json')
     _private_checkpoint(receipt_path, receipt)

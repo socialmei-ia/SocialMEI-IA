@@ -13,6 +13,22 @@ spec.loader.exec_module(m)
 
 
 class ConsistentExportTests(unittest.TestCase):
+    def test_tls_rejects_downgrade_unknown_host_and_unpinned_certificate_before_docker(self):
+        with TemporaryDirectory() as temp:
+            ca = Path(temp) / 'database-ca.crt'; ca.write_bytes(b'SYNTHETIC PUBLIC CERTIFICATE')
+            config = {**self.config(), 'export_transport': 'tls_verify_full',
+                      'export_tls_ca_file': str(ca), 'export_tls_ca_sha256': m.file_sha256(ca),
+                      'export_source_dsn': 'postgresql://fixture:private-sentinel@' + m.NAME +
+                          ':5432/synthetic?sslmode=verify-full&sslrootcert=/certs/source-ca.crt'}
+            for changes in ({'export_tls_ca_sha256': 'b' * 64},
+                            {'export_source_dsn': config['export_source_dsn'].replace('verify-full', 'require')},
+                            {'export_source_dsn': config['export_source_dsn'].replace(m.NAME, 'other.invalid')},
+                            {'export_source_dsn': config['export_source_dsn'] + '&sslmode=disable'}):
+                with self.subTest(changes=changes), patch.object(m.subprocess, 'run') as run:
+                    with self.assertRaises(RuntimeError):
+                        m.consistent_export({**config, **changes}, Path(temp), 'test')
+                    run.assert_not_called()
+
     def config(self):
         return {'database': 'synthetic', 'export_helper_image_id': 'sha256:' + 'a' * 64,
                 'export_source_dsn': 'postgresql://fixture:private-sentinel@127.0.0.1:5432/synthetic?sslmode=disable'}

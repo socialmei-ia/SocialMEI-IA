@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import secrets
 import subprocess
+import shutil
 import tempfile
 import time
 import unittest
@@ -27,7 +28,10 @@ class Backup040Integration(unittest.TestCase):
     def test_schema041_handover_remains_exportable_and_restorable(self):
         self.roundtrip('041')
 
-    def roundtrip(self, profile):
+    def test_tls_required_source_exports_with_pinned_ca_and_full_restore(self):
+        self.roundtrip('040', tls=True)
+
+    def roundtrip(self, profile, tls=False):
         context = json.loads(restore.run('docker', 'context', 'inspect'))
         self.assertTrue(context[0]['Endpoints']['docker']['Host'].startswith(('unix://', 'npipe://')))
         self.assertFalse(os.getenv('DOCKER_HOST', '').startswith(('tcp:', 'ssh:')))
@@ -66,14 +70,47 @@ class Backup040Integration(unittest.TestCase):
                             '-U', 'postgres', '-d', 'source040'], input=sql.encode(), capture_output=True, timeout=180)
                 self.assertEqual(loaded.returncode, 0, loaded.stderr.decode(errors='replace')[-1500:])
                 helper = json.loads(restore.run('docker', 'image', 'inspect', exporter))[0]['Id']
+                config = {'database': 'source040', 'schema': profile, 'export_helper_image_id': helper,
+                          'export_source_dsn': 'postgresql://postgres:synthetic-only@127.0.0.1:5432/source040?sslmode=disable'}
+                if tls:
+                    openssl = shutil.which('openssl')
+                    if not openssl:
+                        candidate = Path('C:/Program Files/Git/usr/bin/openssl.exe')
+                        self.assertTrue(candidate.is_file(), 'OpenSSL required for synthetic TLS fixture')
+                        openssl = str(candidate)
+                    key = Path(temp) / 'server.key'; cert = Path(temp) / 'server.crt'
+                    subprocess.run([openssl, 'req', '-x509', '-newkey', 'rsa:2048', '-nodes',
+                        '-keyout', str(key), '-out', str(cert), '-days', '1', '-subj', '/CN=localhost',
+                        '-addext', 'subjectAltName=IP:127.0.0.1'], check=True, capture_output=True,
+                        env=dict(os.environ, MSYS_NO_PATHCONV='1'), timeout=30)
+                    os.chmod(cert, 0o600)
+                    for filename, content in [('server.key', key.read_bytes()), ('server.crt', cert.read_bytes()),
+                        ('pg_hba.conf', b'local all all trust\nhostssl all all 127.0.0.1/32 trust\nhostnossl all all 0.0.0.0/0 reject\n')]:
+                        written = subprocess.run(['docker', 'exec', '-i', name, 'sh', '-c',
+                            'umask 077; cat > "$PGDATA/' + filename + '"'], input=content, capture_output=True, timeout=15)
+                        self.assertEqual(written.returncode, 0)
+                    restore.run('docker', 'exec', name, 'psql', '-X', '-q', '-v', 'ON_ERROR_STOP=1',
+                        '-U', 'postgres', '-d', 'source040', '-c', "ALTER SYSTEM SET ssl='on'",
+                        '-c', "ALTER SYSTEM SET ssl_cert_file='/var/lib/postgresql/data/pgdata/server.crt'",
+                        '-c', "ALTER SYSTEM SET ssl_key_file='/var/lib/postgresql/data/pgdata/server.key'",
+                        '-c', 'SELECT pg_reload_conf()')
+                    for attempt in range(30):
+                        try:
+                            restore.run('docker', 'exec', '-e', 'PGSSLMODE=require', name,
+                                'psql', '-X', '-qAt', '-U', 'postgres', '-h', '127.0.0.1', '-d', 'source040', '-c', 'SELECT 1')
+                            break
+                        except RuntimeError:
+                            if attempt == 29: raise
+                            time.sleep(.5)
+                    config.update(export_transport='tls_verify_full', export_tls_ca_file=str(cert),
+                        export_tls_ca_sha256=backup.file_sha256(cert),
+                        export_source_dsn='postgresql://postgres:synthetic-only@127.0.0.1:5432/source040?sslmode=verify-full&sslrootcert=/certs/source-ca.crt')
                 with patch.object(backup, 'NAME', name):
-                    dump, manifest = backup.consistent_export({
-                        'database': 'source040', 'schema': profile, 'export_helper_image_id': helper,
-                        'export_source_dsn': 'postgresql://postgres:synthetic-only@127.0.0.1:5432/source040?sslmode=disable'},
-                        Path(temp), 'synthetic-test')
+                    dump, manifest = backup.consistent_export(config, Path(temp), 'synthetic-test')
                 exported = json.loads((Path(temp) / 'export-synthetic-test/export/export-receipt.json').read_text())
                 self.assertTrue(exported['shared_snapshot'])
                 self.assertTrue(exported['sequence_state_unchanged_during_export'])
+                self.assertEqual(exported['transport'], 'tls_verify_full' if tls else 'isolated_loopback')
                 folder = Path(temp)
                 approval = folder / 'restore-approval.private.json'
                 approval.write_text(json.dumps({'explicit_authorization': True, 'scope': 'isolated_restore',
