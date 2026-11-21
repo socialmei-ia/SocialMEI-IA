@@ -8,11 +8,15 @@ import subprocess
 import tempfile
 import time
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('restore040', ROOT / 'tools/backup-restore-rehearsal.py')
 restore = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(restore)
+spec_backup = importlib.util.spec_from_file_location('periodic040', ROOT / 'tools/aws-postgres-backup.py')
+backup = importlib.util.module_from_spec(spec_backup)
+spec_backup.loader.exec_module(backup)
 
 
 @unittest.skipUnless(os.getenv('SOCIALMEI_BACKUP040_CONTAINER_TESTS') == '1', 'Explicit local container test opt-in required')
@@ -55,25 +59,22 @@ class Backup040Integration(unittest.TestCase):
                 loaded = subprocess.run(['docker', 'exec', '-i', name, 'psql', '-X', '-q', '-v', 'ON_ERROR_STOP=1',
                             '-U', 'postgres', '-d', 'source040'], input=sql.encode(), capture_output=True, timeout=180)
                 self.assertEqual(loaded.returncode, 0, loaded.stderr.decode(errors='replace')[-1500:])
-                identity = __import__('hashlib').sha256(json.dumps(['127.0.0.1', 5432, 'source040']).encode()).hexdigest()
-                output = restore.run('docker', 'run', '--rm', '--network', 'container:' + name,
-                    '--read-only', '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges',
-                    '--memory', '256m', '--cpus', '0.5',
-                    '--mount', 'type=bind,src=' + temp + ',dst=/artifacts',
-                    '-e', 'SOCIALMEI_EXPORT_SOURCE_DSN=host=127.0.0.1 dbname=source040 user=postgres password=synthetic-only sslmode=disable',
-                    '-e', 'SOCIALMEI_EXPORT_SOURCE_FINGERPRINT=' + identity,
-                    exporter, '--run', '--approved-data-export', '--isolated-loopback', '--profile', '040',
-                    '--output-directory', '/artifacts/export', timeout=180)
-                exported = json.loads(output)
+                helper = json.loads(restore.run('docker', 'image', 'inspect', exporter))[0]['Id']
+                with patch.object(backup, 'NAME', name):
+                    dump, manifest = backup.consistent_export({
+                        'database': 'source040', 'export_helper_image_id': helper,
+                        'export_source_dsn': 'postgresql://postgres:synthetic-only@127.0.0.1:5432/source040?sslmode=disable'},
+                        Path(temp), 'synthetic-test')
+                exported = json.loads((Path(temp) / 'export-synthetic-test/export/export-receipt.json').read_text())
                 self.assertTrue(exported['shared_snapshot'])
                 self.assertTrue(exported['sequence_state_unchanged_during_export'])
-                folder = Path(temp) / 'export'
+                folder = Path(temp)
                 approval = folder / 'restore-approval.private.json'
                 approval.write_text(json.dumps({'explicit_authorization': True, 'scope': 'isolated_restore',
                     'production_mutation': False, 'dump_sha256': exported['dump_sha256'],
                     'manifest_sha256': exported['manifest_sha256'], 'profile': '040', 'postgres_major': 17,
                     'postgres_image_id': postgres, 'validator_api_image_id': validator}), encoding='utf-8')
-                proof = restore.rehearse(folder / 'source.dump', folder / 'source-manifest.private.json', approval)
+                proof = restore.rehearse(dump, manifest, approval)
                 self.assertTrue(proof['restoration_verified'])
                 self.assertTrue(proof['source_contents_compared'])
                 self.assertTrue(proof['owned_cleanup_verified'])

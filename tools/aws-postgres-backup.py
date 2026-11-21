@@ -11,7 +11,7 @@ import shutil
 import secrets
 import re
 import stat
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, unquote, parse_qsl
 
 ROOT = Path('/home/ubuntu/.socialmei-postgres-relocation-20261112')
 NAME = 'socialmei-postgres-relocation-20261112'
@@ -233,10 +233,80 @@ def upload_external_versioned(localdump, receipt, config, client):
                 external_object_sha256=checksum)
 
 
-def backup(config=None):
+def consistent_export(config, folder, stamp):
+    """Export through the reviewed helper, in the source container's namespace."""
+    image = config.get('export_helper_image_id', '')
+    dsn = config.get('export_source_dsn', '')
+    try:
+        target = urlsplit(dsn)
+        valid = (target.scheme in ('postgres', 'postgresql') and target.hostname == '127.0.0.1'
+                 and target.port in (None, 5432) and target.username and target.password
+                 and unquote(target.path[1:]) == config['database'] and not target.fragment
+                 and parse_qsl(target.query) == [('sslmode', 'disable')])
+    except (TypeError, ValueError):
+        valid = False
+    if not valid or re.fullmatch(r'sha256:[0-9a-f]{64}', image) is None:
+        raise RuntimeError('consistent_export_private_configuration_required')
+    def docker(*args, timeout=30, env=None):
+        result = subprocess.run(['docker', *args], capture_output=True, text=True,
+                                check=True, timeout=timeout, env=env)
+        return result.stdout
+    source = json.loads(docker('inspect', NAME))[0]
+    if source['Name'] != '/' + NAME or not source['State']['Running']:
+        raise RuntimeError('consistent_export_source_not_running')
+    if json.loads(docker('image', 'inspect', image))[0]['Id'] != image:
+        raise RuntimeError('consistent_export_image_mismatch')
+    directory = folder / ('export-' + stamp)
+    directory.mkdir(mode=0o700)
+    token = secrets.token_hex(12); name = 'socialmei-backup040-export-' + token
+    network = 'container:' + source['Id']
+    identity = hashlib.sha256(json.dumps(['127.0.0.1', 5432, config['database']]).encode()).hexdigest()
+    env = dict(os.environ, SOCIALMEI_EXPORT_SOURCE_DSN=dsn,
+               SOCIALMEI_EXPORT_SOURCE_FINGERPRINT=identity)
+    try:
+        docker('create', '--name', name, '--label', 'socialmei.backup040-export=' + token,
+               '--network', network, '--read-only', '--cap-drop', 'ALL',
+               '--security-opt', 'no-new-privileges', '--memory', '256m', '--cpus', '0.5',
+               '--pids-limit', '64', '--restart', 'no',
+               '--mount', 'type=bind,src=' + str(directory) + ',dst=/artifacts',
+               '-e', 'SOCIALMEI_EXPORT_SOURCE_DSN', '-e', 'SOCIALMEI_EXPORT_SOURCE_FINGERPRINT', image,
+               '--run', '--approved-data-export', '--isolated-loopback', '--profile', '040',
+               '--output-directory', '/artifacts/export', env=env)
+        # No credentials in argv. A timeout never starts another helper.
+        output = docker('start', '-a', name, timeout=180)
+        receipt = json.loads(output)
+        if not (receipt.get('source_export_succeeded') is True and receipt.get('shared_snapshot') is True
+                and receipt.get('profile') == '040' and receipt.get('sequence_state_unchanged_during_export') is True
+                and receipt.get('source_database_fingerprint') == identity):
+            raise RuntimeError('consistent_export_receipt_invalid')
+        exported = directory / 'export'
+        dump, manifest = exported / 'source.dump', exported / 'source-manifest.private.json'
+        if (dump.is_symlink() or manifest.is_symlink()
+                or file_sha256(dump) != receipt['dump_sha256']
+                or file_sha256(manifest) != receipt['manifest_sha256']):
+            raise RuntimeError('consistent_export_artifact_mismatch')
+        destination = folder / ('destination-' + stamp + '.dump')
+        destination_manifest = destination.with_suffix('.manifest.private.json')
+        if destination.exists() or destination_manifest.exists():
+            raise RuntimeError('consistent_export_destination_exists')
+        manifest.rename(destination_manifest)
+        dump.rename(destination)
+        return destination, destination_manifest
+    finally:
+        # Only this invocation's labeled helper may be removed, never the source.
+        owned = json.loads(docker('inspect', name))[0]
+        if (owned['Config']['Labels'].get('socialmei.backup040-export') != token
+                or owned['HostConfig']['NetworkMode'] != network):
+            raise RuntimeError('consistent_export_cleanup_ownership_mismatch')
+        docker('rm', '-f', name)
+
+
+def backup(config=None, *, with_manifest=False):
     if config is None:
         config = json.loads((ROOT / 'destination.private.json').read_text())
     provenance = current_database_provenance(config)
+    if with_manifest and not (config.get('current_production_backup') is True and provenance):
+        raise RuntimeError('consistent_export_current_database_required')
     if shutil.disk_usage(ROOT).free < 2 * 1024**3:
         raise RuntimeError('insufficient_backup_disk_space')
     folder = ROOT / 'backups'
@@ -260,6 +330,30 @@ def backup(config=None):
                 _private_checkpoint(pending, recovered)
     stamp = time.strftime('%Y%m%dT%H%M%SZ', time.gmtime()) + '-' + secrets.token_hex(4)
     path = folder / ('destination-' + stamp + '.dump')
+    manifest_path = None
+    if with_manifest:
+        path, manifest_path = consistent_export(config, folder, stamp)
+    else:
+        write_dump(config, path)
+    receipt = {'created_at_utc': stamp, 'dump_path': str(path), 'bytes': path.stat().st_size,
+               'sha256': file_sha256(path),
+               'source': config.get('source', 'isolated_historical_destination'),
+               'current_production_backup': config.get('current_production_backup', False),
+               'external_uploaded': False, 'archive_index_verified': True, 'cutover_authorized': False}
+    receipt.update(provenance)
+    if manifest_path is not None:
+        receipt.update(manifest_path=str(manifest_path), manifest_sha256=file_sha256(manifest_path),
+                       shared_snapshot=True, sequence_state_unchanged_during_export=True)
+    receipt['external_upload_requested'] = storage is not None
+    receipt_path = path.with_suffix('.json')
+    _private_checkpoint(receipt_path, receipt)
+    if storage is not None:
+        receipt = upload_external_versioned(path, receipt, storage, client)
+    _private_checkpoint(receipt_path, receipt)
+    print(json.dumps(receipt))
+
+
+def write_dump(config, path):
     partial = path.with_suffix('.dump.partial')
     with partial.open('xb') as stream:
         os.chmod(partial, 0o600)
@@ -278,19 +372,6 @@ def backup(config=None):
     if path.exists():
         raise RuntimeError('destination_backup_path_exists')
     partial.rename(path)
-    receipt = {'created_at_utc': stamp, 'dump_path': str(path), 'bytes': path.stat().st_size,
-               'sha256': file_sha256(path),
-               'source': config.get('source', 'isolated_historical_destination'),
-               'current_production_backup': config.get('current_production_backup', False),
-               'external_uploaded': False, 'archive_index_verified': True, 'cutover_authorized': False}
-    receipt.update(provenance)
-    receipt['external_upload_requested'] = storage is not None
-    receipt_path = path.with_suffix('.json')
-    _private_checkpoint(receipt_path, receipt)
-    if storage is not None:
-        receipt = upload_external_versioned(path, receipt, storage, client)
-    _private_checkpoint(receipt_path, receipt)
-    print(json.dumps(receipt))
 
 
 def current_database_provenance(config):
@@ -395,16 +476,19 @@ if __name__ == '__main__':
     parser.add_argument('--run', action='store_true', required=True)
     parser.add_argument('--config-root', type=Path,
                         help='Explicit private, approved schema040 backup target; backup stage only')
+    parser.add_argument('--with-manifest', action='store_true', help='Use approved schema040 shared-snapshot helper')
     parser.add_argument('stage', choices=['backup', 'prepare-external', 'install-schedule'])
     args = parser.parse_args()
     try:
         verified_config = None
+        if args.with_manifest and (args.config_root is None or args.stage != 'backup'):
+            raise RuntimeError('consistent_export_requires_explicit_backup_root')
         if args.config_root is not None:
             if args.stage != 'backup':
                 raise RuntimeError('explicit_root_cannot_install_or_create_resources')
             verified_config = select_approved040_root(args.config_root)
         if args.stage == 'backup':
-            backup(config=verified_config)
+            backup(config=verified_config, with_manifest=args.with_manifest)
         else:
             {'prepare-external': prepare_external, 'install-schedule': install_schedule}[args.stage]()
     except Exception:

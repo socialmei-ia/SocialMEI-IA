@@ -11,6 +11,9 @@ on:
       - "tests/**"
       - "python-service/**"
       - "database/migrations/**"
+      - "deploy/team/Dockerfile.backup040"
+      - "deploy/team/compose.instagram-observers.yaml"
+      - "deploy/team/postgres040-*"
       - "docs/**"
 
 permissions:
@@ -65,6 +68,7 @@ jobs:
           tests/test_backup_retention.py tests/test_gows_restart_policy.py
           tests/test_instagram_worker_database.py
           tests/test_postgres_source_export.py tests/test_backup_restore_rehearsal.py
+          tests/test_backup_consistent_export.py
       - name: Disposable PostgreSQL concurrency and identity contracts
         run: >-
           python -m unittest test_channel_booking test_inbox_customer
@@ -89,7 +93,9 @@ jobs:
         with:
           python-version: "3.13"
       - name: Build self-contained PostgreSQL040 export and validation helper
-        run: docker build -f deploy/team/Dockerfile.backup040 -t socialmei-backup040:ci .
+        run: |
+          docker pull postgres:17-alpine
+          docker build -f deploy/team/Dockerfile.backup040 -t socialmei-backup040:ci .
       - name: Real schema040 export and isolated full-comparison restore
         env:
           SOCIALMEI_BACKUP040_CONTAINER_TESTS: "1"

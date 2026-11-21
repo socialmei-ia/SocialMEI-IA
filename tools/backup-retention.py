@@ -25,7 +25,7 @@ def retention(folder, now=None):
         raise ValueError('aware_timestamp_required')
     records = []; blocked = []
     for path in sorted(folder.glob('destination-*.json')):
-        if path.name.endswith(('.external.private.json', '.restore.private.json')):
+        if path.name.endswith(('.external.private.json', '.restore.private.json', '.manifest.private.json')):
             continue
         dump = path.with_suffix('.dump')
         try:
