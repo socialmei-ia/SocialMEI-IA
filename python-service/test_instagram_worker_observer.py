@@ -39,6 +39,58 @@ class ObserverTests(unittest.TestCase):
         self.assertIn('c.workspace_id=e.workspace_id', query)
         self.assertEqual(params, (60, self.start, self.start))
 
+    def test_startup_gates_block_before_database_lease_even_with_optimized_python(self):
+        lock_api = SimpleNamespace(flock=Mock(), LOCK_EX=1, LOCK_NB=2)
+        enable = Mock(return_value=False)
+        with patch.dict(sys.modules, {'fcntl': lock_api,
+                                     'instagram_auto_menu': SimpleNamespace(enabled=enable)}):
+            spec = importlib.util.spec_from_file_location('gated_instagram_worker',
+                Path(__file__).resolve().parents[1] / 'tools/instagram-auto-menu-worker.py')
+            worker = importlib.util.module_from_spec(spec); spec.loader.exec_module(worker)
+            scenarios = [
+                ('60', 'send', '2026-11-21T00:00:00+00:00', 'sending is disabled'),
+                ('60', 'observe', '2026-11-21T00:00:00', 'explicit timezone'),
+                ('0', 'observe', '2026-11-21T00:00:00+00:00', 'Invalid Instagram workspace'),
+            ]
+            for workspace, mode, start, reason in scenarios:
+                with self.subTest(workspace=workspace, mode=mode, start=start):
+                    env = {'SOCIALMEI_INSTAGRAM_AUTO_MENU_WORKSPACE_ID': workspace,
+                           'SOCIALMEI_INSTAGRAM_WORKER_MODE': mode,
+                           'SOCIALMEI_INSTAGRAM_AUTO_MENU_START_UTC': start,
+                           'SOCIALMEI_INSTAGRAM_RUNTIME_SEND_ENABLED': 'false',
+                           'SOCIALMEI_INSTAGRAM_AUTO_MENU_ENABLED': 'false'}
+                    with patch.dict(os.environ, env, clear=True), \
+                            patch.object(worker, 'Path', return_value=MagicMock()), \
+                            patch.object(worker, 'heartbeat'), \
+                            patch.object(worker, 'worker_lease') as lease, \
+                            patch.object(worker, 'run_sender') as sender:
+                        with self.assertRaisesRegex(RuntimeError, reason):
+                            worker.main()
+                        lease.assert_not_called()
+                        sender.assert_not_called()
+
+    def test_unconfigured_runtime_cannot_save_or_dispatch(self):
+        conn = MagicMock()
+        conn.execute.return_value.fetchone.return_value = None
+        database = MagicMock()
+        database.return_value.__enter__.return_value = conn
+        runtime = SimpleNamespace(status='blocked', send=Mock())
+        reply = Mock()
+        modules = {'fcntl': SimpleNamespace(),
+                   'instagram_auto_menu': SimpleNamespace(next_source=Mock(), reply=reply, db=database),
+                   'instagram_contact_identity': SimpleNamespace(refresh_contacts=Mock()),
+                   'instagram_runtime': SimpleNamespace(build_runtime=Mock(return_value=runtime))}
+        with patch.dict(sys.modules, modules):
+            spec = importlib.util.spec_from_file_location('blocked_runtime_worker',
+                Path(__file__).resolve().parents[1] / 'tools/instagram-auto-menu-worker.py')
+            worker = importlib.util.module_from_spec(spec); spec.loader.exec_module(worker)
+            with TemporaryDirectory() as tmp, patch.object(worker, 'save') as save:
+                with self.assertRaisesRegex(RuntimeError, 'runtime is unavailable'):
+                    worker.run_sender(60, self.start, Path(tmp), Mock())
+                save.assert_not_called()
+                reply.assert_not_called()
+                runtime.send.assert_not_called()
+
     def test_real_worker_loop_does_not_build_runtime_or_call_sender_in_observe_mode(self):
         # fcntl is Linux-only; the worker loop itself can be exercised on Windows.
         with patch.dict(sys.modules, {'fcntl': SimpleNamespace(), 'instagram_auto_menu': None,

@@ -29,18 +29,22 @@ def main():
     heartbeat('starting', 'initializing')
     try:
         workspace = int(os.environ['SOCIALMEI_INSTAGRAM_AUTO_MENU_WORKSPACE_ID'])
+        if workspace <= 0:
+            raise RuntimeError('Invalid Instagram workspace')
         mode = os.getenv('SOCIALMEI_INSTAGRAM_WORKER_MODE', 'send')
         if mode not in {'send', 'observe'}:
             raise RuntimeError('Invalid Instagram worker mode')
         if mode == 'send':
             from instagram_auto_menu import enabled
-            assert enabled(workspace)
+            if not enabled(workspace):
+                raise RuntimeError('Instagram automatic sending is disabled')
         else:
             if (os.getenv('SOCIALMEI_INSTAGRAM_RUNTIME_SEND_ENABLED') != 'false'
                     or os.getenv('SOCIALMEI_INSTAGRAM_AUTO_MENU_ENABLED') != 'false'):
                 raise RuntimeError('Observer must have external sending disabled')
         start = datetime.fromisoformat(os.environ['SOCIALMEI_INSTAGRAM_AUTO_MENU_START_UTC'])
-        assert start.tzinfo is not None
+        if start.tzinfo is None or start.utcoffset() is None:
+            raise RuntimeError('Instagram start requires an explicit timezone')
         with worker_lease(workspace) as check_lease:
             (run_observer if mode == 'observe' else run_sender)(workspace, start, folder, check_lease)
     except Exception:
@@ -84,7 +88,8 @@ def run_sender(workspace, start, folder, check_lease):
                                        "AND status IN ('dispatching','uncertain') LIMIT 1", (workspace,)).fetchone())
     state = reconcile(state, workspace, start, unresolved=unresolved)
     runtime = build_runtime()
-    assert runtime.status=='configured' and runtime.send
+    if runtime.status != 'configured' or not runtime.send:
+        raise RuntimeError('Instagram sending runtime is unavailable')
     save(path,state)
     backoff=15
     last_contact_refresh=time.monotonic()
