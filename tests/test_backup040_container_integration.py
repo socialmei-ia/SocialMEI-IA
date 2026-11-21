@@ -44,7 +44,7 @@ class Backup040Integration(unittest.TestCase):
                 restore.run('docker', 'start', name)
                 for attempt in range(60):
                     try:
-                        restore.run('docker', 'exec', name, 'pg_isready', '-U', 'postgres', timeout=5)
+                        restore.run('docker', 'exec', name, 'pg_isready', '-h', '127.0.0.1', '-U', 'postgres', timeout=5)
                         break
                     except RuntimeError:
                         if attempt == 59: raise

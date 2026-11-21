@@ -129,7 +129,9 @@ def rehearse(dump, manifest, approval, docker='docker'):
         run(docker, 'start', identity)
         for attempt in range(60):
             try:
-                run(docker, 'exec', identity, 'pg_isready', '-U', 'restore', timeout=5)
+                # The image's temporary init server accepts Unix sockets only.
+                # Wait for final TCP readiness before loading data/starting validation.
+                run(docker, 'exec', identity, 'pg_isready', '-h', '127.0.0.1', '-U', 'restore', timeout=5)
                 break
             except RuntimeError:
                 if attempt == 59:

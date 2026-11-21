@@ -133,6 +133,8 @@ class RestoreRehearsalTests(unittest.TestCase):
                                             'HostConfig': {'NetworkMode': networks[args[1]]}}]).encode()
                     if args[0] == 'exec' and args[-2:] == ('postgres', '--version'):
                         return b'postgres (PostgreSQL) 17.11'
+                    if args[0] == 'exec' and 'pg_isready' in args:
+                        self.assertEqual(args[args.index('-h') + 1], '127.0.0.1')
                     return b''
                 with patch.dict(runner.os.environ, {'DOCKER_HOST': ''}), patch.object(runner, 'run', side_effect=command):
                     if corrupt:
