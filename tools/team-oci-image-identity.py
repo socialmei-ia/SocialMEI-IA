@@ -119,8 +119,18 @@ def verify_oci_archive_identity(archive, by_name, rows, expected, expected_sha):
                     and isinstance(manifest.get("layers"), list)
                     and isinstance(manifest.get("config"), dict),
                     "oci_manifesto_invalido")
-            config = verify_descriptor(
-                manifest["config"], "application/vnd.oci.image.config.v1+json")
+            config_type = manifest["config"].get("mediaType")
+            if config_type == "application/vnd.oci.empty.v1+json":
+                require(platform == {"os": "unknown", "architecture": "unknown"}
+                        and child.get("annotations", {}).get("vnd.docker.reference.type")
+                            == "attestation-manifest"
+                        and manifest["config"].get("size") == 2,
+                        "oci_config_vazia_fora_de_atestacao")
+                config = verify_descriptor(manifest["config"], config_type)
+                require(config == {}, "oci_config_vazia_invalida")
+            else:
+                config = verify_descriptor(
+                    manifest["config"], "application/vnd.oci.image.config.v1+json")
             require(isinstance(config, dict), "oci_config_invalida")
             for layer in manifest["layers"]:
                 require(isinstance(layer, dict) and layer.get("mediaType") in {
