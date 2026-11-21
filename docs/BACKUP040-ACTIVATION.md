@@ -8,6 +8,10 @@ Os recibos e arquivos ficam protegidos na AWS. O relatório de retenção não e
 
 Rollback autorizado: desabilitar somente `socialmei-postgres040-backup.timer`, preservando dumps, recibos e a rotina histórica. Não restaurar sobre produção. Não repetir o instalador nem o primeiro ciclo para continuar uma sessão.
 
+A cópia produzida pelo primeiro ciclo da rotina nova também foi restaurada em Docker local isolado, sem rede: 78 tabelas, 21 sequências e 1.002 registros conferem com o manifesto. O ensaio não restaurou nem alterou produção. [Prova sanitizada](evidence/20261121-backup040-timer-copy-restored.json).
+
+`backup-restore-rehearsal.py --run --dump <dump> --manifest <manifesto> --approval-receipt <aprovação privada> --restoration-proof <recibo privado> --package-output <arquivo privado.tar>` prepara um conjunto portátil com os três arquivos e um índice de hashes. Exige prova integral da restauração do mesmo dump, destino privado fora do Git e arquivo novo. Não inclui a configuração de conexão, não sobrescreve cópias e não envia ao provedor. O pacote contém o banco completo e deve permanecer privado. Cópia externa automática segue pendente.
+
 ## Histórico da preparação
 
 O texto abaixo registra as etapas anteriores à ativação; o estado acima e os recibos operacionais prevalecem.
