@@ -129,7 +129,8 @@
     return loading.promise;
   }
   async function refresh(state, force = false) {
-    if (state.reading || (!force && Date.now() - state.lastRead < 5000)) return;
+    if (state.reading || (state.busy && !force) || (!force && Date.now() - state.lastRead < 5000))
+      return;
     state.reading = true;
     state.lastRead = Date.now();
     try {
@@ -271,6 +272,60 @@
     box.showModal();
     close.focus();
   }
+  async function markInterrupted(state) {
+    const current = () => state.scope === scope() && selected()?.id === state.conversation;
+    if (
+      state.busy ||
+      state.reading ||
+      !current() ||
+      !["owner", "admin"].includes(host.identity?.papel) ||
+      state.job?.status !== "dispatching"
+    )
+      return;
+    const job = state.job;
+    let marked = false;
+    if (
+      !confirm(
+        "Revisar esta tentativa interrompida? Ela ser\u00e1 marcada como incerta, sem reenvio ou confirma\u00e7\u00e3o de entrega.",
+      )
+    )
+      return;
+    state.busy = true;
+    paint();
+    try {
+      const result = await host.request(
+        "/instagram/direct/jobs/" + job.id + "/mark-interrupted",
+        "POST",
+        { expected_revision: job.revision },
+      );
+      if (!current()) return;
+      if (
+        !result ||
+        result.id !== job.id ||
+        result.conversation_id !== state.conversation ||
+        !["uncertain", "confirmed"].includes(result.status)
+      )
+        throw Error("Resultado n\u00e3o reconhecido. Consulte as respostas.");
+      marked = true;
+      state.job = result;
+      state.jobs = state.jobs.map((item) => (item.id === result.id ? result : item));
+      message(state, labels[result.status]);
+    } catch (error) {
+      if (current())
+        message(
+          state,
+          error.message ||
+            "N\u00e3o foi poss\u00edvel revisar a tentativa. Nenhuma mensagem foi reenviada.",
+        );
+    } finally {
+      state.busy = false;
+      paint();
+      if (current())
+        document
+          .querySelector(marked ? "[data-ig-reply] select" : "[data-ig-interrupted]")
+          ?.focus();
+    }
+  }
   function paint() {
     const row = selected();
     if (!row || !readiness?.reply_preparation_available) return;
@@ -318,7 +373,11 @@
         paint();
         await refresh(state, true);
       };
-      section.append(title, feedback, select, reviewButton, reload);
+      const interrupted = element("button", "Revisar envio interrompido");
+      interrupted.type = "button";
+      interrupted.dataset.igInterrupted = "true";
+      interrupted.onclick = () => markInterrupted(state);
+      section.append(title, feedback, select, reviewButton, reload, interrupted);
       composer.append(section);
       const label = composer.querySelector(".row > b");
       if (label) label.textContent = "Resposta humana";
@@ -472,6 +531,10 @@
       option.value = job.id;
       select.append(option);
     }
+    const interrupted = section.querySelector("[data-ig-interrupted]");
+    interrupted.hidden =
+      !["owner", "admin"].includes(host.identity?.papel) || state.job?.status !== "dispatching";
+    interrupted.disabled = state.busy || state.reading;
     select.value = state.job?.id || "";
     select.disabled = state.busy || !!state.pending || state.storageError;
     section.querySelector("[data-ig-reply-status]").textContent = state.storageError
