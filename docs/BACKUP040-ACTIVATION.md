@@ -12,6 +12,8 @@ A cópia produzida pelo primeiro ciclo da rotina nova também foi restaurada em 
 
 `backup-restore-rehearsal.py --run --dump <dump> --manifest <manifesto> --approval-receipt <aprovação privada> --restoration-proof <recibo privado> --package-output <arquivo privado.tar>` prepara um conjunto portátil com os três arquivos e um índice de hashes. Exige prova integral da restauração do mesmo dump, destino privado fora do Git e arquivo novo. Não inclui a configuração de conexão, não sobrescreve cópias e não envia ao provedor. O pacote contém o banco completo e deve permanecer privado. Cópia externa automática segue pendente.
 
+O primeiro disparo agendado foi observado em 21/11/2026 às 18:17:39 (-03), sem execução manual: segundo backup concluído, retenção sem exclusões. Essa cópia agendada também foi restaurada integralmente em ambiente isolado, com 78 tabelas, 21 sequências e 1.002 registros comparados ao manifesto. [Evidência](evidence/20261121-backup040-scheduled-restored.json). Nenhuma restauração foi aplicada em produção.
+
 ## Histórico da preparação
 
 O texto abaixo registra as etapas anteriores à ativação; o estado acima e os recibos operacionais prevalecem.
