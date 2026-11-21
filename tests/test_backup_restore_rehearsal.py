@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import tempfile
+import tarfile
 import unittest
 from unittest.mock import patch
 
@@ -38,6 +39,35 @@ def fixture(folder, profile=40):
 
 
 class RestoreRehearsalTests(unittest.TestCase):
+    def test_portable_recovery_set_keeps_manifest_and_restore_proof_without_credentials_or_provider_io(self):
+        with tempfile.TemporaryDirectory() as folder:
+            files = fixture(folder); auth = json.loads(files[2].read_text())
+            auth['private_sentinel'] = 'DO_NOT_COPY_CONFIGURATION'; files[2].write_text(json.dumps(auth))
+            proof = Path(folder) / 'restore.private.json'
+            result = dict(profile='040', dump_sha256=auth['dump_sha256'], manifest_sha256=auth['manifest_sha256'],
+                restoration_verified=True, verification_mode='full_comparison', source_contents_compared=True,
+                archive_integrity_verified=True, owned_cleanup_verified=True, production_mutation=False)
+            proof.write_text(json.dumps(result)); output = Path(folder) / 'recovery.tar'
+            with patch.object(runner.subprocess, 'run') as process:
+                receipt = runner.package_recovery(*files, proof, output)
+                process.assert_not_called()
+            self.assertFalse(receipt['external_uploaded'])
+            with tarfile.open(output) as archive:
+                self.assertEqual(archive.getnames(), receipt['files'])
+                self.assertTrue(all(p.isfile() and p.mode == 0o600 for p in archive.getmembers()))
+                index = archive.extractfile('recovery-index.private.json').read()
+                self.assertNotIn(b'DO_NOT_COPY_CONFIGURATION', index)
+            with self.assertRaises(ValueError): runner.package_recovery(*files, proof, output)
+            self.assertTrue(output.exists())
+            proof.write_text(json.dumps({**result, 'DATABASE_URL': 'private-sentinel'}))
+            with self.assertRaises(ValueError):
+                runner.package_recovery(*files, proof, Path(folder) / 'invalid-proof.tar')
+            for field in ('owned_cleanup_verified', 'source_contents_compared', 'restoration_verified'):
+                proof.write_text(json.dumps({**result, field: False}))
+                target = Path(folder) / (field + '.tar')
+                with self.assertRaises(ValueError): runner.package_recovery(*files, proof, target)
+                self.assertFalse(target.exists())
+
     def test_external_version_binding_requires_the_exact_uploaded_bytes_and_approved_receipt(self):
         with tempfile.TemporaryDirectory() as folder:
             files = fixture(folder)

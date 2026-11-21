@@ -3,11 +3,15 @@
 
 No S3, external DSN, migration, production container, host data volume or apply
 option. Restore only to a new owned container; emit no rows, DDL or credentials.
+Optional private recovery packaging keeps the manifest and verified proof with
+the dump; it performs no restore, provider call or upload.
 """
 import argparse
 import hashlib
 import importlib.util
 import json
+import io
+import tarfile
 import os
 from pathlib import Path
 import re
@@ -199,6 +203,72 @@ def rehearse(dump, manifest, approval, docker='docker'):
     return proof
 
 
+def package_recovery(dump, manifest, approval, proof, output):
+    """Portable private recovery set; never uploads, restores or contacts providers."""
+    auth, _ = inputs(dump, manifest, approval)
+    file_hash(proof)
+    require(proof.stat().st_size < 32768)
+    restored = json.loads(proof.read_text(encoding='utf-8-sig'))
+    allowed = {'profile', 'dump_sha256', 'manifest_sha256', 'restoration_verified', 'tables_verified',
+               'sequences_verified', 'effective_permissions_equal', 'effective_sequence_permissions_equal',
+               'production_role_permissions_approved', 'migrations_executed', 'production_mutation',
+               'source_freshness_verified', 'verification_mode', 'source_contents_compared',
+               'sequence_state_compared_to_reference', 'sequence_max_value_safety_verified',
+               'restored_rows', 'archive_integrity_verified', 'external_version_id',
+               'external_object_sha256', 'external_receipt_sha256', 'validator_api_image_id',
+               'owned_cleanup_verified'}
+    require(isinstance(restored, dict) and set(restored) <= allowed)
+    require(restored.get('restoration_verified') is True
+            and restored.get('dump_sha256') == auth['dump_sha256']
+            and restored.get('manifest_sha256') == auth['manifest_sha256']
+            and restored.get('profile') == auth['profile']
+            and restored.get('verification_mode') == 'full_comparison'
+            and restored.get('source_contents_compared') is True
+            and restored.get('archive_integrity_verified') is True
+            and restored.get('owned_cleanup_verified') is True
+            and restored.get('production_mutation') is False)
+    output = output.absolute()
+    require(output.suffix == '.tar' and not output.exists()
+            and output.parent.is_dir()
+            and not any(p.is_symlink() or (p / '.git').exists() for p in (output, *output.parents)))
+    if os.name != 'nt':
+        require(output.parent.stat().st_mode & 0o077 == 0)
+    files = {'source.dump': dump, 'source-manifest.private.json': manifest,
+             'restoration-result.private.json': proof}
+    hashes = {name: file_hash(path) for name, path in files.items()}
+    index = {key: auth[key] for key in ('profile', 'postgres_major', 'postgres_image_id')}
+    index.update(validator_api_image_id=auth.get('validator_api_image_id', API_IMAGE),
+                 files_sha256=hashes, external_uploaded=False, connection_configuration_included=False)
+    created = False
+    try:
+        descriptor = os.open(output, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        created = True
+        with os.fdopen(descriptor, 'wb') as stream:
+            with tarfile.open(fileobj=stream, mode='w') as archive:
+                for name, path in files.items():
+                    entry = tarfile.TarInfo(name); entry.mode = 0o600; entry.size = path.stat().st_size
+                    with path.open('rb') as source: archive.addfile(entry, source)
+                data = json.dumps(index, sort_keys=True).encode()
+                entry = tarfile.TarInfo('recovery-index.private.json'); entry.mode = 0o600; entry.size = len(data)
+                archive.addfile(entry, io.BytesIO(data))
+            stream.flush(); os.fsync(stream.fileno())
+        require(all(file_hash(path) == hashes[name] for name, path in files.items()))
+        with tarfile.open(output) as archive:
+            require(archive.getnames() == [*files, 'recovery-index.private.json'])
+            for name, digest in hashes.items():
+                hasher = hashlib.sha256()
+                with archive.extractfile(name) as source:
+                    for chunk in iter(lambda: source.read(1024 * 1024), b''): hasher.update(chunk)
+                require(hasher.hexdigest() == digest)
+        return {'private_recovery_package_created': True, 'profile': auth['profile'],
+                'sha256': file_hash(output), 'bytes': output.stat().st_size,
+                'files': [*files, 'recovery-index.private.json'], 'external_uploaded': False,
+                'restoration_proof_bound': True, 'provider_calls': 0}
+    except Exception:
+        if created: output.unlink(missing_ok=True)
+        raise
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--run', action='store_true')
@@ -206,15 +276,20 @@ def main(argv=None):
     parser.add_argument('--manifest', type=Path)
     parser.add_argument('--approval-receipt', type=Path)
     parser.add_argument('--docker', default='docker')
+    parser.add_argument('--package-output', type=Path, help='Create a private portable recovery tar; never upload')
+    parser.add_argument('--restoration-proof', type=Path)
     args = parser.parse_args(argv)
     if not args.run:
         print(json.dumps({'mode': 'plan', 'explicit_authorization_required': True,
                           'profiles': ['038', '039', '040', '041'], 'external_connections_supported': False}))
         return
     try:
-        print(json.dumps(rehearse(args.dump, args.manifest, args.approval_receipt, args.docker), indent=2))
+        result = (package_recovery(args.dump, args.manifest, args.approval_receipt, args.restoration_proof, args.package_output)
+                  if args.package_output else rehearse(args.dump, args.manifest, args.approval_receipt, args.docker))
+        print(json.dumps(result, indent=2))
     except Exception:
-        raise SystemExit('isolated_restore_failed_private_details_suppressed') from None
+        reason = 'private_recovery_package_failed_details_suppressed' if args.package_output else 'isolated_restore_failed_private_details_suppressed'
+        raise SystemExit(reason) from None
 
 
 if __name__ == '__main__':
