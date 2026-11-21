@@ -13,3 +13,11 @@ Antes da ativação, reconciliar a base efetiva, espaço, configuração privada
 Armazenamento externo, monitoramento de falhas e recuperação independente ainda exigem configuração e comprovação. Reutilizar `tools/postgres-external-backup-plan.py` e o ensaio de restauração existente. Não criar bucket ou contratar serviço sem aprovação de custo. Esta preparação não ativa S3 nem declara backup produtivo operacional.
 
 Retenção: `python tools/backup-retention.py --directory <backups privados>` verifica hashes e propõe preservar as últimas 24 cópias, uma diária por 14 dias e uma semanal por oito semanas. Não apaga arquivos. Cópias antigas só ficam elegíveis com recibo de restauração independente, hash e versão externa correspondentes. Recibos históricos ou inválidos são preservados. O alarme `postgres040-backup-alert.service.example`, ligado por `OnFailure`, registra prioridade crítica no journal sem conteúdo privado. Entrega externa do alerta continua dependente de um destino autorizado.
+
+## Exportação e restauração conectadas
+
+`deploy/team/Dockerfile.backup040` reúne clientes PG17, Python e o validador existente. O exportador aceita `--profile 040` e confere exatamente os nomes das migrations001–040. Dump e manifesto compartilham o snapshot; alteração de sequência durante a cópia impede promover o arquivo parcial. Isso não comprova que todos os escritores estiveram parados.
+
+O padrão remoto continua exigindo TLS `verify-full`. `--isolated-loopback` aceita exclusivamente `127.0.0.1` com transporte local explícito: usar o helper revisado no namespace do contêiner PostgreSQL confirmado, sem publicar portas, com configuração privada e destino novo fora do Git. Não encaminhar o banco pela internet ou usar a opção com outro host.
+
+Após aprovação do export, os arquivos `source.dump` e `source-manifest.private.json` alimentam diretamente `backup-restore-rehearsal.py`, com aprovação própria vinculada aos hashes. Exigir `full_comparison`; o recibo nativo resultante já é aceito pelo gate do backup. A imagem do próprio helper pode validar a restauração, dispensando uma segunda imagem da API. Tudo foi ensaiado com a cadeia040 real e dados sintéticos em contêineres locais isolados; exportação/restauração produtivas, agenda e cópia externa não foram executadas.

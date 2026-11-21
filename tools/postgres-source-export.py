@@ -19,7 +19,7 @@ def validator():
     return module
 
 
-def source_environment(dsn):
+def source_environment(dsn, *, isolated_loopback=False):
     from psycopg.conninfo import conninfo_to_dict
     values = conninfo_to_dict(dsn)
     mappings = {'host': 'PGHOST', 'port': 'PGPORT', 'dbname': 'PGDATABASE',
@@ -27,8 +27,13 @@ def source_environment(dsn):
                 'sslrootcert': 'PGSSLROOTCERT', 'sslcert': 'PGSSLCERT',
                 'sslkey': 'PGSSLKEY', 'channel_binding': 'PGCHANNELBINDING',
                 'connect_timeout': 'PGCONNECT_TIMEOUT', 'application_name': 'PGAPPNAME'}
-    if (not all(values.get(key) for key in ('host', 'dbname', 'user', 'password', 'sslrootcert'))
-            or values.get('sslmode') != 'verify-full'
+    required = ('host', 'dbname', 'user', 'password')
+    transport_valid = (values.get('host') == '127.0.0.1' and values.get('sslmode') == 'disable'
+                       and not any(values.get(key) for key in ('sslrootcert', 'sslcert', 'sslkey'))
+                       if isolated_loopback else
+                       values.get('sslmode') == 'verify-full' and bool(values.get('sslrootcert')))
+    if (not all(values.get(key) for key in required)
+            or not transport_valid
             or '/' in values.get('host', '')
             or set(values) - mappings.keys()):
         raise ValueError('Explicit TLS-verified source required')
@@ -65,10 +70,28 @@ def sha256(path):
     return digest.hexdigest()
 
 
-def export(dsn, directory, *, expected_identity, pg_dump='pg_dump', pg_restore='pg_restore', timeout=1800):
+def verify_sequence_state(conn, manifest):
+    from psycopg import sql
+    for row in manifest.get('sequences', []):
+        actual = conn.execute(sql.SQL('SELECT last_value,is_called FROM {}').format(
+            sql.Identifier(row['schema'], row['sequence']))).fetchone()
+        if actual != (row['last_value'], row['is_called']):
+            raise ValueError('Source sequence changed during export; preserve partial artifacts')
+
+
+def verify_profile040(manifest):
+    versions = sorted(path.name for path in (Path(__file__).resolve().parents[1] / 'database/migrations').glob('*.sql')
+                      if path.name[:3].isdigit() and 1 <= int(path.name[:3]) <= 40)
+    installed = [row['versions'] for row in manifest.get('migration_ledger', []) if row['schema'] == 'socialmei']
+    if len(versions) != 40 or installed != [versions]:
+        raise ValueError('Exact reviewed schema040 ledger required')
+
+
+def export(dsn, directory, *, expected_identity, pg_dump='pg_dump', pg_restore='pg_restore', timeout=1800,
+           isolated_loopback=False, profile=None):
     """Caller must have explicit permission to export real data before calling."""
     import psycopg
-    env = source_environment(dsn)
+    env = source_environment(dsn, isolated_loopback=isolated_loopback)
     identity = source_identity(env)
     if identity != expected_identity:
         raise ValueError('Source does not match the inventoried application database')
@@ -88,6 +111,10 @@ def export(dsn, directory, *, expected_identity, pg_dump='pg_dump', pg_restore='
         manifest = check.snapshot(dsn, exported_snapshot=snapshot_id)
         if manifest.get('valid') is not True:
             raise ValueError('Source integrity validation failed')
+        if profile is not None:
+            if profile != '040' or conn.info.dbname != env['PGDATABASE']:
+                raise ValueError('Source database profile mismatch')
+            verify_profile040(manifest)
         with partial.open('xb') as stream:
             os.chmod(partial, 0o600)
             subprocess.run([pg_dump, '--format=custom', '--no-owner', '--no-acl',
@@ -101,6 +128,7 @@ def export(dsn, directory, *, expected_identity, pg_dump='pg_dump', pg_restore='
                 raise ValueError('Invalid archive')
         subprocess.run([pg_restore, '--list', str(partial)], capture_output=True,
                        timeout=60, check=True)
+        verify_sequence_state(conn, manifest)
         conn.rollback()
     dump = directory / 'source.dump'
     partial.rename(dump)
@@ -109,6 +137,8 @@ def export(dsn, directory, *, expected_identity, pg_dump='pg_dump', pg_restore='
     receipt = {'source_export_succeeded': True, 'dump_sha256': sha256(dump),
                'manifest_sha256': sha256(manifest_path), 'shared_snapshot': True,
                'source_database_fingerprint': identity,
+               'sequence_state_unchanged_during_export': True,
+               'profile': profile, 'transport': 'isolated_loopback' if isolated_loopback else 'tls_verify_full',
                'writers_quiescence_verified': False, 'restoration_verified': False,
                'external_backup_verified': False, 'cutover_authorized': False}
     check.private_json(directory / 'export-receipt.json', receipt)
@@ -120,6 +150,9 @@ def main(argv=None):
     parser.add_argument('--run', action='store_true')
     parser.add_argument('--approved-data-export', action='store_true')
     parser.add_argument('--output-directory')
+    parser.add_argument('--isolated-loopback', action='store_true',
+                        help='Only 127.0.0.1 in an explicitly reviewed PostgreSQL container namespace')
+    parser.add_argument('--profile', choices=['040'])
     args = parser.parse_args(argv)
     if not args.run:
         print(json.dumps({'mode': 'plan', 'connections': 0,
@@ -133,7 +166,8 @@ def main(argv=None):
     try:
         # No DATABASE_URL fallback: an operator must identify the real source deliberately.
         print(json.dumps(export(os.environ['SOCIALMEI_EXPORT_SOURCE_DSN'], args.output_directory,
-                                expected_identity=os.environ['SOCIALMEI_EXPORT_SOURCE_FINGERPRINT'])))
+                                expected_identity=os.environ['SOCIALMEI_EXPORT_SOURCE_FINGERPRINT'],
+                                isolated_loopback=args.isolated_loopback, profile=args.profile)))
         return 0
     except Exception:
         # Never print driver errors, command environments, DSNs or archive contents.
