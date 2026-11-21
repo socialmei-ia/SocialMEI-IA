@@ -41,15 +41,16 @@ class ObserverTests(unittest.TestCase):
 
     def test_real_worker_loop_does_not_build_runtime_or_call_sender_in_observe_mode(self):
         # fcntl is Linux-only; the worker loop itself can be exercised on Windows.
-        with patch.dict(sys.modules, {'fcntl': SimpleNamespace()}):
+        with patch.dict(sys.modules, {'fcntl': SimpleNamespace(), 'instagram_auto_menu': None,
+                                     'instagram_runtime': None, 'instagram_contact_identity': None}):
             spec = importlib.util.spec_from_file_location('observer_worker',
                 Path(__file__).resolve().parents[1] / 'tools/instagram-auto-menu-worker.py')
             worker = importlib.util.module_from_spec(spec); spec.loader.exec_module(worker)
         wakeup = MagicMock(); wakeup.__enter__.return_value = wakeup
         wakeup.wait.side_effect = InterruptedError('synthetic stop after first persisted scan')
         with TemporaryDirectory() as tmp, patch.object(worker, 'QueueWakeup', return_value=wakeup), \
-                patch.object(worker, 'heartbeat'), patch.object(worker, 'build_runtime') as runtime, \
-                patch.object(worker, 'reply') as reply, patch.object(observer, 'pending', return_value=self.counts):
+                patch.object(worker, 'heartbeat'), patch.object(worker, 'run_sender') as sender, \
+                patch.object(observer, 'pending', return_value=self.counts):
             for workspace in (60, 61):
                 folder = Path(tmp) / str(workspace); folder.mkdir()
                 lease = Mock()
@@ -60,7 +61,7 @@ class ObserverTests(unittest.TestCase):
                     self.assertEqual(state['workspace_id'], workspace)
                     self.assertFalse(state['send_enabled'])
                 self.assertEqual(lease.call_count, 2)
-            runtime.assert_not_called(); reply.assert_not_called()
+            sender.assert_not_called()
 
 
 if __name__ == '__main__':

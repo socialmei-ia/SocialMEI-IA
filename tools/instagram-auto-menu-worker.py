@@ -6,9 +6,6 @@ from datetime import datetime
 from pathlib import Path
 import time
 
-from instagram_auto_menu import enabled, next_source, reply, db
-from instagram_contact_identity import refresh_contacts
-from instagram_runtime import build_runtime
 from instagram_worker_health import heartbeat
 from instagram_worker_lease import worker_lease
 from instagram_worker_state import reconcile
@@ -36,6 +33,7 @@ def main():
         if mode not in {'send', 'observe'}:
             raise RuntimeError('Invalid Instagram worker mode')
         if mode == 'send':
+            from instagram_auto_menu import enabled
             assert enabled(workspace)
         else:
             if (os.getenv('SOCIALMEI_INSTAGRAM_RUNTIME_SEND_ENABLED') != 'false'
@@ -75,6 +73,9 @@ def run_observer(workspace, start, folder, check_lease):
 
 
 def run_sender(workspace, start, folder, check_lease):
+    from instagram_auto_menu import next_source, reply, db
+    from instagram_contact_identity import refresh_contacts
+    from instagram_runtime import build_runtime
     path = folder/'state.json'
     state = json.loads(path.read_text()) if path.exists() else None
     check_lease()
