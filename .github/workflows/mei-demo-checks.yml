@@ -12,6 +12,7 @@ on:
       - "python-service/**"
       - "database/migrations/**"
       - "deploy/team/Dockerfile.backup040"
+      - "deploy/team/Dockerfile.instagram-observer"
       - "deploy/team/compose.instagram-observers.yaml"
       - "deploy/team/postgres040-*"
       - "docs/**"
@@ -94,6 +95,9 @@ jobs:
           test_account_recovery.RecoveryTests.test_stale_queue_expires_without_email
           test_account_recovery.RecoveryTests.test_recovery_worker_bounds_all_database_connections_and_sends_once
           test_identity_activation.IdentityContracts
+          test_smtp_delivery test_recovery_link test_account_recovery.MailTransportTests test_public_booking.PublicContracts
+          test_account_recovery.RecoveryTests.test_positive_smtp_receipt_keeps_reset_usable_if_quit_fails
+          test_identity_activation.IdentityDatabaseTests.test_positive_smtp_receipt_keeps_verification_usable_if_quit_fails
           test_identity_activation.IdentityDatabaseTests.test_verification_worker_bounds_all_database_connections_without_duplicate_delivery
           test_identity_activation.IdentityDatabaseTests.test_uncertain_and_interrupted_mail_are_not_retried
           test_whatsapp_human_outbox.HumanReplyDatabaseTests.test_abandoned_claim_is_marked_uncertain_once_without_resend_or_fake_receipt

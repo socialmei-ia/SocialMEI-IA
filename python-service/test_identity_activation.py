@@ -28,7 +28,8 @@ class IdentityContracts(unittest.TestCase):
         config = {'host': 'smtp.example.test', 'user': 'synthetic', 'password': 'synthetic-only', 'from': 'sender@example.test'}
         for port in (465, 587):
             with patch('identity_activation.auth.origin', return_value=accounts.ORIGIN), \
-                    patch('identity_activation.smtplib.SMTP_SSL') as implicit, patch('identity_activation.smtplib.SMTP') as explicit:
+                    patch('smtp_delivery.smtplib.SMTP_SSL') as implicit, patch('smtp_delivery.smtplib.SMTP') as explicit:
+                (implicit if port == 465 else explicit).return_value.send_message.return_value = {}
                 identity.send_mail('recipient@example.test', 'T' * 43, 'verification', {**config, 'port': port})
                 server = (implicit if port == 465 else explicit).return_value
                 message = server.send_message.call_args.args[0]
@@ -92,6 +93,20 @@ class IdentityDatabaseTests(unittest.TestCase):
             self.assertGreaterEqual(connection.call_count, 4)
             self.assertTrue(all(call.kwargs == {'worker': True} for call in connection.call_args_list))
             token = mail.call_args.args[1]
+        self.assertEqual(self.confirm(token).status_code, 200)
+        self.assertEqual(self.confirm(token).status_code, 400)
+
+    def test_positive_smtp_receipt_keeps_verification_usable_if_quit_fails(self):
+        import re
+        self.register()
+        with patch('smtp_delivery.smtplib.SMTP_SSL') as smtp:
+            server = smtp.return_value
+            server.send_message.return_value = {}
+            server.__exit__.side_effect = OSError('synthetic post-accept close failure')
+            self.assertTrue(identity.process_one())
+            self.assertFalse(identity.process_one())
+            token = re.search(r'#verificar/([A-Za-z0-9_-]{43})', server.send_message.call_args.args[0].get_content())[1]
+            server.send_message.assert_called_once()
         self.assertEqual(self.confirm(token).status_code, 200)
         self.assertEqual(self.confirm(token).status_code, 400)
 

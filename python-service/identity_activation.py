@@ -1,9 +1,8 @@
 """Opt-in account activation and workspace invitations. No provider calls in HTTP."""
 import os
 import secrets
-import smtplib
-import ssl
 from email.message import EmailMessage
+from smtp_delivery import deliver
 from typing import Literal
 from uuid import UUID, uuid4
 
@@ -313,13 +312,7 @@ def send_mail(address, token, purpose, config):
     fragment = 'verificar' if purpose == 'verification' else 'convite'
     message.set_content('Abra o link para ' + ('verificar seu e-mail' if purpose == 'verification' else 'conferir e aceitar o convite') + ':\n' +
         auth.origin() + '/frontend/ativar.html#' + fragment + '/' + token + '\n\nVálido por 30 minutos, uma única vez. Se não solicitou, ignore. Não compartilhe este link.')
-    context = ssl.create_default_context()
-    server = smtplib.SMTP_SSL(config['host'], 465, timeout=10, context=context) if config['port'] == 465 else smtplib.SMTP(config['host'], 587, timeout=10)
-    with server:
-        if config['port'] == 587:
-            server.starttls(context=context)
-        server.login(config['user'], config['password'])
-        server.send_message(message)
+    deliver(message, config)
 
 
 def process_one():

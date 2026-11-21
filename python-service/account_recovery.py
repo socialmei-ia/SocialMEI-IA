@@ -1,11 +1,10 @@
 """Opt-in email recovery. No account discovery, automatic login or provider calls by default."""
 
 import secrets
-import smtplib
-import ssl
 
 import psycopg
 from email.message import EmailMessage
+from smtp_delivery import deliver
 
 from fastapi import APIRouter, HTTPException, Request, Response
 from uuid import uuid4
@@ -79,16 +78,7 @@ def send_recovery_mail(address, token, config):
         + "\n\nVálido por 15 minutos e uma única utilização. "
         "Se não foi você, ignore este e-mail e não compartilhe o código.\n"
     )
-    context = ssl.create_default_context()
-    if config["port"] == 465:
-        server = smtplib.SMTP_SSL(config["host"], 465, timeout=10, context=context)
-    else:
-        server = smtplib.SMTP(config["host"], 587, timeout=10)
-    with server:
-        if config["port"] == 587:
-            server.starttls(context=context)
-        server.login(config["user"], config["password"])
-        server.send_message(message)
+    deliver(message, config)
 
 
 def queue_recovery(address):
