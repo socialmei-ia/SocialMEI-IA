@@ -80,11 +80,17 @@ def verify_sequence_state(conn, manifest):
 
 
 def verify_profile040(manifest):
+    verify_profile(manifest, '040')
+
+
+def verify_profile(manifest, profile):
+    if profile not in ('040', '041'):
+        raise ValueError('Reviewed backup profile required')
     versions = sorted(path.name for path in (Path(__file__).resolve().parents[1] / 'database/migrations').glob('*.sql')
-                      if path.name[:3].isdigit() and 1 <= int(path.name[:3]) <= 40)
+                      if path.name[:3].isdigit() and 1 <= int(path.name[:3]) <= int(profile))
     installed = [row['versions'] for row in manifest.get('migration_ledger', []) if row['schema'] == 'socialmei']
-    if len(versions) != 40 or installed != [versions]:
-        raise ValueError('Exact reviewed schema040 ledger required')
+    if len(versions) != int(profile) or installed != [versions]:
+        raise ValueError('Exact reviewed backup ledger required')
 
 
 def export(dsn, directory, *, expected_identity, pg_dump='pg_dump', pg_restore='pg_restore', timeout=1800,
@@ -112,9 +118,9 @@ def export(dsn, directory, *, expected_identity, pg_dump='pg_dump', pg_restore='
         if manifest.get('valid') is not True:
             raise ValueError('Source integrity validation failed')
         if profile is not None:
-            if profile != '040' or conn.info.dbname != env['PGDATABASE']:
+            if profile not in ('040', '041') or conn.info.dbname != env['PGDATABASE']:
                 raise ValueError('Source database profile mismatch')
-            verify_profile040(manifest)
+            verify_profile(manifest, profile)
         with partial.open('xb') as stream:
             os.chmod(partial, 0o600)
             subprocess.run([pg_dump, '--format=custom', '--no-owner', '--no-acl',
@@ -152,7 +158,7 @@ def main(argv=None):
     parser.add_argument('--output-directory')
     parser.add_argument('--isolated-loopback', action='store_true',
                         help='Only 127.0.0.1 in an explicitly reviewed PostgreSQL container namespace')
-    parser.add_argument('--profile', choices=['040'])
+    parser.add_argument('--profile', choices=['040', '041'])
     args = parser.parse_args(argv)
     if not args.run:
         print(json.dumps({'mode': 'plan', 'connections': 0,

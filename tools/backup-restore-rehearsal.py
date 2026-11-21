@@ -47,7 +47,7 @@ def inputs(dump, manifest, approval):
             and auth.get('production_mutation') is False
             and auth.get('dump_sha256') == file_hash(dump)
             and auth.get('manifest_sha256') == file_hash(manifest)
-            and auth.get('profile') in ('038', '039', '040')
+            and auth.get('profile') in ('038', '039', '040', '041')
             and auth.get('postgres_major') in (16, 17)
             and re.fullmatch(r'sha256:[0-9a-f]{64}', str(auth.get('postgres_image_id'))) is not None)
     with dump.open('rb') as stream:
@@ -58,7 +58,7 @@ def inputs(dump, manifest, approval):
     require(len(versions) == int(auth['profile']) and [name[:3] for name in versions] ==
             [f'{index:03}' for index in range(1, int(auth['profile']) + 1)])
     require(auth.get('verification_mode', 'full_comparison') in ('full_comparison', 'archive_integrity'))
-    require(auth.get('verification_mode') != 'archive_integrity' or auth['profile'] == '040')
+    require(auth.get('verification_mode') != 'archive_integrity' or auth['profile'] in ('040', '041'))
     require(re.fullmatch(r'sha256:[0-9a-f]{64}', str(auth.get('validator_api_image_id', API_IMAGE))) is not None)
     return auth, expected
 
@@ -190,7 +190,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if not args.run:
         print(json.dumps({'mode': 'plan', 'explicit_authorization_required': True,
-                          'profiles': ['038', '039', '040'], 'external_connections_supported': False}))
+                          'profiles': ['038', '039', '040', '041'], 'external_connections_supported': False}))
         return
     try:
         print(json.dumps(rehearse(args.dump, args.manifest, args.approval_receipt, args.docker), indent=2))

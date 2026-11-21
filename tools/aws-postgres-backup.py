@@ -41,8 +41,8 @@ def select_approved040_root(path):
             or values.get('container') != NAME
             or values.get('database') != 'socialmei_candidate040_20261114'
             or values.get('admin_user') != 'relocation_admin'
-            or values.get('schema') != '040'
-            or values.get('source') != 'approved_schema040_destination'
+            or (values.get('schema'), values.get('source')) not in (
+                ('040', 'approved_schema040_destination'), ('041', 'approved_schema041_destination'))
             or type(values.get('current_production_backup')) is not bool):
         raise RuntimeError('approved_backup_target_mismatch')
     receipt = Path(values.get('restore_receipt_file', ''))
@@ -51,13 +51,13 @@ def select_approved040_root(path):
     private_ownership(receipt.parent, receipt)
     verified = json.loads(receipt.read_text())
     expected_hash = values.get('validated_backup_sha256')
-    legacy_restore = (verified.get('independent_restore_equal') is True
+    legacy_restore = (values.get('schema') == '040' and verified.get('independent_restore_equal') is True
                       and verified.get('comparison', {}).get('equal') is True
                       and verified.get('sha256') == expected_hash)
     # Consume the existing isolated rehearsal's native receipt. Integrity-only
     # comparisons against an older baseline must never qualify as source equality.
     current_restore = (verified.get('restoration_verified') is True
-                       and verified.get('profile') == '040'
+                       and verified.get('profile') == values['schema']
                        and verified.get('verification_mode') == 'full_comparison'
                        and verified.get('source_contents_compared') is True
                        and verified.get('archive_integrity_verified') is True
@@ -125,7 +125,8 @@ def upload_external_versioned(localdump, receipt, config, client):
     checksum = digest.hexdigest()
     if (not 0 < size <= 5 * 1024**3 or receipt.get('sha256') != checksum
             or receipt.get('bytes') != size or receipt.get('archive_index_verified') is not True
-            or receipt.get('source') not in ('isolated_historical_destination', 'approved_schema040_destination')
+            or receipt.get('source') not in ('isolated_historical_destination', 'approved_schema040_destination',
+                                              'approved_schema041_destination')
             or type(receipt.get('current_production_backup')) is not bool
             or (receipt.get('source') == 'isolated_historical_destination'
                 and receipt.get('current_production_backup') is not False)):
@@ -236,6 +237,9 @@ def upload_external_versioned(localdump, receipt, config, client):
 def consistent_export(config, folder, stamp):
     """Export through the reviewed helper, in the source container's namespace."""
     image = config.get('export_helper_image_id', '')
+    profile = config.get('schema', '040')
+    if profile not in ('040', '041'):
+        raise RuntimeError('consistent_export_profile_not_reviewed')
     dsn = config.get('export_source_dsn', '')
     try:
         target = urlsplit(dsn)
@@ -272,13 +276,13 @@ def consistent_export(config, folder, stamp):
                '--pids-limit', '64', '--restart', 'no',
                '--mount', 'type=bind,src=' + str(directory) + ',dst=/artifacts',
                '-e', 'SOCIALMEI_EXPORT_SOURCE_DSN', '-e', 'SOCIALMEI_EXPORT_SOURCE_FINGERPRINT', image,
-               '--run', '--approved-data-export', '--isolated-loopback', '--profile', '040',
+               '--run', '--approved-data-export', '--isolated-loopback', '--profile', profile,
                '--output-directory', '/artifacts/export', env=env)
         # No credentials in argv. A timeout never starts another helper.
         output = docker('start', '-a', name, timeout=180)
         receipt = json.loads(output)
         if not (receipt.get('source_export_succeeded') is True and receipt.get('shared_snapshot') is True
-                and receipt.get('profile') == '040' and receipt.get('sequence_state_unchanged_during_export') is True
+                and receipt.get('profile') == profile and receipt.get('sequence_state_unchanged_during_export') is True
                 and receipt.get('source_database_fingerprint') == identity):
             raise RuntimeError('consistent_export_receipt_invalid')
         exported = directory / 'export'
@@ -384,8 +388,8 @@ def current_database_provenance(config):
             or config.get('container') != NAME
             or config.get('database') != 'socialmei_candidate040_20261114'
             or config.get('admin_user') != 'relocation_admin'
-            or config.get('schema') != '040'
-            or config.get('source') != 'approved_schema040_destination'):
+            or (config.get('schema'), config.get('source')) not in (
+                ('040', 'approved_schema040_destination'), ('041', 'approved_schema041_destination'))):
         raise RuntimeError('current_backup_target_not_approved')
     query = (
         "BEGIN READ ONLY; SET LOCAL statement_timeout = '3s'; "
@@ -401,13 +405,13 @@ def current_database_provenance(config):
             capture_output=True, text=True, timeout=15, check=True)
         actual = json.loads(result.stdout)
         if (actual.get('database') != config['database']
-                or actual.get('versions') != list(range(1, 41))
+                or actual.get('versions') != list(range(1, int(config['schema']) + 1))
                 or type(actual.get('server_version_num')) is not int
                 or not 170000 <= actual['server_version_num'] < 180000):
             raise ValueError('metadata mismatch')
     except (subprocess.SubprocessError, ValueError, TypeError, AttributeError):
         raise RuntimeError('current_backup_metadata_not_verified') from None
-    return {'database': actual['database'], 'container': NAME, 'schema': 40,
+    return {'database': actual['database'], 'container': NAME, 'schema': int(config['schema']),
             'server_version_num': actual['server_version_num'],
             'metadata_verified_before_export': True, 'restore_verified': False}
 

@@ -34,7 +34,7 @@ def retention(folder, now=None):
             receipt = json.loads(path.read_text())
             stamp = datetime.strptime(receipt['created_at_utc'][:16], '%Y%m%dT%H%M%SZ').replace(tzinfo=timezone.utc)
             if (receipt.get('database') != 'socialmei_candidate040_20261114'
-                    or receipt.get('schema') != 40 or receipt.get('current_production_backup') is not True
+                    or receipt.get('schema') not in (40, 41) or receipt.get('current_production_backup') is not True
                     or receipt.get('metadata_verified_before_export') is not True
                     or receipt.get('archive_index_verified') is not True
                     or receipt.get('bytes') != dump.stat().st_size

@@ -15,7 +15,7 @@ import re
 
 
 IMAGE = 'postgres@sha256:ff87138949ad9a46f32ff23bd6852b52ce024a13dffe9b4087be98292cdd3b4f'
-SCHEMAS = (38, 39, 40)
+SCHEMAS = (38, 39, 40, 41)
 
 
 def sha(value):

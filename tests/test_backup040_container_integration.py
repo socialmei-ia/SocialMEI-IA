@@ -22,6 +22,12 @@ spec_backup.loader.exec_module(backup)
 @unittest.skipUnless(os.getenv('SOCIALMEI_BACKUP040_CONTAINER_TESTS') == '1', 'Explicit local container test opt-in required')
 class Backup040Integration(unittest.TestCase):
     def test_real040_shared_snapshot_export_and_full_isolated_restore(self):
+        self.roundtrip('040')
+
+    def test_schema041_handover_remains_exportable_and_restorable(self):
+        self.roundtrip('041')
+
+    def roundtrip(self, profile):
         context = json.loads(restore.run('docker', 'context', 'inspect'))
         self.assertTrue(context[0]['Endpoints']['docker']['Host'].startswith(('unix://', 'npipe://')))
         self.assertFalse(os.getenv('DOCKER_HOST', '').startswith(('tcp:', 'ssh:')))
@@ -51,8 +57,8 @@ class Backup040Integration(unittest.TestCase):
                         time.sleep(.5)
                 sql = 'CREATE SCHEMA socialmei; CREATE TABLE socialmei.schema_migrations(version text PRIMARY KEY);\n'
                 migrations = sorted(p for p in (ROOT / 'database/migrations').glob('*.sql')
-                                    if p.name[:3].isdigit() and 1 <= int(p.name[:3]) <= 40)
-                self.assertEqual(len(migrations), 40)
+                                    if p.name[:3].isdigit() and 1 <= int(p.name[:3]) <= int(profile))
+                self.assertEqual(len(migrations), int(profile))
                 for path in migrations:
                     sql += path.read_text(encoding='utf-8') + "\nINSERT INTO socialmei.schema_migrations(version) VALUES ('" + path.name + "');\n"
                 sql += "CREATE TABLE public.backup_probe(id bigserial PRIMARY KEY,label text); INSERT INTO public.backup_probe(label) VALUES ('SYNTHETIC BACKUP TEST');"
@@ -62,7 +68,7 @@ class Backup040Integration(unittest.TestCase):
                 helper = json.loads(restore.run('docker', 'image', 'inspect', exporter))[0]['Id']
                 with patch.object(backup, 'NAME', name):
                     dump, manifest = backup.consistent_export({
-                        'database': 'source040', 'export_helper_image_id': helper,
+                        'database': 'source040', 'schema': profile, 'export_helper_image_id': helper,
                         'export_source_dsn': 'postgresql://postgres:synthetic-only@127.0.0.1:5432/source040?sslmode=disable'},
                         Path(temp), 'synthetic-test')
                 exported = json.loads((Path(temp) / 'export-synthetic-test/export/export-receipt.json').read_text())
@@ -72,7 +78,7 @@ class Backup040Integration(unittest.TestCase):
                 approval = folder / 'restore-approval.private.json'
                 approval.write_text(json.dumps({'explicit_authorization': True, 'scope': 'isolated_restore',
                     'production_mutation': False, 'dump_sha256': exported['dump_sha256'],
-                    'manifest_sha256': exported['manifest_sha256'], 'profile': '040', 'postgres_major': 17,
+                    'manifest_sha256': exported['manifest_sha256'], 'profile': profile, 'postgres_major': 17,
                     'postgres_image_id': postgres, 'validator_api_image_id': validator}), encoding='utf-8')
                 proof = restore.rehearse(dump, manifest, approval)
                 self.assertTrue(proof['restoration_verified'])

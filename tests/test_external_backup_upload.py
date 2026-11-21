@@ -180,6 +180,28 @@ class ExternalUploadTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, 'restore_not_verified'):
                     backup.select_approved040_root(root)
 
+    def test_schema041_target_cannot_use_a040_or_unprofiled_restore_receipt(self):
+        root = self.path.parent; os.chmod(root, 0o700)
+        receipt = root / 'restore.private.json'
+        config = {'backup_target_approved': True, 'container': backup.NAME,
+                  'database': 'socialmei_candidate040_20261114', 'admin_user': 'relocation_admin',
+                  'schema': '041', 'source': 'approved_schema041_destination',
+                  'current_production_backup': True, 'restore_receipt_file': str(receipt),
+                  'validated_backup_sha256': 'a' * 64}
+        path = root / 'destination.private.json'
+        path.write_text(json.dumps(config)); os.chmod(path, 0o600)
+        proof = {'restoration_verified': True, 'profile': '041', 'verification_mode': 'full_comparison',
+                 'source_contents_compared': True, 'archive_integrity_verified': True,
+                 'owned_cleanup_verified': True, 'production_mutation': False, 'dump_sha256': 'a' * 64}
+        for invalid in ({**proof, 'profile': '040'},
+                        {'independent_restore_equal': True, 'comparison': {'equal': True}, 'sha256': 'a' * 64}):
+            receipt.write_text(json.dumps(invalid)); os.chmod(receipt, 0o600)
+            with self.assertRaisesRegex(RuntimeError, 'restore_not_verified'):
+                backup.select_approved040_root(root)
+        receipt.write_text(json.dumps(proof))
+        with patch.object(backup, 'ROOT', backup.ROOT):
+            self.assertEqual(backup.select_approved040_root(root), config)
+
     def test_backup_uses_validated_configuration_without_reopening_mutated_target(self):
         root = self.path.parent
         (root / 'destination.private.json').write_text(json.dumps({'database': 'unapproved', 'admin_user': 'wrong'}))

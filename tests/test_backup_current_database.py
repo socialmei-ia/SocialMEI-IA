@@ -16,6 +16,19 @@ spec.loader.exec_module(backup)
 
 
 class CurrentBackupTests(unittest.TestCase):
+    def test_schema041_requires_explicit_provenance_and_exact_post_migration_ledger(self):
+        config = {**self.config, 'schema': '041', 'source': 'approved_schema041_destination'}
+        with patch.object(backup.subprocess, 'run', return_value=SimpleNamespace(stdout=json.dumps(
+                {**self.metadata, 'versions': list(range(1, 42))}))) as run:
+            self.assertEqual(backup.current_database_provenance(config)['schema'], 41)
+        with patch.object(backup.subprocess, 'run', return_value=SimpleNamespace(stdout=json.dumps(self.metadata))):
+            with self.assertRaisesRegex(RuntimeError, 'metadata_not_verified'):
+                backup.current_database_provenance(config)
+        with patch.object(backup.subprocess, 'run') as run:
+            with self.assertRaisesRegex(RuntimeError, 'target_not_approved'):
+                backup.current_database_provenance({**config, 'source': 'approved_schema040_destination'})
+            run.assert_not_called()
+
     def setUp(self):
         self.config = {
             'backup_target_approved': True, 'container': backup.NAME,

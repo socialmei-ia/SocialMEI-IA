@@ -23,6 +23,15 @@ def identity():
 
 
 class ExportTests(unittest.TestCase):
+    def test_schema041_requires_the_reviewed_lifecycle_migration_and_never_falls_back_to040(self):
+        versions = sorted(p.name for p in (TARGET.parents[1] / 'database/migrations').glob('*.sql')
+                          if p.name[:3].isdigit() and 1 <= int(p.name[:3]) <= 41)
+        exporter.verify_profile({'migration_ledger': [{'schema': 'socialmei', 'versions': versions}]}, '041')
+        with self.assertRaises(ValueError):
+            exporter.verify_profile({'migration_ledger': [{'schema': 'socialmei', 'versions': versions[:-1]}]}, '041')
+        with self.assertRaises(ValueError):
+            exporter.verify_profile040({'migration_ledger': [{'schema': 'socialmei', 'versions': versions}]})
+
     def test_loopback_transport_is_explicit_and_never_allows_plain_remote_postgres(self):
         dsn = 'host=127.0.0.1 dbname=fixture user=fixture password=synthetic sslmode=disable'
         with self.assertRaises(ValueError):
