@@ -93,6 +93,8 @@ jobs:
           test_identity_activation.IdentityContracts
           test_identity_activation.IdentityDatabaseTests.test_verification_worker_bounds_all_database_connections_without_duplicate_delivery
           test_identity_activation.IdentityDatabaseTests.test_uncertain_and_interrupted_mail_are_not_retried
+          test_whatsapp_human_outbox.HumanReplyDatabaseTests.test_abandoned_claim_is_marked_uncertain_once_without_resend_or_fake_receipt
+          test_whatsapp_human_outbox.HumanReplyDatabaseTests.test_interrupted_claim_review_requires_admin_own_workspace_and_csrf
       - name: Authenticated API demo replay and business isolation
         run: node tests/provision-mei-demo-integration.mjs
 

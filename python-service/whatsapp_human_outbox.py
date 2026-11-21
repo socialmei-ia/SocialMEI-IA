@@ -221,6 +221,32 @@ class WhatsAppReplyService:
         except psycopg.errors.UniqueViolation:
             return self.finish(workspace, reply_id, None)
 
+    def mark_interrupted(self, user, session, reply_id):
+        """Record an abandoned claim as uncertain; never retry or claim delivery."""
+        workspace = user['workspace_id']
+        with database() as conn:
+            role = authorize(conn, user, session, write=True)
+            if role not in {'owner', 'admin'}:
+                raise HTTPException(403, 'Somente a administração pode revisar um envio interrompido.')
+            row = conn.execute(
+                "SELECT *,claimed_at<NOW()-INTERVAL '2 minutes' AS abandoned "
+                'FROM socialmei.wa_human_replies WHERE workspace_id=%s AND id=%s FOR UPDATE',
+                (workspace, reply_id),
+            ).fetchone()
+            if not row:
+                raise HTTPException(404, 'Resposta não encontrada neste negócio.')
+            if row['status'] in {'confirmed', 'uncertain'}:
+                return view(row)
+            if row['status'] != 'dispatching' or not row['abandoned']:
+                raise HTTPException(409, 'O envio não está interrompido. Aguarde e consulte o histórico.')
+            row = conn.execute(
+                "UPDATE socialmei.wa_human_replies SET status='uncertain',finished_at=NOW() "
+                'WHERE workspace_id=%s AND id=%s RETURNING *', (workspace, reply_id),
+            ).fetchone()
+            conn.execute('INSERT INTO socialmei.auth_auditoria(user_id,acao) VALUES(%s,%s)',
+                         (user['id'], f'wa_interrupted:{workspace}'))
+            return view(row)
+
     def finish(self, workspace, reply_id, provider_id):
         # No session dependency after I/O: a receipt must survive session revocation.
         try:
@@ -272,3 +298,8 @@ def detail(reply_id: UUID, request: Request, service=Depends(reply_service)):
 @router.post('/{reply_id}/send')
 def send(reply_id: UUID, payload: Strict, request: Request, service=Depends(reply_service)):
     return service.send(*identity(request), reply_id)
+
+
+@router.post('/{reply_id}/mark-interrupted')
+def mark_interrupted(reply_id: UUID, payload: Strict, request: Request, service=Depends(reply_service)):
+    return service.mark_interrupted(*identity(request), reply_id)
