@@ -112,6 +112,40 @@ class WorkerDatabaseTests(unittest.TestCase):
             with self.subTest(value=value), self.assertRaises(RuntimeError):
                 m.candidate(self.api, self.worker, 60, start_utc=value)
 
+    def test_preparation_writes_private_disabled_scopes_with_tls_cutoff_and_capacity(self):
+        api = copy.deepcopy(self.api); worker = copy.deepcopy(self.worker)
+        api.update(Id='synthetic-api', State={'Running': True, 'Health': {'Status': 'healthy'}})
+        worker['Id'] = 'synthetic-old-worker'
+        api['Config']['Env'] = ['DATABASE_URL=postgresql://synthetic:p%24ss@' + m.HOST + '/' + m.DATABASE
+                               + '?sslmode=verify-full&sslrootcert=/run/database-ca.crt']
+        cert = b'-----BEGIN CERTIFICATE-----\nSYNTHETIC PUBLIC CA\n-----END CERTIFICATE-----'
+        read_text = Path.read_text
+        def read(path, *args, **kwargs):
+            if path.as_posix() == '/proc/meminfo': return 'MemAvailable: 619520 kB\nSwapFree: 18432 kB\n'
+            return read_text(path, *args, **kwargs)
+        with TemporaryDirectory() as tmp:
+            target = Path(tmp) / 'prepared'
+            with patch.object(m.subprocess, 'run', side_effect=[
+                    SimpleNamespace(stdout=json.dumps([api, worker])), SimpleNamespace(stdout=cert)]) as run, \
+                    patch.object(Path, 'read_text', read):
+                receipt = m.prepare(target, start_utc='2026-11-21T18:00:00-03:00')
+            self.assertFalse(receipt['services_modified'])
+            self.assertFalse(receipt['activation_authorized'])
+            self.assertTrue(receipt['database_ca_copied'])
+            self.assertFalse(receipt['provider_credentials_copied'])
+            self.assertFalse(receipt['explicit_start_review_required'])
+            self.assertEqual(receipt['activation_capacity']['safe_observer_count'], 1)
+            self.assertEqual(run.call_args_list[0].args[0][1], 'inspect')
+            self.assertEqual(run.call_args_list[1].args[0][-2:], ['cat', '/run/database-ca.crt'])
+            for workspace in (60, 61):
+                path = target / ('workspace' + str(workspace) + '.env')
+                values = dict(line.split('=', 1) for line in path.read_text().splitlines())
+                self.assertNotIn('PRIVATE_OAUTH', values)
+                self.assertEqual(values['SOCIALMEI_INSTAGRAM_AUTO_MENU_START_UTC'], '2026-11-21T21:00:00+00:00')
+                self.assertEqual(values['SOCIALMEI_INSTAGRAM_AUTO_MENU_WORKSPACE_ID'], str(workspace))
+                self.assertEqual(values['SOCIALMEI_INSTAGRAM_RUNTIME_SEND_ENABLED'], 'false')
+                if os.name != 'nt': self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+
     def test_capacity_preserves_automatic_backup_and_never_counts_swap_as_ram(self):
         limited = m.observer_capacity(605)
         self.assertEqual(limited['safe_observer_count'], 1)
