@@ -91,4 +91,50 @@ async function waitForApp(page, userId, workspaceId, previousDocument) {
   await page.waitForFunction(() => !!window.SocialMEIBusinesses, {}, { timeout: 30000 });
 }
 
-module.exports = { attachRequestDiagnostics, readWorkspaceApi, waitForApp };
+async function attachChromeTimings(context, page, origin) {
+  const session = await context.newCDPSession(page);
+  const requests = new Map(),
+    records = [],
+    sent = new Set();
+  session.on("Network.requestWillBeSent", (event) => {
+    const url = new URL(event.request.url);
+    if (url.origin !== origin) return;
+    const record = {
+      path: url.pathname,
+      method: event.request.method,
+      started: event.timestamp,
+      extraInfoObserved: sent.has(event.requestId),
+    };
+    requests.set(event.requestId, record);
+    records.push(record);
+  });
+  session.on("Network.requestWillBeSentExtraInfo", (event) => {
+    sent.add(event.requestId);
+    const record = requests.get(event.requestId);
+    if (record) record.extraInfoObserved = true;
+  });
+  session.on("Network.responseReceived", (event) => {
+    const record = requests.get(event.requestId);
+    if (!record) return;
+    record.status = event.response.status;
+    record.protocol = event.response.protocol;
+    record.sendStart = event.response.timing?.sendStart;
+    record.receiveHeadersEnd = event.response.timing?.receiveHeadersEnd;
+  });
+  const finish = (event, failed) => {
+    const record = requests.get(event.requestId);
+    if (!record) return;
+    record.duration = Math.round((event.timestamp - record.started) * 1000);
+    record.failed = failed;
+    if (failed)
+      record.error = /^net::ERR_[A-Z0-9_]+$/.test(event.errorText || "")
+        ? event.errorText
+        : "network_failed";
+  };
+  session.on("Network.loadingFinished", (event) => finish(event, false));
+  session.on("Network.loadingFailed", (event) => finish(event, true));
+  await session.send("Network.enable");
+  return { records };
+}
+
+module.exports = { attachRequestDiagnostics, attachChromeTimings, readWorkspaceApi, waitForApp };

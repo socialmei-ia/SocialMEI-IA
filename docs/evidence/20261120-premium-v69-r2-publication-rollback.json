@@ -37,10 +37,19 @@
     ],
     "isolated_loader_experiment": "did not eliminate browser timeout; excluded from candidate",
     "precise_failure": "GET /reporting/overview, request_timeout,12010ms,workspace61 in isolated browser comparison",
-    "root_cause": "not established"
+    "root_cause": "not established",
+    "final_restored_gateway_browser": {
+      "complete": true,
+      "workspaces": [60, 61, 60],
+      "manual_api_reads": 19,
+      "maximum_manual_read_ms": 1294,
+      "transport_requests_observed": 370,
+      "secrets_recorded": false,
+      "meaning": "restored baseline verified; does not homologate Premium R2 public delivery"
+    }
   },
   "local_changes": {
-    "smoke_diagnostics_unit_tests": 5,
+    "smoke_diagnostics_unit_tests": 7,
     "frontend_changed": false,
     "auth_timeout_changed": false,
     "retries_added": false

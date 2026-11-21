@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const { EventEmitter } = require("node:events");
 const {
   attachRequestDiagnostics,
+  attachChromeTimings,
   readWorkspaceApi,
 } = require("../tools/premium-smoke-diagnostics.cjs");
 
@@ -76,4 +77,65 @@ test("successful reads return the API value without recording its contents", asy
   assert.deepEqual(await readWorkspaceApi(page, "/clientes", records), value);
   assert.equal(records[0].ok, true);
   assert(!JSON.stringify(records).includes("never-log"));
+});
+
+test("Chrome transport timings exclude cookies, headers and query strings", async () => {
+  const session = new EventEmitter();
+  session.send = async (name) => assert.equal(name, "Network.enable");
+  const result = await attachChromeTimings(
+    { newCDPSession: async () => session },
+    {},
+    "https://app.example.test",
+  );
+  session.emit("Network.requestWillBeSent", {
+    requestId: "one",
+    timestamp: 1,
+    request: {
+      url: "https://app.example.test/api/v1/auth/session?code=never-log",
+      method: "GET",
+      headers: { Cookie: "never-log" },
+    },
+  });
+  session.emit("Network.requestWillBeSentExtraInfo", {
+    requestId: "one",
+    headers: { Cookie: "never-log" },
+  });
+  session.emit("Network.responseReceived", {
+    requestId: "one",
+    response: {
+      status: 200,
+      protocol: "h2",
+      timing: { sendStart: 4, receiveHeadersEnd: 500 },
+      headers: { secret: "never-log" },
+    },
+  });
+  session.emit("Network.loadingFinished", { requestId: "one", timestamp: 2 });
+  assert.equal(result.records[0].extraInfoObserved, true);
+  assert.equal(result.records[0].duration, 1000);
+  assert.equal(result.records[0].receiveHeadersEnd, 500);
+  assert(!JSON.stringify(result.records).includes("never-log"));
+});
+
+test("Chrome failures retain cancellation codes without arbitrary error text", async () => {
+  const session = new EventEmitter();
+  session.send = async () => {};
+  const result = await attachChromeTimings(
+    { newCDPSession: async () => session },
+    {},
+    "https://app.example.test",
+  );
+  for (const [id, error] of [
+    ["one", "net::ERR_ABORTED"],
+    ["two", "secret=never-log"],
+  ]) {
+    session.emit("Network.requestWillBeSent", {
+      requestId: id,
+      timestamp: 1,
+      request: { url: "https://app.example.test/api/v1/clientes", method: "GET" },
+    });
+    session.emit("Network.loadingFailed", { requestId: id, timestamp: 13, errorText: error });
+  }
+  assert.equal(result.records[0].error, "net::ERR_ABORTED");
+  assert.equal(result.records[1].error, "network_failed");
+  assert(!JSON.stringify(result.records).includes("never-log"));
 });
