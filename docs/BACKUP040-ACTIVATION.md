@@ -1,4 +1,16 @@
-# Backup da base efetiva: ativação pendente
+# Backup da base efetiva
+
+## Estado operacional em 21/11/2026
+
+O timer separado `socialmei-postgres040-backup.timer` foi instalado e ativado mediante aprovação da operação `c1ca8494a420`. O primeiro ciclo exportou `socialmei_candidate040_20261114`, schema040, com TLS `verify-full`, snapshot compartilhado e validação de hashes. O timer histórico e os containers da aplicação foram preservados. [Evidência sanitizada](evidence/20261121-backup040-automatic-active.json).
+
+Os recibos e arquivos ficam protegidos na AWS. O relatório de retenção não exclui cópias; o alerta de falha usa o journal local. Armazenamento externo e entrega externa de alertas continuam pendentes. A integridade deste novo dump foi verificada; ele **não foi restaurado**. A prova da restauração isolada anterior permanece preservada.
+
+Rollback autorizado: desabilitar somente `socialmei-postgres040-backup.timer`, preservando dumps, recibos e a rotina histórica. Não restaurar sobre produção. Não repetir o instalador nem o primeiro ciclo para continuar uma sessão.
+
+## Histórico da preparação
+
+O texto abaixo registra as etapas anteriores à ativação; o estado acima e os recibos operacionais prevalecem.
 
 A inspeção de 21/11 confirmou que o timer histórico ativo usa `socialmei_relocation`, não `socialmei_candidate040_20261114`. Seus recibos têm `current_production_backup=false` e `external_uploaded=false`. Isso não comprova recuperação da base usada pela API.
 
