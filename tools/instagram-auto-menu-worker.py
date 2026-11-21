@@ -11,6 +11,7 @@ from instagram_contact_identity import refresh_contacts
 from instagram_runtime import build_runtime
 from instagram_worker_health import heartbeat
 from instagram_worker_lease import worker_lease
+from instagram_worker_state import reconcile
 from queue_wakeup import QueueWakeup, instagram_channel
 
 
@@ -42,11 +43,12 @@ def main():
 
 def run_sender(workspace, start, folder, check_lease):
     path = folder/'state.json'
-    state = json.loads(path.read_text()) if path.exists() else {'status':'running','in_flight':False,'confirmed':0,'start':start.isoformat()}
-    assert state['status']=='running' and not state['in_flight'] and state['start']==start.isoformat()
+    state = json.loads(path.read_text()) if path.exists() else None
+    check_lease()
     with db() as conn:
-        assert not conn.execute("SELECT 1 FROM socialmei.ig_menu_replies WHERE workspace_id=%s "
-                                "AND status IN ('dispatching','uncertain') LIMIT 1", (workspace,)).fetchone()
+        unresolved = bool(conn.execute("SELECT 1 FROM socialmei.ig_menu_replies WHERE workspace_id=%s "
+                                       "AND status IN ('dispatching','uncertain') LIMIT 1", (workspace,)).fetchone())
+    state = reconcile(state, workspace, start, unresolved=unresolved)
     runtime = build_runtime()
     assert runtime.status=='configured' and runtime.send
     save(path,state)

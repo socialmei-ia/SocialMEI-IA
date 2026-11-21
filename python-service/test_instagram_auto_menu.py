@@ -101,6 +101,35 @@ class AutoMenuDatabaseTests(unittest.TestCase):
         self.assertEqual(len(rows),1)
         self.assertEqual(rows[0]['status'],'confirmed')
 
+    def test_restart_after_confirmation_keeps_durable_deduplication(self):
+        from instagram_worker_state import reconcile
+        checkpoint = reconcile(None, self.workspace, self.start, unresolved=False)
+        checkpoint['in_flight'] = True
+        self.assertEqual(menu.reply(self.runtime, self.workspace, self.source, self.start), 'confirmed')
+        with menu.db() as conn:
+            unresolved = bool(conn.execute("SELECT 1 FROM socialmei.ig_menu_replies WHERE workspace_id=%s "
+                                           "AND status IN ('dispatching','uncertain') LIMIT 1",
+                                           (self.workspace,)).fetchone())
+        recovered = reconcile(checkpoint, self.workspace, self.start, unresolved=unresolved)
+        self.assertFalse(recovered['in_flight'])
+        self.assertIsNone(menu.next_source(self.workspace, self.start))
+        self.assertEqual(menu.reply(self.runtime, self.workspace, self.source, self.start), 'duplicate')
+        self.assertEqual(len(self.send_calls), 1)
+
+    def test_restart_with_uncertain_delivery_never_resends(self):
+        from instagram_worker_state import reconcile
+        checkpoint = reconcile(None, self.workspace, self.start, unresolved=False)
+        checkpoint['in_flight'] = True
+        self.send_error = TimeoutError('synthetic provider timeout')
+        self.assertEqual(menu.reply(self.runtime, self.workspace, self.source, self.start), 'uncertain')
+        with menu.db() as conn:
+            unresolved = bool(conn.execute("SELECT 1 FROM socialmei.ig_menu_replies WHERE workspace_id=%s "
+                                           "AND status IN ('dispatching','uncertain') LIMIT 1",
+                                           (self.workspace,)).fetchone())
+        with self.assertRaises(RuntimeError):
+            reconcile(checkpoint, self.workspace, self.start, unresolved=unresolved)
+        self.assertEqual(len(self.send_calls), 1)
+
     def test_old_and_foreign_messages_never_dispatch(self):
         self.assertIsNone(menu.next_source(self.workspace,datetime.now(timezone.utc)+timedelta(seconds=1)))
         self.assertEqual(menu.reply(self.runtime,self.workspace,self.source,datetime.now(timezone.utc)+timedelta(seconds=1)),'skipped')
