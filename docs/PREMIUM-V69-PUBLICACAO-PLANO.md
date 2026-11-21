@@ -1,8 +1,27 @@
-# Premium v6.9 — tentativa revertida; candidata R2 preparada
+# Premium v6.9 — R2 revertida; bloqueio no smoke do navegador
+
+**Última operação:** o plano R2 de48 arquivos foi autorizado, aplicado e **revertido** porque o smoke público voltou a apresentar timeout de leitura. Imagem premium anterior, mounts, CRM233 e API restaurados e conferidos; outros contêineres permaneceram iguais. Nenhuma carga comercial, migration, alteração de canal ou worker foi executada. Não há v6.9 publicada.
+
+[Evidência da tentativa R2 e reversão](evidence/20261120-premium-v69-r2-publication-rollback.json).
+
+**Não reutilizar o plano R2 nem sua autorização.** O recibo está encerrado como `rolled_back` e a identidade do gateway mudou pela reversão. Não haverá outra tentativa enquanto a falha da jornada completa não estiver reproduzida e corrigida com evidência.
+
+## Bloqueio atual e próximo diagnóstico
+
+- CI da fonte `7d6dcf3`: [aprovada](https://github.com/socialmei-ia/SocialMEI-IA/actions/runs/44835981381). Hashes dos48 arquivos confirmados contra esse commit; preflight R2, dependências, rollback e saúde inicial passaram.
+- A candidata no navegador isolado com API real passou; o smoke do site publicado falhou. Assim o teste com sobreposição de arquivos não é prova suficiente de homologação pública.
+- A nova telemetria identificou `request_timeout` em `/reporting/overview` na jornada de navegador. Consulta isolada no mesmo ambiente: Brilho60 em189ms e Bella61 em163ms. Dez leituras autenticadas em paralelo também passaram em menos de2s. Não há evidência para atribuir a falha à SQL desse relatório ou à simples concorrência de arquivos.
+- O navegador também mostrou recursos com carregamento acima de25s na versão restaurada. A comparação com limite de dois scripts não eliminou o timeout; a alteração de loader ficou somente em experimento ignorado, fora da candidata e da produção.
+- `tools/premium-smoke-diagnostics.cjs` acompanha cada request por identidade, registra abortos sem headers/corpos/query strings, identifica a leitura que falhou e exige documento novo, backend e painel prontos após troca. Cinco testes garantem privacidade, ausência de retries e preservação da falha de timeout. O timeout de autenticação continua em12s.
+- Próximo: correlacionar `requestfailed` e os tempos de envio/resposta do navegador para a leitura exata, mantendo a versão restaurada. Não repetir a publicação como experimento. Recibos e resultados detalhados permanecem privados.
+
+O plano privado da carga fictícia60/61 foi conferido novamente, com IDs e datas preservados, sem `--apply`. Continua exigindo autorização separada.
+
+## Histórico da preparação R2 — executada e revertida
 
 **Produção atual:** gateway premium anterior restaurado. A tentativa autorizada de46 arquivos foi aplicada, mas o smoke autenticado encontrou timeouts de leitura e duas dependências ausentes. O rollback congelado foi executado e validado: imagem, mounts, CRM233 e API preservados, HTTPS200, demais contêineres sem mudanças. A v6.9 **não está publicada**. Evidência: [publicação e reversão](evidence/20261120-premium-v69-publication-rollback.json).
 
-## Candidata corretiva R2 — exige nova aprovação
+## Candidata corretiva R2 — registro histórico
 
 - **48 arquivos**, incluindo as dependências ausentes `frontend/scripts/v22-whatsapp-management.js` e `frontend/styles/v22-inbox-layout.css`.
 - Bootstrap preserva os complementos instalados de horários, Central de Conexões, assistente da Caixa e acesso da conta. Sem alterações no Hero ou na identidade visual.

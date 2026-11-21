@@ -1,0 +1,55 @@
+{
+  "recorded_at": "2026-11-21T00:06:42.688822+00:00",
+  "source_commit": "7d6dcf38d6b9a4c3beab991286a00a84d3b3abf3",
+  "ci": {
+    "run_id": 44835981381,
+    "conclusion": "success"
+  },
+  "plan_sha256": "465bead7b3a35e29d6d600b1d9d509fa5ae09912bc4b08e656fac524ea4790bd",
+  "authorized_files": 48,
+  "fresh_preflight": "passed",
+  "committed_candidate_hashes_verified": 48,
+  "overlay_browser": "passed; candidate assets local, authenticated API real; not proof of public delivery",
+  "public_browser": "failed on API read timeout; no new attempts after rollback",
+  "public_48_file_loading": "not reached in browser smoke;48 container hashes passed",
+  "rollback": {
+    "status": "verified",
+    "gateway_container_id": "926e1a34f14fc5bf4e6017cb79198647f6e3c55ca9a23745ceab6c49399c660a",
+    "premium_image_preserved": "sha256:b93aeac93d11ea0e88dd2c44961bc8f13df9bcb928d960b3562563e68b6cc8ec",
+    "api_preserved": "17cfd1956416c2d4c8431fec11800f73254bde12",
+    "other_services_unchanged": true,
+    "https": "passed"
+  },
+  "investigation": {
+    "authenticated_parallel_reads": "passed below2 seconds via Node and Chrome",
+    "static_burst_probe": "did not reproduce timeout",
+    "targeted_reporting": [
+      {
+        "workspace": 60,
+        "milliseconds": 189,
+        "clients": 0
+      },
+      {
+        "workspace": 61,
+        "milliseconds": 163,
+        "clients": 0
+      }
+    ],
+    "isolated_loader_experiment": "did not eliminate browser timeout; excluded from candidate",
+    "precise_failure": "GET /reporting/overview, request_timeout,12010ms,workspace61 in isolated browser comparison",
+    "root_cause": "not established"
+  },
+  "local_changes": {
+    "smoke_diagnostics_unit_tests": 5,
+    "frontend_changed": false,
+    "auth_timeout_changed": false,
+    "retries_added": false
+  },
+  "production_writes": {
+    "commercial_data": 0,
+    "migrations": 0,
+    "channel_changes": 0,
+    "worker_changes": 0
+  },
+  "demo_next_apply": "prepared; separate approval required"
+}
