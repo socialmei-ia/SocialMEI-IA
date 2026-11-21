@@ -65,6 +65,25 @@ class RetentionTests(unittest.TestCase):
         self.assertEqual(len(result['blocked']), 2)
         self.assertEqual(result['files_deleted'], 0)
 
+    def test_native_restore_receipt_requires_full_comparison_and_matching_external_version(self):
+        path = self.paths[-1]; receipt = json.loads(path.read_text())
+        proof = {'dump_sha256': receipt['sha256'], 'restoration_verified': True,
+                 'profile': '040', 'verification_mode': 'full_comparison',
+                 'source_contents_compared': True, 'archive_integrity_verified': True,
+                 'owned_cleanup_verified': True, 'production_mutation': False,
+                 'external_version_id': 'version-one', 'external_object_sha256': receipt['sha256'],
+                 'external_receipt_sha256': 'a' * 64}
+        def action(changes):
+            path.with_suffix('.restore.private.json').write_text(json.dumps({**proof, **changes}))
+            result = m.retention(self.folder, self.now)
+            self.assertEqual(result['files_deleted'], 0)
+            return next(row['action'] for row in result['records'] if row['receipt'] == path.name)
+        self.assertEqual(action({}), 'eligible_after_approval')
+        for changes in ({'profile': '041'}, {'verification_mode': 'archive_integrity'},
+                        {'external_version_id': 'different'}, {'external_receipt_sha256': None},
+                        {'owned_cleanup_verified': False}):
+            self.assertEqual(action(changes), 'keep_external_restore_unproven')
+
     def test_latest_daily_and_weekly_copies_are_preserved(self):
         for index, path in enumerate(self.paths):
             receipt = json.loads(path.read_text())

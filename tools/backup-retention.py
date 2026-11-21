@@ -6,6 +6,7 @@ import argparse
 from datetime import datetime, timedelta, timezone
 import hashlib
 import json
+import re
 from pathlib import Path
 
 
@@ -60,9 +61,20 @@ def retention(folder, now=None):
         if proof.is_file() and not proof.is_symlink():
             try:
                 evidence = json.loads(proof.read_text())
-                restored = (evidence.get('sha256') == receipt['sha256']
-                            and evidence.get('independent_restore_equal') is True
-                            and evidence.get('comparison', {}).get('equal') is True
+                legacy = (evidence.get('sha256') == receipt['sha256']
+                          and evidence.get('independent_restore_equal') is True
+                          and evidence.get('comparison', {}).get('equal') is True)
+                native = (evidence.get('dump_sha256') == receipt['sha256']
+                          and evidence.get('restoration_verified') is True
+                          and evidence.get('profile') == str(receipt['schema']).zfill(3)
+                          and evidence.get('verification_mode') == 'full_comparison'
+                          and evidence.get('source_contents_compared') is True
+                          and evidence.get('archive_integrity_verified') is True
+                          and evidence.get('owned_cleanup_verified') is True
+                          and evidence.get('production_mutation') is False
+                          and evidence.get('external_object_sha256') == receipt['sha256']
+                          and re.fullmatch('[0-9a-f]{64}', str(evidence.get('external_receipt_sha256'))) is not None)
+                restored = ((legacy or native)
                             and evidence.get('external_version_id') == receipt.get('external_version_id')
                             and isinstance(evidence.get('external_version_id'), str)
                             and bool(evidence['external_version_id']))

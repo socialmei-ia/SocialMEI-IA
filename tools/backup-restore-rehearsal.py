@@ -60,6 +60,19 @@ def inputs(dump, manifest, approval):
     require(auth.get('verification_mode', 'full_comparison') in ('full_comparison', 'archive_integrity'))
     require(auth.get('verification_mode') != 'archive_integrity' or auth['profile'] in ('040', '041'))
     require(re.fullmatch(r'sha256:[0-9a-f]{64}', str(auth.get('validator_api_image_id', API_IMAGE))) is not None)
+    if auth.get('external_receipt_file') is not None:
+        external_path = Path(auth['external_receipt_file'])
+        require(external_path.is_file() and external_path.stat().st_size <= 32768)
+        require(file_hash(external_path) == auth.get('external_receipt_sha256'))
+        external = json.loads(external_path.read_text(encoding='utf-8-sig'))
+        version = external.get('external_version_id')
+        require(external.get('external_uploaded') is True
+                and external.get('sha256') == auth['dump_sha256']
+                and external.get('external_object_sha256') == auth['dump_sha256']
+                and external.get('bytes') == dump.stat().st_size
+                and isinstance(version, str) and 0 < len(version) <= 1024 and version != 'null'
+                and all(33 <= ord(char) <= 126 for char in version))
+        auth['_verified_external_version_id'] = version
     return auth, expected
 
 
@@ -158,6 +171,8 @@ def rehearse(dump, manifest, approval, docker='docker'):
         verification = verify_manifest(expected, result, auth.get('verification_mode', 'full_comparison'))
         comparison = validator.compare(expected, result)
         require(file_hash(dump) == auth['dump_sha256'] and file_hash(manifest) == auth['manifest_sha256'])
+        if '_verified_external_version_id' in auth:
+            require(file_hash(Path(auth['external_receipt_file'])) == auth['external_receipt_sha256'])
         proof = {'profile': auth['profile'], 'dump_sha256': auth['dump_sha256'],
                  'manifest_sha256': auth['manifest_sha256'], 'restoration_verified': True,
                  'tables_verified': len(result['tables']), 'sequences_verified': len(result['sequences']),
@@ -166,6 +181,10 @@ def rehearse(dump, manifest, approval, docker='docker'):
                  'production_role_permissions_approved': False, 'migrations_executed': False,
                  'production_mutation': False, 'source_freshness_verified': False}
         proof.update(verification)
+        if '_verified_external_version_id' in auth:
+            proof.update(external_version_id=auth['_verified_external_version_id'],
+                         external_object_sha256=auth['dump_sha256'],
+                         external_receipt_sha256=auth['external_receipt_sha256'])
         proof['validator_api_image_id'] = validator_image
     finally:
         cleanup_errors = []

@@ -38,6 +38,29 @@ def fixture(folder, profile=40):
 
 
 class RestoreRehearsalTests(unittest.TestCase):
+    def test_external_version_binding_requires_the_exact_uploaded_bytes_and_approved_receipt(self):
+        with tempfile.TemporaryDirectory() as folder:
+            files = fixture(folder)
+            auth = json.loads(files[2].read_text())
+            receipt = Path(folder) / 'external.private.json'
+            original = {'external_uploaded': True, 'sha256': auth['dump_sha256'],
+                        'external_object_sha256': auth['dump_sha256'],
+                        'bytes': files[0].stat().st_size, 'external_version_id': 'version-one'}
+            def write(value):
+                receipt.write_text(json.dumps(value))
+                files[2].write_text(json.dumps({**auth, 'external_receipt_file': str(receipt),
+                                               'external_receipt_sha256': runner.file_hash(receipt)}))
+            write(original)
+            self.assertEqual(runner.inputs(*files)[0]['_verified_external_version_id'], 'version-one')
+            for key, value in [('external_uploaded', False), ('sha256', 'b' * 64),
+                               ('external_object_sha256', 'b' * 64), ('bytes', 1),
+                               ('external_version_id', 'null'), ('external_version_id', 'bad\nversion')]:
+                with self.subTest(key=key), self.assertRaises(ValueError):
+                    write({**original, key: value}); runner.inputs(*files)
+            write(original)
+            receipt.write_text(json.dumps({**original, 'external_version_id': 'replaced'}))
+            with self.assertRaises(ValueError): runner.inputs(*files)
+
     def test_periodic_integrity_requires_explicit_mode_and_does_not_claim_source_equality(self):
         baseline = manifest()
         baseline['tables'] = [{'schema': 'socialmei', 'table': 'fixture', 'rows': 1, 'sha256': 'a' * 64}]
@@ -107,6 +130,13 @@ class RestoreRehearsalTests(unittest.TestCase):
         for corrupt in (False, True):
             with self.subTest(corrupt=corrupt), tempfile.TemporaryDirectory() as folder:
                 files = fixture(folder)
+                auth = json.loads(files[2].read_text())
+                external = Path(folder) / 'external.private.json'
+                external.write_text(json.dumps({'external_uploaded': True,
+                    'sha256': auth['dump_sha256'], 'external_object_sha256': auth['dump_sha256'],
+                    'bytes': files[0].stat().st_size, 'external_version_id': 'version-one'}))
+                files[2].write_text(json.dumps({**auth, 'external_receipt_file': str(external),
+                                               'external_receipt_sha256': runner.file_hash(external)}))
                 commands = []
                 networks = {}
                 labels = {}
@@ -145,6 +175,8 @@ class RestoreRehearsalTests(unittest.TestCase):
                         self.assertTrue(result['restoration_verified'])
                         self.assertTrue(result['owned_cleanup_verified'])
                         self.assertFalse(result['production_mutation'])
+                        self.assertEqual(result['external_version_id'], 'version-one')
+                        self.assertEqual(result['external_receipt_sha256'], runner.file_hash(external))
                         # The real rehearsal output feeds the activation gate
                         # directly, without a hand-edited conversion receipt.
                         root = Path(folder); os.chmod(root, 0o700)
