@@ -81,6 +81,13 @@ jobs:
           test_instagram_auto_menu.AutoMenuDatabaseTests.test_observer_reads_persisted_direct_in_its_workspace_without_dispatch
           test_instagram_auto_menu.AutoMenuDatabaseTests.test_restart_after_confirmation_keeps_durable_deduplication
           test_instagram_auto_menu.AutoMenuDatabaseTests.test_restart_with_uncertain_delivery_never_resends
+          test_instagram_auto_menu.AutoMenuHandoffContracts
+          test_instagram_auto_menu.AutoMenuDatabaseTests.test_reviewed_recovery_window_resumes_persisted_five_minute_backlog_once
+          test_channel_booking_flow.ChannelBookingFlowTests.test_textual_journey_books_only_after_confirmation_and_replay_is_deduplicated
+          test_channel_booking_flow.ChannelBookingFlowTests.test_native_list_journey_uses_opaque_offered_options_with_same_core
+          test_account_recovery.RecoveryTests.test_password_change_expires_earlier_queued_recovery_without_sending
+          test_account_recovery.RecoveryTests.test_new_request_during_send_preserves_new_pending_generation
+          test_account_recovery.RecoveryTests.test_stale_queue_expires_without_email
       - name: Authenticated API demo replay and business isolation
         run: node tests/provision-mei-demo-integration.mjs
 

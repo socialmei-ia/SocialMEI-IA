@@ -131,12 +131,13 @@ def process_one():
             (candidate[0],),
         ).fetchone()
         job = conn.execute(
-            "SELECT generation,queued_at<NOW()-INTERVAL '15 minutes' FROM socialmei.auth_recuperacao_envios WHERE user_id=%s AND status='pending' FOR UPDATE",
-            (candidate[0],),
+            "SELECT generation,queued_at<NOW()-INTERVAL '15 minutes',queued_at<%s FROM socialmei.auth_recuperacao_envios WHERE user_id=%s AND status='pending' FOR UPDATE",
+            (account[1] if account else None, candidate[0]),
         ).fetchone()
         if not job:
             return False
-        if not account or not account[3] or job[1]:
+        # A password change also invalidates requests not yet delivered.
+        if not account or not account[3] or job[1] or job[2]:
             conn.execute(
                 "UPDATE socialmei.auth_recuperacao_envios SET status='expired',finished_at=NOW() WHERE user_id=%s",
                 (candidate[0],),

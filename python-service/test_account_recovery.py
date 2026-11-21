@@ -160,6 +160,25 @@ class RecoveryTests(unittest.TestCase):
         )
         self.assertEqual(self.confirm(token).status_code, 400)
 
+    def test_password_change_expires_earlier_queued_recovery_without_sending(self):
+        from account_recovery import process_one
+        response = self.client.post('/api/v1/auth/recovery/request', json={'email': 'owner@example.test'})
+        self.assertEqual(response.status_code, 202)
+        changed = self.owner.post('/api/v1/auth/password',
+            json={'atual': accounts.PASSWORD, 'nova': 'Another-pass-789!'})
+        self.assertEqual(changed.status_code, 204, changed.text)
+        with patch('account_recovery.send_recovery_mail') as mail:
+            self.assertTrue(process_one())
+            self.assertFalse(process_one())
+            mail.assert_not_called()
+        with psycopg.connect(accounts.DB) as conn:
+            status = conn.execute('SELECT status FROM socialmei.auth_recuperacao_envios '
+                                  'WHERE user_id=%s', (self.owner.identity['usuario']['id'],)).fetchone()[0]
+        self.assertEqual(status, 'expired')
+        # A new explicit request after the password change remains legitimate.
+        token = self.issue()
+        self.assertEqual(self.confirm(token).status_code, 204)
+
     def test_concurrent_confirmation_has_exactly_one_winner(self):
         from concurrent.futures import ThreadPoolExecutor
 
