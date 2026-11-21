@@ -66,6 +66,12 @@ def respond(conn, channel, message, state, *, native=False):
         "ORDER BY created_at DESC,id DESC LIMIT 1",
         (channel['workspace_id'], channel['channel_id'], message['conversation_id'], channel['binding_hash'])).fetchone()
     result = previous['result'] if previous else {}
+    if (selected is None and result.get('channel_booking')
+            and result.get('booking_expires', 0) < datetime.now(timezone.utc).timestamp()
+            and text not in START
+            and any(choice.get('id') == text for choice in result.get('choices', []))):
+        return response('booking_expired', 'Esta opção de agendamento expirou. Consulte os horários novamente.',
+                        [option('6', 'Consultar horários', 'services'), *navigation()], native)
     if selected is None and result.get('channel_booking') and result.get('booking_expires', 0) >= datetime.now(timezone.utc).timestamp():
         selected = next((choice.get('target') for choice in result.get('choices', [])
                          if choice.get('id') == text), None)
