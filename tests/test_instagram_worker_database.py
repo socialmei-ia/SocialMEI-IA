@@ -6,6 +6,8 @@ import json
 import os
 import subprocess
 from tempfile import TemporaryDirectory
+from types import SimpleNamespace
+from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location('worker_db', Path(__file__).resolve().parents[1] / 'tools/instagram-worker-database.py')
 m = importlib.util.module_from_spec(spec)
@@ -28,6 +30,7 @@ class WorkerDatabaseTests(unittest.TestCase):
                 files.append(str(path))
             env = dict(os.environ, INSTAGRAM_REVIEWED_WORKER_IMAGE='synthetic@sha256:' + 'a' * 64,
                        INSTAGRAM_BRILHO_ENV_FILE=files[0], INSTAGRAM_BELLA_ENV_FILE=files[1],
+                       INSTAGRAM_REVIEWED_DATABASE_CA_FILE=str(Path(tmp) / 'database-ca.crt'),
                        INSTAGRAM_REVIEWED_DATABASE_NETWORK='synthetic-private-network')
             model = json.loads(subprocess.run(['docker', 'compose', '-f', str(Path(__file__).resolve().parents[1] /
                 'deploy/team/compose.instagram-observers.yaml'), '--profile', 'instagram-observers', 'config', '--format', 'json'],
@@ -44,6 +47,9 @@ class WorkerDatabaseTests(unittest.TestCase):
             self.assertEqual(service['restart'], 'unless-stopped')
             self.assertFalse(service.get('ports'))
             volumes.append(service['volumes'][0]['source'])
+            ca = next(v for v in service['volumes'] if v['target'] == '/run/database-ca.crt')
+            self.assertTrue(ca['read_only'])
+            self.assertFalse(ca['bind']['create_host_path'])
         self.assertNotEqual(*volumes)
 
     def setUp(self):
@@ -52,13 +58,32 @@ class WorkerDatabaseTests(unittest.TestCase):
             'POSTGRES_USER=synthetic', 'POSTGRES_PASSWORD=private-sentinel']}}
         self.worker = {'Name': '/' + m.WORKER, 'Config': {'Env': [
             'DATABASE_URL=postgresql://synthetic@db.prisma.io/postgres',
+            'PGSSLROOTCERT=/old-ca', 'PGSERVICE=old-service', 'PGPASSWORD=old-password',
             'POSTGRES_DB=historical', 'SOCIALMEI_INSTAGRAM_AUTO_MENU_ENABLED=true',
             'SOCIALMEI_INSTAGRAM_RUNTIME_SEND_ENABLED=true', 'PRIVATE_OAUTH=preserved']}}
+
+    def test_tls_ca_is_copied_from_existing_api_without_client_key_or_flag_changes(self):
+        self.api['Id'] = 'frozen-api'
+        url = 'DATABASE_URL=postgresql://synthetic@' + m.HOST + '/' + m.DATABASE
+        self.api['Config']['Env'] = [url + '?sslmode=verify-full&sslrootcert=/run/database-ca.crt']
+        cert = b'-----BEGIN CERTIFICATE-----\nSYNTHETIC PUBLIC CA\n-----END CERTIFICATE-----'
+        with patch.object(m.subprocess, 'run', return_value=SimpleNamespace(stdout=cert)) as run:
+            self.assertEqual(m.database_ca(self.api), cert)
+        self.assertEqual(run.call_args.args[0], ['docker', 'exec', 'frozen-api', 'cat', '/run/database-ca.crt'])
+        with patch.object(m.subprocess, 'run', return_value=SimpleNamespace(stdout=b'PRIVATE KEY')):
+            with self.assertRaises(RuntimeError): m.database_ca(self.api)
+        for suffix in ('&sslkey=/private/key', '&sslrootcert=/another/path'):
+            self.api['Config']['Env'] = [url + '?sslmode=verify-full&sslrootcert=/run/database-ca.crt' + suffix]
+            with patch.object(m.subprocess, 'run') as run:
+                with self.assertRaises(RuntimeError): m.database_ca(self.api)
+                run.assert_not_called()
 
     def test_old_prisma_override_is_removed_and_sender_remains_disabled(self):
         before = copy.deepcopy((self.api, self.worker))
         result = m.candidate(self.api, self.worker, 60)
         self.assertNotIn('DATABASE_URL', result)
+        for key in ('PGSSLROOTCERT', 'PGSERVICE', 'PGPASSWORD'):
+            self.assertNotIn(key, result)
         self.assertEqual(result['POSTGRES_DB'], m.DATABASE)
         self.assertEqual(result['POSTGRES_PASSWORD'], 'private-sentinel')
         self.assertEqual(result['PRIVATE_OAUTH'], 'preserved')

@@ -9,14 +9,14 @@ import os
 from pathlib import Path
 import subprocess
 import re
-from urllib.parse import unquote, urlsplit
+from urllib.parse import unquote, urlsplit, parse_qsl
 
 API = 'socialmei-team-team-api-1'
 WORKER = 'socialmei-instagram-menu-worker'
 DATABASE = 'socialmei_candidate040_20261114'
 HOST = 'socialmei-postgres-relocation-20261112'
 KEYS = {'DATABASE_URL', 'POSTGRES_HOST', 'POSTGRES_USER', 'POSTGRES_PASSWORD',
-        'POSTGRES_DB', 'POSTGRES_PORT'}
+        'POSTGRES_DB', 'POSTGRES_PORT', 'PGSSLMODE', 'PGSSLROOTCERT', 'PGCHANNELBINDING'}
 
 
 def require(condition, reason):
@@ -46,8 +46,9 @@ def candidate(api, worker, workspace):
     require((host, database) == (HOST, DATABASE), 'api_database_not_reviewed')
     result = environment(worker)
     # An old explicit Prisma URL otherwise overrides all POSTGRES_* values.
-    for key in KEYS:
-        result.pop(key, None)
+    for key in list(result):
+        if key in KEYS or key.startswith('PG'):
+            result.pop(key, None)
     result.update({key: value for key, value in source.items() if key in KEYS})
     result.update(SOCIALMEI_INSTAGRAM_WORKER_DATABASE_NAME=database,
                   SOCIALMEI_INSTAGRAM_WORKER_MODE='observe',
@@ -65,6 +66,28 @@ def environment_bytes(values):
     return ''.join(key + '=' + value + '\n' for key, value in sorted(values.items())).encode()
 
 
+def database_ca(api):
+    values = environment(api)
+    pairs = parse_qsl(urlsplit(values.get('DATABASE_URL', '')).query)
+    require(len(dict(pairs)) == len(pairs), 'duplicate_database_tls_options')
+    options = dict(pairs)
+    require(not any(options.get(k) or values.get('PG' + k.upper()) for k in ('sslcert', 'sslkey')),
+            'client_certificate_review_required')
+    if options.get('sslmode', values.get('PGSSLMODE')) != 'verify-full':
+        return None
+    path = options.get('sslrootcert', values.get('PGSSLROOTCERT'))
+    require(path == '/run/database-ca.crt', 'database_ca_path_requires_review')
+    try:
+        result = subprocess.run(['docker', 'exec', api['Id'], 'cat', path],
+                                capture_output=True, check=True, timeout=15)
+    except (OSError, subprocess.SubprocessError):
+        raise RuntimeError('existing_database_ca_unavailable') from None
+    require(0 < len(result.stdout) <= 128 * 1024
+            and b'-----BEGIN CERTIFICATE-----' in result.stdout and b'PRIVATE KEY' not in result.stdout,
+            'database_ca_invalid')
+    return result.stdout
+
+
 def prepare(directory):
     require(not directory.exists() and not directory.is_symlink(), 'new_private_directory_required')
     try:
@@ -77,9 +100,12 @@ def prepare(directory):
     require(api['State']['Running'] and api['State'].get('Health', {}).get('Status') == 'healthy',
             'api_not_healthy')
     candidates = {str(workspace): candidate(api, worker, workspace) for workspace in (60, 61)}
+    ca = database_ca(api)
     directory.mkdir(mode=0o700)
     contents = {'api.private.json': api, 'worker.private.json': worker,
                 'candidates.private.json': candidates}
+    if ca is not None:
+        contents['database-ca.crt'] = ca
     # Compose must read these with format: raw, not interpolate private values.
     for workspace, values in candidates.items():
         contents['workspace' + workspace + '.env'] = environment_bytes(values)
@@ -96,6 +122,7 @@ def prepare(directory):
             'new_worker_image_required': True, 'separate_state_volumes_required': True,
             'n8n_exclusivity_review_required': True, 'runtime_and_vault_review_required': True,
             'send_enabled': False,
+            'database_ca_copied': ca is not None,
             'services_modified': False, 'tokens_changed': False}
 
 

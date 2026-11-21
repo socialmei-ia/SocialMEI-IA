@@ -30,7 +30,14 @@ services:
       SOCIALMEI_INSTAGRAM_AUTO_MENU_WORKSPACE_ID: "60"
       SOCIALMEI_INSTAGRAM_AUTO_MENU_ENABLED: "false"
       SOCIALMEI_INSTAGRAM_RUNTIME_SEND_ENABLED: "false"
-    volumes: [brilho-state:/run/socialmei/instagram-menu-state]
+    volumes:
+      - brilho-state:/run/socialmei/instagram-menu-state
+      - type: bind
+        source: ${INSTAGRAM_REVIEWED_DATABASE_CA_FILE:?Use the verified database CA}
+        target: /run/database-ca.crt
+        read_only: true
+        bind:
+          create_host_path: false
   bella-observer:
     <<: *observer
     env_file:
@@ -41,7 +48,14 @@ services:
       SOCIALMEI_INSTAGRAM_AUTO_MENU_WORKSPACE_ID: "61"
       SOCIALMEI_INSTAGRAM_AUTO_MENU_ENABLED: "false"
       SOCIALMEI_INSTAGRAM_RUNTIME_SEND_ENABLED: "false"
-    volumes: [bella-state:/run/socialmei/instagram-menu-state]
+    volumes:
+      - bella-state:/run/socialmei/instagram-menu-state
+      - type: bind
+        source: ${INSTAGRAM_REVIEWED_DATABASE_CA_FILE:?Use the verified database CA}
+        target: /run/database-ca.crt
+        read_only: true
+        bind:
+          create_host_path: false
 networks:
   effective-database:
     external: true
