@@ -605,8 +605,9 @@ window.SocialMEIV22 = (() => {
           ? "Recebimento não habilitado"
           : "Recebimento não confirmado";
     label(".pg > .row.sp.wr > .row.wr > .pill", "Caixa do negócio");
-    label(".pg > .row.sp.wr > .row.wr > .m.sm", status);
-    const dot = document.querySelector(".pg > .row.sp.wr > .row.wr > .m.sm > .dot");
+    label(".cxl-st, .pg > .row.sp.wr > .row.wr > .m.sm", status);
+    document.querySelector(".cxl-st")?.setAttribute("title", status);
+    const dot = document.querySelector(".cxl-st > .dot, .pg > .row.sp.wr > .row.wr > .m.sm > .dot");
     if (dot) {
       dot.classList.toggle("g", !!receiving);
       dot.classList.toggle("y", !receiving);
@@ -616,12 +617,12 @@ window.SocialMEIV22 = (() => {
     const provider = ["instagram", "waha"].includes(row.origin);
     const channel = row.channel === "instagram" ? "Instagram" : "WhatsApp";
     label(
-      ".ct > .hd > .row > .row > div > .m.sm",
+      ".ct > .hd .cx4-sb1, .ct > .hd > .row > .row > div > .m.sm",
       `${channel} · ${provider ? "recebido no servidor" : "mensagem sintética de teste"}`,
     );
-    label(".ct > .hd > .wn > b", "Envio indisponível");
+    label(".ct > .hd .wn > b", "Envio indisponível");
     label(
-      ".ct > .hd > .wn > .m",
+      ".ct > .hd .wn > .m",
       provider ? "Mensagens recebidas salvas no servidor." : "Conversa sintética; nada é enviado.",
     );
   }

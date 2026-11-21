@@ -34,10 +34,13 @@ async function run() {
       await page.goto(origin + "/frontend/entrada.html");
       for (const theme of ["light", "dark"]) {
         await page.evaluate((theme) => (document.documentElement.dataset.theme = theme), theme);
-        await page.locator('[data-f="dinheiro"]').click();
-        assert.match(await page.locator("#stage").innerText(), /Saldo/);
-        await page.locator('[data-f="clientes"]').click();
-        assert.match(await page.locator("#stage").innerText(), /Lembrete/);
+        await page.locator('#pvx [role="tab"]').filter({ hasText: "Financeiro" }).click();
+        assert.match(await page.locator("#pvx .pv-panel.on").innerText(), /Saldo|Entrou/);
+        await page.locator('#pvx [role="tab"]').filter({ hasText: "Clientes" }).click();
+        assert.match(
+          await page.locator("#pvx .pv-panel.on").innerText(),
+          /Cliente|Histórico|histórico/,
+        );
         const faq = page.locator(".faq").first();
         await faq.locator("summary").focus();
         await page.keyboard.press("Enter");
@@ -45,14 +48,15 @@ async function run() {
         await page.keyboard.press("Enter");
         assert.equal(await faq.evaluate((el) => el.open), false);
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
-        await page.screenshot({ path: path.join(output, `landing-${width}-${theme}.png`) });
+        if (process.env.SOCIALMEI_CAPTURE_SCREENSHOTS === "1")
+          await page.screenshot({ path: path.join(output, `landing-${width}-${theme}.png`) });
       }
     }
     await page.goto(origin + "/frontend/entrada.html");
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.locator('[data-f="vendas"]').click();
-    assert.match(await page.locator("#stage").innerText(), /Venda #1042/);
+    await page.locator('#pvx [role="tab"]').filter({ hasText: "Vendas" }).click();
+    assert.match(await page.locator("#pvx .pv-panel.on").innerText(), /Venda|venda/);
     await page.locator('.cmd a[href="#/cadastro"]').click();
     await page.locator("#v-auth").waitFor({ state: "visible" });
     assert.equal(await page.locator("#v-auth").isVisible(), true);
@@ -90,7 +94,8 @@ async function run() {
       for (const theme of ["light", "dark"]) {
         await app.evaluate((theme) => (document.documentElement.dataset.theme = theme), theme);
         assert(await app.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
-        await app.screenshot({ path: path.join(output, `opportunities-${width}-${theme}.png`) });
+        if (process.env.SOCIALMEI_CAPTURE_SCREENSHOTS === "1")
+          await app.screenshot({ path: path.join(output, `opportunities-${width}-${theme}.png`) });
       }
     }
     await app.evaluate(() => {

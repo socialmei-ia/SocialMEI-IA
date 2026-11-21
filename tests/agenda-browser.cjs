@@ -90,18 +90,26 @@ module.exports = async function (browser, origin) {
       try {
         await page.goto(origin + "/frontend/socialmei-app.html#/agenda");
         await page.getByText("Agenda temporariamente indisponível.", { exact: true }).waitFor();
-        assert(await page.getByRole("button", { name: "Novo lembrete", exact: true }).isDisabled());
+        assert(
+          await page
+            .getByRole("button", { name: "Novo lembrete", exact: true })
+            .first()
+            .isDisabled(),
+        );
         await page.getByRole("button", { name: "Consultar agenda", exact: true }).click();
         await page.getByText("Nenhum lembrete neste período.", { exact: true }).waitFor();
         if (role === "viewer") {
           assert(
-            await page.getByRole("button", { name: "Novo lembrete", exact: true }).isDisabled(),
+            await page
+              .getByRole("button", { name: "Novo lembrete", exact: true })
+              .first()
+              .isDisabled(),
           );
           assert.equal(posts.length, 0);
           assert.deepEqual(errors, []);
           continue;
         }
-        await page.getByRole("button", { name: "Novo lembrete", exact: true }).click();
+        await page.getByRole("button", { name: "Novo lembrete", exact: true }).first().click();
         await page.getByLabel("O que lembrar", { exact: false }).fill("Revisar orçamento de teste");
         await page.locator("#f_agenda_date").fill("2026-11-02");
         await page.locator("#f_agenda_time").fill("14:30");
@@ -167,7 +175,12 @@ module.exports = async function (browser, origin) {
           window.render();
         });
         await page.getByText(/O navegador não permite preservar operações/).waitFor();
-        assert(await page.getByRole("button", { name: "Novo lembrete", exact: true }).isDisabled());
+        assert(
+          await page
+            .getByRole("button", { name: "Novo lembrete", exact: true })
+            .first()
+            .isDisabled(),
+        );
         await page.evaluate(() => window.__restoreAgendaStorage());
         await page.getByRole("button", { name: "Consultar agenda", exact: true }).click();
         await page.getByText("Nenhum lembrete neste período.", { exact: true }).waitFor();

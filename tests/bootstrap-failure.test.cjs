@@ -48,6 +48,7 @@ function browser(failBackend) {
         requests.push(script.src);
         if (script.src === "scripts/v22-backend.js")
           queueMicrotask(() => (failBackend ? script.onerror(Error("Offline")) : script.onload()));
+        if (script.src === "scripts/v22-agenda.js") queueMicrotask(() => script.onload());
       },
     },
   };
@@ -86,6 +87,8 @@ test("successful bootstrap keeps the backend-controlled app and loads existing i
   assert.equal(page.app.attributes.role, undefined);
   assert(page.requests.includes("scripts/v22-whatsapp-bot.js"));
   assert(page.requests.includes("scripts/v22-instagram.js"));
-  assert.deepEqual(page.styles, ["styles/v22-client-details.css"]);
+  for (const name of ["agenda-hours", "connections-hub", "inbox-assist", "account-access"])
+    assert(page.requests.includes(`scripts/${name}.js`));
+  assert.deepEqual(page.styles, ["styles/v22-client-details.css", "styles/connections-hub.css"]);
   assert.deepEqual(page.redirects, []);
 });

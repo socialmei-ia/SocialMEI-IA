@@ -12,24 +12,26 @@ Existe no banco efetivo da API o negócio **Brilho&Limpeza Service**, workspace
 **60**, proprietário individual **33**, ativo e sem privilégio de plataforma.
 Ele é o cenário preferencial Brilho Limpeza. Não renomear nem criar duplicata.
 Não há clientes, catálogo, recursos ou reservas desse negócio no inventário.
-O usuário33 permanece preservado. A conta do projeto é o usuário34 e já possui
-acesso owner aditivo ao Brilho60 e à Bella61 na AWS. Login, alternância e recarga
-foram comprovados; não cadastrar novamente nem alterar credenciais do usuário33.
-Os recibos privados e a reversão do vínculo seguem
-[PROJECT-MULTIWORKSPACE-ACCESS.md](PROJECT-MULTIWORKSPACE-ACCESS.md).
+O usuário 33 permanece preservado. A conta do projeto foi cadastrada sob autorização
+como usuário **34** e recebeu `owner` no Brilho/60, sem privilégios globais.
+Conta, credencial e sessões do proprietário 33 permaneceram iguais.
+[Operação produtiva e recibos](PROJECT-ACCESS-PRODUCTION-20261120.md).
 
-Bella Store existe no banco efetivo da API como workspace61, proprietário34.
-A referência histórica de Instagram não comprova uma conexão nessa empresa.
+**Bella Store existe agora no workspace 61**, gerado pelo cadastro oficial da
+conta34 e reaproveitado como autorizado, com perfil comercial persistido.
+A referência histórica de Instagram Bella pertence a outro checkpoint/conexão
+e não comprova uma conexão para o workspace61.
 SorriaOdonto e She Style são fixtures de `test_business_fixture_flows.py`.
 O banco Prisma do worker Instagram/serviço antigo de menu não pôde ser consultado (OperationalError); a
 ausência desses negócios ali permanece não confirmada. Não criar outra Bella.
 
 O [provisionador](MEI-DEMO-PROVISIONER.md) usa as APIs autenticadas existentes.
 [Manifesto histórico preparado](../tools/mei-demo-brilho.prepared.json): workspace60/user33,
-nome exato e data fixa: não é o manifesto atual de aplicação. Os manifestos privados
-`project-brilho-target.json` e `project-bella-target.json` usam usuário34/workspaces60/61.
-Os dois dry-runs autenticados passaram sem conflitos; a carga comercial ainda
-exige aprovação própria. Não enviar senha ou cookie pelo chat. O dry-run autentica e cria
+nome exato e data fixa. Os manifestos produtivos atuais estão na pasta privada:
+`project-brilho-target.json` (34/60) e `project-bella-target.json` (34/61).
+Os dois dry-runs autenticados passaram, sem conflitos detectados ou gravação
+comercial. A aplicação **continua exigindo aprovação própria**.
+Não enviar senha ou cookie pelo chat. O dry-run autentica e cria
 uma sessão, mas não escreve dados comerciais; previews são somente consulta.
 
 Para acesso do professor, usar conta individual e papel `report_viewer` para
@@ -44,9 +46,11 @@ administrativo compartilhado como substituto da conta individual.
 
 ## Pré-requisitos de homologação
 
+Uma prévia **local isolada** da Premium v6.9 já contém Brilho e Bella com dados persistidos, um proprietário comum e conta individual fictícia do professor com acesso aos relatórios dos dois negócios. Troca de empresa, proibição de escrita e revogação foram testadas com API/PostgreSQL reais locais. Acesso e roteiro em [PREMIUM-V69-INTEGRATION.md](PREMIUM-V69-INTEGRATION.md). Essa prévia não representa cadastro, carga ou vínculo de canal em produção.
+
 1. CRM233 já publicado; preservar API17cfd19 e gateway premium.
-2. Aprovar cadastro normal da conta do projeto, Bella e concessão aditiva ao Brilho,
-   preservando proprietário33. Confirmar a nova identidade/destino60 e executar dry-run; aplicar o manifesto aprovado
+2. Acesso da conta34 aos destinos60/61 e dry-runs já concluídos na AWS.
+   Após aprovação específica, revalidar os destinos e aplicar o manifesto aprovado
    com inventário privado e repetir para comprovar ausência de duplicações.
 3. Reconciliar fontes de banco: API/recuperação usam PostgreSQL17 realocado;
    o worker WhatsApp ativo chama essa API por hotfix. O worker Instagram ainda
@@ -132,17 +136,17 @@ Hero, layout, animação, navegação e imagem premium foram preservados.
 
 ## Pendências priorizadas
 
-| Prioridade | Pendência                                     | Estado/evidência atual                                                                |
-| ---------- | --------------------------------------------- | ------------------------------------------------------------------------------------- |
-| P0         | Publicar CRM233 preservando premium           | Publicado20/11: API17cfd19, premium preservado, saúde/site200                         |
-| P0         | Popular Brilho e Bella                        | Usuário34/60/61; dois dry-runs aprovados; aplicação aguarda aprovação própria         |
-| P0         | Fontes de banco e vínculos WhatsApp/Instagram | WhatsApp ativo→API PG17/schema040; IGworker→Prisma indisponível; canais no workspace1 |
-| P0         | Jornada real de reserva e respondedor único   | Corrida WA/IG testada localmente; provedor real/workspace60 pendentes                 |
-| P0         | Segundo negócio independente                  | Bella61 criada; login único e isolamento comprovados na AWS                           |
-| P1         | Professor/equipe e e-mails                    | Fluxos testados sinteticamente; identity disabled; nenhum convite/envio feito         |
-| P1         | Consulta segura e backup atual externo        | Role readonly ausente; pgAdmin aponta n8n; S3 AccessDenied                            |
-| P1         | Relatórios e segurança em produção            | Regressão isolada; homologação do destino/canais após P0                              |
-| P2         | Autoconfiguração/escala/IA adicional          | Preservar contratos; não bloqueia primeira apresentação validada                      |
+| Prioridade | Pendência                                     | Estado/evidência atual                                                                           |
+| ---------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| P0         | Publicar CRM233 preservando premium           | Publicado20/11: API17cfd19, premium preservado, saúde/site200                                    |
+| P0         | Popular Brilho e Bella                        | Conta34/60/61 e dry-runs aprovados; aplicação comercial aguarda aprovação                        |
+| P0         | Fontes de banco e vínculos WhatsApp/Instagram | WhatsApp ativo→API PG17/schema040; IGworker→Prisma indisponível; canais no workspace1            |
+| P0         | Jornada real de reserva e respondedor único   | Corrida WA/IG testada localmente; provedor real/workspace60 pendentes                            |
+| P0         | Segundo negócio independente                  | Bella61, owner34, perfil persistido e troca real AWS aprovados                                   |
+| P1         | Professor/equipe e e-mails                    | Fluxos testados sinteticamente; identity disabled; nenhum convite/envio feito                    |
+| P1         | Consulta segura e backup atual externo        | Role readonly ausente; pgAdmin aponta n8n; S3 AccessDenied                                       |
+| P1         | Relatórios e isolamento                       | Leituras autenticadas60/61 e recusa403 do workspace1 comprovadas; dados demonstrativos pendentes |
+| P2         | Autoconfiguração/escala/IA adicional          | Preservar contratos; não bloqueia primeira apresentação validada                                 |
 
 Estados separados: provisionador implementado/testado; CRM233 publicado;
 API ativa17cfd19; gateway premium preservado. Nenhum desses fatos
@@ -151,5 +155,11 @@ certifica a jornada completa do professor. A evidência desta retomada fica em
 
 Atualização de publicação e testes de saúde/site:
 `docs/evidence/20261120-crm233-publication.json`. O inventário anterior permanece
-como evidência histórica. O dry-run autenticado não foi executado sem a conta
-proprietária; nenhum cliente ou outro dado comercial foi criado.
+como evidência histórica. A conta34 já entrou pelo formulário público e alternou
+entre60/61; ambos os dry-runs passaram. Nenhum cliente ou outro dado comercial
+foi criado. Evidência atual: `docs/evidence/20261120-project-access-production.json`.
+
+Publicação visual v6.9 preparada, sem aplicação: [plano incremental e rollback](PREMIUM-V69-PUBLICACAO-PLANO.md).
+O contrato ainda necessário para canais está em [BRILHO-CHANNEL-HANDOVER-NEXT.md](BRILHO-CHANNEL-HANDOVER-NEXT.md).
+
+Atualiza??o Premium: a tentativa produtiva de46 arquivos foi revertida ap?s falha no smoke. Gateway anterior, API e CRM233 preservados. A candidata corretiva de48 arquivos passou localmente; publica??o e homologa??o real continuam pendentes conforme [plano atual](PREMIUM-V69-PUBLICACAO-PLANO.md). Dados comerciais n?o aplicados.

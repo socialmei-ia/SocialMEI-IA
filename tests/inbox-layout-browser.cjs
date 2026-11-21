@@ -74,6 +74,23 @@ module.exports = async (browser, origin) => {
   try {
     await page.goto(origin + "/frontend/socialmei-app.html#/caixa/me-1");
     await ready();
+    await page.waitForFunction(() =>
+      [...document.scripts].some((s) => s.src.endsWith("v65-shell.js")),
+    );
+    await page.locator("body").click({ position: { x: 5, y: 5 } });
+    await page.keyboard.press("?");
+    await page.getByRole("dialog", { name: "Atalhos do teclado" }).waitFor();
+    assert.equal(await page.locator("dialog.sm-keys[open]").count(), 1);
+    await page.keyboard.press("Escape");
+    await page.locator("dialog.sm-keys").waitFor({ state: "detached" });
+    await context.setOffline(true);
+    await page.locator(".sm-off").waitFor();
+    assert.match(await page.locator(".sm-off").innerText(), /Sem conexão/);
+    await page.locator(".v63-bn").waitFor();
+    assert.match(await page.locator(".v63-bn").innerText(), /confirmar o salvamento no servidor/);
+    await context.setOffline(false);
+    await page.locator(".sm-off.ok").waitFor();
+    await page.locator(".v63-bn").waitFor({ state: "detached" });
     assert.equal(
       await page.locator(".inbox-message-grouped").count(),
       1,
@@ -126,7 +143,10 @@ module.exports = async (browser, origin) => {
           `${width}/${theme} overflow: ${overflow.join(", ")}`,
         );
         assert(
-          await page.getByRole("link", { name: "Voltar para a caixa", exact: true }).isVisible(),
+          (await page
+            .getByRole("link", { name: "Voltar para a caixa", exact: true })
+            .isVisible()) ===
+            width <= 900,
         );
         if (width === 390) {
           const bot = page.locator("[data-wa-bot]");
@@ -152,9 +172,10 @@ module.exports = async (browser, origin) => {
           assert(await refresh.evaluate((el) => el.matches(":focus-visible")));
           assert.equal(await refresh.evaluate((el) => getComputedStyle(el).outlineStyle), "solid");
         }
-        await page.screenshot({
-          path: require("node:path").join(screenshots, `${width}-${theme}.png`),
-        });
+        if (process.env.SOCIALMEI_CAPTURE_SCREENSHOTS === "1")
+          await page.screenshot({
+            path: require("node:path").join(screenshots, `${width}-${theme}.png`),
+          });
       }
     }
     assert.deepEqual(writes, [], "Presentation controls never write to the API");

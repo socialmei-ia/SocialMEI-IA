@@ -58,6 +58,13 @@
     document.body.appendChild(script);
   });
   await window.SocialMEIV22.ready;
+  // Premium behaviors start only after account scope and the application exist.
+  for (const source of ["scripts/v64-caixa.js", "scripts/v65-shell.js"]) {
+    const premium = document.createElement("script");
+    premium.src = source;
+    premium.onerror = () => console.warn("Complemento Premium indisponível.");
+    document.body.appendChild(premium);
+  }
   if (auth.remote) {
     const agenda = document.createElement("script");
     agenda.src = "scripts/v22-agenda.js";
@@ -66,6 +73,10 @@
       appointments.src = "scripts/v22-appointments.js";
       appointments.onerror = () => console.warn("Agendamentos de serviços indisponíveis.");
       document.body.appendChild(appointments);
+      const agendaHours = document.createElement("script");
+      agendaHours.src = "scripts/agenda-hours.js";
+      agendaHours.onerror = () => console.warn("Funcionamento da agenda indisponível.");
+      document.body.appendChild(agendaHours);
     };
     agenda.onerror = () => console.warn("Agenda compartilhada indisponível.");
     document.body.appendChild(agenda);
@@ -101,6 +112,22 @@
     document.body.appendChild(whatsappManagement);
     whatsappReadiness.onerror = () => console.warn("Estado WhatsApp indisponível.");
     document.body.appendChild(whatsappReadiness);
+    const hubStyle = document.createElement("link");
+    hubStyle.rel = "stylesheet";
+    hubStyle.href = "styles/connections-hub.css";
+    document.head.appendChild(hubStyle);
+    const connectionsHub = document.createElement("script");
+    connectionsHub.src = "scripts/connections-hub.js";
+    connectionsHub.onerror = () => console.warn("Central de Conexões indisponível.");
+    document.body.appendChild(connectionsHub);
+    const inboxAssist = document.createElement("script");
+    inboxAssist.src = "scripts/inbox-assist.js";
+    inboxAssist.onerror = () => console.warn("Assistente da Caixa indisponível.");
+    document.body.appendChild(inboxAssist);
+    const accessAccount = document.createElement("script");
+    accessAccount.src = "scripts/account-access.js";
+    accessAccount.onerror = () => console.warn("Acesso e equipe indisponível.");
+    document.body.appendChild(accessAccount);
     const providerAnalysis = document.createElement("script");
     providerAnalysis.src = "scripts/v22-provider-analysis.js";
     providerAnalysis.onerror = () => console.warn("Exibição da análise de mensagens indisponível.");

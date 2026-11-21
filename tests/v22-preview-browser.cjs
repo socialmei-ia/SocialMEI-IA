@@ -80,6 +80,7 @@ async function run() {
         assert((await page.locator("body").innerText()).includes("Cliente exclusivo V22"));
         await page.evaluate(() => go("/oport"));
         const frame = page.frameLocator("iframe");
+        await frame.getByRole("button", { name: "Nova oportunidade", exact: true }).click();
         await frame.locator("#client").selectOption({ label: "Cliente exclusivo V22" });
         await frame.locator("#what").fill("Produto real V22");
         await frame.locator("#form button[type=submit]").click();
@@ -107,11 +108,12 @@ async function run() {
                 await page.frameLocator("#v iframe").locator("body").waitFor();
               const layout = await layoutSnapshot(page);
               assert.equal(layout.scrollWidth > layout.width + 1, false, JSON.stringify(layout));
-              await page.screenshot({
-                path: path.join(out, `${route.replace("/", "-")}-${width}-${theme}.png`),
-                fullPage: true,
-                animations: "disabled",
-              });
+              if (process.env.SOCIALMEI_CAPTURE_SCREENSHOTS === "1")
+                await page.screenshot({
+                  path: path.join(out, `${route.replace("/", "-")}-${width}-${theme}.png`),
+                  fullPage: true,
+                  animations: "disabled",
+                });
             }
           }
       assert.deepEqual(errors, []);

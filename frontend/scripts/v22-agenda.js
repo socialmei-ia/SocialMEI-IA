@@ -289,24 +289,110 @@
     const section = element("section");
     section.className = "pg sm-agenda";
     section.dataset.agenda = "true";
-    const top = element("div");
-    top.className = "row sp wr";
+    const live = s.items
+        .filter((item) => item.status !== "cancelled")
+        .sort((a, b) => Date.parse(a.scheduled_for) - Date.parse(b.scheduled_for)),
+      now = Date.now(),
+      today = localDate(new Date()),
+      kp = {
+        today: live.filter(
+          (i) => i.status === "pending" && localDate(new Date(i.scheduled_for)) === today,
+        ).length,
+        late: live.filter(
+          (i) =>
+            i.status === "pending" &&
+            Date.parse(i.scheduled_for) < now &&
+            localDate(new Date(i.scheduled_for)) !== today,
+        ).length,
+        pend: live.filter((i) => i.status === "pending").length,
+        done: live.filter((i) => i.status === "done").length,
+      };
+    /* cabeçalho */
+    const head = element("header");
+    head.className = "ag-head";
+    const ttl = element("div");
+    ttl.className = "ag-title";
+    const eyebrow = element("span", "Agenda");
+    eyebrow.className = "ag-eyebrow";
+    const sub = element(
+      "p",
+      "Salvos no negócio da sua sessão. Nenhuma mensagem ou notificação externa é enviada.",
+    );
+    sub.className = "ag-sub";
+    ttl.append(eyebrow, element("h1", "Seus horários e lembretes"), sub);
     const add = element("button", "Novo lembrete");
+    add.setAttribute("aria-label", "Novo lembrete");
     add.type = "button";
-    add.className = "btn";
+    add.className = "btn ag-add";
     add.disabled = s.busy || s.phase !== "ready" || !canWrite();
     add.onclick = () => create();
-    top.append(element("h1", "Seus horários e lembretes"), add);
-    section.append(
-      top,
+    head.append(ttl, add);
+    section.append(head);
+    /* indicadores: só contagens reais dos lembretes carregados */
+    if (s.phase === "ready" || live.length) {
+      const k = element("div");
+      k.className = "ag-kpis";
+      k.setAttribute("role", "list");
+      k.setAttribute("aria-label", "Resumo dos lembretes do período");
+      for (const [label, n, tone] of [
+        ["Hoje", kp.today, kp.today ? "on" : ""],
+        ["Atrasados", kp.late, kp.late ? "warn" : ""],
+        ["Pendentes no período", kp.pend, ""],
+        ["Feitos", kp.done, ""],
+      ]) {
+        const c = element("div");
+        c.className = "ag-k";
+        c.dataset.tone = tone;
+        c.setAttribute("role", "listitem");
+        c.append(element("span", label), element("b", n));
+        k.append(c);
+      }
+      section.append(k);
+    }
+    /* cartão: lembretes */
+    const rem = element("section");
+    rem.className = "ag-card ag-rem";
+    rem.setAttribute("aria-labelledby", "ag-rem-h");
+    const rh = element("div");
+    rh.className = "ag-ch";
+    const rt = element("h2", "Lembretes");
+    rt.id = "ag-rem-h";
+    rh.append(
+      rt,
       element(
-        "p",
-        "Salvos no negócio da sua sessão. Nenhuma mensagem ou notificação externa é enviada.",
+        "span",
+        live.length ? live.length + (live.length === 1 ? " no período" : " no período") : "",
       ),
     );
+    rem.append(rh);
     const filters = element("form");
-    filters.className = "row wr";
+    filters.className = "ag-range";
     filters.setAttribute("aria-label", "Período da Agenda");
+    const quick = element("div");
+    quick.className = "ag-quick";
+    quick.setAttribute("role", "group");
+    quick.setAttribute("aria-label", "Períodos rápidos");
+    for (const [label, a0, b0] of [
+      ["Hoje", 0, 0],
+      ["7 dias", 0, 7],
+      ["30 dias", 0, 30],
+      ["90 dias", 0, 90],
+    ]) {
+      const q = element("button", label);
+      q.type = "button";
+      q.className = "ag-chip";
+      q.setAttribute("aria-pressed", String(s.from === shift(a0) && s.to === shift(b0)));
+      q.disabled = s.busy;
+      q.onclick = () => {
+        s.from = shift(a0);
+        s.to = shift(b0);
+        load(s);
+      };
+      quick.append(q);
+    }
+    filters.append(quick);
+    const dates = element("div");
+    dates.className = "ag-dates";
     for (const [name, label] of [
       ["from", "De"],
       ["to", "Até"],
@@ -320,13 +406,14 @@
       input.disabled = s.busy;
       input.onchange = () => (s[name] = input.value);
       wrapper.append(input);
-      filters.append(wrapper);
+      dates.append(wrapper);
     }
     const reload = element("button", "Consultar agenda");
     reload.className = "btn o";
     reload.type = "submit";
     reload.disabled = s.busy;
-    filters.append(reload);
+    dates.append(reload);
+    filters.append(dates);
     filters.onsubmit = (event) => {
       event.preventDefault();
       if (filters.reportValidity()) load(s);
@@ -335,11 +422,13 @@
       "p",
       s.error || (s.phase === "loading" ? "Consultando a Agenda…" : s.message || ""),
     );
+    feedback.className = "ag-fb";
+    if (s.error) feedback.dataset.kind = "err";
     feedback.setAttribute("role", "status");
     feedback.setAttribute("aria-live", "polite");
-    section.append(filters, feedback);
+    rem.append(filters, feedback);
     if (s.phase === "error" && s.items.length)
-      section.append(
+      rem.append(
         element(
           "p",
           "A lista exibida pode estar desatualizada. Consulte novamente antes de alterar.",
@@ -350,32 +439,51 @@
       resume.className = "btn o";
       resume.disabled = s.busy || !canWrite();
       resume.onclick = () => create(true);
-      section.append(resume);
+      rem.append(resume);
     }
     if (s.truncated)
-      section.append(
+      rem.append(
         element("p", "Exibindo até 500 lembretes. Reduza o período para consultar os demais."),
       );
-    let previous;
-    for (const item of s.items.filter((item) => item.status !== "cancelled")) {
+    const list = element("div");
+    list.className = "ag-list";
+    if (s.phase === "loading" && !live.length) {
+      list.setAttribute("aria-hidden", "true");
+      for (let n = 0; n < 3; n++) {
+        const sk = element("div");
+        sk.className = "ag-sk";
+        list.append(sk);
+      }
+    }
+    let previous, group;
+    const rel = { [shift(-1)]: "Ontem", [shift(0)]: "Hoje", [shift(1)]: "Amanhã" };
+    for (const item of live) {
       const date = new Date(item.scheduled_for),
         day = localDate(date);
       if (day !== previous) {
-        section.append(
-          element(
-            "h2",
-            date.toLocaleDateString("pt-BR", {
-              weekday: "long",
-              day: "2-digit",
-              month: "long",
-              year: "numeric",
-            }),
-          ),
+        group = element("div");
+        group.className = "ag-day";
+        const h = element(
+          "h3",
+          date.toLocaleDateString("pt-BR", {
+            weekday: "long",
+            day: "2-digit",
+            month: "long",
+            year: "numeric",
+          }),
         );
+        if (rel[day]) {
+          const tag = element("span", rel[day]);
+          tag.className = "ag-rel";
+          h.append(tag);
+        }
+        group.append(h);
+        list.append(group);
         previous = day;
       }
       const line = element("div");
-      line.className = "agi" + (item.status === "done" ? " done" : "");
+      const late = item.status === "pending" && date.getTime() < now;
+      line.className = "agi" + (item.status === "done" ? " done" : "") + (late ? " late" : "");
       const done = element("button", item.status === "done" ? "✓" : "");
       done.type = "button";
       done.className = "ckb";
@@ -387,8 +495,16 @@
       const details = element("div");
       details.className = "cks";
       details.append(element("strong", item.title));
-      if (item.client_name) details.append(element("p", "Cliente: " + item.client_name));
-      if (item.notes) details.append(element("p", item.notes));
+      if (item.client_name) {
+        const cl = element("p", "Cliente: " + item.client_name);
+        cl.className = "ag-meta";
+        details.append(cl);
+      }
+      if (item.notes) {
+        const nt = element("p", item.notes);
+        nt.className = "ag-meta";
+        details.append(nt);
+      }
       const cancel = element("button", "Cancelar");
       cancel.className = "btn o";
       cancel.type = "button";
@@ -400,10 +516,51 @@
         details,
         cancel,
       );
-      section.append(line);
+      group.append(line);
     }
-    if (s.phase === "ready" && !s.items.filter((item) => item.status !== "cancelled").length)
-      section.append(element("p", "Nenhum lembrete neste período."));
+    if (s.phase === "ready" && !live.length) {
+      const empty = element("div");
+      empty.className = "ag-empty";
+      const ic = element("span");
+      ic.className = "ag-ei";
+      ic.setAttribute("aria-hidden", "true");
+      const ns = "http://www.w3.org/2000/svg",
+        svg = document.createElementNS(ns, "svg"),
+        path = document.createElementNS(ns, "path");
+      for (const [k, v] of Object.entries({
+        viewBox: "0 0 24 24",
+        width: "26",
+        height: "26",
+        fill: "none",
+        stroke: "currentColor",
+        "stroke-width": "1.8",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round",
+      }))
+        svg.setAttribute(k, v);
+      path.setAttribute(
+        "d",
+        "M7 3v3M17 3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z",
+      );
+      svg.append(path);
+      ic.append(svg);
+      const t = element("p", "Nenhum lembrete neste período.");
+      t.className = "ag-et";
+      const hint = element("p", "Crie um lembrete ou amplie o período acima.");
+      hint.className = "ag-eh";
+      empty.append(ic, t, hint);
+      if (canWrite()) {
+        const e2 = element("button", "Novo lembrete");
+        e2.type = "button";
+        e2.className = "btn o";
+        e2.disabled = add.disabled;
+        e2.onclick = () => create();
+        empty.append(e2);
+      }
+      list.append(empty);
+    }
+    rem.append(list);
+    section.append(rem);
     view.replaceChildren(section);
     document.dispatchEvent(new Event("socialmei-agenda-painted"));
   }

@@ -79,6 +79,7 @@ module.exports = async function (browser, origin) {
     assert.equal(await page.locator("#b_seg").isDisabled(), true);
     await page.evaluate(() => go("/oport"));
     const op = page.frameLocator("#v iframe");
+    await op.getByRole("button", { name: "Nova oportunidade", exact: true }).click();
     await op.locator("#client").waitFor();
     assert(!(await op.locator("body").innerText()).includes("OUTRO-USUARIO-PRIVADO"));
     await page.evaluate(() => go("/relatorios"));

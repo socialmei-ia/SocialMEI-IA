@@ -28,16 +28,16 @@ test("V22 native CSS and original reference retain the owner supplied compositio
     assert(originalStyles.join("\n").includes(declaration), declaration);
 });
 
-test("V25 reviewed entry maintenance and original owner assets retain exact approved bytes", () => {
+test("Premium v6.9 approved entry assets and original owner references retain exact bytes", () => {
   // Entry sources include the requested filter, FAQ and reduced-motion fixes.
   // Binary assets and the original reference above remain unchanged.
   const manifest = {
     "frontend/styles/entrada.css":
-      "fc8592ad8d466dc370727596b8c06f6fb4cc5f25789e9a89581454f14a1c5b86",
+      "a1a89aa53f7e80ad32f533783c71a90c6ef678441672973a40d98b93eb19062a",
     "frontend/scripts/hero-wall.js":
-      "22f25ebcffbfda20bbd404f86c161cd31730e800ce2633f31693bda8e15ea18e",
+      "441786b315af2d058a8599a68f4ec570d94f52ca870bd3e86d11a34aa18251b3",
     "frontend/scripts/sections-anim.js":
-      "39afeb6e60c7b3fae02a50aaa39b3c046b329f767fb95ee561d508442eb39f2e",
+      "58a1e4269bbcf1e00ed0a9e6c453e05113e86d2604d6ea6d39961ea48f4dc4ce",
     "frontend/assets/inter-variable.woff2":
       "3100e775e8616cd2611beecfa23a4263d7037586789b43f035236a2e6fbd4c62",
     "frontend/assets/logo-socialmei.png":

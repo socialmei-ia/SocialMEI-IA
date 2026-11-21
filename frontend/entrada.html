@@ -3,10 +3,36 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SocialMEI.IA · Seu negócio, mais simples</title>
-<meta name="description" content="Conversas, clientes, vendas e divulgação do seu negócio em um só lugar. Demonstração local, sem conta real.">
-<link rel="icon" type="image/png" href="assets/brand-icon.png">
+<title>SocialMEI-IA | Seu negócio, mais simples</title>
+<meta name="description" content="Conversas, clientes, vendas e divulgação do seu negócio em um só lugar.">
+<meta name="theme-color" content="#0a5cf5">
+<meta name="color-scheme" content="light dark">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<link rel="canonical" href="https://socialmei-ia.54-94-213-7.sslip.io/">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="assets/favicon-64.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:site_name" content="SocialMEI.IA">
+<meta property="og:title" content="SocialMEI.IA · Seu negócio, mais simples">
+<meta property="og:description" content="Conversas, clientes, vendas e divulgação do seu negócio em um só lugar.">
+<meta property="og:url" content="https://socialmei-ia.54-94-213-7.sslip.io/">
+<meta property="og:image" content="https://socialmei-ia.54-94-213-7.sslip.io/assets/socialmei-og.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="SocialMEI.IA, gestão simples para pequenos negócios">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="SocialMEI.IA · Seu negócio, mais simples">
+<meta name="twitter:description" content="Conversas, clientes, vendas e divulgação do seu negócio em um só lugar.">
 <link rel="stylesheet" href="styles/entrada.css">
+<link rel="stylesheet" href="styles/landing-v2.css">
+<link rel="stylesheet" href="styles/hero-v3.css">
+<link rel="stylesheet" href="styles/sections-v3.css">
+<link rel="stylesheet" href="styles/premium-v5.css">
+<link rel="stylesheet" href="styles/landing-refino-v62.css">
+<link rel="stylesheet" href="styles/hero-live-v65.css">
 <script>
 /* Aplica tema e modo calmo antes de desenhar, para não piscar. */
 (function(){try{var t=localStorage.getItem('smei-theme')||'auto',d=t==='escuro'||(t==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);
@@ -56,8 +82,7 @@ var c=localStorage.getItem('smei-brand'),m={v:'#0e7a43',r:'#6a46d9',k:'#c2185b',
     <a href="#produto" data-go="produto">Produto</a>
     <a href="#paramei" data-go="paramei">Para MEI</a>
     <a href="#como" data-go="como">Como funciona</a>
-    <a href="#ia" data-go="ia">Assistente</a>
-    <a href="#demo" data-go="demo">Demonstração</a>
+    <a href="#demo" data-go="demo">Experimente</a>
     <a href="#precos" data-go="precos">Planos</a>
     <a href="#perguntas" data-go="perguntas">Perguntas</a>
    </nav>
@@ -72,166 +97,392 @@ var c=localStorage.getItem('smei-brand'),m={v:'#0e7a43',r:'#6a46d9',k:'#c2185b',
  </header>
 
  <main id="conteudo" tabindex="-1">
-  <section class="hero" aria-labelledby="h-hero">
+  <section class="hero hx" aria-labelledby="h-hero">
    <div class="hfx" aria-hidden="true"></div>
-   <div class="hero-top">
-    <span class="badge hr" style="--d:40ms"><i aria-hidden="true"></i>Demonstração local, sem conta real</span>
-    <h1 id="h-hero"><span class="l hr" style="--d:120ms"><span class="w" style="--i:0">Converse.</span> <span class="w" style="--i:1">Venda.</span></span><span class="l d hr" style="--d:200ms"><span class="w" style="--i:2">Nós</span> <span class="w" style="--i:3">organizamos</span> <span class="w" style="--i:4">o</span> <span class="w mkw" style="--i:5">resto.<i class="mk" aria-hidden="true"></i></span></span></h1>
-    <p class="lead hr" style="--d:300ms">Conversas, clientes e vendas num lugar só. Mais tempo para cuidar do seu negócio.</p>
-    <div class="cmd hr" style="--d:380ms">
-     <span class="cmd-i" aria-hidden="true"><svg class="i" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-spark"/></svg></span>
-     <span class="sr">O que vamos cuidar hoje?</span>
-     <span class="cmd-t" id="cmdT" aria-hidden="true">O que vamos cuidar hoje?</span>
-     <a class="btn lg" href="#/cadastro">Criar meu espaço <svg class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-arrow"/></svg></a>
+   <div class="hx-in">
+    <div class="hero-top">
+     <p class="brand-line hr" style="--d:20ms"><img src="assets/icon-192.png" alt="" width="34" height="34"><span class="bn">SocialMEI-IA</span><span class="bd">para MEIs e pequenos negócios</span></p>
+     <h1 id="h-hero"><span class="l hr" style="--d:120ms"><span class="w" style="--i:0">Do</span> <span class="w" style="--i:1">“oi”</span> <span class="w" style="--i:2">ao</span> <span class="w" style="--i:3">caixa,</span></span><span class="l d hr" style="--d:200ms"><span class="w" style="--i:4">seu</span> <span class="w" style="--i:5">negócio</span> <span class="w" style="--i:6">num</span> <span class="w mkw" style="--i:7">lugar&nbsp;só.<i class="mk" aria-hidden="true"></i></span></span></h1>
+     <p class="lead hr" style="--d:300ms">WhatsApp, Instagram, clientes, vendas e dinheiro num lugar só, para você saber quem atender, o que cobrar e como o mês está indo.</p>
+     <div class="hx-ramo hr" style="--d:340ms" role="group" aria-labelledby="hxRamoL">
+      <p class="hx-ramo-l" id="hxRamoL">O que você faz? <small>Escolha e o mural se ajusta ao seu ramo.</small></p>
+      <div class="hx-chips"><button class="hx-chip" type="button" data-ramo="comida" aria-pressed="false">Vendo doces</button><button class="hx-chip" type="button" data-ramo="moda" aria-pressed="false">Loja de roupas</button><button class="hx-chip" type="button" data-ramo="beleza" aria-pressed="false">Beleza</button><button class="hx-chip" type="button" data-ramo="casa" aria-pressed="false">Serviços e reparos</button><button class="hx-chip" type="button" data-ramo="presentes" aria-pressed="false">Presentes e artesanato</button><button class="hx-chip" type="button" data-ramo="outra" aria-pressed="false">Outro ramo</button></div>
+      <p class="hx-ramo-st" id="hxRamoSt" aria-live="polite"></p>
+     </div>
+     <div class="cmd hr" style="--d:380ms">
+      <a class="btn lg" href="#/cadastro">Criar meu espaço <svg class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-arrow"/></svg></a>
+      <a class="btn o lg ghost" href="#historia" data-go="historia">Ver como funciona</a>
+     </div>
+     <div class="rail hr" style="--d:520ms"><span>Pensado para o seu dia a dia com</span>
+      <span class="pill"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-wa"/></svg>WhatsApp</span><span class="pill"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-ig"/></svg>Instagram</span><span class="pill"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-pix"/></svg>Pix</span><span class="pill"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-spark"/></svg>Assistente de IA</span>
+     </div>
     </div>
-    <div class="cta2 hr" style="--d:440ms">
-     <a class="btn o" href="socialmei-app.html#/inicio" data-demo-app>Experimentar sem cadastro</a>
-     <div class="ramo"><span id="ramoL">Seu ramo</span><span class="ramo-s"><select id="ramo" aria-labelledby="ramoL">
-      <option value="presentes" data-d="Peças feitas à mão">Presentes e artesanato</option><option value="comida" data-d="Bolos, doces, marmitas">Alimentação e confeitaria</option><option value="beleza" data-d="Cabelo, unhas, maquiagem">Beleza e estética</option><option value="moda" data-d="Roupas, bolsas, bijuterias">Moda e acessórios</option><option value="casa" data-d="Pequenas obras e serviços">Casa, reparos e limpeza</option>
-     </select></span></div>
-    </div>
-    <p class="sub-cta hr" style="--d:470ms">Plano Grátis, sem cartão. <a href="#precos" data-go="precos">Ver os planos</a></p>
-    <p class="sr">Exemplo ilustrativo: a Lia pergunta sobre um kit, a IA sugere uma resposta que você revisa antes de enviar, a venda é registrada e o recibo fica pronto. Nada é enviado de verdade.</p>
-    <div class="chips hr" style="--d:500ms" role="group" aria-label="Filtrar telas de exemplo">
-     <button type="button" aria-pressed="true" data-f="tudo">Tudo</button><button type="button" aria-pressed="false" data-f="conversas">Conversas</button><button type="button" aria-pressed="false" data-f="clientes">Clientes</button><button type="button" aria-pressed="false" data-f="vendas">Vendas</button><button type="button" aria-pressed="false" data-f="dinheiro">Dinheiro</button><button type="button" aria-pressed="false" data-f="divulgacao">Divulgação</button>
-    </div>
-   </div>
-   <div class="wall-w hr" style="--d:560ms"><div class="wall" id="wall" role="group" aria-label="Telas de exemplo do app. Dados fictícios."></div><div class="hwt" id="hwToast" aria-hidden="true"></div><div class="sg" id="stage" aria-hidden="true"></div></div>
-   <div class="rail hr" style="--d:700ms"><span>Pensado para o seu dia a dia com</span>
-    <span class="pill"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-wa"/></svg>WhatsApp</span><span class="pill"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-ig"/></svg>Instagram</span><span class="pill"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-pix"/></svg>Pix</span><span class="pill"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-spark"/></svg>Assistente de IA</span>
-    <span class="tag-ex">Telas ilustrativas: nenhuma conexão real é feita aqui.</span>
+    <div class="wall-w hr" style="--d:300ms"><div class="wall-t"><div class="wall" id="wall" role="img" aria-label="Telas ilustrativas do app subindo devagar: Caixa Unificada, Clientes, Vendas, Financeiro e Divulgação."></div></div><p class="tag-ex">Telas ilustrativas do app</p></div>
    </div>
   </section>
 
-  <section class="sec" id="produto" aria-labelledby="h-prod">
+  <!-- ===== SEÇÕES v3 (história, produto, para MEI, como funciona, demonstração) · styles/sections-v3.css + scripts/sections-v3.js ===== -->
+  <section class="sx sx-hist" id="historia" aria-labelledby="h-hist" data-sx>
+   <div class="sx-bg" aria-hidden="true"></div>
+   <div class="wrap sx-hist-grid" id="hist">
+    <div class="sx-hist-text">
+     <header class="sx-head">
+      <span class="kick rv">A história de uma venda</span>
+      <h2 id="h-hist" class="sx-h2 rv" style="--d:60ms">Uma conversa vira cliente, venda e <span class="t2">dinheiro no <span class="hl">caixa</span>.</span></h2>
+      <p class="sx-sub rv" style="--d:120ms">No SocialMEI-IA, cada área continua a história que começou no atendimento. Toque nas etapas e veja como um mesmo cliente aparece em cada uma.</p>
+     </header>
+     <div class="sx-tabs" role="tablist" aria-orientation="vertical" aria-label="Etapas da história de uma venda"></div>
+     <p class="tag-ex sx-note">Telas e nomes ilustrativos, para mostrar como as áreas se relacionam.</p>
+    </div>
+    <div class="sx-stage" id="hStage">
+     <div class="sx-stage-fx" aria-hidden="true"></div>
+     <div class="sx-ghost g1" aria-hidden="true">
+      <div class="sx-scr"><div class="sx-scr-h">Clientes<small>3 de 48</small></div>
+       <div class="ro"><span class="av" style="background:#dcf3df;color:#1e6a31">L</span><div><b>Lyly</b><small>Última compra R$ 120</small></div></div>
+       <div class="ro"><span class="av" style="background:#e4dcff;color:#4a3aa8">E</span><div><b>Emilly</b><small>3 compras</small></div></div>
+       <div class="ro"><span class="av" style="background:#dbe8ff;color:#1d4fb8">R</span><div><b>Richard</b><small>Pediu orçamento</small></div></div>
+      </div>
+     </div>
+     <div class="sx-ghost g2" aria-hidden="true">
+      <div class="sx-scr"><div class="sx-scr-h">Esta semana</div>
+       <div class="m">Entrou</div><div class="big">R$ 640</div>
+       <div class="sx-bars"><i style="--h:30%"></i><i style="--h:46%"></i><i style="--h:62%"></i><i style="--h:40%"></i><i style="--h:88%"></i><i class="hi" style="--h:100%"></i><i style="--h:54%"></i></div>
+      </div>
+     </div>
+     <div class="sx-phone" id="h-panel" role="tabpanel" aria-live="polite" tabindex="0">
+      <div class="sx-phone-in">
+       <div class="sx-status" aria-hidden="true"><span>9:41</span><i></i><span class="sx-sig"><b></b><b></b><b></b></span></div>
+       <div class="sx-apptop" aria-hidden="true"><span class="sx-area" id="hArea">Caixa Unificada · WhatsApp</span></div>
+       <div class="sx-thread" aria-hidden="true">
+        <span class="av" style="background:#e4dcff;color:#4a3aa8">E</span>
+        <div class="sx-th-t"><b>Emilly</b><small id="hThread">Kit de presente</small></div>
+        <ol class="sx-dots"><li></li><li></li><li></li><li></li><li></li></ol>
+       </div>
+       <div class="sx-screens" aria-hidden="true">
+        <div class="sx-sc" data-sc="conversa">
+         <div class="sx-day" style="--i:0">Hoje</div>
+         <div class="bb sx-in" style="--i:1">Posso pagar no Pix?</div>
+         <div class="bb t sx-out" style="--i:2">Pode ser Pix ou na retirada.</div>
+         <span class="sx-typing" style="--i:3"><i></i><i></i><i></i></span>
+         <div class="sx-ctx" style="--i:4"><small>Cliente ao lado da mensagem</small><div><span class="av" style="background:#e4dcff;color:#4a3aa8">E</span><span><b>Emilly</b><em>WhatsApp</em></span></div></div>
+         <div class="sx-comp" style="--i:5"><span>Escreva sua resposta</span><svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-arrow"/></svg></div>
+        </div>
+        <div class="sx-sc" data-sc="oportunidade">
+         <div class="sx-lbl" style="--i:0">Quem merece um retorno hoje</div>
+         <div class="ro sx-hot" style="--i:1"><span class="av" style="background:#e4dcff;color:#4a3aa8">E</span><div><b>Emilly</b><small>Kit de presente · R$ 180,00</small></div><em class="y sx-pulse">Quente</em></div>
+         <div class="ro" style="--i:2"><span class="av" style="background:#dbe8ff;color:#1d4fb8">R</span><div><b>Richard</b><small>Orçamento</small></div><em class="b">Morno</em></div>
+         <div class="ro" style="--i:3"><span class="av" style="background:#dcf3df;color:#1e6a31">L</span><div><b>Lyly</b><small>Perguntou o bairro</small></div><em class="f">Frio</em></div>
+         <div class="sx-ctx" style="--i:4"><small>Próximo passo</small><div><span><b>Responder a Emilly hoje</b><em>Ela está perto de comprar</em></span></div></div>
+        </div>
+        <div class="sx-sc" data-sc="venda">
+         <div class="sx-lbl" style="--i:0">Venda #1042</div>
+         <div class="big" style="--i:1">R$ 180,00</div>
+         <div class="ro" style="--i:2"><span class="av" style="background:#e4dcff;color:#4a3aa8">E</span><div><b>Emilly</b><small>Cliente</small></div></div>
+         <div class="ro" style="--i:3"><div><b>1 kit de presente</b><small>Itens</small></div><em class="b">R$ 180</em></div>
+         <ol class="sx-trail" style="--i:4"><li class="on"><i></i>Pedido</li><li><i></i>Pix</li><li><i></i>Recebido</li></ol>
+        </div>
+        <div class="sx-sc" data-sc="pagamento">
+         <div class="sx-ok" style="--i:0"><span><svg class="i" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg></span></div>
+         <div class="sx-lbl c" style="--i:1">Pix recebido</div>
+         <div class="big c" style="--i:2">R$ 180,00</div>
+         <div class="ro" style="--i:3"><b>Forma</b><em class="b">Pix</em></div>
+         <div class="ro" style="--i:4"><b>Situação</b><em>Recebido</em></div>
+         <ol class="sx-trail" style="--i:5"><li class="on"><i></i>Pedido</li><li class="on"><i></i>Pix</li><li class="on"><i></i>Recebido</li></ol>
+        </div>
+        <div class="sx-sc" data-sc="financeiro">
+         <div class="sx-lbl" style="--i:0">Saldo do mês</div>
+         <div class="big" style="--i:1">R$ 260,00</div>
+         <div class="ro sx-new" style="--i:2"><div><b>Entrou R$ 180,00</b><small>Origem: Venda #1042</small></div><em>+ R$ 180</em></div>
+         <div class="sx-chart" style="--i:3"><div class="sx-bars"><i style="--h:30%"></i><i style="--h:46%"></i><i style="--h:62%"></i><i style="--h:40%"></i><i style="--h:56%"></i><i class="hi" style="--h:100%"></i><i style="--h:54%"></i></div><div class="sx-days"><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span class="hi">S</span><span>D</span></div></div>
+        </div>
+       </div>
+       <button class="sx-next" type="button" id="hNext" hidden>Próxima etapa <svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+       <p class="sr" id="h-live"></p>
+      </div>
+     </div>
+    </div>
+   </div>
+  </section>
+
+  <section class="sx sx-alt sx-prod" id="produto" aria-labelledby="h-prod" data-sx>
+   <div class="sx-bg" aria-hidden="true"></div>
    <div class="wrap">
-    <span class="kick rv">Tudo em um lugar</span>
-    <h2 id="h-prod" class="rv" style="--d:60ms;margin-top:14px">Seu negócio tem muitas partes. Agora elas conversam entre si.</h2>
-    <p class="sub rv" style="--d:120ms">Cada área guarda o que importa e continua a história que começou na conversa com o cliente.</p>
-    <div class="grid3">
-     <article class="card rv"><span class="ico"><svg class="i" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-chat"/></svg></span><h3>Caixa Unificada</h3><p>WhatsApp e Instagram na mesma tela, com o cliente ao lado de cada mensagem.</p><div class="mini"><span>Ana (exemplo)</span><b>3 novas</b></div></article>
-     <article class="card y rv" style="--d:80ms"><span class="ico"><svg class="i" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-users"/></svg></span><h3>Clientes</h3><p>Mais que um contato: o histórico para atender melhor no próximo “oi”.</p><div class="mini"><span>Última compra</span><b>R$ 120</b></div></article>
-     <article class="card g rv" style="--d:160ms"><span class="ico"><svg class="i" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-cart"/></svg></span><h3>Vendas</h3><p>Do pedido ao recebido: cliente, itens e pagamento no mesmo registro.</p><div class="mini"><span>Venda #1042 · Pix</span><b>R$ 380,00</b></div></article>
-     <article class="card rv"><span class="ico"><svg class="i" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-bars"/></svg></span><h3>Financeiro e relatórios</h3><p>O que entrou, o que saiu e como o mês está indo, sem planilha complicada.</p><div class="mini"><span>Saldo do exemplo</span><b>R$ 260</b></div></article>
-     <article class="card y rv" style="--d:80ms"><span class="ico"><svg class="i" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-spark"/></svg></span><h3>Oportunidades</h3><p>Veja quem está pensando em comprar e quem merece um retorno hoje.</p><div class="mini"><span>Interesse</span><b>Quente</b></div></article>
-     <article class="card g rv" style="--d:160ms"><span class="ico"><svg class="i" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-mega"/></svg></span><h3>Divulgação</h3><p>Prepare Stories, posts e Reels com a cara do seu negócio, no seu ritmo.</p><div class="mini"><span>Ideia de hoje</span><b>Story</b></div></article>
+    <header class="sx-head">
+     <span class="kick rv">Tudo em um lugar</span>
+     <h2 id="h-prod" class="sx-h2 rv" style="--d:60ms">Cada parte do negócio, <span class="t2">no seu <span class="hl">lugar</span>.</span></h2>
+     <p class="sx-sub rv" style="--d:120ms">Cada área guarda o que importa e continua a história que começou na conversa com o cliente.</p>
+    </header>
+    <div class="pvx" id="pvx">
+     <div class="pv-stage" id="bento">
+     <article class="sx-bc sx-b-caixa pv-panel on" role="tabpanel" id="pvp-caixa" aria-labelledby="pvt-caixa">
+      <div class="sx-bc-txt"><span class="sx-ico"><svg class="i" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-chat"/></svg></span><h3>Caixa Unificada</h3><p>WhatsApp e Instagram na mesma tela, com o cliente ao lado de cada mensagem.</p><button class="pv-next" type="button" data-pv-next>Seguir para Clientes <svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-arrow"/></svg></button></div>
+      <div class="sx-bc-vis" aria-hidden="true">
+       <div class="sx-scr sx-win">
+        <div class="sx-win-bar"><i></i><i></i><i></i><span>Caixa Unificada</span><div class="sx-pills"><b class="on">Todas</b><b>WhatsApp</b><b>Instagram</b></div></div>
+        <div class="sx-win-body">
+         <div class="sx-list">
+          <div class="sx-li on"><span class="av" style="background:#e4dcff;color:#4a3aa8">E</span><div><b>Emilly</b><small>Posso pagar no Pix?</small></div><u></u></div>
+          <div class="sx-li"><span class="av" style="background:#dcf3df;color:#1e6a31">L</span><div><b>Lyly</b><small>Você atende na minha cidade?</small></div><s>IG</s></div>
+          <div class="sx-li"><span class="av" style="background:#fde4cf;color:#9a4a0a">M</span><div><b>Maiccon</b><small>Ainda tem a camisa azul no M?</small></div><s>IG</s></div>
+         </div>
+         <div class="sx-chatp">
+          <div class="cd-h"><span class="av" style="background:#e4dcff;color:#4a3aa8">E</span>Emilly<small>WhatsApp</small></div>
+          <div class="bb">Posso pagar no Pix?</div>
+          <div class="bb t">Pode ser Pix ou na retirada.</div>
+          <div class="bb">Perfeito, retiro amanhã!</div>
+          <div class="ia"><b>Sugestão da IA</b>Oi, Emilly! Pode ser Pix. Separo o kit para você?<span>Revisar e enviar</span></div>
+         </div>
+         <div class="sx-side">
+          <small>Cliente</small><b>Emilly</b>
+          <div class="ro"><div><b>3 compras</b><small>Cliente desde março</small></div></div>
+          <div class="ro"><div><b>Kit de presente</b><small>Interesse</small></div><em class="y">Quente</em></div>
+         </div>
+        </div>
+       </div>
+      </div>
+     </article>
+     <article class="sx-bc sx-b-cli pv-panel" role="tabpanel" id="pvp-clientes" aria-labelledby="pvt-clientes">
+      <div class="sx-bc-txt"><span class="sx-ico y"><svg class="i" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-users"/></svg></span><h3>Clientes</h3><p>Mais que um contato: o histórico para atender melhor no próximo “oi”.</p><button class="pv-next" type="button" data-pv-next>Seguir para Oportunidades <svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-arrow"/></svg></button></div>
+      <div class="sx-bc-vis" aria-hidden="true">
+       <div class="sx-scr">
+        <div class="sx-scr-h"><span class="av" style="background:#e4dcff;color:#4a3aa8">E</span>Emilly<small>3 compras</small></div>
+        <ol class="sx-hist">
+         <li><i></i><div><b>Conversa no WhatsApp</b><small>“Posso pagar no Pix?”</small></div></li>
+         <li><i></i><div><b>Oportunidade quente</b><small>Kit de presente</small></div></li>
+         <li><i></i><div><b>Venda #1042</b><small>R$ 180,00 · Pix</small></div></li>
+        </ol>
+       </div>
+      </div>
+     </article>
+     <article class="sx-bc sx-b-opo pv-panel" role="tabpanel" id="pvp-oportunidades" aria-labelledby="pvt-oportunidades">
+      <div class="sx-bc-txt"><span class="sx-ico y"><svg class="i" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-spark"/></svg></span><h3>Oportunidades</h3><p>Veja quem está pensando em comprar e quem merece um retorno hoje.</p><button class="pv-next" type="button" data-pv-next>Seguir para Vendas <svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-arrow"/></svg></button></div>
+      <div class="sx-bc-vis" aria-hidden="true">
+       <div class="sx-scr">
+        <div class="ro"><span class="av" style="background:#e4dcff;color:#4a3aa8">E</span><div><b>Emilly</b><small>Kit de presente</small></div><em class="y">Quente</em></div>
+        <div class="ro"><span class="av" style="background:#dbe8ff;color:#1d4fb8">R</span><div><b>Richard</b><small>Orçamento</small></div><em class="b">Morno</em></div>
+        <div class="ro"><span class="av" style="background:#dcf3df;color:#1e6a31">L</span><div><b>Lyly</b><small>Perguntou o bairro</small></div><em class="f">Frio</em></div>
+       </div>
+      </div>
+     </article>
+     <article class="sx-bc sx-b-ven pv-panel" role="tabpanel" id="pvp-vendas" aria-labelledby="pvt-vendas">
+      <div class="sx-bc-txt"><span class="sx-ico g"><svg class="i" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-cart"/></svg></span><h3>Vendas</h3><p>Do pedido ao recebido: cliente, itens e pagamento no mesmo registro.</p><button class="pv-next" type="button" data-pv-next>Seguir para Financeiro e relatórios <svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-arrow"/></svg></button></div>
+      <div class="sx-bc-vis" aria-hidden="true">
+       <div class="sx-scr">
+        <div class="sx-scr-h">Venda #1042<small>Pix</small></div>
+        <div class="big">R$ 180,00</div>
+        <ol class="sx-trail"><li class="on"><i></i>Pedido</li><li class="on"><i></i>Pix</li><li class="on"><i></i>Recebido</li></ol>
+       </div>
+      </div>
+     </article>
+     <article class="sx-bc sx-b-fin pv-panel" role="tabpanel" id="pvp-financeiro" aria-labelledby="pvt-financeiro">
+      <div class="sx-bc-txt"><span class="sx-ico"><svg class="i" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-bars"/></svg></span><h3>Financeiro e relatórios</h3><p>O que entrou, o que saiu e como o mês está indo, sem planilha complicada.</p><button class="pv-next" type="button" data-pv-next>Seguir para Divulgação <svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-arrow"/></svg></button></div>
+      <div class="sx-bc-vis" aria-hidden="true">
+       <div class="sx-scr">
+        <div class="sx-scr-h">Este mês<small>Saldo do mês</small></div>
+        <div class="sx-fin"><div><div class="big">R$ 260</div><div class="sx-kv"><span><i class="k-in"></i>Entrou <b>R$ 640</b></span><span><i class="k-out"></i>Saiu <b>R$ 380</b></span></div></div>
+         <div class="sx-chart"><div class="sx-bars"><i style="--h:30%"></i><i style="--h:46%"></i><i style="--h:62%"></i><i style="--h:40%"></i><i style="--h:88%"></i><i class="hi" style="--h:100%"><u>Venda #1042</u></i><i style="--h:54%"></i></div><div class="sx-days"><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span class="hi">S</span><span>D</span></div></div></div>
+       </div>
+      </div>
+     </article>
+     <article class="sx-bc sx-b-div pv-panel" role="tabpanel" id="pvp-divulgacao" aria-labelledby="pvt-divulgacao">
+      <div class="sx-bc-txt"><span class="sx-ico g"><svg class="i" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-mega"/></svg></span><h3>Divulgação</h3><p>Prepare Stories, posts e Reels com a cara do seu negócio, no seu ritmo.</p><button class="pv-next" type="button" data-pv-next>Voltar ao início <svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-arrow"/></svg></button></div>
+      <div class="sx-bc-vis" aria-hidden="true">
+       <div class="sx-scr">
+        <div class="sx-scr-h">Ideia de hoje<small>Rascunho</small></div>
+        <div class="tile"><small>Story</small>Kit de presente do mês</div>
+        <div class="ro"><b>Revisar texto</b><em class="b">Abrir</em></div>
+       </div>
+      </div>
+     </article>
+     </div>
+     <div class="pv-idx" role="tablist" aria-label="Áreas do negócio" aria-orientation="vertical">
+      <button class="pv-t" type="button" role="tab" id="pvt-caixa" aria-controls="pvp-caixa" aria-selected="true" tabindex="0"><span class="pv-n" aria-hidden="true">01</span><span class="pv-tt"><b>Caixa Unificada</b><small>A conversa chega com o cliente ao lado</small></span><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+      <button class="pv-t" type="button" role="tab" id="pvt-clientes" aria-controls="pvp-clientes" aria-selected="false" tabindex="-1"><span class="pv-n" aria-hidden="true">02</span><span class="pv-tt"><b>Clientes</b><small>O histórico de cada pessoa</small></span><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+      <button class="pv-t" type="button" role="tab" id="pvt-oportunidades" aria-controls="pvp-oportunidades" aria-selected="false" tabindex="-1"><span class="pv-n" aria-hidden="true">03</span><span class="pv-tt"><b>Oportunidades</b><small>Quem merece um retorno hoje</small></span><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+      <button class="pv-t" type="button" role="tab" id="pvt-vendas" aria-controls="pvp-vendas" aria-selected="false" tabindex="-1"><span class="pv-n" aria-hidden="true">04</span><span class="pv-tt"><b>Vendas</b><small>Do pedido ao recebido</small></span><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+      <button class="pv-t" type="button" role="tab" id="pvt-financeiro" aria-controls="pvp-financeiro" aria-selected="false" tabindex="-1"><span class="pv-n" aria-hidden="true">05</span><span class="pv-tt"><b>Financeiro e relatórios</b><small>O que entrou e o que saiu</small></span><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+      <button class="pv-t" type="button" role="tab" id="pvt-divulgacao" aria-controls="pvp-divulgacao" aria-selected="false" tabindex="-1"><span class="pv-n" aria-hidden="true">06</span><span class="pv-tt"><b>Divulgação</b><small>Stories, posts e Reels</small></span><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+      </div>
     </div>
-    <p class="tag-ex rv" style="margin-top:22px">Personagens e valores fictícios: exemplos locais, sem envio de dados.</p>
+    <p class="tag-ex sx-note rv">Nomes e valores ilustrativos.</p>
    </div>
   </section>
 
-  <section class="sec alt" id="paramei" aria-labelledby="h-mei">
-   <div class="wrap split">
-    <div>
+  <section class="sx sx-mei" id="paramei" aria-labelledby="h-mei" data-sx>
+   <div class="sx-bg" aria-hidden="true"></div>
+   <div class="wrap sx-mei-grid">
+    <header class="sx-head sx-mei-head">
      <span class="kick rv">Para quem é MEI</span>
-     <h2 id="h-mei" class="rv" style="--d:60ms;margin-top:14px">Feito para quem faz tudo sozinho (ou quase).</h2>
-     <ul class="ticks">
-      <li class="rv" style="--d:100ms"><span class="tk"><svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><use href="#i-check"/></svg></span><div><b>Palavras do dia a dia</b><span>Nada de termos técnicos. Se você sabe usar o WhatsApp, sabe usar o SocialMEI.</span></div></li>
-      <li class="rv" style="--d:160ms"><span class="tk"><svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><use href="#i-check"/></svg></span><div><b>No celular e no computador</b><span>Responda uma cliente na fila do mercado e confira os números à noite.</span></div></li>
-      <li class="rv" style="--d:220ms"><span class="tk"><svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><use href="#i-check"/></svg></span><div><b>Você no comando</b><span>Sugestões da IA sempre pedem sua revisão. Nada é enviado sozinho.</span></div></li>
-      <li class="rv" style="--d:280ms"><span class="tk"><svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><use href="#i-check"/></svg></span><div><b>Um jeito calmo de trabalhar</b><span>Modo calmo, tema escuro e letras maiores quando você precisar.</span></div></li>
-     </ul>
-    </div>
-    <div class="panel rv" style="--d:120ms" aria-label="Exemplo de um dia no negócio">
-     <span class="chip y">Para hoje · exemplo</span>
-     <div style="display:grid;gap:10px;margin-top:16px">
-      <div class="node"><small>1 · Responder</small><b>Lia pergunta como pagar o kit</b></div>
-      <div class="node"><small>2 · Cobrar</small><b>Bia · R$ 180,00 · venda #93003</b></div>
-      <div class="node"><small>3 · Repor</small><b>Vela artesanal · restam 4 un.</b></div>
+     <h2 id="h-mei" class="sx-h2 rv" style="--d:60ms">Feito para quem faz tudo sozinho <span class="t2">(ou <span class="hl">quase</span>).</span></h2>
+     <p class="sub sx-sub rv" style="--d:100ms">Atender, cobrar e repor estoque costumam cair no mesmo dia, nas mãos de uma pessoa só. O SocialMEI-IA foi pensado para esse ritmo.</p>
+    </header>
+    <div class="sx-today-w rv" style="--d:120ms">
+     <div class="sx-scr sx-today" role="group" aria-label="Um dia no negócio" id="hoje">
+      <div class="sx-scr-h"><span class="chip y">Para hoje</span><small>Toque para marcar</small><button type="button" class="lk sx-replay" id="hojeRep" aria-label="Repetir a animação">Repetir</button></div>
+      <ul class="sx-todo">
+       <li><label><input type="checkbox"><span class="bx"><svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg></span><span class="tx"><small>1 · Responder</small><b>Emilly pergunta como pagar o kit</b></span><em class="p0">Agora</em><em class="p1">Feito</em></label></li>
+       <li><label><input type="checkbox"><span class="bx"><svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg></span><span class="tx"><small>2 · Cobrar</small><b>Tawanny · R$ 180,00 · venda #1043</b></span><em class="p0">A cobrar</em><em class="p1">Feito</em></label></li>
+       <li><label><input type="checkbox"><span class="bx"><svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg></span><span class="tx"><small>3 · Repor</small><b>Vela artesanal · restam 4 un.</b></span><em class="p0">Estoque</em><em class="p1">Feito</em></label></li>
+      </ul>
+      <p class="m sx-today-n">É assim que o Início do app resume o que merece atenção, sem te soterrar de avisos.</p>
      </div>
-     <p class="m" style="margin-top:16px;font-size:14px">É assim que o Início do app resume o que merece atenção, sem te soterrar de avisos.</p>
     </div>
+    <ul class="sx-benef">
+     <li class="sx-bf rv" style="--d:100ms"><div class="sx-bf-vis" aria-hidden="true"><div class="bb">Oi! Tudo bem?</div><div class="bb t">Tudo certo por aqui.</div></div><span class="sx-bf-n">01</span><b>Palavras do dia a dia</b><span>Nada de termos técnicos. Se você sabe usar o WhatsApp, sabe usar o SocialMEI.</span></li>
+     <li class="sx-bf rv" style="--d:180ms"><div class="sx-bf-vis dev" aria-hidden="true"><div class="d-lap"><i></i><i></i><i></i></div><div class="d-ph"><i></i><i></i></div></div><span class="sx-bf-n">02</span><b>No celular e no computador</b><span>Responda uma cliente na fila do mercado e confira os números à noite.</span></li>
+     <li class="sx-bf rv" style="--d:140ms"><div class="sx-bf-vis" aria-hidden="true"><div class="ia"><b>Sugestão da IA · você revisa</b>Oi, Emilly! Pode ser Pix. Separo o kit?<span>Revisar e enviar</span></div></div><span class="sx-bf-n">03</span><b>Você no comando</b><span>Sugestões da IA sempre pedem sua revisão. Nada é enviado sozinho.</span></li>
+     <li class="sx-bf rv" style="--d:220ms"><div class="sx-bf-vis opts" aria-hidden="true"><span class="on"><svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-leaf"/></svg>Modo calmo</span><span><svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-moon"/></svg>Tema escuro</span><span>Aa Letras maiores</span></div><span class="sx-bf-n">04</span><b>Um jeito calmo de trabalhar</b><span>Modo calmo, tema escuro e letras maiores quando você precisar.</span></li>
+    </ul>
    </div>
   </section>
 
-  <section class="sec" id="como" aria-labelledby="h-como">
+  <section class="sx sx-alt sx-how" id="como" aria-labelledby="h-como" data-sx>
+   <div class="sx-bg" aria-hidden="true"></div>
    <div class="wrap">
-    <span class="kick rv">Como funciona</span>
-    <h2 id="h-como" class="rv" style="--d:60ms;margin-top:14px">Três passos e seu espaço está pronto.</h2>
-    <div class="steps">
-     <article class="step rv"><h3>Crie seu espaço</h3><p>Nome, e-mail e uma senha. Leva menos de um minuto e nada é enviado a nenhum servidor.</p></article>
-     <article class="step rv" style="--d:100ms"><h3>Conte do seu negócio</h3><p>Em poucas perguntas, o app se ajusta ao que você vende, à sua rotina e à cor da sua marca.</p></article>
-     <article class="step rv" style="--d:200ms"><h3>Comece pelo que importa</h3><p>Entre direto no app com um roteiro de primeiros passos e dados de exemplo para explorar.</p></article>
-    </div>
-   </div>
-  </section>
-
-  <section class="sec alt" id="ia" aria-labelledby="h-ia">
-   <div class="wrap split">
-    <div>
-     <span class="kick rv">Assistente de IA</span>
-     <h2 id="h-ia" class="rv" style="--d:60ms;margin-top:14px">Um ajudante que lembra dos seus clientes por você.</h2>
-     <p class="sub rv" style="--d:120ms">Prepara lembretes de retorno, sugere respostas e escreve textos promocionais para você enviar a vários clientes. Você revisa e decide.</p>
-     <div class="flow rv" style="--d:180ms;margin-top:28px">
-      <div class="node"><small>Quando</small><b>Venda for paga</b></div><span class="arr" aria-hidden="true"><svg class="i" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-arrow"/></svg></span>
-      <div class="node"><small>Então</small><b>Preparar retorno</b></div><span class="arr" aria-hidden="true"><svg class="i" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-arrow"/></svg></span>
-      <div class="node"><small>Depois</small><b>Lembrar em 7 dias</b></div>
+    <header class="sx-head">
+     <span class="kick rv">Como funciona</span>
+     <h2 id="h-como" class="sx-h2 rv" style="--d:60ms">Três passos <span class="t2">e seu espaço está <span class="hl">pronto</span>.</span></h2>
+    </header>
+    <div class="sx-track" id="comoTrack">
+     <div class="sx-steps">
+      <article class="step sx-step" style="--k:0">
+       <span class="sx-num" aria-hidden="true">1</span>
+       <h3>Crie seu espaço</h3>
+       <p>Nome, e-mail e uma senha. Leva menos de um minuto.</p>
+       <div class="sx-mini">
+        <form class="sx-scr sx-start" id="sxStart" novalidate>
+         <label class="sx-field" for="sxNome"><small>Seu nome</small><input id="sxNome" autocomplete="given-name" maxlength="60" placeholder="Ex.: Maria" aria-describedby="sxErr"></label>
+         <label class="sx-field" for="sxMail"><small>E-mail <span>(opcional agora)</span></small><input id="sxMail" type="email" autocomplete="email" maxlength="120" placeholder="Ex.: maria@exemplo.com"></label>
+         <div class="sx-hint" id="sxHint" role="status">A senha você cria na próxima tela. Nome e e-mail ficam só nesta aba, até você fechá-la.</div>
+         <button class="sx-clear" id="sxClear" type="button" hidden>Limpar nome e e-mail deste navegador</button>
+         <div class="sx-err" id="sxErr" role="alert"></div>
+         <button class="sx-fake-btn" type="submit">Criar meu espaço</button>
+        </form>
+       </div>
+      </article>
+      <article class="step sx-step" style="--k:1">
+       <span class="sx-num" aria-hidden="true">2</span>
+       <h3>Conte do seu negócio</h3>
+       <p>Em poucas perguntas, o app se ajusta ao que você vende, à sua rotina e à cor da sua marca.</p>
+       <div class="sx-mini">
+        <div class="sx-scr">
+         <div class="sx-lbl">O que você vende?</div>
+         <div class="sx-chs" id="stRamo" role="group" aria-label="O que você vende"></div>
+         <div class="sx-lbl">Cor da sua marca</div>
+         <div class="sx-sws" id="stCor" role="group" aria-label="Cor da sua marca"></div>
+        </div>
+       </div>
+      </article>
+      <article class="step sx-step" style="--k:2">
+       <span class="sx-num" aria-hidden="true">3</span>
+       <h3>Comece pelo que importa</h3>
+       <p>Entre direto no app com um roteiro de primeiros passos e dados de exemplo para explorar.</p>
+       <div class="sx-mini">
+        <div class="sx-scr">
+         <div class="sx-scr-h">Primeiros passos</div>
+         <div id="stTarefas" class="st-todo"></div>
+        </div>
+       </div>
+      </article>
      </div>
-     <p class="tag-ex" style="margin-top:14px">Prévia local de uma rotina. Nesta demonstração nada é enviado.</p>
-    </div>
-    <div class="panel rv" style="--d:140ms">
-     <div style="display:flex;gap:12px;align-items:center"><span class="av" style="background:#e4dcff;color:#4a3aa8">J</span><div><b>Juliana (exemplo)</b><div class="m" style="font-size:13px">WhatsApp · Em atendimento</div></div></div>
-     <div class="msg rx" style="margin-top:16px;animation:none">Oi! Vi a camisa azul no Instagram. Ainda tem no tamanho M?</div>
-     <div class="sug"><b><svg class="i" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-spark"/></svg>Sugestão · revise antes de enviar</b>Oi, Juliana! Ainda temos a camisa azul no tamanho M. Quer que eu separe uma para você?</div>
     </div>
    </div>
   </section>
 
-  <section class="sec" id="demo" aria-labelledby="h-demo">
+  <section class="sx sx-ink sx-demo" id="demo" aria-labelledby="h-demo" data-sx>
+   <div class="sx-bg" aria-hidden="true"></div>
    <div class="wrap">
-    <span class="kick rv">Demonstração</span>
-    <h2 id="h-demo" class="rv" style="--d:60ms;margin-top:14px">Experimente do seu jeito.</h2>
-    <p class="sub rv" style="--d:120ms">Esta é uma versão de demonstração: tudo fica só neste navegador e nenhuma conta de verdade é criada.</p>
-    <div class="demo">
-     <article class="card rv"><span class="chip">Recomendado</span><h3 style="font-size:24px;margin-top:14px">Criar meu espaço</h3>
-      <ul><li><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><use href="#i-check"/></svg>Seu nome e o do seu negócio no app</li><li><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><use href="#i-check"/></svg>Cor da sua marca</li><li><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><use href="#i-check"/></svg>Roteiro de primeiros passos</li></ul>
-      <a class="btn" href="#/cadastro">Criar conta de exemplo</a></article>
-     <article class="card y rv" style="--d:100ms"><span class="chip y">Sem cadastro</span><h3 style="font-size:24px;margin-top:14px">Explorar o app de exemplo</h3>
-      <ul><li><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><use href="#i-check"/></svg>Loja da Maria, com dados fictícios</li><li><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><use href="#i-check"/></svg>Caixa, vendas, divulgação e mais</li><li><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><use href="#i-check"/></svg>Entre e saia quando quiser</li></ul>
-      <a class="btn o" href="socialmei-app.html#/inicio" data-demo-app>Abrir demonstração</a></article>
+    <div class="sx-demo-grid" id="ramoDemo">
+     <div class="sx-demo-text">
+      <header class="sx-head">
+       <span class="kick rv">Experimente</span>
+       <h2 id="h-demo" class="sx-h2 rv" style="--d:60ms">Experimente <span class="t2">do seu <span class="hl">jeito</span>.</span></h2>
+       <p class="sub sx-sub rv" style="--d:120ms">Escolha seu ramo e veja como um atendimento vira venda. Nesta versão de avaliação, tudo fica só neste navegador.</p>
+      </header>
+      <div class="sx-ramo-pick rv" style="--d:160ms">
+       <h3>Escolha seu ramo e veja um atendimento</h3>
+       <p>É a mesma escolha da página inicial: os exemplos mudam para a sua realidade.</p>
+       <div class="sx-chips" role="group" aria-label="Seu ramo"></div>
+       <p class="sx-hint">Toque em “Ver sugestão” no celular ao lado.</p>
+      </div>
+     </div>
+     <div class="sx-demo-phone rv" style="--d:100ms">
+      <div class="sx-phone sx-phone-d" role="group" aria-label="Celular com uma conversa de atendimento">
+       <div class="sx-phone-in">
+        <div class="sx-status" aria-hidden="true"><span>9:41</span><i></i><span class="sx-sig"><b></b><b></b><b></b></span></div>
+        <div class="sx-dtop"><span class="sx-back" aria-hidden="true"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-back"/></svg></span><span class="sx-dav" aria-hidden="true"></span><div><b class="sx-dname"></b><small>WhatsApp</small></div></div>
+        <div class="sx-dbody" aria-live="polite"></div>
+        <div class="sx-dcomp" aria-hidden="true"><span>Escreva uma mensagem</span></div>
+        <nav class="sx-dtabs" aria-hidden="true"><span class="on"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-chat"/></svg>Caixa</span><span><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-users"/></svg>Clientes</span><span><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-cart"/></svg>Vendas</span><span><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-bars"/></svg>Financeiro</span></nav>
+       </div>
+      </div>
+     </div>
+    </div>
+    <div class="sx-close">
+     <article class="sx-cta rv">
+      <span class="chip y">Recomendado</span>
+      <h3>Criar meu espaço</h3>
+      <ul><li><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>Seu nome e o do seu negócio no app</li><li><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>Cor da sua marca</li><li><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>Roteiro de primeiros passos</li></ul>
+      <a class="sx-cta-btn" href="#/cadastro">Criar minha conta</a>
+     </article>
+     <article class="sx-alt2 rv" style="--d:100ms">
+      <span class="chip">Sem cadastro</span>
+      <h3>Explorar o app</h3>
+      <ul><li><svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>Loja da Maria, com dados de exemplo</li><li><svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>Caixa, vendas, divulgação e mais</li><li><svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>Entre e saia quando quiser</li></ul>
+      <a class="sx-ghost-btn" href="socialmei-app.html#/inicio" data-demo-app>Abrir o app</a>
+     </article>
     </div>
    </div>
   </section>
 
-  <section class="sec alt" id="precos" aria-labelledby="h-prec">
+  <section class="sx sx-alt sx-plans" id="precos" aria-labelledby="h-prec" data-sx>
+   <div class="sx-bg" aria-hidden="true" style="--bgx1:100%;--bgy1:6%;--bgx2:0%;--bgy2:86%;--gx:72%;--gy:34%"></div>
    <div class="wrap">
-    <span class="kick rv">Planos</span>
-    <h2 id="h-prec" class="rv" style="--d:60ms;margin-top:14px">Comece de graça e veja o que cada plano inclui.</h2>
-    <p class="sub rv" style="--d:120ms">Você cria o espaço no plano Grátis, sem cartão. Os valores abaixo são um exemplo desta demonstração.</p>
+    <header class="sx-head">
+     <span class="kick rv">Planos</span>
+     <h2 id="h-prec" class="sx-h2 rv" style="--d:60ms">Comece de graça <span class="t2">e veja o que <span class="hl">cada plano</span> inclui.</span></h2>
+     <p class="sx-sub rv" style="--d:120ms">Você cria o espaço no plano Grátis, sem cartão.</p>
+    </header>
     <div class="plans">
-     <article class="plan rv" style="--d:0ms"><div class="plan-h"><h3>Grátis</h3></div><p class="m">Para começar a se organizar</p><p class="price"><b>R$ 0</b><span>para sempre</span></p><ul><li><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>1 canal de atendimento</li><li><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>100 sugestões da IA por mês</li><li><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>Até 30 clientes</li><li><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>Agenda e catálogo básicos</li></ul><a class="btn o" href="#/cadastro">Criar meu espaço<span class="sr"> no plano Grátis</span></a></article>
-     <article class="plan feat rv" style="--d:80ms"><div class="plan-h"><h3>Essencial</h3><span class="chip">Recomendado</span></div><p class="m">Para quem vende todo dia</p><p class="price"><b>R$ 29,90</b><span>por mês</span></p><ul><li><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>WhatsApp e Instagram</li><li><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>500 sugestões da IA por mês</li><li><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>Clientes e produtos sem limite</li><li><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>Rotinas automáticas</li></ul><a class="btn" href="#/cadastro">Criar meu espaço<span class="sr"> no plano Essencial</span></a></article>
-     <article class="plan rv" style="--d:160ms"><div class="plan-h"><h3>Completo</h3></div><p class="m">Para crescer com equipe</p><p class="price"><b>R$ 59,90</b><span>por mês</span></p><ul><li><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>Tudo do Essencial</li><li><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>Sugestões da IA sem limite</li><li><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>Até 5 pessoas na equipe</li><li><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>Relatórios completos</li></ul><a class="btn o" href="#/cadastro">Criar meu espaço<span class="sr"> no plano Completo</span></a></article>
+     <article class="plan rv" style="--d:0ms"><span class="sx-tier" aria-hidden="true"><i class="on"></i><i></i><i></i></span><div class="plan-h"><h3>Grátis</h3></div><p class="m">Para começar a se organizar</p><ul><li><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>1 canal de atendimento</li><li><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>100 sugestões da IA por mês</li><li><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>Até 30 clientes</li><li><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>Agenda e catálogo básicos</li></ul><a class="btn o" href="#perguntas" data-go="perguntas">Ver dúvidas sobre planos<span class="sr"> (plano Grátis)</span></a></article>
+     <article class="plan feat rv" style="--d:80ms"><span class="sx-tier" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i></span><div class="plan-h"><h3>Essencial</h3><span class="chip">Recomendado</span></div><p class="m">Para quem vende todo dia</p><ul><li><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>WhatsApp e Instagram</li><li><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>500 sugestões da IA por mês</li><li><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>Clientes e produtos sem limite</li><li><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>Rotinas automáticas</li></ul><a class="btn" href="#perguntas" data-go="perguntas">Ver dúvidas sobre planos<span class="sr"> (plano Essencial)</span></a></article>
+     <article class="plan rv" style="--d:160ms"><span class="sx-tier" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i></span><div class="plan-h"><h3>Completo</h3></div><p class="m">Para crescer com equipe</p><ul><li><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>Tudo do Essencial</li><li><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>Sugestões da IA sem limite</li><li><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>Até 5 pessoas na equipe</li><li><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>Relatórios completos</li></ul><a class="btn o" href="#perguntas" data-go="perguntas">Ver dúvidas sobre planos<span class="sr"> (plano Completo)</span></a></article>
     </div>
-    <p class="tag-ex rv" style="margin-top:22px">Planos e valores de exemplo: nenhuma cobrança é feita nesta demonstração.</p>
+    <p class="tag-ex rv sx-note">Valores ilustrativos. Nenhuma cobrança é feita agora.</p>
    </div>
   </section>
 
-  <section class="sec alt" id="perguntas" aria-labelledby="h-faq">
-   <div class="wrap" style="max-width:820px">
-    <span class="kick rv">Perguntas</span>
-    <h2 id="h-faq" class="rv" style="--d:60ms;margin:14px 0 30px">O que as pessoas costumam perguntar.</h2>
-    <details class="faq rv"><summary>Isso conecta com o meu WhatsApp de verdade? <svg aria-hidden="true" class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-down"/></svg></summary><div class="fa">Não nesta demonstração. As conversas, os clientes e as vendas que você vê são exemplos. Nenhuma conexão com WhatsApp, Instagram ou pagamento é feita.</div></details>
-    <details class="faq rv"><summary>Meus dados vão para algum servidor? <svg aria-hidden="true" class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-down"/></svg></summary><div class="fa">Não. O que você digita fica só neste navegador, e a senha não é guardada. Uma janela anônima é um espaço separado.</div></details>
-    <details class="faq rv"><summary>Preciso entender de tecnologia? <svg aria-hidden="true" class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-down"/></svg></summary><div class="fa">Não. O SocialMEI foi pensado para quem nunca usou um sistema de gestão. As palavras são simples e cada tela tem um texto curto de ajuda.</div></details>
-    <details class="faq rv"><summary>A IA envia mensagens sozinha? <svg aria-hidden="true" class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-down"/></svg></summary><div class="fa">Nunca. Ela sugere respostas, lembretes e textos de divulgação, e você revisa tudo antes de usar.</div></details>
-    <details class="faq rv"><summary>Quanto custa? <svg aria-hidden="true" class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-down"/></svg></summary><div class="fa">Você começa no plano Grátis, sem cartão. Veja o que cada plano inclui na <a href="#precos" data-go="precos">seção de planos</a>. Os valores são um exemplo, e nenhuma cobrança é feita na demonstração.</div></details>
-    <details class="faq rv"><summary>Funciona no celular? <svg aria-hidden="true" class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-down"/></svg></summary><div class="fa">Sim. O site e o app se ajustam ao tamanho da tela, do celular ao computador.</div></details>
+  <section class="sx sx-faq" id="perguntas" aria-labelledby="h-faq" data-sx>
+   <div class="sx-bg" aria-hidden="true" style="--bgx1:0%;--bgy1:0%;--bgx2:100%;--bgy2:100%;--gx:20%;--gy:30%"></div>
+   <div class="wrap sx-faq-w">
+    <header class="sx-head sx-faq-h">
+     <span class="kick rv">Perguntas</span>
+     <h2 id="h-faq" class="sx-h2 rv" style="--d:60ms">O que as pessoas <span class="t2">costumam <span class="hl">perguntar</span>.</span></h2>
+    </header>
+    <div class="sx-faq-l">
+    <details class="faq rv"><summary>Isso conecta com o meu WhatsApp de verdade? <svg class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-down"/></svg></summary><div class="fa">Ainda não nesta versão de avaliação. As conversas, os clientes e as vendas que você vê são exemplos, e nenhuma conexão com WhatsApp, Instagram ou pagamento é feita.</div></details>
+    <details class="faq rv"><summary>Meus dados vão para algum servidor? <svg class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-down"/></svg></summary><div class="fa">Não. O que você digita fica só neste navegador, e a senha não é guardada. Uma janela anônima é um espaço separado.</div></details>
+    <details class="faq rv"><summary>Preciso entender de tecnologia? <svg class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-down"/></svg></summary><div class="fa">Não. O SocialMEI foi pensado para quem nunca usou um sistema de gestão. As palavras são simples e cada tela tem um texto curto de ajuda.</div></details>
+    <details class="faq rv"><summary>A IA envia mensagens sozinha? <svg class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-down"/></svg></summary><div class="fa">Nunca. Ela sugere respostas, lembretes e textos de divulgação, e você revisa tudo antes de usar.</div></details>
+    <details class="faq rv"><summary>Quanto custa? <svg class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-down"/></svg></summary><div class="fa">Você começa no plano Grátis, sem cartão. Veja o que cada plano inclui na <a href="#precos" data-go="precos">seção de planos</a>. Os valores são ilustrativos e nenhuma cobrança é feita nesta versão.</div></details>
+    <details class="faq rv"><summary>Funciona no celular? <svg class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-down"/></svg></summary><div class="fa">Sim. O site e o app se ajustam ao tamanho da tela, do celular ao computador.</div></details>
+    </div>
    </div>
   </section>
 
-  <section style="padding:72px 0 8px" aria-labelledby="h-fim">
-   <div class="cta-band rv"><h2 id="h-fim">Seu negócio merece um cantinho organizado.</h2><p>Crie seu espaço de exemplo em menos de um minuto.</p><a class="btn lg" href="#/cadastro">Criar meu espaço <svg class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-arrow"/></svg></a></div>
+  <section class="sx sx-fim" aria-labelledby="h-fim">
+   <div class="sx-bg" aria-hidden="true" style="--bgx1:50%;--bgy1:0%;--bgx2:50%;--bgy2:100%;--gx:50%;--gy:50%"></div>
+   <div class="wrap"><div class="cta-band rv"><h2 id="h-fim">Seu negócio merece um cantinho <span class="hl">organizado</span>.</h2><p>Crie seu espaço em um minuto e comece pelo básico.</p><a class="btn lg" href="#/cadastro">Criar meu espaço <svg class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-arrow"/></svg></a></div></div>
   </section>
  </main>
 
- <footer>
+ <footer class="sx-foot">
   <div class="foot">
    <div><a class="brand" href="#/" aria-label="SocialMEI.IA, início" style="padding:0"><img class="logo-c" src="assets/logo-socialmei.png" alt="" width="58" height="48"></a><p style="margin-top:12px;max-width:340px">Seu negócio, mais simples. Conversas, clientes, vendas e divulgação em um só lugar.</p></div>
    <div><h4>Conhecer</h4><a href="#produto" data-go="produto">Produto</a><a href="#como" data-go="como">Como funciona</a><a href="#precos" data-go="precos">Planos</a><a href="#perguntas" data-go="perguntas">Perguntas</a></div>
-   <div><h4>Acessar</h4><a href="#/cadastro">Criar conta</a><a href="#/entrar">Entrar</a><a href="socialmei-app.html#/inicio" data-demo-app>App de exemplo</a></div>
+   <div><h4>Acessar</h4><a href="#/cadastro">Criar conta</a><a href="#/entrar">Entrar</a><a href="socialmei-app.html#/inicio" data-demo-app>Abrir o app</a></div>
   </div>
-  <p class="foot-n">Demonstração local: todo o conteúdo é fictício, nenhuma conta é criada em servidor e nenhum canal real (WhatsApp, Instagram ou pagamento) é conectado.</p>
+  <p class="foot-n">Versão de avaliação: os dados ficam neste navegador, nenhuma conta é criada em servidor e nenhum canal real (WhatsApp, Instagram ou pagamento) é conectado.</p>
   <div class="mega rv" aria-hidden="true"><span>SocialMEI</span></div>
  </footer>
 </div>
@@ -254,7 +505,6 @@ var c=localStorage.getItem('smei-brand'),m={v:'#0e7a43',r:'#6a46d9',k:'#c2185b',
    <section id="panC" role="tabpanel" aria-labelledby="tabC">
     <h1>Crie seu espaço</h1>
     <p class="m">Só o essencial para começar.</p>
-    <div class="pxb"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-info"/></svg><span>Demonstração: nenhuma conta real é criada e a senha não é guardada.</span></div>
     <form id="fC" novalidate>
      <div class="row2">
      <div class="fld"><label for="cNome">Seu nome</label><input class="in" id="cNome" autocomplete="name" placeholder="Como te chamamos?" aria-describedby="eNome"><div class="err" id="eNome" role="alert"></div></div>
@@ -264,9 +514,10 @@ var c=localStorage.getItem('smei-brand'),m={v:'#0e7a43',r:'#6a46d9',k:'#c2185b',
      <div class="fld"><label for="cPass">Senha</label><div class="pw"><input class="in" id="cPass" type="password" autocomplete="new-password" placeholder="8 caracteres ou mais" aria-describedby="ePass hPass"><button type="button" data-pw="cPass" aria-controls="cPass" aria-pressed="false">Mostrar</button></div>
       <div class="hint caps" id="caps_cPass" role="status" hidden>Caps Lock está ligado: as letras saem em maiúsculas.</div>
       <div class="meter" id="meter" data-s="0" aria-hidden="true"><i></i><i></i><i></i><i></i></div><div class="hint" id="hPass" aria-live="polite">Use 8 ou mais caracteres. Uma frase longa é boa e fácil de lembrar.</div><div class="err" id="ePass" role="alert"></div></div>
-     <label class="chk"><input type="checkbox" id="cTermos" aria-describedby="eTermos"><span>Aceito os termos de uso e a política de privacidade <span class="m">(exemplo)</span></span></label><div class="err" id="eTermos" role="alert"></div>
+     <label class="chk"><input type="checkbox" id="cTermos" aria-describedby="eTermos"><span>Aceito os termos de uso e a política de privacidade</span></label><div class="err" id="eTermos" role="alert"></div>
      <button class="btn lg form-b" type="submit" data-busy="Criando seu espaço…">Continuar</button>
     </form>
+    <div class="pxb"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-info"/></svg><span>Versão de avaliação: a conta fica só neste navegador e a senha não é guardada.</span></div>
     <p class="m" style="margin-top:20px;text-align:center">Já tem conta? <button class="lk" type="button" data-tab="entrar">Entrar</button></p>
    </section>
 
@@ -275,7 +526,7 @@ var c=localStorage.getItem('smei-brand'),m={v:'#0e7a43',r:'#6a46d9',k:'#c2185b',
     <p class="m">Atendimento, vendas e próximos passos, juntos.</p>
     <p class="who" id="who" hidden><span>Entrando como <b id="whoN"></b></span><button class="lk" type="button" id="notYou">Não é você?</button></p>
     <div class="hint" id="whoMsg" role="status" aria-live="polite"></div>
-    <div class="pxb"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-info"/></svg><span>Nesta demonstração, qualquer e-mail e senha válidos abrem o app.</span></div>
+    <div class="pxb"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-info"/></svg><span>Versão de avaliação: qualquer e-mail e senha válidos abrem o app.</span></div>
     <form id="fE" novalidate>
      <div class="fld"><label for="eMailL">E-mail</label><input class="in" id="eMailL" type="email" autocomplete="email" placeholder="voce@exemplo.com" aria-describedby="eMailLe sMailL"><div class="hint mailhint" id="sMailL" role="status" aria-live="polite"></div><div class="err" id="eMailLe" role="alert"></div></div>
      <div class="fld"><label for="ePassL">Senha</label><div class="pw"><input class="in" id="ePassL" type="password" autocomplete="current-password" placeholder="Sua senha" aria-describedby="ePassLe"><button type="button" data-pw="ePassL" aria-controls="ePassL" aria-pressed="false">Mostrar</button></div><div class="hint caps" id="caps_ePassL" role="status" hidden>Caps Lock está ligado: as letras saem em maiúsculas.</div><div class="err" id="ePassLe" role="alert"></div></div>
@@ -285,7 +536,7 @@ var c=localStorage.getItem('smei-brand'),m={v:'#0e7a43',r:'#6a46d9',k:'#c2185b',
      <button class="btn o form-b" type="button" id="waOpen" style="margin-top:12px">Entrar com código no WhatsApp</button>
     </form>
     <form id="fW" novalidate hidden>
-     <div class="pxb"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-info"/></svg><span>Demonstração: nenhuma mensagem é enviada. O código de teste é <b>123456</b>.</span></div>
+     <div class="pxb"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-info"/></svg><span>Versão de avaliação: nenhuma mensagem é enviada. Código de teste: <b>123456</b>.</span></div>
      <div id="wS1">
       <div class="fld"><label for="wTel">Seu WhatsApp</label><input class="in" id="wTel" type="tel" inputmode="tel" autocomplete="tel" placeholder="(81) 99999-0000" maxlength="16" aria-describedby="eWTel"><div class="err" id="eWTel" role="alert"></div></div>
       <button class="btn lg form-b" type="submit" data-busy="Enviando código…">Enviar código</button>
@@ -305,7 +556,7 @@ var c=localStorage.getItem('smei-brand'),m={v:'#0e7a43',r:'#6a46d9',k:'#c2185b',
     <div id="rS1">
      <h1>Esqueceu a senha?</h1>
      <p class="m">Digite o e-mail da sua conta. Mostramos como seria o link para criar uma nova senha.</p>
-     <div class="pxb"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-info"/></svg><span>Demonstração: nenhum e-mail é enviado de verdade.</span></div>
+     <div class="pxb"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-info"/></svg><span>Versão de avaliação: nenhum e-mail é enviado.</span></div>
      <form id="fR" novalidate>
       <div class="fld"><label for="rMail">E-mail da conta</label><input class="in" id="rMail" type="email" autocomplete="email" placeholder="voce@exemplo.com" aria-describedby="eRMail sMailR"><div class="hint mailhint" id="sMailR" role="status" aria-live="polite"></div><div class="err" id="eRMail" role="alert"></div></div>
       <button class="btn lg form-b" type="submit" data-busy="Enviando…">Enviar link de recuperação</button>
@@ -318,7 +569,7 @@ var c=localStorage.getItem('smei-brand'),m={v:'#0e7a43',r:'#6a46d9',k:'#c2185b',
      <h1 id="rH2" tabindex="-1">Verifique seu e-mail</h1>
      <p class="m">Se <b id="rSent"></b> tiver uma conta, enviamos um link para criar uma nova senha.</p>
      <ul class="rtips"><li>Olhe também em spam e promoções.</li><li>Confira se o e-mail está escrito certo.</li></ul>
-     <div class="pxb"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-info"/></svg><span>Demonstração: nenhum e-mail foi enviado. O botão abaixo mostra a tela que o link abriria.</span></div>
+     <div class="pxb"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-info"/></svg><span>Versão de avaliação: nenhum e-mail foi enviado. O botão abaixo mostra a tela que o link abriria.</span></div>
      <button class="btn lg form-b" type="button" id="rOpen">Ver a tela de nova senha</button>
      <div class="wa-r"><button class="lk" type="button" id="rResend">Reenviar link</button><span id="rWait" aria-live="polite"></span><span aria-hidden="true">·</span><button class="lk" type="button" id="rOther">Usar outro e-mail</button></div>
      <p class="m" style="margin-top:14px;text-align:center">Lembrou a senha? <button class="lk" type="button" data-tab="entrar">Voltar para Entrar</button></p>
@@ -338,7 +589,7 @@ var c=localStorage.getItem('smei-brand'),m={v:'#0e7a43',r:'#6a46d9',k:'#c2185b',
     <div id="rS4" hidden>
      <div class="rok" aria-hidden="true"><svg class="i" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg></div>
      <h1 id="rH4" tabindex="-1">Senha atualizada</h1>
-     <p class="m">Na demonstração nada é alterado de verdade. Em uma conta real, você já poderia entrar com a nova senha.</p>
+     <p class="m">Nesta versão de avaliação nada é alterado de verdade. Em uma conta real, você já poderia entrar com a nova senha.</p>
      <button class="btn lg form-b" type="button" id="rGo">Entrar agora</button>
     </div>
    </section>
@@ -349,12 +600,12 @@ var c=localStorage.getItem('smei-brand'),m={v:'#0e7a43',r:'#6a46d9',k:'#c2185b',
    <h2 id="artH">Seu espaço começa aqui.</h2>
    <p id="artP">Conversa, cliente e próxima ação. Tudo encontra seu lugar.</p>
    <div class="wsx" aria-hidden="true">
-    <div class="wsx-h"><span class="wsx-av" id="pvIni">SM</span><div><b id="pvHi">Olá!</b><small id="pvBz">Seu espaço de exemplo</small></div></div>
+    <div class="wsx-h"><span class="wsx-av" id="pvIni">SM</span><div><b id="pvHi">Olá!</b><small id="pvBz">Seu espaço</small></div></div>
     <div class="wsx-t">Para hoje</div>
-    <div class="wsx-r" style="--k:0"><i></i><span><b>Responder a Lia</b><small>Quero comprar o kit. Como pago?</small></span></div>
-    <div class="wsx-r" style="--k:1"><i></i><span><b>Cobrar a Bia</b><small>R$ 180,00 · venda pendente</small></span></div>
+    <div class="wsx-r" style="--k:0"><i></i><span><b>Responder a Emilly</b><small>Quero comprar o kit. Como pago?</small></span></div>
+    <div class="wsx-r" style="--k:1"><i></i><span><b>Cobrar a Tawanny</b><small>R$ 180,00 · venda pendente</small></span></div>
     <div class="wsx-r" style="--k:2"><i></i><span><b>Repor vela artesanal</b><small>Restam 4 un.</small></span></div>
-    <span class="wsx-tag">Exemplo com dados fictícios</span>
+    <span class="wsx-tag">Prévia do seu espaço</span>
    </div>
    <div class="pv">
     <div class="pv-i" id="pvN"><span class="ic"><svg class="i" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-user"/></svg></span><div><b id="pvNn">Seu perfil</b><small id="pvNm">Seu e-mail aparece aqui</small></div></div>
@@ -386,7 +637,7 @@ var c=localStorage.getItem('smei-brand'),m={v:'#0e7a43',r:'#6a46d9',k:'#c2185b',
     <div class="ws"><span class="lg-i" id="sIni">SM</span><div><b id="sNome">Seu negócio</b><small id="sSeg">Conte o que você faz</small></div></div>
     <div class="pvn" id="sNav"></div>
     <div class="pvt" id="sTags" aria-label="Escolhas até agora"></div>
-    <p class="hint" style="margin-top:14px">Prévia de exemplo. Nada é criado ou conectado nesta etapa.</p>
+    <p class="hint" style="margin-top:14px">Prévia do seu espaço. Nada é criado ou conectado nesta etapa.</p>
    </div>
   </aside>
  </div>
@@ -397,6 +648,11 @@ var c=localStorage.getItem('smei-brand'),m={v:'#0e7a43',r:'#6a46d9',k:'#c2185b',
 <script src="scripts/v22-account.js"></script>
 <script src="scripts/entrada.js"></script>
 <script src="scripts/hero-wall.js"></script>
-<script src="scripts/sections-anim.js"></script>
+<script src="scripts/landing-content.js"></script>
+<script src="scripts/sections-v3.js"></script>
+<script src="scripts/premium-v5.js"></script>
+<script src="scripts/landing-flow-v62.js"></script>
+<script src="scripts/hero-live-v65.js"></script>
+<script src="scripts/pv-auto-v65.js"></script>
 </body>
 </html>

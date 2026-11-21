@@ -16,7 +16,8 @@ module.exports = async function (browser, origin) {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.addInitScript(() => {
-    localStorage.setItem("socialmei-auth-browser-scope", "41:29");
+    if (!localStorage.getItem("socialmei-auth-browser-scope"))
+      localStorage.setItem("socialmei-auth-browser-scope", "41:29");
   });
   await page.route("**/*", (route) => {
     const request = route.request(),
@@ -35,10 +36,25 @@ module.exports = async function (browser, origin) {
       case "/api/v1/auth/workspaces":
         return route.fulfill({
           json: {
-            active_workspace_id: 29,
-            items: [{ id: 29, nome: "Loja", role: "report_viewer" }],
+            active_workspace_id: identity.negocio.id,
+            items: [
+              { id: 29, nome: "Loja", role: "report_viewer" },
+              { id: 30, nome: "Serviços", role: "report_viewer" },
+            ],
           },
         });
+      case "/api/v1/auth/workspaces/switch": {
+        assert.equal(request.method(), "POST");
+        assert.equal(request.headers()["x-socialmei-identity"], `41:${identity.negocio.id}`);
+        const selected = request.postDataJSON().workspace_id;
+        assert([29, 30].includes(selected));
+        identity.negocio = {
+          ...identity.negocio,
+          id: selected,
+          nome: selected === 29 ? "Loja" : "Serviços",
+        };
+        return route.fulfill({ json: identity });
+      }
       case "/api/v1/reporting/overview":
         return route.fulfill({
           json: {
@@ -65,6 +81,18 @@ module.exports = async function (browser, origin) {
     await page.getByRole("heading", { name: "Relatórios do negócio" }).waitFor();
     await page.getByText("8", { exact: true }).waitFor();
     await page.getByText(/Vendas Pago: 2/).waitFor();
+    for (const id of [30, 29]) {
+      await page.locator("#workspace").selectOption(String(id));
+      await page.getByRole("button", { name: "Trocar", exact: true }).click();
+      await page.waitForFunction(
+        (id) =>
+          location.pathname.endsWith("relatorios-leitura.html") &&
+          window.SocialMEIAuth?.current?.negocio.id === id &&
+          document.querySelector("#workspace")?.value === String(id),
+        id,
+      );
+      await page.getByText(/Vendas Pago: 2/).waitFor();
+    }
     assert(!paths.some((p) => /clientes|financeiro|knowledge/.test(p)));
     assert.equal((await page.getByText(/somente leitura/i).count()) > 0, true);
     assert.deepEqual(errors, []);

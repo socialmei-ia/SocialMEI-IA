@@ -1,0 +1,44 @@
+/* SocialMEI-IA · v5 · Início do app mais equilibrado (carregado depois dos estilos internos de socialmei-app.html) */
+@media (min-width: 901px) {
+  .hero {
+    gap: clamp(24px, 4vw, 64px) !important;
+    padding: clamp(28px, 4vh, 44px) 5% clamp(28px, 4vh, 44px) clamp(24px, 7%, 110px) !important;
+  }
+  .hero h1,
+  #v > .hero h1 {
+    font-size: clamp(32px, 3.2vw, 46px) !important;
+  }
+  .hero .hl > p.m:first-of-type {
+    font-size: 18px !important;
+  }
+  .hero .hq {
+    font-size: 16px !important;
+  }
+  .hero .bar {
+    margin-bottom: 16px;
+  }
+  .hero .sb {
+    margin-top: 22px;
+    width: min(430px, 100%);
+  }
+  .cs {
+    display: grid !important;
+    gap: 12px !important;
+    width: min(430px, 100%);
+    flex: none;
+  }
+  .cs > .hc,
+  .cs > .hc:nth-child(n) {
+    width: 100% !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+    padding: 16px 20px !important;
+    font-size: 19px !important;
+    gap: 16px !important;
+    border-left-width: 6px !important;
+  }
+  .hc .ic svg {
+    width: 34px;
+    height: 34px;
+  }
+}

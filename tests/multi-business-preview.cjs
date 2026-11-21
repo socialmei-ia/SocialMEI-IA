@@ -216,10 +216,11 @@ async function run() {
         JSON.stringify(await layoutSnapshot(page)),
       );
       fs.mkdirSync(path.join(__dirname, "../test-results/multi-business"), { recursive: true });
-      await page.screenshot({
-        path: path.join(__dirname, `../test-results/multi-business/businesses-${width}.png`),
-        fullPage: true,
-      });
+      if (process.env.SOCIALMEI_CAPTURE_SCREENSHOTS === "1")
+        await page.screenshot({
+          path: path.join(__dirname, `../test-results/multi-business/businesses-${width}.png`),
+          fullPage: true,
+        });
     }
     const second = await context.newPage();
     await second.goto(origin + "/frontend/socialmei-app.html#/config/conta");
