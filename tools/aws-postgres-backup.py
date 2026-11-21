@@ -224,6 +224,7 @@ def upload_external_versioned(localdump, receipt, config, client):
 def backup(config=None):
     if config is None:
         config = json.loads((ROOT / 'destination.private.json').read_text())
+    provenance = current_database_provenance(config)
     if shutil.disk_usage(ROOT).free < 2 * 1024**3:
         raise RuntimeError('insufficient_backup_disk_space')
     folder = ROOT / 'backups'
@@ -270,6 +271,7 @@ def backup(config=None):
                'source': config.get('source', 'isolated_historical_destination'),
                'current_production_backup': config.get('current_production_backup', False),
                'external_uploaded': False, 'archive_index_verified': True, 'cutover_authorized': False}
+    receipt.update(provenance)
     receipt['external_upload_requested'] = storage is not None
     receipt_path = path.with_suffix('.json')
     _private_checkpoint(receipt_path, receipt)
@@ -277,6 +279,42 @@ def backup(config=None):
         receipt = upload_external_versioned(path, receipt, storage, client)
     _private_checkpoint(receipt_path, receipt)
     print(json.dumps(receipt))
+
+
+def current_database_provenance(config):
+    """Verify metadata before export; this does not certify a restoration."""
+    if config.get('current_production_backup') is not True:
+        return {}
+    if (config.get('backup_target_approved') is not True
+            or config.get('container') != NAME
+            or config.get('database') != 'socialmei_candidate040_20261114'
+            or config.get('admin_user') != 'relocation_admin'
+            or config.get('schema') != '040'
+            or config.get('source') != 'approved_schema040_destination'):
+        raise RuntimeError('current_backup_target_not_approved')
+    query = (
+        "BEGIN READ ONLY; SET LOCAL statement_timeout = '3s'; "
+        "SELECT json_build_object('database', current_database(), "
+        "'server_version_num', current_setting('server_version_num')::integer, "
+        "'versions', array_agg(substring(version FROM '^[0-9]+')::integer "
+        "ORDER BY version)) FROM socialmei.schema_migrations; ROLLBACK;"
+    )
+    try:
+        result = subprocess.run(
+            ['docker', 'exec', NAME, 'psql', '-X', '-qAt', '-v', 'ON_ERROR_STOP=1',
+             '-U', config['admin_user'], '-d', config['database'], '-c', query],
+            capture_output=True, text=True, timeout=15, check=True)
+        actual = json.loads(result.stdout)
+        if (actual.get('database') != config['database']
+                or actual.get('versions') != list(range(1, 41))
+                or type(actual.get('server_version_num')) is not int
+                or not 170000 <= actual['server_version_num'] < 180000):
+            raise ValueError('metadata mismatch')
+    except (subprocess.SubprocessError, ValueError, TypeError, AttributeError):
+        raise RuntimeError('current_backup_metadata_not_verified') from None
+    return {'database': actual['database'], 'container': NAME, 'schema': 40,
+            'server_version_num': actual['server_version_num'],
+            'metadata_verified_before_export': True, 'restore_verified': False}
 
 
 def install_schedule():

@@ -58,6 +58,10 @@ jobs:
           npm run format:check
       - name: Preflight rollback and dump comparison contracts
         run: python -m unittest tools/test_prepare_crm233_release.py tests/test_postgres_copy_validate.py
+      - name: Current database backup identity and external recovery contracts
+        run: >-
+          python -m unittest tests/test_backup_current_database.py
+          tests/test_external_backup_upload.py tests/test_postgres_external_backup_plan.py
       - name: Disposable PostgreSQL concurrency and identity contracts
         run: >-
           python -m unittest test_channel_booking test_inbox_customer
