@@ -52,7 +52,7 @@ class ConsistentExportTests(unittest.TestCase):
                         value = [{'Config': {'Labels': {'socialmei.backup040-export': token if owned else 'foreign'}},
                                   'HostConfig': {'NetworkMode': 'container:source-id'}}]
                     elif args[1] == 'rm':
-                        self.assertEqual(args, ['docker', 'rm', '-f', created_name])
+                        self.assertEqual(args, ['docker', 'rm', '-f', '-v', created_name])
                         return SimpleNamespace(stdout='')
                     else:
                         raise AssertionError('Unexpected command')

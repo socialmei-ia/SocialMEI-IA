@@ -304,7 +304,7 @@ def consistent_export(config, folder, stamp):
         if (owned['Config']['Labels'].get('socialmei.backup040-export') != token
                 or owned['HostConfig']['NetworkMode'] != network):
             raise RuntimeError('consistent_export_cleanup_ownership_mismatch')
-        docker('rm', '-f', name)
+        docker('rm', '-f', '-v', name)
 
 
 def backup(config=None, *, with_manifest=False):
