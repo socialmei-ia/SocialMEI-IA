@@ -7,6 +7,8 @@ on:
     paths:
       - "frontend/**"
       - "tests/**"
+      - "tools/prepare-https-transport.py"
+      - "tools/test_prepare_https_transport.py"
       - ".github/workflows/premium-v69-checks.yml"
 
 permissions:
@@ -26,5 +28,5 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm test
       - run: npm run format:check
-      - run: python -m unittest tools/test_prepare_premium_v69_release.py
+      - run: python -m unittest tools/test_prepare_premium_v69_release.py tools/test_prepare_https_transport.py
       - run: npm run test:browser

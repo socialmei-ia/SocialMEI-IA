@@ -1,0 +1,85 @@
+{
+  "recorded_at": "2026-11-21T02:03:27.140594+00:00",
+  "production_services_changed": false,
+  "execution": {
+    "containers_on_ec2": 17,
+    "docker_enabled": "enabled",
+    "filesystem": {
+      "mount_sources_checked": 28,
+      "filesystem_types": {
+        "ext4": 28
+      },
+      "unresolved_sources": 0,
+      "network_filesystems_present": false
+    },
+    "windows_bind_sources": 0,
+    "gows_restart_policy": "no",
+    "other_core_restart_policy": "unless-stopped"
+  },
+  "https": {
+    "alt_svc_advertises_h3": true,
+    "docker_publishes_udp443": false,
+    "host_udp443_listener": false,
+    "udp443_dnat": false,
+    "default_native_browser": "connection timeout before HTML in diagnostic",
+    "tcp_only_browser": {
+      "complete": true,
+      "businesses": [60, 61, 60],
+      "api_reads": 19,
+      "maximum_read_ms": 818
+    },
+    "exclusive_timeout_cause_proven": false
+  },
+  "transport_plan": {
+    "sha256": "9a4586df6ab6276e53707892605ea7b0ff90bfa33f34b20b977a15774f85c3b1",
+    "status": "prepared_and_verified_not_applied",
+    "target": "socialmei-caddy",
+    "only_delta": "HTTP server protocols h1/h2",
+    "rollback_frozen": true,
+    "operational_approval_required": true
+  },
+  "backups": {
+    "service_present": true,
+    "config_root_explicit": false,
+    "database": "socialmei_relocation",
+    "schema": null,
+    "current_production_backup": null,
+    "external_config_present": false,
+    "latest_receipts": [
+      {
+        "database": null,
+        "schema": null,
+        "current_production_backup": false,
+        "external_uploaded": false,
+        "archive_index_verified": true
+      },
+      {
+        "database": null,
+        "schema": null,
+        "current_production_backup": false,
+        "external_uploaded": false,
+        "archive_index_verified": true
+      }
+    ],
+    "prepared040_config_present": false
+  },
+  "professor": {
+    "email_requested": true,
+    "production_access_created": false,
+    "proposed_role": "member",
+    "workspaces": [60, 61]
+  },
+  "tests": {
+    "native_fetch_guard": 4,
+    "https_prepare_apply_rollback": 9,
+    "existing_smoke_diagnostics": 7
+  },
+  "not_claimed": [
+    "Premium published",
+    "Current production database externally backed up",
+    "Current backup restored",
+    "Real Instagram workspace60/61 homologated",
+    "GOWS transferred",
+    "Professor productive access"
+  ]
+}

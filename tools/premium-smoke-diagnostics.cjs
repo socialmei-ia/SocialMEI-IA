@@ -137,4 +137,40 @@ async function attachChromeTimings(context, page, origin) {
   return { records };
 }
 
-module.exports = { attachRequestDiagnostics, attachChromeTimings, readWorkspaceApi, waitForApp };
+async function installReadOnlyFetchGuard(context, origin) {
+  const blocked = [];
+  await context.exposeBinding("__socialmeiSmokeBlockedFetch", (_, record) => blocked.push(record));
+  await context.addInitScript(
+    ({ origin }) => {
+      const nativeFetch = window.fetch;
+      const allowed = new Set([
+        "/api/v1/auth/login",
+        "/api/v1/auth/workspaces/switch",
+        "/api/v1/auth/logout",
+      ]);
+      window.fetch = function (input, options) {
+        const request = input instanceof Request ? input : null;
+        const url = new URL(request ? request.url : input, location.href);
+        const method = (options?.method || request?.method || "GET").toUpperCase();
+        if (
+          url.origin !== origin ||
+          (!["GET", "HEAD"].includes(method) && !(method === "POST" && allowed.has(url.pathname)))
+        ) {
+          void window.__socialmeiSmokeBlockedFetch({ method, path: url.pathname });
+          return Promise.reject(new Error("Readonly smoke blocked fetch"));
+        }
+        return Reflect.apply(nativeFetch, this, arguments);
+      };
+    },
+    { origin },
+  );
+  return { blocked };
+}
+
+module.exports = {
+  attachRequestDiagnostics,
+  attachChromeTimings,
+  readWorkspaceApi,
+  waitForApp,
+  installReadOnlyFetchGuard,
+};
