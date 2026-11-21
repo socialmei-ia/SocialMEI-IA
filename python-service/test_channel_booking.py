@@ -85,6 +85,7 @@ class BookingContractTests(unittest.TestCase):
             _, result = flow.advance(None, {'workspace_id': 60}, {'conversation_id': 1, 'id': 2},
                 {'step': 'days', 'service_id': 3, 'resource_id': str(uuid4())}, False)
         self.assertEqual(result['action'], 'booking_no_days')
+        self.assertIn('dura\u00e7\u00e3o do servi\u00e7o', result['text'])
         self.assertEqual([choice['id'] for choice in result['choices']], ['0', '5'])
 
     def test_calendar_does_not_duplicate_days_with_multiple_opening_windows(self):

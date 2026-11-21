@@ -118,7 +118,7 @@ def _advance(conn, channel, message, target, native, *, origin='waha'):
         rows = booking.bookable_days(policy, item['duracao_minutos'], datetime.now(timezone.utc))
         if not rows:
             return response('booking_no_days',
-                'N?o h? datas compat?veis com a dura??o do servi?o e a anteced?ncia exigida. Fale com nossa equipe.',
+                'Não há datas compatíveis com a duração do serviço e a antecedência exigida. Fale com nossa equipe.',
                 navigation(), native)
         label = 'Escolha a data. A disponibilidade será consultada em seguida.'
         choices = page_choices(rows, lambda day: {'step': 'slots', 'service_id': target['service_id'],
