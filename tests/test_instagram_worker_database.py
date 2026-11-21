@@ -86,10 +86,42 @@ class WorkerDatabaseTests(unittest.TestCase):
             self.assertNotIn(key, result)
         self.assertEqual(result['POSTGRES_DB'], m.DATABASE)
         self.assertEqual(result['POSTGRES_PASSWORD'], 'private-sentinel')
-        self.assertEqual(result['PRIVATE_OAUTH'], 'preserved')
+        self.assertNotIn('PRIVATE_OAUTH', result)
         self.assertEqual(result['SOCIALMEI_INSTAGRAM_AUTO_MENU_ENABLED'], 'false')
         self.assertEqual(result['SOCIALMEI_INSTAGRAM_RUNTIME_SEND_ENABLED'], 'false')
         self.assertEqual((self.api, self.worker), before)
+
+    def test_observers_never_inherit_provider_credentials_or_the_old_workspace_cutoff(self):
+        self.worker['Config']['Env'].extend([
+            'SOCIALMEI_INSTAGRAM_CLIENT_SECRET=synthetic-secret', 'SOCIALMEI_SMTP_PASSWORD=synthetic-mail',
+            'N8N_API_KEY=synthetic-n8n', 'SOCIALMEI_INSTAGRAM_TOKEN_VAULT_KEY=synthetic-vault',
+            'SOCIALMEI_INSTAGRAM_AUTO_MENU_START_UTC=2025-01-01T00:00:00+00:00'])
+        result = m.candidate(self.api, self.worker, 60)
+        for key in ('PRIVATE_OAUTH', 'SOCIALMEI_INSTAGRAM_CLIENT_SECRET', 'SOCIALMEI_SMTP_PASSWORD',
+                    'N8N_API_KEY', 'SOCIALMEI_INSTAGRAM_TOKEN_VAULT_KEY', 'SOCIALMEI_INSTAGRAM_AUTO_MENU_START_UTC'):
+            self.assertNotIn(key, result)
+        self.assertEqual(result['SOCIALMEI_QUEUE_WAKEUP_MODE'], 'poll')
+        self.assertEqual(result['POSTGRES_PASSWORD'], 'private-sentinel')
+
+    def test_start_cutoff_requires_explicit_timezone_and_is_bound_to_each_workspace(self):
+        for workspace in (60, 61):
+            result = m.candidate(self.api, self.worker, workspace, start_utc='2026-11-21T09:00:00-03:00')
+            self.assertEqual(result['SOCIALMEI_INSTAGRAM_AUTO_MENU_START_UTC'], '2026-11-21T12:00:00+00:00')
+            self.assertEqual(result['SOCIALMEI_INSTAGRAM_AUTO_MENU_WORKSPACE_ID'], str(workspace))
+        for value in ('2026-11-21T09:00:00', 'invalid', 123):
+            with self.subTest(value=value), self.assertRaises(RuntimeError):
+                m.candidate(self.api, self.worker, 60, start_utc=value)
+
+    def test_capacity_preserves_automatic_backup_and_never_counts_swap_as_ram(self):
+        limited = m.observer_capacity(605)
+        self.assertEqual(limited['safe_observer_count'], 1)
+        self.assertFalse(limited['two_observers_fit'])
+        self.assertEqual(limited['required_for_two_mib'], 704)
+        self.assertEqual(m.observer_capacity(704)['safe_observer_count'], 2)
+        self.assertEqual(m.observer_capacity(447)['safe_observer_count'], 0)
+        for value in (-1, True, '605'):
+            with self.subTest(value=value), self.assertRaises(RuntimeError):
+                m.observer_capacity(value)
 
     def test_explicit_api_url_is_preserved_exactly_with_encoded_credentials(self):
         url = 'postgresql://synthetic:p%40ss@' + m.HOST + '/' + m.DATABASE
