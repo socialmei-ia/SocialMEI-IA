@@ -260,6 +260,28 @@ def allowed_start(policy, start, duration, now):
     return False
 
 
+def bookable_days(policy, duration, now):
+    """Calendar candidates only; resource conflicts remain checked at slot/confirm."""
+    zone = ZoneInfo(policy.timezone)
+    today = now.astimezone(zone).date()
+    days = []
+    for offset in range(policy.horizon_days + 1):
+        day = today + timedelta(days=offset)
+        for window in policy.hours:
+            if window.weekday != day.weekday():
+                continue
+            start = datetime.combine(day, time.fromisoformat(window.opens), tzinfo=zone)
+            closing = datetime.combine(day, time.fromisoformat(window.closes), tzinfo=zone)
+            while start + timedelta(minutes=duration) <= closing:
+                if allowed_start(policy, start, duration, now):
+                    days.append(day)
+                    break
+                start += timedelta(minutes=policy.step_minutes)
+            if days and days[-1] == day:
+                break
+    return days
+
+
 def signing_digest(key, raw):
     if not isinstance(key, str) or len(key.encode()) < 32:
         raise HTTPException(503, 'Confirmação de horário ainda não configurada.')

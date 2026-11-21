@@ -113,10 +113,13 @@ def _advance(conn, channel, message, target, native, *, origin='waha'):
     elif step == 'days':
         booking.resources_for_message(*context, target['service_id'], connection=conn)
         policy, _ = booking.active_policy(conn, context[0])
-        today = datetime.now(ZoneInfo(policy.timezone)).date()
-        weekdays = {window.weekday for window in policy.hours}
-        rows = [today + timedelta(days=offset) for offset in range(policy.horizon_days + 1)
-                if (today + timedelta(days=offset)).weekday() in weekdays]
+        from appointments import service
+        item = service(conn, context[0], target['service_id'])
+        rows = booking.bookable_days(policy, item['duracao_minutos'], datetime.now(timezone.utc))
+        if not rows:
+            return response('booking_no_days',
+                'N?o h? datas compat?veis com a dura??o do servi?o e a anteced?ncia exigida. Fale com nossa equipe.',
+                navigation(), native)
         label = 'Escolha a data. A disponibilidade será consultada em seguida.'
         choices = page_choices(rows, lambda day: {'step': 'slots', 'service_id': target['service_id'],
             'resource_id': target['resource_id'], 'day': day.isoformat()}, lambda day: day.strftime('%d/%m/%Y'), page=page)

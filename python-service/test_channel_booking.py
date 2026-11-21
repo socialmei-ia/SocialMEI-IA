@@ -64,6 +64,36 @@ class BookingContractTests(unittest.TestCase):
             booking.MessageContext(origin='waha', conversation_id=1, source_message_id=1,
                                    cliente_id=3, workspace_id=2)
 
+    def test_calendar_omits_expired_days_and_windows_too_short_for_service(self):
+        policy = booking.BookingPolicy(enabled=True, timezone='America/Recife', lead_minutes=60,
+            horizon_days=3, hours=[{'weekday': day, 'opens': '09:00', 'closes': '10:00'}
+                                   for day in range(7)])
+        now = datetime(2026, 11, 21, 12, 30, tzinfo=timezone.utc)
+        days = booking.bookable_days(policy, 60, now)
+        self.assertEqual([day.isoformat() for day in days], ['2026-11-22', '2026-11-23', '2026-11-24'])
+        self.assertEqual(booking.bookable_days(policy, 61, now), [])
+        policy.lead_minutes = 3 * 24 * 60
+        self.assertEqual(booking.bookable_days(policy, 60, now), [])
+
+    def test_channel_returns_clear_message_when_no_day_can_fit_the_service(self):
+        import channel_booking_flow as flow
+        policy = booking.BookingPolicy(enabled=True, horizon_days=1,
+            hours=[{'weekday': day, 'opens': '09:00', 'closes': '10:00'} for day in range(7)])
+        with patch.object(booking, 'resources_for_message'), \
+                patch.object(booking, 'active_policy', return_value=(policy, 'hash')), \
+                patch.object(appointments, 'service', return_value={'duracao_minutos': 90}):
+            _, result = flow.advance(None, {'workspace_id': 60}, {'conversation_id': 1, 'id': 2},
+                {'step': 'days', 'service_id': 3, 'resource_id': str(uuid4())}, False)
+        self.assertEqual(result['action'], 'booking_no_days')
+        self.assertEqual([choice['id'] for choice in result['choices']], ['0', '5'])
+
+    def test_calendar_does_not_duplicate_days_with_multiple_opening_windows(self):
+        policy = booking.BookingPolicy(enabled=True, timezone='America/Recife', lead_minutes=0,
+            horizon_days=1, hours=[{'weekday': day, 'opens': opening, 'closes': closing}
+                for day in range(7) for opening, closing in [('09:00', '10:00'), ('14:00', '15:00')]])
+        days = booking.bookable_days(policy, 30, datetime(2026, 11, 21, 11, tzinfo=timezone.utc))
+        self.assertEqual([day.isoformat() for day in days], ['2026-11-21', '2026-11-22'])
+
     def test_token_is_signed_domain_separated_and_never_returns_key(self):
         value = dict(binding='a', policy='b', service=1, service_revision=1,
                      resource=str(uuid4()), resource_revision=1,
