@@ -20,7 +20,9 @@ class WorkerLeaseTests(unittest.TestCase):
         for database,locked in [('old-prisma-database',True),('reviewed',False)]:
             conn=Mock();conn.execute.return_value.fetchone.side_effect=[(database,),(locked,)]
             @contextmanager
-            def connection():yield conn
+            def connection(**options):
+                self.assertEqual(options, {'worker': True})
+                yield conn
             with patch.dict(os.environ,{'SOCIALMEI_INSTAGRAM_WORKER_DATABASE_NAME':'reviewed'}),patch.object(lease,'connect',connection):
                 with self.assertRaises(RuntimeError),lease.worker_lease(60):pass
 
@@ -28,7 +30,9 @@ class WorkerLeaseTests(unittest.TestCase):
         conn=Mock();conn.closed=False
         conn.execute.return_value.fetchone.side_effect=[('reviewed',),(True,),OSError('synthetic lost connection'),(True,)]
         @contextmanager
-        def connection():yield conn
+        def connection(**options):
+            self.assertEqual(options, {'worker': True})
+            yield conn
         with patch.dict(os.environ,{'SOCIALMEI_INSTAGRAM_WORKER_DATABASE_NAME':'reviewed'}),patch.object(lease,'connect',connection):
             with self.assertRaises(OSError),lease.worker_lease(60) as check:check()
         self.assertIn('pg_advisory_unlock',conn.execute.call_args.args[0])

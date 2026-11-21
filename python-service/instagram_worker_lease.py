@@ -10,7 +10,7 @@ def worker_lease(workspace):
     expected = os.getenv('SOCIALMEI_INSTAGRAM_WORKER_DATABASE_NAME', '')
     if type(workspace) is not int or workspace <= 0 or not expected:
         raise RuntimeError('Instagram worker database review required')
-    with connect() as conn:
+    with connect(worker=True) as conn:
         conn.autocommit = True
         actual = conn.execute('SELECT current_database()').fetchone()[0]
         if actual != expected:

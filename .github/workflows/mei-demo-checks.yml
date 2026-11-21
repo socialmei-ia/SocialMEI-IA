@@ -76,6 +76,7 @@ jobs:
           test_whatsapp_channel_handover test_waha_pilot_scope
           test_whatsapp_handover_runtime_plan
           test_instagram_worker_lease
+          test_queue_wakeup test_database_health test_database_readiness_cache
           test_instagram_worker_state
           test_instagram_worker_observer
           test_instagram_auto_menu.AutoMenuDatabaseTests.test_observer_reads_persisted_direct_in_its_workspace_without_dispatch
