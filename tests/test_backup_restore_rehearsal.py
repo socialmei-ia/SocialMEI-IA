@@ -52,6 +52,14 @@ class RestoreRehearsalTests(unittest.TestCase):
                 receipt = runner.package_recovery(*files, proof, output)
                 process.assert_not_called()
             self.assertFalse(receipt['external_uploaded'])
+            second = runner.package_recovery(*files, proof, Path(folder) / 'same-inputs.tar')
+            self.assertEqual(second['sha256'], receipt['sha256'])
+            inactive = Path(folder) / 'must-not-exist.tar'
+            with patch.object(runner, 'package_recovery') as package, contextlib.redirect_stdout(io.StringIO()):
+                runner.main(['--package-output', str(inactive)])
+                package.assert_not_called()
+            self.assertFalse(inactive.exists())
+
             with tarfile.open(output) as archive:
                 self.assertEqual(archive.getnames(), receipt['files'])
                 self.assertTrue(all(p.isfile() and p.mode == 0o600 for p in archive.getmembers()))
