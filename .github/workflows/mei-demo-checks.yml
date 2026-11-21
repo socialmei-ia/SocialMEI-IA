@@ -89,6 +89,10 @@ jobs:
           test_account_recovery.RecoveryTests.test_password_change_expires_earlier_queued_recovery_without_sending
           test_account_recovery.RecoveryTests.test_new_request_during_send_preserves_new_pending_generation
           test_account_recovery.RecoveryTests.test_stale_queue_expires_without_email
+          test_account_recovery.RecoveryTests.test_recovery_worker_bounds_all_database_connections_and_sends_once
+          test_identity_activation.IdentityContracts
+          test_identity_activation.IdentityDatabaseTests.test_verification_worker_bounds_all_database_connections_without_duplicate_delivery
+          test_identity_activation.IdentityDatabaseTests.test_uncertain_and_interrupted_mail_are_not_retried
       - name: Authenticated API demo replay and business isolation
         run: node tests/provision-mei-demo-integration.mjs
 

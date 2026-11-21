@@ -82,6 +82,19 @@ class IdentityDatabaseTests(unittest.TestCase):
         self.assertEqual(result.status_code, 202, result.text)
         return result.json()['id'], self.mail()
 
+    def test_verification_worker_bounds_all_database_connections_without_duplicate_delivery(self):
+        self.register()
+        with patch.object(identity, 'connect', wraps=identity.connect) as connection, \
+                patch.object(identity, 'send_mail') as mail:
+            self.assertTrue(identity.process_one())
+            self.assertFalse(identity.process_one())
+            mail.assert_called_once()
+            self.assertGreaterEqual(connection.call_count, 4)
+            self.assertTrue(all(call.kwargs == {'worker': True} for call in connection.call_args_list))
+            token = mail.call_args.args[1]
+        self.assertEqual(self.confirm(token).status_code, 200)
+        self.assertEqual(self.confirm(token).status_code, 400)
+
     def test_registration_is_pending_until_one_use_email_proof(self):
         client = self.register()
         self.assertEqual(client.identity['email_verification'], {'required': True, 'verified': False})

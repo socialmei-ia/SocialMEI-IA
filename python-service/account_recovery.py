@@ -39,7 +39,7 @@ class RecoveryConfirm(Strict):
     _password = field_validator("nova")(validate_new_password)
 
 
-def configured():
+def configured(*, worker=False):
     require_enabled()
     try:
         config = settings.recovery_smtp_configuration()
@@ -49,7 +49,7 @@ def configured():
             "Recuperação por e-mail indisponível neste ambiente. Procure o administrador.",
         ) from None
     try:
-        with connect() as conn:
+        with (connect(worker=True) if worker else connect()) as conn:
             if not all(
                 conn.execute(
                     "SELECT to_regclass('socialmei.auth_recuperacoes'),to_regclass('socialmei.auth_recuperacao_envios')"
@@ -112,8 +112,8 @@ def queue_recovery(address):
 
 def process_one():
     """Explicit worker invocation. Commit claim before SMTP; never retry uncertain sends."""
-    config = configured()
-    with connect() as conn:
+    config = configured(worker=True)
+    with connect(worker=True) as conn:
         # No credential locks here: reclaim only abandoned delivery state.
         conn.execute(
             "UPDATE socialmei.auth_recuperacao_envios SET status='uncertain',finished_at=NOW() WHERE status='processing' AND started_at<NOW()-INTERVAL '2 minutes'"
@@ -124,7 +124,7 @@ def process_one():
     if not candidate:
         return False
     token = secrets.token_urlsafe(32)
-    with connect() as conn:
+    with connect(worker=True) as conn:
         # Same lock order as requests/password changes and confirmations.
         account = conn.execute(
             "SELECT c.user_id,c.senha_alterada_em,u.email,c.ativo FROM socialmei.auth_credenciais c JOIN socialmei.users u ON u.id=c.user_id WHERE c.user_id=%s FOR UPDATE OF c",
@@ -157,7 +157,7 @@ def process_one():
     except Exception:
         # SMTP might have accepted before the connection failed. No automatic retry.
         status = "uncertain"
-    with connect() as conn:
+    with connect(worker=True) as conn:
         if status == "uncertain":
             conn.execute(
                 "UPDATE socialmei.auth_recuperacoes SET usado_em=NOW() WHERE token_hash=%s",

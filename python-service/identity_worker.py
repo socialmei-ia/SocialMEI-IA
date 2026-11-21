@@ -15,7 +15,7 @@ def main():
     if not args.run or not 1 <= args.limit <= 100:
         parser.error('--run and limit 1–100 are required')
     try:
-        configured()
+        configured(worker=True)
         with QueueWakeup(CHANNEL, interval=60, reconcile=300) as wakeup:
             while True:
                 wakeup.prepare()

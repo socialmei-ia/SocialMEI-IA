@@ -53,6 +53,19 @@ class RecoveryTests(unittest.TestCase):
             "/api/v1/auth/recovery/confirm", json={"token": token, "nova": password}
         )
 
+    def test_recovery_worker_bounds_all_database_connections_and_sends_once(self):
+        import account_recovery as recovery
+        self.client.post('/api/v1/auth/recovery/request', json={'email': 'owner@example.test'})
+        with patch.object(recovery, 'connect', wraps=recovery.connect) as connection, \
+                patch.object(recovery, 'send_recovery_mail') as mail:
+            self.assertTrue(recovery.process_one())
+            self.assertFalse(recovery.process_one())
+            mail.assert_called_once()
+            self.assertTrue(all(call.kwargs == {'worker': True} for call in connection.call_args_list))
+            token = mail.call_args.args[1]
+        self.assertEqual(self.confirm(token).status_code, 204)
+        self.assertEqual(self.confirm(token).status_code, 400)
+
     def test_reset_single_use_revokes_owner_sessions_only(self):
         token = self.issue()
         self.assertEqual(self.confirm(token, "FlorSol").status_code, 422)
