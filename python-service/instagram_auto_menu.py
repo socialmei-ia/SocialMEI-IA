@@ -25,6 +25,14 @@ def enabled(workspace):
             and str(workspace) in os.getenv('SOCIALMEI_INSTAGRAM_AUTO_MENU_WORKSPACES', '').split(','))
 
 
+def source_max_age():
+    # Default stays unchanged; a reviewed worker may recover a short outage.
+    value = os.getenv('SOCIALMEI_INSTAGRAM_AUTO_MENU_MAX_AGE_SECONDS', '120')
+    if not value.isascii() or not value.isdecimal() or not 120 <= int(value) <= 900:
+        raise RuntimeError('Instagram recovery window requires review')
+    return int(value)
+
+
 @contextmanager
 def db():
     with connect() as conn:
@@ -56,14 +64,15 @@ def source(conn, workspace, message):
         "AND c.scopes @> ARRAY['instagram_business_basic','instagram_business_manage_messages']::text[] "
         "AND v.account_ref='instagram:' || c.external_account_id "
         "AND v.contact_ref ~ '^instagram:[0-9]{1,40}$' "
-        "AND m.occurred_at>=NOW()-INTERVAL '2 minutes' AND m.occurred_at<=NOW()+INTERVAL '30 seconds' "
-        "FOR SHARE OF c,v", (workspace, message),
+        "AND m.occurred_at>=NOW()-(%s * INTERVAL '1 second') AND m.occurred_at<=NOW()+INTERVAL '30 seconds' "
+        "FOR SHARE OF c,v", (workspace, message, source_max_age()),
     ).fetchone()
 
 
 def next_source(workspace, start):
     if not enabled(workspace):
         return None
+    max_age = source_max_age()
     with db() as conn:
         conn.execute('SET TRANSACTION READ ONLY')
         row = conn.execute(
@@ -78,14 +87,14 @@ def next_source(workspace, start):
             "AND c.status='connected' AND c.expires_at>NOW() "
             "AND c.scopes @> ARRAY['instagram_business_basic','instagram_business_manage_messages']::text[] "
             "AND e.received_at>=%s AND m.occurred_at>=%s "
-            "AND m.occurred_at>=NOW()-INTERVAL '2 minutes' AND m.occurred_at<=NOW()+INTERVAL '30 seconds' "
+            "AND m.occurred_at>=NOW()-(%s * INTERVAL '1 second') AND m.occurred_at<=NOW()+INTERVAL '30 seconds' "
             "AND NOT EXISTS(SELECT 1 FROM socialmei.ig_menu_replies r WHERE r.workspace_id=m.workspace_id AND r.source_message_id=m.id) "
             "AND (lower(btrim(m.text))=ANY(%s) OR ((SELECT COUNT(*) FROM socialmei.ig_menu_replies r WHERE r.workspace_id=m.workspace_id "
             "AND r.conversation_id=m.conversation_id AND r.status IN ('dispatching','confirmed','uncertain') "
             "AND r.created_at>NOW()-INTERVAL '15 minutes')<10 "
             "AND (SELECT COUNT(*) FROM socialmei.ig_menu_replies r WHERE r.workspace_id=m.workspace_id "
             "AND r.status IN ('dispatching','confirmed','uncertain') AND r.created_at>NOW()-INTERVAL '15 minutes')<60 "
-            ")) ORDER BY m.occurred_at,m.id LIMIT 1", (workspace, start, start, sorted(HUMAN_CHOICES)),
+            ")) ORDER BY m.occurred_at,m.id LIMIT 1", (workspace, start, start, max_age, sorted(HUMAN_CHOICES)),
         ).fetchone()
     return row['id'] if row else None
 
