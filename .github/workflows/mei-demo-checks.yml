@@ -78,6 +78,9 @@ jobs:
           test_instagram_worker_lease
           test_queue_wakeup test_database_health test_database_readiness_cache
           test_instagram_worker_state
+          test_instagram_direct_outbox.DatabaseTests.test_interrupted_review_recovers_persisted_claim_with_external_sending_disabled
+          test_instagram_direct_outbox.DatabaseTests.test_interrupted_review_preserves_revision_csrf_workspace_and_role_guards
+          test_instagram_direct_outbox.DatabaseTests.test_dispatch_rejects_a_revision_changed_after_human_review
           test_instagram_worker_observer
           test_instagram_auto_menu.AutoMenuDatabaseTests.test_observer_reads_persisted_direct_in_its_workspace_without_dispatch
           test_instagram_auto_menu.AutoMenuDatabaseTests.test_restart_after_confirmation_keeps_durable_deduplication

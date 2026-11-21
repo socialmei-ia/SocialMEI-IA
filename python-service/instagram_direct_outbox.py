@@ -389,6 +389,35 @@ class InstagramDirectService:
             finally:
                 credential = None
 
+    def _expire_claim(self, conn, user, row):
+        conn.execute(
+            "UPDATE socialmei.ig_direct_attempts SET status='uncertain',finished_at=NOW() WHERE workspace_id=%s AND job_id=%s AND claim_token=%s AND status='dispatching'",
+            (user["workspace_id"], row["id"], row["claim_token"]),
+        )
+        row = conn.execute(
+            "UPDATE socialmei.ig_direct_jobs SET status='uncertain',last_error='lease_expired',claim_token=NULL,lease_until=NULL,updated_at=NOW() WHERE workspace_id=%s AND id=%s RETURNING *",
+            (user["workspace_id"], row["id"]),
+        ).fetchone()
+        event(conn, row, "uncertain", user["id"])
+        return view(row)
+
+    def mark_interrupted(self, user, session, job_id, expected_revision):
+        """Review an expired attempt without enabling provider dispatch."""
+        with connect() as conn:
+            conn.row_factory = dict_row
+            self._authorize(conn, user, session, runner=True)
+            row = self._lock_job(conn, user, job_id)
+            if not row:
+                raise HTTPException(404, "Resposta não encontrada neste negócio.")
+            if row['revision'] != expected_revision:
+                raise HTTPException(409, "A resposta mudou. Atualize antes de revisar.")
+            if row['status'] in {'confirmed', 'uncertain'}:
+                return view(row)
+            if (row['status'] != 'dispatching'
+                    or row['lease_until'] > datetime.now(timezone.utc)):
+                raise HTTPException(409, "O envio ainda não está interrompido.")
+            return self._expire_claim(conn, user, row)
+
     def run(self, user, session, job_id, expected_revision=None):
         if not self.allow_dispatch:
             raise HTTPException(503, "Envio externo não autorizado neste ambiente.")
@@ -404,16 +433,7 @@ class InstagramDirectService:
             if row["status"] == "dispatching" and row["lease_until"] <= datetime.now(
                 timezone.utc
             ):
-                conn.execute(
-                    "UPDATE socialmei.ig_direct_attempts SET status='uncertain',finished_at=NOW() WHERE workspace_id=%s AND job_id=%s AND claim_token=%s AND status='dispatching'",
-                    (user["workspace_id"], job_id, row["claim_token"]),
-                )
-                row = conn.execute(
-                    "UPDATE socialmei.ig_direct_jobs SET status='uncertain',last_error='lease_expired',claim_token=NULL,lease_until=NULL,updated_at=NOW() WHERE workspace_id=%s AND id=%s RETURNING *",
-                    (user["workspace_id"], job_id),
-                ).fetchone()
-                event(conn, row, "uncertain", user["id"])
-                return view(row)
+                return self._expire_claim(conn, user, row)
             if row["status"] not in {"approved", "retry_ready"} or row["attempts"] >= 3:
                 raise HTTPException(409, "Resposta indisponível para tentativa.")
             if row["run_after"] and row["run_after"] > datetime.now(timezone.utc):
@@ -573,3 +593,17 @@ def history(
     service: InstagramDirectService = Depends(outbox_service),
 ):
     return service.history(*identity(request), job_id)
+
+
+class InterruptedInput(Strict):
+    expected_revision: StrictInt = Field(ge=1)
+
+
+@router.post("/jobs/{job_id}/mark-interrupted")
+def mark_interrupted(
+    job_id: UUID,
+    payload: InterruptedInput,
+    request: Request,
+    service: InstagramDirectService = Depends(outbox_service),
+):
+    return service.mark_interrupted(*identity(request), job_id, payload.expected_revision)
