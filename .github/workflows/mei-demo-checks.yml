@@ -64,6 +64,7 @@ jobs:
           tests/test_external_backup_upload.py tests/test_postgres_external_backup_plan.py
           tests/test_backup_retention.py tests/test_gows_restart_policy.py
           tests/test_instagram_worker_database.py
+          tests/test_postgres_source_export.py tests/test_backup_restore_rehearsal.py
       - name: Disposable PostgreSQL concurrency and identity contracts
         run: >-
           python -m unittest test_channel_booking test_inbox_customer
@@ -72,7 +73,25 @@ jobs:
           test_whatsapp_handover_runtime_plan
           test_instagram_worker_lease
           test_instagram_worker_state
+          test_instagram_worker_observer
+          test_instagram_auto_menu.AutoMenuDatabaseTests.test_observer_reads_persisted_direct_in_its_workspace_without_dispatch
           test_instagram_auto_menu.AutoMenuDatabaseTests.test_restart_after_confirmation_keeps_durable_deduplication
           test_instagram_auto_menu.AutoMenuDatabaseTests.test_restart_with_uncertain_delivery_never_resends
       - name: Authenticated API demo replay and business isolation
         run: node tests/provision-mei-demo-integration.mjs
+
+  backup040-containers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Build self-contained PostgreSQL040 export and validation helper
+        run: docker build -f deploy/team/Dockerfile.backup040 -t socialmei-backup040:ci .
+      - name: Real schema040 export and isolated full-comparison restore
+        env:
+          SOCIALMEI_BACKUP040_CONTAINER_TESTS: "1"
+          SOCIALMEI_BACKUP040_TEST_IMAGE: socialmei-backup040:ci
+        run: python -m unittest tests/test_backup040_container_integration.py

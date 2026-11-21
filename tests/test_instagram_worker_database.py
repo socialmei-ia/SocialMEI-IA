@@ -2,6 +2,10 @@ import copy
 import importlib.util
 from pathlib import Path
 import unittest
+import json
+import os
+import subprocess
+from tempfile import TemporaryDirectory
 
 spec = importlib.util.spec_from_file_location('worker_db', Path(__file__).resolve().parents[1] / 'tools/instagram-worker-database.py')
 m = importlib.util.module_from_spec(spec)
@@ -9,6 +13,39 @@ spec.loader.exec_module(m)
 
 
 class WorkerDatabaseTests(unittest.TestCase):
+    def test_raw_environment_preserves_dollar_signs_and_rejects_injected_lines(self):
+        self.assertEqual(m.environment_bytes({'PRIVATE': 'p$a#"quoted"'}), b'PRIVATE=p$a#"quoted"\n')
+        for values in ({'INVALID-KEY': 'x'}, {'PRIVATE': 'a\nINJECT=true'}, {'PRIVATE': 'a\r'}, {'PRIVATE': 'a\0'}):
+            with self.assertRaises(RuntimeError): m.environment_bytes(values)
+
+    def test_actual_compose_model_keeps_two_private_scopes_and_literal_credentials(self):
+        with TemporaryDirectory() as tmp:
+            files = []
+            for workspace in (60, 61):
+                path = Path(tmp) / (str(workspace) + '.env')
+                path.write_bytes(m.environment_bytes({'PRIVATE_SENTINEL': 'p$a#"quoted"',
+                    'SOCIALMEI_INSTAGRAM_RUNTIME_SEND_ENABLED': 'true'}))
+                files.append(str(path))
+            env = dict(os.environ, INSTAGRAM_REVIEWED_WORKER_IMAGE='synthetic@sha256:' + 'a' * 64,
+                       INSTAGRAM_BRILHO_ENV_FILE=files[0], INSTAGRAM_BELLA_ENV_FILE=files[1],
+                       INSTAGRAM_REVIEWED_DATABASE_NETWORK='synthetic-private-network')
+            model = json.loads(subprocess.run(['docker', 'compose', '-f', str(Path(__file__).resolve().parents[1] /
+                'deploy/team/compose.instagram-observers.yaml'), '--profile', 'instagram-observers', 'config', '--format', 'json'],
+                env=env, capture_output=True, text=True, check=True, timeout=15).stdout)
+        services = model['services']
+        self.assertEqual(len(services), 2)
+        volumes = []
+        for name, workspace in [('brilho-observer', '60'), ('bella-observer', '61')]:
+            service = services[name]
+            # `compose config` escapes dollars for a subsequent Compose parse.
+            self.assertEqual(service['environment']['PRIVATE_SENTINEL'].replace('$$', '$'), 'p$a#"quoted"')
+            self.assertEqual(service['environment']['SOCIALMEI_INSTAGRAM_RUNTIME_SEND_ENABLED'], 'false')
+            self.assertEqual(service['environment']['SOCIALMEI_INSTAGRAM_AUTO_MENU_WORKSPACE_ID'], workspace)
+            self.assertEqual(service['restart'], 'unless-stopped')
+            self.assertFalse(service.get('ports'))
+            volumes.append(service['volumes'][0]['source'])
+        self.assertNotEqual(*volumes)
+
     def setUp(self):
         self.api = {'Name': '/' + m.API, 'Config': {'Env': [
             'POSTGRES_HOST=' + m.HOST, 'POSTGRES_DB=' + m.DATABASE,

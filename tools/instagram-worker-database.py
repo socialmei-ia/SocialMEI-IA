@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import re
 from urllib.parse import unquote, urlsplit
 
 API = 'socialmei-team-team-api-1'
@@ -49,11 +50,19 @@ def candidate(api, worker, workspace):
         result.pop(key, None)
     result.update({key: value for key, value in source.items() if key in KEYS})
     result.update(SOCIALMEI_INSTAGRAM_WORKER_DATABASE_NAME=database,
+                  SOCIALMEI_INSTAGRAM_WORKER_MODE='observe',
                   SOCIALMEI_INSTAGRAM_AUTO_MENU_WORKSPACE_ID=str(workspace),
                   SOCIALMEI_INSTAGRAM_AUTO_MENU_WORKSPACES=str(workspace),
                   SOCIALMEI_INSTAGRAM_AUTO_MENU_ENABLED='false',
                   SOCIALMEI_INSTAGRAM_RUNTIME_SEND_ENABLED='false')
     return result
+
+
+def environment_bytes(values):
+    require(all(re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', key)
+                and isinstance(value, str) and not any(c in value for c in '\r\n\0')
+                for key, value in values.items()), 'unsafe_environment_file')
+    return ''.join(key + '=' + value + '\n' for key, value in sorted(values.items())).encode()
 
 
 def prepare(directory):
@@ -71,9 +80,12 @@ def prepare(directory):
     directory.mkdir(mode=0o700)
     contents = {'api.private.json': api, 'worker.private.json': worker,
                 'candidates.private.json': candidates}
+    # Compose must read these with format: raw, not interpolate private values.
+    for workspace, values in candidates.items():
+        contents['workspace' + workspace + '.env'] = environment_bytes(values)
     hashes = {}
     for name, value in contents.items():
-        data = json.dumps(value, sort_keys=True).encode()
+        data = value if isinstance(value, bytes) else json.dumps(value, sort_keys=True).encode()
         descriptor = os.open(directory / name, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         with os.fdopen(descriptor, 'wb') as stream:
             stream.write(data); stream.flush(); os.fsync(stream.fileno())

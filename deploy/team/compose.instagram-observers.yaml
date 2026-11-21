@@ -1,0 +1,51 @@
+# Separate opt-in stack. No API, gateway, migrations or external sender.
+name: socialmei-instagram-observers
+x-observer: &observer
+  image: ${INSTAGRAM_REVIEWED_WORKER_IMAGE:?Use the reviewed immutable worker image}
+  profiles: [instagram-observers]
+  command: [python, -u, /app/instagram-auto-menu-worker.py]
+  restart: unless-stopped
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  mem_limit: 128m
+  cpus: 0.25
+  pids_limit: 64
+  tmpfs: [/tmp:size=8m]
+  networks: [effective-database]
+  healthcheck:
+    test: [CMD, python, -m, instagram_worker_health]
+    interval: 30s
+    timeout: 5s
+    retries: 3
+    start_period: 30s
+services:
+  brilho-observer:
+    <<: *observer
+    env_file:
+      - path: ${INSTAGRAM_BRILHO_ENV_FILE:?Use the private reviewed Brilho environment}
+        format: raw
+    environment:
+      SOCIALMEI_INSTAGRAM_WORKER_MODE: observe
+      SOCIALMEI_INSTAGRAM_AUTO_MENU_WORKSPACE_ID: "60"
+      SOCIALMEI_INSTAGRAM_AUTO_MENU_ENABLED: "false"
+      SOCIALMEI_INSTAGRAM_RUNTIME_SEND_ENABLED: "false"
+    volumes: [brilho-state:/run/socialmei/instagram-menu-state]
+  bella-observer:
+    <<: *observer
+    env_file:
+      - path: ${INSTAGRAM_BELLA_ENV_FILE:?Use the private reviewed Bella environment}
+        format: raw
+    environment:
+      SOCIALMEI_INSTAGRAM_WORKER_MODE: observe
+      SOCIALMEI_INSTAGRAM_AUTO_MENU_WORKSPACE_ID: "61"
+      SOCIALMEI_INSTAGRAM_AUTO_MENU_ENABLED: "false"
+      SOCIALMEI_INSTAGRAM_RUNTIME_SEND_ENABLED: "false"
+    volumes: [bella-state:/run/socialmei/instagram-menu-state]
+networks:
+  effective-database:
+    external: true
+    name: ${INSTAGRAM_REVIEWED_DATABASE_NETWORK:?Use the existing API database network}
+volumes:
+  brilho-state:
+  bella-state:

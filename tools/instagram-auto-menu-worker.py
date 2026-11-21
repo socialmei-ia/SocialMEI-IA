@@ -26,19 +26,52 @@ def save(path, state):
 
 def main():
     folder = Path('/run/socialmei/instagram-menu-state')
+    folder.mkdir(mode=0o700, parents=True, exist_ok=True)
     lock = (folder/'sender.lock').open('a')
     fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     heartbeat('starting', 'initializing')
     try:
         workspace = int(os.environ['SOCIALMEI_INSTAGRAM_AUTO_MENU_WORKSPACE_ID'])
-        assert enabled(workspace)
+        mode = os.getenv('SOCIALMEI_INSTAGRAM_WORKER_MODE', 'send')
+        if mode not in {'send', 'observe'}:
+            raise RuntimeError('Invalid Instagram worker mode')
+        if mode == 'send':
+            assert enabled(workspace)
+        else:
+            if (os.getenv('SOCIALMEI_INSTAGRAM_RUNTIME_SEND_ENABLED') != 'false'
+                    or os.getenv('SOCIALMEI_INSTAGRAM_AUTO_MENU_ENABLED') != 'false'):
+                raise RuntimeError('Observer must have external sending disabled')
         start = datetime.fromisoformat(os.environ['SOCIALMEI_INSTAGRAM_AUTO_MENU_START_UTC'])
         assert start.tzinfo is not None
         with worker_lease(workspace) as check_lease:
-            run_sender(workspace, start, folder, check_lease)
+            (run_observer if mode == 'observe' else run_sender)(workspace, start, folder, check_lease)
     except Exception:
         heartbeat('blocked', 'unavailable')
         raise
+
+
+def run_observer(workspace, start, folder, check_lease):
+    from instagram_worker_observer import pending, checkpoint
+    path = folder / 'state.json'
+    state = json.loads(path.read_text()) if path.exists() else None
+    read_status = 'initializing'
+    with QueueWakeup(instagram_channel(workspace), interval=15, reconcile=60,
+                     sleeper=time.sleep, heartbeat=lambda: heartbeat('running', read_status)) as wakeup:
+        while True:
+            check_lease()
+            wakeup.prepare()
+            try:
+                counts = pending(workspace, start)
+            except Exception:
+                read_status = 'unavailable'
+                heartbeat('running', read_status)
+                wakeup.pause(15)
+                continue
+            state = checkpoint(state, workspace, start, counts)
+            save(path, state)
+            read_status = 'ready'
+            heartbeat('running', read_status)
+            wakeup.wait()
 
 
 def run_sender(workspace, start, folder, check_lease):
@@ -109,5 +142,8 @@ def run_sender(workspace, start, folder, check_lease):
 
 if __name__=='__main__':
     try: main()
-    except Exception as error: print('INSTAGRAM_MENU_STARTUP_BLOCKED',type(error).__name__,flush=True)
+    except Exception as error:
+        print('INSTAGRAM_MENU_STARTUP_BLOCKED',type(error).__name__,flush=True)
+        if os.getenv('SOCIALMEI_INSTAGRAM_WORKER_MODE') == 'observe':
+            raise SystemExit(1)
     while True: time.sleep(3600)

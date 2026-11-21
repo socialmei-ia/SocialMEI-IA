@@ -130,6 +130,20 @@ class AutoMenuDatabaseTests(unittest.TestCase):
             reconcile(checkpoint, self.workspace, self.start, unresolved=unresolved)
         self.assertEqual(len(self.send_calls), 1)
 
+    def test_observer_reads_persisted_direct_in_its_workspace_without_dispatch(self):
+        from instagram_worker_observer import pending, checkpoint
+        counts = pending(self.workspace, self.start)
+        self.assertEqual(counts['pending_count'], 1)
+        self.assertEqual(counts['latest_pending_message_id'], self.source)
+        other = self.identities[1]['workspace_id']
+        self.assertEqual(pending(other, self.start)['pending_count'], 0)
+        state = checkpoint(None, self.workspace, self.start, counts)
+        self.incoming(text='Outra mensagem sintética')
+        resumed = checkpoint(state, self.workspace, self.start, pending(self.workspace, self.start))
+        self.assertEqual(resumed['pending_count'], 2)
+        self.assertFalse(resumed['send_enabled'])
+        self.assertEqual(self.send_calls, [])
+
     def test_old_and_foreign_messages_never_dispatch(self):
         self.assertIsNone(menu.next_source(self.workspace,datetime.now(timezone.utc)+timedelta(seconds=1)))
         self.assertEqual(menu.reply(self.runtime,self.workspace,self.source,datetime.now(timezone.utc)+timedelta(seconds=1)),'skipped')
