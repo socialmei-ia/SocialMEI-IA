@@ -69,6 +69,7 @@ jobs:
           tests/test_backup_retention.py tests/test_gows_restart_policy.py
           tests/test_instagram_worker_database.py
           tests/test_instagram_observer_pilot.py tests/test_team_oci_image_identity.py
+          tests/test_activate_brilho_observer.py
           tests/test_postgres_source_export.py tests/test_backup_restore_rehearsal.py
           tests/test_backup_consistent_export.py
       - name: Disposable PostgreSQL concurrency and identity contracts
