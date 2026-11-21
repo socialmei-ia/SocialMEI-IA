@@ -6,6 +6,8 @@ import argparse
 from datetime import datetime, timedelta, timezone
 import hashlib
 import json
+import os
+import secrets
 import re
 from pathlib import Path
 
@@ -90,8 +92,36 @@ def retention(folder, now=None):
             'records': rows, 'blocked': blocked}
 
 
+def write_report(folder, report, result):
+    folder = folder.absolute()
+    report = report.absolute()
+    if (report.parent != folder or report.name != 'retention-report.private.json'
+            or any(p.is_symlink() for p in (folder, *folder.parents))
+            or report.is_symlink()):
+        raise ValueError('private_retention_report_required')
+    temporary = folder / ('.retention-' + secrets.token_hex(8) + '.partial')
+    try:
+        descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(descriptor, 'w', encoding='utf-8') as stream:
+            json.dump(result, stream, sort_keys=True)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, report)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--directory', required=True, type=Path)
+    parser.add_argument('--report', type=Path, help='Private report inside the backup directory')
     args = parser.parse_args()
-    print(json.dumps(retention(args.directory)))
+    result = retention(args.directory)
+    if args.report:
+        write_report(args.directory, args.report, result)
+        print(json.dumps({'retention_report_written': True, 'files_deleted': 0,
+                          'blocked_receipts': len(result['blocked'])}))
+        if result['blocked']:
+            raise SystemExit(1)
+    else:
+        print(json.dumps(result))

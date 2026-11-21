@@ -1,6 +1,9 @@
 import hashlib
 import importlib.util
 import json
+import os
+import subprocess
+import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import tempfile
@@ -83,6 +86,31 @@ class RetentionTests(unittest.TestCase):
                         {'external_version_id': 'different'}, {'external_receipt_sha256': None},
                         {'owned_cleanup_verified': False}):
             self.assertEqual(action(changes), 'keep_external_restore_unproven')
+
+    def test_private_report_is_replaced_atomically_without_deleting_archives(self):
+        report = self.folder / 'retention-report.private.json'
+        result = m.retention(self.folder, self.now)
+        m.write_report(self.folder, report, result)
+        m.write_report(self.folder, report, result)
+        self.assertEqual(json.loads(report.read_text()), result)
+        self.assertEqual(len(list(self.folder.glob('*.dump'))), 30)
+        self.assertEqual(list(self.folder.glob('*.partial')), [])
+        if os.name != 'nt':
+            self.assertEqual(report.stat().st_mode & 0o777, 0o600)
+        for invalid in (self.folder / 'destination-fake.json', self.folder.parent / report.name):
+            with self.assertRaisesRegex(ValueError, 'private_retention_report_required'):
+                m.write_report(self.folder, invalid, result)
+
+    def test_scheduled_report_exits_nonzero_on_corruption_to_trigger_service_alert(self):
+        self.paths[0].with_suffix('.dump').write_bytes(b'CORRUPTED')
+        report = self.folder / 'retention-report.private.json'
+        result = subprocess.run([sys.executable, str(Path(m.__file__)),
+                                 '--directory', str(self.folder), '--report', str(report)],
+                                capture_output=True, text=True, timeout=10)
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(json.loads(result.stdout)['blocked_receipts'], 1)
+        self.assertEqual(len(json.loads(report.read_text())['blocked']), 1)
+        self.assertEqual(len(list(self.folder.glob('*.dump'))), 30)
 
     def test_latest_daily_and_weekly_copies_are_preserved(self):
         for index, path in enumerate(self.paths):
