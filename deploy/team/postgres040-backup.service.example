@@ -3,6 +3,7 @@
 Description=SocialMEI approved PostgreSQL040 external backup
 After=docker.service
 Requires=docker.service
+OnFailure=socialmei-postgres040-backup-alert.service
 
 [Service]
 Type=oneshot
