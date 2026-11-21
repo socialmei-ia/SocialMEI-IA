@@ -23,6 +23,7 @@ def worker_lease(workspace):
             def check():
                 # A lost lock connection must stop processing before provider I/O.
                 conn.execute('SELECT 1').fetchone()
+                return conn
             yield check
         finally:
             if not conn.closed:

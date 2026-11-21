@@ -39,6 +39,21 @@ class ObserverTests(unittest.TestCase):
         self.assertIn('c.workspace_id=e.workspace_id', query)
         self.assertEqual(params, (60, self.start, self.start))
 
+    def test_scan_reuses_lease_connection_without_closing_or_releasing_its_session(self):
+        conn = MagicMock(); conn.execute.return_value.fetchone.return_value = self.counts
+        factory = conn.row_factory
+        with patch.object(observer, 'connect') as connect:
+            self.assertEqual(observer.pending(60, self.start, connection=conn), self.counts)
+            connect.assert_not_called()
+        conn.transaction.assert_called_once_with()
+        conn.close.assert_not_called()
+        self.assertIs(conn.row_factory, factory)
+        self.assertEqual(conn.execute.call_args_list[0].args[0], 'SET TRANSACTION READ ONLY')
+        conn.execute.side_effect = OSError('synthetic SQL interruption')
+        with self.assertRaises(OSError): observer.pending(60, self.start, connection=conn)
+        conn.close.assert_not_called()
+        self.assertIs(conn.row_factory, factory)
+
     def test_startup_gates_block_before_database_lease_even_with_optimized_python(self):
         lock_api = SimpleNamespace(flock=Mock(), LOCK_EX=1, LOCK_NB=2)
         enable = Mock(return_value=False)

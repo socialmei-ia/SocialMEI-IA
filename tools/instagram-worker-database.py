@@ -45,12 +45,10 @@ def candidate(api, worker, workspace, *, start_utc=None):
         host, database = source.get('POSTGRES_HOST', '').strip(), source.get('POSTGRES_DB', '').strip()
         require(bool(source.get('POSTGRES_USER', '').strip()), 'api_database_user_missing')
     require((host, database) == (HOST, DATABASE), 'api_database_not_reviewed')
-    previous = environment(worker)
+    environment(worker)
     # Observers need database access, not provider, SMTP, n8n or team credentials.
     result = {key: value for key, value in source.items() if key in KEYS}
-    wakeup = previous.get('SOCIALMEI_QUEUE_WAKEUP_MODE', 'poll')
-    require(wakeup in {'poll', 'listen'}, 'queue_mode_requires_review')
-    result['SOCIALMEI_QUEUE_WAKEUP_MODE'] = wakeup
+    result['SOCIALMEI_QUEUE_WAKEUP_MODE'] = 'poll'
     if start_utc is not None:
         try:
             start = datetime.fromisoformat(start_utc)
@@ -101,10 +99,10 @@ def observer_capacity(available_mib):
     # Preserve the authorized backup's worst-case envelope plus runtime headroom.
     backup = 256 + 96
     reserve = 96
-    workers = max(0, min(2, (available_mib - backup - reserve) // 128))
-    return {'available_mib': available_mib, 'observer_limit_mib': 128,
+    workers = max(0, min(2, (available_mib - backup - reserve) // 72))
+    return {'available_mib': available_mib, 'observer_limit_mib': 72,
             'backup_envelope_mib': backup, 'reserve_mib': reserve,
-            'required_for_two_mib': backup + reserve + 2 * 128,
+            'required_for_two_mib': backup + reserve + 2 * 72,
             'safe_observer_count': workers, 'two_observers_fit': workers == 2}
 
 

@@ -1,0 +1,10 @@
+# Reuse the reviewed local service base; do not reinstall dependencies.
+ARG SOCIALMEI_OBSERVER_BASE_IMAGE
+FROM ${SOCIALMEI_OBSERVER_BASE_IMAGE}
+ARG SOCIALMEI_RELEASE_SHA=unknown
+LABEL org.opencontainers.image.revision=$SOCIALMEI_RELEASE_SHA
+LABEL socialmei.runtime.scope=instagram-observer
+WORKDIR /app
+COPY python-service/*.py /app/
+COPY tools/instagram-auto-menu-worker.py /app/instagram-auto-menu-worker.py
+CMD ["python", "-u", "/app/instagram-auto-menu-worker.py"]

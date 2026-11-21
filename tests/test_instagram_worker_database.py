@@ -45,6 +45,9 @@ class WorkerDatabaseTests(unittest.TestCase):
             self.assertEqual(service['environment']['SOCIALMEI_INSTAGRAM_RUNTIME_SEND_ENABLED'], 'false')
             self.assertEqual(service['environment']['SOCIALMEI_INSTAGRAM_AUTO_MENU_WORKSPACE_ID'], workspace)
             self.assertEqual(service['restart'], 'unless-stopped')
+            self.assertEqual(int(service['mem_limit']), 72 * 1024**2)
+            self.assertEqual(int(service['memswap_limit']), 72 * 1024**2)
+            self.assertEqual(service['environment']['SOCIALMEI_QUEUE_WAKEUP_MODE'], 'poll')
             self.assertFalse(service.get('ports'))
             volumes.append(service['volumes'][0]['source'])
             ca = next(v for v in service['volumes'] if v['target'] == '/run/database-ca.crt')
@@ -94,7 +97,7 @@ class WorkerDatabaseTests(unittest.TestCase):
     def test_observers_never_inherit_provider_credentials_or_the_old_workspace_cutoff(self):
         self.worker['Config']['Env'].extend([
             'SOCIALMEI_INSTAGRAM_CLIENT_SECRET=synthetic-secret', 'SOCIALMEI_SMTP_PASSWORD=synthetic-mail',
-            'N8N_API_KEY=synthetic-n8n', 'SOCIALMEI_INSTAGRAM_TOKEN_VAULT_KEY=synthetic-vault',
+            'SOCIALMEI_QUEUE_WAKEUP_MODE=listen', 'N8N_API_KEY=synthetic-n8n', 'SOCIALMEI_INSTAGRAM_TOKEN_VAULT_KEY=synthetic-vault',
             'SOCIALMEI_INSTAGRAM_AUTO_MENU_START_UTC=2025-01-01T00:00:00+00:00'])
         result = m.candidate(self.api, self.worker, 60)
         for key in ('PRIVATE_OAUTH', 'SOCIALMEI_INSTAGRAM_CLIENT_SECRET', 'SOCIALMEI_SMTP_PASSWORD',
@@ -134,7 +137,7 @@ class WorkerDatabaseTests(unittest.TestCase):
             self.assertTrue(receipt['database_ca_copied'])
             self.assertFalse(receipt['provider_credentials_copied'])
             self.assertFalse(receipt['explicit_start_review_required'])
-            self.assertEqual(receipt['activation_capacity']['safe_observer_count'], 1)
+            self.assertEqual(receipt['activation_capacity']['safe_observer_count'], 2)
             self.assertEqual(run.call_args_list[0].args[0][1], 'inspect')
             self.assertEqual(run.call_args_list[1].args[0][-2:], ['cat', '/run/database-ca.crt'])
             for workspace in (60, 61):
@@ -148,10 +151,11 @@ class WorkerDatabaseTests(unittest.TestCase):
 
     def test_capacity_preserves_automatic_backup_and_never_counts_swap_as_ram(self):
         limited = m.observer_capacity(605)
-        self.assertEqual(limited['safe_observer_count'], 1)
-        self.assertFalse(limited['two_observers_fit'])
-        self.assertEqual(limited['required_for_two_mib'], 704)
-        self.assertEqual(m.observer_capacity(704)['safe_observer_count'], 2)
+        self.assertEqual(limited['safe_observer_count'], 2)
+        self.assertTrue(limited['two_observers_fit'])
+        self.assertEqual(limited['required_for_two_mib'], 592)
+        self.assertEqual(m.observer_capacity(592)['safe_observer_count'], 2)
+        self.assertEqual(m.observer_capacity(591)['safe_observer_count'], 1)
         self.assertEqual(m.observer_capacity(447)['safe_observer_count'], 0)
         for value in (-1, True, '605'):
             with self.subTest(value=value), self.assertRaises(RuntimeError):

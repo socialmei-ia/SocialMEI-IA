@@ -8,7 +8,8 @@ x-observer: &observer
   read_only: true
   cap_drop: [ALL]
   security_opt: [no-new-privileges:true]
-  mem_limit: 128m
+  mem_limit: 72m
+  memswap_limit: 72m
   cpus: 0.25
   pids_limit: 64
   tmpfs: [/tmp:size=8m]
@@ -26,6 +27,7 @@ services:
       - path: ${INSTAGRAM_BRILHO_ENV_FILE:?Use the private reviewed Brilho environment}
         format: raw
     environment:
+      SOCIALMEI_QUEUE_WAKEUP_MODE: poll
       SOCIALMEI_INSTAGRAM_WORKER_MODE: observe
       SOCIALMEI_INSTAGRAM_AUTO_MENU_WORKSPACE_ID: "60"
       SOCIALMEI_INSTAGRAM_AUTO_MENU_ENABLED: "false"
@@ -44,6 +46,7 @@ services:
       - path: ${INSTAGRAM_BELLA_ENV_FILE:?Use the private reviewed Bella environment}
         format: raw
     environment:
+      SOCIALMEI_QUEUE_WAKEUP_MODE: poll
       SOCIALMEI_INSTAGRAM_WORKER_MODE: observe
       SOCIALMEI_INSTAGRAM_AUTO_MENU_WORKSPACE_ID: "61"
       SOCIALMEI_INSTAGRAM_AUTO_MENU_ENABLED: "false"

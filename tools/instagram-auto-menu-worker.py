@@ -60,10 +60,10 @@ def run_observer(workspace, start, folder, check_lease):
     with QueueWakeup(instagram_channel(workspace), interval=15, reconcile=60,
                      sleeper=time.sleep, heartbeat=lambda: heartbeat('running', read_status)) as wakeup:
         while True:
-            check_lease()
+            connection = check_lease()
             wakeup.prepare()
             try:
-                counts = pending(workspace, start)
+                counts = pending(workspace, start, connection=connection)
             except Exception:
                 read_status = 'unavailable'
                 heartbeat('running', read_status)
