@@ -43,6 +43,8 @@ class ConsistentExportTests(unittest.TestCase):
                         token = args[args.index('--label') + 1].split('=', 1)[1]
                         self.assertNotIn('private-sentinel', ' '.join(args))
                         self.assertIn('private-sentinel', options['env']['SOCIALMEI_EXPORT_SOURCE_DSN'])
+                        stat = (Path(temp) / 'export-test').stat()
+                        self.assertEqual(args[args.index('--user') + 1], str(stat.st_uid) + ':' + str(stat.st_gid))
                         return SimpleNamespace(stdout='helper-id')
                     elif args[1] == 'start':
                         raise subprocess.TimeoutExpired(args, 180)

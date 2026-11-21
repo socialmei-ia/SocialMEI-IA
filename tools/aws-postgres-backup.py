@@ -258,6 +258,7 @@ def consistent_export(config, folder, stamp):
         raise RuntimeError('consistent_export_image_mismatch')
     directory = folder / ('export-' + stamp)
     directory.mkdir(mode=0o700)
+    owner = directory.stat()
     token = secrets.token_hex(12); name = 'socialmei-backup040-export-' + token
     network = 'container:' + source['Id']
     identity = hashlib.sha256(json.dumps(['127.0.0.1', 5432, config['database']]).encode()).hexdigest()
@@ -265,6 +266,7 @@ def consistent_export(config, folder, stamp):
                SOCIALMEI_EXPORT_SOURCE_FINGERPRINT=identity)
     try:
         docker('create', '--name', name, '--label', 'socialmei.backup040-export=' + token,
+               '--user', str(owner.st_uid) + ':' + str(owner.st_gid),
                '--network', network, '--read-only', '--cap-drop', 'ALL',
                '--security-opt', 'no-new-privileges', '--memory', '256m', '--cpus', '0.5',
                '--pids-limit', '64', '--restart', 'no',
