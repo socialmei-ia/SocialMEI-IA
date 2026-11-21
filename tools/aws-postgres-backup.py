@@ -50,10 +50,22 @@ def select_approved040_root(path):
         raise RuntimeError('approved_backup_restore_receipt_missing')
     private_ownership(receipt.parent, receipt)
     verified = json.loads(receipt.read_text())
-    if (verified.get('independent_restore_equal') is not True
-            or verified.get('comparison', {}).get('equal') is not True
-            or verified.get('sha256') != values.get('validated_backup_sha256')
-            or re.fullmatch(r'[0-9a-f]{64}', str(values.get('validated_backup_sha256'))) is None):
+    expected_hash = values.get('validated_backup_sha256')
+    legacy_restore = (verified.get('independent_restore_equal') is True
+                      and verified.get('comparison', {}).get('equal') is True
+                      and verified.get('sha256') == expected_hash)
+    # Consume the existing isolated rehearsal's native receipt. Integrity-only
+    # comparisons against an older baseline must never qualify as source equality.
+    current_restore = (verified.get('restoration_verified') is True
+                       and verified.get('profile') == '040'
+                       and verified.get('verification_mode') == 'full_comparison'
+                       and verified.get('source_contents_compared') is True
+                       and verified.get('archive_integrity_verified') is True
+                       and verified.get('owned_cleanup_verified') is True
+                       and verified.get('production_mutation') is False
+                       and verified.get('dump_sha256') == expected_hash)
+    if (not (legacy_restore or current_restore)
+            or re.fullmatch(r'[0-9a-f]{64}', str(expected_hash)) is None):
         raise RuntimeError('approved_backup_restore_not_verified')
     ROOT = path
     return values

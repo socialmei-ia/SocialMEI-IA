@@ -154,6 +154,32 @@ class ExternalUploadTests(unittest.TestCase):
                     backup.select_approved040_root(root)
                 self.assertEqual(backup.ROOT, original_root)
 
+    def test_native_restore_receipt_qualifies_only_with_full_source_comparison(self):
+        root = self.path.parent
+        os.chmod(root, 0o700)
+        receipt = root / 'rehearsal.private.json'
+        config = {'backup_target_approved': True, 'container': backup.NAME,
+                  'database': 'socialmei_candidate040_20261114', 'admin_user': 'relocation_admin',
+                  'schema': '040', 'source': 'approved_schema040_destination',
+                  'current_production_backup': True, 'restore_receipt_file': str(receipt),
+                  'validated_backup_sha256': 'a' * 64}
+        path = root / 'destination.private.json'
+        path.write_text(json.dumps(config)); os.chmod(path, 0o600)
+        proof = {'restoration_verified': True, 'profile': '040', 'verification_mode': 'full_comparison',
+                 'source_contents_compared': True, 'archive_integrity_verified': True,
+                 'owned_cleanup_verified': True, 'production_mutation': False, 'dump_sha256': 'a' * 64}
+        receipt.write_text(json.dumps(proof)); os.chmod(receipt, 0o600)
+        with patch.object(backup, 'ROOT', backup.ROOT):
+            self.assertEqual(backup.select_approved040_root(root), config)
+        for key, value in [('verification_mode', 'archive_integrity'), ('source_contents_compared', False),
+                           ('dump_sha256', 'b' * 64), ('owned_cleanup_verified', False),
+                           ('restoration_verified', False), ('production_mutation', True),
+                           ('profile', '039'), ('archive_integrity_verified', False)]:
+            with self.subTest(key=key):
+                receipt.write_text(json.dumps({**proof, key: value}))
+                with self.assertRaisesRegex(RuntimeError, 'restore_not_verified'):
+                    backup.select_approved040_root(root)
+
     def test_backup_uses_validated_configuration_without_reopening_mutated_target(self):
         root = self.path.parent
         (root / 'destination.private.json').write_text(json.dumps({'database': 'unapproved', 'admin_user': 'wrong'}))
