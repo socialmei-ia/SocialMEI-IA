@@ -63,6 +63,7 @@ jobs:
           python -m unittest tests/test_backup_current_database.py
           tests/test_external_backup_upload.py tests/test_postgres_external_backup_plan.py
           tests/test_backup_retention.py tests/test_gows_restart_policy.py
+          tests/test_instagram_worker_database.py
       - name: Disposable PostgreSQL concurrency and identity contracts
         run: >-
           python -m unittest test_channel_booking test_inbox_customer
