@@ -1,0 +1,45 @@
+{
+  "production_modified": false,
+  "production_api": "17cfd1956416c2d4c8431fec11800f73254bde12",
+  "production_schema": "040",
+  "premium_plan_sha256": "a846c5a6335dfa5f7af73e4dc09cf3a6157e12bbad3e70979409a991e0d237f5",
+  "premium_plan_verification": "verified_not_applied",
+  "disposable_postgresql": {
+    "host": "127.0.0.1",
+    "port": 55491,
+    "database": "socialmei_handover_test",
+    "migration_tested_only_here": "041_whatsapp_channel_lifecycle.sql"
+  },
+  "tests": {
+    "handover_pilot_human_transport_channels_bot_and_workspace_inbox": {
+      "passed": 92,
+      "failed": 0,
+      "skipped": 0
+    },
+    "linux_pilot_registry_workspace_inbox_guards": {
+      "passed": 18,
+      "failed": 0,
+      "skipped": 1
+    },
+    "instagram_worker_lease": {
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "limitations": [
+    "No production migration, channel handover or provider message performed",
+    "Pause proof is a private operator attestation, not runtime measurement",
+    "Instagram lock coordinates Python workers using this contract, not legacy n8n",
+    "Real Meta and GOWS homologation pending separate operational approval"
+  ],
+  "delta_tests": {
+    "handover_wall_clock_and_runtime_plan": {
+      "passed": 19,
+      "failed": 0,
+      "skipped": 0
+    },
+    "formatting": "passed",
+    "prior_c013052_ci": "44815381643 success"
+  }
+}

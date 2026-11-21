@@ -84,6 +84,11 @@ def authorize(conn, request):
     ).fetchone()
     if not row or row['binding_hash'] != binding_hash(row):
         raise HTTPException(401, 'Credencial de atendimento inválida.')
+    if (os.getenv('SOCIALMEI_WAHA_INGRESS_MODE', '').strip().lower() == 'team-pilot'
+            and os.getenv('SOCIALMEI_WAHA_PILOT_BINDING_SHA256', '')
+            and not settings.waha_pilot_binding_allowed(row['workspace_id'],row['channel_id'],row['instancia'],
+                row['sessao'],row['identificador_conta'],row['versao'],os.getenv('SOCIALMEI_MENU_WAHA_ENGINE','WEBJS'))):
+        raise HTTPException(401, 'Credencial de atendimento fora do vínculo revisado.')
     return row
 
 
@@ -144,6 +149,10 @@ def native_list_canary(channel, contact):
         (channel['workspace_id'], channel['channel_id'], channel['instancia'], channel['sessao'])
         == (1, 1, 'socialmei-equipe-piloto', '01')
     )
+    if os.getenv('SOCIALMEI_WAHA_PILOT_BINDING_SHA256', ''):
+        reviewed = settings.waha_ingress_team_pilot_enabled() and settings.waha_pilot_binding_allowed(
+            channel['workspace_id'],channel['channel_id'],channel['instancia'],channel['sessao'],
+            channel['identificador_conta'],channel['versao'],os.getenv('SOCIALMEI_MENU_WAHA_ENGINE','WEBJS'))
     direct = isinstance(contact, str) and re.fullmatch(
         r'waha:(?:[0-9]{1,40}@c\.us|[A-Za-z0-9][A-Za-z0-9_.:-]{0,79}@lid)',
         contact,

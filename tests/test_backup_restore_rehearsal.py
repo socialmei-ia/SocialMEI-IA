@@ -4,6 +4,7 @@ import copy
 import importlib.util
 import io
 import json
+import os
 from pathlib import Path
 import tempfile
 import unittest
@@ -13,6 +14,9 @@ ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location('restore_runner', ROOT / 'tools/backup-restore-rehearsal.py')
 runner = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(runner)
+BACKUP_SPEC = importlib.util.spec_from_file_location('backup_gate', ROOT / 'tools/aws-postgres-backup.py')
+backup_gate = importlib.util.module_from_spec(BACKUP_SPEC)
+BACKUP_SPEC.loader.exec_module(backup_gate)
 
 
 def manifest(profile=40):
@@ -139,6 +143,22 @@ class RestoreRehearsalTests(unittest.TestCase):
                         self.assertTrue(result['restoration_verified'])
                         self.assertTrue(result['owned_cleanup_verified'])
                         self.assertFalse(result['production_mutation'])
+                        # The real rehearsal output feeds the activation gate
+                        # directly, without a hand-edited conversion receipt.
+                        root = Path(folder); os.chmod(root, 0o700)
+                        proof = root / 'restore.private.json'
+                        proof.write_text(json.dumps(result)); os.chmod(proof, 0o600)
+                        config = {'backup_target_approved': True, 'container': backup_gate.NAME,
+                                  'database': 'socialmei_candidate040_20261114',
+                                  'admin_user': 'relocation_admin', 'schema': '040',
+                                  'source': 'approved_schema040_destination',
+                                  'current_production_backup': True,
+                                  'restore_receipt_file': str(proof),
+                                  'validated_backup_sha256': result['dump_sha256']}
+                        target = root / 'destination.private.json'
+                        target.write_text(json.dumps(config)); os.chmod(target, 0o600)
+                        with patch.object(backup_gate, 'ROOT', backup_gate.ROOT):
+                            self.assertEqual(backup_gate.select_approved040_root(root), config)
                 self.assertEqual(sum(args[0] == 'rm' for args in commands), 2)
 
 

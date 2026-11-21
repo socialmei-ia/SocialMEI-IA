@@ -64,6 +64,47 @@ class CopyValidatorTests(unittest.TestCase):
         self.assertEqual(first, validator.digest_rows(iter([('ab',), ('c',)])))
         self.assertEqual(len(validator.digest_rows([])['sha256']), 64)
 
+    def test_regex_dollar_in_ordinary_literal_does_not_hide_array_cast_equivalence(self):
+        source = manifest()
+        expression = (
+            "CHECK (waha_event_key IS NULL AND waha_account_snapshot IS NULL AND inbox_message_id IS NULL "
+            "AND inbox_origin IS NULL OR waha_event_key IS NOT NULL AND waha_event_key ~ '^[0-9a-f]{64}$'::text "
+            "AND waha_account_snapshot IS NOT NULL AND inbox_origin IS NOT NULL AND inbox_origin = 'waha'::text "
+            "AND (status::text = ANY (ARRAY['processado'::character varying, 'ignorado'::character varying]::text[])) "
+            "AND (status::text = 'processado'::text) = (inbox_message_id IS NOT NULL) AND mensagem_id IS NULL)"
+        )
+        source['structure'] = {'constraints': [
+            ['socialmei', 'crm_eventos_canal', 'ck_waha_ingress_event', 'c', True, False, False, expression]]}
+        restored = expression.replace(
+            "ARRAY['processado'::character varying, 'ignorado'::character varying]::text[]",
+            "ARRAY['processado'::character varying::text, 'ignorado'::character varying::text]")
+        target = copy.deepcopy(source)
+        target['structure']['constraints'][0][-1] = restored
+        self.assertTrue(validator.compare(source, target)['equal'])
+        normalized = validator.comparable_structure(source['structure'])['constraints'][0][-1]
+        self.assertIn("'^[0-9a-f]{64}$'::text", normalized)
+        for before, after in (("'ignorado'", "'rejeitado'"), ("{64}$", "{63}$"),
+                              ("{64}$", "{64}"), ("mensagem_id IS NULL", "mensagem_id IS NOT NULL")):
+            changed = copy.deepcopy(target)
+            changed['structure']['constraints'][0][-1] = restored.replace(before, after)
+            self.assertFalse(validator.compare(source, changed)['equal'])
+
+    def test_dollar_quoted_and_escaped_strings_still_disable_array_normalization(self):
+        array = "ARRAY['processado'::character varying]::text[]"
+        for literal in ("$$^[0-9a-f]{64}$ 'quoted'$$", "$regex$^[0-9a-f]{64}$$regex$",
+                        "E'ordinary-looking'", "E'escaped\\\\text'", "U&'unicode'"):
+            expression = f"CHECK (note = {literal} AND status::text = ANY ({array}))"
+            structure = {'constraints': [['schema', 'table', 'check', expression]]}
+            self.assertEqual(validator.comparable_structure(structure), structure)
+
+    def test_literal_contents_that_look_like_array_sql_remain_untouched_with_dollar(self):
+        expression = ("CHECK (note = '$ ARRAY[''x''::character varying]::text[]' AND "
+                      "status::text = ANY (ARRAY['active'::character varying]::text[]))")
+        structure = {'constraints': [['schema', 'table', 'check', expression]]}
+        normalized = validator.comparable_structure(structure)['constraints'][0][-1]
+        self.assertIn("'$ ARRAY[''x''::character varying]::text[]'", normalized)
+        self.assertIn("ARRAY[('active'::character varying)::text]", normalized)
+
     def test_array_cast_normalization_never_rewrites_quoted_names_or_literal_contents(self):
         first_name = "ARRAY['x'::character varying]::text[]"
         second_name = "ARRAY[('x'::character varying)::text]"

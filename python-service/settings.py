@@ -3,6 +3,8 @@
 import os
 import json
 import re
+import hashlib
+import hmac
 from dataclasses import dataclass
 from urllib.parse import quote
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -187,13 +189,40 @@ def waha_ingress_isolated_enabled() -> bool:
     )
 
 
+def waha_pilot_workspace_id():
+    value = os.getenv('SOCIALMEI_WAHA_PILOT_WORKSPACE_ID', '1')
+    if not re.fullmatch(r'[1-9][0-9]{0,15}', value) or int(value) > 9007199254740991:
+        return None
+    return int(value)
+
+
+def waha_pilot_binding_digest(workspace, channel, instance, session, account, revision, engine):
+    return hashlib.sha256(json.dumps([workspace,channel,instance,session,account,revision,engine],
+                                    separators=(',', ':')).encode()).hexdigest()
+
+
+def waha_pilot_binding_allowed(workspace, channel, instance, session, account, revision, engine):
+    reviewed = os.getenv('SOCIALMEI_WAHA_PILOT_BINDING_SHA256', '')
+    if reviewed:
+        return (workspace == waha_pilot_workspace_id() and bool(re.fullmatch(r'[0-9a-f]{64}', reviewed))
+                and hmac.compare_digest(reviewed, waha_pilot_binding_digest(
+                    workspace,channel,instance,session,account,revision,engine)))
+    # Existing pilot stays exactly as deployed unless a full new binding is reviewed.
+    return (waha_pilot_workspace_id() == 1 and workspace == 1
+            and instance == 'socialmei-equipe-piloto' and account.endswith('5976@c.us'))
+
+
 def waha_ingress_team_pilot_enabled() -> bool:
+    workspace = waha_pilot_workspace_id()
+    reviewed = os.getenv('SOCIALMEI_WAHA_PILOT_BINDING_SHA256', '')
     return (
         os.getenv("SOCIALMEI_WAHA_INGRESS_MODE", "disabled").strip().lower() == "team-pilot"
         and os.getenv("SOCIALMEI_WAHA_LAB_ENVIRONMENT", "").strip().lower() == "team-pilot"
         and os.getenv("SOCIALMEI_WAHA_REGISTRY_FILE", "") == "/run/socialmei/private/waha-registry.json"
         and shared_data_enabled()
         and authentication_mode() == "enabled"
+        and workspace is not None
+        and ((workspace == 1 and not reviewed) or bool(re.fullmatch(r'[0-9a-f]{64}', reviewed)))
     )
 
 
@@ -252,7 +281,7 @@ def whatsapp_bot_allowed_contacts():
 
 def waha_inbox_enabled(workspace_id: int) -> bool:
     return waha_ingress_isolated_enabled() or (
-        type(workspace_id) is int and workspace_id == 1
+        type(workspace_id) is int and workspace_id == waha_pilot_workspace_id()
         and waha_ingress_team_pilot_enabled()
     ) or (
         type(workspace_id) is int and 1 <= workspace_id <= 2**63 - 1
@@ -288,6 +317,9 @@ def whatsapp_human_configuration():
         if not re.fullmatch(r'[1-9][0-9]{0,15}', raw_workspace):
             raise ValueError()
         workspace = int(raw_workspace)
+        if os.getenv('SOCIALMEI_WAHA_INGRESS_MODE', '').strip().lower() == 'team-pilot':
+            if not waha_ingress_team_pilot_enabled() or workspace != waha_pilot_workspace_id():
+                raise ValueError()
         instance = os.getenv('SOCIALMEI_WHATSAPP_HUMAN_INSTANCE', '')
         session = os.getenv('SOCIALMEI_WHATSAPP_HUMAN_SESSION', '')
         account = os.getenv('SOCIALMEI_WHATSAPP_HUMAN_ACCOUNT_ID', '')

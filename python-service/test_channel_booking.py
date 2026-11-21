@@ -1,6 +1,7 @@
 """Channel booking contracts and disposable PostgreSQL only; no provider calls."""
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
+from threading import Barrier
 from types import SimpleNamespace
 import os
 import unittest
@@ -343,7 +344,7 @@ class ChannelBookingDatabaseTests(unittest.TestCase):
                 'WHERE workspace_id=%s', (self.workspace,)).fetchone()[0], 0)
         self.assertEqual(self.confirm(token).status_code, 200)
 
-    def test_instagram_uses_same_appointment_engine_and_checks_human_pause(self):
+    def instagram_context(self, customer_id):
         connection_id = uuid4()
         with psycopg.connect(accounts.DB, row_factory=dict_row) as conn:
             conn.execute("INSERT INTO socialmei.ig_meta_connections(id,workspace_id,external_account_id,"
@@ -361,9 +362,44 @@ class ChannelBookingDatabaseTests(unittest.TestCase):
                 "VALUES('123456789',%s,%s,%s,'message',%s,'processed',%s)",
                 ('a' * 64, self.workspace, connection_id, 'a' * 64, message['message_id']))
             conn.execute('UPDATE socialmei.me_conversations SET cliente_id=%s WHERE workspace_id=%s AND id=%s',
-                         (self.person['id'], self.workspace, message['conversation_id']))
-        context = {'origin': 'instagram', 'conversation_id': message['conversation_id'],
-                   'source_message_id': message['message_id']}
+                         (customer_id, self.workspace, message['conversation_id']))
+        return {'origin': 'instagram', 'conversation_id': message['conversation_id'],
+                'source_message_id': message['message_id']}
+
+    def test_whatsapp_and_instagram_customers_compete_for_one_slot_without_duplicates(self):
+        second = self.post('/api/v1/clientes', {'nome': 'Cliente Instagram fictício independente'})
+        instagram = self.instagram_context(second['id'])
+        barrier = Barrier(2)
+        with patch('channel_booking.settings.instagram_n8n_ingress_configuration',
+                   return_value={'meta_app_secret': KEY}):
+            contexts = [self.context, instagram]
+            tokens = [self.offer(context) for context in contexts]
+            self.assertEqual(booking.decode_confirmation(tokens[0], KEY)['start'],
+                             booking.decode_confirmation(tokens[1], KEY)['start'])
+
+            def reserve(index):
+                barrier.wait(timeout=10)
+                return self.confirm(tokens[index], contexts[index])
+
+            with ThreadPoolExecutor(2) as pool:
+                responses = list(pool.map(reserve, range(2)))
+            self.assertEqual(sorted(response.status_code for response in responses), [200, 409])
+            winner = next(index for index, response in enumerate(responses)
+                          if response.status_code == 200)
+            saved = responses[winner].json()
+            self.assertEqual(saved['cliente_id'], [self.person['id'], second['id']][winner])
+            self.assertEqual(self.confirm(tokens[winner], contexts[winner]).json(), saved)
+            loser = 1 - winner
+            self.assertEqual(self.confirm(tokens[loser], contexts[loser]).status_code, 409)
+
+        with psycopg.connect(accounts.DB) as conn:
+            self.assertEqual(conn.execute('SELECT count(*) FROM socialmei.agenda_appointments '
+                'WHERE workspace_id=%s', (self.workspace,)).fetchone()[0], 1)
+            self.assertEqual(conn.execute('SELECT count(*) FROM socialmei.agenda_appointment_history '
+                'WHERE workspace_id=%s', (self.workspace,)).fetchone()[0], 1)
+
+    def test_instagram_uses_same_appointment_engine_and_checks_human_pause(self):
+        context = self.instagram_context(self.person['id'])
         with patch('channel_booking.settings.instagram_n8n_ingress_configuration',
                    return_value={'meta_app_secret': KEY}):
             token = self.offer(context)

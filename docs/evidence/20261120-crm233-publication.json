@@ -1,0 +1,109 @@
+{
+  "recorded_at_utc": "2026-11-20T12:38:18.049307+00:00",
+  "authorization": "Explicit owner authorization in conversation: API17cfd19 and one JS only; no database/migration/channel/worker changes.",
+  "publication": {
+    "collected_at_utc": "2026-11-20T12:35:07.575605+00:00",
+    "source_sha": "17cfd1956416c2d4c8431fec11800f73254bde12",
+    "api_image_id": "sha256:6cf2bc60fec3f31e5e0cc24d4e276a7ba43911e94343e1439dce75d84a5673f8",
+    "gateway_image_id": "sha256:b93aeac93d11ea0e88dd2c44961bc8f13df9bcb928d960b3562563e68b6cc8ec",
+    "health": {
+      "/health": 200,
+      "/health/db": 200
+    },
+    "other_containers_preserved": [
+      "socialmei-menu-worker-continuo",
+      "socialmei-team-team-recovery-worker-1",
+      "socialmei-python",
+      "socialmei-postgres-relocation-20261112",
+      "socialmei-menu-public-api-v3",
+      "socialmei-waha-gows-edge",
+      "socialmei-instagram-menu-worker",
+      "socialmei-waha-gows-piloto",
+      "socialmei-caddy",
+      "socialmei-n8n",
+      "socialmei-python-runners",
+      "socialmei-team-team-postgres-1",
+      "socialmei-waha",
+      "socialmei-pgadmin",
+      "socialmei-postgres"
+    ],
+    "frontend_files_verified": 171,
+    "frontend_changed_paths": ["/srv/frontend/scripts/v22-inbox-customer.js"],
+    "http": [
+      {
+        "path": "/",
+        "status": 200,
+        "sha256": "ab107b5222129bd391f257ae3f0b5e58724aa30a411954dbbfb6c6e7e8af0bc2",
+        "bytes": 509
+      },
+      {
+        "path": "/frontend/socialmei-app.html",
+        "status": 200,
+        "sha256": "38126dff223e9737d6429cdfbd0d3dfd70ebf9f165a87d6b926471020efee379",
+        "bytes": 280010
+      },
+      {
+        "path": "/frontend/scripts/v22-inbox-customer.js",
+        "status": 200,
+        "sha256": "b50ce7dc0a29c7da8d2d972a31ab252d5cfb90778fc28f0c511d9e0322c87a85",
+        "bytes": 14202
+      }
+    ],
+    "migrations_run": false,
+    "external_messages_sent": 0,
+    "business_records_created": 0,
+    "private_release_directory": "/home/ubuntu/.socialmei-release040-import/crm-17cfd19/approved-release-20261120T123408Z"
+  },
+  "live_browser": {
+    "mode": "live_readonly_anonymous_browser",
+    "results": [
+      {
+        "status": 200,
+        "title": "SocialMEI-IA | Seu negócio, mais simples",
+        "bodyVisible": true,
+        "loginVisible": true,
+        "loadedScriptSha256": "b50ce7dc0a29c7da8d2d972a31ab252d5cfb90778fc28f0c511d9e0322c87a85",
+        "registrationActionPresent": true
+      }
+    ],
+    "pageErrors": [],
+    "blockedWriteAttempts": [],
+    "productionRecordsCreated": 0
+  },
+  "customer_api": {
+    "module_sha256": "d378b7ac609bab3f7ff72910cfb064edca3af1bafbfaf51b5f7c2d58092740cb",
+    "exact_candidate_module_match": true,
+    "routes": {
+      "customer": ["get", "patch"],
+      "customer-suggestions": ["get"]
+    },
+    "unauthenticated_customer_suggestions_status": 401,
+    "real_customer_creation_or_association_executed": false
+  },
+  "brilho": {
+    "target_validated_readonly": true,
+    "workspace": {
+      "id": 60,
+      "nome": "Brilho&Limpeza Service"
+    },
+    "membership": {
+      "user_id": 33,
+      "role": "owner",
+      "active": true,
+      "platform_admin": false
+    },
+    "counts": {
+      "crm_clientes": 0,
+      "crm_produtos": 0,
+      "agenda_resources": 0,
+      "agenda_appointments": 0,
+      "crm_vendas": 0,
+      "crm_financeiro": 0,
+      "workspace_profiles": 0,
+      "crm_canais": 0
+    },
+    "authenticated_dry_run_executed": false,
+    "blocker": "owner_credentials_not_available"
+  },
+  "next_step": "Supply private owner33 account-file path and run authenticated dry-run only. No actual demo provisioning or channel transfer approved."
+}
