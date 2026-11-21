@@ -40,6 +40,25 @@ class WorkerLeaseTests(unittest.TestCase):
 
 @unittest.skipUnless(DISPOSABLE,'Explicit disposable PostgreSQL required')
 class WorkerLeaseDatabaseTests(unittest.TestCase):
+    def test_reused_read_only_scans_keep_the_same_backend_and_exclusive_workspace_lease(self):
+        from datetime import datetime, timezone
+        from urllib.parse import urlsplit
+        from psycopg.pq import TransactionStatus
+        from instagram_worker_observer import pending
+        with patch.dict(os.environ, {'DATABASE_URL': accounts.DB,
+                    'SOCIALMEI_INSTAGRAM_WORKER_DATABASE_NAME': urlsplit(accounts.DB).path[1:]}):
+            with lease.worker_lease(60) as check:
+                conn = check(); backend = conn.info.backend_pid; factory = conn.row_factory
+                for _ in range(2):
+                    self.assertIn('pending_count', pending(60, datetime.now(timezone.utc), connection=conn))
+                    self.assertIs(check(), conn)
+                    self.assertEqual(conn.info.backend_pid, backend)
+                    self.assertEqual(conn.info.transaction_status, TransactionStatus.IDLE)
+                    self.assertIs(conn.row_factory, factory)
+                with self.assertRaises(RuntimeError), lease.worker_lease(60): pass
+                with lease.worker_lease(61) as other: self.assertIsNot(other(), conn)
+            self.assertTrue(conn.closed)
+
     def test_one_sender_per_workspace_and_release_after_shutdown(self):
         from urllib.parse import urlsplit
         with patch.dict(os.environ,{'DATABASE_URL':accounts.DB,
