@@ -1,5 +1,6 @@
 """Persistent account activation and scoped invitations; synthetic mail only."""
 from concurrent.futures import ThreadPoolExecutor
+import io
 import os
 import unittest
 from unittest.mock import patch
@@ -16,6 +17,36 @@ ENV = {'SOCIALMEI_IDENTITY_MODE': 'enforced', 'SOCIALMEI_SMTP_HOST': 'smtp.examp
 
 
 class IdentityContracts(unittest.TestCase):
+    def test_poll_worker_honors_interval_even_when_the_batch_is_full(self):
+        with patch('sys.argv', ['identity_worker.py', '--run', '--watch', '--limit', '2']), \
+                patch('identity_worker.configured'), \
+                patch('identity_worker.process_one', side_effect=[True, True, AssertionError('unbounded loop')]) as process, \
+                patch('identity_worker.QueueWakeup') as factory:
+            wakeup = factory.return_value.__enter__.return_value
+            wakeup.mode = 'poll'; wakeup.wait.side_effect = KeyboardInterrupt
+            self.assertEqual(identity_worker.main(), 0)
+        self.assertEqual(process.call_count, 2)
+        wakeup.wait.assert_called_once()
+
+    def test_listen_worker_drains_durable_batches_before_waiting_without_replaying_failures(self):
+        with patch('sys.argv', ['identity_worker.py', '--run', '--watch', '--limit', '2']), \
+                patch('identity_worker.configured'), \
+                patch('identity_worker.process_one', side_effect=[True, True, False]) as process, \
+                patch('identity_worker.QueueWakeup') as factory:
+            wakeup = factory.return_value.__enter__.return_value
+            wakeup.mode = 'listen'; wakeup.wait.side_effect = KeyboardInterrupt
+            self.assertEqual(identity_worker.main(), 0)
+        self.assertEqual(process.call_count, 3)
+        wakeup.wait.assert_called_once()
+        with patch('sys.argv', ['identity_worker.py', '--run', '--watch']), \
+                patch('identity_worker.configured'), \
+                patch('identity_worker.process_one', side_effect=RuntimeError('private SMTP detail')) as process, \
+                patch('identity_worker.QueueWakeup') as factory, patch('sys.stderr', new_callable=io.StringIO) as log:
+            self.assertEqual(identity_worker.main(), 1)
+            self.assertNotIn('private SMTP detail', log.getvalue())
+        process.assert_called_once()
+        factory.return_value.__enter__.return_value.wait.assert_not_called()
+
     def test_idle_worker_checks_once_and_uses_bounded_reconciliation(self):
         with patch('sys.argv', ['identity_worker.py', '--run']), patch('identity_worker.configured'), \
                 patch('identity_worker.process_one', return_value=False) as process, \

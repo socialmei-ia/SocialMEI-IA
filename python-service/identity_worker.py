@@ -26,8 +26,10 @@ def main():
                     processed += 1
                 if not args.watch:
                     return 0
-                if processed < args.limit:
+                if wakeup.mode != 'listen' or processed < args.limit:
                     wakeup.wait()
+    except KeyboardInterrupt:
+        return 0
     except Exception:
         print('Identity worker unavailable. Verify private configuration and approved schema.', file=sys.stderr)
         return 1
