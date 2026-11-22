@@ -70,6 +70,7 @@ jobs:
           tests/test_instagram_worker_database.py
           tests/test_instagram_observer_pilot.py tests/test_team_oci_image_identity.py
           tests/test_activate_brilho_observer.py
+          tests/test_instagram_bella_observer_plan.py
           tests/test_postgres_source_export.py tests/test_backup_restore_rehearsal.py
           tests/test_backup_consistent_export.py
       - name: Disposable PostgreSQL concurrency and identity contracts
@@ -93,6 +94,7 @@ jobs:
           test_channel_booking_flow.ChannelBookingFlowTests.test_textual_journey_books_only_after_confirmation_and_replay_is_deduplicated
           test_channel_booking_flow.ChannelBookingFlowTests.test_native_list_journey_uses_opaque_offered_options_with_same_core
           test_channel_booking_expiry
+          test_instagram_booking_flow
           test_account_recovery.RecoveryTests.test_password_change_expires_earlier_queued_recovery_without_sending
           test_account_recovery.RecoveryTests.test_new_request_during_send_preserves_new_pending_generation
           test_account_recovery.RecoveryTests.test_stale_queue_expires_without_email
