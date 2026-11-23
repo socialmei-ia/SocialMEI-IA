@@ -70,7 +70,7 @@ class ContinuousWorkerTests(unittest.TestCase):
         self.assertFalse(any(url.endswith(('/api/sendList','/api/sendText')) for _,url in calls))
 
     def test_api040_private_target_remains_fail_closed(self):
-        self.assertEqual(worker.API_URL, 'http://team-api:8000')
+        self.assertEqual(worker.API_URL, 'http://socialmei-menu-public-api-v3:8019')
 
     def test_public_native_list_requires_explicit_flags_and_verified_direct_contact(self):
         import os

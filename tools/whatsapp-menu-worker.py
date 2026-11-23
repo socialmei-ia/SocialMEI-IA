@@ -16,7 +16,7 @@ def valid_token(value):
     return isinstance(value, str) and re.fullmatch(r'sm:[0-9a-f]{32}:[0-9]', value) is not None
 
 
-API_URL = 'http://team-api:8000'  # Private Team API 040 (release040 network)
+API_URL = 'http://socialmei-menu-public-api-v3:8019'  # Account-bound private menu API
 WAHA_URL = 'http://socialmei-waha:3000'
 GOWS_URL = 'http://socialmei-waha-gows-piloto:3000'
 WAHA_ENDPOINTS = {'WEBJS': WAHA_URL, 'GOWS': GOWS_URL}
