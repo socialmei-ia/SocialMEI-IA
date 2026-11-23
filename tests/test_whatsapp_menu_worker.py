@@ -191,8 +191,8 @@ class ContinuousWorkerTests(unittest.TestCase):
                                   engine, url)
 
     def test_provider_read_failure_leaves_source_available_without_any_post(self):
-        cfg = worker.Config('trusted-a', '01', '111@c.us', 'synthetic-token',
-                            'synthetic-key', 'GOWS', worker.GOWS_URL)
+        cfg = worker.Config('trusted-a', '01', '111@c.us', 'synthetic-token-123456',
+                            'synthetic-key-123456', 'GOWS', worker.GOWS_URL)
         for failure in ('timeout', '503'):
             calls = []
             def handler(request):
