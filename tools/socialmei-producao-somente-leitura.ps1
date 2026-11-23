@@ -73,6 +73,20 @@ do
         echo "$name | AUSENTE"
     fi
 done
+echo '=== REMETENTE WHATSAPP ==='
+if ! docker exec -i socialmei-menu-worker-continuo python - <<'PY'
+import json
+from pathlib import Path
+state = json.loads(Path('/run/socialmei/continuous-state/state.json').read_text())
+status = state.get('status')
+print('Journal:', status if status in {'running', 'paused'} else 'desconhecido')
+print('Operacao em andamento:', state.get('in_flight') is True)
+if status != 'running' or state.get('in_flight') is not False:
+    print('Preserve o journal. Concilie o ledger antes de uma retomada autorizada.')
+PY
+then
+    echo 'Journal indisponivel. Verifique o container antes de qualquer retomada.'
+fi
 echo
 
 echo "=== IDENTIDADE AWS DO SERVIDOR ==="
