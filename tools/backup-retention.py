@@ -1,0 +1,127 @@
+"""Plan local retention only. Never deletes archives or contacts external storage.
+
+Deletion needs a separate approved executor after offsite restore evidence.
+"""
+import argparse
+from datetime import datetime, timedelta, timezone
+import hashlib
+import json
+import os
+import secrets
+import re
+from pathlib import Path
+
+
+def checksum(path):
+    digest = hashlib.sha256()
+    with path.open('rb') as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b''):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def retention(folder, now=None):
+    if folder.is_symlink() or not folder.is_dir():
+        raise ValueError('private_backup_directory_required')
+    now = now or datetime.now(timezone.utc)
+    if now.tzinfo is None:
+        raise ValueError('aware_timestamp_required')
+    records = []; blocked = []
+    for path in sorted(folder.glob('destination-*.json')):
+        if path.name.endswith(('.external.private.json', '.restore.private.json', '.manifest.private.json')):
+            continue
+        dump = path.with_suffix('.dump')
+        try:
+            if path.is_symlink() or dump.is_symlink() or not dump.is_file():
+                raise ValueError('unsafe_artifact')
+            receipt = json.loads(path.read_text())
+            stamp = datetime.strptime(receipt['created_at_utc'][:16], '%Y%m%dT%H%M%SZ').replace(tzinfo=timezone.utc)
+            if (receipt.get('database') != 'socialmei_candidate040_20261114'
+                    or receipt.get('schema') not in (40, 41) or receipt.get('current_production_backup') is not True
+                    or receipt.get('metadata_verified_before_export') is not True
+                    or receipt.get('archive_index_verified') is not True
+                    or receipt.get('bytes') != dump.stat().st_size
+                    or receipt.get('sha256') != checksum(dump) or stamp > now):
+                raise ValueError('unverified_backup')
+            records.append((stamp, path, receipt))
+        except (OSError, ValueError, TypeError, KeyError):
+            blocked.append({'receipt': path.name, 'action': 'preserve_unverified'})
+    records.sort(key=lambda row: (row[0], row[1].name), reverse=True)
+    keep = set(path.name for _, path, _ in records[:24])
+    days = set(); weeks = set()
+    for stamp, path, _ in records:
+        day = stamp.date(); week = stamp.isocalendar()[:2]
+        if now - stamp <= timedelta(days=14) and day not in days:
+            keep.add(path.name); days.add(day)
+        if now - stamp <= timedelta(weeks=8) and week not in weeks:
+            keep.add(path.name); weeks.add(week)
+    rows = []
+    for stamp, path, receipt in records:
+        # Never release the only independent recovery copy on a boolean alone.
+        proof = path.with_suffix('.restore.private.json')
+        restored = False
+        if proof.is_file() and not proof.is_symlink():
+            try:
+                evidence = json.loads(proof.read_text())
+                legacy = (evidence.get('sha256') == receipt['sha256']
+                          and evidence.get('independent_restore_equal') is True
+                          and evidence.get('comparison', {}).get('equal') is True)
+                native = (evidence.get('dump_sha256') == receipt['sha256']
+                          and evidence.get('restoration_verified') is True
+                          and evidence.get('profile') == str(receipt['schema']).zfill(3)
+                          and evidence.get('verification_mode') == 'full_comparison'
+                          and evidence.get('source_contents_compared') is True
+                          and evidence.get('archive_integrity_verified') is True
+                          and evidence.get('owned_cleanup_verified') is True
+                          and evidence.get('production_mutation') is False
+                          and evidence.get('external_object_sha256') == receipt['sha256']
+                          and re.fullmatch('[0-9a-f]{64}', str(evidence.get('external_receipt_sha256'))) is not None)
+                restored = ((legacy or native)
+                            and evidence.get('external_version_id') == receipt.get('external_version_id')
+                            and isinstance(evidence.get('external_version_id'), str)
+                            and bool(evidence['external_version_id']))
+            except (OSError, ValueError, TypeError):
+                pass
+        external = receipt.get('external_uploaded') is True and restored
+        action = 'keep_retention' if path.name in keep else (
+            'eligible_after_approval' if external else 'keep_external_restore_unproven')
+        rows.append({'receipt': path.name, 'dump_sha256': receipt['sha256'], 'bytes': receipt['bytes'],
+                     'action': action})
+    return {'mode': 'plan_only', 'files_deleted': 0,
+            'policy': {'latest': 24, 'daily_days': 14, 'weekly_weeks': 8},
+            'records': rows, 'blocked': blocked}
+
+
+def write_report(folder, report, result):
+    folder = folder.absolute()
+    report = report.absolute()
+    if (report.parent != folder or report.name != 'retention-report.private.json'
+            or any(p.is_symlink() for p in (folder, *folder.parents))
+            or report.is_symlink()):
+        raise ValueError('private_retention_report_required')
+    temporary = folder / ('.retention-' + secrets.token_hex(8) + '.partial')
+    try:
+        descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(descriptor, 'w', encoding='utf-8') as stream:
+            json.dump(result, stream, sort_keys=True)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, report)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--directory', required=True, type=Path)
+    parser.add_argument('--report', type=Path, help='Private report inside the backup directory')
+    args = parser.parse_args()
+    result = retention(args.directory)
+    if args.report:
+        write_report(args.directory, args.report, result)
+        print(json.dumps({'retention_report_written': True, 'files_deleted': 0,
+                          'blocked_receipts': len(result['blocked'])}))
+        if result['blocked']:
+            raise SystemExit(1)
+    else:
+        print(json.dumps(result))

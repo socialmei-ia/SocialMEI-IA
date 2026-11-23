@@ -1,0 +1,35 @@
+{
+  "observed_at_utc": "2026-11-21T21:13:23.643905+00:00",
+  "source": "First cycle of approved new AWS backup040 routine; no additional source export requested",
+  "timer_active": true,
+  "scheduled_trigger_observed": false,
+  "copy_dump_sha256": "65ea80b99265b8378b1ddbef737b2adbd48f9a4f7b33c9b30470a3789d70ea50",
+  "copy_manifest_sha256": "1350ceed11a523af7f2fe6c9d19f7ac1389ad80ae5a221355a1834c2a4fb996e",
+  "isolated_restore": {
+    "restoration_verified": true,
+    "verification_mode": "full_comparison",
+    "source_contents_compared": true,
+    "tables_verified": 78,
+    "sequences_verified": 21,
+    "restored_rows": 1002,
+    "owned_cleanup_verified": true,
+    "production_mutation": false
+  },
+  "private_portable_package": {
+    "sha256": "3f46b7742ca2d9602a8c9c5b9d79afe1f78e3a77a337a5a8bebd9ff6e70beb50",
+    "bytes": 1208320,
+    "files": [
+      "source.dump",
+      "source-manifest.private.json",
+      "restoration-result.private.json",
+      "recovery-index.private.json"
+    ],
+    "external_uploaded": false
+  },
+  "retention_files_deleted": 0,
+  "retention_blocked": 0,
+  "notebook_required_for_aws_timer": false,
+  "external_automatic_copy_active": false,
+  "observers_started": false,
+  "production_services_reconfigured": false
+}

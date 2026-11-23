@@ -23,6 +23,44 @@ def identity():
 
 
 class ExportTests(unittest.TestCase):
+    def test_schema041_requires_the_reviewed_lifecycle_migration_and_never_falls_back_to040(self):
+        versions = sorted(p.name for p in (TARGET.parents[1] / 'database/migrations').glob('*.sql')
+                          if p.name[:3].isdigit() and 1 <= int(p.name[:3]) <= 41)
+        exporter.verify_profile({'migration_ledger': [{'schema': 'socialmei', 'versions': versions}]}, '041')
+        with self.assertRaises(ValueError):
+            exporter.verify_profile({'migration_ledger': [{'schema': 'socialmei', 'versions': versions[:-1]}]}, '041')
+        with self.assertRaises(ValueError):
+            exporter.verify_profile040({'migration_ledger': [{'schema': 'socialmei', 'versions': versions}]})
+
+    def test_loopback_transport_is_explicit_and_never_allows_plain_remote_postgres(self):
+        dsn = 'host=127.0.0.1 dbname=fixture user=fixture password=synthetic sslmode=disable'
+        with self.assertRaises(ValueError):
+            exporter.source_environment(dsn)
+        self.assertEqual(exporter.source_environment(dsn, isolated_loopback=True)['PGHOST'], '127.0.0.1')
+        for other in (dsn.replace('127.0.0.1', 'remote.invalid'), dsn + ' service=other',
+                      dsn.replace('127.0.0.1', 'localhost'), dsn + ' sslrootcert=/unused'):
+            with self.subTest(dsn=other), self.assertRaises(ValueError):
+                exporter.source_environment(other, isolated_loopback=True)
+
+    def test_sequence_change_prevents_publication_of_full_comparison_artifact(self):
+        conn = MagicMock()
+        manifest = {'sequences': [{'schema': 'socialmei', 'sequence': 'synthetic_seq',
+                                   'last_value': 42, 'is_called': True}]}
+        conn.execute.return_value.fetchone.return_value = (42, True)
+        exporter.verify_sequence_state(conn, manifest)
+        for value in ((43, True), (42, False)):
+            conn.execute.return_value.fetchone.return_value = value
+            with self.assertRaises(ValueError):
+                exporter.verify_sequence_state(conn, manifest)
+
+    def test_reviewed040_ledger_rejects_incomplete_historical_and_future_migrations(self):
+        versions = sorted(p.name for p in (TARGET.parents[1] / 'database/migrations').glob('*.sql')
+                          if p.name[:3].isdigit() and 1 <= int(p.name[:3]) <= 40)
+        exporter.verify_profile040({'migration_ledger': [{'schema': 'socialmei', 'versions': versions}]})
+        for installed in ([], versions[:-1], versions + ['041_future.sql'], versions[::-1]):
+            with self.assertRaises(ValueError):
+                exporter.verify_profile040({'migration_ledger': [{'schema': 'socialmei', 'versions': installed}]})
+
     def test_plan_never_connects_or_runs_processes(self):
         with patch.object(exporter, 'export') as run, contextlib.redirect_stdout(io.StringIO()) as out:
             self.assertEqual(exporter.main([]), 0)

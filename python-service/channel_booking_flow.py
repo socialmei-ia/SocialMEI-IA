@@ -55,7 +55,7 @@ def respond(conn, channel, message, state, *, native=False):
     """Return None when the existing catalog/human planner owns this message."""
     if state['state'] == 'human':
         return None
-    text = message['text'].strip().casefold()
+    text = (message['text'] or '').strip().casefold()
     selected = message.get('catalog_target')
     if selected is not None and selected.get('route') != 'booking':
         return None
@@ -66,6 +66,12 @@ def respond(conn, channel, message, state, *, native=False):
         "ORDER BY created_at DESC,id DESC LIMIT 1",
         (channel['workspace_id'], channel['channel_id'], message['conversation_id'], channel['binding_hash'])).fetchone()
     result = previous['result'] if previous else {}
+    if (selected is None and result.get('channel_booking')
+            and result.get('booking_expires', 0) < datetime.now(timezone.utc).timestamp()
+            and text not in START
+            and any(choice.get('id') == text for choice in result.get('choices', []))):
+        return response('booking_expired', 'Esta opção de agendamento expirou. Consulte os horários novamente.',
+                        [option('6', 'Consultar horários', 'services'), *navigation()], native)
     if selected is None and result.get('channel_booking') and result.get('booking_expires', 0) >= datetime.now(timezone.utc).timestamp():
         selected = next((choice.get('target') for choice in result.get('choices', [])
                          if choice.get('id') == text), None)
@@ -113,10 +119,13 @@ def _advance(conn, channel, message, target, native, *, origin='waha'):
     elif step == 'days':
         booking.resources_for_message(*context, target['service_id'], connection=conn)
         policy, _ = booking.active_policy(conn, context[0])
-        today = datetime.now(ZoneInfo(policy.timezone)).date()
-        weekdays = {window.weekday for window in policy.hours}
-        rows = [today + timedelta(days=offset) for offset in range(policy.horizon_days + 1)
-                if (today + timedelta(days=offset)).weekday() in weekdays]
+        from appointments import service
+        item = service(conn, context[0], target['service_id'])
+        rows = booking.bookable_days(policy, item['duracao_minutos'], datetime.now(timezone.utc))
+        if not rows:
+            return response('booking_no_days',
+                'Não há datas compatíveis com a duração do serviço e a antecedência exigida. Fale com nossa equipe.',
+                navigation(), native)
         label = 'Escolha a data. A disponibilidade será consultada em seguida.'
         choices = page_choices(rows, lambda day: {'step': 'slots', 'service_id': target['service_id'],
             'resource_id': target['resource_id'], 'day': day.isoformat()}, lambda day: day.strftime('%d/%m/%Y'), page=page)

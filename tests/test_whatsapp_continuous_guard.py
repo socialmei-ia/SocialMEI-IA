@@ -5,6 +5,8 @@ import sys
 import tempfile
 import types
 import unittest
+import hashlib
+from uuid import uuid4
 from unittest.mock import Mock, patch, MagicMock
 
 import httpx
@@ -25,6 +27,37 @@ guard = load('continuous_guard', 'whatsapp-continuous-guard.py')
 
 
 class ContinuousTests(unittest.TestCase):
+    def test_reviewed_resume_preserves_quota_and_original_journal(self):
+        self.journal.state.update(public=True, status='paused', in_flight=True,
+                                  attempted=46, confirmed=46, attempts=[{'time': 1010, 'contact': 'hash'}])
+        self.journal.save()
+        raw = self.journal.path.read_bytes()
+        sha = hashlib.sha256(raw).hexdigest()
+        incident = uuid4()
+        with self.assertRaises(BlockingIOError):
+            guard.resume_new_only(self.folder, sha, incident, 1020)
+        self.journal.lock.close()
+        with patch.object(guard.time, 'time', return_value=1020):
+            with self.assertRaisesRegex(RuntimeError, 'changed'):
+                guard.resume_new_only(self.folder, '0' * 64, incident, 1020)
+            guard.resume_new_only(self.folder, sha, incident, 1020)
+        self.assertEqual((self.folder / ('state-before-' + incident.hex + '.json')).read_bytes(), raw)
+        state = json.loads(self.journal.path.read_text())
+        self.assertEqual(state['start'], 1020)
+        self.assertFalse(state['in_flight'])
+        self.assertEqual(state['attempts'], self.journal.state['attempts'])
+        self.assertEqual(state['confirmed'], 46)
+        # Rolling back the old cutoff must fail closed against the new journal.
+        # Restoring the paused snapshot also must not start the old sender.
+        with self.assertRaisesRegex(RuntimeError, 'Reconciliation required'):
+            guard.Journal(self.folder, 1000, [], public=True)
+        with tempfile.TemporaryDirectory() as rollback_folder:
+            rollback = Path(rollback_folder)
+            (rollback / 'state.json').write_bytes(raw)
+            with self.assertRaisesRegex(RuntimeError, 'Reconciliation required'):
+                guard.Journal(rollback, 1000, [], public=True)
+        self.assertEqual(json.loads(self.journal.path.read_text()), state)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

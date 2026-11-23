@@ -242,7 +242,11 @@ def comparable_structure(structure):
 
     def expression(value):
         # Fail closed on identifiers and escaped/dollar strings needing a SQL lexer.
-        if any(character in value for character in ('"', '\\', '$')):
+        strings = list(re.finditer(r"'(?:[^']|'')*'", value))
+        unquoted = re.sub(r"'(?:[^']|'')*'", '', value)
+        if ('\\' in value or any(character in unquoted for character in ('"', '$', "'"))
+                or any(re.search(r'(?:\b[Ee]|\b[Uu]&)\s*$', value[:match.start()])
+                       for match in strings)):
             return value
 
         def replace(pattern, replacement, text):

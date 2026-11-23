@@ -412,9 +412,8 @@ class WahaIngressService:
         incoming = parse_event(raw, signature, algorithm, binding)
         if settings.waha_ingress_team_pilot_enabled() and (
             len(self.registry) != 1
-            or binding.workspace_id != 1
-            or binding.instance != "socialmei-equipe-piloto"
-            or not binding.account_id.endswith("5976@c.us")
+            or not settings.waha_pilot_binding_allowed(binding.workspace_id,binding.channel_id,
+                binding.instance,binding.session,binding.account_id,binding.revision,binding.engine)
         ):
             raise HTTPException(503, "Vínculo WAHA fora do piloto autorizado.")
         if not settings.waha_ingress_enabled():

@@ -6,6 +6,7 @@ import time
 import psycopg
 from psycopg import sql
 
+from database import WORKER_CONNECTION_OPTIONS
 from settings import database_url
 
 RECOVERY_CHANNEL = 'socialmei_recovery_queue'
@@ -86,7 +87,7 @@ class QueueWakeup:
             return
         try:
             self.connection = psycopg.connect(database_url(), autocommit=True,
-                connect_timeout=5, application_name='socialmei-queue-wakeup')
+                application_name='socialmei-queue-wakeup', **WORKER_CONNECTION_OPTIONS)
             self.connection.execute(sql.SQL('LISTEN {}').format(sql.Identifier(self.channel)))
         except Exception:
             self._failed()

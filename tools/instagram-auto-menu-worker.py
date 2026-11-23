@@ -6,10 +6,9 @@ from datetime import datetime
 from pathlib import Path
 import time
 
-from instagram_auto_menu import enabled, next_source, reply, db
-from instagram_contact_identity import refresh_contacts
-from instagram_runtime import build_runtime
 from instagram_worker_health import heartbeat
+from instagram_worker_lease import worker_lease
+from instagram_worker_state import reconcile
 from queue_wakeup import QueueWakeup, instagram_channel
 
 
@@ -24,29 +23,73 @@ def save(path, state):
 
 def main():
     folder = Path('/run/socialmei/instagram-menu-state')
+    folder.mkdir(mode=0o700, parents=True, exist_ok=True)
     lock = (folder/'sender.lock').open('a')
     fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     heartbeat('starting', 'initializing')
     try:
         workspace = int(os.environ['SOCIALMEI_INSTAGRAM_AUTO_MENU_WORKSPACE_ID'])
-        assert enabled(workspace)
+        if workspace <= 0:
+            raise RuntimeError('Invalid Instagram workspace')
+        mode = os.getenv('SOCIALMEI_INSTAGRAM_WORKER_MODE', 'send')
+        if mode not in {'send', 'observe'}:
+            raise RuntimeError('Invalid Instagram worker mode')
+        if mode == 'send':
+            from instagram_auto_menu import enabled
+            if not enabled(workspace):
+                raise RuntimeError('Instagram automatic sending is disabled')
+        else:
+            if (os.getenv('SOCIALMEI_INSTAGRAM_RUNTIME_SEND_ENABLED') != 'false'
+                    or os.getenv('SOCIALMEI_INSTAGRAM_AUTO_MENU_ENABLED') != 'false'):
+                raise RuntimeError('Observer must have external sending disabled')
         start = datetime.fromisoformat(os.environ['SOCIALMEI_INSTAGRAM_AUTO_MENU_START_UTC'])
-        assert start.tzinfo is not None
-        run_sender(workspace, start, folder)
+        if start.tzinfo is None or start.utcoffset() is None:
+            raise RuntimeError('Instagram start requires an explicit timezone')
+        with worker_lease(workspace) as check_lease:
+            (run_observer if mode == 'observe' else run_sender)(workspace, start, folder, check_lease)
     except Exception:
         heartbeat('blocked', 'unavailable')
         raise
 
 
-def run_sender(workspace, start, folder):
+def run_observer(workspace, start, folder, check_lease):
+    from instagram_worker_observer import pending, checkpoint
+    path = folder / 'state.json'
+    state = json.loads(path.read_text()) if path.exists() else None
+    read_status = 'initializing'
+    with QueueWakeup(instagram_channel(workspace), interval=15, reconcile=60,
+                     sleeper=time.sleep, heartbeat=lambda: heartbeat('running', read_status)) as wakeup:
+        while True:
+            connection = check_lease()
+            wakeup.prepare()
+            try:
+                counts = pending(workspace, start, connection=connection)
+            except Exception:
+                read_status = 'unavailable'
+                heartbeat('running', read_status)
+                wakeup.pause(15)
+                continue
+            state = checkpoint(state, workspace, start, counts)
+            save(path, state)
+            read_status = 'ready'
+            heartbeat('running', read_status)
+            wakeup.wait()
+
+
+def run_sender(workspace, start, folder, check_lease):
+    from instagram_auto_menu import next_source, reply, db
+    from instagram_contact_identity import refresh_contacts
+    from instagram_runtime import build_runtime
     path = folder/'state.json'
-    state = json.loads(path.read_text()) if path.exists() else {'status':'running','in_flight':False,'confirmed':0,'start':start.isoformat()}
-    assert state['status']=='running' and not state['in_flight'] and state['start']==start.isoformat()
+    state = json.loads(path.read_text()) if path.exists() else None
+    check_lease()
     with db() as conn:
-        assert not conn.execute("SELECT 1 FROM socialmei.ig_menu_replies WHERE workspace_id=%s "
-                                "AND status IN ('dispatching','uncertain') LIMIT 1", (workspace,)).fetchone()
+        unresolved = bool(conn.execute("SELECT 1 FROM socialmei.ig_menu_replies WHERE workspace_id=%s "
+                                       "AND status IN ('dispatching','uncertain') LIMIT 1", (workspace,)).fetchone())
+    state = reconcile(state, workspace, start, unresolved=unresolved)
     runtime = build_runtime()
-    assert runtime.status=='configured' and runtime.send
+    if runtime.status != 'configured' or not runtime.send:
+        raise RuntimeError('Instagram sending runtime is unavailable')
     save(path,state)
     backoff=15
     last_contact_refresh=time.monotonic()
@@ -58,6 +101,7 @@ def run_sender(workspace, start, folder):
         with QueueWakeup(instagram_channel(workspace), interval=15, reconcile=60,
                          sleeper=time.sleep, heartbeat=touch) as wakeup:
             while True:
+                check_lease()
                 wakeup.prepare()
                 try:
                     message=next_source(workspace,start)
@@ -80,6 +124,7 @@ def run_sender(workspace, start, folder):
                         except Exception: pass
                     wakeup.wait(); continue
                 state['in_flight']=True; save(path,state)
+                check_lease()
                 result=reply(runtime,workspace,message,start)
                 if result not in {'confirmed','skipped','duplicate','rate_limited'}:
                     raise RuntimeError('Unconfirmed automatic reply')
@@ -103,5 +148,8 @@ def run_sender(workspace, start, folder):
 
 if __name__=='__main__':
     try: main()
-    except Exception as error: print('INSTAGRAM_MENU_STARTUP_BLOCKED',type(error).__name__,flush=True)
+    except Exception as error:
+        print('INSTAGRAM_MENU_STARTUP_BLOCKED',type(error).__name__,flush=True)
+        if os.getenv('SOCIALMEI_INSTAGRAM_WORKER_MODE') == 'observe':
+            raise SystemExit(1)
     while True: time.sleep(3600)

@@ -1,0 +1,129 @@
+name: MEI demo isolated gates
+
+on:
+  pull_request:
+    branches:
+      - fix/whatsapp-contact-crm-association-20261118
+      - release/functional-completion-20261112
+    paths:
+      - ".github/workflows/mei-demo-checks.yml"
+      - "tools/**"
+      - "tests/**"
+      - "python-service/**"
+      - "database/migrations/**"
+      - "deploy/team/Dockerfile.backup040"
+      - "deploy/team/Dockerfile.instagram-observer"
+      - "deploy/team/compose.instagram-observers.yaml"
+      - "deploy/team/postgres040-*"
+      - "docs/**"
+
+permissions:
+  contents: read
+
+jobs:
+  demo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: disposable-test-only
+          POSTGRES_DB: socialmei_demo_test
+        ports:
+          - 55491:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d socialmei_demo_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://postgres:disposable-test-only@127.0.0.1:55491/socialmei_demo_test
+      SOCIALMEI_DEMO_DISPOSABLE_TESTS: "1"
+      SOCIALMEI_WORKSPACE_ACCESS_TESTS: "1"
+      SOCIALMEI_HANDOVER_DISPOSABLE_TESTS: "1"
+      PYTHONPATH: python-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install test dependencies
+        run: |
+          npm ci
+          python -m pip install -r python-service/requirements.txt
+      - name: JavaScript and formatting
+        run: |
+          npm test
+          npm run format:check
+      - name: Preflight rollback and dump comparison contracts
+        run: python -m unittest tools/test_prepare_crm233_release.py tests/test_postgres_copy_validate.py
+      - name: Current database backup identity and external recovery contracts
+        run: >-
+          python -m unittest tests/test_backup_current_database.py
+          tests/test_external_backup_upload.py tests/test_postgres_external_backup_plan.py
+          tests/test_backup_retention.py tests/test_gows_restart_policy.py
+          tests/test_instagram_worker_database.py
+          tests/test_instagram_observer_pilot.py tests/test_team_oci_image_identity.py
+          tests/test_activate_brilho_observer.py
+          tests/test_instagram_bella_observer_plan.py
+          tests/test_postgres_source_export.py tests/test_backup_restore_rehearsal.py
+          tests/test_backup_consistent_export.py
+      - name: Disposable PostgreSQL concurrency and identity contracts
+        run: >-
+          python -m unittest test_channel_booking test_inbox_customer
+          test_account_workspaces test_workspace_profile test_workspace_integrity test_workspace_access
+          test_whatsapp_channel_handover test_waha_pilot_scope
+          test_whatsapp_handover_runtime_plan
+          test_instagram_worker_lease
+          test_queue_wakeup test_database_health test_database_readiness_cache
+          test_instagram_worker_state
+          test_instagram_direct_outbox.DatabaseTests.test_interrupted_review_recovers_persisted_claim_with_external_sending_disabled
+          test_instagram_direct_outbox.DatabaseTests.test_interrupted_review_preserves_revision_csrf_workspace_and_role_guards
+          test_instagram_direct_outbox.DatabaseTests.test_dispatch_rejects_a_revision_changed_after_human_review
+          test_instagram_worker_observer
+          test_instagram_auto_menu.AutoMenuDatabaseTests.test_observer_reads_persisted_direct_in_its_workspace_without_dispatch
+          test_instagram_auto_menu.AutoMenuDatabaseTests.test_restart_after_confirmation_keeps_durable_deduplication
+          test_instagram_auto_menu.AutoMenuDatabaseTests.test_restart_with_uncertain_delivery_never_resends
+          test_instagram_auto_menu.AutoMenuHandoffContracts
+          test_instagram_auto_menu.AutoMenuDatabaseTests.test_reviewed_recovery_window_resumes_persisted_five_minute_backlog_once
+          test_channel_booking_flow.ChannelBookingFlowTests.test_textual_journey_books_only_after_confirmation_and_replay_is_deduplicated
+          test_channel_booking_flow.ChannelBookingFlowTests.test_native_list_journey_uses_opaque_offered_options_with_same_core
+          test_channel_booking_expiry
+          test_instagram_booking_flow
+          test_account_recovery.RecoveryTests.test_password_change_expires_earlier_queued_recovery_without_sending
+          test_account_recovery.RecoveryTests.test_new_request_during_send_preserves_new_pending_generation
+          test_account_recovery.RecoveryTests.test_stale_queue_expires_without_email
+          test_account_recovery.RecoveryTests.test_recovery_worker_bounds_all_database_connections_and_sends_once
+          test_identity_activation.IdentityContracts
+          test_smtp_delivery test_recovery_link test_account_recovery.MailTransportTests test_public_booking.PublicContracts
+          test_account_recovery.RecoveryTests.test_positive_smtp_receipt_keeps_reset_usable_if_quit_fails
+          test_identity_activation.IdentityDatabaseTests.test_positive_smtp_receipt_keeps_verification_usable_if_quit_fails
+          test_identity_activation.IdentityDatabaseTests.test_verification_worker_bounds_all_database_connections_without_duplicate_delivery
+          test_identity_activation.IdentityDatabaseTests.test_uncertain_and_interrupted_mail_are_not_retried
+          test_whatsapp_human_outbox.HumanReplyDatabaseTests.test_abandoned_claim_is_marked_uncertain_once_without_resend_or_fake_receipt
+          test_whatsapp_human_outbox.HumanReplyDatabaseTests.test_interrupted_claim_review_requires_admin_own_workspace_and_csrf
+      - name: Authenticated API demo replay and business isolation
+        run: node tests/provision-mei-demo-integration.mjs
+
+  backup040-containers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Build self-contained PostgreSQL040 export and validation helper
+        run: |
+          docker pull postgres:17-alpine
+          docker build -f deploy/team/Dockerfile.backup040 -t socialmei-backup040:ci .
+      - name: Real schema040 export and isolated full-comparison restore
+        env:
+          SOCIALMEI_BACKUP040_CONTAINER_TESTS: "1"
+          SOCIALMEI_BACKUP040_TEST_IMAGE: socialmei-backup040:ci
+        run: python -m unittest tests/test_backup040_container_integration.py

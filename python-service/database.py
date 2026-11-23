@@ -11,8 +11,19 @@ _readiness_lock = Lock()
 _readiness_cache = None
 
 
-def connect():
-    return psycopg.connect(database_url())
+WORKER_CONNECTION_OPTIONS = {
+    'connect_timeout': 5,
+    'keepalives': 1,
+    'keepalives_idle': 15,
+    'keepalives_interval': 5,
+    'keepalives_count': 3,
+    'tcp_user_timeout': 15000,
+    'options': '-c statement_timeout=5000 -c lock_timeout=3000',
+}
+
+
+def connect(*, worker=False):
+    return psycopg.connect(database_url(), **(WORKER_CONNECTION_OPTIONS if worker else {}))
 
 
 CRM_MIGRATIONS = {

@@ -1,0 +1,14 @@
+# Local alarm only; external delivery needs a separately authorized destination.
+[Unit]
+Description=Alert on SocialMEI schema040 backup failure
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/usr/bin/logger --priority daemon.crit --tag socialmei-backup040 Schema040 backup failed; inspect the private receipt and failed service before retrying.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+MemoryMax=16M
+TimeoutStartSec=10

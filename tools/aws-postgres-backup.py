@@ -11,7 +11,7 @@ import shutil
 import secrets
 import re
 import stat
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, unquote, parse_qsl
 
 ROOT = Path('/home/ubuntu/.socialmei-postgres-relocation-20261112')
 NAME = 'socialmei-postgres-relocation-20261112'
@@ -41,8 +41,8 @@ def select_approved040_root(path):
             or values.get('container') != NAME
             or values.get('database') != 'socialmei_candidate040_20261114'
             or values.get('admin_user') != 'relocation_admin'
-            or values.get('schema') != '040'
-            or values.get('source') != 'approved_schema040_destination'
+            or (values.get('schema'), values.get('source')) not in (
+                ('040', 'approved_schema040_destination'), ('041', 'approved_schema041_destination'))
             or type(values.get('current_production_backup')) is not bool):
         raise RuntimeError('approved_backup_target_mismatch')
     receipt = Path(values.get('restore_receipt_file', ''))
@@ -50,10 +50,22 @@ def select_approved040_root(path):
         raise RuntimeError('approved_backup_restore_receipt_missing')
     private_ownership(receipt.parent, receipt)
     verified = json.loads(receipt.read_text())
-    if (verified.get('independent_restore_equal') is not True
-            or verified.get('comparison', {}).get('equal') is not True
-            or verified.get('sha256') != values.get('validated_backup_sha256')
-            or re.fullmatch(r'[0-9a-f]{64}', str(values.get('validated_backup_sha256'))) is None):
+    expected_hash = values.get('validated_backup_sha256')
+    legacy_restore = (values.get('schema') == '040' and verified.get('independent_restore_equal') is True
+                      and verified.get('comparison', {}).get('equal') is True
+                      and verified.get('sha256') == expected_hash)
+    # Consume the existing isolated rehearsal's native receipt. Integrity-only
+    # comparisons against an older baseline must never qualify as source equality.
+    current_restore = (verified.get('restoration_verified') is True
+                       and verified.get('profile') == values['schema']
+                       and verified.get('verification_mode') == 'full_comparison'
+                       and verified.get('source_contents_compared') is True
+                       and verified.get('archive_integrity_verified') is True
+                       and verified.get('owned_cleanup_verified') is True
+                       and verified.get('production_mutation') is False
+                       and verified.get('dump_sha256') == expected_hash)
+    if (not (legacy_restore or current_restore)
+            or re.fullmatch(r'[0-9a-f]{64}', str(expected_hash)) is None):
         raise RuntimeError('approved_backup_restore_not_verified')
     ROOT = path
     return values
@@ -113,7 +125,8 @@ def upload_external_versioned(localdump, receipt, config, client):
     checksum = digest.hexdigest()
     if (not 0 < size <= 5 * 1024**3 or receipt.get('sha256') != checksum
             or receipt.get('bytes') != size or receipt.get('archive_index_verified') is not True
-            or receipt.get('source') not in ('isolated_historical_destination', 'approved_schema040_destination')
+            or receipt.get('source') not in ('isolated_historical_destination', 'approved_schema040_destination',
+                                              'approved_schema041_destination')
             or type(receipt.get('current_production_backup')) is not bool
             or (receipt.get('source') == 'isolated_historical_destination'
                 and receipt.get('current_production_backup') is not False)):
@@ -221,9 +234,104 @@ def upload_external_versioned(localdump, receipt, config, client):
                 external_object_sha256=checksum)
 
 
-def backup(config=None):
+def consistent_export(config, folder, stamp):
+    """Export through the reviewed helper, in the source container's namespace."""
+    image = config.get('export_helper_image_id', '')
+    profile = config.get('schema', '040')
+    if profile not in ('040', '041'):
+        raise RuntimeError('consistent_export_profile_not_reviewed')
+    dsn = config.get('export_source_dsn', '')
+    transport = config.get('export_transport', 'isolated_loopback')
+    if transport not in ('isolated_loopback', 'tls_verify_full'):
+        raise RuntimeError('consistent_export_transport_not_reviewed')
+    ca_mount = ()
+    try:
+        target = urlsplit(dsn)
+        options = parse_qsl(target.query)
+        if transport == 'tls_verify_full':
+            transport_valid = (target.hostname in (NAME, '127.0.0.1') and len(options) == 2
+                               and dict(options) == {'sslmode': 'verify-full', 'sslrootcert': '/certs/source-ca.crt'})
+        else:
+            transport_valid = target.hostname == '127.0.0.1' and options == [('sslmode', 'disable')]
+        valid = (target.scheme in ('postgres', 'postgresql') and transport_valid
+                 and target.port in (None, 5432) and target.username and target.password
+                 and unquote(target.path[1:]) == config['database'] and not target.fragment)
+    except (TypeError, ValueError):
+        valid = False
+    if not valid or re.fullmatch(r'sha256:[0-9a-f]{64}', image) is None:
+        raise RuntimeError('consistent_export_private_configuration_required')
+    if transport == 'tls_verify_full':
+        ca = Path(config.get('export_tls_ca_file', '')).absolute()
+        if (not ca.is_file() or any(p.is_symlink() for p in (ca, *ca.parents))
+                or ca.stat().st_size > 128 * 1024
+                or file_sha256(ca) != config.get('export_tls_ca_sha256')):
+            raise RuntimeError('consistent_export_ca_not_verified')
+        private_ownership(ca.parent, ca)
+        ca_mount = ('--mount', 'type=bind,src=' + str(ca) + ',dst=/certs/source-ca.crt,readonly')
+    def docker(*args, timeout=30, env=None):
+        result = subprocess.run(['docker', *args], capture_output=True, text=True,
+                                check=True, timeout=timeout, env=env)
+        return result.stdout
+    source = json.loads(docker('inspect', NAME))[0]
+    if source['Name'] != '/' + NAME or not source['State']['Running']:
+        raise RuntimeError('consistent_export_source_not_running')
+    if json.loads(docker('image', 'inspect', image))[0]['Id'] != image:
+        raise RuntimeError('consistent_export_image_mismatch')
+    directory = folder / ('export-' + stamp)
+    directory.mkdir(mode=0o700)
+    owner = directory.stat()
+    token = secrets.token_hex(12); name = 'socialmei-backup040-export-' + token
+    network = 'container:' + source['Id']
+    identity = hashlib.sha256(json.dumps([target.hostname, 5432, config['database']]).encode()).hexdigest()
+    env = dict(os.environ, SOCIALMEI_EXPORT_SOURCE_DSN=dsn,
+               SOCIALMEI_EXPORT_SOURCE_FINGERPRINT=identity)
+    try:
+        docker('create', '--name', name, '--label', 'socialmei.backup040-export=' + token,
+               '--user', str(owner.st_uid) + ':' + str(owner.st_gid),
+               '--network', network, '--read-only', '--cap-drop', 'ALL',
+               '--security-opt', 'no-new-privileges', '--memory', '256m', '--cpus', '0.5',
+               '--pids-limit', '64', '--restart', 'no',
+               '--mount', 'type=bind,src=' + str(directory) + ',dst=/artifacts',
+               *ca_mount,
+               '-e', 'SOCIALMEI_EXPORT_SOURCE_DSN', '-e', 'SOCIALMEI_EXPORT_SOURCE_FINGERPRINT', image,
+               '--run', '--approved-data-export', *(('--isolated-loopback',) if transport == 'isolated_loopback' else ()),
+               '--profile', profile,
+               '--output-directory', '/artifacts/export', env=env)
+        # No credentials in argv. A timeout never starts another helper.
+        output = docker('start', '-a', name, timeout=180)
+        receipt = json.loads(output)
+        if not (receipt.get('source_export_succeeded') is True and receipt.get('shared_snapshot') is True
+                and receipt.get('profile') == profile and receipt.get('sequence_state_unchanged_during_export') is True
+                and receipt.get('source_database_fingerprint') == identity and receipt.get('transport') == transport):
+            raise RuntimeError('consistent_export_receipt_invalid')
+        exported = directory / 'export'
+        dump, manifest = exported / 'source.dump', exported / 'source-manifest.private.json'
+        if (dump.is_symlink() or manifest.is_symlink()
+                or file_sha256(dump) != receipt['dump_sha256']
+                or file_sha256(manifest) != receipt['manifest_sha256']):
+            raise RuntimeError('consistent_export_artifact_mismatch')
+        destination = folder / ('destination-' + stamp + '.dump')
+        destination_manifest = destination.with_suffix('.manifest.private.json')
+        if destination.exists() or destination_manifest.exists():
+            raise RuntimeError('consistent_export_destination_exists')
+        manifest.rename(destination_manifest)
+        dump.rename(destination)
+        return destination, destination_manifest
+    finally:
+        # Only this invocation's labeled helper may be removed, never the source.
+        owned = json.loads(docker('inspect', name))[0]
+        if (owned['Config']['Labels'].get('socialmei.backup040-export') != token
+                or owned['HostConfig']['NetworkMode'] != network):
+            raise RuntimeError('consistent_export_cleanup_ownership_mismatch')
+        docker('rm', '-f', '-v', name)
+
+
+def backup(config=None, *, with_manifest=False):
     if config is None:
         config = json.loads((ROOT / 'destination.private.json').read_text())
+    provenance = current_database_provenance(config)
+    if with_manifest and not (config.get('current_production_backup') is True and provenance):
+        raise RuntimeError('consistent_export_current_database_required')
     if shutil.disk_usage(ROOT).free < 2 * 1024**3:
         raise RuntimeError('insufficient_backup_disk_space')
     folder = ROOT / 'backups'
@@ -247,6 +355,31 @@ def backup(config=None):
                 _private_checkpoint(pending, recovered)
     stamp = time.strftime('%Y%m%dT%H%M%SZ', time.gmtime()) + '-' + secrets.token_hex(4)
     path = folder / ('destination-' + stamp + '.dump')
+    manifest_path = None
+    if with_manifest:
+        path, manifest_path = consistent_export(config, folder, stamp)
+    else:
+        write_dump(config, path)
+    receipt = {'created_at_utc': stamp, 'dump_path': str(path), 'bytes': path.stat().st_size,
+               'sha256': file_sha256(path),
+               'source': config.get('source', 'isolated_historical_destination'),
+               'current_production_backup': config.get('current_production_backup', False),
+               'external_uploaded': False, 'archive_index_verified': True, 'cutover_authorized': False}
+    receipt.update(provenance)
+    if manifest_path is not None:
+        receipt.update(manifest_path=str(manifest_path), manifest_sha256=file_sha256(manifest_path),
+                       shared_snapshot=True, sequence_state_unchanged_during_export=True,
+                       transport=config.get('export_transport', 'isolated_loopback'))
+    receipt['external_upload_requested'] = storage is not None
+    receipt_path = path.with_suffix('.json')
+    _private_checkpoint(receipt_path, receipt)
+    if storage is not None:
+        receipt = upload_external_versioned(path, receipt, storage, client)
+    _private_checkpoint(receipt_path, receipt)
+    print(json.dumps(receipt))
+
+
+def write_dump(config, path):
     partial = path.with_suffix('.dump.partial')
     with partial.open('xb') as stream:
         os.chmod(partial, 0o600)
@@ -265,18 +398,42 @@ def backup(config=None):
     if path.exists():
         raise RuntimeError('destination_backup_path_exists')
     partial.rename(path)
-    receipt = {'created_at_utc': stamp, 'dump_path': str(path), 'bytes': path.stat().st_size,
-               'sha256': file_sha256(path),
-               'source': config.get('source', 'isolated_historical_destination'),
-               'current_production_backup': config.get('current_production_backup', False),
-               'external_uploaded': False, 'archive_index_verified': True, 'cutover_authorized': False}
-    receipt['external_upload_requested'] = storage is not None
-    receipt_path = path.with_suffix('.json')
-    _private_checkpoint(receipt_path, receipt)
-    if storage is not None:
-        receipt = upload_external_versioned(path, receipt, storage, client)
-    _private_checkpoint(receipt_path, receipt)
-    print(json.dumps(receipt))
+
+
+def current_database_provenance(config):
+    """Verify metadata before export; this does not certify a restoration."""
+    if config.get('current_production_backup') is not True:
+        return {}
+    if (config.get('backup_target_approved') is not True
+            or config.get('container') != NAME
+            or config.get('database') != 'socialmei_candidate040_20261114'
+            or config.get('admin_user') != 'relocation_admin'
+            or (config.get('schema'), config.get('source')) not in (
+                ('040', 'approved_schema040_destination'), ('041', 'approved_schema041_destination'))):
+        raise RuntimeError('current_backup_target_not_approved')
+    query = (
+        "BEGIN READ ONLY; SET LOCAL statement_timeout = '3s'; "
+        "SELECT json_build_object('database', current_database(), "
+        "'server_version_num', current_setting('server_version_num')::integer, "
+        "'versions', array_agg(substring(version FROM '^[0-9]+')::integer "
+        "ORDER BY version)) FROM socialmei.schema_migrations; ROLLBACK;"
+    )
+    try:
+        result = subprocess.run(
+            ['docker', 'exec', NAME, 'psql', '-X', '-qAt', '-v', 'ON_ERROR_STOP=1',
+             '-U', config['admin_user'], '-d', config['database'], '-c', query],
+            capture_output=True, text=True, timeout=15, check=True)
+        actual = json.loads(result.stdout)
+        if (actual.get('database') != config['database']
+                or actual.get('versions') != list(range(1, int(config['schema']) + 1))
+                or type(actual.get('server_version_num')) is not int
+                or not 170000 <= actual['server_version_num'] < 180000):
+            raise ValueError('metadata mismatch')
+    except (subprocess.SubprocessError, ValueError, TypeError, AttributeError):
+        raise RuntimeError('current_backup_metadata_not_verified') from None
+    return {'database': actual['database'], 'container': NAME, 'schema': int(config['schema']),
+            'server_version_num': actual['server_version_num'],
+            'metadata_verified_before_export': True, 'restore_verified': False}
 
 
 def install_schedule():
@@ -345,16 +502,19 @@ if __name__ == '__main__':
     parser.add_argument('--run', action='store_true', required=True)
     parser.add_argument('--config-root', type=Path,
                         help='Explicit private, approved schema040 backup target; backup stage only')
+    parser.add_argument('--with-manifest', action='store_true', help='Use approved schema040 shared-snapshot helper')
     parser.add_argument('stage', choices=['backup', 'prepare-external', 'install-schedule'])
     args = parser.parse_args()
     try:
         verified_config = None
+        if args.with_manifest and (args.config_root is None or args.stage != 'backup'):
+            raise RuntimeError('consistent_export_requires_explicit_backup_root')
         if args.config_root is not None:
             if args.stage != 'backup':
                 raise RuntimeError('explicit_root_cannot_install_or_create_resources')
             verified_config = select_approved040_root(args.config_root)
         if args.stage == 'backup':
-            backup(config=verified_config)
+            backup(config=verified_config, with_manifest=args.with_manifest)
         else:
             {'prepare-external': prepare_external, 'install-schedule': install_schedule}[args.stage]()
     except Exception:

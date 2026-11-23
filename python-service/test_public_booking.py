@@ -69,14 +69,15 @@ class PublicContracts(unittest.TestCase):
                'SOCIALMEI_SMTP_PASSWORD': 'synthetic-private-password', 'SOCIALMEI_SMTP_FROM': 'sender@example.test'}
         for port in (465, 587):
             with patch.dict(os.environ, {**env, 'SOCIALMEI_SMTP_PORT': str(port)}), \
-                    patch('public_booking.smtplib.SMTP_SSL') as implicit, patch('public_booking.smtplib.SMTP') as explicit:
+                    patch('smtp_delivery.smtplib.SMTP_SSL') as implicit, patch('smtp_delivery.smtplib.SMTP') as explicit:
+                (implicit if port == 465 else explicit).return_value.send_message.return_value = {}
                 public.send_code('visitor@example.test', '123456')
                 server = (implicit if port == 465 else explicit).return_value
                 server.send_message.assert_called_once()
                 if port == 587:
                     self.assertEqual([call[0] for call in server.method_calls][:2], ['starttls', 'login'])
         with patch.dict(os.environ, {**env, 'SOCIALMEI_SMTP_PORT': '465'}), \
-                patch('public_booking.smtplib.SMTP_SSL', side_effect=RuntimeError('PRIVATE PASSWORD')):
+                patch('smtp_delivery.smtplib.SMTP_SSL', side_effect=RuntimeError('PRIVATE PASSWORD')):
             with self.assertRaises(public.HTTPException) as caught:
                 public.send_code('visitor@example.test', '123456')
             self.assertEqual(caught.exception.status_code, 503)

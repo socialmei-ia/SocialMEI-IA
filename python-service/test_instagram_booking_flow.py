@@ -71,6 +71,29 @@ class InstagramBookingFlowTests(unittest.TestCase):
         self.assertEqual(ig.public_text('Mensagem normal'), 'Mensagem normal')
         self.assertEqual(ig.public_text(None), '')
 
+    def test_expired_booking_choice_never_becomes_an_unrelated_catalog_command(self):
+        previous = {'status': 'confirmed', 'text': self.options(),
+                    'created_at': datetime.now(timezone.utc) - timedelta(minutes=11)}
+        with patch('instagram_booking_flow.flow.advance') as advance, \
+                patch('instagram_booking_flow._review_offer') as review:
+            state, result, selected = ig.respond(RecentReply(previous), 77, self.message('1'))
+        self.assertEqual(state, 'menu')
+        self.assertEqual(result['action'], 'booking_expired')
+        self.assertEqual([choice['id'] for choice in result['choices']], ['6', '0', '5'])
+        self.assertEqual(selected, {'step': 'services'})
+        advance.assert_not_called(); review.assert_not_called()
+
+    def test_expired_choices_preserve_human_menu_and_unconfirmed_reply_guards(self):
+        previous = {'status': 'confirmed', 'text': self.options(),
+                    'created_at': datetime.now(timezone.utc) - timedelta(minutes=11)}
+        for command in ('0', '5', 'produto', '3'):
+            self.assertIsNone(ig.respond(RecentReply(previous), 77, self.message(command)))
+        for status in ('uncertain', 'failed', 'dispatching'):
+            self.assertIsNone(ig.respond(RecentReply({**previous, 'status': status}), 77, self.message('1')))
+        with patch('instagram_booking_flow.flow.advance', return_value=('menu', {})) as advance:
+            ig.respond(RecentReply(previous), 77, self.message('6'))
+        self.assertEqual(advance.call_args.args[3]['step'], 'services')
+
     def test_selection_reads_only_confirmed_own_conversation_reply(self):
         row = {'status': 'confirmed', 'text': self.options(), 'created_at': datetime.now(timezone.utc)}
         conn = RecentReply(row)

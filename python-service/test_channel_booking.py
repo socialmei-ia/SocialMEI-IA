@@ -1,6 +1,7 @@
 """Channel booking contracts and disposable PostgreSQL only; no provider calls."""
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
+from threading import Barrier
 from types import SimpleNamespace
 import os
 import unittest
@@ -62,6 +63,37 @@ class BookingContractTests(unittest.TestCase):
         with self.assertRaises(ValidationError):
             booking.MessageContext(origin='waha', conversation_id=1, source_message_id=1,
                                    cliente_id=3, workspace_id=2)
+
+    def test_calendar_omits_expired_days_and_windows_too_short_for_service(self):
+        policy = booking.BookingPolicy(enabled=True, timezone='America/Recife', lead_minutes=60,
+            horizon_days=3, hours=[{'weekday': day, 'opens': '09:00', 'closes': '10:00'}
+                                   for day in range(7)])
+        now = datetime(2026, 11, 21, 12, 30, tzinfo=timezone.utc)
+        days = booking.bookable_days(policy, 60, now)
+        self.assertEqual([day.isoformat() for day in days], ['2026-11-22', '2026-11-23', '2026-11-24'])
+        self.assertEqual(booking.bookable_days(policy, 61, now), [])
+        policy.lead_minutes = 3 * 24 * 60
+        self.assertEqual(booking.bookable_days(policy, 60, now), [])
+
+    def test_channel_returns_clear_message_when_no_day_can_fit_the_service(self):
+        import channel_booking_flow as flow
+        policy = booking.BookingPolicy(enabled=True, horizon_days=1,
+            hours=[{'weekday': day, 'opens': '09:00', 'closes': '10:00'} for day in range(7)])
+        with patch.object(booking, 'resources_for_message'), \
+                patch.object(booking, 'active_policy', return_value=(policy, 'hash')), \
+                patch.object(appointments, 'service', return_value={'duracao_minutos': 90}):
+            _, result = flow.advance(None, {'workspace_id': 60}, {'conversation_id': 1, 'id': 2},
+                {'step': 'days', 'service_id': 3, 'resource_id': str(uuid4())}, False)
+        self.assertEqual(result['action'], 'booking_no_days')
+        self.assertIn('dura\u00e7\u00e3o do servi\u00e7o', result['text'])
+        self.assertEqual([choice['id'] for choice in result['choices']], ['0', '5'])
+
+    def test_calendar_does_not_duplicate_days_with_multiple_opening_windows(self):
+        policy = booking.BookingPolicy(enabled=True, timezone='America/Recife', lead_minutes=0,
+            horizon_days=1, hours=[{'weekday': day, 'opens': opening, 'closes': closing}
+                for day in range(7) for opening, closing in [('09:00', '10:00'), ('14:00', '15:00')]])
+        days = booking.bookable_days(policy, 30, datetime(2026, 11, 21, 11, tzinfo=timezone.utc))
+        self.assertEqual([day.isoformat() for day in days], ['2026-11-21', '2026-11-22'])
 
     def test_token_is_signed_domain_separated_and_never_returns_key(self):
         value = dict(binding='a', policy='b', service=1, service_revision=1,
@@ -343,7 +375,7 @@ class ChannelBookingDatabaseTests(unittest.TestCase):
                 'WHERE workspace_id=%s', (self.workspace,)).fetchone()[0], 0)
         self.assertEqual(self.confirm(token).status_code, 200)
 
-    def test_instagram_uses_same_appointment_engine_and_checks_human_pause(self):
+    def instagram_context(self, customer_id):
         connection_id = uuid4()
         with psycopg.connect(accounts.DB, row_factory=dict_row) as conn:
             conn.execute("INSERT INTO socialmei.ig_meta_connections(id,workspace_id,external_account_id,"
@@ -361,9 +393,44 @@ class ChannelBookingDatabaseTests(unittest.TestCase):
                 "VALUES('123456789',%s,%s,%s,'message',%s,'processed',%s)",
                 ('a' * 64, self.workspace, connection_id, 'a' * 64, message['message_id']))
             conn.execute('UPDATE socialmei.me_conversations SET cliente_id=%s WHERE workspace_id=%s AND id=%s',
-                         (self.person['id'], self.workspace, message['conversation_id']))
-        context = {'origin': 'instagram', 'conversation_id': message['conversation_id'],
-                   'source_message_id': message['message_id']}
+                         (customer_id, self.workspace, message['conversation_id']))
+        return {'origin': 'instagram', 'conversation_id': message['conversation_id'],
+                'source_message_id': message['message_id']}
+
+    def test_whatsapp_and_instagram_customers_compete_for_one_slot_without_duplicates(self):
+        second = self.post('/api/v1/clientes', {'nome': 'Cliente Instagram fictício independente'})
+        instagram = self.instagram_context(second['id'])
+        barrier = Barrier(2)
+        with patch('channel_booking.settings.instagram_n8n_ingress_configuration',
+                   return_value={'meta_app_secret': KEY}):
+            contexts = [self.context, instagram]
+            tokens = [self.offer(context) for context in contexts]
+            self.assertEqual(booking.decode_confirmation(tokens[0], KEY)['start'],
+                             booking.decode_confirmation(tokens[1], KEY)['start'])
+
+            def reserve(index):
+                barrier.wait(timeout=10)
+                return self.confirm(tokens[index], contexts[index])
+
+            with ThreadPoolExecutor(2) as pool:
+                responses = list(pool.map(reserve, range(2)))
+            self.assertEqual(sorted(response.status_code for response in responses), [200, 409])
+            winner = next(index for index, response in enumerate(responses)
+                          if response.status_code == 200)
+            saved = responses[winner].json()
+            self.assertEqual(saved['cliente_id'], [self.person['id'], second['id']][winner])
+            self.assertEqual(self.confirm(tokens[winner], contexts[winner]).json(), saved)
+            loser = 1 - winner
+            self.assertEqual(self.confirm(tokens[loser], contexts[loser]).status_code, 409)
+
+        with psycopg.connect(accounts.DB) as conn:
+            self.assertEqual(conn.execute('SELECT count(*) FROM socialmei.agenda_appointments '
+                'WHERE workspace_id=%s', (self.workspace,)).fetchone()[0], 1)
+            self.assertEqual(conn.execute('SELECT count(*) FROM socialmei.agenda_appointment_history '
+                'WHERE workspace_id=%s', (self.workspace,)).fetchone()[0], 1)
+
+    def test_instagram_uses_same_appointment_engine_and_checks_human_pause(self):
+        context = self.instagram_context(self.person['id'])
         with patch('channel_booking.settings.instagram_n8n_ingress_configuration',
                    return_value={'meta_app_secret': KEY}):
             token = self.offer(context)

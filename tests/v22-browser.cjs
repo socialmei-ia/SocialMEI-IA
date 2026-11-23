@@ -64,6 +64,7 @@ async function run() {
     await require("./v22-provider-analysis-browser.cjs")(browser, origin);
     await require("./v22-instagram-direct-browser.cjs")(browser, origin);
     await require("./v22-whatsapp-replies-browser.cjs")(browser, origin);
+    console.log(await require("./outbox-interrupted-browser.cjs")(browser, origin));
     await require("./v22-instagram-publisher-browser.cjs")(browser, origin);
     await require("./v22-knowledge-reporting-browser.cjs")(browser, origin);
     await require("./v22-sales-decisions-browser.cjs")(browser, origin);

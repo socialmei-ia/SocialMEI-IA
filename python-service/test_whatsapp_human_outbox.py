@@ -263,6 +263,41 @@ class HumanReplyDatabaseTests(unittest.TestCase):
         self.assertEqual(self.send(reply).json()['status'], 'dispatching')
         self.assertEqual(len(self.sent), 1)
 
+    def test_abandoned_claim_is_marked_uncertain_once_without_resend_or_fake_receipt(self):
+        reply = self.draft()[0].json()
+        path = PATH + '/' + reply['id'] + '/mark-interrupted'
+        self.assertEqual(self.owner.post(path, json={}).status_code, 409)
+        with patch.object(self.reply_service, 'finish', side_effect=psycopg.OperationalError('synthetic interruption')):
+            self.assertEqual(self.send(reply).status_code, 503)
+        self.assertEqual(self.owner.post(path, json={}).status_code, 409)
+        with self.db() as conn:
+            conn.execute("UPDATE socialmei.wa_human_replies SET claimed_at=NOW()-INTERVAL '3 minutes' "
+                         'WHERE workspace_id=%s AND id=%s', (self.workspace, reply['id']))
+        marked = self.owner.post(path, json={})
+        self.assertEqual(marked.status_code, 200, marked.text)
+        self.assertEqual(marked.json()['status'], 'uncertain')
+        self.assertIsNone(marked.json()['provider_message_id'])
+        self.assertIsNone(marked.json()['provider_confirmation'])
+        self.assertEqual(self.owner.post(path, json={}).json(), marked.json())
+        self.assertEqual(self.send(reply).json(), marked.json())
+        self.assertEqual(len(self.sent), 1)
+        with self.db() as conn:
+            audits = conn.execute('SELECT count(*) FROM socialmei.auth_auditoria WHERE user_id=%s AND acao=%s',
+                (self.owner.identity['usuario']['id'], f"wa_interrupted:{self.workspace}")).fetchone()[0]
+        self.assertEqual(audits, 1)
+
+    def test_interrupted_claim_review_requires_admin_own_workspace_and_csrf(self):
+        reply = self.draft()[0].json()
+        path = PATH + '/' + reply['id'] + '/mark-interrupted'
+        other = self.register('foreign-review@example.test')
+        self.assertEqual(other.post(path, json={}).status_code, 404)
+        self.assertEqual(self.owner.post(path, json={}, headers={'X-SocialMEI-CSRF': 'bad'}).status_code, 403)
+        with self.db() as conn:
+            conn.execute("UPDATE socialmei.workspace_members SET role='member' WHERE workspace_id=%s AND user_id=%s",
+                         (self.workspace, self.owner.identity['usuario']['id']))
+        self.assertEqual(self.owner.post(path, json={}).status_code, 403)
+        self.assertEqual(self.sent, [])
+
     def test_duplicate_provider_receipt_becomes_uncertain(self):
         self.reply_service.transport = lambda _: 'same-provider-id'
         first = self.send(self.draft()[0].json()).json()

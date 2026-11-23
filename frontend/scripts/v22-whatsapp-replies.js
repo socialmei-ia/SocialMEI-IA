@@ -176,6 +176,55 @@
       paint();
     }
   }
+  async function markInterrupted(state) {
+    if (
+      state.busy ||
+      !current(state) ||
+      !["owner", "admin"].includes(host.identity?.papel) ||
+      state.job?.status !== "dispatching"
+    )
+      return;
+    const job = state.job;
+    let marked = false;
+    if (
+      !confirm(
+        "Revisar esta tentativa interrompida? Ela ser\u00e1 marcada como incerta, sem reenvio ou confirma\u00e7\u00e3o de entrega.",
+      )
+    )
+      return;
+    state.busy = true;
+    paint();
+    try {
+      const result = await host.request(
+        "/whatsapp/replies/" + job.id + "/mark-interrupted",
+        "POST",
+        {},
+      );
+      if (!current(state)) return;
+      if (
+        !valid(result, state) ||
+        result.id !== job.id ||
+        !["uncertain", "confirmed"].includes(result.status)
+      )
+        throw Error("Resultado n\u00e3o reconhecido. Consulte as respostas.");
+      marked = true;
+      state.job = result;
+      state.jobs = state.jobs.map((item) => (item.id === result.id ? result : item));
+      state.message = labels[result.status];
+    } catch (error) {
+      if (current(state))
+        state.message =
+          error.message ||
+          "N\u00e3o foi poss\u00edvel revisar a tentativa. Nenhuma mensagem foi reenviada.";
+    } finally {
+      state.busy = false;
+      paint();
+      if (current(state))
+        document
+          .querySelector(marked ? "[data-wa-replies] select" : "[data-wa-interrupted]")
+          ?.focus();
+    }
+  }
   function paint() {
     const row = selected();
     if (!row) return;
@@ -216,12 +265,17 @@
       dispatch.type = "button";
       dispatch.dataset.waSend = "true";
       dispatch.onclick = () => send(state);
+      const interrupted = element("button", "Revisar envio interrompido");
+      interrupted.type = "button";
+      interrupted.dataset.waInterrupted = "true";
+      interrupted.onclick = () => markInterrupted(state);
       section.append(
         element("strong", "Resposta humana · WhatsApp"),
         status,
         history,
         reload,
         dispatch,
+        interrupted,
       );
       composer.append(section);
       composer.querySelectorAll(".k10-ax").forEach((node) => {
@@ -268,6 +322,10 @@
     }
     history.value = state.job?.id || "";
     history.disabled = state.busy || !!state.pending;
+    const interrupted = section.querySelector("[data-wa-interrupted]");
+    interrupted.hidden =
+      !["owner", "admin"].includes(host.identity?.papel) || state.job?.status !== "dispatching";
+    interrupted.disabled = state.busy;
     section.querySelector("[data-wa-send]").disabled =
       state.busy || !canWrite() || !state.enabled || state.job?.status !== "draft";
     section.querySelector("button:not([data-wa-send])").disabled = state.busy;

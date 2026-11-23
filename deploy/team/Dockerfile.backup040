@@ -1,0 +1,9 @@
+FROM postgres:17-alpine
+RUN apk add --no-cache python3 py3-pip \
+    && python3 -m venv /opt/backup \
+    && /opt/backup/bin/pip install --no-cache-dir 'psycopg[binary]==3.3.7'
+ENV PATH="/opt/backup/bin:${PATH}" PYTHONDONTWRITEBYTECODE=1
+WORKDIR /backup
+COPY tools/postgres-source-export.py tools/postgres-copy-validate.py ./tools/
+COPY database/migrations/*.sql ./database/migrations/
+ENTRYPOINT ["python", "tools/postgres-source-export.py"]

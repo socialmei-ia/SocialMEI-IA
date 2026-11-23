@@ -4,8 +4,10 @@ import copy
 import importlib.util
 import io
 import json
+import os
 from pathlib import Path
 import tempfile
+import tarfile
 import unittest
 from unittest.mock import patch
 
@@ -13,6 +15,9 @@ ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location('restore_runner', ROOT / 'tools/backup-restore-rehearsal.py')
 runner = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(runner)
+BACKUP_SPEC = importlib.util.spec_from_file_location('backup_gate', ROOT / 'tools/aws-postgres-backup.py')
+backup_gate = importlib.util.module_from_spec(BACKUP_SPEC)
+BACKUP_SPEC.loader.exec_module(backup_gate)
 
 
 def manifest(profile=40):
@@ -34,6 +39,66 @@ def fixture(folder, profile=40):
 
 
 class RestoreRehearsalTests(unittest.TestCase):
+    def test_portable_recovery_set_keeps_manifest_and_restore_proof_without_credentials_or_provider_io(self):
+        with tempfile.TemporaryDirectory() as folder:
+            files = fixture(folder); auth = json.loads(files[2].read_text())
+            auth['private_sentinel'] = 'DO_NOT_COPY_CONFIGURATION'; files[2].write_text(json.dumps(auth))
+            proof = Path(folder) / 'restore.private.json'
+            result = dict(profile='040', dump_sha256=auth['dump_sha256'], manifest_sha256=auth['manifest_sha256'],
+                restoration_verified=True, verification_mode='full_comparison', source_contents_compared=True,
+                archive_integrity_verified=True, owned_cleanup_verified=True, production_mutation=False)
+            proof.write_text(json.dumps(result)); output = Path(folder) / 'recovery.tar'
+            with patch.object(runner.subprocess, 'run') as process:
+                receipt = runner.package_recovery(*files, proof, output)
+                process.assert_not_called()
+            self.assertFalse(receipt['external_uploaded'])
+            second = runner.package_recovery(*files, proof, Path(folder) / 'same-inputs.tar')
+            self.assertEqual(second['sha256'], receipt['sha256'])
+            inactive = Path(folder) / 'must-not-exist.tar'
+            with patch.object(runner, 'package_recovery') as package, contextlib.redirect_stdout(io.StringIO()):
+                runner.main(['--package-output', str(inactive)])
+                package.assert_not_called()
+            self.assertFalse(inactive.exists())
+
+            with tarfile.open(output) as archive:
+                self.assertEqual(archive.getnames(), receipt['files'])
+                self.assertTrue(all(p.isfile() and p.mode == 0o600 for p in archive.getmembers()))
+                index = archive.extractfile('recovery-index.private.json').read()
+                self.assertNotIn(b'DO_NOT_COPY_CONFIGURATION', index)
+            with self.assertRaises(ValueError): runner.package_recovery(*files, proof, output)
+            self.assertTrue(output.exists())
+            proof.write_text(json.dumps({**result, 'DATABASE_URL': 'private-sentinel'}))
+            with self.assertRaises(ValueError):
+                runner.package_recovery(*files, proof, Path(folder) / 'invalid-proof.tar')
+            for field in ('owned_cleanup_verified', 'source_contents_compared', 'restoration_verified'):
+                proof.write_text(json.dumps({**result, field: False}))
+                target = Path(folder) / (field + '.tar')
+                with self.assertRaises(ValueError): runner.package_recovery(*files, proof, target)
+                self.assertFalse(target.exists())
+
+    def test_external_version_binding_requires_the_exact_uploaded_bytes_and_approved_receipt(self):
+        with tempfile.TemporaryDirectory() as folder:
+            files = fixture(folder)
+            auth = json.loads(files[2].read_text())
+            receipt = Path(folder) / 'external.private.json'
+            original = {'external_uploaded': True, 'sha256': auth['dump_sha256'],
+                        'external_object_sha256': auth['dump_sha256'],
+                        'bytes': files[0].stat().st_size, 'external_version_id': 'version-one'}
+            def write(value):
+                receipt.write_text(json.dumps(value))
+                files[2].write_text(json.dumps({**auth, 'external_receipt_file': str(receipt),
+                                               'external_receipt_sha256': runner.file_hash(receipt)}))
+            write(original)
+            self.assertEqual(runner.inputs(*files)[0]['_verified_external_version_id'], 'version-one')
+            for key, value in [('external_uploaded', False), ('sha256', 'b' * 64),
+                               ('external_object_sha256', 'b' * 64), ('bytes', 1),
+                               ('external_version_id', 'null'), ('external_version_id', 'bad\nversion')]:
+                with self.subTest(key=key), self.assertRaises(ValueError):
+                    write({**original, key: value}); runner.inputs(*files)
+            write(original)
+            receipt.write_text(json.dumps({**original, 'external_version_id': 'replaced'}))
+            with self.assertRaises(ValueError): runner.inputs(*files)
+
     def test_periodic_integrity_requires_explicit_mode_and_does_not_claim_source_equality(self):
         baseline = manifest()
         baseline['tables'] = [{'schema': 'socialmei', 'table': 'fixture', 'rows': 1, 'sha256': 'a' * 64}]
@@ -103,6 +168,13 @@ class RestoreRehearsalTests(unittest.TestCase):
         for corrupt in (False, True):
             with self.subTest(corrupt=corrupt), tempfile.TemporaryDirectory() as folder:
                 files = fixture(folder)
+                auth = json.loads(files[2].read_text())
+                external = Path(folder) / 'external.private.json'
+                external.write_text(json.dumps({'external_uploaded': True,
+                    'sha256': auth['dump_sha256'], 'external_object_sha256': auth['dump_sha256'],
+                    'bytes': files[0].stat().st_size, 'external_version_id': 'version-one'}))
+                files[2].write_text(json.dumps({**auth, 'external_receipt_file': str(external),
+                                               'external_receipt_sha256': runner.file_hash(external)}))
                 commands = []
                 networks = {}
                 labels = {}
@@ -129,6 +201,8 @@ class RestoreRehearsalTests(unittest.TestCase):
                                             'HostConfig': {'NetworkMode': networks[args[1]]}}]).encode()
                     if args[0] == 'exec' and args[-2:] == ('postgres', '--version'):
                         return b'postgres (PostgreSQL) 17.11'
+                    if args[0] == 'exec' and 'pg_isready' in args:
+                        self.assertEqual(args[args.index('-h') + 1], '127.0.0.1')
                     return b''
                 with patch.dict(runner.os.environ, {'DOCKER_HOST': ''}), patch.object(runner, 'run', side_effect=command):
                     if corrupt:
@@ -139,6 +213,24 @@ class RestoreRehearsalTests(unittest.TestCase):
                         self.assertTrue(result['restoration_verified'])
                         self.assertTrue(result['owned_cleanup_verified'])
                         self.assertFalse(result['production_mutation'])
+                        self.assertEqual(result['external_version_id'], 'version-one')
+                        self.assertEqual(result['external_receipt_sha256'], runner.file_hash(external))
+                        # The real rehearsal output feeds the activation gate
+                        # directly, without a hand-edited conversion receipt.
+                        root = Path(folder); os.chmod(root, 0o700)
+                        proof = root / 'restore.private.json'
+                        proof.write_text(json.dumps(result)); os.chmod(proof, 0o600)
+                        config = {'backup_target_approved': True, 'container': backup_gate.NAME,
+                                  'database': 'socialmei_candidate040_20261114',
+                                  'admin_user': 'relocation_admin', 'schema': '040',
+                                  'source': 'approved_schema040_destination',
+                                  'current_production_backup': True,
+                                  'restore_receipt_file': str(proof),
+                                  'validated_backup_sha256': result['dump_sha256']}
+                        target = root / 'destination.private.json'
+                        target.write_text(json.dumps(config)); os.chmod(target, 0o600)
+                        with patch.object(backup_gate, 'ROOT', backup_gate.ROOT):
+                            self.assertEqual(backup_gate.select_approved040_root(root), config)
                 self.assertEqual(sum(args[0] == 'rm' for args in commands), 2)
 
 

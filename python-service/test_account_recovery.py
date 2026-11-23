@@ -53,6 +53,38 @@ class RecoveryTests(unittest.TestCase):
             "/api/v1/auth/recovery/confirm", json={"token": token, "nova": password}
         )
 
+    def test_recovery_worker_bounds_all_database_connections_and_sends_once(self):
+        import account_recovery as recovery
+        self.client.post('/api/v1/auth/recovery/request', json={'email': 'owner@example.test'})
+        with patch.object(recovery, 'connect', wraps=recovery.connect) as connection, \
+                patch.object(recovery, 'send_recovery_mail') as mail:
+            self.assertTrue(recovery.process_one())
+            self.assertFalse(recovery.process_one())
+            mail.assert_called_once()
+            self.assertTrue(all(call.kwargs == {'worker': True} for call in connection.call_args_list))
+            token = mail.call_args.args[1]
+        self.assertEqual(self.confirm(token).status_code, 204)
+        self.assertEqual(self.confirm(token).status_code, 400)
+
+    def test_positive_smtp_receipt_keeps_reset_usable_if_quit_fails(self):
+        import re
+        import account_recovery as recovery
+        self.client.post('/api/v1/auth/recovery/request', json={'email': 'owner@example.test'})
+        with patch('smtp_delivery.smtplib.SMTP_SSL') as smtp:
+            server = smtp.return_value
+            server.send_message.return_value = {}
+            server.__exit__.side_effect = OSError('synthetic post-accept close failure')
+            self.assertTrue(recovery.process_one())
+            self.assertFalse(recovery.process_one())
+            body = server.send_message.call_args.args[0].get_content()
+            token = re.search(r'#/recuperar/([A-Za-z0-9_-]{43})', body)[1]
+            server.send_message.assert_called_once()
+        with psycopg.connect(accounts.DB) as conn:
+            self.assertEqual(conn.execute('SELECT status FROM socialmei.auth_recuperacao_envios WHERE user_id=%s',
+                (self.owner.identity['usuario']['id'],)).fetchone()[0], 'sent')
+        self.assertEqual(self.confirm(token).status_code, 204)
+        self.assertEqual(self.confirm(token).status_code, 400)
+
     def test_reset_single_use_revokes_owner_sessions_only(self):
         token = self.issue()
         self.assertEqual(self.confirm(token, "FlorSol").status_code, 422)
@@ -159,6 +191,25 @@ class RecoveryTests(unittest.TestCase):
             204,
         )
         self.assertEqual(self.confirm(token).status_code, 400)
+
+    def test_password_change_expires_earlier_queued_recovery_without_sending(self):
+        from account_recovery import process_one
+        response = self.client.post('/api/v1/auth/recovery/request', json={'email': 'owner@example.test'})
+        self.assertEqual(response.status_code, 202)
+        changed = self.owner.post('/api/v1/auth/password',
+            json={'atual': accounts.PASSWORD, 'nova': 'Another-pass-789!'})
+        self.assertEqual(changed.status_code, 204, changed.text)
+        with patch('account_recovery.send_recovery_mail') as mail:
+            self.assertTrue(process_one())
+            self.assertFalse(process_one())
+            mail.assert_not_called()
+        with psycopg.connect(accounts.DB) as conn:
+            status = conn.execute('SELECT status FROM socialmei.auth_recuperacao_envios '
+                                  'WHERE user_id=%s', (self.owner.identity['usuario']['id'],)).fetchone()[0]
+        self.assertEqual(status, 'expired')
+        # A new explicit request after the password change remains legitimate.
+        token = self.issue()
+        self.assertEqual(self.confirm(token).status_code, 204)
 
     def test_concurrent_confirmation_has_exactly_one_winner(self):
         from concurrent.futures import ThreadPoolExecutor
@@ -321,12 +372,13 @@ class MailTransportTests(unittest.TestCase):
 
         for port in (465, 587):
             with self.subTest(port=port), patch(
-                "account_recovery.smtplib.SMTP_SSL"
-            ) as ssl_server, patch("account_recovery.smtplib.SMTP") as plain_server, patch(
+                "smtp_delivery.smtplib.SMTP_SSL"
+            ) as ssl_server, patch("smtp_delivery.smtplib.SMTP") as plain_server, patch(
                 "account_recovery.origin", return_value="https://socialmei.example.test"
             ):
                 server = MagicMock()
                 server.__enter__.return_value = server
+                server.send_message.return_value = {}
                 ssl_server.return_value = plain_server.return_value = server
                 send_recovery_mail(
                     "recipient@example.test",

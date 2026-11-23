@@ -15,6 +15,19 @@ import instagram_worker_health as health
 
 
 class QueueWakeupTests(unittest.TestCase):
+    def test_bounded_workers_preserve_database_tls_identity_and_default_api_connection(self):
+        import database
+        dsn = 'postgresql://synthetic@db.example.test/test?sslmode=verify-full'
+        with patch.object(database, 'database_url', return_value=dsn), \
+                patch.object(database.psycopg, 'connect') as connect:
+            database.connect()
+            connect.assert_called_once_with(dsn)
+            connect.reset_mock()
+            database.connect(worker=True)
+            self.assertEqual(connect.call_args.args, (dsn,))
+            self.assertEqual(connect.call_args.kwargs, database.WORKER_CONNECTION_OPTIONS)
+            self.assertNotIn('sslmode', connect.call_args.kwargs)
+
     def test_default_poll_never_opens_a_listener_and_preserves_interval(self):
         delays = []
         with patch.dict(os.environ, {'SOCIALMEI_QUEUE_WAKEUP_MODE': 'poll'}), \
@@ -37,6 +50,10 @@ class QueueWakeupTests(unittest.TestCase):
                 self.assertTrue(wakeup.wait())
             connect.assert_called_once()
             self.assertTrue(connect.call_args.kwargs['autocommit'])
+            self.assertEqual(connect.call_args.kwargs['connect_timeout'], 5)
+            self.assertEqual(connect.call_args.kwargs['tcp_user_timeout'], 15000)
+            self.assertEqual(connect.call_args.kwargs['keepalives_count'], 3)
+            self.assertIn('statement_timeout=5000', connect.call_args.kwargs['options'])
             delay.assert_not_called()
             conn.close.assert_called_once()
 

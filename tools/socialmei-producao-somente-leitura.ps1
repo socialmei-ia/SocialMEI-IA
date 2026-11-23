@@ -17,6 +17,7 @@ param(
     [string]$Relatorio = ''
 )
 
+cls
 $ErrorActionPreference = 'Stop'
 if ($Servidor -notmatch '^[a-z_][a-z0-9_-]*@[a-zA-Z0-9.-]+$') {
     throw 'Destino SSH invalido. Use usuario@host.'
@@ -72,6 +73,35 @@ do
         echo "$name | AUSENTE"
     fi
 done
+echo '=== REMETENTE WHATSAPP ==='
+if ! docker exec -i socialmei-team-team-api-1 python - <<'PY'
+from database import connect
+try:
+    with connect() as conn:
+        conn.execute('SET TRANSACTION READ ONLY')
+        database, tls = conn.execute('SELECT current_database(), ssl FROM pg_stat_ssl WHERE pid=pg_backend_pid()').fetchone()
+        print('API base040:', database == 'socialmei_candidate040_20261114', '| TLS:', tls)
+        rows = conn.execute("SELECT status,count(*) FROM socialmei.wa_bot_decisions WHERE workspace_id=1 AND channel_id=1 AND status IN ('claimed','uncertain') GROUP BY status").fetchall()
+        print('Ledger WhatsApp:', dict(rows))
+except Exception:
+    raise SystemExit(1) from None
+PY
+then
+    echo 'Verificacao de banco indisponivel.'
+fi
+if ! docker exec -i socialmei-menu-worker-continuo python - <<'PY'
+import json
+from pathlib import Path
+state = json.loads(Path('/run/socialmei/continuous-state/state.json').read_text())
+status = state.get('status')
+print('Journal:', status if status in {'running', 'paused'} else 'desconhecido')
+print('Operacao em andamento:', state.get('in_flight') is True)
+if status != 'running' or state.get('in_flight') is not False:
+    print('Preserve o journal. Concilie o ledger antes de uma retomada autorizada.')
+PY
+then
+    echo 'Journal indisponivel. Verifique o container antes de qualquer retomada.'
+fi
 echo
 
 echo "=== IDENTIDADE AWS DO SERVIDOR ==="

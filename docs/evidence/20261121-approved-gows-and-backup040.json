@@ -1,0 +1,30 @@
+{
+  "source_commit": "dbd8ed4873004f6ef5383414e684c3e34b6001be",
+  "verified_at_utc": "2026-11-21T15:46:25.003886+00:00",
+  "gows": {
+    "restart_policy": "unless-stopped",
+    "restarted": false,
+    "compose_managed": false,
+    "session_working_after_update": true
+  },
+  "backup040": {
+    "status": "export_and_isolated_restore_verified",
+    "bytes": 787598,
+    "sha256": "6e1db76d218ff5d83221a28abebb3f2bf83edbb55910b90b46979d4401607c89",
+    "tables": 78,
+    "sequences": 21,
+    "rows": 999,
+    "timer_installed": false,
+    "automatic_backup_activated": false,
+    "production_restored": false,
+    "source_services_unchanged": true
+  },
+  "restore_environment": "owner_private_local_Docker_network_none",
+  "api_healthy": true,
+  "observers_started": false,
+  "timers_installed": false,
+  "paid_resources_created": false,
+  "migrations_applied": false,
+  "channels_transferred": false,
+  "frontend_changed": false
+}

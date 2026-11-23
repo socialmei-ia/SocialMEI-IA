@@ -200,6 +200,56 @@ class DatabaseTests(unittest.TestCase):
     def run_job(self, row):
         return self.request("/jobs/" + row["id"] + "/run")
 
+    def test_interrupted_review_recovers_persisted_claim_with_external_sending_disabled(self):
+        row = self.approved()
+        with patch.object(self.direct, '_dispatch', side_effect=KeyboardInterrupt):
+            with self.assertRaises(KeyboardInterrupt):
+                self.direct.run(self.identity, digest(TOKEN), UUID(row['id']))
+        self.direct.allow_dispatch = False
+        path = '/jobs/' + row['id'] + '/mark-interrupted'
+        payload = {'expected_revision': row['revision']}
+        self.assertEqual(self.request(path, payload).status_code, 409)
+        with psycopg.connect(DB) as conn:
+            conn.execute("UPDATE socialmei.ig_direct_jobs SET lease_until=NOW()-INTERVAL '1 second' "
+                         'WHERE workspace_id=%s AND id=%s', (self.identity['workspace_id'], row['id']))
+        marked = self.request(path, payload)
+        self.assertEqual(marked.status_code, 200, marked.text)
+        self.assertEqual(marked.json()['status'], 'uncertain')
+        self.assertIsNone(marked.json()['provider_message_id'])
+        self.assertEqual(self.request(path, payload).json(), marked.json())
+        self.assertEqual(self.run_job(row).status_code, 503)
+        self.assertEqual(self.send_calls, [])
+        with psycopg.connect(DB) as conn:
+            state = conn.execute('SELECT status FROM socialmei.ig_direct_attempts '
+                                 'WHERE workspace_id=%s AND job_id=%s',
+                                 (self.identity['workspace_id'], row['id'])).fetchone()[0]
+            events = conn.execute("SELECT count(*) FROM socialmei.ig_direct_events "
+                                 "WHERE workspace_id=%s AND job_id=%s AND action='uncertain'",
+                                 (self.identity['workspace_id'], row['id'])).fetchone()[0]
+        self.assertEqual(state, 'uncertain')
+        self.assertEqual(events, 1)
+
+    def test_interrupted_review_preserves_revision_csrf_workspace_and_role_guards(self):
+        row = self.approved()
+        path = '/jobs/' + row['id'] + '/mark-interrupted'
+        self.direct.allow_dispatch = False
+        self.assertEqual(self.request(path, {'expected_revision': row['revision'] + 1}).status_code, 409)
+        self.assertEqual(self.request('/jobs/' + str(uuid4()) + '/mark-interrupted',
+                                     {'expected_revision': row['revision']}).status_code, 404)
+        response = self.client.post(PREFIX + path, headers={**self.headers, 'X-SocialMEI-CSRF': 'bad'},
+                                    json={'expected_revision': row['revision']})
+        self.assertEqual(response.status_code, 403)
+        foreign = {**self.identity, 'workspace_id': self.identity['workspace_id'] + 100000}
+        from fastapi import HTTPException
+        with self.assertRaises(HTTPException) as denied:
+            self.direct.mark_interrupted(foreign, digest(TOKEN), UUID(row['id']), row['revision'])
+        self.assertIn(denied.exception.status_code, (401, 403))
+        with psycopg.connect(DB) as conn:
+            conn.execute("UPDATE socialmei.workspace_members SET role='viewer' WHERE workspace_id=%s AND user_id=%s",
+                         (self.identity['workspace_id'], self.identity['id']))
+        self.assertEqual(self.request(path, {'expected_revision': row['revision']}).status_code, 403)
+        self.assertEqual(self.send_calls, [])
+
     def test_dispatch_rejects_a_revision_changed_after_human_review(self):
         reviewed = self.approved()
         path = "/jobs/" + reviewed["id"]

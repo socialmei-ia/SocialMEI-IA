@@ -1,9 +1,8 @@
 """Opt-in account activation and workspace invitations. No provider calls in HTTP."""
 import os
 import secrets
-import smtplib
-import ssl
 from email.message import EmailMessage
+from smtp_delivery import deliver
 from typing import Literal
 from uuid import UUID, uuid4
 
@@ -29,7 +28,7 @@ def enabled():
     return mode == 'enforced'
 
 
-def configured():
+def configured(*, worker=False):
     auth.require_enabled()
     if not enabled():
         raise HTTPException(503, 'Ativação por e-mail ainda não habilitada.')
@@ -37,7 +36,7 @@ def configured():
         config = smtp_configuration()
     except HTTPException:
         raise HTTPException(503, 'Verificação por e-mail indisponível. Tente mais tarde ou procure o responsável pelo serviço.') from None
-    with connect() as conn:
+    with (connect(worker=True) if worker else connect()) as conn:
         if not all(conn.execute("SELECT to_regclass('socialmei.auth_email_activation'),to_regclass('socialmei.auth_identity_mail')").fetchone()):
             raise HTTPException(503, 'Ativação por e-mail ainda não instalada.')
     return config
@@ -313,19 +312,13 @@ def send_mail(address, token, purpose, config):
     fragment = 'verificar' if purpose == 'verification' else 'convite'
     message.set_content('Abra o link para ' + ('verificar seu e-mail' if purpose == 'verification' else 'conferir e aceitar o convite') + ':\n' +
         auth.origin() + '/frontend/ativar.html#' + fragment + '/' + token + '\n\nVálido por 30 minutos, uma única vez. Se não solicitou, ignore. Não compartilhe este link.')
-    context = ssl.create_default_context()
-    server = smtplib.SMTP_SSL(config['host'], 465, timeout=10, context=context) if config['port'] == 465 else smtplib.SMTP(config['host'], 587, timeout=10)
-    with server:
-        if config['port'] == 587:
-            server.starttls(context=context)
-        server.login(config['user'], config['password'])
-        server.send_message(message)
+    deliver(message, config)
 
 
 def process_one():
-    config = configured()
+    config = configured(worker=True)
     token = secrets.token_urlsafe(32)
-    with connect() as conn:
+    with connect(worker=True) as conn:
         lock(conn)
         conn.row_factory = dict_row
         conn.execute("UPDATE socialmei.auth_identity_mail SET status='uncertain',token_hash=NULL,finished_at=NOW() WHERE status='processing' AND started_at<NOW()-INTERVAL '2 minutes'")
@@ -347,6 +340,6 @@ def process_one():
         send_mail(job['email'], token, job['purpose'], config)
     except Exception:
         status = 'uncertain'
-    with connect() as conn:
+    with connect(worker=True) as conn:
         conn.execute("UPDATE socialmei.auth_identity_mail SET status=%s,token_hash=CASE WHEN %s='uncertain' THEN NULL ELSE token_hash END,finished_at=NOW() WHERE id=%s AND token_hash=%s AND status='processing'", (status, status, job['id'], auth.digest(token)))
     return True

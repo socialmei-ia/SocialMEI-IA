@@ -19,7 +19,7 @@ OCI_CONFIG = 'application/vnd.oci.image.config.v1+json'
 
 
 class OciImageIdentityTests(unittest.TestCase):
-    def bundle(self, broken=None):
+    def bundle(self, broken=None, *, empty_attestation=False):
         blobs = {}
 
         def blob(value, media_type):
@@ -36,11 +36,16 @@ class OciImageIdentityTests(unittest.TestCase):
                       '0' * 40 if broken == 'revision' and service == 'team-api' else SHA}
             config = blob({'config': {'Labels': labels},
                            'architecture': 'amd64', 'os': 'linux'}, OCI_CONFIG)
+            if broken == 'empty_executable':
+                config = blob({}, 'application/vnd.oci.empty.v1+json')
             layer = blob(b'fixture compressed layer for ' + service.encode(),
                          'application/vnd.oci.image.layer.v1.tar+gzip')
             manifest = blob({'schemaVersion': 2, 'mediaType': OCI_MANIFEST,
                              'config': config, 'layers': [layer]}, OCI_MANIFEST)
             att_config = blob({'kind': 'attestation'}, OCI_CONFIG)
+            if empty_attestation:
+                att_config = blob(b'[]' if broken == 'invalid_empty' else b'{}',
+                                  'application/vnd.oci.empty.v1+json')
             att_layer = blob(b'fixture in-toto payload', 'application/vnd.in-toto+json')
             att_manifest = blob({'schemaVersion': 2, 'mediaType': OCI_MANIFEST,
                                  'config': att_config, 'layers': [att_layer]}, OCI_MANIFEST)
@@ -88,6 +93,14 @@ class OciImageIdentityTests(unittest.TestCase):
 
     def test_valid_oci_index_with_attestations(self):
         self.bundle()
+
+    def test_valid_buildkit_empty_attestation_config(self):
+        self.bundle(empty_attestation=True)
+
+    def test_empty_config_cannot_replace_executable_or_contain_other_json(self):
+        for broken in ('empty_executable', 'invalid_empty'):
+            with self.subTest(broken=broken), self.assertRaises(RuntimeError):
+                self.bundle(broken, empty_attestation=True)
 
     def test_rejects_wrong_image_id(self):
         with self.assertRaises(RuntimeError):

@@ -3,6 +3,7 @@ import base64
 from contextlib import contextmanager
 from datetime import date, datetime, time, timedelta, timezone
 from email.message import EmailMessage
+from smtp_delivery import deliver
 from email.headerregistry import Address
 from email.errors import HeaderParseError
 import hashlib
@@ -10,8 +11,6 @@ import hmac
 import json
 import os
 import secrets
-import smtplib
-import ssl
 from uuid import UUID, uuid4, uuid5, NAMESPACE_URL
 from zoneinfo import ZoneInfo
 
@@ -355,21 +354,13 @@ def smtp_configuration():
 
 def send_code(address, code):
     values = smtp_configuration()
-    port = values['port']
     try:
         message = EmailMessage()
         message['From'], message['To'] = values['from'], address
         message['Subject'] = 'SocialMEI — confirme seu agendamento'
         message.set_content('Seu código para verificar o contato é: ' + code + '\nVálido por 10 minutos. '
                             'A reserva só será criada após sua confirmação na página. Se não solicitou, ignore este e-mail.')
-        context = ssl.create_default_context()
-        server = (smtplib.SMTP_SSL(values['host'], port, timeout=10, context=context) if port == 465
-                  else smtplib.SMTP(values['host'], port, timeout=10))
-        with server:
-            if port == 587:
-                server.starttls(context=context)
-            server.login(values['user'], values['password'])
-            server.send_message(message)
+        deliver(message, values)
     except Exception:
         # SMTP acceptance may be uncertain. No proof or booking is issued on failure.
         raise HTTPException(503, 'Não foi possível enviar o código. Aguarde e tente novamente.') from None

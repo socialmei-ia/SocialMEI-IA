@@ -1,0 +1,275 @@
+{
+  "recorded_at_utc": "2026-11-20T02:58:13.170256+00:00",
+  "inspection_date_local": "2026-11-19",
+  "timezone": "America/Fortaleza",
+  "branch": "feat/mei-demo-20261119",
+  "source_candidate": "17cfd1956416c2d4c8431fec11800f73254bde12",
+  "production_modified": false,
+  "production_approval": "pending",
+  "frontend_modified": false,
+  "production": {
+    "api_revision": "d4618e85b5b9924835974e13b2e2f4c711735e97",
+    "gateway_image": "socialmei-premium-gateway:v6.5.1-cadastro-claro-1",
+    "api_database": {
+      "database": "socialmei_candidate040_20261114",
+      "role": "socialmei_candidate040",
+      "version": "17.11 (Debian 17.11-1.pgdg13+2)",
+      "server_address": "172.24.0.2/32",
+      "bytes": 13465267
+    },
+    "migration_ledger": {
+      "count": 40,
+      "versions": [
+        "001_initial_socialmei_schema.sql",
+        "002_shared_crm_foundation.sql",
+        "003_client_contract.sql",
+        "004_client_import.sql",
+        "005_shared_catalog.sql",
+        "006_shared_sales.sql",
+        "007_shared_finance.sql",
+        "008_workspace_transfer.sql",
+        "009_shared_channel_foundation.sql",
+        "010_account_authentication.sql",
+        "011_crm_workspace_links.sql",
+        "012_instagram_simulation.sql",
+        "013_workspace_profile_sync.sql",
+        "014_message_enrichment.sql",
+        "015_content_preparation.sql",
+        "016_opportunity_lifecycle.sql",
+        "017_integration_setup.sql",
+        "018_instagram_provider_lab.sql",
+        "019_instagram_persistent_oauth.sql",
+        "020_instagram_durable_webhook.sql",
+        "021_instagram_direct_outbox.sql",
+        "022_opportunity_planning.sql",
+        "023_waha_durable_ingress.sql",
+        "024_account_recovery.sql",
+        "025_session_management.sql",
+        "026_recovery_delivery_queue.sql",
+        "027_instagram_image_publications.sql",
+        "028_instagram_temporary_media.sql",
+        "029_workspace_pdf_knowledge.sql",
+        "030_whatsapp_catalog_access.sql",
+        "031_report_viewer_role.sql",
+        "032_whatsapp_bot_conversations.sql",
+        "033_provider_sentiment_jobs.sql",
+        "034_workspace_agenda.sql",
+        "035_whatsapp_human_outbox.sql",
+        "036_service_appointments.sql",
+        "037_catalog_details.sql",
+        "038_inbox_customer_link.sql",
+        "039_instagram_auto_menu.sql",
+        "040_identity_activation.sql"
+      ],
+      "chain_001_040_exact": true,
+      "checksums_available": false
+    },
+    "demo_matches": [
+      {
+        "id": 60,
+        "scenario": "brilho limpeza",
+        "members": [
+          {
+            "user_id": 33,
+            "role": "owner",
+            "active": true,
+            "platform_admin": false,
+            "email_verified": false
+          }
+        ]
+      }
+    ],
+    "orphan_checks": {
+      "crm_vendas.cliente_id": 0,
+      "crm_vendas.produto_id": 0,
+      "me_conversations.cliente_id": 0,
+      "agenda_appointments.cliente_id": 0,
+      "agenda_appointments.servico_id": 0,
+      "agenda_appointments.resource_id": 0
+    },
+    "roles": [
+      {
+        "rolname": "socialmei_candidate040",
+        "rolsuper": false,
+        "rolcreatedb": false,
+        "rolcreaterole": false,
+        "rolcanlogin": true,
+        "rolreplication": false,
+        "rolbypassrls": false
+      }
+    ],
+    "whatsapp_active_worker_http_target": "http://team-api:8000",
+    "whatsapp_worker_hotfix_present": true,
+    "legacy_menu_database": "Prisma; not current worker HTTP destination",
+    "instagram_worker_database": "Prisma; OperationalError on read",
+    "channel_owner_workspace": 1,
+    "instagram_connection_workspace": 1,
+    "identity_mode": "disabled",
+    "recovery_mode": "smtp",
+    "n8n_active_workflows": 11,
+    "n8n_active_graphs_with_meta_post_nodes": 2,
+    "n8n_sender_exclusivity_certified": false,
+    "aws_metadata": {
+      "instance_type": "t3.small",
+      "region": "sa-east-1"
+    },
+    "aws_permissions": {
+      "ec2": {
+        "available": false,
+        "code": "UnauthorizedOperation"
+      },
+      "s3": {
+        "available": false,
+        "code": "AccessDenied"
+      }
+    },
+    "pgadmin": {
+      "mode": "read_only",
+      "pgadmin_running": true,
+      "configured_servers": [
+        {
+          "matches_api_database": false,
+          "db_is_legacy_n8n": true,
+          "db_is_legacy_team": false,
+          "host_is_prisma": false,
+          "private_port": true
+        }
+      ]
+    },
+    "backup": {
+      "scope": "isolated historical destination; not current production",
+      "s3_configuration_present": false,
+      "socialmei-postgres-relocation-backup.timer": {
+        "LoadState": "loaded",
+        "ActiveState": "active",
+        "SubState": "waiting",
+        "UnitFileState": "enabled",
+        "NextElapseUSecRealtime": "Fri 2026-11-20 00:00:18 -03",
+        "LastTriggerUSec": "Thu 2026-11-19 23:02:36 -03",
+        "Result": "success"
+      },
+      "socialmei-postgres-relocation-backup.service": {
+        "LoadState": "loaded",
+        "ActiveState": "inactive",
+        "SubState": "dead",
+        "UnitFileState": "static",
+        "Result": "success",
+        "ExecMainStatus": "0"
+      },
+      "local_receipt_count": 178,
+      "latest_local_backup": {
+        "created_at_utc": "20261120T020236Z-9da6ce36",
+        "bytes": 447575,
+        "sha256": "8567f0d5b56e22f866dd7a21563a999843138244af0765b0bfc55e809d265405",
+        "source": "isolated_historical_destination",
+        "current_production_backup": false,
+        "external_uploaded": false,
+        "archive_index_verified": true,
+        "local_hash_and_size_verified": true
+      },
+      "previous_source_export": {
+        "source_export_succeeded": false,
+        "reason": "provider_account_limit",
+        "bytes": 0
+      }
+    },
+    "swap_activity": {
+      "sample_seconds": 3,
+      "page_bytes": 4096,
+      "pswpin_delta": 0,
+      "pswpout_delta": 0,
+      "pgmajfault_delta": 0
+    }
+  },
+  "release_preflight": {
+    "mode": "read_only_preflight",
+    "source_sha": "17cfd1956416c2d4c8431fec11800f73254bde12",
+    "images_already_loaded": true,
+    "api_old_image_id": "sha256:4397c7882dbadbc135d95c6cc7893ed3c384ba4c03310670da546f448ddedad5",
+    "api_new_image_id": "sha256:6cf2bc60fec3f31e5e0cc24d4e276a7ba43911e94343e1439dce75d84a5673f8",
+    "premium_image_id_preserved": "sha256:b93aeac93d11ea0e88dd2c44961bc8f13df9bcb928d960b3562563e68b6cc8ec",
+    "asset_sha256": "b50ce7dc0a29c7da8d2d972a31ab252d5cfb90778fc28f0c511d9e0322c87a85",
+    "services": {
+      "team-api": {
+        "compose_file_count": 11,
+        "baseline_config_sha256": "b34c3b0783faf1e8db8dbf35f8481ecbf2705885bd751af28f31445f73fc03cb",
+        "candidate_config_sha256": "408b43ae007b1023b6983f7844a99fe433b1f34db0592a6c1ba4303b60818cf9",
+        "chain_sha256": "2f10f2dea93ed1344428f568b2a0df0bb013741576ca53b3cb88d460e894713c",
+        "live_config_sha256": "8290af14c2381a7650b4e37dc0015af580c53349989aa50a8b8565bf3bc74f92",
+        "permitted_delta": "image"
+      },
+      "team-gateway": {
+        "compose_file_count": 7,
+        "baseline_config_sha256": "a0407941d6b5d397951d2d93767889d511874cad072782364d0d9cb5cea929e1",
+        "candidate_config_sha256": "62a181812697f9ba880659bf5592cf234e643a033dad888d0f6caacfdf3c92a3",
+        "chain_sha256": "115e5cde81afa12bf5f3e0b70652d6e0803b4dd63f32e989bb8af2d6cf190ad7",
+        "live_config_sha256": "032ee455d06e5e7ebe0ebedd1510b5ad6177ba531e03bd6e47c9cad7c3891d3a",
+        "permitted_delta": "one_readonly_js_bind"
+      }
+    },
+    "production_modified": false,
+    "health_db": 200,
+    "release_plan_sha256": "0ef8cf6b6223e0775d7b8011c29caf159ae73a5edc807b3debc13066cb7e051e",
+    "next_step": "explicit_operational_approval_then_fresh_preflight_and_backup"
+  },
+  "validation": {
+    "javascript": {
+      "run": 453,
+      "passed": 451,
+      "skipped": 2,
+      "failed": 0
+    },
+    "provisioner_unit_passed": 11,
+    "real_fastapi_postgresql_provisioner_passed": true,
+    "provisioner_scenarios": [
+      "two independent accounts",
+      "dry-run without business writes",
+      "lost committed response replay",
+      "repeated apply row hashes equal",
+      "foreign identity rejected",
+      "Bella stock 19/19/20",
+      "no channels or external messages"
+    ],
+    "python_business_suites": {
+      "run": 222,
+      "initial_passed": 221,
+      "initial_errors": 1,
+      "error": "missing CLI-created ledger in disposable workspace-integrity fixture",
+      "fixture_fixed": true,
+      "focused_recheck": {
+        "run": 7,
+        "passed": 7,
+        "failed": 0
+      },
+      "new_whatsapp_instagram_same_slot_race_passed": true
+    },
+    "release_rollback_unit_passed": 9,
+    "postgres_comparator_unit_passed": 18,
+    "browser": {
+      "passed": true,
+      "layout_states": 286,
+      "entry_flows": 5,
+      "transport": "controlled; no providers"
+    },
+    "format_check": "passed",
+    "diff_check": "passed"
+  },
+  "synthetic_restore": {
+    "equal": true,
+    "different_sections": [],
+    "constant_array_cast_representation_only": true,
+    "source_valid": true,
+    "target_valid": true,
+    "effective_permissions_equal": true,
+    "effective_sequence_permissions_equal": true,
+    "freshness_verified": false,
+    "cutover_authorized": false
+  },
+  "limits": [
+    "No production account, demo record, grant, migration, binding, message, email or paid resource changed.",
+    "No provider journey or teacher access was homologated in this increment.",
+    "Historical applied migration checksums are not stored in the ledger.",
+    "Synthetic local restore does not certify current production or S3 recovery.",
+    "Denied AWS calls were not bypassed or retried with other permissions."
+  ]
+}

@@ -1,11 +1,10 @@
 """Opt-in email recovery. No account discovery, automatic login or provider calls by default."""
 
 import secrets
-import smtplib
-import ssl
 
 import psycopg
 from email.message import EmailMessage
+from smtp_delivery import deliver
 
 from fastapi import APIRouter, HTTPException, Request, Response
 from uuid import uuid4
@@ -39,7 +38,7 @@ class RecoveryConfirm(Strict):
     _password = field_validator("nova")(validate_new_password)
 
 
-def configured():
+def configured(*, worker=False):
     require_enabled()
     try:
         config = settings.recovery_smtp_configuration()
@@ -49,7 +48,7 @@ def configured():
             "Recuperação por e-mail indisponível neste ambiente. Procure o administrador.",
         ) from None
     try:
-        with connect() as conn:
+        with (connect(worker=True) if worker else connect()) as conn:
             if not all(
                 conn.execute(
                     "SELECT to_regclass('socialmei.auth_recuperacoes'),to_regclass('socialmei.auth_recuperacao_envios')"
@@ -79,16 +78,7 @@ def send_recovery_mail(address, token, config):
         + "\n\nVálido por 15 minutos e uma única utilização. "
         "Se não foi você, ignore este e-mail e não compartilhe o código.\n"
     )
-    context = ssl.create_default_context()
-    if config["port"] == 465:
-        server = smtplib.SMTP_SSL(config["host"], 465, timeout=10, context=context)
-    else:
-        server = smtplib.SMTP(config["host"], 587, timeout=10)
-    with server:
-        if config["port"] == 587:
-            server.starttls(context=context)
-        server.login(config["user"], config["password"])
-        server.send_message(message)
+    deliver(message, config)
 
 
 def queue_recovery(address):
@@ -112,8 +102,8 @@ def queue_recovery(address):
 
 def process_one():
     """Explicit worker invocation. Commit claim before SMTP; never retry uncertain sends."""
-    config = configured()
-    with connect() as conn:
+    config = configured(worker=True)
+    with connect(worker=True) as conn:
         # No credential locks here: reclaim only abandoned delivery state.
         conn.execute(
             "UPDATE socialmei.auth_recuperacao_envios SET status='uncertain',finished_at=NOW() WHERE status='processing' AND started_at<NOW()-INTERVAL '2 minutes'"
@@ -124,19 +114,20 @@ def process_one():
     if not candidate:
         return False
     token = secrets.token_urlsafe(32)
-    with connect() as conn:
+    with connect(worker=True) as conn:
         # Same lock order as requests/password changes and confirmations.
         account = conn.execute(
             "SELECT c.user_id,c.senha_alterada_em,u.email,c.ativo FROM socialmei.auth_credenciais c JOIN socialmei.users u ON u.id=c.user_id WHERE c.user_id=%s FOR UPDATE OF c",
             (candidate[0],),
         ).fetchone()
         job = conn.execute(
-            "SELECT generation,queued_at<NOW()-INTERVAL '15 minutes' FROM socialmei.auth_recuperacao_envios WHERE user_id=%s AND status='pending' FOR UPDATE",
-            (candidate[0],),
+            "SELECT generation,queued_at<NOW()-INTERVAL '15 minutes',queued_at<%s FROM socialmei.auth_recuperacao_envios WHERE user_id=%s AND status='pending' FOR UPDATE",
+            (account[1] if account else None, candidate[0]),
         ).fetchone()
         if not job:
             return False
-        if not account or not account[3] or job[1]:
+        # A password change also invalidates requests not yet delivered.
+        if not account or not account[3] or job[1] or job[2]:
             conn.execute(
                 "UPDATE socialmei.auth_recuperacao_envios SET status='expired',finished_at=NOW() WHERE user_id=%s",
                 (candidate[0],),
@@ -156,7 +147,7 @@ def process_one():
     except Exception:
         # SMTP might have accepted before the connection failed. No automatic retry.
         status = "uncertain"
-    with connect() as conn:
+    with connect(worker=True) as conn:
         if status == "uncertain":
             conn.execute(
                 "UPDATE socialmei.auth_recuperacoes SET usado_em=NOW() WHERE token_hash=%s",

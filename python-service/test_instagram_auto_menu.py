@@ -14,6 +14,17 @@ from test_instagram_simulation import DB
 
 
 class AutoMenuHandoffContracts(unittest.TestCase):
+    def test_recovery_window_defaults_to_two_minutes_and_invalid_settings_never_query(self):
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(menu.source_max_age(), 120)
+        for value in ('0', '119', '901', '-1', '1.5', 'forever', '???'):
+            with self.subTest(value=value), patch.dict(os.environ, {
+                    'SOCIALMEI_INSTAGRAM_AUTO_MENU_MAX_AGE_SECONDS': value}), \
+                    patch.object(menu, 'enabled', return_value=True), patch.object(menu, 'db') as db:
+                with self.assertRaises(RuntimeError):
+                    menu.next_source(60, datetime.now(timezone.utc))
+                db.assert_not_called()
+
     def test_send_limits_preserve_handoff_without_sending_or_opening_token(self):
         from unittest.mock import MagicMock
         now = datetime.now(timezone.utc)
@@ -59,6 +70,22 @@ class AutoMenuDatabaseTests(unittest.TestCase):
         self.runtime=SimpleNamespace(send=True,direct=self.direct)
         self.start=datetime.now(timezone.utc)-timedelta(seconds=5)
 
+    def test_reviewed_recovery_window_resumes_persisted_five_minute_backlog_once(self):
+        start = datetime.now(timezone.utc) - timedelta(minutes=10)
+        with menu.db() as conn:
+            conn.execute("UPDATE socialmei.me_messages SET occurred_at=NOW()-INTERVAL '5 minutes' "
+                         "WHERE workspace_id=%s AND id=%s", (self.workspace, self.source))
+            conn.execute("UPDATE socialmei.ig_meta_ingress_events SET received_at=NOW()-INTERVAL '5 minutes' "
+                         "WHERE workspace_id=%s AND message_id=%s", (self.workspace, self.source))
+        self.assertIsNone(menu.next_source(self.workspace, start))
+        with patch.dict(os.environ, {'SOCIALMEI_INSTAGRAM_AUTO_MENU_MAX_AGE_SECONDS': '900'}):
+            self.assertEqual(menu.next_source(self.workspace, start), self.source)
+            self.assertEqual(menu.reply(self.runtime, self.workspace, self.source, start), 'confirmed')
+            self.assertIsNone(menu.next_source(self.workspace, start))
+            self.assertEqual(menu.reply(self.runtime, self.workspace, self.source, start), 'duplicate')
+            self.assertIsNone(menu.next_source(self.identities[1]['workspace_id'], start))
+        self.assertEqual(len(self.send_calls), 1)
+
     def test_disconnected_or_expired_account_does_not_starve_next_source(self):
         self.assertEqual(menu.next_source(self.workspace, self.start), self.source)
         with menu.db() as conn:
@@ -100,6 +127,49 @@ class AutoMenuDatabaseTests(unittest.TestCase):
                               (self.workspace,)).fetchall()
         self.assertEqual(len(rows),1)
         self.assertEqual(rows[0]['status'],'confirmed')
+
+    def test_restart_after_confirmation_keeps_durable_deduplication(self):
+        from instagram_worker_state import reconcile
+        checkpoint = reconcile(None, self.workspace, self.start, unresolved=False)
+        checkpoint['in_flight'] = True
+        self.assertEqual(menu.reply(self.runtime, self.workspace, self.source, self.start), 'confirmed')
+        with menu.db() as conn:
+            unresolved = bool(conn.execute("SELECT 1 FROM socialmei.ig_menu_replies WHERE workspace_id=%s "
+                                           "AND status IN ('dispatching','uncertain') LIMIT 1",
+                                           (self.workspace,)).fetchone())
+        recovered = reconcile(checkpoint, self.workspace, self.start, unresolved=unresolved)
+        self.assertFalse(recovered['in_flight'])
+        self.assertIsNone(menu.next_source(self.workspace, self.start))
+        self.assertEqual(menu.reply(self.runtime, self.workspace, self.source, self.start), 'duplicate')
+        self.assertEqual(len(self.send_calls), 1)
+
+    def test_restart_with_uncertain_delivery_never_resends(self):
+        from instagram_worker_state import reconcile
+        checkpoint = reconcile(None, self.workspace, self.start, unresolved=False)
+        checkpoint['in_flight'] = True
+        self.send_error = TimeoutError('synthetic provider timeout')
+        self.assertEqual(menu.reply(self.runtime, self.workspace, self.source, self.start), 'uncertain')
+        with menu.db() as conn:
+            unresolved = bool(conn.execute("SELECT 1 FROM socialmei.ig_menu_replies WHERE workspace_id=%s "
+                                           "AND status IN ('dispatching','uncertain') LIMIT 1",
+                                           (self.workspace,)).fetchone())
+        with self.assertRaises(RuntimeError):
+            reconcile(checkpoint, self.workspace, self.start, unresolved=unresolved)
+        self.assertEqual(len(self.send_calls), 1)
+
+    def test_observer_reads_persisted_direct_in_its_workspace_without_dispatch(self):
+        from instagram_worker_observer import pending, checkpoint
+        counts = pending(self.workspace, self.start)
+        self.assertEqual(counts['pending_count'], 1)
+        self.assertEqual(counts['latest_pending_message_id'], self.source)
+        other = self.identities[1]['workspace_id']
+        self.assertEqual(pending(other, self.start)['pending_count'], 0)
+        state = checkpoint(None, self.workspace, self.start, counts)
+        self.incoming(text='Outra mensagem sintética')
+        resumed = checkpoint(state, self.workspace, self.start, pending(self.workspace, self.start))
+        self.assertEqual(resumed['pending_count'], 2)
+        self.assertFalse(resumed['send_enabled'])
+        self.assertEqual(self.send_calls, [])
 
     def test_old_and_foreign_messages_never_dispatch(self):
         self.assertIsNone(menu.next_source(self.workspace,datetime.now(timezone.utc)+timedelta(seconds=1)))

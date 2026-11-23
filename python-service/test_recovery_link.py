@@ -18,8 +18,9 @@ CONFIG = {
 class RecoveryLinkTests(unittest.TestCase):
     def test_implicit_tls_mail_contains_link_and_same_manual_code(self):
         with patch("account_recovery.origin", return_value=ORIGIN), patch(
-            "account_recovery.smtplib.SMTP_SSL"
+            "smtp_delivery.smtplib.SMTP_SSL"
         ) as tls:
+            tls.return_value.send_message.return_value = {}
             account_recovery.send_recovery_mail(
                 "owner@example.test", TOKEN, CONFIG.copy()
             )
@@ -42,8 +43,9 @@ class RecoveryLinkTests(unittest.TestCase):
     def test_starttls_mail_preserves_existing_tls_enforcement(self):
         config = {**CONFIG, "port": 587}
         with patch("account_recovery.origin", return_value=ORIGIN), patch(
-            "account_recovery.smtplib.SMTP"
+            "smtp_delivery.smtplib.SMTP"
         ) as smtp:
+            smtp.return_value.send_message.return_value = {}
             account_recovery.send_recovery_mail(
                 "owner@example.test", TOKEN, config
             )

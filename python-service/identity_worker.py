@@ -15,7 +15,7 @@ def main():
     if not args.run or not 1 <= args.limit <= 100:
         parser.error('--run and limit 1–100 are required')
     try:
-        configured()
+        configured(worker=True)
         with QueueWakeup(CHANNEL, interval=60, reconcile=300) as wakeup:
             while True:
                 wakeup.prepare()
@@ -26,8 +26,10 @@ def main():
                     processed += 1
                 if not args.watch:
                     return 0
-                if processed < args.limit:
+                if wakeup.mode != 'listen' or processed < args.limit:
                     wakeup.wait()
+    except KeyboardInterrupt:
+        return 0
     except Exception:
         print('Identity worker unavailable. Verify private configuration and approved schema.', file=sys.stderr)
         return 1

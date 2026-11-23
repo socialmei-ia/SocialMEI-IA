@@ -190,6 +190,14 @@ def respond(conn, workspace, message):
         if value in flow.START:
             selected = {'route': 'booking', 'step': 'appointments' if value in flow.MANAGE else 'services'}
         elif not choices:
+            created = latest.get('created_at') if latest else None
+            if (latest and latest.get('status') == 'confirmed' and isinstance(created, datetime)
+                    and created.tzinfo is not None and created < datetime.now(timezone.utc) - REPLY_TTL
+                    and any(number == value for number, _ in _decode_reference(latest.get('text')))):
+                state, result = flow.response('booking_expired',
+                    'Esta opção de agendamento expirou. Consulte os horários novamente.',
+                    [flow.option('6', 'Consultar horários', 'services'), *flow.navigation()], False)
+                return state, result, {'step': 'services'}
             return None
         else:
             response = flow.response('booking_invalid_choice',
