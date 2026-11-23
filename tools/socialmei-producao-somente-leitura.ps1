@@ -74,6 +74,21 @@ do
     fi
 done
 echo '=== REMETENTE WHATSAPP ==='
+if ! docker exec -i socialmei-team-team-api-1 python - <<'PY'
+from database import connect
+try:
+    with connect() as conn:
+        conn.execute('SET TRANSACTION READ ONLY')
+        database, tls = conn.execute('SELECT current_database(), ssl FROM pg_stat_ssl WHERE pid=pg_backend_pid()').fetchone()
+        print('API base040:', database == 'socialmei_candidate040_20261114', '| TLS:', tls)
+        rows = conn.execute("SELECT status,count(*) FROM socialmei.wa_bot_decisions WHERE workspace_id=1 AND channel_id=1 AND status IN ('claimed','uncertain') GROUP BY status").fetchall()
+        print('Ledger WhatsApp:', dict(rows))
+except Exception:
+    raise SystemExit(1) from None
+PY
+then
+    echo 'Verificacao de banco indisponivel.'
+fi
 if ! docker exec -i socialmei-menu-worker-continuo python - <<'PY'
 import json
 from pathlib import Path
