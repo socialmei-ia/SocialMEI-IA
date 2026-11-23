@@ -17,6 +17,7 @@ param(
     [string]$Relatorio = ''
 )
 
+cls
 $ErrorActionPreference = 'Stop'
 if ($Servidor -notmatch '^[a-z_][a-z0-9_-]*@[a-zA-Z0-9.-]+$') {
     throw 'Destino SSH invalido. Use usuario@host.'

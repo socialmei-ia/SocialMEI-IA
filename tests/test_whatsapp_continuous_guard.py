@@ -47,6 +47,16 @@ class ContinuousTests(unittest.TestCase):
         self.assertFalse(state['in_flight'])
         self.assertEqual(state['attempts'], self.journal.state['attempts'])
         self.assertEqual(state['confirmed'], 46)
+        # Rolling back the old cutoff must fail closed against the new journal.
+        # Restoring the paused snapshot also must not start the old sender.
+        with self.assertRaisesRegex(RuntimeError, 'Reconciliation required'):
+            guard.Journal(self.folder, 1000, [], public=True)
+        with tempfile.TemporaryDirectory() as rollback_folder:
+            rollback = Path(rollback_folder)
+            (rollback / 'state.json').write_bytes(raw)
+            with self.assertRaisesRegex(RuntimeError, 'Reconciliation required'):
+                guard.Journal(rollback, 1000, [], public=True)
+        self.assertEqual(json.loads(self.journal.path.read_text()), state)
 
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
