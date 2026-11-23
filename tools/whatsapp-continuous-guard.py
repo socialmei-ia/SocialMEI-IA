@@ -89,13 +89,18 @@ def serve(journal, config, *, poll=run_once, sleep=time.sleep, clock=time.time):
             try:
                 result = poll(config, client_factory=Client)
             except SourceUnavailable:
-                # This exception is restricted to the first read, before any claim.
+                # This exception is restricted to reads before any decision, claim or send.
                 journal.state['in_flight'] = False
                 journal.state['source_read_failures'] = journal.state.get('source_read_failures', 0) + 1
                 journal.save()
                 sleep(backoff)
                 backoff = min(300, backoff * 2)
                 continue
+            if result == 'RESULTADO_INCERTO_NAO_REENVIAR':
+                journal.state.update(status='paused', reason='delivery_uncertain')
+                journal.save()
+                print('CONTINUOUS_PAUSED delivery_uncertain', flush=True)
+                return
             if result not in {'ENVIO_CONFIRMADO', 'SEM_MENSAGENS_NOVAS',
                               'SEM_ENVIO_AUTORIZADO', 'ENVIO_NEGADO_PELO_SERVIDOR'}:
                 raise RuntimeError('Uncertain result')

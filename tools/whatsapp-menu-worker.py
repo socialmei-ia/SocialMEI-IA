@@ -32,7 +32,7 @@ class Blocked(Exception):
 
 
 class SourceUnavailable(Blocked):
-    """Apenas a leitura inicial falhou; nenhum claim ou envio foi iniciado."""
+    """Uma leitura anterior a qualquer escrita falhou; nenhum envio foi iniciado."""
 
 
 def _secret(path: str) -> str:
@@ -207,20 +207,20 @@ def run_once(cfg, *, client_factory=httpx.Client):
                 timeout=httpx.Timeout(5, connect=2),
                 limits=httpx.Limits(max_connections=2, max_keepalive_connections=0))
     with client_factory(**opts) as api, client_factory(**opts) as waha:
-        def request(client, method, url, *, headers, data=None):
+        def request(client, method, url, *, headers, data=None, retryable_read=False):
             # Sem tentativas automaticas e sem redirecionamentos.
             content = None if data is None else json.dumps(data, ensure_ascii=False, separators=(',', ':')).encode()
             r = client.request(method, url, headers={**headers, 'Accept': 'application/json',
                                       **({'Content-Type': 'application/json'} if content is not None else {})},
                                content=content)
-            if method == 'GET' and url == API_URL + SOURCE_URL and r.status_code >= 500:
+            if retryable_read and r.status_code >= 500:
                 raise SourceUnavailable('Fonte temporariamente indisponivel')
             return _json(r)
 
         auth = {'Authorization': 'Bearer ' + cfg.token}
         provider = {'X-Api-Key': cfg.waha_key}
         try:
-            sources = request(api, 'GET', API_URL + SOURCE_URL, headers=auth)
+            sources = request(api, 'GET', API_URL + SOURCE_URL, headers=auth, retryable_read=True)
         except httpx.TransportError as error:
             raise SourceUnavailable('Fonte temporariamente indisponivel') from error
         values = sources.get('sources')
@@ -235,23 +235,26 @@ def run_once(cfg, *, client_factory=httpx.Client):
                 or not VALID_ID.fullmatch(src['external_message_id'])):
             raise Blocked('Origem nao corresponde ao piloto')
 
+        # Verify the provider before persisting a decision that consumes the source.
+        try:
+            if cfg.engine == 'GOWS':
+                version = request(waha, 'GET', cfg.waha_url + '/api/version', headers=provider, retryable_read=True)
+                if version.get('engine') != 'GOWS':
+                    raise Blocked('Engine WAHA diferente da configurada')
+            session = request(waha, 'GET', cfg.waha_url + '/api/sessions/' + cfg.session, headers=provider, retryable_read=True)
+            if (session.get('name') != cfg.session or session.get('status') != 'WORKING'
+                    or not isinstance(session.get('me'), dict)
+                    or session['me'].get('id') != cfg.account):
+                raise Blocked('Sessao WAHA indisponivel ou outra conta')
+        except httpx.TransportError as error:
+            raise SourceUnavailable("WAHA temporariamente indisponivel") from error
+
         planned = request(api, 'POST', API_URL + '/internal/whatsapp/bot/decisions', headers=auth, data=src)
         opid = planned.get('operation_id')
         if not isinstance(opid, str) or not re.fullmatch(r'[0-9a-fA-F-]{36}', opid):
             raise Blocked('Operacao sem identificador')
         if planned.get('status') != 'planned':
             return 'SEM_ENVIO_AUTORIZADO'
-
-        # Preflight antes do claim. O contato so aparece no payload assinado do claim.
-        if cfg.engine == 'GOWS':
-            version = request(waha, 'GET', cfg.waha_url + '/api/version', headers=provider)
-            if version.get('engine') != 'GOWS':
-                raise Blocked('Engine WAHA diferente da configurada')
-        session = request(waha, 'GET', cfg.waha_url + '/api/sessions/' + cfg.session, headers=provider)
-        if (session.get('name') != cfg.session or session.get('status') != 'WORKING'
-                or not isinstance(session.get('me'), dict)
-                or session['me'].get('id') != cfg.account):
-            raise Blocked('Sessao WAHA indisponivel ou outra conta')
 
         opurl = API_URL + '/internal/whatsapp/bot/decisions/' + opid
         claimed = request(api, 'POST', opurl + '/claim', headers=auth, data={})

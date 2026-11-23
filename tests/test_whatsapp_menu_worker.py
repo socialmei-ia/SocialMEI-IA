@@ -190,6 +190,25 @@ class ContinuousWorkerTests(unittest.TestCase):
                                   'synthetic-token-123456', 'synthetic-waha-key-123456',
                                   engine, url)
 
+    def test_provider_read_failure_leaves_source_available_without_any_post(self):
+        cfg = worker.Config('trusted-a', '01', '111@c.us', 'synthetic-token',
+                            'synthetic-key', 'GOWS', worker.GOWS_URL)
+        for failure in ('timeout', '503'):
+            calls = []
+            def handler(request):
+                calls.append((request.method, request.url.path))
+                if request.url.path == worker.SOURCE_URL:
+                    return httpx.Response(200, json={'sources': [
+                        {'instance': 'trusted-a', 'external_message_id': 'synthetic-message'}]})
+                if failure == 'timeout':
+                    raise httpx.ReadTimeout('synthetic', request=request)
+                return httpx.Response(503)
+            def client(**kwargs):
+                return httpx.Client(transport=httpx.MockTransport(handler), **kwargs)
+            with self.subTest(failure=failure), self.assertRaises(worker.SourceUnavailable):
+                worker.run_once(cfg, client_factory=client)
+            self.assertEqual(calls, [('GET', worker.SOURCE_URL), ('GET', '/api/version')])
+
     def test_gows_engine_mismatch_never_claims_or_sends(self):
         cfg = worker.Config('trusted-a', '01', '111@c.us',
                             'synthetic-token-123456', 'synthetic-waha-key-123456',
@@ -209,7 +228,7 @@ class ContinuousWorkerTests(unittest.TestCase):
             worker.run_once(cfg, client_factory=Mock(side_effect=[api, provider]))
         self.assertEqual(provider.request.call_count, 1)
         self.assertEqual(provider.request.call_args.args[1], worker.GOWS_URL + '/api/version')
-        self.assertEqual(api.request.call_count, 2)
+        self.assertEqual(api.request.call_count, 1)
         self.assertTrue(all(call.args[0] != 'POST' or call.args[1].endswith('/decisions')
                             for call in api.request.call_args_list))
 
