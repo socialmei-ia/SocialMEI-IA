@@ -118,7 +118,23 @@ def view(row):
             'source_message_id': row['source_message_id'], 'conversation_id': row['conversation_id']}
 
 
+def menu_business_identity(conn, workspace, result):
+    if result.get('action') != 'menu':
+        return result
+    row = conn.execute(
+        "SELECT w.nome, p.profile->>'activity' AS activity FROM socialmei.workspaces w "
+        "LEFT JOIN socialmei.workspace_profiles p ON p.workspace_id=w.id WHERE w.id=%s",
+        (workspace,),
+    ).fetchone()
+    if not row:
+        return result
+    identity = '\n'.join(filter(None, (navigation.clean(row['nome'], 120),
+                                       navigation.clean(row['activity'], 120))))
+    return {**result, 'text': identity + '\n\n' + result['text']} if identity else result
+
+
 def _catalog_answer(conn, workspace, state, text, target, enabled):
+    text = text if isinstance(text, str) else ''
     if not enabled or state == 'human':
         return answer(conn, workspace, state, text)
     if target is not None:
@@ -188,6 +204,7 @@ def render_waha(session, chat, text, choices, *, engine='WEBJS', list_verified=F
 
 
 def answer(conn, workspace, state, text):
+    text = text if isinstance(text, str) else ''
     choice = text.strip().casefold()
     result = {'action': 'menu', 'text': 'Olá! Como podemos ajudar? Escolha uma opção.',
               'choices': OPTIONS, 'items': [], 'handoff': False}
@@ -490,14 +507,14 @@ def prepare(payload: Source, request: Request):
                                   "WHERE workspace_id=%s AND channel_id=%s AND conversation_id=%s "
                                   "AND created_at>NOW()-INTERVAL '1 minute' AND status<>'skipped' LIMIT 20) limited",
                                   (workspace, cid, conv)).fetchone()['n']
-            if recent >= 20 and state['state'] != 'human' and message['text'].strip().casefold() not in HUMAN_CHOICES:
+            if recent >= 20 and state['state'] != 'human' and (message['text'] or '').strip().casefold() not in HUMAN_CHOICES:
                 next_state = state['state']
                 result = {'action': 'rate_limited', 'text': '', 'choices': [], 'items': [], 'handoff': False}
             else:
                 booking_result = booking_flow.respond(conn, channel, message, state, native=nav_enabled)
                 if booking_result is None:
                     next_state, result = _catalog_answer(conn, workspace, state['state'], message['text'], message.get('catalog_target'), nav_enabled)
-                    result = booking_flow.with_entry(conn, workspace, result)
+                    result = menu_business_identity(conn, workspace, booking_flow.with_entry(conn, workspace, result))
                 else:
                     next_state, result = booking_result
         revision = state['revision'] + (0 if old or outdated else 1)

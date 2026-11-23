@@ -17,6 +17,26 @@ BOT_ACCOUNT = '991234567890@c.us'
 
 
 class BotClosedContracts(unittest.TestCase):
+    def test_menu_identity_uses_the_decision_workspace_and_only_public_profile_fields(self):
+        from unittest.mock import Mock
+        from whatsapp_bot import menu_business_identity
+
+        conn = Mock()
+        conn.execute.return_value.fetchone.side_effect = [
+            {'nome': 'Brilho teste', 'activity': 'Limpeza residencial'},
+            {'nome': 'Bella teste', 'activity': None},
+        ]
+        menu = {'action': 'menu', 'text': 'Escolha uma opção.'}
+        self.assertEqual(menu_business_identity(conn, 60, menu)['text'],
+                         'Brilho teste\nLimpeza residencial\n\nEscolha uma opção.')
+        self.assertEqual(conn.execute.call_args.args[1], (60,))
+        self.assertEqual(menu_business_identity(conn, 61, menu)['text'],
+                         'Bella teste\n\nEscolha uma opção.')
+        self.assertEqual(conn.execute.call_args.args[1], (61,))
+        handoff = {'action': 'human_wait', 'text': ''}
+        self.assertIs(menu_business_identity(conn, 60, handoff), handoff)
+        self.assertEqual(conn.execute.call_count, 2)
+
     def test_live_contact_allowlist_fails_closed_and_validates_every_entry(self):
         import settings
         with patch.dict(os.environ, {'SOCIALMEI_WAHA_INGRESS_MODE': 'team-pilot'}):

@@ -55,7 +55,7 @@ def respond(conn, channel, message, state, *, native=False):
     """Return None when the existing catalog/human planner owns this message."""
     if state['state'] == 'human':
         return None
-    text = message['text'].strip().casefold()
+    text = (message['text'] or '').strip().casefold()
     selected = message.get('catalog_target')
     if selected is not None and selected.get('route') != 'booking':
         return None
