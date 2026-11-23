@@ -1,5 +1,6 @@
 """Continuous inbound-only sender; uncertain dispatch requires operator reconciliation."""
 import fcntl
+import argparse
 import hashlib
 import json
 import os
@@ -9,6 +10,34 @@ from pathlib import Path
 
 import httpx
 from public_worker import API_URL, WAHA_URL, SOURCE_URL, Config, SourceUnavailable, run_once
+
+
+def resume_new_only(folder, expected_sha, incident, cutoff):
+    """Operator-only journal transition after database and provider reconciliation."""
+    path = folder / 'state.json'
+    with (folder / 'sender.lock').open('a') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        raw = path.read_bytes()
+        if hashlib.sha256(raw).hexdigest() != expected_sha:
+            raise RuntimeError('Journal changed since review')
+        state = json.loads(raw)
+        if (state['status'] != 'paused' or state['in_flight'] is not True
+                or state.get('public') is not True or cutoff <= state['start']
+                or not time.time() - 60 <= cutoff <= time.time()):
+            raise RuntimeError('Paused public journal and fresh UTC cutoff required')
+        backup = folder / ('state-before-' + incident.hex + '.json')
+        fd = os.open(backup, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, 'wb') as stream:
+            stream.write(raw)
+            stream.flush()
+            os.fsync(stream.fileno())
+        journal = object.__new__(Journal)
+        journal.path = path
+        journal.state = {**state, 'start': cutoff, 'status': 'running', 'in_flight': False,
+                         'reason': None, 'recovery': {'operation_id': str(incident),
+                         'previous_sha256': expected_sha, 'cutoff': cutoff,
+                         'disposition': 'uncertain_preserved_no_replay'}}
+        journal.save()
 
 
 class Journal:
@@ -129,6 +158,19 @@ def main():
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--resume-new-only', action='store_true')
+    parser.add_argument('--journal-sha256')
+    parser.add_argument('--uncertain-operation')
+    args = parser.parse_args()
+    if args.resume_new_only:
+        from uuid import UUID
+        cutoff = datetime.fromisoformat(os.environ['SOCIALMEI_CONTINUOUS_START_UTC'])
+        if cutoff.utcoffset() is None or not args.journal_sha256 or not args.uncertain_operation:
+            parser.error('Reviewed journal hash, uncertain operation and explicit UTC cutoff required')
+        resume_new_only(Path('/run/socialmei/continuous-state'), args.journal_sha256,
+                        UUID(args.uncertain_operation), cutoff.timestamp())
+        raise SystemExit(0)
     try:
         main()
     except Exception as error:
