@@ -125,14 +125,33 @@ def _catalog_answer(conn, workspace, state, text, target, enabled):
     return navigation.respond(conn, workspace, routes.get(command, {'route':'main'}))
 
 
-def native_list_canary(channel, contact):
-    return (
-        os.getenv('SOCIALMEI_MENU_GOWS_LIST_CANARY_ACTIVE') == 'YES'
-        and os.getenv('SOCIALMEI_MENU_WAHA_ENGINE') == 'GOWS'
-        and (channel['workspace_id'], channel['channel_id'], channel['instancia'], channel['sessao'])
-        == (1, 1, 'socialmei-equipe-piloto', '01')
+def native_list_canary(channel,contact):
+    if not _public_direct(contact):
+        return False
+
+    if os.getenv("SOCIALMEI_MENU_WAHA_ENGINE")!="GOWS":
+        return False
+
+    if (
+        channel["workspace_id"],
+        channel["channel_id"],
+        channel["instancia"],
+        channel["sessao"]
+    )!=(1,1,"socialmei-equipe-piloto","01"):
+        return False
+
+    public=(
+        os.getenv("SOCIALMEI_MENU_PUBLIC_INBOUND_ACTIVE")=="YES"
+        and os.getenv("SOCIALMEI_PUBLIC_MENU_EXPLICIT_ENABLE")=="YES"
+        and _public_contacts(channel) is None
+    )
+
+    canary=(
+        os.getenv("SOCIALMEI_MENU_GOWS_LIST_CANARY_ACTIVE")=="YES"
         and contact in navigation.configured_contacts(os.environ)
     )
+
+    return public or canary
 
 
 def render_waha(session, chat, text, choices, *, engine='WEBJS', list_verified=False):
@@ -376,7 +395,7 @@ def sources(request: Request):
     require_bot()
     with operation_database() as conn:
         channel = authorize(conn, request)
-        contacts = settings.whatsapp_bot_allowed_contacts()
+        contacts = _public_contacts(channel)
         rows = conn.execute(
             "SELECT e.mensagem_externa_id AS external_message_id FROM socialmei.crm_eventos_canal e "
             "JOIN socialmei.me_messages m ON m.workspace_id=e.workspace_id AND m.id=e.inbox_message_id "
@@ -388,7 +407,7 @@ def sources(request: Request):
             "AND s.channel_id=e.canal_id AND s.conversation_id=m.conversation_id "
             "WHERE e.workspace_id=%s AND e.canal_id=%s AND e.tipo='message' AND e.status='processado' "
             "AND e.waha_account_snapshot=%s AND v.account_ref=%s "
-            "AND (%s OR v.contact_ref=ANY(%s)) "
+            "AND v.contact_ref ~ '^waha:([0-9]{1,40}@c[.]us|[A-Za-z0-9][A-Za-z0-9_.:-]{0,79}@lid)$' AND (%s OR v.contact_ref=ANY(%s)) "
             "AND m.occurred_at>=NOW()-INTERVAL '15 minutes' AND m.occurred_at<=NOW()+INTERVAL '1 minute' "
             "AND (d.id IS NULL OR (d.status='planned' AND d.created_at>NOW()-INTERVAL '2 minutes' "
             "AND d.binding_hash=%s AND d.state_revision=s.revision)) "
@@ -400,8 +419,8 @@ def sources(request: Request):
     return {'sources': [{'instance': channel['instancia'], **row} for row in rows]}
 
 
-@router.post(INTERNAL + '/decisions')
-def prepare(payload: Source, request: Request):
+
+def _everson_original_prepare(payload: Source, request: Request):
     require_bot()
     with operation_database() as conn:
         channel = authorize(conn, request)
@@ -418,7 +437,9 @@ def prepare(payload: Source, request: Request):
         ).fetchone()
         if not message:
             raise HTTPException(404, 'Mensagem recebida não encontrada neste canal.')
-        contacts = settings.whatsapp_bot_allowed_contacts()
+        if not _public_direct(message["contact_ref"]):
+            raise HTTPException(403,"Contato individual exigido.")
+        contacts = _public_contacts(channel)
         if contacts is not None and message['contact_ref'] not in contacts:
             raise HTTPException(403, 'Contato não autorizado para este piloto.')
         conv = message['conversation_id']
@@ -471,6 +492,291 @@ def prepare(payload: Source, request: Request):
         return view(row)
 
 
+
+
+def _public_direct(contact):
+    return (
+        isinstance(contact,str)
+        and re.fullmatch(
+            r"waha:(?:[0-9]{1,40}@c\.us|[A-Za-z0-9][A-Za-z0-9_.:-]{0,79}@lid)",
+            contact
+        ) is not None
+    )
+
+
+def _public_contacts(channel):
+    if (
+        channel["workspace_id"]==1
+        and channel["channel_id"]==1
+        and enabled()
+        and os.getenv("SOCIALMEI_MENU_PUBLIC_INBOUND_ACTIVE")=="YES"
+        and os.getenv("SOCIALMEI_PUBLIC_MENU_EXPLICIT_ENABLE")=="YES"
+    ):
+        return None
+
+    return settings.whatsapp_bot_allowed_contacts()
+
+
+def _everson_text(value):
+    if not isinstance(value,str):
+        return None
+
+    text=value.strip()
+
+    if not 2<=len(text)<=500:
+        return None
+
+    choice=text.casefold()
+
+    if choice in {
+        "menu","inicio","início","voltar","sair",
+        "cancelar","atendente","humano",
+        "falar com atendente","agendar","agendamento"
+    }:
+        return None
+
+    if choice.startswith("sm:") or choice.isdigit():
+        return None
+
+    greetings={
+        "oi","ola","olá","bom dia",
+        "boa tarde","boa noite","opa"
+    }
+
+    if choice not in greetings and canonical_choice(text) in {
+        "0","1","2","3","4","5","6","7","8","9"
+    }:
+        return None
+
+    if re.search(
+        r"\b(cpf|cnpj|senha|pix|cartao|cartão|rg)\b",
+        text,re.I
+    ):
+        return None
+
+    if re.search(
+        r"(?:\d[\s()./+:-]*){5,}|"
+        r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}",
+        text
+    ):
+        return None
+
+    return text
+
+
+def _everson_context(conn,channel,row,cfg):
+    if (channel["workspace_id"],channel["channel_id"])!=(1,1):
+        return None
+
+    if row["status"]!="planned":
+        return None
+
+    if row["result"].get("action")!="menu":
+        return None
+
+    if not row["result"].get("catalog_navigation"):
+        return None
+
+    if not row["result"].get("choices"):
+        return None
+
+    state=conn.execute(
+        "SELECT s.state,s.revision,v.contact_ref,"
+        "m.text,m.occurred_at "
+        "FROM socialmei.wa_bot_conversations s "
+        "JOIN socialmei.me_conversations v "
+        "ON v.workspace_id=s.workspace_id "
+        "AND v.id=s.conversation_id "
+        "JOIN socialmei.me_messages m "
+        "ON m.workspace_id=s.workspace_id "
+        "AND m.conversation_id=s.conversation_id "
+        "AND m.id=%s AND m.origin='waha' "
+        "WHERE s.workspace_id=%s AND s.channel_id=%s "
+        "AND s.conversation_id=%s "
+        "AND NOT EXISTS ("
+        "SELECT 1 FROM socialmei.crm_eventos_canal e "
+        "WHERE e.workspace_id=m.workspace_id "
+        "AND e.inbox_message_id=m.id "
+        "AND COALESCE(e.dados_normalizados->>'wa_selection','')<>''"
+        ") FOR SHARE OF s",
+        (
+            row["source_message_id"],
+            channel["workspace_id"],
+            channel["channel_id"],
+            row["conversation_id"]
+        )
+    ).fetchone()
+
+    if not state:
+        return None
+
+    now=datetime.now(timezone.utc)
+
+    if not (
+        state["state"]=="menu"
+        and state["revision"]==row["state_revision"]
+        and native_list_canary(channel,state["contact_ref"])
+        and state["occurred_at"]>=datetime.fromisoformat(
+            cfg["enabled_at"]
+        )
+        and row["created_at"]>now-timedelta(minutes=2)
+        and not row["result"].get("handoff")
+        and not pending_human_reply(
+            conn,channel["workspace_id"],
+            channel["channel_id"],row["conversation_id"]
+        )
+    ):
+        return None
+
+    return _everson_text(state["text"])
+
+
+def _everson_generate(planned,request):
+    import http.client
+    from pathlib import Path
+
+    if planned.get("status")!="planned" or \
+       planned.get("action")!="menu":
+        return planned
+
+    path = Path("/app/.everson-pilot.private.json")
+
+    if not path.is_file():
+        return planned
+
+    cfg = json.loads(path.read_text())
+
+
+    opid = UUID(str(planned["operation_id"]))
+    marker = str(uuid4())
+
+    with operation_database() as conn:
+        channel = authorize(conn,request)
+        row = locked_decision(conn,channel,opid)
+
+        if row["result"].get("everson_pilot_attempted"):
+            return planned
+
+        text=_everson_context(conn,channel,row,cfg)
+        if not text:
+            return planned
+
+        lock = conn.execute(
+            "SELECT pg_try_advisory_xact_lock(76102401) AS ok"
+        ).fetchone()
+
+        if not lock["ok"]:
+            return planned
+
+        n = conn.execute(
+            "SELECT count(*) AS n FROM socialmei.wa_bot_decisions "
+            "WHERE workspace_id=%s AND channel_id=%s "
+            "AND created_at>NOW()-INTERVAL '1 minute' "
+            "AND result->>'everson_pilot_attempted' IS NOT NULL",
+            (channel["workspace_id"],channel["channel_id"])
+        ).fetchone()["n"]
+
+        if n>=6:
+            return planned
+
+        result = dict(row["result"])
+        result["everson_pilot_attempted"] = marker
+
+        conn.execute(
+            "UPDATE socialmei.wa_bot_decisions SET result=%s WHERE id=%s",
+            (Jsonb(result),opid)
+        )
+
+    payload = {
+        "event":"message",
+        "session":"socialmei-publico",
+        "payload":{
+            "id":marker,
+            "from":"000000000000@c.us",
+            "fromMe":False,
+            "body":text,
+            "_data":{"Info":{"PushName":"Cliente"}}
+        }
+    }
+
+    h = http.client.HTTPConnection(
+        "socialmei-n8n",5678,timeout=35
+    )
+
+    try:
+        h.request(
+            "POST",cfg["route"],
+            body=json.dumps(payload).encode(),
+            headers={
+                "Content-Type":"application/json",
+                "X-SocialMEI-Backend":cfg["secret"]
+            }
+        )
+
+        r = h.getresponse()
+
+        if r.status!=200:
+            return planned
+
+        raw = r.read(65537)
+
+        if len(raw)>65536:
+            return planned
+
+        data = json.loads(raw)
+        item = data[0] if isinstance(data,list) else data
+        reply = item.get("reply")
+
+        if not isinstance(reply,str) or \
+           not reply.strip() or len(reply)>1024:
+            return planned
+
+        if any(
+            ord(c)<32 and c not in "\n\r\t"
+            or 127<=ord(c)<=159
+            for c in reply
+        ):
+            return planned
+
+    finally:
+        h.close()
+
+    with operation_database() as conn:
+        channel = authorize(conn,request)
+        row = locked_decision(conn,channel,opid)
+
+        if row["result"].get("everson_pilot_attempted")!=marker:
+            return planned
+
+        if _everson_context(conn,channel,row,cfg)!=text:
+            return planned
+
+        result = dict(row["result"])
+        result["text"] = reply.strip()
+        result["everson_answered"] = True
+        result["everson_pilot_attempted"] = marker
+
+        row = conn.execute(
+            "UPDATE socialmei.wa_bot_decisions "
+            "SET result=%s WHERE id=%s RETURNING *",
+            (Jsonb(result),opid)
+        ).fetchone()
+
+        return view(row)
+
+
+@router.post(INTERNAL + "/decisions")
+def prepare(payload: Source,request: Request):
+    planned = _everson_original_prepare(payload,request)
+
+    try:
+        return _everson_generate(planned,request)
+    except Exception:
+        return planned
+
+
+
+
 def locked_decision(conn, channel, decision_id):
     row = conn.execute("SELECT * FROM socialmei.wa_bot_decisions WHERE workspace_id=%s AND channel_id=%s AND id=%s FOR UPDATE",
                        (channel['workspace_id'], channel['channel_id'], decision_id)).fetchone()
@@ -492,7 +798,8 @@ def claim(decision_id: UUID, payload: Strict, request: Request):
                              "WHERE s.workspace_id=%s AND s.channel_id=%s AND s.conversation_id=%s FOR SHARE OF s",
                              (channel['workspace_id'], channel['channel_id'], row['conversation_id'])).fetchone()
         permitted = row['status'] == 'planned' and row['created_at'] > datetime.now(timezone.utc) - timedelta(minutes=2) and row['state_revision'] == state['revision']
-        contacts = settings.whatsapp_bot_allowed_contacts()
+        permitted = permitted and _public_direct(state["contact_ref"])
+        contacts = _public_contacts(channel)
         permitted = permitted and (contacts is None or state['contact_ref'] in contacts)
         permitted = permitted and not pending_human_reply(
             conn, channel['workspace_id'], channel['channel_id'], row['conversation_id'])
@@ -507,6 +814,7 @@ def claim(decision_id: UUID, payload: Strict, request: Request):
         delivery = render_waha(channel['sessao'], state['contact_ref'].removeprefix('waha:'), row['result']['text'], (navigation.offered_choices(row) if row['result'].get('catalog_navigation') else row['result']['choices']),
                                engine='GOWS', list_verified=native_verified)
         return {'operation_id': str(row['id']), 'dispatch_allowed': True, 'status': 'claimed', 'delivery': delivery}
+
 
 
 @router.post(INTERNAL + '/decisions/{decision_id}/receipt')

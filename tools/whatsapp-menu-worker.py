@@ -162,7 +162,15 @@ def _delivery(data, cfg):
         if set(body) != {'session', 'chatId', 'text'} or not _plain(body['text'], 4096):
             raise Blocked('Texto invalido')
     elif data['path'] == '/api/sendList':
-        if (cfg.engine != 'GOWS' or body['chatId'] not in (cfg.native_list_contacts or (cfg.native_list_contact,))
+        if (cfg.engine != 'GOWS' or not (
+                    body['chatId'] in (cfg.native_list_contacts or (cfg.native_list_contact,))
+                    or (
+                        os.getenv('SOCIALMEI_MENU_PUBLIC_INBOUND_ACTIVE') == 'YES'
+                        and os.getenv('SOCIALMEI_PUBLIC_MENU_EXPLICIT_ENABLE') == 'YES'
+                        and VALID_CONTACT.fullmatch(body['chatId'])
+                        and body['chatId'] != cfg.account
+                    )
+                )
                 or set(body) != {'session', 'chatId', 'message'}):
             raise Blocked('Lista fora do contato de homologacao')
         message = body['message']
@@ -193,6 +201,116 @@ def _delivery(data, cfg):
     return body
 
 
+
+def _everson_split_delivery(planned,delivery,cfg):
+    if planned.get("everson_answered") is not True:
+        return None
+
+    if delivery.get("path")!="/api/sendList":
+        return None
+
+    body=_delivery(delivery,cfg)
+    message=body["message"]
+    reply=planned.get("text")
+
+    if not _plain(reply,1024):
+        return None
+
+    if message["description"]!=reply:
+        return None
+
+    first={
+        "path":"/api/sendText",
+        "body":{
+            "session":body["session"],
+            "chatId":body["chatId"],
+            "text":reply
+        }
+    }
+
+    second={
+        "path":"/api/sendList",
+        "body":{
+            **body,
+            "message":{
+                **message,
+                "description":
+                    "Escolha uma das opcoes abaixo para continuar."
+            }
+        }
+    }
+
+    second["body"]["message"]["description"]=(
+        "Escolha uma das op\u00e7\u00f5es abaixo para continuar."
+    )
+
+    _delivery(first,cfg)
+    _delivery(second,cfg)
+
+    return first,second
+
+
+def _everson_pair_capacity(journal,now,chat):
+    import copy
+    import hashlib
+
+    if not journal.public:
+        return False
+
+    contact=hashlib.sha256(
+        chat.encode()
+    ).hexdigest()
+
+    saved=copy.deepcopy(journal.state)
+
+    try:
+        if not journal.available(now,contact):
+            return False
+
+        journal.state["attempts"].append({
+            "time":now,
+            "contact":contact
+        })
+
+        return bool(journal.available(now,contact))
+
+    finally:
+        journal.state.clear()
+        journal.state.update(saved)
+
+
+def _everson_can_send_pair(chat):
+    from pathlib import Path
+    from continuous_guard import Journal
+
+    try:
+        state = json.loads(Path(
+            "/run/socialmei/continuous-state/state.json"
+        ).read_text())
+
+        if (
+            state.get("status")!="running"
+            or state.get("public") is not True
+            or state.get("in_flight") is not True
+        ):
+            return False
+
+        j = Journal.__new__(Journal)
+        j.public = True
+        j.allowed = []
+        j.state = state
+
+        return _everson_pair_capacity(
+            j,time.time(),chat
+        )
+
+    except Exception:
+        # Preserva a lista unica se a capacidade
+        # para dois envios nao puder ser comprovada.
+        return False
+
+
+
 def run_once(cfg, *, client_factory=httpx.Client):
     opts = dict(verify=True, follow_redirects=False, trust_env=False,
                 timeout=httpx.Timeout(5, connect=2),
@@ -203,7 +321,12 @@ def run_once(cfg, *, client_factory=httpx.Client):
             content = None if data is None else json.dumps(data, ensure_ascii=False, separators=(',', ':')).encode()
             r = client.request(method, url, headers={**headers, 'Accept': 'application/json',
                                       **({'Content-Type': 'application/json'} if content is not None else {})},
-                               content=content)
+                               content=content, **(
+                                   {"timeout": httpx.Timeout(60, connect=2)}
+                                   if method == "POST" and url ==
+                                   API_URL + "/internal/whatsapp/bot/decisions"
+                                   else {}
+                               ))
             if method == 'GET' and url == API_URL + SOURCE_URL and r.status_code >= 500:
                 raise SourceUnavailable('Fonte temporariamente indisponivel')
             return _json(r)
@@ -263,13 +386,59 @@ def run_once(cfg, *, client_factory=httpx.Client):
                     or not isinstance(current.get('me'), dict)
                     or current['me'].get('id') != cfg.account):
                 raise Blocked('Sessao mudou apos claim')
-            sent = request(waha, 'POST', cfg.waha_url + claimed['delivery']['path'], headers=provider, data=body)
-            receipt = sent.get('id')
-            if isinstance(receipt, dict):
-                receipt = receipt.get('_serialized')
-            if not isinstance(receipt, str) or not VALID_ID.fullmatch(receipt):
-                raise Blocked('Recibo de envio ambiguo')
-            status, provider_id = 'confirmed', receipt
+            def send_verified(delivery):
+                sent = request(
+                    waha, 'POST',
+                    cfg.waha_url + delivery['path'],
+                    headers=provider,
+                    data=_delivery(delivery,cfg)
+                )
+
+                receipt = sent.get('id')
+
+                if isinstance(receipt,dict):
+                    receipt=receipt.get('_serialized')
+
+                if not isinstance(receipt,str) or not VALID_ID.fullmatch(receipt):
+                    raise Blocked('Recibo de envio ambiguo')
+
+                return receipt
+
+            pair=_everson_split_delivery(
+                planned,claimed['delivery'],cfg
+            )
+
+            if pair and _everson_can_send_pair(body['chatId']):
+                first_receipt=send_verified(pair[0])
+
+                # Confirma que a sessao permanece correta.
+                current=request(
+                    waha,'GET',
+                    cfg.waha_url+'/api/sessions/'+cfg.session,
+                    headers=provider
+                )
+
+                if (
+                    current.get('name')!=cfg.session
+                    or current.get('status')!='WORKING'
+                    or not isinstance(current.get('me'),dict)
+                    or current['me'].get('id')!=cfg.account
+                ):
+                    raise Blocked('Sessao mudou entre os envios')
+
+                receipt=send_verified(pair[1])
+
+                if receipt==first_receipt:
+                    raise Blocked('Recibos de envio repetidos')
+
+                print('EVERSON_DUAS_MENSAGENS_CONFIRMADAS',flush=True)
+
+            else:
+                # Mantem uma unica lista se nao houver cota
+                # suficiente para dois envios.
+                receipt=send_verified(claimed['delivery'])
+
+            status,provider_id='confirmed',receipt
         except Exception:
             # Sem retry. Se POST chegou ao WAHA e resposta se perdeu, estado incerto.
             pass
