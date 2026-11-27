@@ -8,6 +8,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 
 
+@unittest.skipUnless(os.name == "posix", "Requires POSIX Bash and executable fixture scripts")
 class BackupTests(unittest.TestCase):
     def run_backup(self, failure="", volume="actual_project_n8n_data"):
         workspace = tempfile.TemporaryDirectory()

@@ -32,6 +32,19 @@ class ExportTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             exporter.verify_profile040({'migration_ledger': [{'schema': 'socialmei', 'versions': versions}]})
 
+    def test_consolidation_profiles_require_the_exact_full_ledger(self):
+        versions = sorted(p.name for p in (TARGET.parents[1] / 'database/migrations').glob('*.sql')
+                          if p.name[:3].isdigit() and 1 <= int(p.name[:3]) <= 47)
+        for profile in ('046', '047'):
+            matched = versions[:int(profile)]
+            manifest = {'migration_ledger': [{'schema': 'socialmei', 'versions': matched}]}
+            exporter.verify_profile(manifest, profile)
+            for wrong in (matched[:-1], matched + ['048_unapproved.sql']):
+                with self.assertRaises(ValueError):
+                    exporter.verify_profile({'migration_ledger': [{'schema': 'socialmei', 'versions': wrong}]}, profile)
+        with self.assertRaises(ValueError):
+            exporter.verify_profile({'migration_ledger': [{'schema': 'socialmei', 'versions': versions}]}, '048')
+
     def test_loopback_transport_is_explicit_and_never_allows_plain_remote_postgres(self):
         dsn = 'host=127.0.0.1 dbname=fixture user=fixture password=synthetic sslmode=disable'
         with self.assertRaises(ValueError):

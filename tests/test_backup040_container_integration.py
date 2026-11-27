@@ -28,6 +28,12 @@ class Backup040Integration(unittest.TestCase):
     def test_schema041_handover_remains_exportable_and_restorable(self):
         self.roundtrip('041')
 
+    def test_schema046_consolidation_shared_snapshot_and_restore(self):
+        self.roundtrip('046')
+
+    def test_schema047_consolidation_shared_snapshot_and_restore(self):
+        self.roundtrip('047')
+
     def test_tls_required_source_exports_with_pinned_ca_and_full_restore(self):
         self.roundtrip('040', tls=True)
 

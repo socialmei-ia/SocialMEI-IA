@@ -84,7 +84,7 @@ def verify_profile040(manifest):
 
 
 def verify_profile(manifest, profile):
-    if profile not in ('040', '041'):
+    if profile not in ('040', '041', '046', '047'):
         raise ValueError('Reviewed backup profile required')
     versions = sorted(path.name for path in (Path(__file__).resolve().parents[1] / 'database/migrations').glob('*.sql')
                       if path.name[:3].isdigit() and 1 <= int(path.name[:3]) <= int(profile))
@@ -118,7 +118,7 @@ def export(dsn, directory, *, expected_identity, pg_dump='pg_dump', pg_restore='
         if manifest.get('valid') is not True:
             raise ValueError('Source integrity validation failed')
         if profile is not None:
-            if profile not in ('040', '041') or conn.info.dbname != env['PGDATABASE']:
+            if profile not in ('040', '041', '046', '047') or conn.info.dbname != env['PGDATABASE']:
                 raise ValueError('Source database profile mismatch')
             verify_profile(manifest, profile)
         with partial.open('xb') as stream:
@@ -158,7 +158,7 @@ def main(argv=None):
     parser.add_argument('--output-directory')
     parser.add_argument('--isolated-loopback', action='store_true',
                         help='Only 127.0.0.1 in an explicitly reviewed PostgreSQL container namespace')
-    parser.add_argument('--profile', choices=['040', '041'])
+    parser.add_argument('--profile', choices=['040', '041', '046', '047'])
     args = parser.parse_args(argv)
     if not args.run:
         print(json.dumps({'mode': 'plan', 'connections': 0,

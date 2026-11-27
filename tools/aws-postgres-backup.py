@@ -15,6 +15,17 @@ from urllib.parse import urlsplit, unquote, parse_qsl
 
 ROOT = Path('/home/ubuntu/.socialmei-postgres-relocation-20261112')
 NAME = 'socialmei-postgres-relocation-20261112'
+CURRENT_BACKUP_TARGETS = {
+    '040': 'approved_schema040_destination',
+    '041': 'approved_schema041_destination',
+    '046': 'approved_schema046_destination',
+    '047': 'approved_schema047_destination',
+}
+
+
+def reviewed_current_target(config):
+    profile = config.get('schema')
+    return isinstance(profile, str) and profile in CURRENT_BACKUP_TARGETS and config.get('source') == CURRENT_BACKUP_TARGETS[profile]
 
 
 def file_sha256(path):
@@ -41,8 +52,7 @@ def select_approved040_root(path):
             or values.get('container') != NAME
             or values.get('database') != 'socialmei_candidate040_20261114'
             or values.get('admin_user') != 'relocation_admin'
-            or (values.get('schema'), values.get('source')) not in (
-                ('040', 'approved_schema040_destination'), ('041', 'approved_schema041_destination'))
+            or not reviewed_current_target(values)
             or type(values.get('current_production_backup')) is not bool):
         raise RuntimeError('approved_backup_target_mismatch')
     receipt = Path(values.get('restore_receipt_file', ''))
@@ -238,7 +248,7 @@ def consistent_export(config, folder, stamp):
     """Export through the reviewed helper, in the source container's namespace."""
     image = config.get('export_helper_image_id', '')
     profile = config.get('schema', '040')
-    if profile not in ('040', '041'):
+    if not isinstance(profile, str) or profile not in CURRENT_BACKUP_TARGETS:
         raise RuntimeError('consistent_export_profile_not_reviewed')
     dsn = config.get('export_source_dsn', '')
     transport = config.get('export_transport', 'isolated_loopback')
@@ -338,6 +348,8 @@ def backup(config=None, *, with_manifest=False):
     folder.mkdir(mode=0o700, exist_ok=True)
     storage = client = None
     s3_config = ROOT / 's3-backup.private.json'
+    if s3_config.exists() and config.get('schema') in {'046', '047'}:
+        raise RuntimeError('external_backup_profile_not_reviewed')
     if s3_config.exists():
         import boto3
         storage = json.loads(s3_config.read_text())
@@ -408,8 +420,7 @@ def current_database_provenance(config):
             or config.get('container') != NAME
             or config.get('database') != 'socialmei_candidate040_20261114'
             or config.get('admin_user') != 'relocation_admin'
-            or (config.get('schema'), config.get('source')) not in (
-                ('040', 'approved_schema040_destination'), ('041', 'approved_schema041_destination'))):
+            or not reviewed_current_target(config)):
         raise RuntimeError('current_backup_target_not_approved')
     query = (
         "BEGIN READ ONLY; SET LOCAL statement_timeout = '3s'; "
