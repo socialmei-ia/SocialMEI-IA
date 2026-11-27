@@ -63,6 +63,63 @@
     inp.setAttribute('autocomplete', 'off'); inp.setAttribute('type', 'search'); inp.setAttribute('inputmode', 'search');
     if (query && inp.value !== query) { inp.value = query; if (typeof filt === 'function') filt(inp); }
     syncClear(inp);
+    var label = inp.closest('label');
+    if (remote && host.hiddenConversations && label && !$('#v [data-v79-restore]')) {
+      var restore = E('button', 'btn o sm2', 'Conversas ocultas');
+      restore.type = 'button';
+      restore.dataset.v79Restore = '1';
+      restore.addEventListener('click', showHiddenConversations);
+      label.after(restore);
+    }
+  }
+  async function showHiddenConversations() {
+    var dialog = dlg();
+    if (dialog.open) return;
+    var identity = host.identity;
+    var form = E('form'), title = E('h2', '', 'Conversas ocultas');
+    form.method = 'dialog';
+    title.id = 'v79-restore-title';
+    form.setAttribute('aria-labelledby', title.id);
+    var status = E('p', 'm', 'Consultando a sua Caixa…');
+    status.setAttribute('role', 'status');
+    var list = E('ul');
+    var close = E('button', 'btn o', 'Fechar');
+    form.append(title, status, list, close);
+    dialog.replaceChildren(form);
+    dialog.showModal();
+    var live = () => dialog.open && form.isConnected && identity === host.identity;
+    try {
+      var rows = await host.hiddenConversations();
+      if (!live()) return;
+      status.textContent = rows.length ? 'Conversas ocultas por você neste negócio.' : 'Nenhuma conversa oculta.';
+      for (const row of rows) {
+        const li = E('li');
+        li.append(E('span', '', row.contact_name || 'Contato'));
+        if (['owner', 'admin', 'member'].includes(window.SocialMEIAuth?.current?.papel)) {
+          const button = E('button', 'btn o sm2', 'Restaurar');
+          button.type = 'button';
+          button.onclick = async () => {
+            if (!live()) return;
+            button.disabled = true;
+            try {
+              await host.restoreConversation(row.id);
+              if (!live()) return;
+              li.remove();
+              status.textContent = list.children.length ? 'Conversa restaurada.' : 'Conversa restaurada. Nenhuma conversa oculta.';
+              close.focus();
+            } catch (error) {
+              if (!live()) return;
+              status.textContent = error.message || 'Não foi possível restaurar a conversa.';
+              button.disabled = false;
+            }
+          };
+          li.append(button);
+        }
+        list.append(li);
+      }
+    } catch (error) {
+      if (live()) status.textContent = error.message || 'Não foi possível consultar as conversas ocultas.';
+    }
   }
   document.addEventListener('keydown', function (e) {
     var t = e.target, typing = t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable);

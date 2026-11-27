@@ -88,6 +88,35 @@ class EnrichmentDatabaseTests(unittest.TestCase):
     def doc(self, client=None, content='preço exclusivo desta loja'):
         return self.post('/documents', operation(title='Tabela sintética', mime_type='text/plain', content=content), client)
 
+    def test_hidden_restore_is_personal_transactional_and_workspace_scoped(self):
+        other = self.register('restore-other@example.test')
+        workspace = self.admin_client.identity['negocio']['id']
+        with psycopg.connect(DB) as conn:
+            cid = conn.execute(
+                "INSERT INTO socialmei.me_conversations(workspace_id,channel,account_ref,contact_ref,contact_name,origin) "
+                "VALUES (%s,'whatsapp','waha:111@c.us','waha:222@c.us','Contato teste','waha') RETURNING id",
+                (workspace,),
+            ).fetchone()[0]
+        path = '/conversations/' + str(cid)
+        with patch('message_enrichment.provider_origins', return_value=['waha']):
+            self.post(path + '/hide', {})
+            self.assertEqual(self.admin_client.get(BASE + '/hidden-conversations').json()['items'][0]['id'], cid)
+            self.assertEqual(other.get(BASE + '/hidden-conversations').json()['items'], [])
+            self.assertEqual(other.post(BASE + path + '/restore').status_code, 404)
+            with psycopg.connect(DB) as conn:
+                conn.execute('UPDATE socialmei.workspace_members SET role=%s WHERE user_id=%s', ('viewer', self.admin_id))
+            self.assertEqual(self.admin_client.post(BASE + path + '/restore').status_code, 403)
+            with psycopg.connect(DB) as conn:
+                conn.execute('UPDATE socialmei.workspace_members SET role=%s WHERE user_id=%s', ('owner', self.admin_id))
+            for _ in range(2):
+                self.assertFalse(self.post(path + '/restore', {})['hidden'])
+            self.assertEqual(self.admin_client.get(BASE + '/hidden-conversations').json()['items'], [])
+            with psycopg.connect(DB) as conn:
+                self.assertTrue(conn.execute('SELECT restored_at IS NOT NULL FROM socialmei.me_inbox_hidden').fetchone()[0])
+                self.assertEqual(conn.execute('SELECT id FROM socialmei.me_conversations').fetchone()[0], cid)
+            self.post(path + '/hide', {})
+            self.assertEqual(self.admin_client.get(BASE + '/hidden-conversations').json()['items'][0]['id'], cid)
+
     def test_out_of_order_incoming_keeps_source_time_and_stable_identity(self):
         latest, latest_input = self.incoming(occurred_at='2026-10-21T10:00:00-03:00')
         older, _ = self.incoming(occurred_at='2026-10-21T12:00:00Z', text='Mensagem anterior recebida depois')

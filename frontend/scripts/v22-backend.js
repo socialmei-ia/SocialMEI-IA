@@ -1100,6 +1100,25 @@ window.SocialMEIV22 = (() => {
       inboxFingerprint='';
       return true;
     },
+    async hiddenConversations() {
+      const scope = identityKey();
+      const workspace = auth.current?.negocio.id;
+      if (!workspace) throw Error('Sessão indisponível.');
+      const result = await request('/message-enrichment/hidden-conversations');
+      if (scope !== identityKey() || result.workspace_id !== workspace || !Array.isArray(result.items))
+        throw Error('Lista indisponível para esta sessão.');
+      return result.items;
+    },
+    async restoreConversation(id) {
+      const scope = identityKey();
+      if (!scope || !Number.isSafeInteger(id) || id < 1) throw Error('Conversa indisponível.');
+      const result = await request('/message-enrichment/conversations/' + id + '/restore', 'POST');
+      if (scope !== identityKey() || result.hidden !== false || result.conversation_id !== id)
+        throw Error('Restauração não confirmada.');
+      smInboxEpoch++;
+      inboxFingerprint = '';
+      await refreshInbox({ silent: true });
+    },
     reloadInbox() {
       return refreshInbox({ silent: true });
     },

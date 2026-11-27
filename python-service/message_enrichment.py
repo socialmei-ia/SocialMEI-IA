@@ -412,18 +412,24 @@ def _append_inbox_message(conn, workspace, payload, external_fingerprint, *, ori
     return {'conversation_id': conv['id'], 'message_id': message['id'], 'revision': revision, 'replayed': False}
 
 
-@router.get('/conversations')
-def conversations(request: Request, response: Response):
-    workspace = guard(request, response, read_inbox=True)['workspace_id']
-    origins = ['synthetic'] if settings.message_enrichment_mode() == 'stub' else []
+def provider_origins(workspace):
+    origins = []
     if settings.instagram_ingress_isolated_enabled() or settings.instagram_live_ingress_enabled():
         origins.append('instagram')
     if settings.waha_inbox_enabled(workspace):
         origins.append('waha')
+    return origins
+
+
+@router.get('/conversations')
+def conversations(request: Request, response: Response):
+    user = guard(request, response, read_inbox=True)
+    workspace = user['workspace_id']
+    origins = (['synthetic'] if settings.message_enrichment_mode() == 'stub' else []) + provider_origins(workspace)
     with db() as conn:
         if 'synthetic' in origins:
             invalidate_expired(conn, workspace)
-        items = conn.execute('SELECT id,channel,account_ref,contact_ref,contact_name,revision,origin FROM socialmei.me_conversations WHERE workspace_id=%s AND origin=ANY(%s) ORDER BY id DESC LIMIT 100', (workspace, origins)).fetchall()
+        items = conn.execute("SELECT c.id,c.channel,c.account_ref,c.contact_ref,c.contact_name,c.revision,c.origin\nFROM socialmei.me_conversations c\nWHERE c.workspace_id=%s AND c.origin=ANY(%s)\nAND NOT EXISTS (\n SELECT 1 FROM socialmei.me_inbox_hidden h\n WHERE h.workspace_id=c.workspace_id AND h.conversation_id=c.id AND h.user_id=%s AND h.restored_at IS NULL\n AND NOT EXISTS (SELECT 1 FROM socialmei.me_messages m\n   WHERE m.workspace_id=c.workspace_id AND m.conversation_id=c.id AND m.id>h.last_message_id)\n)\nORDER BY GREATEST(\n (SELECT max(m.occurred_at) FROM socialmei.me_messages m WHERE m.workspace_id=c.workspace_id AND m.conversation_id=c.id),\n (SELECT max(d.finished_at) FROM socialmei.wa_bot_decisions d WHERE d.workspace_id=c.workspace_id AND d.conversation_id=c.id AND d.status='confirmed'),\n (SELECT max(r.finished_at) FROM socialmei.wa_human_replies r WHERE r.workspace_id=c.workspace_id AND r.conversation_id=c.id AND r.status='confirmed'),\n (SELECT max(r.finished_at) FROM socialmei.ig_menu_replies r WHERE r.workspace_id=c.workspace_id AND r.conversation_id=c.id AND r.status='confirmed')\n) DESC NULLS LAST,c.id DESC LIMIT 100", (workspace, origins, user['id'])).fetchall()
         messages_by_conversation = {row['id']: [] for row in items}
         if items:
             rows = conn.execute(
@@ -440,6 +446,8 @@ def conversations(request: Request, response: Response):
                     for message in messages_by_conversation[conversation['id']]]
         synthetic_ids = [message['id'] for conversation in items if conversation['origin'] == 'synthetic'
                          for message in messages_by_conversation[conversation['id']]]
+        from inbound_attachment_view import metadata
+        attachments = metadata(conn, workspace, real_ids)
         analysis_enabled = settings.provider_sentiment_enabled() and workspace in settings.provider_sentiment_allowed_workspaces()
         provider_analysis = {}
         if real_ids and analysis_enabled:
@@ -499,6 +507,8 @@ def conversations(request: Request, response: Response):
         for conversation in items:
             messages = messages_by_conversation[conversation['id']]
             for message in messages:
+                if message['id'] in attachments:
+                    message['attachments'] = attachments[message['id']]
                 job = jobs.get(message['id']) if conversation['origin'] == 'synthetic' else None
                 message['enrichment'] = envelope(job) if job else None
                 if conversation['origin'] in {'instagram', 'waha'} and analysis_enabled:
@@ -518,6 +528,9 @@ def conversations(request: Request, response: Response):
                 )[-100:]
             if conversation['origin'] == 'synthetic':
                 del conversation['origin']
+        if any(c.get('origin') in {'instagram', 'waha'} for c in items):
+            from contact_profiles import attach
+            attach(workspace, items)
         return {'workspace_id': workspace, 'items': items}
 
 
@@ -656,3 +669,72 @@ def receive_internal_event(raw):
     verify_event(raw)
     with db() as conn:
         return process_event(conn, raw)
+
+# SM_PRIVATE_ATTACHMENTS_V1
+@router.get('/attachments/{attachment_id}')
+def inbound_attachment(attachment_id: int, request: Request, response: Response):
+    workspace=guard(request,response,read_inbox=True)['workspace_id']
+    from inbound_attachment_view import file_data
+    with db() as conn:
+        return file_data(conn,workspace,attachment_id)
+
+# Personal visibility never removes an inbox source record.
+def lock_visible_channel(conn, workspace, conversation_id):
+    if not 1 <= conversation_id <= 9007199254740991:
+        raise HTTPException(404, 'Conversa indisponivel.')
+    lock_workspace(conn, workspace)
+    if not conn.execute(
+        'SELECT id FROM socialmei.me_conversations WHERE workspace_id=%s AND id=%s '
+        'AND origin=ANY(%s) FOR UPDATE',
+        (workspace, conversation_id, provider_origins(workspace)),
+    ).fetchone():
+        raise HTTPException(404, 'Conversa indisponivel.')
+
+
+@router.post('/conversations/{conversation_id}/hide')
+def hide_inbox_conversation(conversation_id: int, request: Request, response: Response):
+    user = guard(request, response, write=True, read_inbox=True)
+    workspace = user['workspace_id']
+    with db() as conn:
+        lock_visible_channel(conn, workspace, conversation_id)
+        conn.execute(
+            'INSERT INTO socialmei.me_inbox_hidden(workspace_id,user_id,conversation_id,last_message_id) '
+            'SELECT %s,%s,%s,COALESCE(max(id),0) FROM socialmei.me_messages '
+            'WHERE workspace_id=%s AND conversation_id=%s '
+            'ON CONFLICT(workspace_id,user_id,conversation_id) DO UPDATE SET '
+            'last_message_id=GREATEST(me_inbox_hidden.last_message_id,EXCLUDED.last_message_id),'
+            'hidden_at=now(),restored_at=NULL',
+            (workspace, user['id'], conversation_id, workspace, conversation_id),
+        )
+    return {'hidden': True, 'conversation_id': conversation_id}
+
+
+@router.get('/hidden-conversations')
+def hidden_inbox_conversations(request: Request, response: Response):
+    user = guard(request, response, read_inbox=True)
+    workspace = user['workspace_id']
+    with db() as conn:
+        items = conn.execute(
+            'SELECT c.id,c.channel,c.contact_name FROM socialmei.me_inbox_hidden h '
+            'JOIN socialmei.me_conversations c ON c.workspace_id=h.workspace_id AND c.id=h.conversation_id '
+            'WHERE h.workspace_id=%s AND h.user_id=%s AND h.restored_at IS NULL AND c.origin=ANY(%s) '
+            'AND NOT EXISTS (SELECT 1 FROM socialmei.me_messages m WHERE m.workspace_id=h.workspace_id '
+            'AND m.conversation_id=h.conversation_id AND m.id>h.last_message_id) '
+            'ORDER BY h.hidden_at DESC,c.id DESC LIMIT 100',
+            (workspace, user['id'], provider_origins(workspace)),
+        ).fetchall()
+    return {'workspace_id': workspace, 'items': items}
+
+
+@router.post('/conversations/{conversation_id}/restore')
+def restore_inbox_conversation(conversation_id: int, request: Request, response: Response):
+    user = guard(request, response, write=True, read_inbox=True)
+    workspace = user['workspace_id']
+    with db() as conn:
+        lock_visible_channel(conn, workspace, conversation_id)
+        conn.execute(
+            'UPDATE socialmei.me_inbox_hidden SET restored_at=now() WHERE workspace_id=%s '
+            'AND user_id=%s AND conversation_id=%s AND restored_at IS NULL',
+            (workspace, user['id'], conversation_id),
+        )
+    return {'hidden': False, 'conversation_id': conversation_id}
