@@ -1,70 +1,28 @@
-.sm-team {
-  margin: 18px 0;
-  padding: 20px;
-  border: 1px solid var(--b);
-  border-radius: 16px;
-  background: var(--w);
-  color: var(--t);
-}
-.sm-team h2 {
-  margin: 0 0 10px;
-}
-.sm-team p {
-  margin: 12px 0;
-  color: var(--m);
-}
-.sm-team ul {
-  list-style: none;
-  padding: 0;
-}
-.sm-team li {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--b);
-}
-.sm-team li > div:first-child {
-  display: grid;
-  gap: 5px;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-.sm-team form {
-  margin-top: 18px;
-  max-width: 560px;
-}
-.sm-team label {
-  display: grid;
-  gap: 6px;
-  margin: 12px 0;
-}
-.sm-team input,
-.sm-team select {
-  max-width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
-  border: 1px solid var(--b);
-  border-radius: 10px;
-  padding: 10px;
-  background: var(--w);
-  color: var(--t);
-  font: inherit;
-}
-.sm-team-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-@media (max-width: 600px) {
-  .sm-team {
-    padding: 16px;
-  }
-  .sm-team li {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-}
+/* Equipe do negócio · v7.1 (lista de integrantes, adicionar conta existente). Painel e abas: connections-hub.css */
+.sm-team-v71{margin:0;padding:0;border:0;background:none;color:var(--t);display:grid;gap:12px}
+.sm-team-v71 p{margin:0}
+.sm-acc-add{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;border:1px solid var(--b);border-radius:14px;padding:14px;background:var(--w)}
+.sm-acc-field{display:grid;gap:5px;font-size:13px;font-weight:600;flex:1 1 200px;min-width:0}
+.sm-acc-field input,.sm-acc-field select,.sm-acc-bar input,.sm-acc-actions select{box-sizing:border-box;max-width:100%;min-width:0;min-height:44px;border:1px solid var(--b);border-radius:10px;padding:0 10px;background:var(--w);color:var(--t);font:inherit;font-weight:400}
+.sm-acc-field input[aria-invalid=true]{border-color:var(--r)}
+.sm-acc-add .btn{min-height:44px}
+.sm-acc-hint{margin:-4px 2px 0}
+.sm-acc-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-top:4px}
+.sm-acc-bar input{flex:1 1 200px;max-width:320px}.sm-acc-bar .btn{min-height:44px}
+.sm-acc-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.sm-team-v71 .sm-acc-member{display:grid;grid-template-columns:44px 1fr;gap:12px;align-items:start;padding:14px;border:1px solid var(--b);border-radius:14px;background:var(--w);transition:opacity .2s}
+.sm-acc-member[aria-busy=true]{opacity:.6}
+.sm-acc-av{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:15px}
+.sm-acc-who{display:grid;gap:3px;min-width:0;overflow-wrap:anywhere;justify-items:start}
+.sm-acc-name{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center}
+.sm-acc-role{display:inline-flex;margin-top:3px;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700}
+.sm-acc-r-own{background:#fdeccd;color:#7a4b00}.sm-acc-r-adm{background:#e6e0ff;color:#4a3aa8}.sm-acc-r-mem{background:#dff3e8;color:#0b6b38}.sm-acc-r-rep{background:#e2ecfb;color:#1f4a99}
+[data-theme=dark] .sm-acc-r-own{background:#3a2c0f;color:#f5c542}[data-theme=dark] .sm-acc-r-adm{background:#2b2560;color:#c4b8ff}[data-theme=dark] .sm-acc-r-mem{background:#123524;color:#6fe0a0}[data-theme=dark] .sm-acc-r-rep{background:#18284d;color:#9cc0ff}
+.sm-acc-actions{grid-column:2;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sm-acc-actions .btn{min-height:44px}.sm-acc-revoke{color:var(--r)}
+.sm-acc-off{display:grid;gap:6px;justify-items:start;border:1px dashed var(--b);border-radius:14px;padding:16px;background:var(--s,var(--w))}
+.sm-acc-skel i{display:block;height:16px;border-radius:8px;background:linear-gradient(90deg,var(--h2,#e6edf8),var(--h1,#f7faff),var(--h2,#e6edf8));background-size:200% 100%;animation:hubshine 1.3s linear infinite}
+.sm-acc-skel i:first-child{grid-column:1/-1;width:50%}.sm-acc-skel i:last-child{grid-column:1/-1;width:75%}
+.sm-team-v71 button:focus-visible,.sm-team-v71 input:focus-visible,.sm-team-v71 select:focus-visible{outline:2px solid var(--p);outline-offset:2px}
+@media (max-width:600px){.sm-team-v71 .sm-acc-member{grid-template-columns:40px 1fr;padding:12px}.sm-acc-av{width:40px;height:40px}.sm-acc-actions{grid-column:1/-1}.sm-acc-actions select,.sm-acc-actions .btn,.sm-acc-add .btn{flex:1 1 100%}.sm-acc-bar input{max-width:none}}
+@media (prefers-reduced-motion:reduce){.sm-acc-skel i{animation:none}.sm-acc-member{transition:none}}

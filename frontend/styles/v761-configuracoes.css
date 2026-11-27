@@ -1,0 +1,51 @@
+/* Configurações · v7.6.1 — menu interno em três grupos + painel único por categoria. Tokens do app. */
+.pg.cfg{max-width:1120px}
+.cfg-top h1{font-size:34px;letter-spacing:-.02em}
+.cfg-top .m{margin:4px 0 0}
+.cfg-shell{display:grid;grid-template-columns:232px minmax(0,1fr);gap:36px;margin-top:22px;padding-top:22px;border-top:1px solid var(--b);align-items:start}
+.cfg-nav{display:flex;flex-direction:column;gap:18px;position:sticky;top:14px;min-width:0}
+.cfg-grp{display:flex;flex-direction:column;gap:2px}
+.cfg-grp .cap{padding:0 12px;margin-bottom:6px;font-size:11px}
+.cfg-it{position:relative;display:flex;align-items:center;gap:11px;min-height:40px;padding:7px 12px;border-radius:10px;color:var(--t);text-decoration:none;font-size:14px;font-weight:500;transition:background .15s,color .15s}
+.cfg-it svg{color:var(--m);transition:color .15s}
+.cfg-lb{display:flex;flex-direction:column;min-width:0;line-height:1.25}
+.cfg-lb small{display:none}
+.cfg-it:hover{background:var(--hov,var(--pl))}
+.cfg-it.on{background:var(--pl);color:var(--p);font-weight:600}
+.cfg-it.on svg{color:var(--p)}
+.cfg-it.on::before{content:"";position:absolute;left:-1px;top:9px;bottom:9px;width:3px;border-radius:3px;background:var(--p)}
+.cfg-it:focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.cfg-panel{min-width:0;max-width:780px;width:100%}
+.cfg-panel[data-cat=ia]{max-width:1080px}
+.cfg-panel[data-cat=integracoes]{max-width:920px}
+.cfg-panel.is-enter{animation:cfgIn .26s cubic-bezier(.2,.7,.2,1) both}
+@keyframes cfgIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.cfg-panel>h2:first-of-type,.cfg-panel>.cfg-demo+h2{font-size:24px!important;letter-spacing:-.015em;margin:0}
+.cfg-panel>h2:first-of-type+p.m{margin:4px 0 0}
+.cfg-panel h2{scroll-margin-top:16px}
+/* formulários consistentes */
+.cfg-panel label{display:block;font-weight:600;font-size:13.5px;margin:18px 0 6px}
+.cfg-panel .in{width:100%;display:block;box-sizing:border-box;min-height:44px;border-radius:10px;border-color:var(--b);background:var(--w);color:var(--t);transition:border-color .15s,box-shadow .15s}
+.cfg-panel textarea.in{height:auto!important;min-height:92px;resize:vertical;line-height:1.45}
+.cfg-panel .in:focus{outline:0;border-color:var(--p);box-shadow:0 0 0 3px color-mix(in srgb,var(--p) 22%,transparent)}
+.cfg-panel .btn{min-height:44px;border-radius:10px}
+.cfg-panel .sw{padding:14px 0}
+.cfg-panel .sw .m.sm{margin-top:2px}
+.cfg-demo{display:block;margin:0 0 16px;padding:8px 12px;border-radius:10px;background:var(--yl);color:var(--t);font-size:13px}
+.cfg-int{margin-top:18px}
+@media(max-width:900px){
+  .cfg-top h1{font-size:28px}
+  .cfg-shell{grid-template-columns:minmax(0,1fr);gap:16px;margin-top:14px;padding-top:12px}
+  .cfg-nav{position:sticky;top:0;z-index:5;flex-direction:row;gap:6px;overflow-x:auto;scroll-snap-type:x proximity;margin:0 -16px;padding:8px 16px;background:color-mix(in srgb,var(--w) 92%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--b);scrollbar-width:none}
+  .cfg-nav::-webkit-scrollbar{display:none}
+  .cfg-grp{flex-direction:row;gap:6px;flex:none;align-items:center;padding-right:8px;margin-right:2px;border-right:1px solid var(--b)}
+  .cfg-grp:last-child{border-right:0}
+  .cfg-grp .cap{display:none}
+  .cfg-it{flex:none;scroll-snap-align:center;min-height:42px;padding:6px 14px;border:1px solid var(--b);border-radius:999px;background:var(--w);white-space:nowrap}
+  .cfg-it.on{border-color:var(--p)}
+  .cfg-it.on::before{display:none}
+  .cfg-panel,.cfg-panel[data-cat]{max-width:none}
+  .cfg-panel>h2:first-of-type{font-size:21px!important}
+}
+@media(max-width:520px){.pg.cfg{padding-left:16px;padding-right:16px}.cfg-panel .row.sp.wr .btn{flex:1 1 100%}}
+@media(prefers-reduced-motion:reduce){.cfg-panel.is-enter{animation:none}.cfg-it{transition:none}}

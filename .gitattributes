@@ -1,2 +1,3 @@
 # Keep the same text bytes on Windows and Linux; binary assets remain unchanged.
 * text=auto eol=lf
+deploy/production-overlay/** -text

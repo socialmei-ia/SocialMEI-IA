@@ -53,8 +53,6 @@
       throw Error("Estado do atendimento não reconhecido.");
     s.data = data;
     s.message = "";
-    s.failures = 0;
-    s.nextRead = Date.now() + 60000;
   }
   async function load(s) {
     if (!current(s) || s.busy) return;
@@ -66,8 +64,6 @@
     } catch {
       if (current(s)) {
         s.data = null;
-        s.failures = Math.min((s.failures || 0) + 1, 4);
-        s.nextRead = Date.now() + Math.min(30000 * 2 ** s.failures, 300000);
         s.message = "Não foi possível consultar o atendimento. Atualize para tentar novamente.";
       }
     } finally {
@@ -136,7 +132,7 @@
       thread.append(s.panel);
     }
     paint(s);
-    if (!s.nextRead || Date.now() >= s.nextRead) load(s);
+    if (Date.now() - s.lastRead > 5000) load(s);
   }
   const style = element("style");
   style.textContent =

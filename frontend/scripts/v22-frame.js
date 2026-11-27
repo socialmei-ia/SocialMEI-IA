@@ -71,6 +71,7 @@ window.V22Frame = (() => {
   }
   const project = (row) => ({
     id: row.id,
+    cid: row.client_id,
     c: row.client_name,
     w: row.title,
     i: row.interest_level === "unknown" ? "analysis" : row.interest_level,
@@ -119,7 +120,9 @@ window.V22Frame = (() => {
       ...(row.h?.at(-1)?.s === "Contato registrado" ? { contacted: true } : {}),
     };
     if (!previous) {
-      const clients = host.clients.filter((c) => c.nome === row.c);
+      const clients = host.clients.filter((c) =>
+        row.cid != null && row.cid !== "" ? String(c.id) === String(row.cid) : c.nome === row.c,
+      );
       if (clients.length !== 1) throw Error("Selecione um cliente com nome único.");
       payload.client_id = clients[0].id;
     } else {

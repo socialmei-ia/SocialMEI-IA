@@ -1,0 +1,93 @@
+{
+  "gateway": {
+    "image": "sha256:0711b7368196a43a5438b2a19bb55979b9129865ac87e291473a494da5337538",
+    "files": {
+      "/srv/frontend/scripts/v22-backend.js": "f45b4c15db657c470f813455204f1ea5e747e20c54bf166ad83b43a887671523",
+      "/srv/frontend/scripts/v22-bootstrap.js": "cf953e80f0db705f0eb373b5110bac2878b40b8c59f630d7a567bc66bdf2b2e2",
+      "/srv/frontend/scripts/v22-business-start.js": "2858fc1df72ee6c6b926dfca679e58bcff9c0c525f7d0cc2a4d39db02209eb55",
+      "/srv/frontend/scripts/v22-businesses.js": "c1b39b5558d54260f8ff7f25545745fb4e4cece332079329c6e9405e2ab49ee9",
+      "/srv/frontend/scripts/v22-inbox-customer.js": "b50ce7dc0a29c7da8d2d972a31ab252d5cfb90778fc28f0c511d9e0322c87a85",
+      "/srv/frontend/scripts/v22-instagram-direct.js": "d39cb2e7c1db70031bbbc82934aa93a2ab36bc24b78f04559d8fe0091fbdbc46",
+      "/srv/frontend/scripts/v22-instagram.js": "d4b43eefa94bb4ade343c25ed24c740d2b820980823a80258508a3a24464a114",
+      "/srv/frontend/scripts/v22-whatsapp-replies.js": "ae3d6f0a1c7eeb35a52eb7071f064d0dacc569359ec124b0f7912394aabddd56",
+      "/srv/frontend/scripts/v64-caixa.js": "8c2c90a87fa1f528ee233314fc7088b2ae40f1311fe29b5caf88e5d6374fdf01",
+      "/srv/frontend/scripts/v76-experiencia.js": "25a3b8095c86ab20cf296010985c76c0f76ec5ff79ebbd86fc8cb3e8efc6dafc",
+      "/srv/frontend/scripts/v76-negocios.js": "5e9a67edc2b400946be4c780089fa4f6b35e05ce1fe32f47da6fce78dc230eb7",
+      "/srv/frontend/scripts/v781-atendimento-ui.js": "82963243517922ba1f894eebb04c97769b9db37e083c5550bdfbbd23bc792814",
+      "/srv/frontend/scripts/v782-inicio.js": "7ccb9de66ce75da1015524bfc6759dc2bdbec99ba59185b082df5e10177a74c8",
+      "/srv/frontend/scripts/v79-central.js": "01b06d2774637b43e22d91ba9de2ae2529754cb42619caf27891d402215b3ec9",
+      "/srv/frontend/scripts/v79-media.js": "b6aa00a2a4a0c9428502c34a0e144fb360f38ef4d3aafa07d53a15d67c0ddc53",
+      "/srv/frontend/scripts/v791-inicio.js": "7271821a8714ab5bbbdc7de197d10fc3f19459574778f8d0481973d4250c5525",
+      "/srv/frontend/socialmei-app.html": "c0b52e85c710ca52a632772988dad7ad5c29ad7097fdddb3b86df645df0bcd9e",
+      "/srv/frontend/styles/embed-shared.css": "74adfc388c0a16b4275e9bcf5c3a7203cf8e5f73f6a336160c6893b813019fbf",
+      "/srv/frontend/styles/v64-app.css": "11306db0293d7c39fb8e9b0922de740fc0387480275933175bd608af2afb05f4",
+      "/srv/frontend/styles/v781-atendimento.css": "027bdd8163f5a32cc9642d6f27fbc6608f98a6941c1a0222750407204049e094",
+      "/srv/frontend/styles/v782-inicio.css": "542b6ce694573cf6a1187ec60f4ce6f408472af3828ca61fe2e7cceea2ad3773",
+      "/srv/frontend/styles/v79-central.css": "d689a924df4dd069f4ae31875c2ba15a08be9ca8a2da8f8b57b19e3da91b8ff1",
+      "/srv/frontend/styles/v791-barra.css": "d2995d01f5fa5004c83c46aa2aa572333d0a8488f5272e3d0cbcead97b1a34b9",
+      "/srv/frontend/styles/v791-inicio.css": "91bfb438b82d89c0627417f265857aa38d003208dacc323145ad2fea63707260",
+      "/srv/frontend/styles/v792-refino.css": "1e527936c05aebdab6b3fe71ddeb4433b5049908c8dd3a1238bca70d4602a89b",
+      "/srv/frontend/styles/v793-premium.css": "8fb54ad7c30ce9f1037f316c9e8ec826f42eee3679b67ede9873097686998a07",
+      "/srv/frontend/styles/v795-caixa-clean.css": "6568778447d243e5ab4a25f38d28a197e96a6c26bea46082545ddb517113a8bf",
+      "/srv/frontend/telas/divulgacao.html": "2e1e8e8fe28ede1281a4adf7a181f93a8b6dcec279e2d7477641d5acc40c5d1c"
+    }
+  },
+  "api": {
+    "image": "sha256:6cf2bc60fec3f31e5e0cc24d4e276a7ba43911e94343e1439dce75d84a5673f8",
+    "files": {
+      "/app/channel_booking.py": "98e16f82496fed7b0c5eaf862361132f2da20dbc14560298b6b026bab05db88a",
+      "/app/channel_booking_flow.py": "8b27349a787f89df7efaea4ff163e0304a6519d626b53621af31d78339c854eb",
+      "/app/channel_ingress.py": "1c291607fe1632410532d9e16c6827a18aa06bdd3dcb047451e67b1ebcfbea9a",
+      "/app/contact_profiles.py": "a14b4b82c20920c40be3c8625fa29fd5043c11203d67523738932a577571db90",
+      "/app/inbound_attachment_view.py": "7b251a5e9307a6c6454a49b96a20d93cbdb29d152bce0e7fba979b5230e28cd9",
+      "/app/instagram_ai_bridge.py": "b7b0219e960677f1f431c5f54ef79a118baec19acb23762bc56a7ecee08b45b0",
+      "/app/instagram_auto_menu.py": "59a9d2d72c7a28c2d739818c939f871daa839378bb1327957948d56d5df9fa49",
+      "/app/instagram_booking_flow.py": "f6fea5139b87e69b63d5671250786bffbb747d30b41303437f3e13d8889c7c6b",
+      "/app/instagram_meta_adapter.py": "aba9b37b30b56c44c2c40e01d70fbdcaa13fc4df63612f1df378ec4514fc513b",
+      "/app/instagram_meta_ingress.py": "ba88f1e7629d06b47cffae53d9b288befc59e6659149726dc226777a5c234165",
+      "/app/instagram_publishing.py": "3ce6a5b6abf7e52e0bed28bd4ac0dcdc99538aad53b49a857dc33cb278ca984d",
+      "/app/instagram_runtime.py": "b09e55d87ce65b42d87594f6c5bfb6a72bc07e83b12d45d16cfedad525925417",
+      "/app/instagram_worker_lease.py": "5644379312a510376f4afb2a8c391dc8bdfda047a2f5c059def2e9a59e7ab7ee",
+      "/app/message_enrichment.py": "d004067a1f3ef0138849f4d4b8e64004e7f190bb842da20f7e4b85baa8bcf980",
+      "/app/provider_sentiment.py": "642d7ab62af581bc00fed5969a3dc0eb414be460a170e1868d78c0c4ffe940a9",
+      "/app/report_collaboration.py": "ee81c3799545300f5eedb798c45bd1df60087d964e06f3985140c06fdb0c5cfc",
+      "/app/settings.py": "7d8aeafe59be74e54a79559baf3b02c0e3803c41126d8bfc16cee518bfb6b2da",
+      "/app/waha_ingress.py": "6a9b8e6c5cdc6c70498b966101aec884d54cff577ebb636165b76489f2c3bc49",
+      "/app/whatsapp_bot.py": "09cd14561ca57d2fe3a68b05dc442d1ff254de23c7ed2b605a4abccd1f3d1aa2",
+      "/app/whatsapp_connection_management.py": "e41196055b5bc0b35fd160e4f1fe3502a296f1e5db0a5475ba848a60805e3249",
+      "/app/whatsapp_human_outbox.py": "327aee41a9ec201a2ac3b89e66dc1d941f67b81981b847e31432d63c6ecba726"
+    }
+  },
+  "menu": {
+    "image": "sha256:0980261aa1ff881b08e826ba357c02e137c3f2b1c549b55848ed7043c9f923c3",
+    "files": {
+      "/app/appointments.py": "8794bc20e46ce9997b33013883aeb589efb7105e23c6510ad51c5864f246004f",
+      "/app/channel_booking.py": "98e16f82496fed7b0c5eaf862361132f2da20dbc14560298b6b026bab05db88a",
+      "/app/channel_booking_flow.py": "651db04dd3c762daee08d98bbd2bf7dca525a933ad334cd782bf9b67e0b87336",
+      "/app/channel_ingress.py": "1c291607fe1632410532d9e16c6827a18aa06bdd3dcb047451e67b1ebcfbea9a",
+      "/app/settings.py": "463e23ec885e74bb288325f01be01eba609df896c9411733a41a44e5e67028aa",
+      "/app/waha_ingress.py": "47b6d75d421d3043b3dc72b6700fbc524035f67407ff49783fd5f26be66604a4",
+      "/app/whatsapp_bot.py": "95839191fa536c83480b7c36f2849668e4ed1afbbb367381917ab28d6e337c86",
+      "/app/whatsapp_human_outbox.py": "2b976a975b40e850e25e30f359119235ce21bc48cc315d21849d048dbcfc7095",
+      "/app/whatsapp_public_continuous.py": "05031eea610eae354b6ff85269a41546e8e0bae872eb26b9951c742796c805e0"
+    }
+  },
+  "worker": {
+    "image": "sha256:7ae7eb7bc18399d59b5f37945b1816f1114a9acda210d59f4e11926a645dd827",
+    "files": {
+      "/app/continuous_guard.py": "b7c2c651876ffa8a16a53382b6710ffd851182ad69fbb162918b671d387e7b0d",
+      "/app/public_worker.py": "0b0835545532ac56c6a6d4aefc55385b76ffbd7eeed5f470fcdcbded4b415ae8"
+    }
+  },
+  "edge": {
+    "image": "sha256:7024fa59aaae91e73df24989d3a1f29b7a2bf9e75ec48494e1a6ba1a788f5172",
+    "files": {
+      "/app/waha_durable_receiver.py": "f5ad1bc4f669e1c04e1b508f5e2e14d0dc6bcd5e914f226bdc472dbe6a95aea5",
+      "/app/waha_durable_service.py": "30bfa2fee4844460e4936a60a48a6ba2773ac62ba2cc15afbb20dc4cf4fd26cc"
+    }
+  },
+  "instagram": {
+    "image": "sha256:cd6687e0871b667083b05dd7a51d66c9364eddc1d9c5f62a31e84e745e630a4c",
+    "files": {}
+  }
+}

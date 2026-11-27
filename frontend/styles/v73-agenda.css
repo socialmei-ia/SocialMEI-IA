@@ -1,0 +1,109 @@
+/* SocialMEI-IA · v7.3 · Agenda inteligente (semana, lembretes, serviços, horário de funcionamento). Só estilos da Agenda. */
+:root{--wk-svc:#6d3fd1;--wk-svc-bg:#f3eefd}
+[data-theme=dark]{--wk-svc:#b79cff;--wk-svc-bg:#251b45}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--wk-svc:#b79cff;--wk-svc-bg:#251b45}}
+
+/* ---------- Próximo compromisso ---------- */
+.ag-next{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;margin:12px 0 0;padding:14px 16px;border:1px solid var(--b);border-left:4px solid var(--p);border-radius:14px;background:var(--w)}
+.ag-nx-b{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 240px}
+.ag-nx-e{font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--p)}
+.ag-nx-t{font-size:17px;letter-spacing:-.01em;overflow-wrap:anywhere}
+.ag-nx-m{font-size:13px;color:var(--m);overflow-wrap:anywhere}.ag-nx-in{font-weight:700;color:var(--t)}
+.ag-nx-late{min-height:40px;border-color:color-mix(in srgb,var(--r) 45%,var(--b));color:var(--r)}
+/* ---------- Criação rápida ---------- */
+.ag-qa{margin:12px 0 0;padding:12px 14px;border:1px dashed var(--bl,var(--b));border-radius:14px;background:var(--s)}
+.ag-qa label{display:block;font-size:12.5px;font-weight:700;color:var(--m);margin-bottom:6px}
+.ag-qa-r{display:flex;gap:8px}.ag-qa-r .in{flex:1;min-width:0;min-height:44px}.ag-qa-r .btn{min-height:44px;flex:none}
+.ag-qa-p{margin:6px 0 0;font-size:12.5px;color:var(--m);min-height:1.3em;overflow-wrap:anywhere}
+.ag-ro{margin:10px 0 0;padding:8px 12px;border-radius:10px;background:var(--yl);color:var(--t);font-size:13.5px}
+/* ---------- Filtros e itens da lista ---------- */
+.ag-fl{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 4px}
+.ag-fc{min-height:36px;padding:0 12px;border:1px solid var(--b);border-radius:999px;background:var(--w);color:var(--m);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.ag-fc:hover{color:var(--t)}.ag-fc[aria-pressed=true]{background:var(--pl);border-color:var(--p);color:var(--p)}
+.ag-fc:focus-visible,.ag-qa-r .in:focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.ag-late{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:99px;background:color-mix(in srgb,var(--r) 12%,var(--w));color:var(--r);font-size:11.5px;font-weight:700;vertical-align:1px}
+.sm-agenda .btn.is-armed{background:var(--r);border-color:var(--r);color:#fff}
+.ag-retry{margin-top:8px}
+/* ---------- Semana ---------- */
+.wk-jump{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--m)}
+.wk-jump input{min-height:40px;border:1px solid var(--b);border-radius:10px;background:var(--w);color:var(--t);font:inherit;padding:0 8px}
+.wk-lg{display:inline-flex;gap:14px;margin:0 0 0 auto;font-size:12.5px;color:var(--m)}
+.wk-lg span:before{content:"";display:inline-block;width:10px;height:10px;margin-right:6px;border-radius:3px;vertical-align:-1px}
+.wk-lg-r:before{background:var(--s);border:1.5px solid var(--bl,var(--m))}.wk-lg-s:before{background:var(--wk-svc)}
+.wk-note{flex-basis:100%;margin:0;padding:8px 12px;border-radius:10px;background:var(--s);color:var(--m);font-size:13px}
+.wk-note[data-s=error]{background:color-mix(in srgb,var(--r) 10%,var(--w));color:var(--r)}
+.wk-retry{border:0;background:none;color:var(--p);font:inherit;font-weight:700;text-decoration:underline;cursor:pointer;min-height:32px}
+.wk-hr{flex-basis:100%;font-size:11.5px;color:var(--m);font-variant-numeric:tabular-nums;line-height:1.3}
+.wk-hr.is-closed{font-weight:700;color:var(--m);opacity:.85}
+.wk-d.is-today .wk-dh{background:var(--pl);border-radius:11px 11px 0 0}
+.wk-s{display:flex;gap:8px;align-items:flex-start;text-align:left;width:100%;font:inherit;color:inherit;padding:7px;border:1px solid color-mix(in srgb,var(--wk-svc) 35%,var(--b));border-radius:9px;background:var(--wk-svc-bg);min-width:0;cursor:pointer}
+.wk-s:hover:not(:disabled){border-color:var(--wk-svc)}.wk-s:disabled{cursor:default}
+.wk-s:focus-visible{outline:2px solid var(--wk-svc);outline-offset:2px}
+.wk-sb{flex:none;width:4px;align-self:stretch;border-radius:4px;background:var(--wk-svc)}
+.wk-s.done{opacity:.65}.wk-s.done .wk-tt{text-decoration:line-through}.wk-s.late{border-color:var(--r)}
+.wk-late{color:var(--r);font-weight:700;font-size:12px}
+.wk-i.late .wk-tm{color:var(--r)}
+.wk-strip{display:none;gap:6px;margin:0 0 10px;overflow-x:auto;padding-bottom:2px}
+.wk-sd{flex:1 0 44px;min-width:44px;min-height:56px;display:grid;place-items:center;align-content:center;gap:1px;border:1px solid var(--b);border-radius:12px;background:var(--w);color:var(--t);font:inherit;cursor:pointer;padding:4px 2px}
+.wk-sdn{font-size:11.5px;font-weight:700;color:var(--m);text-transform:uppercase}.wk-sd b{font-size:17px;line-height:1.1}
+.wk-sd[aria-pressed=true]{border-color:var(--p);background:var(--pl);color:var(--p)}.wk-sd.is-today .wk-sdn{color:var(--p)}
+.wk-sd:focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.wk-dot{width:6px;height:6px;border-radius:50%;background:transparent}.wk-dot.on{background:var(--p)}
+@container (max-width:560px){.wk-strip{display:flex}.wk-d:not(.is-sel){display:none}.wk-lg{margin-left:0}.wk-hr{flex-basis:auto}}
+@media(prefers-reduced-motion:no-preference){.wk-s,.wk-sd,.ag-fc{transition:border-color .15s,background .15s}}
+/* ---------- Agendamentos de serviços ---------- */
+.ag-avail{margin:6px 0 0;font-size:12.5px;min-height:1.3em;color:var(--m)}
+.ag-avail[data-kind=ok]{color:var(--g)}.ag-avail[data-kind=err]{color:var(--r);font-weight:600}.ag-avail[data-kind=warn]{color:var(--t)}
+.ag-sum{margin:8px 0 12px;padding:10px 12px;border-radius:10px;background:var(--s);font-size:13.5px;overflow-wrap:anywhere}
+.ag-uncertain{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:10px 0;padding:10px 12px;border:1px solid var(--y);border-radius:12px;background:var(--yl);color:var(--t);font-size:13.5px}
+.ag-uncertain .btn{min-height:40px}
+.ag-st.ag-late{margin:0;background:color-mix(in srgb,var(--r) 12%,var(--w));color:var(--r)}
+.ag-apc.is-hit{box-shadow:0 0 0 2px var(--wk-svc)}.ag-apc:focus{outline:none}
+.ag-apc:focus-visible{outline:2px solid var(--wk-svc);outline-offset:2px}
+/* ---------- Funcionamento e disponibilidade ---------- */
+.sm-ah-sum{gap:12px;justify-content:space-between;flex-wrap:wrap}
+.sm-ah-sumt{display:flex;flex-direction:column;gap:2px;min-width:0}.sm-ah-sumt small{font-weight:400;color:var(--m);font-size:12.5px}
+.sm-ah-flag{padding:2px 10px;border-radius:99px;background:var(--yl);border:1px solid var(--y);color:var(--t);font-size:12px;font-weight:700}
+.sm-ah-note{margin:0;padding:10px 12px;border-radius:10px;background:var(--s);font-size:13.5px;color:var(--m)}.sm-ah-note b{color:var(--t)}
+.sm-ah-warn{padding:8px 12px;border-radius:10px;background:var(--yl);color:var(--t)}
+.sm-ah-presets{display:flex;flex-wrap:wrap;gap:6px}
+.sm-ah-preset{min-height:36px;padding:0 12px;border:1px solid var(--b)!important;border-radius:999px!important;background:var(--w)!important;color:var(--m)!important}
+.sm-ah-preset:hover:not(:disabled){color:var(--p)!important;border-color:var(--p)!important}
+.sm-ah-day{grid-template-columns:128px minmax(0,1fr);align-items:start;gap:4px 14px;padding:10px 0 4px}
+.sm-ah-day.is-off{opacity:.8}
+.sm-ah-name{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:10px;align-items:center;min-height:44px}
+.sm-ah-name input{appearance:none;-webkit-appearance:none;grid-row:1/3;width:38px!important;height:22px!important;margin:0;border-radius:99px;background:var(--bl,#b9cdf5);position:relative;cursor:pointer;transition:background .15s}
+.sm-ah-name input:before{content:"";position:absolute;left:2px;top:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px #0003;transition:transform .15s}
+.sm-ah-name input:checked{background:var(--p)}.sm-ah-name input:checked:before{transform:translateX(16px)}
+.sm-ah-name input:focus-visible{outline:2px solid var(--p);outline-offset:2px}.sm-ah-name input:disabled{opacity:.5;cursor:not-allowed}
+.sm-ah-state{font-weight:500;color:var(--m);font-size:12px}
+.sm-ah-shifts{gap:8px 10px}
+.sm-ah-shift input{min-height:44px;font-variant-numeric:tabular-nums}
+.sm-ah-shift input[aria-invalid=true],.sm-ah-day.is-bad .sm-ah-shift input{border-color:var(--r);box-shadow:0 0 0 1px var(--r)}
+.sm-ah-mini{min-height:40px;font-size:13px}
+.sm-ah-copy{min-height:40px;border:1px solid var(--b);border-radius:10px;background:var(--w);color:var(--m);font:inherit;font-size:13px;padding:0 8px;max-width:160px}
+.sm-ah-vis{grid-column:2;display:flex;flex-direction:column;gap:2px}
+.sm-ah-tl{position:relative;height:8px;border-radius:99px;background:var(--s);border:1px solid var(--b);overflow:hidden}
+.sm-ah-seg{position:absolute;top:0;bottom:0;background:var(--p);border-radius:99px}
+.sm-ah-pause{color:var(--m);font-size:12px;min-height:1.1em}
+.sm-ah-err{grid-column:2;margin:0;color:var(--r);font-size:13px;font-weight:600}
+.sm-ah-summary{padding:12px 14px;border:1px solid var(--b);border-radius:12px;background:var(--s);line-height:1.5}
+.sm-ah-summary[data-kind=err]{border-color:var(--r)}
+.sm-ah-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;position:sticky;bottom:0;padding:10px 0;background:var(--w);border-top:1px solid var(--b);z-index:2}
+.sm-ah-bar .sm-hub-status{margin:0;flex:1 1 220px}.sm-ah-bar .sm-hub-actions{margin:0}
+.sm-hub-status[data-kind=warn]{color:var(--t);font-weight:600}
+@media(max-width:560px){
+  .sm-ah-day{grid-template-columns:1fr}.sm-ah-vis,.sm-ah-err{grid-column:1}
+  .sm-ah-body{padding:0 12px 12px}
+  .sm-ah-shift{flex:1 1 100%}.sm-ah-shift input{flex:1;min-width:0}
+  .sm-ah-copy{max-width:none;flex:1 1 140px}
+  .ag-qa-r{flex-direction:column}
+  .wk-jump{flex:1 1 100%}.wk-jump input{flex:1}
+}
+@media(prefers-reduced-motion:reduce){.sm-ah-name input,.sm-ah-name input:before{transition:none}}
+/* o atributo hidden precisa vencer os display:flex/grid acima */
+.sm-agenda [hidden],.sm-ah [hidden],.wk [hidden]{display:none!important}
+@media(max-width:560px){#v .sm-agenda .ag-chip,#v .sm-agenda .sm-ah-preset,#v .sm-agenda .ag-fc{min-height:40px}}
+.sm-ah-body,.sm-ah-grid{grid-template-columns:minmax(0,1fr)}.sm-ah-day,.sm-ah-shifts,.sm-ah-vis{min-width:0}
+@media(max-width:560px){.sm-ah-day{grid-template-columns:minmax(0,1fr)}.sm-ah-shift{display:flex;gap:6px;align-items:center}.sm-ah-shift input{flex:1 1 0;min-width:0;width:auto}}
+.sm-ah-shift{min-width:0;max-width:100%}

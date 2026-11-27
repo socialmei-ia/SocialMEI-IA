@@ -1,0 +1,136 @@
+/* SocialMEI-IA · v7.7 · Lia. Usa apenas os tokens do app e da landing (--w --b --t --m --p --pl --pb --bl --y --g --r),
+   então claro/escuro acompanham o tema sozinhos. Nada aqui altera Hero, barra lateral, Caixa ou formulários. */
+.lia-root{--lia-top:62px;--lia-a:#0a5cf5;--lia-b:#6a4cff;font-family:inherit;font-size:14.5px;line-height:1.5;color:var(--t,#0b1240)}
+.lia-root[data-mode=public]{--lia-top:76px}
+.lia-root *,.lia-launch *{box-sizing:border-box}
+.lia-root [hidden]{display:none!important}
+.lia-glyph{display:inline-grid;place-items:center;flex:none;width:34px;height:34px;border-radius:11px;color:#fff;background:linear-gradient(135deg,var(--lia-a,#0a5cf5),var(--lia-b,#6a4cff));box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 4px 12px -4px rgba(10,92,245,.55)}
+.lia-glyph svg{width:62%;height:62%;display:block}
+.lia-glyph.sm{width:26px;height:26px;border-radius:9px}
+.lia-glyph.lg{width:54px;height:54px;border-radius:17px}
+.lia-glyph.pulse{animation:lia-breathe 1.8s ease-in-out infinite}
+@keyframes lia-breathe{0%,100%{box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 0 0 0 rgba(106,76,255,.35)}50%{box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 0 0 6px rgba(106,76,255,0)}}
+/* acesso discreto */
+.lia-launch{display:inline-flex;align-items:center;gap:7px;height:40px;min-width:40px;padding:0 13px 0 7px;border:1px solid var(--b,#dfe7f3);border-radius:999px;background:var(--w,#fff);color:var(--t,#0b1240);font:600 14px/1 inherit;font-family:inherit;cursor:pointer;flex:none;transition:background .2s,border-color .2s,transform .18s}
+.lia-launch:hover{background:var(--pl,#e8f0ff);border-color:var(--bl,#b9cdf5);transform:translateY(-1px)}
+.lia-launch:active{transform:scale(.96)}
+.lia-launch[aria-expanded=true]{background:var(--pl,#e8f0ff);border-color:var(--p,#0a5cf5)}
+.lia-launch:focus-visible,.lia-root :focus-visible{outline:2px solid var(--p,#0a5cf5);outline-offset:2px}
+/* painel */
+.lia-panel{position:fixed;z-index:60;right:16px;top:var(--lia-top);bottom:16px;width:min(410px,calc(100vw - 32px));display:flex;flex-direction:column;background:var(--w,#fff);border:1px solid var(--b,#dfe7f3);border-radius:20px;box-shadow:0 28px 64px -18px rgba(11,18,64,.28),0 2px 10px rgba(11,18,64,.08);overflow:hidden;opacity:0;transform:translateY(8px) scale(.985);transform-origin:100% 0;transition:opacity .2s ease,transform .22s cubic-bezier(.2,.8,.2,1)}
+.lia-panel::before{content:"";position:absolute;inset:0 0 auto;height:3px;background:linear-gradient(90deg,var(--lia-a,#0a5cf5),var(--lia-b,#6a4cff));opacity:.9}
+.is-open>.lia-panel{opacity:1;transform:none}
+[data-theme=dark] .lia-panel{box-shadow:0 30px 70px -16px rgba(0,0,0,.65),0 0 0 1px rgba(255,255,255,.03)}
+.lia-hd{display:flex;align-items:center;gap:10px;padding:14px 12px 10px 14px;border-bottom:1px solid var(--b,#dfe7f3)}
+.lia-id{min-width:0;flex:1;display:flex;flex-direction:column;line-height:1.25}
+.lia-id b{font-size:16px;letter-spacing:-.01em}
+.lia-ctx{color:var(--m,#52648f);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lia-badge{flex:none;max-width:42%;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--pl,#e8f0ff);color:var(--p,#0a5cf5);border:1px solid var(--bl,#b9cdf5)}
+.lia-badge.ai{background:var(--gl,#e4f6ec);color:var(--g,#0f7a40);border-color:transparent}
+.lia-badge.off{background:var(--yl,#fff8e6);color:var(--t,#0b1240);border-color:var(--y,#f5b301)}
+.lia-ib{display:grid;place-items:center;width:34px;height:34px;border:0;border-radius:10px;background:transparent;color:var(--m,#52648f);cursor:pointer;flex:none}
+.lia-ib:hover{background:var(--pl,#e8f0ff);color:var(--t,#0b1240)}
+.lia-ic{display:inline-grid;place-items:center;flex:none;width:20px;height:20px}
+.lia-ic svg{width:100%;height:100%;display:block}
+.lia-body{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:16px 14px 8px;display:flex;flex-direction:column;gap:14px;scroll-behavior:auto}
+.lia-body:focus-visible{outline-offset:-3px}
+/* boas-vindas */
+.lia-welcome{display:flex;flex-direction:column;gap:10px;padding:8px 2px 4px}
+.lia-welcome h2{margin:6px 0 0;font-size:21px;line-height:1.2;letter-spacing:-.02em;color:var(--t,#0b1240)}
+.lia-welcome p{margin:0;color:var(--m,#52648f)}
+.lia-rec small{display:block;margin:4px 0 6px;color:var(--m,#52648f);font-size:13px;font-weight:600}
+.lia-rec div{display:flex;flex-wrap:wrap;gap:6px}
+.lia-tip{font-size:13px}
+.lia-tip kbd,.lia-root kbd{font:600 12px/1 inherit;font-family:inherit;padding:2px 6px;border:1px solid var(--b,#dfe7f3);border-bottom-width:2px;border-radius:6px;background:var(--s,#f3f6fb);color:var(--t,#0b1240)}
+/* mensagens */
+.lia-m{display:flex;gap:9px;align-items:flex-start;max-width:100%;animation:lia-in .22s ease both}
+@keyframes lia-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.lia-m.u{justify-content:flex-end}
+.lia-m.u p{margin:0;max-width:86%;padding:9px 13px;border-radius:16px 16px 4px 16px;background:var(--pb,#0a5cf5);color:#fff;overflow-wrap:anywhere}
+.lia-m.l .lia-glyph{margin-top:1px}
+.lia-mc{min-width:0;flex:1;display:flex;flex-direction:column;gap:9px}
+.lia-p{margin:0;overflow-wrap:anywhere}
+.lia-p strong{font-weight:700}
+.lia-note{margin:0;font-size:13px;color:var(--m,#52648f)}
+.lia-src{margin:0;font-size:12.5px;color:var(--m,#52648f);display:flex;gap:6px;align-items:center}
+.lia-src::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--g,#0f7a40);flex:none}
+.lia-steps{margin:0;padding:0 0 0 20px;display:flex;flex-direction:column;gap:5px}
+.lia-steps li::marker{color:var(--p,#0a5cf5);font-weight:700}
+.lia-acts{display:flex;flex-wrap:wrap;gap:7px}
+.lia-b{display:inline-flex;align-items:center;gap:7px;min-height:38px;padding:0 13px;border:1px solid var(--b,#dfe7f3);border-radius:11px;background:var(--w,#fff);color:var(--t,#0b1240);font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;transition:background .18s,border-color .18s,transform .15s}
+.lia-b:hover{background:var(--pl,#e8f0ff);border-color:var(--bl,#b9cdf5)}
+.lia-b:active{transform:scale(.97)}
+.lia-b[disabled]{opacity:.6;cursor:progress}
+.lia-b.p{background:var(--pb,#0a5cf5);border-color:var(--pb,#0a5cf5);color:#fff}
+.lia-b.p:hover{filter:brightness(1.08);background:var(--pb,#0a5cf5)}
+.lia-b .lia-ic{width:16px;height:16px}
+.lia-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.lia-li{display:flex;align-items:center;gap:10px;width:100%;padding:9px 11px;border:1px solid var(--b,#dfe7f3);border-radius:12px;background:var(--bg2,var(--s,#f3f6fb));color:var(--t,#0b1240);text-align:left;font:inherit;font-family:inherit}
+button.lia-li{cursor:pointer;transition:border-color .18s,background .18s}
+button.lia-li:hover{border-color:var(--bl,#b9cdf5);background:var(--pl,#e8f0ff)}
+.lia-li-t{flex:1;min-width:0;display:flex;flex-direction:column}
+.lia-li-t b{font-weight:600;overflow-wrap:anywhere}
+.lia-li-t small{color:var(--m,#52648f);font-size:13px;overflow-wrap:anywhere}
+.lia-li-go{color:var(--m,#52648f)}
+.lia-dot{width:9px;height:9px;border-radius:50%;flex:none;background:var(--p,#0a5cf5)}
+.lia-dot[data-tone=y]{background:var(--y,#f5b301)}.lia-dot[data-tone=r]{background:var(--r,#d4202f)}.lia-dot[data-tone=g]{background:var(--g,#0f7a40)}
+.lia-draft{display:flex;flex-direction:column;gap:9px;padding:12px;border:1px solid var(--bl,#b9cdf5);border-radius:14px;background:var(--pl,#e8f0ff)}
+.lia-draft dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 12px}
+.lia-draft dt{color:var(--m,#52648f);font-size:13px}
+.lia-draft dd{margin:0;font-weight:600;overflow-wrap:anywhere}
+.lia-dots{display:inline-flex;gap:4px;margin-right:8px;vertical-align:middle}
+.lia-dots i{width:6px;height:6px;border-radius:50%;background:var(--m,#52648f);animation:lia-dot 1s ease-in-out infinite}
+.lia-dots i:nth-child(2){animation-delay:.15s}.lia-dots i:nth-child(3){animation-delay:.3s}
+@keyframes lia-dot{0%,80%,100%{opacity:.3;transform:none}40%{opacity:1;transform:translateY(-3px)}}
+.lia-sr-t{color:var(--m,#52648f)}
+/* sugestões, paleta e campo */
+.lia-chips{display:flex;gap:7px;padding:6px 14px 10px;overflow-x:auto;scrollbar-width:none;flex:none}
+.lia-chips::-webkit-scrollbar{display:none}
+.lia-chip{flex:none;min-height:34px;padding:0 13px;border:1px solid var(--bl,#b9cdf5);border-radius:999px;background:var(--pl,#e8f0ff);color:var(--p,#0a5cf5);font-size:13.5px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap;transition:background .18s,transform .15s}
+.lia-chip:hover{background:var(--w,#fff)}
+.lia-chip:active{transform:scale(.96)}
+.lia-chip.r{background:var(--w,#fff)}
+.lia-dock{position:relative;padding:0 12px 10px;flex:none}
+.lia-form{display:flex;align-items:center;gap:8px;padding:5px 5px 5px 14px;border:1.5px solid var(--b,#dfe7f3);border-radius:16px;background:var(--bg2,var(--s,#f3f6fb));transition:border-color .2s,box-shadow .2s}
+.lia-form:focus-within{border-color:var(--p,#0a5cf5);box-shadow:0 0 0 4px color-mix(in srgb,var(--p,#0a5cf5) 16%,transparent);background:var(--w,#fff)}
+.lia-in{flex:1;min-width:0;height:40px;border:0;outline:0;background:transparent;color:var(--t,#0b1240);font:inherit;font-family:inherit;font-size:15px}
+.lia-in::placeholder{color:var(--m,#52648f);opacity:.9}
+.lia-send{display:grid;place-items:center;width:40px;height:40px;border:0;border-radius:12px;background:var(--pb,#0a5cf5);color:#fff;cursor:pointer;flex:none}
+.lia-send .lia-ic{width:19px;height:19px}
+.lia-send:hover{filter:brightness(1.1)}
+.lia-res{position:absolute;left:12px;right:12px;bottom:calc(100% - 4px);margin:0;padding:6px;list-style:none;max-height:260px;overflow:auto;background:var(--w,#fff);border:1px solid var(--b,#dfe7f3);border-radius:16px;box-shadow:0 18px 40px -14px rgba(11,18,64,.3)}
+.lia-opt{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:11px;cursor:pointer;min-height:44px}
+.lia-opt.on,.lia-opt:hover{background:var(--pl,#e8f0ff)}
+.lia-opt .lia-ic{color:var(--p,#0a5cf5)}
+.lia-opt-t{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.3}
+.lia-opt-t b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lia-opt-t small{color:var(--m,#52648f);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lia-opt-k{flex:none;font-size:12px;color:var(--m,#52648f)}
+.lia-foot{margin:0;padding:0 16px 12px;font-size:12px;line-height:1.4;color:var(--m,#52648f)}
+/* "Mostrar onde" */
+.lia-ring{position:fixed;z-index:59;pointer-events:none;border-radius:14px;border:2px solid var(--p,#0a5cf5);box-shadow:0 0 0 5px color-mix(in srgb,var(--p,#0a5cf5) 24%,transparent);animation:lia-ring 1.5s ease-in-out 3 both}
+@keyframes lia-ring{0%,100%{opacity:.95;transform:scale(1)}50%{opacity:.55;transform:scale(1.04)}}
+/* celular: folha inferior */
+.lia-scrim{position:fixed;inset:0;z-index:58;background:rgba(11,18,64,.4)}
+@media (max-width:720px){
+  .lia-launch{padding:0 7px;width:44px;height:44px}
+  .lia-launch-t{display:none}
+  .lia-panel{left:0;right:0;top:auto;bottom:var(--lia-kb,0px);width:auto;height:min(calc(var(--lia-vh,100dvh)*.92),700px);border-radius:22px 22px 0 0;transform:translateY(100%);opacity:1;padding-bottom:env(safe-area-inset-bottom,0px);transform-origin:50% 100%}
+  .is-open>.lia-panel{transform:none}
+  .lia-panel::after{content:"";position:absolute;top:7px;left:50%;width:38px;height:4px;margin-left:-19px;border-radius:4px;background:var(--bl,#b9cdf5);opacity:.8}
+  .lia-hd{padding-top:20px}
+  .lia-b,.lia-chip{min-height:44px}
+  .lia-ib{width:44px;height:44px}
+  .lia-in{font-size:16px}
+  .lia-badge{max-width:36%}
+}
+@media (prefers-reduced-motion:reduce){
+  .lia-panel,.lia-m,.lia-launch,.lia-b,.lia-chip{transition:none!important;animation:none!important}
+  .lia-glyph.pulse,.lia-dots i,.lia-ring{animation:none!important}
+}
+.calm .lia-panel,.calm .lia-m,.calm .lia-launch,.calm .lia-b,.calm .lia-chip{transition:none!important;animation:none!important}
+.calm .lia-glyph.pulse,.calm .lia-dots i,.calm .lia-ring{animation:none!important}
+@media (forced-colors:active){.lia-panel,.lia-b,.lia-chip,.lia-launch,.lia-form,.lia-li{border:1px solid CanvasText}.lia-ring{border-color:Highlight}}
+@media print{.lia-root,.lia-launch,.lia-ring{display:none!important}}
+.lia-root .lia-in:focus-visible{outline:0}
+@media (max-width:720px){.lia-tip{display:none}}

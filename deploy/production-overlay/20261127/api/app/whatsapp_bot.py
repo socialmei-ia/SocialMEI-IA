@@ -1,0 +1,619 @@
+"""Durable replies for verified WAHA inputs. This module never sends a message."""
+import os
+import whatsapp_catalog_navigation as navigation
+import channel_booking_flow as booking_flow
+import re
+import hashlib
+import json
+from contextlib import contextmanager
+from datetime import datetime, timedelta, timezone
+from decimal import Decimal
+from typing import Literal
+from uuid import UUID, uuid4
+
+import psycopg
+from fastapi import APIRouter, HTTPException, Query, Request, Response
+from psycopg.rows import dict_row
+from psycopg.types.json import Jsonb
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from account_auth import require_enabled
+from database import connect
+from whatsapp_catalog import ChannelAccess, _TOKEN, issue_secret, product_view, require_owner, token_digest
+import settings
+
+router = APIRouter(tags=['WhatsApp conversation planning'])
+INTERNAL = '/internal/whatsapp/bot'
+OPTIONS = [
+    {'id': '1', 'title': 'Ver produtos'},
+    {'id': '2', 'title': 'Preço e disponibilidade'},
+    {'id': '3', 'title': 'Conhecer serviços'},
+    {'id': '4', 'title': 'Solicitar orçamento'},
+    {'id': '5', 'title': 'Falar com atendente'},
+]
+HUMAN_CHOICES = {'4', '5', 'atendente', 'humano', 'falar com atendente'}
+MENU_CHOICES = {'0', 'menu', 'início', 'inicio', 'voltar'}
+CLOSE_CHOICES = {'encerrar', 'sair', 'finalizar'}
+
+
+class Strict(BaseModel):
+    model_config = ConfigDict(extra='forbid', strict=True)
+
+
+class Source(Strict):
+    instance: str = Field(pattern=r'^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$')
+    external_message_id: str = Field(pattern=r'^[!-~]{1,1024}$')
+
+
+class Receipt(Strict):
+    status: Literal['confirmed', 'uncertain']
+    provider_message_id: str | None = Field(default=None, pattern=r'^[!-~]{1,1024}$')
+
+    @model_validator(mode='after')
+    def confirmed_identity(self):
+        if (self.status == 'confirmed') != (self.provider_message_id is not None):
+            raise ValueError('Confirmação exige identificação do provedor.')
+        return self
+
+
+def enabled():
+    return (
+        not settings.waha_workspace_inbox_requested()
+        and os.getenv('SOCIALMEI_WHATSAPP_BOT_ENABLED', 'false').strip().lower() == 'true'
+    )
+
+
+def require_bot():
+    if not enabled():
+        raise HTTPException(503, 'Atendimento WhatsApp ainda não habilitado.')
+    require_enabled()
+
+
+def authorize(conn, request):
+    require_bot()
+    values = request.headers.getlist('authorization')
+    scheme, _, token = (values[0] if len(values) == 1 else '').partition(' ')
+    if scheme.lower() != 'bearer' or not _TOKEN.fullmatch(token):
+        raise HTTPException(401, 'Credencial de atendimento inválida.')
+    row = conn.execute(
+        "SELECT a.workspace_id,a.channel_id,a.binding_hash,c.instancia,c.sessao,c.identificador_conta,c.versao "
+        "FROM socialmei.wa_bot_access a JOIN socialmei.crm_canais c "
+        "ON c.workspace_id=a.workspace_id AND c.id=a.channel_id "
+        "WHERE a.token_hash=%s AND c.ativo AND c.ingress_provisioned AND c.provedor='waha' "
+        "AND NOT c.envio_habilitado FOR SHARE OF a,c", (token_digest(token),),
+    ).fetchone()
+    if not row or row['binding_hash'] != binding_hash(row):
+        raise HTTPException(401, 'Credencial de atendimento inválida.')
+    if (os.getenv('SOCIALMEI_WAHA_INGRESS_MODE', '').strip().lower() == 'team-pilot'
+            and os.getenv('SOCIALMEI_WAHA_PILOT_BINDING_SHA256', '')
+            and not settings.waha_pilot_binding_allowed(row['workspace_id'],row['channel_id'],row['instancia'],
+                row['sessao'],row['identificador_conta'],row['versao'],os.getenv('SOCIALMEI_MENU_WAHA_ENGINE','WEBJS'))):
+        raise HTTPException(401, 'Credencial de atendimento fora do vínculo revisado.')
+    return row
+
+
+def binding_hash(channel):
+    fields = [channel[key] for key in ('workspace_id', 'channel_id', 'instancia', 'sessao', 'identificador_conta', 'versao')]
+    return hashlib.sha256(json.dumps(fields, separators=(',', ':')).encode()).hexdigest()
+
+
+def configure(conn):
+    conn.row_factory = dict_row
+    conn.execute("SET LOCAL lock_timeout='3s'")
+    conn.execute("SET LOCAL statement_timeout='5s'")
+
+
+@contextmanager
+def operation_database():
+    try:
+        with connect() as conn:
+            configure(conn)
+            yield conn
+    except psycopg.Error:
+        raise HTTPException(503, 'Atendimento temporariamente indisponível. Não repita envios incertos.') from None
+
+
+def view(row):
+    return {**row['result'], 'operation_id': str(row['id']), 'status': row['status'],
+            'source_message_id': row['source_message_id'], 'conversation_id': row['conversation_id']}
+
+
+def menu_business_identity(conn, workspace, result):
+    if result.get('action') != 'menu':
+        return result
+    row = conn.execute(
+        "SELECT w.nome, p.profile->>'activity' AS activity FROM socialmei.workspaces w "
+        "LEFT JOIN socialmei.workspace_profiles p ON p.workspace_id=w.id WHERE w.id=%s",
+        (workspace,),
+    ).fetchone()
+    if not row:
+        return result
+    identity = '\n'.join(filter(None, (navigation.clean(row['nome'], 120),
+                                       navigation.clean(row['activity'], 120))))
+    return {**result, 'text': identity + '\n\n' + result['text']} if identity else result
+
+
+def _catalog_answer(conn, workspace, state, text, target, enabled):
+    text = text if isinstance(text, str) else ''
+    if not enabled or state == 'human':
+        return answer(conn, workspace, state, text)
+    if target is not None:
+        return navigation.respond(conn, workspace, target)
+    command = globals().get('canonical_choice', lambda value: value.strip().casefold())(text)
+    routes = {'0': {'route':'main'}, '1': {'route':'browse','kind':'Produto'},
+              '2': {'route':'browse','kind':'Produto'}, '3': {'route':'browse','kind':'Serviço'},
+              '4': {'route':'quote'}, '5': {'route':'human'}}
+    if command in HUMAN_CHOICES:
+        return navigation.respond(conn, workspace, {'route': 'quote' if command == '4' else 'human'})
+    if command in MENU_CHOICES:
+        return navigation.main()
+    if command in CLOSE_CHOICES:
+        return navigation.respond(conn, workspace, {'route': 'close'})
+    if state == 'ask_product' and command not in routes:
+        return navigation.browse(conn, workspace, {'route':'browse','kind':'Produto','query':text})
+    return navigation.respond(conn, workspace, routes.get(command, {'route':'main'}))
+
+
+def native_list_canary(channel, contact):
+    """Enable signed inbound interactive lists only on the reviewed GOWS channel.
+
+    Public native lists require a separate explicit feature flag and the
+    authenticated public-bot opt-in. The legacy canary remains unchanged.
+    Both modes require a valid direct WhatsApp contact, never a group.
+    """
+    reviewed = (
+        (channel['workspace_id'], channel['channel_id'], channel['instancia'], channel['sessao'])
+        == (1, 1, 'socialmei-equipe-piloto', '01')
+    )
+    if os.getenv('SOCIALMEI_WAHA_PILOT_BINDING_SHA256', ''):
+        reviewed = settings.waha_ingress_team_pilot_enabled() and settings.waha_pilot_binding_allowed(
+            channel['workspace_id'],channel['channel_id'],channel['instancia'],channel['sessao'],
+            channel['identificador_conta'],channel['versao'],os.getenv('SOCIALMEI_MENU_WAHA_ENGINE','WEBJS'))
+    direct = isinstance(contact, str) and re.fullmatch(
+        r'waha:(?:[0-9]{1,40}@c\.us|[A-Za-z0-9][A-Za-z0-9_.:-]{0,79}@lid)',
+        contact,
+    ) is not None
+    public = (
+        os.getenv('SOCIALMEI_WHATSAPP_GOWS_PUBLIC_LISTS_ENABLED') == 'YES'
+        and settings.whatsapp_bot_public_inbound_enabled()
+    )
+    canary = (
+        os.getenv('SOCIALMEI_MENU_GOWS_LIST_CANARY_ACTIVE') == 'YES'
+        and os.getenv('SOCIALMEI_MENU_WAHA_ENGINE') == 'GOWS'
+        and contact in navigation.configured_contacts(os.environ)
+    )
+    return (
+        reviewed and direct
+        and os.getenv('SOCIALMEI_MENU_WAHA_ENGINE') == 'GOWS'
+        and (public or canary)
+    )
+
+
+def render_waha(session, chat, text, choices, *, engine='WEBJS', list_verified=False):
+    """Construct a payload, not an HTTP call. Text is the verified default."""
+    if choices and list_verified and engine in {'GOWS', 'NOWEB'}:
+        return {'path': '/api/sendList', 'body': {'session': session, 'chatId': chat, 'message': {
+            'title': 'Atendimento', 'description': text, 'footer': 'SocialMEI', 'button': 'Ver opções',
+            'sections': [{'title': 'Como podemos ajudar?', 'rows': [
+                {'rowId': c['id'], 'title': c['title'], 'description': c.get('description')} for c in choices
+            ]}],
+        }}}
+    menu = '\n'.join(c['id'] + ' - ' + c['title'] for c in choices)
+    return {'path': '/api/sendText', 'body': {'session': session, 'chatId': chat,
+                                             'text': text + ('\n\n' + menu if menu else '')}}
+
+
+def answer(conn, workspace, state, text):
+    text = text if isinstance(text, str) else ''
+    choice = text.strip().casefold()
+    result = {'action': 'menu', 'text': 'Olá! Como podemos ajudar? Escolha uma opção.',
+              'choices': OPTIONS, 'items': [], 'handoff': False}
+    if state == 'human':
+        return 'human', {**result, 'action': 'human_wait', 'text': '', 'choices': [], 'handoff': True}
+    if choice in HUMAN_CHOICES:
+        return 'human', {**result, 'action': 'quote_handoff' if choice == '4' else 'human_handoff',
+                         'text': 'Seu pedido ficou registrado nesta conversa para um atendente. Aguarde o atendimento.',
+                         'choices': [], 'handoff': True}
+    if choice in CLOSE_CHOICES:
+        return 'menu', {**result, 'action': 'conversation_closed', 'choices': [],
+                        'text': 'Consulta encerrada. Quando precisar, digite menu para continuar.'}
+    if choice in MENU_CHOICES:
+        return 'menu', result
+    if choice == '2':
+        return 'ask_product', {**result, 'action': 'ask_product', 'text': 'Qual produto deseja consultar? Informe o nome.',
+                               'choices': []}
+    if choice not in {'1', '3'} and state != 'ask_product':
+        return 'menu', result
+    query = text.strip() if choice not in {'1', '3'} else ''
+    if query and (len(query) < 2 or len(query) > 160):
+        return 'ask_product', {**result, 'action': 'ask_product', 'text': 'Informe o nome do produto (2 a 160 caracteres).',
+                               'choices': []}
+    kind = 'Serviço' if choice == '3' else 'Produto'
+    rows = conn.execute(
+        "SELECT nome,tipo,preco,estoque FROM socialmei.crm_produtos "
+        "WHERE workspace_id=%s AND status='Ativo' AND tipo=%s "
+        "AND (%s='' OR strpos(lower(nome),lower(%s))>0) ORDER BY nome,id LIMIT 10",
+        (workspace, kind, query, query),
+    ).fetchall()
+    items = [product_view(row) for row in rows]
+    lines = []
+    for item in items:
+        price = format(Decimal(item['preco']), '.2f').replace('.', ',')
+        line = item['nome'] + ' — R$ ' + price
+        if item['tipo'] == 'Produto':
+            line += (' — estoque: ' + str(item['estoque']) + ' registrado(s)'
+                     if item['disponibilidade'] == 'em_estoque' else ' — disponibilidade a confirmar')
+        lines.append(line)
+    return 'menu', {**result, 'action': 'services' if choice == '3' else 'availability' if query else 'products',
+                    'items': items, 'choices': [], 'text': ('\n'.join(lines) +
+                    '\n\nConfirme os detalhes antes de fechar o pedido. Digite 0 para o menu ou 5 para atendente.')
+                    if items else (
+                        'Não encontrei um produto com esse nome no catálogo ativo. '
+                        'Digite 5 para falar com atendente ou 0 para o menu.'
+                        if query else
+                        ('Ainda não há serviços ativos disponíveis para consulta por aqui. '
+                         if choice == '3' else
+                         'Ainda não há produtos ativos disponíveis para consulta por aqui. ')
+                        + 'Digite 5 para falar com atendente ou 0 para o menu.'
+                    )}
+
+
+@router.get('/api/v1/whatsapp/bot/preview')
+def preview(response: Response, opcao: Literal['0', '1', '2', '3', '4', '5'] = Query('0'),
+            produto: str = Query('', max_length=160)):
+    """Preview the existing bot logic with this owner's real catalog; never send or persist."""
+    user = require_owner()
+    response.headers['Cache-Control'] = 'no-store'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    query = produto.strip()
+    if '\x00' in query or (query and opcao != '2'):
+        raise HTTPException(422, 'Consulta inválida.')
+    with connect() as conn:
+        conn.row_factory = dict_row
+        conn.execute("SET TRANSACTION READ ONLY")
+        conn.execute("SET LOCAL statement_timeout='3000ms'")
+        _, result = answer(
+            conn, user['workspace_id'],
+            'ask_product' if opcao == '2' and query else 'menu',
+            query if opcao == '2' and query else opcao,
+        )
+    rendered = render_waha('preview', 'preview@c.us', result['text'], result['choices'])
+    return {
+        'preview_only': True, 'send_enabled': False,
+        'action': result['action'], 'text': rendered['body']['text'],
+        'choices': result['choices'], 'items': result['items'],
+        'handoff': result['handoff'],
+    }
+
+
+@router.post('/api/v1/whatsapp/bot/access')
+def provision(data: ChannelAccess):
+    user = require_owner()
+    token = issue_secret()
+    with connect() as conn:
+        conn.row_factory = dict_row
+        row = conn.execute("SELECT workspace_id,id AS channel_id,instancia,sessao,identificador_conta,versao "
+                           "FROM socialmei.crm_canais WHERE workspace_id=%s AND id=%s "
+                           "AND provedor='waha' AND ativo FOR UPDATE", (user['workspace_id'], data.channel_id)).fetchone()
+        if not row:
+            raise HTTPException(404, 'Canal ativo não encontrado neste negócio.')
+        conn.execute("INSERT INTO socialmei.wa_bot_access(workspace_id,channel_id,token_hash,binding_hash,issued_by) VALUES(%s,%s,%s,%s,%s) "
+                     "ON CONFLICT(workspace_id,channel_id) DO UPDATE SET token_hash=EXCLUDED.token_hash,"
+                     "binding_hash=EXCLUDED.binding_hash,issued_by=EXCLUDED.issued_by,issued_at=NOW()",
+                     (user['workspace_id'], data.channel_id, token_digest(token), binding_hash(row), user['id']))
+        conn.execute("INSERT INTO socialmei.auth_auditoria(user_id,acao) VALUES(%s,'whatsapp_bot_rotated')", (user['id'],))
+    return {'channel_id': data.channel_id, 'token_once': token}
+
+
+@router.get('/api/v1/whatsapp/bot/access')
+def status():
+    user = require_owner()
+    with connect() as conn:
+        conn.row_factory = dict_row
+        rows = conn.execute("SELECT c.id AS channel_id,c.instancia AS instance,c.ativo AS active,"
+                            "c.ingress_provisioned,(a.channel_id IS NOT NULL) AS credential_configured "
+                            "FROM socialmei.crm_canais c LEFT JOIN socialmei.wa_bot_access a "
+                            "ON a.workspace_id=c.workspace_id AND a.channel_id=c.id "
+                            "WHERE c.workspace_id=%s ORDER BY c.id LIMIT 100", (user['workspace_id'],)).fetchall()
+    return {'enabled': enabled(), 'transport': 'none', 'channels': rows}
+
+
+@router.delete('/api/v1/whatsapp/bot/access/{channel_id}', status_code=204)
+def revoke(channel_id: int):
+    user = require_owner()
+    with connect() as conn:
+        row = conn.execute("DELETE FROM socialmei.wa_bot_access WHERE workspace_id=%s AND channel_id=%s RETURNING channel_id",
+                           (user['workspace_id'], channel_id)).fetchone()
+        if not row:
+            raise HTTPException(404, 'Credencial não encontrada.')
+        conn.execute("INSERT INTO socialmei.auth_auditoria(user_id,acao) VALUES(%s,'whatsapp_bot_revoked')", (user['id'],))
+
+
+@router.post('/api/v1/whatsapp/bot/conversations/{conversation_id}/resume', status_code=204)
+def resume(conversation_id: int, payload: ChannelAccess):
+    user = require_owner()
+    with operation_database() as conn:
+        if conversation_channel(conn, user['workspace_id'], conversation_id) != payload.channel_id:
+            raise HTTPException(404, 'Canal não encontrado nesta conversa.')
+        # Serialize against the human claim before allowing automation again.
+        conn.execute("SELECT conversation_id FROM socialmei.wa_bot_conversations "
+                     "WHERE workspace_id=%s AND channel_id=%s AND conversation_id=%s FOR UPDATE",
+                     (user['workspace_id'], payload.channel_id, conversation_id)).fetchone()
+        if pending_human_reply(conn, user['workspace_id'], payload.channel_id, conversation_id):
+            raise HTTPException(409, 'Existe resposta humana iniciada ou incerta. Concilie antes de retomar o bot.')
+        row = conn.execute("UPDATE socialmei.wa_bot_conversations SET state='menu',revision=revision+1,updated_at=NOW() "
+                           "WHERE workspace_id=%s AND channel_id=%s AND conversation_id=%s RETURNING conversation_id",
+                           (user['workspace_id'], payload.channel_id, conversation_id)).fetchone()
+        if not row:
+            raise HTTPException(404, 'Conversa não encontrada.')
+        conn.execute("INSERT INTO socialmei.auth_auditoria(user_id,acao) VALUES(%s,'whatsapp_bot_resumed')", (user['id'],))
+
+
+def pending_human_reply(conn, workspace, channel, conversation, source_id=None):
+    if conn.execute("SELECT to_regclass('socialmei.wa_human_replies') AS relation").fetchone()['relation'] is None:
+        return False
+
+    return conn.execute("""
+        SELECT EXISTS(
+            SELECT 1 FROM socialmei.wa_human_replies h
+            WHERE h.workspace_id=%s
+            AND h.channel_id=%s
+            AND h.conversation_id=%s
+            AND (
+                h.status='dispatching'
+                OR (
+                    h.status='uncertain'
+                    AND (
+                        h.workspace_id<>60
+                        OR h.finished_at IS NULL
+                        OR h.finished_at>NOW()-INTERVAL '2 minutes'
+                        OR (
+                            %s::bigint IS NOT NULL
+                            AND NOT EXISTS (
+                                SELECT 1 FROM socialmei.me_messages m
+                                JOIN socialmei.crm_eventos_canal e
+                                  ON e.workspace_id=m.workspace_id
+                                  AND e.inbox_message_id=m.id
+                                WHERE m.workspace_id=h.workspace_id
+                                AND m.conversation_id=h.conversation_id
+                                AND m.id=%s
+                                AND m.origin='waha'
+                                AND e.canal_id=h.channel_id
+                                AND e.tipo='message'
+                                AND e.status='processado'
+                                AND m.id<>h.source_message_id
+                                AND m.occurred_at>h.finished_at
+                            )
+                        )
+                    )
+                )
+            )
+        ) AS pending
+    """,(workspace,channel,conversation,source_id,source_id)
+    ).fetchone()['pending']
+
+
+def conversation_channel(conn, workspace, conversation_id):
+    rows = conn.execute(
+        "SELECT c.id AS channel_id FROM socialmei.crm_canais c "
+        "JOIN socialmei.me_conversations v ON v.workspace_id=c.workspace_id "
+        "AND v.account_ref='waha:' || c.identificador_conta "
+        "WHERE c.workspace_id=%s AND v.id=%s AND v.origin='waha' "
+        "AND c.provedor='waha' AND c.ativo AND c.ingress_provisioned "
+        "FOR SHARE OF c,v", (workspace, conversation_id),
+    ).fetchall()
+    if len(rows) != 1:
+        raise HTTPException(404, 'Conversa WhatsApp ativa não encontrada neste negócio.')
+    return rows[0]['channel_id']
+
+
+@router.get('/api/v1/whatsapp/bot/conversations/{conversation_id}/status')
+def conversation_status(conversation_id: int):
+    user = require_owner()
+    with operation_database() as conn:
+        workspace = user['workspace_id']
+        cid = conversation_channel(conn, workspace, conversation_id)
+        state = conn.execute("SELECT state FROM socialmei.wa_bot_conversations "
+                             "WHERE workspace_id=%s AND channel_id=%s AND conversation_id=%s",
+                             (workspace, cid, conversation_id)).fetchone()
+        claimed = conn.execute("SELECT EXISTS(SELECT 1 FROM socialmei.wa_bot_decisions "
+                               "WHERE workspace_id=%s AND channel_id=%s AND conversation_id=%s "
+                               "AND status='claimed') AS pending",
+                               (workspace, cid, conversation_id)).fetchone()['pending']
+    return {'channel_id': cid, 'state': state['state'] if state else 'menu',
+            'enabled': enabled(), 'claimed_in_flight': claimed}
+
+
+@router.post('/api/v1/whatsapp/bot/conversations/{conversation_id}/pause', status_code=204)
+def pause(conversation_id: int, payload: ChannelAccess):
+    user = require_owner()
+    with operation_database() as conn:
+        workspace = user['workspace_id']
+        cid = conversation_channel(conn, workspace, conversation_id)
+        if cid != payload.channel_id:
+            raise HTTPException(404, 'Canal não encontrado nesta conversa.')
+        # Same unique row/lock as prepare(), including pause before the first decision.
+        conn.execute("INSERT INTO socialmei.wa_bot_conversations(workspace_id,channel_id,conversation_id,state,revision) "
+                     "VALUES(%s,%s,%s,'human',1) ON CONFLICT(workspace_id,channel_id,conversation_id) "
+                     "DO UPDATE SET state='human',revision=wa_bot_conversations.revision+1,updated_at=NOW()",
+                     (workspace, cid, conversation_id))
+        conn.execute("INSERT INTO socialmei.auth_auditoria(user_id,acao) VALUES(%s,'whatsapp_bot_paused')", (user['id'],))
+
+
+@router.get('/api/v1/whatsapp/bot/conversations')
+def conversations():
+    user = require_owner()
+    with connect() as conn:
+        conn.row_factory = dict_row
+        rows = conn.execute("SELECT channel_id,conversation_id,state,revision,updated_at "
+                            "FROM socialmei.wa_bot_conversations WHERE workspace_id=%s "
+                            "ORDER BY updated_at DESC,conversation_id DESC LIMIT 100", (user['workspace_id'],)).fetchall()
+    return {'items': rows}
+
+
+@router.get('/api/v1/whatsapp/bot/decisions')
+def history():
+    user = require_owner()
+    with connect() as conn:
+        conn.row_factory = dict_row
+        rows = conn.execute("SELECT * FROM socialmei.wa_bot_decisions WHERE workspace_id=%s "
+                            "ORDER BY created_at DESC,id DESC LIMIT 100", (user['workspace_id'],)).fetchall()
+    return {'items': [{**view(row), 'provider_message_id': row['provider_message_id']} for row in rows]}
+
+
+@router.get(INTERNAL + '/sources')
+def sources(request: Request):
+    require_bot()
+    with operation_database() as conn:
+        channel = authorize(conn, request)
+        contacts = settings.whatsapp_bot_allowed_contacts()
+        rows = conn.execute(
+            "SELECT e.mensagem_externa_id AS external_message_id FROM socialmei.crm_eventos_canal e "
+            "JOIN socialmei.me_messages m ON m.workspace_id=e.workspace_id AND m.id=e.inbox_message_id "
+            "AND m.origin='waha' JOIN socialmei.me_conversations v "
+            "ON v.workspace_id=m.workspace_id AND v.id=m.conversation_id "
+            "LEFT JOIN socialmei.wa_bot_decisions d ON d.workspace_id=e.workspace_id "
+            "AND d.channel_id=e.canal_id AND d.source_message_id=m.id "
+            "LEFT JOIN socialmei.wa_bot_conversations s ON s.workspace_id=e.workspace_id "
+            "AND s.channel_id=e.canal_id AND s.conversation_id=m.conversation_id "
+            "WHERE e.workspace_id=%s AND e.canal_id=%s AND e.tipo='message' AND e.status='processado' "
+            "AND e.waha_account_snapshot=%s AND v.account_ref=%s "
+            "AND (%s OR v.contact_ref=ANY(%s)) "
+            "AND m.occurred_at>=NOW()-INTERVAL '15 minutes' AND m.occurred_at<=NOW()+INTERVAL '1 minute' "
+            "AND (d.id IS NULL OR (d.status='planned' AND d.created_at>NOW()-INTERVAL '2 minutes' "
+            "AND d.binding_hash=%s AND d.state_revision=s.revision)) "
+            "ORDER BY m.occurred_at,m.id LIMIT 50",
+            (channel['workspace_id'], channel['channel_id'], channel['identificador_conta'],
+             'waha:' + channel['identificador_conta'], contacts is None, list(contacts or []),
+             channel['binding_hash']),
+        ).fetchall()
+    return {'sources': [{'instance': channel['instancia'], **row} for row in rows]}
+
+
+@router.post(INTERNAL + '/decisions')
+def prepare(payload: Source, request: Request):
+    require_bot()
+    with operation_database() as conn:
+        channel = authorize(conn, request)
+        if payload.instance != channel['instancia']:
+            raise HTTPException(401, 'Credencial de atendimento inválida.')
+        workspace, cid = channel['workspace_id'], channel['channel_id']
+        message = conn.execute(
+            "SELECT m.*,v.contact_ref,e.dados_normalizados AS ingress_data FROM socialmei.crm_eventos_canal e "
+            "JOIN socialmei.me_messages m ON m.workspace_id=e.workspace_id AND m.id=e.inbox_message_id AND m.origin='waha' "
+            "JOIN socialmei.me_conversations v ON v.workspace_id=m.workspace_id AND v.id=m.conversation_id "
+            "WHERE e.workspace_id=%s AND e.canal_id=%s AND e.mensagem_externa_id=%s AND e.status='processado' "
+            "AND e.waha_account_snapshot=%s AND v.account_ref=%s AND e.tipo='message'",
+            (workspace, cid, payload.external_message_id, channel['identificador_conta'], 'waha:' + channel['identificador_conta']),
+        ).fetchone()
+        if not message:
+            raise HTTPException(404, 'Mensagem recebida não encontrada neste canal.')
+        contacts = settings.whatsapp_bot_allowed_contacts()
+        if contacts is not None and message['contact_ref'] not in contacts:
+            raise HTTPException(403, 'Contato não autorizado para este piloto.')
+        conv = message['conversation_id']
+        conn.execute("INSERT INTO socialmei.wa_bot_conversations(workspace_id,channel_id,conversation_id) VALUES(%s,%s,%s) "
+                     "ON CONFLICT DO NOTHING", (workspace, cid, conv))
+        state = conn.execute("SELECT * FROM socialmei.wa_bot_conversations WHERE workspace_id=%s AND channel_id=%s "
+                             "AND conversation_id=%s FOR UPDATE", (workspace, cid, conv)).fetchone()
+        existing = conn.execute("SELECT * FROM socialmei.wa_bot_decisions WHERE workspace_id=%s AND channel_id=%s AND source_message_id=%s",
+                                (workspace, cid, message['id'])).fetchone()
+        if existing:
+            return view(existing)
+        nav_enabled = native_list_canary(channel, message['contact_ref'])
+        metadata = message.get('ingress_data') or {}
+        token = metadata.get('wa_selection')
+        if nav_enabled and navigation.valid_token(token):
+            message['catalog_target'] = navigation.resolve(conn, channel, conv, token)
+            if message['catalog_target'].get('route') == 'resume' and not pending_human_reply(conn, workspace, cid, conv, message['id']):
+                message['text'] = '0'
+                state['state'] = 'menu'
+        now = datetime.now(timezone.utc)
+        old = message['occurred_at'] < now - timedelta(minutes=15) or message['occurred_at'] > now + timedelta(minutes=1)
+        outdated = state['last_occurred_at'] is not None and (message['occurred_at'], message['id']) < (state['last_occurred_at'], state['last_message_id'])
+        if old or outdated:
+            next_state = state['state']
+            result = {'action': 'stale_message', 'text': '', 'choices': [], 'items': [], 'handoff': state['state'] == 'human'}
+        else:
+            recent = conn.execute("SELECT count(*) AS n FROM (SELECT 1 FROM socialmei.wa_bot_decisions "
+                                  "WHERE workspace_id=%s AND channel_id=%s AND conversation_id=%s "
+                                  "AND created_at>NOW()-INTERVAL '1 minute' AND status<>'skipped' LIMIT 20) limited",
+                                  (workspace, cid, conv)).fetchone()['n']
+            if recent >= 20 and state['state'] != 'human' and (message['text'] or '').strip().casefold() not in HUMAN_CHOICES:
+                next_state = state['state']
+                result = {'action': 'rate_limited', 'text': '', 'choices': [], 'items': [], 'handoff': False}
+            else:
+                booking_result = booking_flow.respond(conn, channel, message, state, native=nav_enabled)
+                if booking_result is None:
+                    next_state, result = _catalog_answer(conn, workspace, state['state'], message['text'], message.get('catalog_target'), nav_enabled)
+                    result = menu_business_identity(conn, workspace, booking_flow.with_entry(conn, workspace, result))
+                else:
+                    next_state, result = booking_result
+        revision = state['revision'] + (0 if old or outdated else 1)
+        if not old and not outdated:
+            conn.execute("UPDATE socialmei.wa_bot_conversations SET state=%s,revision=%s,"
+                     "last_message_id=%s,last_occurred_at=%s,updated_at=CASE WHEN workspace_id=60 AND state='human' AND %s='human' THEN updated_at ELSE NOW() END "
+                     "WHERE workspace_id=%s AND channel_id=%s AND conversation_id=%s",
+                     (next_state, revision, message['id'], message['occurred_at'], next_state, workspace, cid, conv))
+        row = conn.execute("INSERT INTO socialmei.wa_bot_decisions(id,workspace_id,channel_id,conversation_id,source_message_id,binding_hash,state_revision,result,status) "
+                           "VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING *",
+                           (uuid4(), workspace, cid, conv, message['id'], channel['binding_hash'], max(1, revision), Jsonb(result), 'planned' if result['text'] else 'skipped')).fetchone()
+        return view(row)
+
+
+def locked_decision(conn, channel, decision_id):
+    row = conn.execute("SELECT * FROM socialmei.wa_bot_decisions WHERE workspace_id=%s AND channel_id=%s AND id=%s FOR UPDATE",
+                       (channel['workspace_id'], channel['channel_id'], decision_id)).fetchone()
+    if not row:
+        raise HTTPException(404, 'Operação não encontrada.')
+    if row['binding_hash'] != channel['binding_hash']:
+        raise HTTPException(409, 'O vínculo do canal mudou. Não repita esta operação.')
+    return row
+
+
+@router.post(INTERNAL + '/decisions/{decision_id}/claim')
+def claim(decision_id: UUID, payload: Strict, request: Request):
+    require_bot()
+    with operation_database() as conn:
+        channel = authorize(conn, request)
+        row = locked_decision(conn, channel, decision_id)
+        state = conn.execute("SELECT s.revision,v.contact_ref FROM socialmei.wa_bot_conversations s "
+                             "JOIN socialmei.me_conversations v ON v.workspace_id=s.workspace_id AND v.id=s.conversation_id "
+                             "WHERE s.workspace_id=%s AND s.channel_id=%s AND s.conversation_id=%s FOR SHARE OF s",
+                             (channel['workspace_id'], channel['channel_id'], row['conversation_id'])).fetchone()
+        permitted = row['status'] == 'planned' and row['created_at'] > datetime.now(timezone.utc) - timedelta(minutes=2) and row['state_revision'] == state['revision']
+        contacts = settings.whatsapp_bot_allowed_contacts()
+        permitted = permitted and (contacts is None or state['contact_ref'] in contacts)
+        permitted = permitted and not pending_human_reply(
+            conn, channel['workspace_id'], channel['channel_id'], row['conversation_id'], row['source_message_id'])
+        # Catalog and booking choices can contain opaque "sm:" references.
+        # Never downgrade a planned native list into plain-text delivery:
+        # those references are internal IDs, not customer-facing menu labels.
+        native_verified = native_list_canary(channel, state['contact_ref'])
+        permitted = permitted and (not row['result'].get('catalog_navigation') or native_verified)
+        if not permitted:
+            return {'operation_id': str(row['id']), 'dispatch_allowed': False, 'status': row['status']}
+        conn.execute("UPDATE socialmei.wa_bot_decisions SET status='claimed',claimed_at=NOW() WHERE id=%s", (decision_id,))
+        delivery = render_waha(channel['sessao'], state['contact_ref'].removeprefix('waha:'), row['result']['text'], (navigation.offered_choices(row) if row['result'].get('catalog_navigation') else row['result']['choices']),
+                               engine='GOWS', list_verified=native_verified)
+        return {'operation_id': str(row['id']), 'dispatch_allowed': True, 'status': 'claimed', 'delivery': delivery}
+
+
+@router.post(INTERNAL + '/decisions/{decision_id}/receipt')
+def receipt(decision_id: UUID, payload: Receipt, request: Request):
+    require_bot()
+    with operation_database() as conn:
+        channel = authorize(conn, request)
+        row = locked_decision(conn, channel, decision_id)
+        if row['status'] in {'confirmed', 'uncertain'}:
+            if (row['status'], row['provider_message_id']) != (payload.status, payload.provider_message_id):
+                raise HTTPException(409, 'Recibo divergente. Não repita o envio.')
+            return view(row)
+        if row['status'] != 'claimed':
+            raise HTTPException(409, 'Operação ainda não reservada para envio.')
+        try:
+            row = conn.execute("UPDATE socialmei.wa_bot_decisions SET status=%s,provider_message_id=%s,finished_at=NOW() WHERE id=%s RETURNING *",
+                               (payload.status, payload.provider_message_id, decision_id)).fetchone()
+        except psycopg.errors.UniqueViolation:
+            raise HTTPException(409, 'Recibo já utilizado em outra operação.') from None
+        return view(row)

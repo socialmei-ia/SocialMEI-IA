@@ -70,9 +70,11 @@
       return null;
     }
   }
-  var reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
   function calmo() {
-    return document.documentElement.classList.contains("calm") || reduceMotion.matches;
+    return (
+      document.documentElement.classList.contains("calm") ||
+      matchMedia("(prefers-reduced-motion: reduce)").matches
+    );
   }
   function toast(t) {
     var e = document.createElement("div");
@@ -145,19 +147,19 @@
       aba(r, false);
       document.title =
         (r === "recuperar" ? "Recuperar senha" : r === "entrar" ? "Entrar" : "Criar conta") +
-        " · SocialMEI.IA";
+        " | SocialMEI-IA";
     } else if (r === "comecar") {
       mostrar("ob");
       iniciarOb();
-      document.title = "Conte do seu negócio · SocialMEI.IA";
+      document.title = "Conte do seu negócio | SocialMEI-IA";
     } else if (/^(produto|paramei|como|ia|demo|precos|perguntas)$/.test(r)) {
       mostrar("site");
-      document.title = "SocialMEI.IA · Seu negócio, mais simples";
+      document.title = "SocialMEI-IA | Seu negócio, mais simples";
       rolar(r, !primeira);
       return;
     } else {
       mostrar("site");
-      document.title = "SocialMEI.IA · Seu negócio, mais simples";
+      document.title = "SocialMEI-IA | Seu negócio, mais simples";
       if (!primeira) window.scrollTo(0, 0);
     }
     if (!primeira) {
@@ -183,6 +185,58 @@
     if (!e) return;
     e.scrollIntoView({ behavior: suave && !calmo() ? "smooth" : "auto", block: "start" });
   }
+  /* menu: marca a seção visível durante a rolagem (aria-current="location").
+     O clique marca o destino na hora e segura a leitura até a rolagem assentar. */
+  (function () {
+    var ids = ["produto", "paramei", "como", "demo", "precos", "perguntas"];
+    var links = {};
+    ids.forEach(function (id) {
+      var a = document.querySelector('#links a[data-go="' + id + '"]');
+      if (a) links[id] = a;
+    });
+    var atual = null, trava = false, quadro = 0, timer = 0, limite = 0;
+    function marcar(id) {
+      if (id === atual) return;
+      atual = id;
+      Object.keys(links).forEach(function (k) {
+        if (k === id) links[k].setAttribute("aria-current", "location");
+        else links[k].removeAttribute("aria-current");
+      });
+    }
+    function medir() {
+      quadro = 0;
+      if (trava) return;
+      var primeira = document.getElementById(ids[0]);
+      if (!primeira || !primeira.offsetHeight) return marcar("");
+      var linha = innerHeight * 0.3, achada = "", ultima = null;
+      ids.forEach(function (id) {
+        var s = document.getElementById(id);
+        if (!s || !s.offsetHeight) return;
+        var r = s.getBoundingClientRect();
+        if (r.top <= linha) { achada = id; ultima = r; }
+      });
+      if (ultima && ultima.bottom < linha && achada === ids[ids.length - 1]) achada = "";
+      marcar(achada);
+    }
+    function agendar() { if (!quadro) quadro = requestAnimationFrame(medir); }
+    function soltar() { trava = false; clearTimeout(timer); clearTimeout(limite); agendar(); }
+    addEventListener("scroll", function () {
+      if (trava) { clearTimeout(timer); timer = setTimeout(soltar, 160); }
+      agendar();
+    }, { passive: true });
+    addEventListener("resize", agendar);
+    addEventListener("hashchange", function () { setTimeout(agendar, 80); });
+    document.addEventListener("click", function (e) {
+      var a = e.target.closest("#links a[data-go]");
+      if (!a || !links[a.dataset.go]) return;
+      marcar(a.dataset.go);
+      trava = true;
+      clearTimeout(timer); clearTimeout(limite);
+      timer = setTimeout(soltar, 700);   /* sem rolagem (já no lugar) ou rolagem curta */
+      limite = setTimeout(soltar, 2200); /* teto de segurança */
+    });
+    agendar();
+  })();
   document.addEventListener("click", function (e) {
     var a = e.target.closest("[data-go]");
     if (a) {
@@ -248,40 +302,40 @@
   /* mensagens de exemplo da prévia no topo da landing */
   var CHATS = [
     {
-      n: "Lia (exemplo)",
-      i: "L",
+      n: "Emilly",
+      i: "E",
       bg: "#e4dcff",
       fg: "#4a3aa8",
       p: "Como pagar o kit?",
       m: [
         ["rx", "Quero comprar o kit. Pode me explicar como pagar?"],
-        ["tx", "Claro, Lia! Pode ser Pix ou na retirada."],
+        ["tx", "Claro, Emilly! Pode ser Pix ou na retirada."],
       ],
-      s: "Lia, o kit está separado e o pagamento pode ser na retirada. Quer combinar o horário?",
+      s: "Emilly, o kit está separado e o pagamento pode ser na retirada. Quer combinar o horário?",
     },
     {
-      n: "Bruno (exemplo)",
-      i: "B",
+      n: "Richard",
+      i: "R",
       bg: "#dbe8ff",
       fg: "#1d4fb8",
       p: "Qual o valor?",
       m: [
         ["rx", "Qual o valor do serviço?"],
-        ["tx", "Oi, Bruno! Posso te mandar um orçamento ainda hoje."],
+        ["tx", "Oi, Richard! Posso te mandar um orçamento ainda hoje."],
       ],
-      s: "Bruno, o serviço sai a partir de R$ 90. Me conta o que você precisa para eu fechar o valor certinho?",
+      s: "Richard, o serviço sai a partir de R$ 90. Me conta o que você precisa para eu fechar o valor certinho?",
     },
     {
-      n: "Ana (exemplo)",
-      i: "A",
+      n: "Lyly",
+      i: "L",
       bg: "#dcf3df",
-      fg: "#2a7a3a",
+      fg: "#1e6a31",
       p: "Atende na minha cidade?",
       m: [
         ["rx", "Você atende na minha cidade?"],
         ["tx", "Atendo sim! Me diz o bairro que eu confirmo."],
       ],
-      s: "Ana, atendemos sim! Me passa seu bairro e o melhor dia para eu combinar com você?",
+      s: "Lyly, atendemos sim! Me passa seu bairro e o melhor dia para eu combinar com você?",
     },
   ];
   var cAtual = 0,
@@ -534,7 +588,7 @@
     $("#pvProg").textContent = "Prévia local · " + (a + b + c) + " de 3 dados";
     $("#meter").dataset.s = s.s;
     $("#hPass").textContent = s.t;
-    ws(n, n ? n.split(/\s+/)[0] : "", "Seu espaço de exemplo");
+    ws(n, n ? n.split(/\s+/)[0] : "", "Seu espaço");
     marca("cNome", n.length >= 2);
     marca("cMail", emailOk(m));
     marca("cTel", t.replace(/\D/g, "").length >= 10);
@@ -565,7 +619,7 @@
     ws(
       n,
       n ? n.split(/\s+/)[0] : "",
-      perfil && perfil.negocio ? perfil.negocio : "Seu espaço de exemplo",
+      perfil && perfil.negocio ? perfil.negocio : "Seu espaço",
     );
     var e = $("#eMailL");
     if (e && !e.value && perfil && perfil.email) {
@@ -718,6 +772,7 @@
         var registration = { nome: n, email: m, telefone: t, senha: p };
         if ($("#cInvite")) registration.convite = $("#cInvite").value.trim();
         await account.register(registration);
+        window.dispatchEvent(new CustomEvent("smei:conta-criada"));
       } catch (error) {
         erro("ePass", error.message, "cPass");
       } finally {
@@ -729,6 +784,7 @@
     }
     /* a senha nunca é guardada */
     $("#cPass").value = "";
+    window.dispatchEvent(new CustomEvent("smei:conta-criada"));
     var dados = { nome: n, email: m, tel: t, criadoEm: new Date().toISOString(), demo: true };
     enviar($("#fC"), function () {
       salvarPerfil(dados);
@@ -785,7 +841,7 @@
       if (perfil && perfil.negocio) {
         salvarPerfil({ email: m });
         ls(SESSAO, "1");
-        toast("Você entrou (demonstração)");
+        toast("Você entrou");
         setTimeout(function () {
           location.href = "socialmei-app.html#/inicio";
         }, 500);
@@ -1310,7 +1366,7 @@
       if (perfil && perfil.negocio) {
         salvarPerfil({ tel: tel });
         ls(SESSAO, "1");
-        toast("Você entrou (demonstração)");
+        toast("Você entrou");
         setTimeout(function () {
           location.href = "socialmei-app.html#/inicio";
         }, 500);
@@ -1554,13 +1610,23 @@
       canais: perfil.canais || ["WhatsApp", "Instagram"],
       foco: perfil.foco || "",
       cor: lg("smei-brand") || "",
+      areaAuto: !perfil.areaId && !!ar /* v5: marcada pela escolha da página inicial, não pela pessoa */,
     };
   }
   function iniciarOb() {
     if (!obEstado) {
       obEstado = (json(RASCUNHO) && json(RASCUNHO).e) || novoEstado();
       passo = (json(RASCUNHO) && json(RASCUNHO).p) || 0;
+      /* v5: se a área veio só da página inicial e a pessoa trocou o ramo lá, acompanha; nada que ela marcou aqui é trocado */
+      var rg = ramoGuardado();
+      if (obEstado.areaAuto && rg && rg !== obEstado.area) {
+        var an = AREAS.filter(function (x) { return x.id === rg; })[0];
+        obEstado.area = rg;
+        obEstado.tipo = an ? an.tipo : obEstado.tipo;
+        obEstado.ofertas = [];
+      }
     }
+    passoDesenhado = -1; /* abertura do onboarding: a animação de entrada roda uma vez */
     desenharOb();
     var pv = $(".side .pvc"); /* v21: o painel entra suave, uma vez por abertura */
     if (pv) {
@@ -1585,7 +1651,17 @@
     return ((p[0] || "S")[0] + (p[1] ? p[1][0] : (p[0] || "M")[1] || "M")).toUpperCase();
   };
 
+  var passoDesenhado = -1;
   function desenharOb() {
+    /* Mesmo passo (escolher área, tipo, oferta...): não repete a animação de entrada e mantém a rolagem,
+       para a tela não piscar nem pular. A animação só roda ao trocar de passo. */
+    var mesmo = passoDesenhado === passo,
+      rolagens = [];
+    if (mesmo) {
+      for (var el = $("#obCard"); el; el = el.parentElement) rolagens.push([el, el.scrollTop]);
+      rolagens.push([document.scrollingElement, document.scrollingElement.scrollTop]);
+    }
+    passoDesenhado = passo;
     $("#stepper").innerHTML = PASSOS.map(function (t, k) {
       return (
         '<li class="' +
@@ -1622,6 +1698,12 @@
         : '<p class="ob-ja"><button class="lk" type="button" data-ob="ja">Já está bom: começar agora e ajustar depois</button></p>') +
       "</div>";
     if (ult) $("#obCard .sp").hidden = true;
+    if (mesmo) {
+      $("#obCard .ob-step").style.animation = "none";
+      rolagens.forEach(function (r) {
+        if (r[0]) r[0].scrollTop = r[1];
+      });
+    }
     sincronizar();
   }
   function passo0() {
@@ -1650,7 +1732,11 @@
           "</small></span></button>"
         );
       }).join("") +
-      '</div><div class="err" id="eoArea" role="alert"></div></div>' +
+      '</div><div class="err" id="eoArea" role="alert"></div>' +
+      (e.areaAuto && e.area
+        ? '<p class="m ob-ramo-hint" style="margin-top:8px">Já marcamos “' + esc((area() || {}).t || "") + '” porque você escolheu isso na página inicial. Pode trocar.</p>'
+        : "") +
+      "</div>" +
       '<div class="fld"><span class="lab" id="lTipo">Você trabalha com…</span><div class="opts" role="radiogroup" aria-labelledby="lTipo">' +
       [
         ["produtos", "Produtos"],
@@ -1943,6 +2029,7 @@
     var e = obEstado;
     if (b.dataset.area) {
       e.area = b.dataset.area;
+      e.areaAuto = false;
       var a = area();
       if (!e.tipo) e.tipo = a.tipo;
       e.ofertas = [];
@@ -2315,5 +2402,4 @@
   new MutationObserver(function () {
     agendarChat();
   }).observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-  if (reduceMotion.addEventListener) reduceMotion.addEventListener("change", agendarChat);
 })();

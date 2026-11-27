@@ -126,7 +126,7 @@
     reply.setAttribute("aria-live", "polite");
     previewBox.append(choiceLabel, productLabel, previewButton, reply);
     section.append(feedback, refresh, previewBox, list);
-    (view.querySelector(".pg > .g2 > .fl") || view).append(section);
+    (view.querySelector("[data-wa-catalog-slot]") || view.querySelector(".pg > .g2 > .fl") || view).append(section);
     const current = () => section.isConnected && scope() === expected;
     previewButton.onclick = async () => {
       if (!current()) return;
@@ -274,7 +274,9 @@
       }
     }
     refresh.onclick = load;
-    load();
+    section.__smLoad = load;
+    /* v7.6.1: dentro do painel de Integrações a consulta é feita sob demanda (aba Catálogo), sem repetir a do hub */
+    if (!section.closest("[data-wa-catalog-slot]")) load();
   }
   const render = window.render;
   if (typeof render === "function")

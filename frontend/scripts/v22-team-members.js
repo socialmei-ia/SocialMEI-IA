@@ -1,4 +1,7 @@
-/* Existing accounts only; team access belongs to the active workspace. */
+/* Equipe do negócio · v7.1. Somente contas já cadastradas; o acesso vale só para o negócio ativo.
+   Contratos inalterados: GET/POST /team/members, PATCH/DELETE /team/members/:id (com expected_role).
+   Nada aparece como alterado antes da resposta do servidor: durante a chamada a linha fica
+   "aguardando confirmação"; só depois do sucesso a lista é recarregada do servidor. */
 (() => {
   const auth = window.SocialMEIAuth;
   if (!auth?.remote || window.SocialMEITeam) return;
@@ -6,323 +9,210 @@
   link.rel = "stylesheet";
   link.href = "styles/v22-team-members.css";
   document.head.append(link);
-  const roles = {
-    owner: "Proprietário",
-    admin: "Administrador",
-    member: "Operacional",
-    viewer: "Leitura",
-    report_viewer: "Somente relatórios",
+  const roles = { owner: "Proprietário", admin: "Administrador", member: "Operacional", viewer: "Leitura", report_viewer: "Somente relatórios" };
+  const tone = { owner: "own", admin: "adm", member: "mem", viewer: "rep", report_viewer: "rep" };
+  const blurb = {
+    member: "Atua nos módulos disponíveis: CRM, agenda e vendas.",
+    report_viewer: "Consulta relatórios. Não edita CRM, agenda nem vendas.",
   };
-  const el = (tag, text) => {
+  const EMAIL = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$/;
+  const el = (tag, text, cls) => {
     const node = document.createElement(tag);
     if (text !== undefined) node.textContent = text;
+    if (cls) node.className = cls;
     return node;
   };
   const scope = () => auth.current && `${auth.current.usuario.id}:${auth.current.negocio.id}`;
+  const initials = (name) => String(name || "?").trim().split(/\s+/).slice(0, 2).map((p) => p[0]).join("").toUpperCase() || "?";
+  const confirmDlg = (o) => window.SocialMEIAccess?.confirmDialog ? window.SocialMEIAccess.confirmDialog(o) : Promise.resolve(confirm([o.title, ...o.lines].join("\n")));
+  let tries = 0;
+
   function mount() {
-    if (
-      !auth.current ||
-      !["owner", "admin"].includes(auth.current.papel) ||
-      !location.hash.startsWith("#/config/conta")
-    )
-      return;
+    if (!auth.current || !["owner", "admin"].includes(auth.current.papel) || !location.hash.startsWith("#/config/conta")) return;
     const view = document.getElementById("v");
     if (!view || view.querySelector("[data-team-members]")) return;
+    /* o painel unificado vem de account-access.js; espera um pouco por ele antes de montar sozinho */
+    const shell = window.SocialMEIAccess?.shell?.();
+    if (!shell && window.SocialMEIAccess === undefined && tries++ < 20) return void setTimeout(mount, 100);
     const expected = scope();
-    const panel = el("section");
-    panel.className = "sm-team";
+    const panel = el("section", undefined, "sm-team sm-team-v71");
     panel.dataset.teamMembers = "true";
-    panel.append(el("h2", "Equipe do negócio"));
-    panel.append(
-      el(
-        "p",
-        "Autorize somente contas SocialMEI já cadastradas. Este acesso vale apenas para o negócio ativo; nenhum convite ou e-mail será enviado.",
-      ),
-    );
-    const message = el("p", "Carregando equipe…");
-    message.setAttribute("role", "status");
-    message.setAttribute("aria-live", "polite");
-    const list = el("ul");
-    panel.append(message, list);
-    view.append(panel);
-    const alive = () => panel.isConnected && scope() === expected;
-    const choices = () => {
-      const select = el("select");
-      for (const role of ["member", "report_viewer"]) {
-        const option = el("option", roles[role]);
-        option.value = role;
-        select.append(option);
-      }
-      return select;
-    };
+    (shell ? shell.members : view).append(panel);
     const manage = auth.current.papel === "owner";
-    const refresh = async () => {
-      const data = await auth.request("/team/members");
-      if (!alive()) return;
-      list.replaceChildren();
-      for (const member of data.items) {
-        const row = el("li");
-        const details = el("div");
-        details.append(
-          el("strong", member.nome),
-          el("span", member.email),
-          el(
-            "span",
-            `${roles[member.role] || member.role}${member.ativo ? "" : " · conta inativa"}`,
-          ),
-        );
-        row.append(details);
-        if (
-          manage &&
-          member.id !== auth.current.usuario.id &&
-          !["owner", "admin"].includes(member.role)
-        ) {
-          const controls = el("div");
-          controls.className = "sm-team-actions";
-          const select = choices();
-          if (member.role === "viewer") {
-            const current = el("option", roles.viewer);
-            current.value = "viewer";
-            select.prepend(current);
-          }
-          select.value = member.role;
-          select.setAttribute("aria-label", "Acesso de " + member.nome);
-          const save = el("button", "Alterar acesso");
-          save.type = "button";
-          save.className = "btn o";
-          save.onclick = async () => {
-            if (!alive() || select.value === member.role) return;
-            if (
-              !confirm(
-                "Alterar o acesso desta conta somente neste negócio? As sessões neste negócio serão encerradas.",
-              )
-            )
-              return;
-            save.disabled = true;
-            try {
-              await auth.request("/team/members/" + member.id, "PATCH", {
-                role: select.value,
-                expected_role: member.role,
-              });
-              if (alive()) {
-                await refresh();
-                message.textContent =
-                  "Acesso alterado. A pessoa deverá entrar novamente neste negócio.";
-              }
-            } catch (error) {
-              if (alive()) {
-                message.textContent = error.message;
-                save.disabled = false;
-              }
-            }
-          };
-          const revoke = el("button", "Revogar acesso");
-          revoke.type = "button";
-          revoke.className = "btn o";
-          revoke.onclick = async () => {
-            if (
-              !alive() ||
-              !confirm(
-                "Revogar o acesso desta conta somente a este negócio? A conta e seus outros negócios serão preservados.",
-              )
-            )
-              return;
-            revoke.disabled = true;
-            try {
-              await auth.request("/team/members/" + member.id, "DELETE", {
-                expected_role: member.role,
-              });
-              if (alive()) {
-                await refresh();
-                message.textContent = "Acesso revogado neste negócio.";
-              }
-            } catch (error) {
-              if (alive()) {
-                message.textContent = error.message;
-                revoke.disabled = false;
-              }
-            }
-          };
-          controls.append(select, save, revoke);
-          row.append(controls);
-        }
-        list.append(row);
-      }
-      message.textContent = data.truncated
-        ? "Exibindo os primeiros 50 integrantes. Nenhum acesso foi modificado."
-        : "A conta de cada pessoa é preservada. Proprietários e administradores não são alterados por esta tela.";
-    };
-    const update = el("button", "Atualizar equipe");
-    update.type = "button";
-    update.className = "btn o";
-    update.onclick = () =>
-      refresh().catch((error) => {
-        if (alive()) message.textContent = error.message;
-      });
-    panel.append(update);
+    const alive = () => panel.isConnected && scope() === expected;
+    let members = null, phase = "loading", filter = "";
+    const note = el("p", "", "sm-hub-status");
+    note.setAttribute("role", "status");
+    note.setAttribute("aria-live", "polite");
+    const say = (text, kind = "") => { note.textContent = text; note.dataset.kind = kind; };
+
+    panel.append(el("p", "Autorize somente contas SocialMEI que já existem. Este acesso vale apenas para este negócio. Nenhum e-mail é enviado por esta tela.", "sm-hub-detail"));
+
+    /* ---------- adicionar conta existente ---------- */
     if (manage) {
-      const form = el("form");
-      const emailLabel = el("label", "E-mail da conta existente");
+      const form = el("form", undefined, "sm-acc-add");
+      form.noValidate = true;
+      const f1 = el("label", undefined, "sm-acc-field");
+      f1.append(el("span", "E-mail da conta existente"));
       const email = el("input");
-      email.type = "email";
-      email.required = true;
-      email.maxLength = 255;
-      email.autocomplete = "off";
-      emailLabel.append(email);
-      const roleLabel = el("label", "Permissão no negócio");
-      const select = choices();
-      roleLabel.append(select);
-      const grant = el("button", "Adicionar à equipe");
+      email.type = "email"; email.maxLength = 255; email.autocomplete = "off"; email.placeholder = "nome@empresa.com";
+      email.setAttribute("aria-describedby", "sm-team-err");
+      f1.append(email);
+      const f2 = el("label", undefined, "sm-acc-field");
+      f2.append(el("span", "Acesso no negócio"));
+      const role = el("select");
+      for (const r of ["member", "report_viewer"]) { const o = el("option", roles[r]); o.value = r; role.append(o); }
+      f2.append(role);
+      const grant = el("button", "Adicionar à equipe", "btn");
       grant.type = "submit";
-      grant.className = "btn";
-      form.append(emailLabel, roleLabel, grant);
+      const hint = el("p", blurb.member, "sm-hub-detail sm-acc-hint");
+      role.addEventListener("change", () => { hint.textContent = blurb[role.value]; });
+      const err = el("p", "", "sm-hub-status");
+      err.id = "sm-team-err"; err.setAttribute("role", "alert");
+      form.append(f1, f2, grant);
       form.onsubmit = async (event) => {
         event.preventDefault();
-        if (!alive() || grant.disabled || !form.reportValidity()) return;
-        grant.disabled = true;
+        if (!alive() || grant.disabled) return;
+        const value = email.value.trim();
+        if (!EMAIL.test(value)) { err.textContent = "Informe um e-mail válido, como nome@empresa.com."; err.dataset.kind = "err"; email.setAttribute("aria-invalid", "true"); return email.focus(); }
+        err.textContent = ""; err.dataset.kind = ""; email.removeAttribute("aria-invalid");
+        grant.disabled = true; say("Aguardando confirmação do servidor…");
         try {
-          const data = await auth.request("/team/members", "POST", {
-            email: email.value.trim(),
-            role: select.value,
-          });
+          const data = await auth.request("/team/members", "POST", { email: value, role: role.value });
           if (alive()) {
-            form.reset();
+            form.reset(); hint.textContent = blurb.member;
             await refresh();
-            message.textContent = data.already_member
-              ? "A conta já possui esse acesso."
-              : "Conta adicionada à equipe deste negócio.";
+            say(data.already_member ? "A conta já possui esse acesso." : "Conta adicionada à equipe deste negócio.", "ok");
           }
         } catch (error) {
-          if (alive()) message.textContent = error.message;
+          if (alive()) say(error.message + " Nada foi alterado.", "err");
         } finally {
           if (alive()) grant.disabled = false;
         }
       };
-      panel.append(
-        form,
-        el(
-          "p",
-          "Operacional permite atuar nos módulos disponíveis. Somente relatórios não permite editar CRM, agenda ou vendas. Esta tela não cria usuários nem define senhas.",
-        ),
-      );
-      const inviteToggle = el("button", "Convidar por e-mail");
-      inviteToggle.type = "button";
-      inviteToggle.className = "btn o";
-      inviteToggle.onclick = async () => {
-        if (!alive() || inviteToggle.disabled) return;
-        inviteToggle.disabled = true;
-        try {
-          const data = await auth.request("/team/invitations");
+      panel.append(form, hint, err);
+    } else panel.append(el("p", "Somente o proprietário pode adicionar, alterar ou revogar integrantes. Você pode consultar a equipe abaixo.", "sm-acc-off"));
+
+    /* ---------- lista ---------- */
+    const bar = el("div", undefined, "sm-acc-bar");
+    const count = el("b", "Equipe");
+    const search = el("input");
+    search.type = "search"; search.placeholder = "Buscar por nome ou e-mail"; search.setAttribute("aria-label", "Buscar integrante"); search.hidden = true;
+    search.addEventListener("input", () => { filter = search.value.trim().toLowerCase(); paint(); });
+    const update = el("button", "Atualizar equipe", "btn o");
+    update.type = "button";
+    update.onclick = () => { say("Consultando equipe…"); refresh().then(() => alive() && say("Equipe atualizada.", "ok")).catch(fail); };
+    bar.append(count, search, update);
+    const list = el("ul", undefined, "sm-acc-list");
+    panel.append(bar, note, list);
+    const fail = (error) => { if (alive()) { phase = "error"; paint(); say(error.message, "err"); } };
+
+    function memberRow(m) {
+      const li = el("li", undefined, "sm-acc-member");
+      li.dataset.memberId = String(m.id);
+      const you = m.id === auth.current.usuario.id;
+      const av = el("span", initials(m.nome), "sm-acc-av sm-acc-r-" + (tone[m.role] || "rep"));
+      av.setAttribute("aria-hidden", "true");
+      const who = el("div", undefined, "sm-acc-who");
+      const line = el("div", undefined, "sm-acc-name");
+      line.append(el("strong", m.nome));
+      if (you) line.append(el("span", "Você", "sm-hub-badge sm-hub-ok"));
+      if (!m.ativo) line.append(el("span", "Conta inativa", "sm-hub-badge sm-hub-off"));
+      const badge = el("span", roles[m.role] || m.role, "sm-acc-role sm-acc-r-" + (tone[m.role] || "rep"));
+      badge.title = window.SocialMEIAccess?.roleInfo?.[m.role]?.[1] || "";
+      who.append(line, el("span", m.email, "sm-hub-detail"), badge);
+      li.append(av, who);
+      if (manage && !you && !["owner", "admin"].includes(m.role)) {
+        const controls = el("div", undefined, "sm-acc-actions");
+        const select = el("select");
+        const opts = m.role === "viewer" ? ["viewer", "member", "report_viewer"] : ["member", "report_viewer"];
+        for (const r of opts) { const o = el("option", roles[r]); o.value = r; select.append(o); }
+        select.value = m.role;
+        select.setAttribute("aria-label", "Acesso de " + m.nome);
+        const save = el("button", "Alterar acesso", "btn o");
+        save.type = "button";
+        const revoke = el("button", "Revogar acesso", "btn o sm-acc-revoke");
+        revoke.type = "button";
+        const busyRow = (on, text) => { li.setAttribute("aria-busy", String(on)); for (const c of [select, save, revoke]) c.disabled = on; if (text) say(text); };
+        save.onclick = async () => {
+          if (!alive() || select.value === m.role) { if (select.value === m.role) say("Escolha um acesso diferente do atual para alterar."); return; }
+          const ok = await confirmDlg({
+            title: "Alterar o acesso de " + m.nome + "?",
+            lines: ["De " + roles[m.role] + " para " + roles[select.value] + ", somente neste negócio.", "As sessões desta pessoa neste negócio serão encerradas e ela precisará entrar de novo."],
+            confirmLabel: "Alterar acesso",
+          });
+          if (!ok || !alive()) return;
+          busyRow(true, "Aguardando confirmação do servidor…");
+          try {
+            await auth.request("/team/members/" + m.id, "PATCH", { role: select.value, expected_role: m.role });
+            if (alive()) { await refresh(); say("Acesso alterado. A pessoa deverá entrar novamente neste negócio.", "ok"); }
+          } catch (error) {
+            if (alive()) { say(error.message + " Nada foi alterado.", "err"); busyRow(false); }
+          }
+        };
+        revoke.onclick = async () => {
           if (!alive()) return;
-          const section = el("section");
-          section.append(el("h3", "Convites para este negócio"));
-          const inviteForm = el("form");
-          const addressLabel = el("label", "E-mail do convidado");
-          const address = el("input");
-          address.type = "email";
-          address.required = true;
-          address.maxLength = 255;
-          addressLabel.append(address);
-          const permissionLabel = el("label", "Permissão a conceder");
-          const permission = el("select");
-          permission.setAttribute("aria-label", "Permissão a conceder");
-          for (const key of ["member", "viewer", "report_viewer", "admin"]) {
-            const option = el("option", roles[key]);
-            option.value = key;
-            permission.append(option);
+          const ok = await confirmDlg({
+            title: "Revogar o acesso de " + m.nome + "?",
+            lines: ["A pessoa perde o acesso somente a este negócio.", "A conta dela e os outros negócios dela são preservados."],
+            confirmLabel: "Revogar acesso", danger: true,
+          });
+          if (!ok || !alive()) return;
+          busyRow(true, "Aguardando confirmação do servidor…");
+          try {
+            await auth.request("/team/members/" + m.id, "DELETE", { expected_role: m.role });
+            if (alive()) { await refresh(); say("Acesso revogado neste negócio.", "ok"); }
+          } catch (error) {
+            if (alive()) { say(error.message + " Nada foi alterado.", "err"); busyRow(false); }
           }
-          permissionLabel.append(permission);
-          const send = el("button", "Enviar convite");
-          send.type = "submit";
-          send.className = "btn";
-          inviteForm.append(addressLabel, permissionLabel, send);
-          inviteForm.onsubmit = async (event) => {
-            event.preventDefault();
-            if (!alive() || send.disabled || !inviteForm.reportValidity()) return;
-            send.disabled = true;
-            try {
-              const packet = {
-                email: address.value.trim(),
-                role: permission.value,
-              };
-              const queued = await auth.request("/team/invitations", "POST", packet);
-              if (alive()) {
-                message.textContent =
-                  "Convite registrado na fila de e-mail. Isso ainda não concede acesso.";
-                inviteForm.reset();
-                addInvite({ ...packet, id: queued.id, status: "pending" });
-              }
-            } catch (error) {
-              if (alive()) message.textContent = error.message;
-            } finally {
-              if (alive()) send.disabled = false;
-            }
-          };
-          section.append(
-            inviteForm,
-            el(
-              "p",
-              "A pessoa precisa abrir o convite recebido por e-mail. Administrador pode gerenciar o negócio; conceda esse papel somente a alguém de confiança.",
-            ),
-          );
-          const addInvite = (item) => {
-            const row = el(
-              "p",
-              `${item.email} · ${roles[item.role]} · ${{ pending: "Aguardando envio", processing: "Enviando", sent: "Enviado", uncertain: "Entrega não confirmada", expired: "Expirado", used: "Aceito", revoked: "Revogado" }[item.status] || "Requer atenção"} `,
-            );
-            if (["pending", "processing", "sent", "used"].includes(item.status)) {
-              const revoke = el(
-                "button",
-                item.status === "used" ? "Revogar acesso deste convite" : "Revogar convite",
-              );
-              revoke.type = "button";
-              revoke.className = "btn o";
-              revoke.onclick = async () => {
-                if (
-                  !alive() ||
-                  revoke.disabled ||
-                  !confirm("Revogar este convite ou acesso somente neste negócio?")
-                )
-                  return;
-                revoke.disabled = true;
-                try {
-                  await auth.request(
-                    "/team/invitations/" + item.id + (item.status === "used" ? "/access" : ""),
-                    "DELETE",
-                    item.status === "used" ? { expected_role: item.role } : undefined,
-                  );
-                  if (alive()) {
-                    row.textContent = "Revogado neste negócio.";
-                    await refresh();
-                  }
-                } catch (error) {
-                  if (alive()) {
-                    message.textContent = error.message;
-                    revoke.disabled = false;
-                  }
-                }
-              };
-              row.append(revoke);
-            }
-            section.append(row);
-          };
-          for (const item of data.items) addInvite(item);
-          panel.append(section);
-        } catch (error) {
-          if (alive()) {
-            message.textContent = error.message;
-            inviteToggle.disabled = false;
-          }
-        }
-      };
-      panel.append(inviteToggle);
-    } else
-      panel.append(
-        el("p", "Somente o proprietário pode adicionar, alterar ou revogar integrantes."),
-      );
-    refresh().catch((error) => {
-      if (alive()) message.textContent = error.message;
-    });
+        };
+        controls.append(select, save, revoke);
+        li.append(controls);
+      }
+      return li;
+    }
+    const order = { owner: 0, admin: 1 };
+    function paint() {
+      list.replaceChildren();
+      list.setAttribute("aria-busy", String(phase === "loading"));
+      if (phase === "loading" && !members) {
+        for (let i = 0; i < 3; i++) { const s = el("li", undefined, "sm-acc-member sm-acc-skel"); s.append(el("i"), el("i")); list.append(s); }
+        return;
+      }
+      if (phase === "error" && !members) {
+        const li = el("li", undefined, "sm-acc-off");
+        li.append(el("b", "Não foi possível carregar a equipe"), el("span", "Nada foi alterado. Tente de novo em instantes.", "sm-hub-detail"));
+        const retry = el("button", "Tentar de novo", "btn");
+        retry.type = "button"; retry.onclick = () => { phase = "loading"; paint(); refresh().catch(fail); };
+        li.append(retry); list.append(li); return;
+      }
+      const all = (members || []).slice().sort((a, b) => (order[a.role] ?? 2) - (order[b.role] ?? 2) || String(a.nome).localeCompare(String(b.nome), "pt-BR"));
+      const shown = all.filter((m) => !filter || (m.nome + " " + m.email).toLowerCase().includes(filter));
+      count.textContent = all.length + (all.length === 1 ? " pessoa" : " pessoas") + " com acesso";
+      search.hidden = all.length <= 5;
+      if (!shown.length) {
+        const li = el("li", undefined, "sm-acc-off");
+        li.append(el("b", filter ? "Ninguém encontrado" : "Só você por enquanto"), el("span", filter ? "Tente outro nome ou e-mail." : manage ? "Adicione uma conta já cadastrada acima para dividir o trabalho." : "Ainda não há outras pessoas neste negócio.", "sm-hub-detail"));
+        list.append(li); return;
+      }
+      for (const m of shown) list.append(memberRow(m));
+      if (!filter && all.length === 1 && all[0].id === auth.current.usuario.id) {
+        const li = el("li", undefined, "sm-acc-off");
+        li.append(el("b", "Só você por enquanto"), el("span", manage ? "Adicione uma conta já cadastrada acima para dividir o trabalho." : "Ainda não há outras pessoas neste negócio.", "sm-hub-detail"));
+        list.append(li);
+      }
+    }
+    async function refresh() {
+      const data = await auth.request("/team/members");
+      if (!alive()) return;
+      members = data.items; phase = "ready";
+      paint();
+      window.SocialMEIAccess?.setCount?.("members", String(data.items.length));
+      if (data.truncated) say("Exibindo os primeiros 50 integrantes. Nenhum acesso foi modificado.");
+      else if (!note.textContent || note.dataset.kind === "") say("Proprietários e administradores não são alterados por esta tela. A conta de cada pessoa é preservada.");
+    }
+    paint();
+    refresh().catch(fail);
   }
   const previous = window.render;
   if (typeof previous === "function")

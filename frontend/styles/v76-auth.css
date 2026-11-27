@@ -1,0 +1,8 @@
+.a76-off{position:sticky;top:0;z-index:50;padding:10px 16px;text-align:center;background:#b3261e;color:#fff;font-weight:600}
+.a76-sum{margin:0 0 12px;padding:10px 12px;border-radius:10px;border:1px solid var(--err,#c62828);background:rgba(198,40,40,.08);color:inherit;font-size:14px}
+.a76-sum a{color:inherit;font-weight:700}
+.a76-sum:focus{outline:2px solid var(--err,#c62828)}
+button[aria-busy=true]{position:relative;cursor:progress}
+button[aria-busy=true]::after{content:"";display:inline-block;width:14px;height:14px;margin-left:10px;vertical-align:-2px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:a76 .8s linear infinite}
+@keyframes a76{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){button[aria-busy=true]::after{animation-duration:2.4s}}

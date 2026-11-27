@@ -10,12 +10,24 @@
   };
   const scope = () => auth.current && `${auth.current.usuario.id}:${auth.current.negocio.id}`;
   const route = () => ["", "#/inicio", "#/bemvindo", "#/config/negocio"].includes(location.hash);
+  const dismissed = new Set();
+  const prefKey = (owner) => "socialmei:business-start:dismissed:v1:" + owner;
+  const isDismissed = (owner) => {
+    if (dismissed.has(owner)) return true;
+    try { return localStorage.getItem(prefKey(owner)) === "1"; }
+    catch (_) { return false; }
+  };
+  const dismiss = (owner) => {
+    dismissed.add(owner);
+    try { localStorage.setItem(prefKey(owner), "1"); } catch (_) {}
+  };
   function mount() {
     const view = document.getElementById("v");
     if (
       !view ||
       !scope() ||
       !route() ||
+      (location.hash !== "#/bemvindo" && isDismissed(scope())) ||
       !["owner", "admin"].includes(auth.current.papel) ||
       view.querySelector("[data-business-start]")
     )
@@ -23,250 +35,32 @@
     const owner = scope(),
       section = el("section");
     section.dataset.businessStart = "true";
-    section.style.cssText =
-      "margin:20px 0;padding:20px;border:1px solid var(--b);border-radius:16px;background:var(--w);color:var(--t);overflow-wrap:anywhere";
-    section.append(el("h2", "Primeiros passos · " + auth.current.negocio.nome));
+    section.className = "bs-card";
+    const bsHead = el("header");
+    bsHead.className = "bs-head";
+    const bsT = el("div"),
+      bsEy = el("span", auth.current.negocio.nome),
+      bsH = el("h2", "Primeiros passos");
+    bsEy.className = "bs-eyebrow";
+    bsT.append(bsEy, bsH);
+    const bsProg = el("div");
+    bsProg.className = "bs-prog";
+    bsProg.hidden = true;
+    bsHead.append(bsT, bsProg);
+    section.append(bsHead);
     const message = el("p"),
       content = el("div"),
       refresh = el("button", "Atualizar primeiros passos");
     refresh.type = "button";
-    refresh.className = "btn o";
+    refresh.className = "btn o bs-refresh";
+    message.className = "bs-msg";
     message.setAttribute("role", "status");
     message.setAttribute("aria-live", "polite");
     section.append(message, content, refresh);
     if (location.hash === "#/config/negocio") view.append(section);
     else view.prepend(section);
-    let revision = 0,
-      catalogRevision = 0;
+    let revision = 0;
     const alive = (id) => section.isConnected && scope() === owner && route() && id === revision;
-    async function catalog(id, target, offers) {
-      if (!alive(id)) return;
-      const ticket = ++catalogRevision;
-      const catalogAlive = () => alive(id) && ticket === catalogRevision;
-      const key = "socialmei-initial-catalog-pending-v1:" + owner;
-      const feedback = el("p", "Consultando suas ofertas escolhidas…");
-      feedback.setAttribute("role", "status");
-      target.replaceChildren(feedback);
-      try {
-        const data = await host.request("/onboarding/catalog");
-        if (!catalogAlive()) return;
-        if (
-          data.workspace_id !== auth.current.negocio.id ||
-          !Number.isSafeInteger(data.revision) ||
-          !Array.isArray(data.items) ||
-          !Array.isArray(data.suggestions)
-        )
-          throw Error("Não foi possível confirmar a configuração deste negócio.");
-        if (data.receipt) {
-          sessionStorage.removeItem(key);
-          feedback.textContent =
-            "O cadastro inicial já foi confirmado. Consulte Produtos ou Agenda para conferir o estado atual, editar ou adicionar itens.";
-          return;
-        }
-        const form = el("form"),
-          rows = el("div"),
-          actions = el("div");
-        let expected = data.revision,
-          pending = null;
-        try {
-          pending = JSON.parse(sessionStorage.getItem(key));
-        } catch {
-          /* Invalid local receipt is never sent. */
-        }
-        if (
-          pending &&
-          (typeof pending.operation_id !== "string" ||
-            !Array.isArray(pending.items) ||
-            pending.confirmed !== true)
-        )
-          throw Error(
-            "A tentativa anterior precisa de revisão. Entre novamente antes de continuar.",
-          );
-        const controls = [];
-        const input = (label, type, value = "") => {
-          const wrap = el("label", label),
-            field = el("input");
-          field.type = type;
-          field.value = value ?? "";
-          field.style.cssText =
-            "display:block;width:100%;min-width:0;box-sizing:border-box;margin:4px 0 12px";
-          wrap.append(field);
-          return [wrap, field];
-        };
-        function add(value = {}) {
-          if (controls.length >= 30) return;
-          const box = el("fieldset"),
-            legend = el("legend", "Oferta " + (controls.length + 1));
-          box.style.cssText = "margin:12px 0;padding:12px;min-width:0;border:1px solid var(--b)";
-          const [nameLabel, name] = input("Nome", "text", value.nome),
-            [priceLabel, price] = input("Preço (R$)", "number", value.preco),
-            [durationLabel, duration] = input("Duração (minutos)", "number", value.duracao_minutos),
-            typeLabel = el("label", "Tipo"),
-            type = el("select"),
-            remove = el("button", "Remover oferta");
-          name.required = price.required = true;
-          name.maxLength = 160;
-          price.min = "0";
-          price.step = "0.01";
-          duration.min = "1";
-          duration.max = "1440";
-          duration.step = "1";
-          for (const kind of ["Serviço", "Produto"]) {
-            const option = el("option", kind);
-            option.value = kind;
-            type.append(option);
-          }
-          type.value =
-            value.tipo || (offers.length === 1 && offers[0] === "products" ? "Produto" : "Serviço");
-          type.style.cssText = "display:block;width:100%;margin:4px 0 12px";
-          typeLabel.append(type);
-          remove.type = "button";
-          remove.className = "btn o";
-          const row = { box, name, price, type, duration };
-          remove.onclick = () => {
-            controls.splice(controls.indexOf(row), 1);
-            box.remove();
-          };
-          type.onchange = () => {
-            durationLabel.hidden = type.value !== "Serviço";
-            duration.required = !durationLabel.hidden;
-          };
-          type.onchange();
-          controls.push(row);
-          box.append(legend, nameLabel, typeLabel, priceLabel, durationLabel, remove);
-          rows.append(box);
-        }
-        const initial =
-          pending?.items ||
-          (data.revision > 0
-            ? data.items
-            : data.suggestions.map((nome) => ({ nome, tipo: "Serviço" })));
-        initial.forEach(add);
-        if (!initial.length) add();
-        const values = (draft) =>
-          controls
-            .filter((row) => !draft || row.name.value.trim())
-            .map((row) => ({
-              nome: row.name.value.trim(),
-              tipo: row.type.value,
-              preco: row.price.value === "" ? null : Number(row.price.value),
-              duracao_minutos:
-                row.type.value === "Serviço" && row.duration.value !== ""
-                  ? Number(row.duration.value)
-                  : null,
-            }));
-        const addButton = el("button", "Adicionar oferta"),
-          save = el("button", "Salvar e continuar depois"),
-          submit = el(
-            "button",
-            pending ? "Conferir tentativa anterior" : "Cadastrar ofertas confirmadas",
-          ),
-          [confirmLabel, confirm] = input(
-            "Conferi nomes, preços e duração destas ofertas.",
-            "checkbox",
-          );
-        confirm.checked = !!pending;
-        confirm.required = true;
-        addButton.type = save.type = "button";
-        submit.type = "submit";
-        for (const button of [addButton, save, submit]) button.className = "btn o";
-        actions.style.cssText = "display:flex;flex-wrap:wrap;gap:8px";
-        actions.append(addButton, save, submit);
-        feedback.textContent = pending
-          ? "Uma tentativa anterior aguarda confirmação. Consulte o resultado antes de cadastrar novamente."
-          : "Escolher serviços no perfil não os cadastra. Confirme somente ofertas reais; nenhum preço ou duração será preenchido por nós.";
-        form.append(rows, confirmLabel, actions);
-        target.append(form);
-        addButton.onclick = () => add();
-        function busy(active) {
-          for (const control of form.querySelectorAll("input,select,button"))
-            control.disabled = active || !!pending;
-          if (pending && !active) submit.disabled = false;
-        }
-        busy(false);
-        save.onclick = async () => {
-          if (!catalogAlive()) return;
-          busy(true);
-          try {
-            const result = await host.request("/onboarding/catalog", "PUT", {
-              expected_revision: expected,
-              items: values(true),
-            });
-            if (!catalogAlive()) return;
-            if (
-              result.workspace_id !== auth.current.negocio.id ||
-              !Number.isSafeInteger(result.revision)
-            )
-              throw Error("Não foi possível confirmar o salvamento.");
-            expected = result.revision;
-            feedback.textContent =
-              "Configuração salva. Você pode retomar neste negócio; nenhuma oferta foi cadastrada ainda.";
-          } catch (error) {
-            if (catalogAlive()) feedback.textContent = error.message || "Não foi possível salvar.";
-          } finally {
-            if (catalogAlive()) busy(false);
-          }
-        };
-        form.onsubmit = async (event) => {
-          event.preventDefault();
-          if (!catalogAlive()) return;
-          if (!pending && !form.reportValidity()) return;
-          if (!pending) {
-            if (!controls.length) {
-              feedback.textContent = "Inclua ao menos uma oferta real.";
-              return;
-            }
-            pending = {
-              operation_id: crypto.randomUUID(),
-              expected_revision: expected,
-              confirmed: true,
-              items: values(false),
-            };
-            try {
-              sessionStorage.setItem(key, JSON.stringify(pending));
-            } catch {
-              pending = null;
-              feedback.textContent =
-                "Não foi possível preservar sua tentativa neste navegador. Tente novamente.";
-              return;
-            }
-          }
-          busy(true);
-          try {
-            const result = await host.request("/onboarding/catalog", "POST", pending);
-            if (!catalogAlive()) return;
-            if (
-              result.workspace_id !== auth.current.negocio.id ||
-              result.registered !== true ||
-              !Array.isArray(result.items)
-            )
-              throw Error("Não foi possível confirmar o cadastro.");
-            sessionStorage.removeItem(key);
-            pending = null;
-            await load();
-          } catch (error) {
-            if (!catalogAlive()) return;
-            if ([409, 422].includes(error.status)) {
-              sessionStorage.removeItem(key);
-              pending = null;
-            }
-            feedback.textContent =
-              error.message ||
-              "Resultado ainda não confirmado. Confira a tentativa anterior antes de repetir.";
-          } finally {
-            if (catalogAlive()) {
-              submit.textContent = pending
-                ? "Conferir tentativa anterior"
-                : "Cadastrar ofertas confirmadas";
-              busy(false);
-            }
-          }
-        };
-      } catch (error) {
-        if (catalogAlive())
-          feedback.textContent = error.message || "Não foi possível consultar suas ofertas.";
-      }
-    }
     async function load() {
       const id = ++revision;
       refresh.disabled = true;
@@ -335,6 +129,13 @@
               href: "#/agenda",
             },
           );
+        if (services)
+          steps.splice(steps.findIndex((x) => x.title.startsWith("Serviço ativo")) + 1, 0, {
+            title: "Horário de funcionamento definido",
+            done: !!String(auth.current.negocio.configuracao?.horario || "").trim(),
+            action: "Definir horário",
+            href: "#/agenda",
+          });
         if (products)
           steps.push(
             {
@@ -352,65 +153,124 @@
           );
         if (data.profile_problem)
           content.append(
-            el(
-              "p",
-              "O perfil salvo precisa de revisão. Use Configurar negócio para conferir suas informações.",
+            Object.assign(
+              el(
+                "p",
+                "O perfil salvo precisa de revisão. Use Configurar negócio para conferir suas informações.",
+              ),
+              { className: "bs-alert" },
             ),
           );
         if (!data.profile_complete)
           content.append(
-            el(
-              "p",
-              "Na configuração, escolha produtos, serviços ou ambos para mostrar somente os passos relevantes. Clientes são necessários para agendar e opcionais nas vendas.",
+            Object.assign(
+              el(
+                "p",
+                "Na configuração, escolha produtos, serviços ou ambos para mostrar somente os passos relevantes. Clientes são necessários para agendar e opcionais nas vendas.",
+              ),
+              { className: "bs-hint" },
             ),
           );
+        const HELP = [
+          ["Perfil do negócio", "Nome, segmento e o que você oferece."],
+          ["Cliente cadastrado", "Necessário para agendar; opcional nas vendas."],
+          ["Serviço ativo", "O que você oferece e quanto tempo leva."],
+          ["Horário de funcionamento", "Dias e horários em que você atende."],
+          ["Profissional ou recurso", "Quem ou o que atende os agendamentos."],
+          ["Primeiro agendamento", "Teste o fluxo completo da agenda."],
+          ["Produto ativo", "Itens à venda e a quantidade em estoque."],
+          ["Primeira venda", "Registre uma venda e acompanhe o Financeiro."],
+        ];
+        const help = (t) => (HELP.find((h) => t.startsWith(h[0])) || [])[1] || "";
+        const nextIdx = steps.findIndex((x) => !x.done && !x.optional);
         const list = el("ol");
-        list.style.cssText = "padding-left:22px";
-        for (const step of steps) {
+        list.className = "bs-steps";
+        steps.forEach((step, i) => {
           const row = el("li");
           row.dataset.state = step.done ? "complete" : "pending";
-          row.style.cssText = "margin:12px 0;overflow-wrap:anywhere";
-          const line = el("div");
-          line.style.cssText =
-            "display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between";
+          if (i === nextIdx) row.dataset.next = "true";
+          row.className = "bs-step";
+          const mark = el("span", step.done ? "✓" : String(i + 1));
+          mark.className = "bs-n";
+          mark.setAttribute("aria-hidden", "true");
+          const body = el("div");
+          body.className = "bs-t";
+          const stateText = step.done ? "Registrado" : step.optional ? "Opcional" : "Pendente";
+          const title = el("strong", step.title);
+          const chip = el("span", stateText);
+          chip.className = "bs-chip";
+          chip.dataset.s = step.done ? "ok" : step.optional ? "opt" : i === nextIdx ? "next" : "pend";
+          const head = el("div");
+          head.className = "bs-th";
+          head.append(title, chip);
+          const hp = el("span", help(step.title));
+          hp.className = "bs-d";
+          body.append(head, hp);
           const link = el("a", step.action);
           link.href = step.href;
-          link.className = "btn o";
-          line.append(
-            el(
-              "span",
-              step.title +
-                " — " +
-                (step.done ? "Registrado" : step.optional ? "Opcional" : "Pendente"),
-            ),
-            link,
-          );
-          row.append(line);
+          link.className = i === nextIdx ? "btn" : "btn o";
+          if (i === nextIdx) link.setAttribute("aria-label", step.action + " — próximo passo");
+          row.append(mark, body, link);
           list.append(row);
+        });
+        content.append(list);
+        if (data.description) {
+          const det = el("details");
+          det.className = "bs-note";
+          det.append(el("summary", "Como estas etapas são contadas"), el("p", data.description));
+          content.append(det);
         }
-        content.append(list, el("p", data.description));
-        const setupTarget = el("div"),
-          setup = el("button", "Conferir ofertas iniciais");
-        setup.type = "button";
-        setup.className = "btn o";
-        setup.onclick = () => catalog(id, setupTarget, data.offers);
-        content.append(setup, setupTarget);
-        if (data.setup && typeof data.setup.hours_configured === "boolean") {
-          const hours = el(
-              "p",
-              "Horários de funcionamento — " +
-                (data.setup.hours_configured ? "Registrados" : "Pendentes"),
-            ),
-            link = el("a", "Configurar horários e profissionais na Agenda");
-          link.href = "#/agenda";
-          link.className = "btn o";
-          content.append(hours, link);
-        }
-        const channels = el("a", "Configurar canais depois (opcional)");
-        channels.href = "#/config/integracoes";
-        channels.className = "btn o";
+        const channels = el("button", "Configurar depois");
+        channels.type = "button";
+        channels.className = "btn o bs-chan";
+        channels.onclick = () => {
+          if (scope() !== owner || !section.isConnected) return;
+          dismiss(owner);
+          ++revision;
+          section.remove();
+          if (location.hash && location.hash !== "#/inicio") location.hash = "#/inicio";
+        };
         content.append(channels);
         const required = steps.filter((s) => !s.optional);
+        {
+          const req = steps.filter((x) => !x.optional),
+            n = req.filter((x) => x.done).length,
+            pct = req.length ? Math.round((n / req.length) * 100) : 0;
+          bsProg.hidden = !data.profile_complete;
+          bsProg.replaceChildren();
+          const bar = el("div"),
+            fill = el("i");
+          bar.className = "bs-bar";
+          bar.setAttribute("role", "progressbar");
+          bar.setAttribute("aria-valuemin", "0");
+          bar.setAttribute("aria-valuemax", String(req.length));
+          bar.setAttribute("aria-valuenow", String(n));
+          bar.setAttribute("aria-label", "Passos essenciais registrados");
+          fill.style.width = pct + "%";
+          bar.append(fill);
+          bsProg.append(el("b", n + " de " + req.length), el("span", "passos essenciais"), bar);
+        }
+        {
+          // v7.6: próximo passo em destaque e cartão compacto quando os essenciais terminam.
+          const all = required.length > 0 && required.every((x) => x.done) && data.profile_complete;
+          section.classList.toggle("bs-done", all);
+          section.querySelector(".bs-nextline")?.remove();
+          section.querySelector(".bs-toggle")?.remove();
+          const nx = steps[nextIdx];
+          if (nx && data.profile_complete) {
+            const line = el("p", "Próximo passo: " + nx.title.toLowerCase() + ". Cada etapa leva poucos minutos.");
+            line.className = "bs-nextline";
+            content.prepend(line);
+          }
+          if (all) {
+            section.classList.remove("bs-open");
+            const tg = el("button", "Ver detalhes");
+            tg.type = "button"; tg.className = "bs-toggle"; tg.setAttribute("aria-expanded", "false");
+            tg.onclick = () => { const o = section.classList.toggle("bs-open"); tg.textContent = o ? "Ocultar detalhes" : "Ver detalhes"; tg.setAttribute("aria-expanded", String(o)); };
+            section.append(tg);
+          }
+        }
+        message.classList.toggle("bs-sr", data.profile_complete);
         message.textContent = data.profile_complete
           ? `${required.filter((s) => s.done).length} de ${required.length} passos essenciais registrados neste negócio.`
           : "Seus dados estão separados por negócio. Comece pela configuração e siga os passos que usar.";

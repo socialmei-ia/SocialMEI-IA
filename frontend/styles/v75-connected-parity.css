@@ -1,0 +1,19 @@
+/* Full width weekly calendar; operational controls remain available below. */
+#v .sm-agenda[data-agenda-view="week"]:has(>.sm-ah){grid-template-columns:minmax(0,1fr)}
+#v .sm-agenda[data-agenda-view="week"]:has(>.sm-ah)>.ag-rem,
+#v .sm-agenda[data-agenda-view="week"]:has(>.sm-ah)>.ag-ap,
+#v .sm-agenda[data-agenda-view="week"]>.sm-ah{grid-column:1/-1;grid-row:auto}
+#v .ct>.v75-drawer,#v .cp>.v75-drawer{flex:0 0 auto;min-width:0;border:1px solid var(--b);border-radius:10px;background:var(--w);margin:4px 12px;overflow:hidden}
+#v .cp>.v75-drawer{margin:5px 0 0;width:100%}
+#v .v75-drawer>summary{cursor:pointer;min-height:36px;padding:7px 10px;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:650;list-style:none;color:var(--t)}
+#v .v75-drawer>summary::-webkit-details-marker{display:none}
+#v .v75-drawer>summary::after{content:"›";color:var(--m);font-size:18px;margin-left:auto;flex:none}
+#v .v75-drawer[open]>summary::after{transform:rotate(90deg)}
+#v .v75-drawer>summary>span{flex:none}
+#v .v75-drawer>summary>small{font-size:12px;font-weight:400;color:var(--m);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+#v .v75-drawer>summary:focus-visible{outline:2px solid var(--p);outline-offset:-2px}
+#v .v75-drawer-body{max-height:min(32vh,300px);overflow:auto;overscroll-behavior:contain}
+#v .v75-drawer:not([open])>.v75-drawer-body{display:none!important}
+#v .v75-drawer-body>.wa-human,#v .v75-drawer-body>.ig-human{margin:5px 8px;padding:10px;border-radius:10px}
+#v .ct .ms{min-height:120px}
+@media(max-width:600px){#v .v75-drawer>summary>small{display:none}#v .ct>.v75-drawer{margin:3px 7px}}

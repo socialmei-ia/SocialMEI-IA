@@ -5,11 +5,6 @@
   const style = document.createElement("link");
   style.rel = "stylesheet";
   style.href = "styles/v22-businesses.css";
-  let styled = false;
-  style.onload = () => {
-    styled = true;
-    mount();
-  };
   document.head.append(style);
   const scope = () => auth.current && `${auth.current.usuario.id}:${auth.current.negocio.id}`;
   const el = (tag, text) => {
@@ -34,7 +29,7 @@
   function mount() {
     if (!auth.current) return;
     const top = document.querySelector("main > .top .r2");
-    if (styled && top && !top.querySelector("[data-business-menu]")) {
+    if (top && !top.querySelector("[data-business-menu]")) {
       const link = el("a");
       const caption = el("span", "Meus negócios · ");
       caption.className = "sm-business-caption";
@@ -73,9 +68,17 @@
       list.replaceChildren();
       for (const item of result.items) {
         const row = el("li");
-        row.append(
-          el("span", item.nome + (item.id === result.active_workspace_id ? " — ativo" : "")),
-        );
+        const isActive = item.id === result.active_workspace_id;
+        const who = el("span", item.nome);
+        who.className = "sm-b-name";
+        who.dataset.ini = String(item.nome || "?").trim().slice(0, 2).toUpperCase();
+        row.append(who);
+        if (isActive) {
+          row.dataset.active = "true";
+          const badge = el("span", "Ativo");
+          badge.className = "sm-b-on";
+          row.append(badge);
+        }
         if (item.id !== result.active_workspace_id) {
           const choose = el("button", "Acessar " + item.nome);
           choose.type = "button";

@@ -52,20 +52,59 @@
   document.body.appendChild(run);
   await new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "scripts/v22-backend.js";
+    script.src = "scripts/v22-backend.js?v=e7229ac4b326";
     script.onload = resolve;
     script.onerror = reject;
     document.body.appendChild(script);
   });
   await window.SocialMEIV22.ready;
+  await new Promise((resolve) => {
+    const ui = document.createElement("script");
+    ui.src = "scripts/v781-atendimento-ui.js";
+    ui.onload = resolve;
+    ui.onerror = () => {
+      console.warn("Componentes do atendimento indisponíveis.");
+      resolve();
+    };
+    document.body.appendChild(ui);
+  });
+  {
+    const v70 = document.createElement("script");
+    v70.src = "scripts/v70-conectada.js";
+    v70.onerror = () => console.warn("Experiência conectada indisponível.");
+    v70.onload = () => {
+      const v72 = document.createElement("script");
+      v72.src = "scripts/v72-atendimento.js";
+      v72.onerror = () => console.warn("Atalhos de atendimento indisponíveis.");
+      v72.onload = () => {
+        /* v7.9 · Central de Atendimento: mídia e camada de interface (só carrega depois da base). */
+        const media = document.createElement("script");
+        media.src = "scripts/v79-media.js";
+        media.onerror = () => console.warn("Componentes de mídia indisponíveis.");
+        media.onload = () => {
+          const central = document.createElement("script");
+          central.src = "scripts/v79-central.js";
+          central.onerror = () => console.warn("Central de atendimento indisponível.");
+          document.body.appendChild(central);
+        };
+        document.body.appendChild(media);
+      };
+      document.body.appendChild(v72);
+    };
+    document.body.appendChild(v70);
+  }
   if (auth.remote) {
     const agenda = document.createElement("script");
-    agenda.src = "scripts/v22-agenda.js";
+    agenda.src = "scripts/v22-agenda.js?v=795-agenda-1";
     agenda.onload = () => {
       const appointments = document.createElement("script");
-      appointments.src = "scripts/v22-appointments.js";
+      appointments.src = "scripts/v22-appointments.js?v=795-agenda-1";
       appointments.onerror = () => console.warn("Agendamentos de serviços indisponíveis.");
       document.body.appendChild(appointments);
+      const agendaHours = document.createElement("script");
+      agendaHours.src = "scripts/agenda-hours.js?v=795-agenda-1";
+      agendaHours.onerror = () => console.warn("Funcionamento da agenda indisponível.");
+      document.body.appendChild(agendaHours);
     };
     agenda.onerror = () => console.warn("Agenda compartilhada indisponível.");
     document.body.appendChild(agenda);
@@ -85,22 +124,30 @@
     inboxCustomer.src = "scripts/v22-inbox-customer.js";
     inboxCustomer.onerror = () => console.warn("Vínculo da Caixa com o CRM indisponível.");
     document.body.appendChild(inboxCustomer);
-    const inboxLayout = document.createElement("script");
-    inboxLayout.src = "scripts/v22-inbox-layout.js";
-    inboxLayout.onerror = () => console.warn("Ajustes de leitura da Caixa indisponíveis.");
-    document.body.appendChild(inboxLayout);
     const whatsappReplies = document.createElement("script");
     whatsappReplies.src = "scripts/v22-whatsapp-replies.js";
     whatsappReplies.onerror = () => console.warn("Respostas WhatsApp indisponíveis.");
     document.body.appendChild(whatsappReplies);
     const whatsappReadiness = document.createElement("script");
     whatsappReadiness.src = "scripts/v22-whatsapp-readiness.js";
-    const whatsappManagement = document.createElement("script");
-    whatsappManagement.src = "scripts/v22-whatsapp-management.js";
-    whatsappManagement.onerror = () => console.warn("Gerenciamento WhatsApp indisponível.");
-    document.body.appendChild(whatsappManagement);
     whatsappReadiness.onerror = () => console.warn("Estado WhatsApp indisponível.");
     document.body.appendChild(whatsappReadiness);
+    const hubStyle = document.createElement("link");
+    hubStyle.rel = "stylesheet";
+    hubStyle.href = "styles/connections-hub.css";
+    document.head.appendChild(hubStyle);
+    const connectionsHub = document.createElement("script");
+    connectionsHub.src = "scripts/connections-hub.js";
+    connectionsHub.onerror = () => console.warn("Central de Conexões indisponível.");
+    document.body.appendChild(connectionsHub);
+    const inboxAssist = document.createElement("script");
+    inboxAssist.src = "scripts/inbox-assist.js";
+    inboxAssist.onerror = () => console.warn("Assistente da Caixa indisponível.");
+    document.body.appendChild(inboxAssist);
+    const accessAccount = document.createElement("script");
+    accessAccount.src = "scripts/account-access.js";
+    accessAccount.onerror = () => console.warn("Acesso e equipe indisponível.");
+    document.body.appendChild(accessAccount);
     const providerAnalysis = document.createElement("script");
     providerAnalysis.src = "scripts/v22-provider-analysis.js";
     providerAnalysis.onerror = () => console.warn("Exibição da análise de mensagens indisponível.");
@@ -142,7 +189,7 @@
     workspaceAudit.onerror = () => console.warn("Histórico do negócio indisponível.");
     document.body.appendChild(workspaceAudit);
     const businessStart = document.createElement("script");
-    businessStart.src = "scripts/v22-business-start.js";
+    businessStart.src = "scripts/v22-business-start.js?v=2858fc1df72e";
     businessStart.onerror = () => console.warn("Primeiros passos indisponíveis.");
     document.body.appendChild(businessStart);
   }

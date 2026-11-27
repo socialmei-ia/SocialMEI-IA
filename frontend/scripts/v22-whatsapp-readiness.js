@@ -11,6 +11,10 @@
   let receiptPhase = "loading";
   let receipt = null;
   let pending = null;
+  let started = false;
+  /* v7.6.1: só consulta quando há uma linha "WhatsApp" para pintar (a Central de Conexões tem a própria consulta) */
+  const wantsRows = () => [...document.querySelectorAll(".sw, #cg .cn")].some((row) => row.querySelector("b")?.textContent.trim() === "WhatsApp");
+  const ensure = () => { if (!started && wantsRows()) { started = true; refresh(); } };
 
   function setLabel(element, value) {
     if (!element) return;
@@ -160,8 +164,8 @@
         result.conversation_count < 0 ||
         result.conversation_count > result.message_count ||
         result.historical_receiving_confirmed !== result.message_count > 0 ||
-        result.session_live_verified !== false ||
-        result.sending_available !== false ||
+        typeof result.session_live_verified !== "boolean" ||
+        typeof result.sending_available !== "boolean" ||
         (result.message_count > 0 && !Number.isFinite(Date.parse(result.last_persisted_at))) ||
         (result.message_count === 0 && result.last_persisted_at !== null)
       )
@@ -191,7 +195,7 @@
           response?.source !== "server" ||
           typeof status?.configured !== "boolean" ||
           typeof status?.receiving_configured !== "boolean" ||
-          status?.sending_available !== false
+          typeof status?.sending_available !== "boolean"
         )
           throw Error("WAHA readiness inválida");
         if (scope() !== previousOwner) return;
@@ -215,12 +219,14 @@
   render = () => {
     priorRender();
     paint();
+    ensure();
   };
   window.addEventListener("hashchange", () => {
     paint();
-    if (location.hash.startsWith("#/config/integracoes")) refresh();
+    if (location.hash.startsWith("#/config/integracoes") && wantsRows()) { started = true; refresh(); }
+    else ensure();
   });
   window.SocialMEIWhatsAppReadiness = { refresh };
   paint();
-  refresh();
+  ensure();
 })();

@@ -1,0 +1,11 @@
+/* SocialMEI-IA · v7.9.1 · Barra lateral recolhida: centralização e contadores. Só vale recolhida e sem "peek". */
+#app>aside.col:not(.peek){padding-left:10px;padding-right:10px;align-items:center}
+#app>aside.col:not(.peek) .logo-l{width:100%;display:block;text-align:center;padding:6px 0}
+#app>aside.col:not(.peek) .logo-l{position:relative;height:58px}
+#app>aside.col:not(.peek) .logo-mini{position:absolute!important;left:50%!important;top:6px!important;transform:translateX(-50%)!important;margin:0!important}
+#app>aside.col:not(.peek) .ws,#app>aside.col:not(.peek) .me{width:52px;margin-left:auto;margin-right:auto;box-sizing:border-box;justify-content:center;padding:6px 0;gap:0}
+#app>aside.col:not(.peek) .ws .av,#app>aside.col:not(.peek) .me .av,#app>aside.col:not(.peek) .ws>span:first-child,#app>aside.col:not(.peek) .me>span:first-child{margin:0;flex:none}
+#app>aside.col:not(.peek) .nv{width:100%;justify-content:center;padding-left:0;padding-right:0}
+#app>aside.col:not(.peek) .nv .nb,#app>aside.col:not(.peek) .nv .bd{position:absolute!important;transform:none!important;top:3px!important;right:3px!important;left:auto!important;bottom:auto!important;min-width:17px;height:17px;padding:0 4px;font-size:10px;line-height:17px;box-shadow:0 0 0 2px var(--w)}
+#app>aside.col:not(.peek) .nv.on:before{left:-10px}
+#app>aside.col:not(.peek) .ws,#app>aside.col:not(.peek) .me{min-width:0;max-width:52px;padding-left:0;padding-right:0}

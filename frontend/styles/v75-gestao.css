@@ -1,0 +1,93 @@
+/* SocialMEI-IA · v7.5 · Vendas, Produtos e serviços, Financeiro e leitura dos Relatórios.
+   Reaproveita as variáveis do tema (claro/escuro) e as classes do app; tudo novo usa o prefixo g75-. */
+.g75-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:14px 0}
+.g75-k{border:1px solid var(--b);border-radius:14px;background:var(--w);padding:14px 16px;min-width:0;display:flex;flex-direction:column;gap:2px}
+.g75-k>span{color:var(--m);font-size:13px}
+.g75-k>b{display:block;font-size:26px;letter-spacing:-.01em;white-space:nowrap;font-variant-numeric:tabular-nums}
+.g75-k>small{color:var(--m);font-size:12.5px;line-height:1.35}
+.g75-k[data-tone=ok]>b{color:var(--g)}.g75-k[data-tone=warn]>b{color:#a56f00}.g75-k[data-tone=bad]>b{color:var(--r)}
+[data-theme=dark] .g75-k[data-tone=warn]>b{color:#ffc43d}
+.g75-k .lk{align-self:flex-start;margin-top:6px}
+.g75-split{display:flex;height:8px;border-radius:99px;overflow:hidden;background:var(--h2);margin-top:8px}
+.g75-split i{display:block;background:var(--g);transition:width .5s cubic-bezier(.3,.72,.14,1)}
+.g75-split i.b{background:var(--y)}
+.g75-res .g75-split i.b{background:var(--r)}
+.g75-legrow{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12.5px;color:var(--m);margin-top:6px}
+.g75-legrow i,.g75-leg i{width:9px;height:9px;padding:0;border:0;display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px;vertical-align:baseline}
+.g75-leg{font-size:12.5px;color:var(--m);display:inline-flex;align-items:center;gap:4px}.g75-leg i+*{margin-right:10px}
+i.g75-i{background:var(--g)}i.g75-o{background:var(--r)}
+.g75-hero{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:12px;margin:14px 0}
+.g75-res>b{font-size:34px}
+.g75-nudge{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0 14px;padding:10px 14px;border:1px solid var(--b);border-left:4px solid var(--y);border-radius:12px;background:var(--yl);font-size:14px}
+.g75-nudge svg{flex:none;color:#a56f00}.g75-nudge>span{flex:1 1 260px;min-width:0}
+.g75-ro{margin:10px 0;padding:8px 12px;border-radius:10px;background:var(--yl);color:var(--t);font-size:14px}
+.g75-tb{margin:14px 0 8px}.g75-chips{gap:8px;margin:2px 0 12px;align-items:center}
+.g75-sep{width:1px;align-self:stretch;background:var(--b);margin:0 4px}
+.g75-empty b{display:block;color:var(--t);margin-bottom:4px}
+.g75-foot{margin-top:16px}
+.g75-hint kbd,.g75 kbd{font:inherit;font-size:11.5px;border:1px solid var(--bl);border-bottom-width:2px;border-radius:6px;padding:0 6px;background:var(--w);color:var(--m)}
+.g75-hint{margin-left:8px}
+@media(hover:none){.g75-hint{display:none}}
+/* vendas */
+.g75-age{display:inline-block;margin-left:8px;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:600;background:var(--yl);color:#8a5a00;white-space:nowrap}
+.g75-age.late{background:color-mix(in srgb,var(--r) 13%,var(--w));color:var(--r)}
+[data-theme=dark] .g75-age{color:#ffc43d}
+.g75-vt .vd .m{margin-top:2px}
+.g75 .lk.armed{background:var(--p);color:#fff;border-radius:8px;padding:5px 11px;font-weight:700;animation:g75-pop .18s ease-out}
+.g75 .g75-del.armed{background:var(--r)}
+.g75 .lk[disabled]{opacity:.6;cursor:progress}
+@keyframes g75-pop{from{transform:scale(.94)}to{transform:none}}
+/* produtos */
+.g75-list{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.g75-prod{display:grid;grid-template-columns:48px minmax(0,1fr) auto minmax(86px,110px) minmax(120px,170px) 18px;gap:6px 14px;align-items:center;padding:10px 14px;border:1px solid var(--b);border-radius:14px;background:var(--w);cursor:pointer;transition:border-color .18s,background .18s,box-shadow .18s}
+.g75-prod:hover{border-color:var(--p)}.g75-prod:focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.g75-prod.sl{border-color:var(--p);background:var(--pl);box-shadow:0 0 0 1px var(--p) inset}
+.g75-prod.off{opacity:.72}
+.g75-prod .th{width:48px;height:48px;border-radius:12px;background:var(--h2);display:grid;place-items:center;overflow:hidden;color:var(--m)}.g75-prod .th img{width:100%;height:100%;object-fit:cover}
+.g75-pn{min-width:0}.g75-pn b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.g75-pp{display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-variant-numeric:tabular-nums}
+.g75-type{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:600;background:var(--h2);color:var(--m)}
+.g75-type[data-t=svc]{background:color-mix(in srgb,#7c5cff 14%,var(--w));color:#6a46d9}
+[data-theme=dark] .g75-type[data-t=svc]{color:#b9a6ff}
+.g75-nostock{font-size:12.5px;color:var(--m)}
+.g75-stk{display:flex;flex-direction:column;gap:5px}.g75-stl{font-size:13px;font-weight:600}
+.g75-stk[data-s=low] .g75-stl{color:#a56f00}.g75-stk[data-s=out] .g75-stl{color:var(--r)}
+[data-theme=dark] .g75-stk[data-s=low] .g75-stl{color:#ffc43d}
+.g75-meter{position:relative;height:6px;border-radius:99px;background:var(--h2)}
+.g75-meter i{position:absolute;left:0;top:0;bottom:0;border-radius:99px;background:var(--g);transition:width .5s cubic-bezier(.3,.72,.14,1)}
+.g75-stk[data-s=low] .g75-meter i{background:var(--y)}.g75-stk[data-s=out] .g75-meter i{background:var(--r)}
+.g75-meter u{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--m);opacity:.55;border-radius:2px}
+.g75-mini{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:13px}
+.g75-mini li{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.g75-svcnote{margin:-4px 0 10px}
+/* financeiro */
+.g75-charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:14px 0}
+.g75-charts>.g75-card:first-child{grid-column:1/-1}
+.g75-card{border:1px solid var(--b);border-radius:14px;background:var(--w);padding:16px;min-width:0}
+.g75-chart{overflow-x:auto;margin-top:8px;border-radius:8px}.g75-chart:focus-visible{outline:2px solid var(--p)}
+.g75-chart svg{display:block;max-width:none}
+.g75-chart .g75-i{fill:var(--g)}.g75-chart .g75-o{fill:var(--r)}.g75-chart text{fill:var(--m);font-size:10.5px}.g75-chart .mx{font-size:11px}
+.g75-chart .ax{stroke:var(--b);stroke-width:1}
+.g75-card .dt{margin-top:10px}
+.g75-cats{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:10px}
+.g75-cats li{display:grid;grid-template-columns:minmax(70px,.8fr) minmax(0,1.4fr) auto;gap:10px;align-items:center;font-size:13.5px}
+.g75-cats .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.g75-cats .v{font-variant-numeric:tabular-nums;white-space:nowrap}.g75-cats small{color:var(--m)}
+.g75-cats[data-k=out] .g75-meter i{background:var(--r)}
+/* formulário de venda */
+.g75-sum{margin:12px 0 4px;padding:10px 12px;border-radius:12px;background:var(--s);border:1px solid var(--b);font-size:14px;display:flex;flex-direction:column;gap:3px}
+.g75-sum .bad{color:var(--r)}.g75-sum .warn{color:#a56f00;font-weight:600}.g75-sum .m{font-size:13px}
+[data-theme=dark] .g75-sum .warn{color:#ffc43d}
+/* relatórios */
+.g75-d{display:block;margin-top:4px;font-size:12.5px;color:var(--m)}
+.g75-d[data-dir=up]{color:var(--g)}.g75-d[data-dir=down]{color:#a56f00}
+[data-theme=dark] .g75-d[data-dir=down]{color:#ffc43d}
+@media(max-width:900px){.g75-prod{grid-template-columns:48px minmax(0,1fr) auto 18px;grid-template-areas:"t n p c" "t y y c" "s s s s"}
+  .g75-prod .th{grid-area:t}.g75-prod .g75-pn{grid-area:n}.g75-prod .g75-type{grid-area:y;justify-self:start}.g75-prod .g75-pp{grid-area:p}.g75-prod .g75-ps{grid-area:s}.g75-prod .chv{grid-area:c}}
+@media(max-width:700px){.g75-hero,.g75-charts{grid-template-columns:1fr}.g75-k>b{font-size:22px}.g75-res>b{font-size:28px}
+  .g75-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.g75-chips{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px}.g75-chips .chip{flex:none}
+  .g75-cats li{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"n v" "m m"}.g75-cats .n{grid-area:n}.g75-cats .v{grid-area:v}.g75-cats .g75-meter{grid-area:m}}
+@media(prefers-reduced-motion:reduce){.g75-split i,.g75-meter i,.g75-prod,.g75 .lk.armed{transition:none;animation:none}}
+
+.g75-nudge .lk svg{margin-right:6px;vertical-align:-2px}
+.g75-card h2,.g75 .g75-card h2{margin:0;padding:0}.g75-card h2:before{display:none}
+.g75-leg i.g75-o{margin-left:10px}

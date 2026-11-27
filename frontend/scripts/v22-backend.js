@@ -459,33 +459,142 @@ window.SocialMEIV22 = (() => {
   }
   // Incoming Meta webhooks persist server-side. Poll while the inbox is visible
   // so messages appear without requiring a full page reload.
+  /* v7.9 · Fotos de perfil e iniciais. Somente data URI JPEG/PNG/WebP, com limite de tamanho. */
+  const AVATAR_MAX = 600000;
+  const safeAvatar = (value) =>
+    typeof value === "string" &&
+    value.length <= AVATAR_MAX &&
+    /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(value)
+      ? value
+      : "";
+  /* Iniciais por letras Unicode: ignora emojis, números e símbolos; primeira e última palavra. */
+  const initialsOf = (name) => {
+    const words = String(name ?? "")
+      .normalize("NFC")
+      .split(/\s+/)
+      .map((w) => (w.match(/\p{L}/u) || [""])[0])
+      .filter(Boolean);
+    if (!words.length) return "?";
+    const pair = words.length > 1 ? words[0] + words[words.length - 1] : words[0];
+    return pair.toLocaleUpperCase("pt-BR");
+  };
+  const PALETTE = [
+    ["#e4dcff", "#4a3aa8"],
+    ["#dbe8ff", "#1d4fb8"],
+    ["#dcf3df", "#2a7a3a"],
+    ["#fddede", "#a62b2b"],
+    ["#fff0d6", "#8a5a00"],
+    ["#d9f2f2", "#13686b"],
+  ];
+  const paletteFor = (key) => {
+    let h = 0;
+    for (const ch of String(key)) h = (h * 31 + ch.codePointAt(0)) >>> 0;
+    return PALETTE[h % PALETTE.length];
+  };
+  /* Estado real da conversa, derivado só das mensagens que o servidor devolveu. */
+  const pick = (row, keys) => {
+    for (const k of keys) {
+      const v = row?.[k];
+      if (typeof v === "string" && v.trim()) return v.trim();
+    }
+    return "";
+  };
+  function smThreadMessages(row,id){
+    const seen=new Set();
+    return [...(row.messages||[]),...(window.SocialMEIInstagramDirect?.confirmed(id)||[]),...(window.SocialMEIWhatsAppReplies?.confirmed(id)||[])]
+      .filter(m=>{if(m.id==null)return true;const key=String(m.id);if(seen.has(key))return false;seen.add(key);return true;})
+      .sort((a,b)=>new Date(a.occurred_at)-new Date(b.occurred_at));
+  }
+  function conversationMeta(row) {
+    const messages = row.messages || [];
+    const last = messages.at(-1);
+    const incoming = messages.filter((m) => m.direction !== "outgoing");
+    const outgoing = messages.filter((m) => m.direction === "outgoing");
+    const lastIn = incoming.at(-1);
+    const lastOut = outgoing.at(-1);
+    return {
+      lastDirection: last?.direction === "outgoing" ? "out" : "in",
+      lastAt: last?.occurred_at || null,
+      lastInAt: lastIn?.occurred_at || null,
+      lastOutAt: lastOut?.occurred_at || null,
+      firstAt: messages[0]?.occurred_at || null,
+      incoming: incoming.length,
+      outgoing: outgoing.length,
+      phone: pick(row, ["contact_phone", "phone", "wa_id"]),
+      handle: pick(row, ["contact_username", "contact_handle", "username", "handle"]),
+      origin: row.origin || "",
+    };
+  }
   let inboxPolling = false;
   let inboxFingerprint = "";
   let inboxCapabilities = null;
-  let inboxCapabilitiesExpiresAt = 0;
-  let inboxRetryAt = 0;
-  let inboxFailures = 0;
-  let inboxRetryScope = "";
+  /* v7.9 · saúde da caixa (somente leitura para a interface) e conclusões marcadas neste navegador. */
+  let inboxState = "loading";
+  let inboxLastOk = null;
+  const DONE_KEY = "smei-v79-done";
+  const readDone = () => {
+    try {
+      const v = JSON.parse(localStorage.getItem(DONE_KEY) || "{}");
+      return v && typeof v === "object" && !Array.isArray(v) ? v : {};
+    } catch {
+      return {};
+    }
+  };
+  /* "Concluída" é uma marcação local; reabre sozinha se o cliente escrever depois dela. */
+  const isDone = (id, meta) => {
+    const at = readDone()[id];
+    return !!at && !(meta?.lastInAt && Date.parse(meta.lastInAt) > at);
+  };
+  const listTime = (iso) => {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "";
+    const n = new Date();
+    const days = Math.round(
+      (new Date(n.getFullYear(), n.getMonth(), n.getDate()) -
+        new Date(d.getFullYear(), d.getMonth(), d.getDate())) /
+        864e5,
+    );
+    if (days <= 0) return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    if (days === 1) return "Ontem";
+    if (days < 7) return d.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "");
+    return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  };
+  let smInboxEpoch=0;
+  // Keep the composer and loaded media nodes alive during background polling.
+  let smDeferred=false;
+  function smInboxPaint(){
+    if(!loaded||!H.startsWith('/caixa'))return;
+    const current=H.split('/')[2];
+    if(current&&!C.some(c=>c[0]===current)){smDeferred=false;go('/caixa');return;}
+    const search=document.querySelector('#v .cl input[data-q],#v .cx4-mob input[data-q]');
+    const playing=[...document.querySelectorAll('#v .ms audio')].some(a=>!a.paused&&!a.ended);
+    const busy=playing||!!document.querySelector('#v .ms button[data-sm-media]:disabled')||document.activeElement?.id==='ta'||document.activeElement?.id==='k10q'||(search&&(search===document.activeElement||search.value));
+    if(busy){
+      smDeferred=true;
+      const pane=document.querySelector('#v .cl');
+      if(pane&&!(search&&(search===document.activeElement||search.value))){
+        const nav=pane.querySelector('.cx4-rows');
+        const tmp=document.createElement('div');tmp.innerHTML=cxPane(current||null);
+        const next=tmp.querySelector('.cx4-rows');
+        if(nav&&next)nav.innerHTML=next.innerHTML;
+      }
+      return;
+    }
+    smDeferred=false;
+    const ms=document.querySelector('#v .ms');
+    if(ms&&ms.scrollHeight-ms.scrollTop-ms.clientHeight>80){S.k10sv=['#v .ms','#v .cl','#v .cx'].map(x=>document.querySelector(x)?.scrollTop||0);}
+    else if(ms)S.k10bot=true;
+    render();
+  }
   async function refreshInbox({ silent = false } = {}) {
     if (inboxPolling || !remote || !auth.current) return;
-    const currentScope = identityKey();
-    if (inboxRetryScope !== currentScope) {
-      inboxRetryScope = currentScope;
-      inboxRetryAt = 0;
-      inboxFailures = 0;
-      inboxCapabilitiesExpiresAt = 0;
-    }
-    if (silent && Date.now() < inboxRetryAt) return;
     inboxPolling = true;
     const workspace = auth.current.negocio.id;
     const scope = identityKey();
-    const sameSession = () => auth.current && identityKey() === scope;
+    const epoch=smInboxEpoch;
+    const sameSession = () => auth.current && identityKey() === scope && epoch===smInboxEpoch;
     try {
-      const refreshCapabilities =
-        !silent || !inboxCapabilities || Date.now() >= inboxCapabilitiesExpiresAt;
-      const cap = refreshCapabilities
-        ? await request("/message-enrichment/capabilities")
-        : inboxCapabilities;
+      const cap = await request("/message-enrichment/capabilities");
       if (!sameSession()) return;
       const available = cap.mode === "stub" || cap.instagram_inbox || cap.waha_inbox;
       const result = available
@@ -493,10 +602,9 @@ window.SocialMEIV22 = (() => {
         : { workspace_id: workspace, items: [] };
       if (!sameSession()) return;
       if (result.workspace_id !== workspace) throw Error("Resposta de outro negócio.");
-      inboxFailures = 0;
-      inboxRetryAt = 0;
       inboxCapabilities = cap;
-      if (refreshCapabilities) inboxCapabilitiesExpiresAt = Date.now() + 60000;
+      inboxState = available ? "ok" : "unavailable";
+      inboxLastOk = Date.now();
       const fingerprint = JSON.stringify([
         scope,
         cap.mode,
@@ -507,16 +615,20 @@ window.SocialMEIV22 = (() => {
           row.revision,
           row.origin,
           row.account_ref,
+          row.contact_name,
+          row.avatar_version,
+          safeAvatar(row.contact_avatar).length,
           row.messages?.map((message) => [
             message.id,
             message.provider_analysis?.source,
             message.provider_analysis?.sentiment,
             message.provider_analysis?.confidence,
             message.provider_analysis?.explanation,
+            message.attachments || [],
           ]),
         ]),
       ]);
-      if (fingerprint === inboxFingerprint) return;
+      if (fingerprint === inboxFingerprint) {if(silent&&smDeferred)smInboxPaint();return;}
       inboxFingerprint = fingerprint;
       inbox = result.items;
       inboxScope = scope;
@@ -525,57 +637,28 @@ window.SocialMEIV22 = (() => {
         const messages = row.messages || [];
         const last = messages.at(-1);
         if (!last) continue;
+        const [bg, fg] = paletteFor(row.contact_name || row.id);
         C.push([
           "me-" + row.id,
           row.contact_name,
-          esc(ini(row.contact_name)),
-          "#e4dcff",
-          "#4a3aa8",
+          esc(initialsOf(row.contact_name)),
+          bg,
+          fg,
           last.text || "",
           row.channel === "instagram" ? "ig" : "wa",
-          "Aberto",
-          new Date(last.occurred_at).toLocaleTimeString("pt-BR", {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
+          isDone("me-" + row.id, conversationMeta(row)) ? "Concluído" : "Aberto",
+          listTime(last.occurred_at),
+          /* [9] segue reservado para "não lida" (o servidor não informa). */
+          false,
+          /* [10] foto real validada ("" quando ausente) e [11] metadados reais da conversa. */
+          safeAvatar(row.contact_avatar),
+          conversationMeta(row),
         ]);
       }
-      if (silent && loaded && H.startsWith("/caixa")) {
-        const input = document.getElementById("ta");
-        const editing =
-          input && document.activeElement === input
-            ? {
-                route: H,
-                value: input.value,
-                start: input.selectionStart,
-                end: input.selectionEnd,
-                scroll: input.scrollTop,
-              }
-            : null;
-        render();
-        if (editing)
-          requestAnimationFrame(() => {
-            const current = document.getElementById("ta");
-            if (
-              !sameSession() ||
-              H !== editing.route ||
-              !current ||
-              current.disabled ||
-              current.value !== editing.value ||
-              (document.activeElement !== document.body && document.activeElement !== current)
-            )
-              return;
-            current.focus({ preventScroll: true });
-            current.setSelectionRange(editing.start, editing.end);
-            current.scrollTop = editing.scroll;
-          });
-      }
+      if (silent && sameSession()) smInboxPaint();
     } catch (e) {
-      if (sameSession()) {
-        inboxCapabilitiesExpiresAt = 0;
-        inboxFailures = Math.min(inboxFailures + 1, 6);
-        inboxRetryAt = Date.now() + Math.min(6000 * 2 ** inboxFailures, 300000);
-      }
+      inboxState = [403, 503].includes(e.status) ? "unavailable" : "error";
+      if (silent && sameSession()) smInboxPaint();
       if (!silent && ![403, 503].includes(e.status)) throw e;
     } finally {
       inboxPolling = false;
@@ -585,7 +668,7 @@ window.SocialMEIV22 = (() => {
   if (remote)
     window.setInterval(() => {
       if (!document.hidden && loaded && H.startsWith("/caixa")) refreshInbox({ silent: true });
-    }, 30000);
+    }, 6000);
   function paintInboxLabels() {
     if (!H.startsWith("/caixa")) return;
     // Replace only label text; retain the native icons, layout and motion hooks.
@@ -640,6 +723,8 @@ window.SocialMEIV22 = (() => {
     S.biz.email = "";
     S.biz.tel = auth.current.negocio.configuracao?.telefone || "";
     S.biz.horario = auth.current.negocio.configuracao?.horario || "";
+    /* SM_INSTAGRAM_LOGO_V2 */
+    if (/^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(auth.current.negocio.configuracao?.instagram_profile?.avatar || "")) { S.biz.logo = auth.current.negocio.configuracao.instagram_profile.avatar; }
     try {
       const business = await request("/workspace-profile");
       S.biz.seg = business.profile?.activity || "";
@@ -943,12 +1028,7 @@ window.SocialMEIV22 = (() => {
           ? inbox.find((r) => "me-" + r.id === id)
           : null;
       return row
-        ? [
-            ...(row.messages || []),
-            ...(window.SocialMEIInstagramDirect?.confirmed(id) || []),
-            ...(window.SocialMEIWhatsAppReplies?.confirmed(id) || []),
-          ]
-            .sort((a, b) => new Date(a.occurred_at) - new Date(b.occurred_at))
+        ? smThreadMessages(row,id)
             .map((m) => [
               m.direction === "outgoing" ? 1 : 0,
               m.text,
@@ -958,19 +1038,184 @@ window.SocialMEIV22 = (() => {
               }),
               m.direction === "outgoing"
                 ? m.provider === "waha"
-                  ? "Aceita pelo WAHA; entrega não verificada"
-                  : "Confirmada pela Meta"
+                  ? "Aceita para envio · entrega não verificada"
+                  : "Aceita pela Meta · entrega não verificada"
                 : "",
+              m.occurred_at,
+              m.id ?? null,
+              m.attachments || [],
             ])
         : [];
     },
     get clients() {
       return auth.current && dataScope === identityKey() ? data.clients : [];
     },
+    /* v7.0.1: vendas do escopo atual com cliente_id (somente leitura); null quando o escopo mudou. */
+    get sales() {
+      return auth.current && dataScope === identityKey() ? data.sales : null;
+    },
+    /* v7.9 · Resumo real do atendimento: inclui respostas já confirmadas pelos módulos de envio. */
+    stateOf(id) {
+      const row =
+        auth.current && inboxScope === identityKey()
+          ? inbox.find((r) => "me-" + r.id === id)
+          : null;
+      if (!row) return null;
+      const all = smThreadMessages(row,id);
+      const last = all.at(-1);
+      const out = all.filter((m) => m.direction === "outgoing");
+      const inn = all.filter((m) => m.direction !== "outgoing");
+      return {
+        total: all.length,
+        incoming: inn.length,
+        outgoing: out.length,
+        lastDirection: last?.direction === "outgoing" ? "out" : "in",
+        lastAt: last?.occurred_at || null,
+        lastInAt: inn.at(-1)?.occurred_at || null,
+        lastOutAt: out.at(-1)?.occurred_at || null,
+        firstAt: all[0]?.occurred_at || null,
+        revision: row.revision,
+      };
+    },
+    inboxHealth() {
+      return {
+        state: inboxState,
+        lastOk: inboxLastOk,
+        mode: inboxCapabilities?.mode || null,
+        receiving: !!(inboxCapabilities?.instagram_inbox || inboxCapabilities?.waha_inbox),
+      };
+    },
+    async hideConversation(id) {
+      const scope=identityKey();
+      if(!/^me-[1-9][0-9]*$/.test(id)||!inbox.some(r=>'me-'+r.id===id)||inboxScope!==scope)throw Error('Conversa indisponível.');
+      const result=await request('/message-enrichment/conversations/'+id.slice(3)+'/hide','POST');
+      if(!auth.current||identityKey()!==scope||result.hidden!==true||String(result.conversation_id)!==id.slice(3))throw Error('Exclusão não confirmada.');
+      smInboxEpoch++;
+      inbox=inbox.filter(r=>'me-'+r.id!==id);
+      const index=C.findIndex(r=>r[0]===id);if(index>=0)C.splice(index,1);
+      inboxFingerprint='';
+      return true;
+    },
+    reloadInbox() {
+      return refreshInbox({ silent: true });
+    },
+    setDone(id, done) {
+      const map = readDone();
+      if (done) map[id] = Date.now();
+      else delete map[id];
+      try {
+        localStorage.setItem(DONE_KEY, JSON.stringify(map));
+      } catch {}
+    },
+    initials: initialsOf,
+    safeAvatar,
     conversation(id) {
       return auth.current && inboxScope === identityKey()
         ? inbox.find((row) => "me-" + row.id === id) || null
         : null;
     },
   };
+})();
+
+;(()=>{
+ const urls=new Map();
+
+ function release(){
+  for(const [slot,url] of urls)
+   if(!slot.isConnected){
+    URL.revokeObjectURL(url);
+    urls.delete(slot);
+   }
+ }
+
+ new MutationObserver(release).observe(
+  document.body,{childList:true,subtree:true}
+ );
+
+ window.addEventListener('pagehide',()=>{
+  for(const url of urls.values())URL.revokeObjectURL(url);
+  urls.clear();
+ });
+
+ document.addEventListener('click',async e=>{
+  const b=e.target.closest?.('button[data-sm-media]');
+  if(!b)return;
+
+  e.preventDefault();
+  e.stopImmediatePropagation();
+
+  const id=Number(b.dataset.smMedia);
+  const slot=b.nextElementSibling;
+  const api=window.SocialMEIV22;
+  const identity=api?.identity;
+
+  if(!identity||!Number.isSafeInteger(id)||id<=0||
+     slot?.dataset.smMediaSlot!==String(id)||b.disabled)return;
+
+  const same=()=>b.isConnected&&slot.isConnected&&api.identity===identity;
+
+  b.disabled=true;
+  slot.textContent='Carregando arquivo…';
+
+  try{
+   const r=await api.request('/message-enrichment/attachments/'+id);
+
+   if(!same())return;
+
+   const allowed=[
+    'audio/mpeg','audio/ogg','audio/wav','audio/mp4',
+    'image/jpeg','image/png','image/webp','application/pdf'
+   ];
+
+   if(r.id!==id||!allowed.includes(r.mime)||
+      typeof r.data!=='string'||r.data.length>14000000)
+       throw Error('Arquivo inválido');
+
+   const binary=atob(r.data);
+   const bytes=Uint8Array.from(binary,c=>c.charCodeAt(0));
+   const url=URL.createObjectURL(new Blob([bytes],{type:r.mime}));
+
+   if(urls.has(slot))URL.revokeObjectURL(urls.get(slot));
+
+   urls.set(slot,url);
+   slot.replaceChildren();
+
+   if(r.mime.startsWith('audio/')){
+    const audio=document.createElement('audio');
+    audio.controls=true;
+    audio.preload='metadata';
+    audio.style.maxWidth='100%';
+    audio.src=url;
+    slot.append(audio);
+   }else if(r.mime.startsWith('image/')){
+    const img=document.createElement('img');
+    img.alt='Imagem recebida';
+    img.style.cssText='max-width:100%;max-height:320px;object-fit:contain;border-radius:8px;display:block';
+    img.src=url;
+    slot.append(img);
+   }
+
+   const link=document.createElement('a');
+   link.href=url;
+   link.className='lk';
+
+   const ext={
+    'audio/mpeg':'mp3','audio/ogg':'ogg',
+    'audio/wav':'wav','audio/mp4':'m4a',
+    'image/jpeg':'jpg','image/png':'png',
+    'image/webp':'webp','application/pdf':'pdf'
+   };
+
+   link.download='anexo-'+id+'.'+ext[r.mime];
+   link.textContent='Salvar arquivo';
+
+   slot.append(link);
+   b.hidden=true;
+
+  }catch(err){
+   if(same())slot.textContent='Arquivo indisponível. Tente novamente.';
+  }finally{
+   if(b.isConnected)b.disabled=false;
+  }
+ },true);
 })();

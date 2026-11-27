@@ -99,6 +99,7 @@
   }
   function form(s, title, fields, submit, label = "Salvar") {
     if (!live(s) || !writer()) return;
+    s.message = "";
     openForm(
       title,
       "Dados salvos neste negócio. Horário do dispositivo: " +
@@ -162,6 +163,85 @@
       s.busy = false;
       if (live(s)) paint();
     }
+  }
+  /* v7.3: mostra, enquanto a pessoa escolhe, o que o servidor responde em /agenda/availability.
+     É só informação: quem decide é o servidor ao confirmar. Respostas atrasadas são descartadas. */
+  function watchAvailability(s, anchor, read, opts = {}) {
+    const out = node("p");
+    out.className = "ag-avail";
+    out.setAttribute("role", "status");
+    out.setAttribute("aria-live", "polite");
+    anchor.after(out);
+    let ticket = 0,
+      timer = 0;
+    const set = (kind, text) => {
+      out.dataset.kind = kind;
+      out.textContent = text;
+    };
+    const run = async () => {
+      const mine = ++ticket;
+      let q;
+      try {
+        q = read();
+      } catch (_) {
+        q = null;
+      }
+      if (!q || !q.resource_id || !q.servico_id || !q.start) {
+        set("", opts.hint || "");
+        return;
+      }
+      let when;
+      try {
+        when = instant(q.start);
+      } catch (e) {
+        set("err", e.message);
+        return;
+      }
+      /* v7.8 · reagendamento: o próprio agendamento ocupa o horário atual. Não consulta nem promete disponibilidade para o mesmo instante. */
+      const own = opts.own, t0 = new Date(when).getTime();
+      if (own && t0 === own.start) {
+        set("warn", "Este já é o horário atual deste agendamento. Escolha outro para reagendar.");
+        return;
+      }
+      set("load", "Consultando o servidor sobre este horário…");
+      try {
+        const a = await host.request(
+          `/agenda/availability?resource_id=${encodeURIComponent(q.resource_id)}&servico_id=${encodeURIComponent(q.servico_id)}&scheduled_for=${encodeURIComponent(when)}`,
+        );
+        if (!live(s) || mine !== ticket) return;
+        if (typeof a?.available !== "boolean") throw Error("Resposta inesperada.");
+        set(
+          a.available ? "ok" : "err",
+          a.available
+            ? "O servidor informa que este horário está livre. A confirmação só vale depois de salvar."
+            : own && t0 >= own.start && t0 < own.end
+              ? "Este horário se sobrepõe ao horário atual deste agendamento e o servidor o informa como ocupado. Escolha um horário fora do atual."
+              : "O servidor informa conflito: este horário não está disponível para este recurso.",
+        );
+      } catch (e) {
+        if (!live(s) || mine !== ticket) return;
+        set("warn", "Não foi possível conferir agora. O servidor voltará a conferir ao salvar.");
+      }
+    };
+    return {
+      check() {
+        clearTimeout(timer);
+        timer = setTimeout(run, 350);
+      },
+      now: run,
+    };
+  }
+  function summary(row, extra) {
+    const t = new Date(row.scheduled_for),
+      e = new Date(row.ends_at);
+    const hm = (d) => d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    const p = node(
+      "p",
+      `${row.service_name} · ${row.client_name} · ${t.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}, ${hm(t)} – ${hm(e)}${row.resource_name ? " · " + row.resource_name : ""}`,
+    );
+    p.className = "ag-sum";
+    if (extra) p.append(node("br"), document.createTextNode(extra));
+    return p;
   }
   function resource(s) {
     const operationId = crypto.randomUUID();
@@ -345,6 +425,7 @@
             throw Error("Sem confirmação. Retome o pedido original.");
           if (live(s) && localStorage.getItem(storageKey(s)) === pending)
             localStorage.removeItem(storageKey(s));
+          s.message = "Agendamento confirmado pelo servidor.";
         },
         "Confirmar agendamento",
       );
@@ -364,128 +445,15 @@
       }
       input("booking_start").type = "datetime-local";
       input("booking_notes").maxLength = 1000;
-    });
-  }
-  const bookingDays = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
-  function parseBookingHours(value, weekday) {
-    const windows = [];
-    for (const entry of value
-      .split(";")
-      .map((part) => part.trim())
-      .filter(Boolean)) {
-      const match = /^(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})$/.exec(entry);
-      if (
-        !match ||
-        match[1] >= match[2] ||
-        ![match[1], match[2]].every((clock) => /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(clock))
-      )
-        throw Error(bookingDays[weekday] + ": use 09:00-12:00;13:00-18:00.");
-      windows.push({ weekday, opens: match[1], closes: match[2] });
-    }
-    return windows;
-  }
-  function configureChannelBooking(s) {
-    prepare(s, async () => {
-      if (!["owner", "admin"].includes(host.identity?.papel))
-        throw Error("Somente a administração pode definir horários dos canais.");
-      const existing = await host.request("/agenda/channel-booking");
-      if (!live(s)) return;
-      if (
-        !Number.isSafeInteger(existing.revision) ||
-        !existing.policy ||
-        !Array.isArray(existing.policy.hours)
-      )
-        throw Error("Configuração de horários inválida. Nenhuma alteração foi feita.");
-      const fields = [
-        {
-          id: "channel_booking_enabled",
-          label: "Agendamento pelo WhatsApp e Instagram",
-          type: "select",
-          options: [],
-        },
-        { id: "channel_booking_timezone", label: "Fuso horário", req: 1 },
-        { id: "channel_booking_step", label: "Intervalo dos horários (minutos)", req: 1 },
-        { id: "channel_booking_lead", label: "Antecedência mínima (minutos)", req: 1 },
-        { id: "channel_booking_horizon", label: "Dias disponíveis para marcar", req: 1 },
-        ...bookingDays.map((day, i) => ({
-          id: "channel_booking_day_" + i,
-          label: day + " (ex.: 09:00-12:00;13:00-18:00)",
-        })),
-      ];
-      const input = form(
-        s,
-        "Horários para agendamento por WhatsApp e Instagram",
-        fields,
-        async (get) => {
-          const hours = bookingDays.flatMap((_, weekday) =>
-            parseBookingHours(get("channel_booking_day_" + weekday).value, weekday),
-          );
-          const policy = {
-            ...existing.policy,
-            enabled: get("channel_booking_enabled").value === "true",
-            timezone: get("channel_booking_timezone").value.trim(),
-            step_minutes: Number(get("channel_booking_step").value),
-            lead_minutes: Number(get("channel_booking_lead").value),
-            horizon_days: Number(get("channel_booking_horizon").value),
-            hours,
-          };
-          if (
-            !policy.timezone ||
-            ![policy.step_minutes, policy.lead_minutes, policy.horizon_days].every(Number.isInteger)
-          )
-            throw Error("Confira o fuso horário e os intervalos.");
-          if (policy.enabled && !hours.length)
-            throw Error("Defina pelo menos um dia de atendimento antes de ativar.");
-          await host.request("/agenda/channel-booking", "PUT", {
-            expected_revision: existing.revision,
-            policy,
-          });
-        },
-        "Salvar horários",
-      );
-      if (!input) return;
-      const active = input("channel_booking_enabled");
-      active.replaceChildren();
-      for (const [value, title] of [
-        ["false", "Desativado"],
-        ["true", "Ativado"],
-      ]) {
-        const option = node("option", title);
-        option.value = value;
-        active.append(option);
+      const watch = watchAvailability(s, input("booking_start").nextElementSibling || input("booking_start"), () => ({
+        resource_id: input("booking_resource").value,
+        servico_id: input("booking_service").value,
+        start: input("booking_start").value,
+      }));
+      for (const id of ["booking_service", "booking_resource", "booking_start"]) {
+        input(id).addEventListener("change", watch.check);
+        input(id).addEventListener("input", watch.check);
       }
-      active.value = String(existing.policy.enabled);
-      for (const [field, value] of [
-        ["timezone", existing.policy.timezone],
-        ["step", existing.policy.step_minutes],
-        ["lead", existing.policy.lead_minutes],
-        ["horizon", existing.policy.horizon_days],
-      ])
-        input("channel_booking_" + field).value = String(value);
-      for (const [field, min, max] of [
-        ["step", 5, 120],
-        ["lead", 0, 10080],
-        ["horizon", 1, 60],
-      ]) {
-        const element = input("channel_booking_" + field);
-        element.type = "number";
-        element.min = String(min);
-        element.max = String(max);
-        element.step = "1";
-      }
-      for (let day = 0; day < bookingDays.length; day++)
-        input("channel_booking_day_" + day).value = existing.policy.hours
-          .filter((item) => item.weekday === day)
-          .map((item) => item.opens + "-" + item.closes)
-          .join(";");
-      const details = node(
-        "p",
-        "Estes horários valem para os dois canais, em cada negócio separadamente. " +
-          "Os clientes só confirmam reservas depois de escolher serviço, profissional e horário. " +
-          "A agenda interna permanece disponível mesmo com o menu dos canais desativado.",
-      );
-      details.className = "mut";
-      dlg().querySelector("form")?.prepend(details);
     });
   }
   function duration(s) {
@@ -553,14 +521,42 @@
       async (get) => {
         const payload = { expected_revision: row.revision };
         if (status) payload.status = status;
-        else payload.scheduled_for = instant(get("booking_start").value);
+        else {
+          payload.scheduled_for = instant(get("booking_start").value);
+          if (new Date(payload.scheduled_for).getTime() === new Date(row.scheduled_for).getTime()) throw Error("Este já é o horário atual. Escolha outro para reagendar.");
+        }
         const saved = await host.request("/agenda/appointments/" + row.id, "PATCH", payload);
         if (!valid(saved) || saved.id !== row.id)
           throw Error("Confirmação inválida. Consulte a agenda antes de repetir.");
+        s.message = status === "cancelled" ? "Cancelamento confirmado pelo servidor." : status === "done" ? "Conclusão confirmada pelo servidor." : "Novo horário confirmado pelo servidor.";
       },
       status === "cancelled" ? "Confirmar cancelamento" : "Confirmar",
     );
-    if (input && !status) input("booking_start").type = "datetime-local";
+    if (input) {
+      const f = dlg().querySelector("form");
+      f.querySelector("h2")?.after(
+        summary(
+          row,
+          status === "cancelled"
+            ? "O horário será liberado. O histórico e o identificador são preservados."
+            : status === "done"
+              ? "O agendamento será marcado como concluído no servidor."
+              : "Horário atual. O identificador e o histórico são preservados.",
+        ),
+      );
+    }
+    if (input && !status) {
+      input("booking_start").type = "datetime-local";
+      if (row.resource_id && row.servico_id) {
+        const watch = watchAvailability(s, input("booking_start").nextElementSibling || input("booking_start"), () => ({
+          resource_id: row.resource_id,
+          servico_id: row.servico_id,
+          start: input("booking_start").value,
+        }), { reschedule: true, own: { start: new Date(row.scheduled_for).getTime(), end: new Date(row.ends_at || row.scheduled_for).getTime() } });
+        input("booking_start").addEventListener("change", watch.check);
+        input("booking_start").addEventListener("input", watch.check);
+      }
+    }
   }
   async function history(s, row) {
     try {
@@ -591,154 +587,87 @@
       }
     }
   }
-  function publishBooking(s) {
-    prepare(s, async () => {
-      if (!["owner", "admin"].includes(host.identity?.papel))
-        throw Error("Somente responsáveis podem publicar a agenda.");
-      const [existing, products, resources] = await Promise.all([
-        host.request("/agenda/public-booking"),
-        host.request("/produtos"),
-        host.request("/agenda/resources"),
-      ]);
-      if (!live(s)) return;
-      if (
-        !existing.policy ||
-        !Number.isSafeInteger(existing.revision) ||
-        !Array.isArray(products) ||
-        !Array.isArray(resources.items)
-      )
-        throw Error("Não foi possível conferir a publicação. Recarregue antes de salvar.");
-      const serviceRows = products.filter(
-          (p) => p.tipo === "Serviço" && p.status === "Ativo" && p.duracao_minutos,
-        ),
-        resourceRows = resources.items.filter((r) => r.ativo);
-      const selectedServices = new Set(
-          serviceRows
-            .filter((row) => existing.policy.service_ids.includes(row.id))
-            .map((row) => row.id),
-        ),
-        selectedResources = new Set(
-          resourceRows
-            .filter((row) => existing.policy.resource_ids.includes(row.id))
-            .map((row) => row.id),
-        );
-      const get = form(
-        s,
-        "Agendamento pelo site",
-        [],
-        async () => {
-          await host.request("/agenda/public-booking", "PUT", {
-            expected_revision: existing.revision,
-            policy: {
-              enabled: enable.checked,
-              service_ids: [...selectedServices],
-              resource_ids: [...selectedResources],
-              allow_new_customers: allowNew.checked,
-              allow_verified_email_match: allowMatch.checked,
-            },
-          });
-        },
-        "Salvar publicação",
-      );
-      if (!get) return;
-      const f = dlg().querySelector("form"),
-        content = node("div");
-      const check = (label, checked, change) => {
-        const wrap = node("label"),
-          box = node("input");
-        box.type = "checkbox";
-        box.checked = checked;
-        box.addEventListener("change", () => change?.(box.checked));
-        wrap.style.cssText = "display:flex;gap:10px;align-items:center;min-height:44px";
-        wrap.append(box, node("span", label));
-        content.append(wrap);
-        return box;
-      };
-      const enable = check("Permitir agendamento público", existing.policy.enabled),
-        allowNew = check(
-          "Cadastrar novos clientes após verificar o e-mail",
-          existing.policy.allow_new_customers,
-        ),
-        allowMatch = check(
-          "Associar cadastro único pelo e-mail verificado",
-          existing.policy.allow_verified_email_match,
-        );
-      content.append(
-        node(
-          "p",
-          "O visitante precisa confirmar seu e-mail. Cadastros ambíguos serão encaminhados à equipe. Os horários usam a configuração dos canais.",
-        ),
-      );
-      for (const [title, rows, selected] of [
-        ["Serviços publicados", serviceRows, selectedServices],
-        ["Profissionais e recursos publicados", resourceRows, selectedResources],
-      ]) {
-        content.append(node("h3", title));
-        if (!rows.length) content.append(node("p", "Cadastre uma opção ativa antes de publicar."));
-        for (const row of rows)
-          check(row.nome, selected.has(row.id), (active) =>
-            active ? selected.add(row.id) : selected.delete(row.id),
-          );
-      }
-      if (/^[a-z0-9-]+$/.test(existing.slug)) {
-        const link = node("a", "Abrir página de agendamento");
-        link.href = "/frontend/agendar.html?negocio=" + encodeURIComponent(existing.slug);
-        link.target = "_blank";
-        link.rel = "noopener noreferrer";
-        content.append(link);
-      }
-      if (!existing.server_enabled)
-        content.append(
-          node(
-            "p",
-            "A ativação no servidor ainda está pendente. Salvar esta configuração não envia e-mails nem ativa o recurso sozinho.",
-          ),
-        );
-      f.prepend(content);
-    });
-  }
   function paint() {
     const parent = document.querySelector(".sm-agenda");
     if (!parent || location.hash !== "#/agenda") return;
     const s = current(),
       section = node("section");
     section.dataset.appointments = "true";
-    section.append(
-      node("h2", "Agendamentos de serviços"),
-      node(
-        "p",
-        "Escolha um recurso/profissional. Conflitos de horário são conferidos no servidor; horários de funcionamento não são presumidos.",
-      ),
-    );
-    const actions = node("div");
-    actions.className = "row wr";
+    section.className = "ag-card ag-ap";
+    section.setAttribute("aria-labelledby", "ag-ap-h");
     const disabled = s.busy || !writer();
-    actions.append(
+    const shiftDay = (n) => {
+      const d = new Date();
+      d.setDate(d.getDate() + n);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    };
+    /* cabeçalho: título, contagem e ação principal; cadastros ficam num menu "Cadastros" */
+    const ch = node("div");
+    ch.className = "ag-ch";
+    const h2 = node("h2", "Agendamentos de serviços");
+    h2.id = "ag-ap-h";
+    const cnt = node("span", s.items.length ? s.items.length + (s.items.length === 1 ? " agendamento" : " agendamentos") : "");
+    const tools = node("div");
+    tools.className = "ag-tools";
+    const novo = button("Novo agendamento", () => book(s), disabled || s.phase !== "ready");
+    novo.className = "btn ag-add";
+    const more = node("details");
+    more.className = "ag-more";
+    const sum = node("summary", "Cadastros");
+    const menu = node("div");
+    menu.className = "ag-menu";
+    menu.append(
       button("Cadastrar serviço", () => service(s), disabled),
       button("Configurar duração", () => duration(s), disabled),
       button("Cadastrar profissional/recurso", () => resource(s), disabled),
       button("Configurar profissional/recurso", () => manageResources(s), disabled),
-      button("Novo agendamento", () => book(s), disabled || s.phase !== "ready"),
-      button(
-        "Configurar horários dos canais",
-        () => configureChannelBooking(s),
-        disabled || !["owner", "admin"].includes(host.identity?.papel),
-      ),
       button("Atualizar agendamentos", () => load(s), s.busy),
     );
-    if (["owner", "admin"].includes(host.identity?.papel))
-      actions.append(button("Agendamento pelo site", () => publishBooking(s), disabled));
-    section.append(actions);
+    more.append(sum, menu);
+    tools.append(novo, more);
+    ch.append(h2, cnt, tools);
+    const sub = node(
+      "p",
+      "Escolha um recurso/profissional. Conflitos de horário são conferidos no servidor; horários de funcionamento não são presumidos.",
+    );
+    sub.className = "ag-sub";
+    section.append(ch, sub);
     const filters = node("form");
-    filters.className = "row wr";
+    filters.className = "ag-range";
     filters.setAttribute("aria-label", "Período dos agendamentos");
+    const quick = node("div");
+    quick.className = "ag-quick";
+    quick.setAttribute("role", "group");
+    quick.setAttribute("aria-label", "Períodos rápidos");
+    for (const [label, a0, b0] of [
+      ["Hoje", 0, 0],
+      ["7 dias", 0, 7],
+      ["30 dias", 0, 30],
+      ["90 dias", 0, 90],
+    ]) {
+      const q = node("button", label);
+      q.type = "button";
+      q.className = "ag-chip";
+      q.setAttribute("aria-pressed", String(s.from === shiftDay(a0) && s.to === shiftDay(b0)));
+      q.disabled = s.busy;
+      q.onclick = () => {
+        s.from = shiftDay(a0);
+        s.to = shiftDay(b0);
+        load(s);
+      };
+      quick.append(q);
+    }
+    filters.append(quick);
+    const dates = node("div");
+    dates.className = "ag-dates";
     for (const [key, label] of [
-      ["from", "Agendamentos de"],
-      ["to", "Agendamentos até"],
+      ["from", "De"],
+      ["to", "Até"],
     ]) {
       const wrapper = node("label", label),
         input = node("input");
       input.type = "date";
+      input.className = "in";
       input.required = true;
       input.value = s[key];
       input.disabled = s.busy;
@@ -746,11 +675,12 @@
         s[key] = input.value;
       };
       wrapper.append(input);
-      filters.append(wrapper);
+      dates.append(wrapper);
     }
     const consult = button("Consultar agendamentos", null, s.busy);
     consult.type = "submit";
-    filters.append(consult);
+    dates.append(consult);
+    filters.append(dates);
     filters.onsubmit = (e) => {
       e.preventDefault();
       if (filters.reportValidity()) load(s);
@@ -758,24 +688,82 @@
     section.append(filters);
     const feedback = node(
       "p",
-      s.error || (s.phase === "loading" ? "Consultando agendamentos…" : ""),
+      s.error || (s.phase === "loading" ? "Consultando agendamentos…" : s.message || ""),
     );
+    feedback.className = "ag-fb";
+    if (s.error) feedback.dataset.kind = "err";
     feedback.setAttribute("role", "status");
+    feedback.setAttribute("aria-live", "polite");
     section.append(feedback);
-    for (const row of s.items) {
+    let uncertain = false;
+    try {
+      uncertain = !!localStorage.getItem(storageKey(s));
+    } catch (_) {}
+    if (uncertain) {
+      const u = node("div");
+      u.className = "ag-uncertain";
+      u.setAttribute("role", "alert");
+      u.append(
+        node("b", "Um pedido de agendamento ficou sem confirmação."),
+        node("span", " Ele ainda não conta como agendado. Confira o pedido original antes de criar outro."),
+        button("Conferir pedido", () => book(s), disabled),
+      );
+      section.append(u);
+    }
+    const list = node("div");
+    list.className = "ag-list";
+    if (s.phase === "loading" && !s.items.length) {
+      list.setAttribute("aria-hidden", "true");
+      for (let n = 0; n < 2; n++) {
+        const sk = node("div");
+        sk.className = "ag-sk";
+        list.append(sk);
+      }
+    }
+    const ordered = s.items.slice().sort((a, b) => Date.parse(a.scheduled_for) - Date.parse(b.scheduled_for));
+    for (const row of ordered) {
       const card = node("article");
-      card.className = "crd";
-      card.append(
+      card.className = "crd ag-apc";
+      card.dataset.status = row.status;
+      card.dataset.id = row.id;
+      card.tabIndex = -1;
+      const start = new Date(row.scheduled_for),
+        endT = new Date(row.ends_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+      const when = node("div");
+      when.className = "ag-when";
+      when.append(
+        node("b", start.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })),
+        node("span", start.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }).replace(".", "")),
+      );
+      const body = node("div");
+      body.className = "ag-body";
+      const statusText = row.status === "pending" ? "Agendado" : row.status === "done" ? "Concluído" : "Cancelado";
+      const chips = node("div");
+      chips.className = "ag-chips";
+      const st = node("span", statusText);
+      st.className = "ag-st";
+      st.dataset.s = row.status;
+      chips.append(st);
+      if (row.status === "pending" && Date.parse(row.ends_at) < Date.now()) {
+        const lt = node("span", "Passou do horário · conclua ou cancele");
+        lt.className = "ag-st ag-late";
+        chips.append(lt);
+      }
+      const origin = { whatsapp: "WhatsApp", instagram: "Instagram" }[row.channel];
+      if (origin) {
+        const o = node("span", "Origem: " + origin);
+        o.className = "ag-or";
+        chips.append(o);
+      }
+      body.append(
         node("h3", row.service_name),
         node("p", `${row.client_name} · ${row.resource_name}`),
-        node(
-          "p",
-          `${new Date(row.scheduled_for).toLocaleString("pt-BR")} – ${new Date(row.ends_at).toLocaleTimeString("pt-BR")} · ${row.status === "pending" ? "Agendado" : row.status === "done" ? "Concluído" : "Cancelado"}`,
-        ),
+        node("p", `${start.toLocaleDateString("pt-BR")} · ${start.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} – ${endT}`),
+        chips,
       );
-      if (row.notes) card.append(node("p", row.notes));
+      if (row.notes) body.append(node("p", row.notes));
       const controls = node("div");
-      controls.className = "row wr";
+      controls.className = "ag-ctl";
       if (row.status === "pending")
         controls.append(
           button("Reagendar", () => update(s, row), disabled || s.phase !== "ready"),
@@ -787,17 +775,60 @@
           ),
         );
       controls.append(button("Histórico", () => history(s, row), s.busy));
-      card.append(controls);
-      section.append(card);
+      card.append(when, body, controls);
+      list.append(card);
     }
-    if (s.phase === "ready" && !s.items.length)
-      section.append(node("p", "Nenhum agendamento neste período."));
+    if (s.phase === "ready" && !s.items.length) {
+      const empty = node("div");
+      empty.className = "ag-empty";
+      const ic = node("span");
+      ic.className = "ag-ei";
+      ic.setAttribute("aria-hidden", "true");
+      const ns = "http://www.w3.org/2000/svg",
+        svg = document.createElementNS(ns, "svg"),
+        path = document.createElementNS(ns, "path");
+      for (const [k, v] of Object.entries({ viewBox: "0 0 24 24", width: "26", height: "26", fill: "none", stroke: "currentColor", "stroke-width": "1.8", "stroke-linecap": "round", "stroke-linejoin": "round" })) svg.setAttribute(k, v);
+      path.setAttribute("d", "M12 8v4l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z");
+      svg.append(path);
+      ic.append(svg);
+      const t = node("p", "Nenhum agendamento neste período.");
+      t.className = "ag-et";
+      const hint = node("p", "Cadastre um serviço e um profissional/recurso em Cadastros para poder agendar.");
+      hint.className = "ag-eh";
+      empty.append(ic, t, hint);
+      list.append(empty);
+    }
+    section.append(list);
     if (s.truncated)
       section.append(
         node("p", "Lista limitada. Reduza o período para consultar os demais registros."),
       );
     parent.querySelector("[data-appointments]")?.remove();
     parent.append(section);
+    document.dispatchEvent(new Event("socialmei-appointments-changed"));
+  }
+  /* v7.3: leitura para a visão semanal (cópia; nada é gravado fora do servidor) */
+  function snapshot() {
+    const s = current();
+    return { scope: s.scope, phase: s.phase, from: s.from, to: s.to, truncated: !!s.truncated, error: s.error || "", items: s.items.slice() };
+  }
+  function ensureRange(from, to) {
+    const s = current();
+    if (!live(s) || !/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) return;
+    if (from >= s.from && to <= s.to) return;
+    s.from = from < s.from ? from : s.from;
+    s.to = to > s.to ? to : s.to;
+    if (s.busy || s.phase === "loading") setTimeout(() => ensureRange(from, to), 600);
+    else load(s);
+  }
+  function focusCard(id) {
+    const card = [...document.querySelectorAll(".ag-apc")].find((n) => n.dataset.id === id);
+    if (!card) return false;
+    card.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    card.focus({ preventScroll: true });
+    card.classList.add("is-hit");
+    setTimeout(() => card.classList.remove("is-hit"), 1800);
+    return true;
   }
   function mount() {
     paint();
@@ -805,6 +836,6 @@
     if (s.phase === "initial" && location.hash === "#/agenda") load(s);
   }
   document.addEventListener("socialmei-agenda-painted", mount);
-  window.SocialMEIAppointments = { refresh: () => load(current()) };
+  window.SocialMEIAppointments = { refresh: () => load(current()), snapshot, ensureRange, focusCard };
   mount();
 })();

@@ -11,12 +11,12 @@
   };
   function dataset(day) {
     const names = [
-      "Lia (exemplo)",
-      "Bruno (exemplo)",
-      "Bia (exemplo)",
-      "Ana (exemplo)",
-      "Paulo (exemplo)",
-      "Leo (exemplo)",
+      "Emilly (exemplo)",
+      "Maiccon (exemplo)",
+      "Tawanny (exemplo)",
+      "Lyly (exemplo)",
+      "Mike (exemplo)",
+      "Richard (exemplo)",
     ];
     const clientes = names.map((nome, i) => ({
       id: 91001 + i,

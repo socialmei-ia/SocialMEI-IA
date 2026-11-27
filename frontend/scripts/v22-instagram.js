@@ -10,16 +10,17 @@
     publishing: false,
     connected: false,
     renewAvailable: false,
-    connectionState: "not_connected",
-    username: null,
-    expiresAt: null,
-    missingScopes: [],
-    receiving: false,
-    expiringSoon: false,
-    owner: null,
+    expired: false,
   };
   let pending = null,
-    busy = false;
+    busy = false,
+    busyKind = null,
+    started = false,
+    igDlg = null,
+    view = {};
+  /* v7.6.1: sem linha "Instagram" para pintar, não consulta sozinho (connect/renew/refresh continuam consultando sob demanda) */
+  const wantsRows = () => [...document.querySelectorAll(".sw, #cg .cn")].some((row) => row.querySelector("b")?.textContent.trim() === "Instagram");
+  const ensure = () => { if (!started && wantsRows()) refresh(); };
   const bound = new WeakSet(),
     frames = new WeakSet();
   const scope = () => `${host.identity?.usuario.id}:${host.identity?.negocio.id}`;
@@ -35,15 +36,9 @@
     if (state.phase === "loading") return "Consultando…";
     if (state.phase === "error") return "Indisponível";
     if (!state.oauth) return "Não configurado";
-    if (state.connectionState === "connecting") return "Conectando";
-    if (state.connectionState === "attention") return "Requer atenção";
     return state.connected ? "Conectado" : "Não conectado";
   }
   function description() {
-    if (state.connectionState === "attention")
-      return state.missingScopes.length
-        ? "A autorização não inclui todas as permissões necessárias. Autorize a conta novamente pelo fluxo oficial."
-        : "A credencial expirou ou não pôde ser validada. Conecte novamente a conta profissional.";
     if (state.connected)
       return (
         "Conta conectada. " +
@@ -110,11 +105,12 @@
         if (busy) return;
         if (button.dataset.igAction === "connect") connect();
         else if (button.dataset.igAction === "renew") renew();
-        else if (button.dataset.igAction === "authorize") connect(button.dataset.igScope);
-        else if (button.dataset.igAction === "disconnect") confirmDisconnect();
-        else if (button.dataset.igAction === "disconnect-confirm")
-          disconnect(button.dataset.igScope);
-        else if (button.dataset.igAction === "refresh") refresh().then(details);
+        else if (button.dataset.igAction === "refresh") {
+          const open = igDlg?.dlg.open;
+          const p = refresh();
+          if (open) renderDialog();
+          p.then(() => details());
+        }
         else details();
       },
       true,
@@ -124,25 +120,9 @@
       new MutationObserver(() => paint(doc)).observe(cards, { childList: true, subtree: true });
   }
   function paintAll() {
-    if (state.owner !== scope()) {
-      Object.assign(state, {
-        phase: state.owner === null ? "loading" : "error",
-        connected: false,
-        username: null,
-        expiresAt: null,
-        missingScopes: [],
-        receiving: false,
-        incoming: false,
-        sending: false,
-        publishing: false,
-        oauth: false,
-        renewAvailable: false,
-        connectionState: "not_connected",
-        owner: scope(),
-      });
-    }
     bind(document);
     paint(document);
+    if (igDlg?.dlg.open) renderDialog();
     for (const frame of document.querySelectorAll("iframe")) {
       if (!frames.has(frame)) {
         frames.add(frame);
@@ -159,6 +139,7 @@
   }
   async function refresh() {
     if (pending) return pending;
+    started = true;
     const owner = scope();
     pending = (async () => {
       try {
@@ -166,20 +147,13 @@
         if (ready?.source !== "server" || typeof ready.instagram?.oauth_available !== "boolean")
           throw Error("Invalid readiness");
         let connected = false,
-          connection = {};
+          connection_expired = false;
         if (ready.instagram.oauth_available) {
-          connection = await host.request("/instagram/meta/status");
+          const connection = await host.request("/instagram/meta/status");
           if (!["connected", "disconnected", "expired"].includes(connection?.status))
             throw Error("Invalid connection");
-          if (
-            connection.workspace_id !== undefined &&
-            connection.workspace_id !== host.identity?.negocio.id
-          )
-            throw Error("Different workspace");
-          connected =
-            connection.status === "connected" &&
-            connection.credential_available === true &&
-            (!connection.missing_scopes || connection.missing_scopes.length === 0);
+          connected = connection.status === "connected" && connection.credential_available === true;
+          connection_expired = connection.status === "expired";
         }
         if (scope() !== owner) throw Error("Identity changed");
         Object.assign(state, {
@@ -190,28 +164,7 @@
           publishing: ready.instagram.publishing_available === true,
           renewAvailable: ready.instagram.token_refresh_available === true,
           connected,
-          connectionState:
-            connection.connection_state ||
-            (connected
-              ? "connected"
-              : connection.status === "expired"
-                ? "attention"
-                : "not_connected"),
-          username: /^[A-Za-z0-9_.]{1,30}$/.test(connection.username || "")
-            ? connection.username
-            : null,
-          expiresAt:
-            typeof connection.expires_at === "string" &&
-            Number.isFinite(Date.parse(connection.expires_at))
-              ? connection.expires_at
-              : null,
-          missingScopes: Array.isArray(connection.missing_scopes) ? connection.missing_scopes : [],
-          receiving:
-            connected &&
-            ready.instagram.incoming_available === true &&
-            connection.receiving_messages === true,
-          expiringSoon: connection.renewal?.expiring_soon === true,
-          owner,
+          expired: connection_expired,
         });
       } catch {
         Object.assign(state, {
@@ -222,12 +175,7 @@
           publishing: false,
           connected: false,
           renewAvailable: false,
-          username: null,
-          expiresAt: null,
-          missingScopes: [],
-          receiving: false,
-          expiringSoon: false,
-          connectionState: "not_connected",
+          expired: false,
         });
       } finally {
         pending = null;
@@ -280,9 +228,10 @@
       throw Error("URL de autorização não permitida.");
     return url.href;
   }
-  async function connect(confirmedScope) {
+  async function connect() {
     if (busy) return;
     busy = true;
+    busyKind = "connect";
     paintAll();
     let phase = "readiness";
     try {
@@ -291,17 +240,8 @@
       phase = "permission";
       if (!["owner", "admin"].includes(host.identity?.papel))
         throw Error("Somente responsáveis pelo negócio podem conectar a conta.");
-      if (!confirmedScope) {
-        info(
-          "Vincular Instagram",
-          `<p>Você está conectando uma conta ao negócio <strong>${esc(host.identity?.negocio.nome)}</strong>.</p><p>Na autorização oficial, confira o perfil profissional escolhido. Conectar não ativa respostas automáticas.</p><button type="button" class="btn" data-ig-action="authorize" data-ig-scope="${esc(scope())}">Confirmar negócio e autorizar</button>`,
-        );
-        return;
-      }
-      if (confirmedScope !== scope()) throw Error("A empresa mudou. Confira novamente.");
       phase = "request";
       const value = await host.request("/instagram/meta/oauth/start", "POST", {});
-      if (confirmedScope !== scope()) throw Error("A empresa mudou. Confira novamente.");
       phase = "validation";
       const url = authorization(value);
       phase = "navigation";
@@ -320,12 +260,14 @@
       details(code);
     } finally {
       busy = false;
+      busyKind = null;
       paintAll();
     }
   }
   async function renew() {
     if (busy) return;
     busy = true;
+    busyKind = "renew";
     paintAll();
     try {
       await refresh();
@@ -340,8 +282,7 @@
       const result = await host.request("/instagram/meta/connection/refresh-token", "POST", {});
       if (result?.status !== "refreshed") throw Error("Unexpected renewal response");
       await refresh();
-      details();
-      toast("Credencial do Instagram renovada. Confira a validade na conexão.");
+      details(undefined, "renew", "renewed");
     } catch (error) {
       const code =
         Number.isInteger(error?.status) && error.status >= 400 && error.status <= 599
@@ -350,77 +291,181 @@
       details(code, "renew");
     } finally {
       busy = false;
+      busyKind = null;
       paintAll();
     }
   }
-  function confirmDisconnect() {
-    if (state.owner !== scope()) {
-      paintAll();
-      refresh().then(details);
-      return;
-    }
-    if (!["owner", "admin"].includes(host.identity?.papel)) return;
-    info(
-      "Desconectar Instagram",
-      `<p>Desconectar o perfil ${state.username ? "@" + esc(state.username) : "autorizado"} de <strong>${esc(host.identity?.negocio.nome)}</strong>?</p><p>O acesso local será removido, preservando mensagens e histórico. A autorização no aplicativo Meta pode ser revogada nas configurações do Instagram.</p><button type="button" class="btn" data-ig-action="disconnect-confirm" data-ig-scope="${esc(scope())}">Confirmar desconexão</button>`,
-    );
+  /* Diálogo de conexão no padrão da Central de Conexões. Só reflete o que o servidor informou; não inventa estados. */
+  const can = () => ["owner", "admin"].includes(host.identity?.papel);
+  const stateTone = () =>
+    state.phase === "loading" ? "busy" : state.phase === "error" || state.expired ? "err" : state.connected ? "ok" : state.oauth ? "info" : "warn";
+  const stateLabel = () => (state.expired ? "Autorização expirada" : label());
+  function track() {
+    const items = [
+      ["Aplicativo da Meta no servidor", state.phase !== "ready" ? "todo" : state.oauth ? "done" : "warn", state.oauth ? "Configurado." : "Falta o responsável pelo servidor configurar."],
+      [
+        "Conta profissional autorizada",
+        state.expired ? "err" : state.connected ? "done" : "todo",
+        state.connected ? "Autorizada para este negócio." : state.expired ? "A autorização expirou. Reconecte a conta." : "Você autoriza no Instagram e volta para cá.",
+      ],
+    ];
+    const ol = document.createElement("ol");
+    ol.className = "sm-igd-track";
+    items.forEach(([title, st, help], i) => {
+      const li = document.createElement("li");
+      li.dataset.state = st;
+      const dot = document.createElement("span");
+      dot.className = "sm-igd-dot";
+      dot.textContent = st === "done" ? "✓" : st === "err" || st === "warn" ? "!" : String(i + 1);
+      const tx = document.createElement("div");
+      const b = document.createElement("b");
+      b.textContent = title;
+      const p = document.createElement("span");
+      p.textContent = help;
+      tx.append(b, p);
+      li.append(dot, tx);
+      ol.append(li);
+    });
+    return ol;
   }
-  async function disconnect(confirmedScope) {
-    if (busy || confirmedScope !== scope() || !["owner", "admin"].includes(host.identity?.papel))
-      return;
-    busy = true;
-    paintAll();
-    try {
-      const result = await host.request("/instagram/meta/connection/disconnect", "POST", {});
-      if (result?.status !== "disconnected" || confirmedScope !== scope())
-        throw Error("Conexão mudou");
-      await refresh();
-      details();
-      toast("Instagram desconectado deste negócio. O histórico foi preservado.");
-    } catch {
-      details("IG_DISCONNECT", "disconnect");
-    } finally {
-      busy = false;
-      paintAll();
+  function capabilities() {
+    const wrap = document.createElement("ul");
+    wrap.className = "sm-igd-caps";
+    wrap.setAttribute("aria-label", "O que está habilitado no servidor");
+    for (const [name, on] of [
+      ["Receber Direct", state.incoming],
+      ["Responder pelo painel", state.sending],
+      ["Publicar pelo site", state.publishing],
+    ]) {
+      const li = document.createElement("li");
+      li.dataset.on = String(!!on);
+      li.textContent = name + " · " + (on ? "habilitado" : "desativado");
+      wrap.append(li);
     }
+    return wrap;
   }
-  function details(errorCode, operation) {
-    if (state.owner !== scope()) {
-      paintAll();
-      refresh().then(() => details());
-      return;
+  function renderDialog() {
+    if (!igDlg) return;
+    const ui = window.SocialMEIAtendimentoUI;
+    const dlg = igDlg.dlg;
+    const keep = document.activeElement?.dataset?.igAction;
+    const working = busy || !!pending || state.phase === "loading";
+    const body = document.createElement("div");
+    body.className = "sm-dlg-body";
+    const pill = document.createElement("span");
+    pill.className = "sm-igd-pill";
+    pill.dataset.tone = stateTone();
+    pill.textContent = stateLabel();
+    body.append(pill);
+    if (state.phase === "ready") body.append(track());
+    const desc = document.createElement("p");
+    desc.className = "sm-igd-desc";
+    desc.textContent = description();
+    body.append(desc);
+    if (state.connected && state.phase === "ready") body.append(capabilities());
+    const live = document.createElement("div");
+    live.className = "sm-igd-live";
+    live.setAttribute("aria-live", "polite");
+    if (working) {
+      live.dataset.tone = "busy";
+      live.append(
+        ui.spinner(),
+        document.createTextNode(
+          " " +
+            (busyKind === "connect"
+              ? "Abrindo o Instagram para autorização…"
+              : busyKind === "renew"
+                ? "Renovando a credencial…"
+                : "Consultando a conexão…"),
+        ),
+      );
+    } else if (typeof view.errorCode === "string" && /^(HTTP [45][0-9]{2}|IG_[A-Z_]+)$/.test(view.errorCode)) {
+      live.dataset.tone = "err";
+      live.setAttribute("role", "alert");
+      const t = document.createElement("b");
+      t.textContent = view.operation === "renew" ? "Não foi possível renovar a credencial." : "Não foi possível iniciar a autorização.";
+      const x = document.createElement("span");
+      x.textContent = "Confira a sessão" + (view.operation === "renew" ? "" : " e a configuração com o responsável") + " e tente de novo.";
+      const ref = document.createElement("small");
+      ref.textContent = "Referência: " + view.errorCode;
+      live.append(t, x, ref);
+    } else if (view.ok === "callback_failed") {
+      live.dataset.tone = "err";
+      live.setAttribute("role", "alert");
+      live.textContent = "A última autorização não foi concluída. Confira a situação acima e tente de novo.";
+    } else if (view.ok === "renewed") {
+      live.dataset.tone = "ok";
+      live.textContent = "Credencial renovada pelo servidor. Isso não ativa publicações nem respostas.";
     }
-    const canConnect =
-      state.phase === "ready" &&
-      state.oauth &&
-      !state.connected &&
-      ["owner", "admin"].includes(host.identity?.papel);
-    const canRenew =
-      state.connected &&
-      state.renewAvailable &&
-      state.phase === "ready" &&
-      ["owner", "admin"].includes(host.identity?.papel);
+    body.append(live);
+    const foot = document.createElement("footer");
+    foot.className = "sm-dlg-foot sm-igd-foot";
+    const act = (text, name, cls) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = cls;
+      b.dataset.igAction = name;
+      b.textContent = text;
+      b.disabled = working;
+      return b;
+    };
+    const canConnect = state.phase === "ready" && state.oauth && !state.connected && can();
+    const canRenew = state.connected && state.renewAvailable && state.phase === "ready" && can();
+    if (canConnect) foot.append(act(state.expired ? "Reconectar Instagram" : "Conectar Instagram", "connect", "btn"));
+    if (canRenew) foot.append(act("Renovar credencial", "renew", "btn"));
+    foot.append(act("Consultar novamente", "refresh", canConnect || canRenew ? "btn o" : "btn"));
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "btn o";
+    close.textContent = "Fechar";
+    close.onclick = () => dlg.close();
+    foot.append(close);
+    if (state.phase === "ready" && !can() && !state.connected && state.oauth) {
+      const n = document.createElement("p");
+      n.className = "sm-igd-note";
+      n.textContent = "Somente responsáveis pelo negócio podem conectar a conta.";
+      body.append(n);
+    }
+    if (canRenew) {
+      const n = document.createElement("p");
+      n.className = "sm-igd-note";
+      n.textContent = "A renovação exige token válido emitido há pelo menos 24 horas.";
+      body.append(n);
+    }
+    const head = igDlg.inner.querySelector(".sm-dlg-head");
+    igDlg.inner.replaceChildren(head, body, foot);
+    const again = keep && foot.querySelector('[data-ig-action="' + keep + '"]:not(:disabled)');
+    if (again) again.focus();
+    else if (!dlg.contains(document.activeElement)) (foot.querySelector("button:not(:disabled)") || close).focus();
+  }
+  function details(errorCode, operation, ok) {
+    const ui = window.SocialMEIAtendimentoUI;
+    if (!ui) return legacyDetails(errorCode, operation);
+    view = { errorCode, operation, ok };
+    if (!igDlg?.dlg.isConnected) {
+      const shell = ui.shell({ label: "Conexão do Instagram", cls: "sm-dlg-ig" });
+      shell.inner.append(ui.header(shell, "link", "Conexão do Instagram", host.identity?.negocio?.nome || "", "info"));
+      shell.dlg.addEventListener("close", () => {
+        if (igDlg === shell) igDlg = null;
+      });
+      igDlg = shell;
+      renderDialog();
+      shell.show();
+      shell.dlg.querySelector("[data-ig-action]:not(:disabled)")?.focus();
+    } else renderDialog();
+  }
+  function legacyDetails(errorCode, operation) {
     const failureText =
       operation === "renew"
         ? "Não foi possível renovar a credencial. Confira a sessão e tente novamente."
-        : operation === "disconnect"
-          ? "Não foi possível confirmar a desconexão. Consulte o estado atual antes de tentar novamente."
-          : "Não foi possível iniciar a autorização. Confira a sessão e a configuração com o responsável.";
+        : "Não foi possível iniciar a autorização. Confira a sessão e a configuração com o responsável.";
     info(
       "Conexão Instagram",
-      `<p>${label()}</p><p>${description()}</p>${state.username ? "<p>Perfil verificado: <strong>@" + esc(state.username) + "</strong></p>" : ""}<p>Negócio: ${esc(host.identity?.negocio.nome)}</p>${state.expiresAt ? "<p>Credencial válida até " + esc(new Date(state.expiresAt).toLocaleString("pt-BR")) + ".</p>" : ""}${state.receiving ? "<p>Recebendo mensagens: há eventos autenticados nas últimas 24 horas.</p>" : ""}${state.expiringSoon ? '<p role="status">A credencial vence em breve. Renove ou autorize novamente para manter o atendimento.</p>' : ""}${
+      `<p>${label()}</p><p>${description()}</p>${
         typeof errorCode === "string" && /^(HTTP [45][0-9]{2}|IG_[A-Z_]+)$/.test(errorCode)
-          ? '<p role="alert">' + failureText + "</p>"
+          ? '<p role="alert">' + failureText + "</p><p>Referência: " + errorCode + "</p>"
           : ""
-      }${
-        canConnect
-          ? '<button type="button" class="btn" data-ig-action="connect">Conectar Instagram</button>'
-          : ""
-      }${
-        canRenew
-          ? '<button type="button" class="btn" data-ig-action="renew">Renovar credencial</button><p class="m sm">A renovação exige token válido emitido há pelo menos 24 horas. Não ativa publicações ou respostas.</p>'
-          : ""
-      }${state.oauth && ["owner", "admin"].includes(host.identity?.papel) && state.connectionState !== "not_connected" ? '<button type="button" class="btn o" data-ig-action="disconnect">Desconectar perfil</button>' : ""}<button type="button" class="btn o" data-ig-action="refresh">Consultar novamente</button>`,
+      }<button type="button" class="btn o" data-ig-action="refresh">Consultar novamente</button>`,
     );
   }
   document.addEventListener(
@@ -430,7 +475,9 @@
       if (!button) return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      refresh().then(details);
+      const p = refresh();
+      if (igDlg?.dlg.open) renderDialog();
+      p.then(() => details());
     },
     true,
   );
@@ -438,16 +485,14 @@
   render = () => {
     previousRender();
     paintAll();
+    ensure();
   };
   window.SocialMEIInstagram = {
     refresh,
     connect,
     renew,
-    disconnect,
-    details,
     authorization,
     get status() {
-      if (state.owner !== scope()) paintAll();
       return { ...state };
     },
   };
@@ -462,11 +507,7 @@
   delete window.__socialmeiInstagramCallbackOutcome;
   if (legacyReturn) go("/config/integracoes");
   paintAll();
-  refresh().then(() => {
-    if (callbackOutcome) {
-      details();
-      if (callbackOutcome === "failed")
-        toast("A última autorização não foi concluída. Confira a situação acima.");
-    }
+  (callbackOutcome || wantsRows() ? refresh() : Promise.resolve()).then(() => {
+    if (callbackOutcome) details(undefined, undefined, callbackOutcome === "failed" ? "callback_failed" : undefined);
   });
 })();

@@ -1,0 +1,463 @@
+"""Despachante temporario de respostas de menu apenas para contatos que escreveram ao projeto.
+A origem e o destinatario sao verificados pela API, jamais informados pelo navegador.
+"""
+import argparse
+import json
+import os
+import re
+import stat
+import sys
+import time
+from dataclasses import dataclass
+from pathlib import Path
+
+import httpx
+def valid_token(value):
+    return isinstance(value, str) and re.fullmatch(r'sm:[0-9a-f]{32}:[0-9]', value) is not None
+
+
+API_URL = 'http://socialmei-menu-public-api-v3:8019'
+WAHA_URL = 'http://socialmei-waha:3000'
+GOWS_URL = 'http://socialmei-waha-gows-piloto:3000'
+WAHA_ENDPOINTS = {'WEBJS': WAHA_URL, 'GOWS': GOWS_URL}
+SOURCE_URL = '/internal/whatsapp/bot/sources'
+VALID_CONTACT = re.compile(r'(?:[0-9]{1,40}@c\.us|[A-Za-z0-9][A-Za-z0-9_.:-]{0,79}@lid)\Z')
+VALID_ACCOUNT = re.compile(r'[0-9]{1,40}@c\.us\Z')
+VALID_INSTANCE = re.compile(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,79}\Z')
+VALID_ID = re.compile(r'[!-~]{1,1024}\Z')
+
+
+class Blocked(Exception):
+    """Nao imprimir dados sensiveis em erros/tracebacks."""
+
+
+class SourceUnavailable(Blocked):
+    """Apenas a leitura inicial falhou; nenhum claim ou envio foi iniciado."""
+
+
+def _secret(path: str) -> str:
+    if not path or not path.startswith('/run/secrets/') or '\x00' in path:
+        raise Blocked('Arquivo de segredo fora do diretorio privado')
+    p = Path(path)
+    try:
+        info = p.lstat()
+        if (not stat.S_ISREG(info.st_mode) or info.st_mode & 0o077 or info.st_size > 4097
+                or info.st_size < 16):
+            raise Blocked('Permissoes ou tamanho do segredo invalidos')
+        value = p.read_text(encoding='utf-8').strip()
+    except (OSError, UnicodeError):
+        raise Blocked('Segredo nao acessivel') from None
+    if not re.fullmatch(r'[!-~]{16,4096}', value):
+        raise Blocked('Segredo invalido')
+    return value
+
+
+def _native_contacts():
+    raw=os.getenv('SOCIALMEI_MENU_GOWS_LIST_CONTACTS_JSON','')
+    if not raw:return ()
+    try:values=json.loads(raw)
+    except ValueError:raise Blocked('Configuracao de listas invalida') from None
+    if (not isinstance(values,list) or not 1<=len(values)<=20
+            or any(not isinstance(c,str) or not c.startswith('waha:') or not VALID_CONTACT.fullmatch(c[5:]) for c in values)
+            or len(set(values))!=len(values)):
+        raise Blocked('Configuracao de listas invalida')
+    return tuple(c[5:] for c in values)
+
+
+@dataclass(frozen=True, repr=False)
+class Config:
+    instance: str
+    session: str
+    account: str
+    token: str
+    waha_key: str
+    engine: str = 'WEBJS'
+    waha_url: str = WAHA_URL
+    native_list_contact: str = ''
+    native_list_contacts: tuple[str, ...] = ()
+
+    def __post_init__(self):
+        if (not VALID_INSTANCE.fullmatch(self.instance)
+                or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,159}', self.session)
+                or not VALID_ACCOUNT.fullmatch(self.account)
+                or not re.fullmatch(r'[!-~]{16,4096}', self.token)
+                or not re.fullmatch(r'[!-~]{16,4096}', self.waha_key)
+                or self.engine not in WAHA_ENDPOINTS
+                or self.waha_url != WAHA_ENDPOINTS.get(self.engine)
+                or (self.engine == 'GOWS' and self.session != '01')
+                or not isinstance(self.native_list_contact, str)
+                or (self.native_list_contact and (self.engine != 'GOWS'
+                    or not isinstance(self.native_list_contact, str)
+                    or not VALID_CONTACT.fullmatch(self.native_list_contact)
+                    or self.native_list_contact == self.account))
+                or not isinstance(self.native_list_contacts, tuple)
+                or len(self.native_list_contacts)>20
+                or any(self.engine!='GOWS' or not isinstance(c,str) or not VALID_CONTACT.fullmatch(c) or c==self.account for c in self.native_list_contacts)
+                or len(set(self.native_list_contacts))!=len(self.native_list_contacts)):
+            raise Blocked('Escopo do piloto invalido')
+
+    @classmethod
+    def from_env(cls):
+        if (os.getenv('SOCIALMEI_MENU_SENDER_ACTIVE') != 'YES'
+                or os.getenv('SOCIALMEI_PUBLIC_MENU_EXPLICIT_ENABLE') != 'YES'):
+            raise Blocked('Envio automatico nao autorizado')
+        engine = os.getenv('SOCIALMEI_MENU_WAHA_ENGINE', 'WEBJS')
+        if (os.getenv('SOCIALMEI_MENU_API_URL') != API_URL
+                or engine not in WAHA_ENDPOINTS
+                or os.getenv('SOCIALMEI_MENU_WAHA_URL') != WAHA_ENDPOINTS.get(engine)):
+            raise Blocked('Destino privado nao autorizado')
+        return cls(
+            os.getenv('SOCIALMEI_MENU_INSTANCE', ''),
+            os.getenv('SOCIALMEI_MENU_SESSION', ''),
+            os.getenv('SOCIALMEI_MENU_ACCOUNT', ''),
+            _secret(os.getenv('SOCIALMEI_MENU_TOKEN_FILE', '')),
+            _secret(os.getenv('SOCIALMEI_MENU_WAHA_KEY_FILE', '')),
+            engine,
+            os.getenv('SOCIALMEI_MENU_WAHA_URL', ''),
+            os.getenv('SOCIALMEI_MENU_GOWS_LIST_CANARY_CONTACT', '').removeprefix('waha:'),
+            _native_contacts(),
+        )
+
+
+def _json(response, maximum=16384):
+    if not 200 <= response.status_code < 300:
+        raise Blocked('Servico privado retornou erro')
+    if response.headers.get('content-type', '').split(';')[0].strip().lower() != 'application/json':
+        raise Blocked('Resposta sem JSON')
+    if len(response.content) > maximum:
+        raise Blocked('Resposta muito grande')
+
+    def unique(pairs):
+        out = {}
+        for name, val in pairs:
+            if name in out:
+                raise Blocked('JSON ambiguo')
+            out[name] = val
+        return out
+
+    try:
+        data = json.loads(response.content, object_pairs_hook=unique)
+    except (ValueError, UnicodeError):
+        raise Blocked('JSON invalido') from None
+    if not isinstance(data, dict):
+        raise Blocked('Resposta inesperada')
+    return data
+
+
+def _plain(value, maximum):
+    return (isinstance(value, str) and bool(value.strip())
+            and len(value.encode('utf-8')) <= maximum
+            and not any((ord(c) < 32 and c not in '\n\r\t') or 0x7f <= ord(c) <= 0x9f for c in value))
+
+
+def _delivery(data, cfg):
+    if not isinstance(data, dict) or set(data) != {'path', 'body'}:
+        raise Blocked('Entrega inesperada')
+    body = data['body']
+    if (not isinstance(body, dict) or body.get('session') != cfg.session
+            or not isinstance(body.get('chatId'), str) or not VALID_CONTACT.fullmatch(body['chatId'])
+            or body['chatId'] == cfg.account):
+        raise Blocked('Contato fora do escopo')
+    if data['path'] == '/api/sendText':
+        if set(body) != {'session', 'chatId', 'text'} or not _plain(body['text'], 4096):
+            raise Blocked('Texto invalido')
+    elif data['path'] == '/api/sendList':
+        if (cfg.engine != 'GOWS' or not (body['chatId'] in (cfg.native_list_contacts or (cfg.native_list_contact,)) or (os.getenv('SOCIALMEI_MENU_PUBLIC_INBOUND_ACTIVE') == 'YES' and isinstance(body['chatId'], str) and VALID_CONTACT.fullmatch(body['chatId']) and body['chatId'] != cfg.account))
+                or set(body) != {'session', 'chatId', 'message'}):
+            raise Blocked('Lista fora do contato de homologacao')
+        message = body['message']
+        if (not isinstance(message, dict)
+                or set(message) != {'title', 'description', 'footer', 'button', 'sections'}
+                or not all(_plain(message[k], 4096 if k == 'description' else 60)
+                           for k in ['title', 'description', 'footer', 'button'])
+                or not isinstance(message['sections'], list) or len(message['sections']) != 1):
+            raise Blocked('Lista invalida')
+        section = message['sections'][0]
+        if (not isinstance(section, dict) or set(section) != {'title', 'rows'}
+                or not _plain(section['title'], 60) or not isinstance(section['rows'], list)
+                or not 1 <= len(section['rows']) <= 10):
+            raise Blocked('Secao invalida')
+        ids = []
+        for row in section['rows']:
+            if (not isinstance(row, dict) or set(row) != {'rowId', 'title', 'description'}
+                    or not isinstance(row['rowId'], str)
+                    or (row['rowId'] not in {'0', '1', '2', '3', '4', '5'} and not valid_token(row['rowId']))
+                    or not _plain(row['title'], 96) or len(row['title'])>24
+                    or (row['description'] is not None and (not _plain(row['description'], 288) or len(row['description'])>72))):
+                raise Blocked('Opcao invalida')
+            ids.append(row['rowId'])
+        if len(ids) != len(set(ids)):
+            raise Blocked('Opcoes duplicadas')
+    else:
+        raise Blocked('Operacao nao autorizada')
+    return body
+
+
+
+def _everson_split_delivery(planned,delivery,cfg):
+    # Uma unica entrega contextual por decisao.
+    return None
+
+
+def _everson_pair_capacity(journal,now,chat):
+    import copy
+    import hashlib
+
+    if not journal.public:
+        return False
+
+    contact=hashlib.sha256(
+        chat.encode()
+    ).hexdigest()
+
+    saved=copy.deepcopy(journal.state)
+
+    try:
+        if not journal.available(now,contact):
+            return False
+
+        journal.state["attempts"].append({
+            "time":now,
+            "contact":contact
+        })
+
+        return bool(journal.available(now,contact))
+
+    finally:
+        journal.state.clear()
+        journal.state.update(saved)
+
+
+def _everson_can_send_pair(chat):
+    from pathlib import Path
+    from continuous_guard import Journal
+
+    try:
+        state = json.loads(Path(
+            "/run/socialmei/continuous-state/state.json"
+        ).read_text())
+
+        if (
+            state.get("status")!="running"
+            or state.get("public") is not True
+            or state.get("in_flight") is not True
+        ):
+            return False
+
+        j = Journal.__new__(Journal)
+        j.public = True
+        j.allowed = []
+        j.state = state
+
+        return _everson_pair_capacity(
+            j,time.time(),chat
+        )
+
+    except Exception:
+        # Preserva a lista unica se a capacidade
+        # para dois envios nao puder ser comprovada.
+        return False
+
+
+
+def run_once(cfg, *, client_factory=httpx.Client):
+    opts = dict(verify=True, follow_redirects=False, trust_env=False,
+                timeout=httpx.Timeout(5, connect=2),
+                limits=httpx.Limits(max_connections=2, max_keepalive_connections=0))
+    with client_factory(**opts) as api, client_factory(**opts) as waha:
+        def request(client, method, url, *, headers, data=None, retryable_read=False):
+            # Sem tentativas automaticas e sem redirecionamentos.
+            content = None if data is None else json.dumps(data, ensure_ascii=False, separators=(',', ':')).encode()
+            r = client.request(method, url, headers={**headers, 'Accept': 'application/json',
+                                      **({'Content-Type': 'application/json'} if content is not None else {})},
+                               content=content, **(
+        {"timeout":httpx.Timeout(60,connect=2)}
+        if method=="POST" and url==
+        API_URL+"/internal/whatsapp/bot/decisions"
+        else {}
+    ))
+            if retryable_read and r.status_code >= 500:
+                raise SourceUnavailable('Fonte temporariamente indisponivel')
+            return _json(r)
+
+        auth = {'Authorization': 'Bearer ' + cfg.token}
+        provider = {'X-Api-Key': cfg.waha_key}
+        try:
+            sources = request(api, 'GET', API_URL + SOURCE_URL, headers=auth, retryable_read=True)
+        except httpx.TransportError as error:
+            raise SourceUnavailable('Fonte temporariamente indisponivel') from error
+        values = sources.get('sources')
+        if not isinstance(values, list) or len(values) > 50:
+            raise Blocked('Origens de mensagens invalidas')
+        if not values:
+            return 'SEM_MENSAGENS_NOVAS'
+        src = values[0]
+        if (not isinstance(src, dict) or set(src) != {'instance', 'external_message_id'}
+                or src['instance'] != cfg.instance
+                or not isinstance(src['external_message_id'], str)
+                or not VALID_ID.fullmatch(src['external_message_id'])):
+            raise Blocked('Origem nao corresponde ao piloto')
+
+        # Verify the provider before persisting a decision that consumes the source.
+        try:
+            if cfg.engine == 'GOWS':
+                version = request(waha, 'GET', cfg.waha_url + '/api/version', headers=provider, retryable_read=True)
+                if version.get('engine') != 'GOWS':
+                    raise Blocked('Engine WAHA diferente da configurada')
+            session = request(waha, 'GET', cfg.waha_url + '/api/sessions/' + cfg.session, headers=provider, retryable_read=True)
+            if (session.get('name') != cfg.session or session.get('status') != 'WORKING'
+                    or not isinstance(session.get('me'), dict)
+                    or session['me'].get('id') != cfg.account):
+                raise Blocked('Sessao WAHA indisponivel ou outra conta')
+        except httpx.TransportError as error:
+            raise SourceUnavailable("WAHA temporariamente indisponivel") from error
+
+        planned = request(api, 'POST', API_URL + '/internal/whatsapp/bot/decisions', headers=auth, data=src)
+        opid = planned.get('operation_id')
+        if not isinstance(opid, str) or not re.fullmatch(r'[0-9a-fA-F-]{36}', opid):
+            raise Blocked('Operacao sem identificador')
+        if planned.get('status') != 'planned':
+            return 'SEM_ENVIO_AUTORIZADO'
+
+        opurl = API_URL + '/internal/whatsapp/bot/decisions/' + opid
+        claimed = request(api, 'POST', opurl + '/claim', headers=auth, data={})
+        if claimed.get('dispatch_allowed') is not True:
+            return 'ENVIO_NEGADO_PELO_SERVIDOR'
+        # A partir daqui NUNCA tentar enviar duas vezes, mesmo em timeout.
+        status = 'uncertain'
+        provider_id = None
+        try:
+            body = _delivery(claimed.get('delivery'), cfg)
+            # Revalidar sessao apos claim: qualquer erro exige conciliação, nao retry.
+            if cfg.engine == 'GOWS':
+                version = request(waha, 'GET', cfg.waha_url + '/api/version', headers=provider)
+                if version.get('engine') != 'GOWS':
+                    raise Blocked('Engine WAHA mudou apos claim')
+            current = request(waha, 'GET', cfg.waha_url + '/api/sessions/' + cfg.session, headers=provider)
+            if (current.get('name') != cfg.session or current.get('status') != 'WORKING'
+                    or not isinstance(current.get('me'), dict)
+                    or current['me'].get('id') != cfg.account):
+                raise Blocked('Sessao mudou apos claim')
+            def send_verified(delivery):
+                sent = request(
+                    waha, 'POST',
+                    cfg.waha_url + delivery['path'],
+                    headers=provider,
+                    data=_delivery(delivery,cfg)
+                )
+
+                receipt = sent.get('id')
+
+                if isinstance(receipt,dict):
+                    receipt=receipt.get('_serialized')
+
+                if not isinstance(receipt,str) or not VALID_ID.fullmatch(receipt):
+                    raise Blocked('Recibo de envio ambiguo')
+
+                return receipt
+
+            pair=_everson_split_delivery(
+                planned,claimed['delivery'],cfg
+            )
+
+            if pair and _everson_can_send_pair(body['chatId']):
+                first_receipt=send_verified(pair[0])
+
+                # Confirma que a sessao permanece correta.
+                current=request(
+                    waha,'GET',
+                    cfg.waha_url+'/api/sessions/'+cfg.session,
+                    headers=provider
+                )
+
+                if (
+                    current.get('name')!=cfg.session
+                    or current.get('status')!='WORKING'
+                    or not isinstance(current.get('me'),dict)
+                    or current['me'].get('id')!=cfg.account
+                ):
+                    raise Blocked('Sessao mudou entre os envios')
+
+                receipt=send_verified(pair[1])
+
+                if receipt==first_receipt:
+                    raise Blocked('Recibos de envio repetidos')
+
+                print('EVERSON_DUAS_MENSAGENS_CONFIRMADAS',flush=True)
+
+            else:
+                # Mantem uma unica lista se nao houver cota
+                # suficiente para dois envios.
+                receipt=send_verified(claimed['delivery'])
+
+            status,provider_id='confirmed',receipt
+        except Exception:
+            # Sem retry. Se POST chegou ao WAHA e resposta se perdeu, estado incerto.
+            pass
+
+        result = request(api, 'POST', opurl + '/receipt', headers=auth,
+                         data={'status': status, 'provider_message_id': provider_id})
+        if result.get('status') != status:
+            raise Blocked('Recibo nao confirmado pela API; conciliacao manual')
+        return 'ENVIO_CONFIRMADO' if status == 'confirmed' else 'RESULTADO_INCERTO_NAO_REENVIAR'
+
+
+def run_continuously(cfg, *, poll=run_once, sleep=time.sleep, max_seconds=None,
+                     clock=time.monotonic):
+    if max_seconds is not None and (type(max_seconds) is not int or not 1 <= max_seconds <= 3600):
+        raise ValueError('Janela de teste invalida')
+    deadline = clock() + max_seconds if max_seconds is not None else None
+    backoff = 15
+    while True:
+        if deadline is not None and clock() >= deadline:
+            print('JANELA_ENCERRADA_SEM_NOVOS_ENVIOS', flush=True)
+            return 0
+        try:
+            result = poll(cfg)
+        except SourceUnavailable:
+            print('AGUARDANDO_FONTE', flush=True)
+            sleep(backoff)
+            backoff = min(backoff * 2, 300)
+            continue
+        except Exception:
+            print('WORKER_PAUSADO = ERRO_REQUER_REVISAO', flush=True)
+            return 3
+        if result not in {'SEM_MENSAGENS_NOVAS', 'SEM_ENVIO_AUTORIZADO',
+                          'ENVIO_NEGADO_PELO_SERVIDOR', 'ENVIO_CONFIRMADO'}:
+            print('WORKER_PAUSADO = RESULTADO_INCERTO_OU_DESCONHECIDO', flush=True)
+            return 2
+        if result != 'SEM_MENSAGENS_NOVAS':
+            print(result, flush=True)
+        backoff = 15
+        sleep(3)
+
+
+def main(argv=None):
+    p = argparse.ArgumentParser(description='Despachante controlado SocialMEI WhatsApp')
+    p.add_argument('--run-once', action='store_true')
+    p.add_argument('--continuous', action='store_true')
+    p.add_argument('--window-seconds', type=int)
+    args = p.parse_args(argv)
+    if args.window_seconds is not None and (not args.continuous or not 1 <= args.window_seconds <= 3600):
+        p.error('--window-seconds exige --continuous e valor de 1 a 3600')
+    if not args.run_once and not args.continuous:
+        print('MODO_SEGURO = SEM_ENVIO')
+        print('PARA_LIBERAR = PILOTO_RESTRITO_COM_SEGREDOS_E_AUTORIZACAO')
+        return 0
+    try:
+        config = Config.from_env()
+        if args.continuous:
+            run_continuously(config, max_seconds=args.window_seconds)
+            # Permanecer pausado impede restart_policy de repetir envio incerto.
+            while True:
+                time.sleep(3600)
+        result = run_once(config)
+        print('RESULTADO =', result)
+        return 0 if result != 'RESULTADO_INCERTO_NAO_REENVIAR' else 2
+    except Exception:
+        print('ENVIO_BLOQUEADO_OU_INDETERMINADO = REVISAR_SEM_REPETIR')
+        return 3
+
+
+if __name__ == '__main__':
+    sys.exit(main())
