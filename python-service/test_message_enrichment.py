@@ -5,6 +5,8 @@ import os
 import socket
 import time
 import unittest
+import sys
+from types import SimpleNamespace
 from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import patch
 from uuid import uuid4
@@ -98,9 +100,11 @@ class EnrichmentDatabaseTests(unittest.TestCase):
                 (workspace,),
             ).fetchone()[0]
         path = '/conversations/' + str(cid)
-        with patch('message_enrichment.provider_origins', return_value=['waha']):
+        with patch('message_enrichment.provider_origins', return_value=['waha']), patch.dict(sys.modules, {
+                'contact_profiles': SimpleNamespace(attach=lambda *_: None)}):
             self.post(path + '/hide', {})
             self.assertEqual(self.admin_client.get(BASE + '/hidden-conversations').json()['items'][0]['id'], cid)
+            self.assertEqual(self.admin_client.get(BASE + '/conversations').json()['items'], [])
             self.assertEqual(other.get(BASE + '/hidden-conversations').json()['items'], [])
             self.assertEqual(other.post(BASE + path + '/restore').status_code, 404)
             with psycopg.connect(DB) as conn:
@@ -111,6 +115,7 @@ class EnrichmentDatabaseTests(unittest.TestCase):
             for _ in range(2):
                 self.assertFalse(self.post(path + '/restore', {})['hidden'])
             self.assertEqual(self.admin_client.get(BASE + '/hidden-conversations').json()['items'], [])
+            self.assertEqual(self.admin_client.get(BASE + '/conversations').json()['items'][0]['id'], cid)
             with psycopg.connect(DB) as conn:
                 self.assertTrue(conn.execute('SELECT restored_at IS NOT NULL FROM socialmei.me_inbox_hidden').fetchone()[0])
                 self.assertEqual(conn.execute('SELECT id FROM socialmei.me_conversations').fetchone()[0], cid)
