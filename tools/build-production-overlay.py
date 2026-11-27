@@ -16,9 +16,10 @@ GATEWAY_FIXES = (
     '/srv/frontend/scripts/v22-bootstrap.js',
     '/srv/frontend/scripts/v79-central.js',
 )
-API_INBOX_FIXES = ('/app/message_enrichment.py',)
+API_INBOX_FIXES = ('/app/message_enrichment.py', '/app/instagram_inbound_media.py')
 MENU_MEDIA_FILES = ('/app/whatsapp_media_intent.py',)
 MENU_MEDIA_PATCH = REPO / 'deploy/production-candidates/whatsapp-media.patch'
+INSTAGRAM_MEDIA_PATCH = REPO / 'deploy/production-candidates/instagram-media.patch'
 MEDIA_COMMERCIAL_PATCH = REPO / 'deploy/production-candidates/media-commercial.patch'
 
 
@@ -37,7 +38,7 @@ def verify(manifest):
                 raise ValueError(f'Source hash mismatch: {role}:{name}')
 
 
-def build(role, entry, *, gateway_fixes=False, inbox_fixes=False, whatsapp_media=False, media_commercial=False):
+def build(role, entry, *, gateway_fixes=False, inbox_fixes=False, whatsapp_media=False, media_commercial=False, instagram_media=False):
     image = entry['image']
     base = f'socialmei-overlay-base:{role}-{image[7:19]}'
     subprocess.run(['docker', 'image', 'tag', image, base], check=True)
@@ -70,9 +71,11 @@ def build(role, entry, *, gateway_fixes=False, inbox_fixes=False, whatsapp_media
             target.write_bytes(data)
             if gateway_fixes and name in GATEWAY_FIXES:
                 print(f'{hashlib.sha256(data).hexdigest()}  {name}')
-        patch = MENU_MEDIA_PATCH if whatsapp_media else MEDIA_COMMERCIAL_PATCH if media_commercial else None
-        if patch:
-            subprocess.run(['git', 'apply', '--no-index', str(patch)], cwd=root, check=True)
+        patches = [(whatsapp_media, MENU_MEDIA_PATCH), (media_commercial, MEDIA_COMMERCIAL_PATCH),
+                   (instagram_media, INSTAGRAM_MEDIA_PATCH)]
+        for active, patch in patches:
+            if active:
+                subprocess.run(['git', 'apply', '--no-index', str(patch)], cwd=root, check=True)
         (root / 'Dockerfile').write_text('\n'.join(dockerfile) + '\n', encoding='utf-8')
         tag = f'socialmei-production-overlay:{role}-20261127' + ('-candidate' if gateway_fixes or inbox_fixes or whatsapp_media or media_commercial else '')
         subprocess.run(['docker', 'build', '--pull=false', '--network=none', '-t', tag, str(root)], check=True)
@@ -86,7 +89,10 @@ if __name__ == '__main__':
     parser.add_argument('--inbox-fixes', action='store_true', help='Include inbox restoration API in a separate candidate, requires 043')
     parser.add_argument('--whatsapp-media', action='store_true', help='Include WhatsApp media planning, requires 042 and an activation cutoff')
     parser.add_argument('--media-commercial', action='store_true', help='Include bounded WhatsApp media evidence in the API commercial queue')
+    parser.add_argument('--instagram-media', action='store_true', help='Include opt-in Instagram attachment ingress (requires --inbox-fixes and 047)')
     args = parser.parse_args()
+    if args.instagram_media and (args.build != 'api' or not args.inbox_fixes or not args.media_commercial):
+        parser.error('--instagram-media requires --build api --inbox-fixes --media-commercial')
     if args.media_commercial and args.build != 'api':
         parser.error('--media-commercial requires --build api')
     if args.whatsapp_media and args.build != 'menu':
@@ -98,4 +104,4 @@ if __name__ == '__main__':
     verify(manifest)
     print(f'Verified {sum(len(e["files"]) for e in manifest.values())} files across {len(manifest)} roles')
     if args.build:
-        build(args.build, manifest[args.build], gateway_fixes=args.gateway_fixes, inbox_fixes=args.inbox_fixes, whatsapp_media=args.whatsapp_media, media_commercial=args.media_commercial)
+        build(args.build, manifest[args.build], gateway_fixes=args.gateway_fixes, inbox_fixes=args.inbox_fixes, whatsapp_media=args.whatsapp_media, media_commercial=args.media_commercial, instagram_media=args.instagram_media)

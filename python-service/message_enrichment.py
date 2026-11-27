@@ -201,6 +201,17 @@ class InboxPreference(Strict):
         return self
 
 
+class QuickReplies(Strict):
+    revision: Annotated[StrictInt, Field(ge=0, lt=SAFE_MAX)]
+    items: list[Annotated[str, StringConstraints(max_length=160), AfterValidator(safe_text)]] = Field(max_length=20)
+
+    @model_validator(mode='after')
+    def unique_replies(self):
+        if len({value.casefold() for value in self.items}) != len(self.items):
+            raise ValueError('Cada resposta rápida precisa ser diferente.')
+        return self
+
+
 def guard(request, response, *, write=False, manage=False, capability=False, read_inbox=False):
     response.headers['Cache-Control'] = 'no-store'
     try:
@@ -490,6 +501,10 @@ def conversations(request: Request, response: Response):
                          for message in messages_by_conversation[conversation['id']]]
         from inbound_attachment_view import metadata
         attachments = metadata(conn, workspace, real_ids)
+        from instagram_inbound_media import enabled as instagram_media_enabled, metadata as instagram_media_metadata
+        if instagram_media_enabled() and real_ids and 'instagram' in origins:
+            for row in instagram_media_metadata(conn, workspace, real_ids):
+                attachments.setdefault(row.pop('message_id'), []).append({**row, 'source': 'instagram'})
         analysis_enabled = settings.provider_sentiment_enabled() and workspace in settings.provider_sentiment_allowed_workspaces()
         provider_analysis = {}
         if real_ids and analysis_enabled:
@@ -725,6 +740,16 @@ def inbound_attachment(attachment_id: int, request: Request, response: Response)
     with db() as conn:
         return file_data(conn,workspace,attachment_id)
 
+@router.get('/instagram-attachments/{attachment_id}')
+def instagram_attachment(attachment_id: int, request: Request, response: Response):
+    workspace = guard(request, response, read_inbox=True)['workspace_id']
+    from instagram_inbound_media import enabled, file_data
+    if not enabled() or 'instagram' not in provider_origins(workspace):
+        raise HTTPException(404, 'Anexo não encontrado.')
+    with db() as conn:
+        return file_data(conn, workspace, attachment_id)
+
+
 # Personal visibility never removes an inbox source record.
 def lock_visible_channel(conn, workspace, conversation_id):
     if not 1 <= conversation_id <= 9007199254740991:
@@ -868,3 +893,39 @@ def archived_inbox_conversations(request: Request, response: Response):
             (workspace, user['id'], provider_origins(workspace)),
         ).fetchall()
     return {'workspace_id': workspace, 'items': items}
+
+
+def quick_replies_snapshot(conn, workspace):
+    row = conn.execute(
+        "SELECT configuracao->'inbox_quick_replies' AS value FROM socialmei.workspaces WHERE id=%s",
+        (workspace,),
+    ).fetchone()
+    if not row:
+        raise HTTPException(404, 'Negócio indisponível.')
+    return QuickReplies.model_validate(row['value'] or {'revision': 0, 'items': []})
+
+
+@router.get('/quick-replies')
+def inbox_quick_replies(request: Request, response: Response):
+    user = guard(request, response, read_inbox=True)
+    with db() as conn:
+        snapshot = quick_replies_snapshot(conn, user['workspace_id'])
+    return {'workspace_id': user['workspace_id'], **snapshot.model_dump()}
+
+
+@router.put('/quick-replies')
+def save_inbox_quick_replies(payload: QuickReplies, request: Request, response: Response):
+    user = guard(request, response, write=True, manage=True, read_inbox=True)
+    workspace = user['workspace_id']
+    with db() as conn:
+        lock_workspace(conn, workspace)
+        snapshot = quick_replies_snapshot(conn, workspace)
+        if snapshot.revision != payload.revision:
+            raise HTTPException(409, 'As respostas mudaram. Abra a lista novamente para atualizar.')
+        if payload.items != snapshot.items:
+            snapshot = QuickReplies(revision=payload.revision+1, items=payload.items)
+            conn.execute(
+                "UPDATE socialmei.workspaces SET configuracao=jsonb_set(configuracao,'{inbox_quick_replies}',%s) WHERE id=%s",
+                (Jsonb(snapshot.model_dump()), workspace),
+            )
+    return {'workspace_id': workspace, **snapshot.model_dump()}

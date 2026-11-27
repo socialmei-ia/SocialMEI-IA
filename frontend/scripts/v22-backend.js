@@ -1234,7 +1234,8 @@ window.SocialMEIV22 = (() => {
   slot.textContent='Carregando arquivo…';
 
   try{
-   const r=await api.request('/message-enrichment/attachments/'+id);
+   const path=b.dataset.smMediaSource==='instagram'?'instagram-attachments':'attachments';
+   const r=await api.request('/message-enrichment/'+path+'/'+id);
 
    if(!same())return;
 

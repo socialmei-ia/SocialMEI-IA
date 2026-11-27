@@ -90,6 +90,11 @@ def claim_messages(request: Request, response: Response):
             LEFT JOIN socialmei.me_provider_sentiment_jobs AS j
               ON j.workspace_id=m.workspace_id AND j.message_id=m.id
             WHERE m.origin IN ('instagram','waha')
+              AND NOT EXISTS (
+                  SELECT 1 FROM socialmei.ig_meta_ingress_events e
+                  WHERE e.workspace_id=m.workspace_id AND e.message_id=m.id
+                    AND e.kind='media' AND m.origin='instagram'
+              )
               AND m.workspace_id = ANY(%s)
               AND m.occurred_at >= NOW()-INTERVAL '7 days'
               AND (

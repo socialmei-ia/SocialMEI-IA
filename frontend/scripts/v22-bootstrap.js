@@ -52,7 +52,7 @@
   document.body.appendChild(run);
   await new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "scripts/v22-backend.js?v=inbox-preferences-2";
+    script.src = "scripts/v22-backend.js?v=mission06";
     script.onload = resolve;
     script.onerror = reject;
     document.body.appendChild(script);
@@ -83,7 +83,7 @@
         media.onerror = () => console.warn("Componentes de mídia indisponíveis.");
         media.onload = () => {
           const central = document.createElement("script");
-          central.src = "scripts/v79-central.js?v=inbox-preferences-2";
+          central.src = "scripts/v79-central.js?v=mission06";
           central.onerror = () => console.warn("Central de atendimento indisponível.");
           document.body.appendChild(central);
         };

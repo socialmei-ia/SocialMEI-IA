@@ -318,6 +318,12 @@ class DatabaseTests(unittest.TestCase):
 
     def setUp(self):
         oauth.PersistentTests.setUp(self)
+        # Isolate unrelated avatar fetching from signed ingress tests.
+        import sys
+        from types import SimpleNamespace
+        profiles = patch.dict(sys.modules, {'contact_profiles': SimpleNamespace(attach=lambda *_: None)})
+        profiles.start()
+        self.addCleanup(profiles.stop)
         self.flags = patch.dict(os.environ, FLAGS)
         self.flags.start()
         self.addCleanup(self.flags.stop)
@@ -336,6 +342,55 @@ class DatabaseTests(unittest.TestCase):
                 "X-Hub-Signature-256": signature(raw),
             },
         )
+
+    def test_signed_media_queue_is_idempotent_and_reads_private_bytes(self):
+        import base64
+        import tempfile
+        from io import BytesIO
+        from pathlib import Path
+        from PIL import Image
+        from psycopg.rows import dict_row
+        import instagram_inbound_media as media
+
+        item = payload(mid="image-cdn")
+        message = item["entry"][0]["messaging"][0]["message"]
+        message["text"] = "Legenda original do cliente"
+        url = "https://scontent-cdn.cdninstagram.com/image.jpg?signature=private-test"
+        message["attachments"] = [{"type": "image", "payload": {"url": url}}]
+        workspace = self.identity["workspace_id"]
+        stream = BytesIO()
+        Image.new("RGB", (12, 12), "white").save(stream, "JPEG")
+        image = stream.getvalue()
+        with patch.dict(os.environ, {"SOCIALMEI_INSTAGRAM_INBOUND_MEDIA_ENABLED": "YES"}):
+            first = self.receive(item)
+            self.assertEqual(first.status_code, 200, first.text)
+            self.assertEqual(first.json()["processed"], 1)
+            self.assertEqual(self.receive(item).json()["duplicates"], 1)
+            with psycopg.connect(DB, row_factory=dict_row) as conn:
+                self.assertIsNone(media.claim(conn, workspace + 999))
+                job = media.claim(conn, workspace)
+                self.assertEqual(job["kind"], "image")
+                self.assertIsNone(media.claim(conn, workspace))
+                conn.execute("UPDATE socialmei.ig_inbound_media SET available_at=now() WHERE id=%s", (job["id"],))
+            with tempfile.TemporaryDirectory() as folder, patch.object(media, "ROOT", Path(folder)), patch.object(
+                media, "download", return_value=(image, "image/jpeg")
+            ) as downloader:
+                self.assertTrue(media.process_one(workspace))
+                self.assertFalse(media.process_one(workspace))
+                downloader.assert_called_once_with(url, "image")
+                items = self.client.get("/api/v1/message-enrichment/conversations").json()["items"]
+                self.assertEqual(items[0]["messages"][0]["text"], "Legenda original do cliente")
+                attachment = items[0]["messages"][0]["attachments"][0]
+                self.assertEqual(attachment["source"], "instagram")
+                self.assertEqual(attachment["id"], job["id"])
+                request = self.client.get(f"/api/v1/message-enrichment/instagram-attachments/{job['id']}")
+                self.assertEqual(request.status_code, 200)
+                self.assertEqual(base64.b64decode(request.json()["data"]), image)
+                with psycopg.connect(DB, row_factory=dict_row) as conn:
+                    self.assertIsNone(conn.execute("SELECT source_url FROM socialmei.ig_inbound_media").fetchone()["source_url"])
+                    with self.assertRaises(Exception) as denial:
+                        media.file_data(conn, workspace + 999, job["id"])
+                    self.assertEqual(denial.exception.status_code, 404)
 
     def test_text_durable_read_original_time_and_json_order_replay(self):
         value = payload(mid="m" * 300)

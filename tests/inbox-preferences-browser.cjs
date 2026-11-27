@@ -6,6 +6,7 @@ module.exports = async (browser, origin) => {
     const page = await context.newPage();
     const errors = [];
     const calls = [];
+    let quick = {revision: 0, items: []};
     const rows = [2, 3].map(id => ({
       id, channel: "whatsapp", origin: "waha", revision: 2, account_ref: "waha:111@c.us",
       contact_ref: "waha:" + id + "@lid", contact_name: "Contato " + id,
@@ -39,6 +40,14 @@ module.exports = async (browser, origin) => {
         return route.fulfill({json: {workspace_id: 17, items: rows.filter(row => !archived.has(row.id))}});
       case "/message-enrichment/archived-conversations":
         return route.fulfill({json: {workspace_id: 17, items: rows.filter(row => archived.has(row.id))}});
+      case "/message-enrichment/quick-replies":
+        if (req.method() === "PUT") {
+          assert.equal(req.headers()["x-socialmei-identity"], "91:17");
+          const payload = req.postDataJSON();
+          assert.equal(payload.revision, quick.revision);
+          quick = {revision: quick.revision + 1, items: payload.items};
+        }
+        return route.fulfill({json: {workspace_id: 17, ...quick}});
       case "/message-enrichment/inbox-preferences": {
         assert.equal(req.method(), "POST");
         assert.equal(req.headers()["x-socialmei-identity"], "91:17");
@@ -69,6 +78,17 @@ module.exports = async (browser, origin) => {
       const row = page.getByRole("link", {name: /Contato 2.*2 mensagens não lidas/});
       await row.waitFor();
       await row.click();
+      await page.getByRole("button", {name: "Respostas rápidas", exact: true}).click();
+      const quickDialog = page.locator("dialog[open]");
+      await quickDialog.getByText("Nenhuma resposta rápida cadastrada.").waitFor();
+      await quickDialog.getByRole("textbox", {name: "Nova resposta personalizada"}).fill("Vou verificar com a equipe.");
+      await quickDialog.getByRole("button", {name: "Adicionar", exact: true}).click();
+      await quickDialog.getByText("Respostas atualizadas.").waitFor();
+      assert.equal(quick.revision, 1);
+      await quickDialog.getByRole("button", {name: "Vou verificar com a equipe.", exact: true}).click();
+      assert.equal(await page.locator("#ta").inputValue(), "Vou verificar com a equipe.");
+      await page.locator("#ta").fill("");
+      await page.locator("#ta").blur();
       const more = page.getByRole("button", {name: "Mais ações da conversa"});
       await more.click();
       await page.getByRole("menuitem", {name: "Marcar como lida", exact: true}).click();

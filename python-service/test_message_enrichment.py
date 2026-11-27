@@ -122,6 +122,24 @@ class EnrichmentDatabaseTests(unittest.TestCase):
             self.post(path + '/hide', {})
             self.assertEqual(self.admin_client.get(BASE + '/hidden-conversations').json()['items'][0]['id'], cid)
 
+    def test_quick_replies_are_workspace_scoped_and_versioned(self):
+        other = self.register('replies-other@example.test')
+        url = BASE + '/quick-replies'
+        init = self.admin_client.get(url).json()
+        self.assertEqual((init['revision'], init['items']), (0, []))
+        payload = {'revision': 0, 'items': ['Olá, já vou verificar.']}
+        response = self.admin_client.put(url, json=payload)
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(self.admin_client.get(url).json()['items'], payload['items'])
+        self.assertEqual(other.get(url).json()['items'], [])
+        self.assertEqual(self.admin_client.put(url, json=payload).status_code, 409)
+        payload['revision'] = 1
+        self.assertEqual(self.admin_client.put(url, json={**payload, 'items': ['Oi', 'oi']}).status_code, 422)
+        with psycopg.connect(DB) as conn:
+            conn.execute('UPDATE socialmei.workspace_members SET role=%s WHERE user_id=%s', ('member', self.admin_id))
+        self.assertEqual(self.admin_client.get(url).status_code, 200)
+        self.assertEqual(self.admin_client.put(url, json={**payload, 'items': []}).status_code, 403)
+
     def test_personal_inbox_read_cutoff_and_atomic_bulk_actions(self):
         other = self.register('preferences-other@example.test')
         workspace = self.admin_client.identity['negocio']['id']

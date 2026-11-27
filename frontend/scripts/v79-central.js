@@ -424,6 +424,107 @@
     bar.append(ic, tx, bt, dm); cp.parentNode.insertBefore(bar, cp);
   }
 
+  async function openQuickReplies() {
+    if (!remote || !canEditInbox()) return;
+    const dialog = dlg();
+    const conversation = curId();
+    const identity = host.identity;
+    const workspace = window.SocialMEIAuth?.current?.negocio.id;
+    if (dialog.open || !identity || !conversation || !workspace) return;
+    const manage = ['owner', 'admin'].includes(window.SocialMEIAuth.current.papel);
+    const form = E('form'), title = E('h2', '', 'Respostas rápidas do negócio');
+    title.id = 'v79-quick-replies-title';
+    form.method = 'dialog';
+    form.setAttribute('aria-labelledby', title.id);
+    const status = E('p', 'm', 'Consultando as respostas…');
+    status.setAttribute('role', 'status');
+    const list = E('ul'), close = E('button', 'btn o', 'Fechar');
+    const add = E('button', 'btn o', 'Adicionar');
+    const input = E('input', 'in');
+    input.type = 'text';
+    input.maxLength = 160;
+    input.setAttribute('aria-label', 'Nova resposta personalizada');
+    add.type = 'button';
+    input.disabled = add.disabled = true;
+    form.append(title, status, list);
+    if (manage) form.append(input, add);
+    form.append(close);
+    dialog.replaceChildren(form);
+    dialog.showModal();
+    const isCurrent = () => identity === host.identity && conversation === curId();
+    const live = () => dialog.open && form.isConnected && isCurrent();
+    let snapshot;
+    let saving = false;
+    function draw() {
+      list.replaceChildren();
+      status.textContent = snapshot.items.length ? '' : 'Nenhuma resposta rápida cadastrada.';
+      input.disabled = add.disabled = saving || snapshot.items.length >= 20;
+      snapshot.items.forEach((text, index) => {
+        const item = E('li'), use = E('button', 'btn o sm2', text);
+        use.type = 'button';
+        use.onclick = () => {
+          if (!live()) return;
+          const draft = $('#v #ta');
+          if (!draft) return;
+          draft.value += (draft.value.trim() ? ' ' : '') + text;
+          draft.dispatchEvent(new Event('input', {bubbles: true}));
+          dialog.close();
+          draft.focus();
+        };
+        item.append(use);
+        if (manage) {
+          const remove = E('button', 'btn o sm2', 'Remover');
+          remove.type = 'button';
+          remove.disabled = saving;
+          remove.setAttribute('aria-label', 'Remover resposta ' + (index + 1));
+          remove.onclick = () => save(snapshot.items.filter((_, offset) => offset !== index));
+          item.append(remove);
+        }
+        list.append(item);
+      });
+    }
+    function accept(result) {
+      if (result.workspace_id !== workspace || !Number.isSafeInteger(result.revision) ||
+          !Array.isArray(result.items) || !result.items.every(text => typeof text === 'string'))
+        throw Error('Respostas indisponíveis para esta sessão.');
+      snapshot = result;
+    }
+    async function save(items) {
+      if (!live() || !manage || saving) return;
+      saving = true;
+      draw();
+      try {
+        const result = await host.request('/message-enrichment/quick-replies', 'PUT',
+          {revision: snapshot.revision, items});
+        if (!live()) return;
+        accept(result);
+        input.value = '';
+        saving = false;
+        draw();
+        status.textContent = 'Respostas atualizadas.';
+        if (!input.disabled) input.focus();
+      } catch (error) {
+        if (!live()) return;
+        saving = false;
+        draw();
+        status.textContent = error.message || 'Não foi possível salvar as respostas.';
+      }
+    }
+    form.onsubmit = event => { event.preventDefault(); if (event.submitter === close) dialog.close(); };
+    add.onclick = () => { if (input.value.trim()) save([...snapshot.items, input.value.trim()]); };
+    try {
+      const result = await host.request('/message-enrichment/quick-replies');
+      if (!live()) return;
+      accept(result);
+      draw();
+    } catch (error) {
+      if (live()) status.textContent = error.message || 'Não foi possível consultar as respostas.';
+    }
+  }
+  document.addEventListener('click', event => {
+    if (event.target.closest?.('[data-v79-replies]')) openQuickReplies();
+  });
+
   /* ---------- 7. mídia: só com adaptador registrado ---------- */
   function paintMedia() {
     var M = window.SocialMEIMedia, id = curId(); if (!M || !M.active || !remote || !id) return;

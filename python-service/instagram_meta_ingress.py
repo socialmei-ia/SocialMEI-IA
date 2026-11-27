@@ -18,6 +18,7 @@ from starlette.datastructures import QueryParams
 from starlette.concurrency import run_in_threadpool
 
 import settings
+import instagram_inbound_media as inbound_media
 from database import connect, shared_data_enabled
 from instagram_meta_contract import (
     MAX_EVENTS,
@@ -153,11 +154,12 @@ class MessageEvent:
     kind: str
     text: str | None = field(default=None, repr=False)
     content_hash: str | None = field(default=None, repr=False)
+    attachments: tuple[inbound_media.Attachment, ...] = field(default=(), repr=False)
 
     @property
     def event_key(self):
         identity = [
-            "message" if self.kind in {"message", "echo", "unsupported"} else self.kind,
+            "message" if self.kind in {"message", "media", "echo", "unsupported"} else self.kind,
             self.mid,
         ]
         if self.kind == "receipt":
@@ -173,8 +175,8 @@ class MessageEvent:
                 "recipient": self.recipient_id,
                 "mid": self.mid,
                 "occurred_at": self.occurred_at.isoformat(),
-                "kind": self.kind,
-                "text": self.text,
+                "kind": "unsupported" if self.kind == "media" else self.kind,
+                "text": None if self.kind == "media" else self.text,
                 "content_hash": self.content_hash,
             }
         )
@@ -214,7 +216,7 @@ def bound_event(event, account):
     return BoundMessageEvent(
         account_id=account, sender_id=event.sender_id, recipient_id=event.recipient_id,
         mid=event.mid, occurred_at=event.occurred_at, kind=event.kind,
-        text=event.text, content_hash=event.content_hash,
+        text=event.text, content_hash=event.content_hash, attachments=event.attachments,
         source_fingerprint=event.canonical_fingerprint,
     )
 
@@ -296,6 +298,7 @@ def parse_message_events(raw, signature, app_secret):
                 echo = details.get("is_echo", False)
                 if type(echo) is not bool:
                     raise MetaContractError("Indicador de eco inválido.")
+                attachments = ()
                 if echo:
                     if sender_id != account or recipient_id == account:
                         raise MetaContractError("Identidade de eco inválida.")
@@ -321,6 +324,11 @@ def parse_message_events(raw, signature, app_secret):
                                 _text(metadata[key])
                     kind = "unsupported" if unsupported else "message"
                     text = _text(details["text"]) if kind == "message" else None
+                    if inbound_media.enabled() and unsupported:
+                        attachments = inbound_media.supported_attachments(details)
+                        if attachments:
+                            kind = "media"
+                            text = _text(details["text"]) if "text" in details else "Anexo recebido no Instagram"
                 has_metadata = "reply_to" in details or "quick_reply" in details
                 content_hash = fingerprint(details) if kind != "message" or has_metadata else None
                 events.append(
@@ -333,6 +341,7 @@ def parse_message_events(raw, signature, app_secret):
                         kind,
                         text,
                         content_hash,
+                        attachments,
                     )
                 )
             else:
@@ -462,7 +471,7 @@ def persist_authenticated_events(events, account_bindings=None, alias_bindings=N
                     result["duplicates"] += 1
                     continue
                 message_id = None
-                if event.kind == "message":
+                if event.kind in {"message", "media"}:
                     persisted = _append_inbox_message(
                         conn,
                         binding["workspace_id"],
@@ -485,7 +494,9 @@ def persist_authenticated_events(events, account_bindings=None, alias_bindings=N
                     ),
                 )
                 result["processed" if message_id else "ignored"] += 1
-                if message_id:
+                if event.kind == "media":
+                    inbound_media.enqueue(conn, binding["workspace_id"], event, message_id)
+                elif message_id:
                     wakeups.add(binding['workspace_id'])
             for workspace in sorted(wakeups):
                 notify_queue(conn, instagram_channel(workspace))
