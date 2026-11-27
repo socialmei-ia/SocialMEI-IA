@@ -268,25 +268,80 @@
     upd();
   }
 
-  /* ---------- 4. modo do atendimento (somente leitura) ---------- */
-  var modes = new Map();
+  /* ---------- 4. controle individual do atendimento ---------- */
+  const modes = new Map();
+  let modeIdentity;
   function paintMode() {
-    var chip = $('[data-v79-mode]'); if (!chip || !remote || !host.conversation) return;
-    var id = curId(), row = id && host.conversation(id);
-    if (!row || row.origin !== 'waha' || ['owner', 'admin'].indexOf(host.identity && host.identity.papel) < 0) return;
-    var c = modes.get(id);
-    var show = function (d) {
-      var el = $('[data-v79-mode]'); if (!el || curId() !== id) return;
-      if (!d || ['menu', 'ask_product', 'human'].indexOf(d.state) < 0 || typeof d.enabled !== 'boolean') { el.hidden = true; return; }
-      var human = d.state === 'human';
-      if (!human && !d.enabled) { el.hidden = true; return; }
-      el.textContent = human ? 'Atendimento humano' : 'Respostas automáticas ativas';
-      el.dataset.m = human ? 'human' : 'auto'; el.hidden = false;
-    };
-    if (c && Date.now() - c.at < 30000) { show(c.d); return; }
-    if (c && c.busy) return;
-    modes.set(id, { at: 0, busy: true, d: c && c.d });
-    host.request('/whatsapp/bot/conversations/' + row.id + '/status').then(function (d) { modes.set(id, { at: Date.now(), d: d }); show(d); }, function () { modes.set(id, { at: Date.now(), d: null }); show(null); });
+    const chip = $('[data-v79-mode]');
+    if (!chip || !remote || !host.conversation) return;
+    const identity = host.identity;
+    if (identity !== modeIdentity) {
+      modeIdentity = identity;
+      modes.clear();
+    }
+    const id = curId(), row = id && host.conversation(id);
+    if (!row || !identity) return;
+    const instagram = row.origin === 'instagram';
+    if (!instagram && (row.origin !== 'waha' || !['owner', 'admin'].includes(identity.papel))) return;
+    const canChange = instagram
+      ? ['owner', 'admin', 'member'].includes(identity.papel)
+      : ['owner', 'admin'].includes(identity.papel);
+    const root = (instagram ? '/instagram/menu' : '/whatsapp/bot') + '/conversations/' + row.id;
+    const current = () => host.identity === identity && curId() === id;
+    function show(data) {
+      const element = $('[data-v79-mode]');
+      if (!element || !current()) return;
+      const human = data?.state === 'human';
+      const valid = !!data && ['menu', 'ask_product', 'human'].includes(data.state);
+      if (!valid || (!instagram && !human && data.enabled !== true)) {
+        element.hidden = true;
+        return;
+      }
+      element.textContent = human ? 'Atendimento humano' : 'Respostas automáticas ativas';
+      element.hidden = false;
+      if (!canChange || (!instagram && (!Number.isSafeInteger(data.channel_id) || data.channel_id <= 0 ||
+                                       data.claimed_in_flight || data.enabled !== true))) return;
+      const button = E('button', 'btn o sm2', human ? 'Retomar automação' : 'Pausar automação');
+      button.type = 'button';
+      element.append(' ', button);
+      button.onclick = async () => {
+        if (!current() || button.disabled) return;
+        if (human && !window.confirm('Retomar respostas automáticas nesta conversa?')) return;
+        button.disabled = true;
+        const saving = {busy: true};
+        modes.set(id, saving);
+        try {
+          await host.request(root + (human ? '/resume' : '/pause'), 'POST',
+            instagram ? undefined : {channel_id: data.channel_id});
+          if (host.identity !== identity || modes.get(id) !== saving) return;
+          modes.delete(id);
+          if (current()) paintMode();
+        } catch (error) {
+          if (host.identity !== identity || modes.get(id) !== saving) return;
+          modes.set(id, {at: Date.now(), data});
+          if (current()) {
+            show(data);
+            const note = E('span', '', error.message || ' Alteração não concluída.');
+            note.setAttribute('role', 'status');
+            element.append(' ', note);
+          }
+        }
+      };
+    }
+    const cached = modes.get(id);
+    if (cached?.busy) return;
+    if (cached && Date.now() - cached.at < 30000) {
+      show(cached.data);
+      return;
+    }
+    const pending = {busy: true};
+    modes.set(id, pending);
+    function finish(data) {
+      if (host.identity !== identity || modes.get(id) !== pending) return;
+      modes.set(id, {at: Date.now(), data});
+      show(data);
+    }
+    host.request(root + '/status').then(finish, () => finish(null));
   }
 
   /* ---------- 5. painel do contato · CRM ---------- */

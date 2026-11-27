@@ -7,11 +7,16 @@ module.exports = async (browser, origin) => {
     const errors = [];
     const calls = [];
     let quick = {revision: 0, items: []};
+    let attachmentReads = 0;
+    let igState = "menu";
+    let waState = "menu";
     const rows = [2, 3].map(id => ({
-      id, channel: "whatsapp", origin: "waha", revision: 2, account_ref: "waha:111@c.us",
-      contact_ref: "waha:" + id + "@lid", contact_name: "Contato " + id,
+      id, channel: id === 2 ? "instagram" : "whatsapp", origin: id === 2 ? "instagram" : "waha",
+      revision: 2, account_ref: id === 2 ? "instagram:111" : "waha:111@c.us",
+      contact_ref: id === 2 ? "instagram:222" : "waha:" + id + "@lid", contact_name: "Contato " + id,
       unread: true, unread_count: 2, last_inbound_id: 70 + id,
-      messages: [{id: 70 + id, text: "Mensagem de teste", occurred_at: "2026-11-27T10:00:00Z"}],
+      messages: [{id: 70 + id, text: "Mensagem de teste", occurred_at: "2026-11-27T10:00:00Z",
+        attachments: id === 2 ? [{id: 39, source: "instagram", media_kind: "imagem", size_bytes: 68}] : []}],
     }));
     const archived = new Set();
     page.on("pageerror", error => errors.push(error.message));
@@ -40,6 +45,27 @@ module.exports = async (browser, origin) => {
         return route.fulfill({json: {workspace_id: 17, items: rows.filter(row => !archived.has(row.id))}});
       case "/message-enrichment/archived-conversations":
         return route.fulfill({json: {workspace_id: 17, items: rows.filter(row => archived.has(row.id))}});
+      case "/instagram/menu/conversations/2/status":
+        return route.fulfill({json: {state: igState}});
+      case "/instagram/menu/conversations/2/pause":
+        assert.equal(req.method(), "POST");
+        igState = "human";
+        return route.fulfill({status: 204});
+      case "/instagram/menu/conversations/2/resume":
+        assert.equal(req.method(), "POST");
+        igState = "menu";
+        return route.fulfill({status: 204});
+      case "/whatsapp/bot/conversations/3/status":
+        return route.fulfill({json: {state: waState, channel_id: 9, enabled: true, claimed_in_flight: false}});
+      case "/whatsapp/bot/conversations/3/pause":
+        assert.deepEqual(req.postDataJSON(), {channel_id: 9});
+        waState = "human";
+        return route.fulfill({status: 204});
+      case "/message-enrichment/instagram-attachments/39":
+        assert.equal(req.headers()["x-socialmei-identity"], "91:17");
+        attachmentReads++;
+        return route.fulfill({json: {id: 39, mime: "image/png",
+          data: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jf10AAAAASUVORK5CYII="}});
       case "/message-enrichment/quick-replies":
         if (req.method() === "PUT") {
           assert.equal(req.headers()["x-socialmei-identity"], "91:17");
@@ -78,6 +104,13 @@ module.exports = async (browser, origin) => {
       const row = page.getByRole("link", {name: /Contato 2.*2 mensagens não lidas/});
       await row.waitFor();
       await row.click();
+      await page.locator("button[data-sm-media-source=instagram]").click();
+      await page.getByRole("img", {name: "Imagem recebida", exact: true}).waitFor();
+      assert.equal(attachmentReads, 1);
+      await page.getByRole("button", {name: "Pausar automação", exact: true}).click();
+      await page.getByRole("button", {name: "Retomar automação", exact: true}).click();
+      await page.getByRole("button", {name: "Pausar automação", exact: true}).waitFor();
+      assert.equal(igState, "menu");
       await page.getByRole("button", {name: "Respostas rápidas", exact: true}).click();
       const quickDialog = page.locator("dialog[open]");
       await quickDialog.getByText("Nenhuma resposta rápida cadastrada.").waitFor();
@@ -106,6 +139,10 @@ module.exports = async (browser, origin) => {
       await page.getByRole("button", {name: "Reativar", exact: true}).click();
       await page.getByText(/Adiada at?/).waitFor({state: "hidden"});
       assert.deepEqual(calls.slice(1,4).map(call => call.action), ["pin", "snooze", "unsnooze"]);
+      await page.goto(origin + "/frontend/socialmei-app.html#/caixa/me-3");
+      await page.getByRole("button", {name: "Pausar automação", exact: true}).click();
+      await page.getByRole("button", {name: "Retomar automação", exact: true}).waitFor();
+      assert.equal(waState, "human");
       await page.goto(origin + "/frontend/socialmei-app.html#/caixa");
       await page.getByRole("button", {name: "Selecionar conversas"}).click();
       const dialog = page.locator("dialog[open]");
