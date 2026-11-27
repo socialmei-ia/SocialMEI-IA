@@ -101,6 +101,9 @@
     { id: "q-conversas", kind: "special", title: "Conversas esperando resposta", hint: "Quantas e quais", kw: ["conversas esperando", "conversas sem resposta", "mensagens nao respondidas", "quantas conversas", "nao respondidas", "quem esta esperando resposta", "mensagens pendentes", "conversas pendentes"] },
     { id: "q-estoque", kind: "special", title: "Produtos com estoque baixo", hint: "O que repor", kw: ["estoque baixo", "produtos acabando", "falta de estoque", "repor estoque", "o que repor", "sem estoque", "produtos com estoque baixo", "acabando"] },
     { id: "q-agenda", kind: "special", title: "Agenda de hoje", hint: "Compromissos abertos de hoje", kw: ["agenda de hoje", "o que tenho hoje", "compromissos de hoje", "agenda hoje", "o que tem na agenda", "meus compromissos"] },
+    { id: "q-contas", kind: "special", title: "Contas em atraso", hint: "Pagamentos e recebimentos vencidos", kw: ["contas em atraso", "contas vencidas", "pagamentos em atraso", "recebimentos vencidos"] },
+    { id: "q-caixa", kind: "special", title: "Resumo do fluxo de caixa", hint: "Movimentações registradas", kw: ["fluxo de caixa", "resumo financeiro", "entradas e saidas", "saldo registrado"] },
+    { id: "q-oportunidades", kind: "special", title: "Oportunidades para acompanhar", hint: "Retornos vencidos ou marcados para hoje", kw: ["oportunidades para acompanhar", "oportunidades atrasadas", "negociacoes com retorno", "retornos comerciais"] },
     { id: "s-aqui", kind: "special", title: "Ajuda desta tela", hint: "O que dá para fazer aqui", kw: ["ajuda desta tela", "o que posso fazer aqui", "ajuda aqui", "como usar esta tela", "o que essa tela faz", "explicar esta tela", "para que serve esta tela"] },
     { id: "s-lia", kind: "special", title: "O que a Lia faz?", hint: "Minhas capacidades e limites", kw: ["o que a lia faz", "o que voce faz", "quem e voce", "o que voce pode fazer", "como voce pode ajudar", "lia", "suas funcoes", "seus comandos", "o que sabe fazer"] },
   ];
@@ -558,8 +561,61 @@
     say([B.text(`**${g.title}**`), B.steps(g.steps), ...(g.note ? [B.note(g.note)] : []), B.acts(acts)]);
   }
   const noData = () => say([B.text("Os dados deste negócio ainda não terminaram de carregar. Tente de novo em instantes."), B.acts([goBtn("Abrir Início", "/inicio", { title: "Início" })])]);
+  async function consultBusiness(id) {
+    const bridge = window.SocialMEIV22;
+    if (!remote() || !bridge?.request) return say([B.text("Entre em um negócio conectado para consultar os registros.")]);
+    const context = ctxNow();
+    const workspace = identity()?.negocio.id;
+    setBusy(true, "Consultando registros do negócio…");
+    try {
+      const isOpportunity = id === "q-oportunidades";
+      const result = await bridge.request(isOpportunity ? "/opportunities" : "/reporting/finance");
+      if (stale(context)) return;
+      if (result.workspace_id !== workspace) throw Error();
+      if (isOpportunity) {
+        const today = new Date().toLocaleDateString("sv-SE");
+        const due = result.items.filter((row) => row.outcome === "open" &&
+          typeof row.follow_up_date === "string" && row.follow_up_date <= today)
+          .sort((a, b) => a.follow_up_date.localeCompare(b.follow_up_date));
+        return say([
+          B.text(due.length ? "Oportunidades da lista com retorno vencido ou marcado para hoje." : "Nenhum retorno vencido ou marcado para hoje na lista consultada."),
+          ...(due.length ? [B.list(due.slice(0, 5).map((row) => ({ title: row.title, detail: row.follow_up_date, tone: "y" })))] : []),
+          B.acts([goBtn("Abrir Oportunidades", "/oport", { title: "Oportunidades" })]),
+        ]);
+      }
+      const amount = (value) => {
+        if (typeof value !== "string" || !/^-?\d+\.\d{2}$/.test(value)) throw Error();
+        return brlFmt(Number(value));
+      };
+      const rows = id === "q-contas"
+        ? [
+            { title: "A receber em atraso", detail: amount(result.overdue.incoming) },
+            { title: "A pagar em atraso", detail: amount(result.overdue.outgoing) },
+          ]
+        : [
+            { title: "Entradas registradas", detail: amount(result.paid.incoming) },
+            { title: "Saídas registradas", detail: amount(result.paid.outgoing) },
+            { title: "Saldo dos lançamentos pagos", detail: amount(result.paid.balance) },
+          ];
+      return say([
+        B.text(id === "q-contas" ? "Posição registrada em " + result.overdue.as_of + "." :
+          "Período de " + result.period.start + " a " + result.period.end + "."),
+        B.list(rows), B.src("Relatório financeiro do negócio ativo"),
+        B.acts([goBtn("Abrir Relatórios", "/relatorios", { title: "Relatórios" })]),
+      ]);
+    } catch {
+      if (!stale(context)) say([B.text("Não foi possível confirmar os registros. Confira a tela correspondente.")]);
+    } finally {
+      if (!stale(context)) setBusy(false);
+    }
+  }
+
   async function special(e) {
     switch (e.id) {
+      case "q-contas":
+      case "q-caixa":
+      case "q-oportunidades":
+        return consultBusiness(e.id);
       case "q-dia": {
         const items = dataReady() ? safe(() => window.SocialMEIv76?.collect?.(), null) : null;
         if (!items) return noData();

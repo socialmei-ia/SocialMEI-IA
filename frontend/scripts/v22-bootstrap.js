@@ -177,7 +177,7 @@
     customerReports.onerror = () => console.warn("Indicadores de clientes indisponíveis.");
     document.body.appendChild(customerReports);
     const financeReports = document.createElement("script");
-    financeReports.src = "scripts/v22-finance-reporting.js";
+    financeReports.src = "scripts/v22-finance-reporting.js?v=m09";
     financeReports.onerror = () => console.warn("Relatório financeiro indisponível.");
     document.body.appendChild(financeReports);
     const productReports = document.createElement("script");

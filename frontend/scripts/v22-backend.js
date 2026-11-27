@@ -131,9 +131,9 @@ window.SocialMEIV22 = (() => {
       0,
       F.length,
       ...finance
-        .filter((f) => f.status === "pago")
+        .filter((f) => f.status === "pago" && f.data_pagamento)
         .map((f) => [
-          date(f.data_pagamento || f.vencimento),
+          date(f.data_pagamento),
           f.descricao,
           f.tipo,
           f.tipo === "receita" ? 1 : 0,
@@ -454,6 +454,110 @@ window.SocialMEIV22 = (() => {
   document.addEventListener("click", (event) => {
     if (event.target.closest?.("[data-customer-history]")) void clientHistory();
   });
+
+
+  const canWriteFinance = () => ["owner", "admin", "member"].includes(auth.current?.papel);
+  function financeForm(record) {
+    if (!canWriteFinance()) return;
+    const today = new Date().toLocaleDateString("sv-SE");
+    form(
+      record ? "Corrigir lan\u00e7amento em aberto" : "Novo lan\u00e7amento",
+      [
+        field("d", "Descri\u00e7\u00e3o", record?.descricao || "", { req: 1 }),
+        field("t", "Tipo", record?.tipo === "despesa" ? "Sa\u00edda" : "Entrada", {
+          type: "select",
+          options: ["Entrada", "Sa\u00edda"],
+        }),
+        field("v", "Valor (R$)", record ? String(record.valor).replace(".", ",") : "", { req: 1, type: "money" }),
+        field("due", "Vencimento", record?.vencimento || today, { req: 1, type: "date" }),
+        ...(record ? [] : [field("st", "Situa\u00e7\u00e3o", "Em aberto", {
+          type: "select",
+          options: ["Em aberto", "J\u00e1 pago"],
+        })]),
+      ],
+      (v) =>
+        write(
+          "/financeiro" + (record ? "/" + record.id : ""),
+          record ? "PATCH" : "POST",
+          {
+            descricao: v.d,
+            tipo: v.t === "Entrada" ? "receita" : "despesa",
+            valor: money(v.v),
+            vencimento: v.due,
+            ...(record
+              ? { expected_version: record.versao, cliente_id: record.cliente_id, pessoa: record.pessoa }
+              : { status: v.st === "J\u00e1 pago" ? "pago" : "aberto" }),
+          },
+          true,
+        ),
+    );
+  }
+
+  function paintOpenFinance() {
+    if (location.hash !== "#/negocio/financeiro") return;
+    const view = document.getElementById("v");
+    if (!view || !auth.current || dataScope !== identityKey() || view.querySelector("[data-open-finance]")) return;
+    if (!canWriteFinance()) {
+      view.querySelectorAll('button[data-a="novo:lanc"], button[data-a^="fx:"]').forEach((button) => {
+        button.disabled = true;
+        button.title = "Acesso somente leitura";
+      });
+    }
+    const section = document.createElement("section");
+    section.className = "pg";
+    section.dataset.openFinance = "true";
+    const title = document.createElement("h2");
+    title.textContent = "Contas em aberto";
+    section.append(title);
+    const records = data.finance.filter((row) => ["aberto", "atrasado"].includes(row.status));
+    if (!records.length) {
+      const empty = document.createElement("p");
+      empty.textContent = "Nenhuma conta a pagar ou a receber.";
+      section.append(empty);
+    }
+    const active = identityKey();
+    for (const row of records) {
+      const line = document.createElement("div");
+      line.className = "row sp wr";
+      const label = document.createElement("p");
+      const kind = row.tipo === "receita" ? "A receber" : "A pagar";
+      label.textContent = kind + " \u00b7 " + row.descricao + " \u00b7 " + brl(row.valor) + " \u00b7 vencimento " + date(row.vencimento);
+      line.append(label);
+      if (canWriteFinance()) {
+        const buttons = document.createElement("div");
+        buttons.className = "row wr";
+        const action = (text, callback) => {
+          const button = document.createElement("button");
+          button.className = "btn o sm2";
+          button.type = "button";
+          button.textContent = text;
+          button.onclick = () => {
+            if (auth.current && identityKey() === active && canWriteFinance()) callback();
+          };
+          buttons.append(button);
+        };
+        action("Corrigir", () => financeForm(row));
+        for (const [text, permission, route] of [
+          [row.tipo === "receita" ? "Registrar recebimento" : "Registrar pagamento",
+            "Confirma o registro interno da quita\u00e7\u00e3o de \"" + row.descricao + "\"?", "pagar"],
+          ["Cancelar conta", "Cancelar a conta em aberto \"" + row.descricao + "\"?", "excluir"],
+        ]) {
+          action(text, async () => {
+            if (!window.confirm(permission)) return;
+            try {
+              await write("/financeiro/" + row.id + "/" + route, "POST", { expected_version: row.versao }, true);
+              if (auth.current && identityKey() === active && (await refreshConfirmed())) toast("Lan\u00e7amento atualizado.");
+            } catch (failure) {
+              if (auth.current && identityKey() === active) error(failure);
+            }
+          });
+        }
+        line.append(buttons);
+      }
+      section.append(line);
+    }
+    view.append(section);
+  }
 
   function productForm(edit = false) {
     const p = edit ? data.products[S.prod] : null;
@@ -901,29 +1005,7 @@ window.SocialMEIV22 = (() => {
           "Registrar venda",
         );
       }
-      if (k === "lanc")
-        return form(
-          "Novo lançamento",
-          [
-            field("d", "Descrição", "", { req: 1 }),
-            field("c", "Categoria", "", { disabled: true }),
-            field("t", "Tipo", "Entrada", { type: "select", options: ["Entrada", "Saída"] }),
-            field("v", "Valor (R$)", "", { req: 1, type: "money" }),
-          ],
-          (v) =>
-            write(
-              "/financeiro",
-              "POST",
-              {
-                descricao: v.d,
-                tipo: v.t === "Entrada" ? "receita" : "despesa",
-                valor: money(v.v),
-                vencimento: new Date().toLocaleDateString("en-CA"),
-                status: "pago",
-              },
-              true,
-            ),
-        );
+      if (k === "lanc") return financeForm();
       return info(
         "Recurso local",
         "<p>Esta ação ainda depende de integração. Nenhuma mensagem ou alteração será enviada ao servidor.</p>",
@@ -957,7 +1039,8 @@ window.SocialMEIV22 = (() => {
     };
     A.fx = async (index) => {
       try {
-        const record = data.finance.filter((f) => f.status === "pago")[+index];
+        const record = data.finance.filter((f) => f.status === "pago" && f.data_pagamento)[+index];
+        if (!canWriteFinance() || !record || !window.confirm("Cancelar este lan\u00e7amento registrado?")) return false;
         await write(
           "/financeiro/" + record.id + "/excluir",
           "POST",
@@ -1030,6 +1113,7 @@ window.SocialMEIV22 = (() => {
     render = () => {
       oldRender();
       paintPendingOperation();
+      paintOpenFinance();
       const phone = document.getElementById("b_tel");
       if (phone && !document.getElementById("b_horario")) {
         const field = document.createElement("div"),
@@ -1095,6 +1179,12 @@ window.SocialMEIV22 = (() => {
     inFinancialPeriod,
     get identity() {
       return auth.current;
+    },
+    get searchScope() {
+      return {
+        records: !!auth.current && dataScope === identityKey(),
+        inbox: !!auth.current && inboxScope === identityKey(),
+      };
     },
     thread(id) {
       const row =
