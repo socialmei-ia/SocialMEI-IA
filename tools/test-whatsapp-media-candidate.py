@@ -33,6 +33,18 @@ def audio_event(contact, now):
     return mid, body, sig
 
 
+def attach(conn, mid, contact, sha, storage_key):
+    return conn.execute(
+        "INSERT INTO socialmei.me_inbound_attachments(workspace_id,channel_id,conversation_id,origin,account_ref,"
+        "contact_ref,external_message_id,source_event_key,source_fingerprint,media_kind,sha256,size_bytes,storage_key,occurred_at) "
+        "SELECT e.workspace_id,e.canal_id,m.conversation_id,'waha',e.waha_account_snapshot,%s,e.mensagem_externa_id,e.chave_evento,"
+        "e.fingerprint,'audio',%s,40,%s,e.ocorrida_em FROM socialmei.crm_eventos_canal e "
+        "JOIN socialmei.me_messages m ON m.workspace_id=e.workspace_id AND m.id=e.inbox_message_id "
+        "WHERE e.mensagem_externa_id=%s RETURNING id",
+        ('waha:'+contact, sha, storage_key, mid),
+    ).fetchone()[0]
+
+
 class Session(unittest.TestCase):
     def test_verified_media_uses_existing_planner_once_without_a_new_inbound(self):
         self.assertEqual(intent('audio', 'Transcrição: Quero consultar os preços dos serviços.'), 'services')
@@ -95,13 +107,7 @@ class Session(unittest.TestCase):
         request = {'instance': 'media-lab', 'external_message_id': mid}
         sha = 'a'*64
         with psycopg.connect(db) as conn:
-            attachment = conn.execute(
-                "INSERT INTO socialmei.me_inbound_attachments(workspace_id,channel_id,conversation_id,origin,account_ref,"
-                "contact_ref,external_message_id,source_event_key,source_fingerprint,media_kind,sha256,size_bytes,storage_key,occurred_at) "
-                "SELECT e.workspace_id,e.canal_id,m.conversation_id,'waha',e.waha_account_snapshot,%s,e.mensagem_externa_id,e.chave_evento,"
-                "e.fingerprint,'audio',%s,40,'lab.ogg',e.ocorrida_em FROM socialmei.crm_eventos_canal e "
-                "JOIN socialmei.me_messages m ON m.workspace_id=e.workspace_id AND m.id=e.inbox_message_id RETURNING id",
-                ('waha:'+CONTACT, sha)).fetchone()[0]
+            attachment = attach(conn, mid, CONTACT, sha, 'lab.ogg')
             conn.execute("INSERT INTO socialmei.me_attachment_ai(attachment_id,sha256,request_id,model,status,interpretation,finished_at) "
                          "VALUES(%s,%s,%s,'lab','completed','Quero ver os produtos',now())", (attachment, 'b'*64, uuid4()))
             conn.execute("UPDATE socialmei.crm_eventos_canal SET recebido_em=now()-interval '5 seconds'")
@@ -144,13 +150,7 @@ class Session(unittest.TestCase):
                          "VALUES(60,'Limpeza sintética','Serviço',90,60)")
             conn.execute("INSERT INTO socialmei.agenda_resources(workspace_id,id,nome,creation_fingerprint) "
                          "VALUES(60,%s,'Recurso sintético',%s)", (uuid4(), 'c'*64))
-            added = conn.execute(
-                "INSERT INTO socialmei.me_inbound_attachments(workspace_id,channel_id,conversation_id,origin,account_ref,"
-                "contact_ref,external_message_id,source_event_key,source_fingerprint,media_kind,sha256,size_bytes,storage_key,occurred_at) "
-                "SELECT e.workspace_id,e.canal_id,m.conversation_id,'waha',e.waha_account_snapshot,%s,e.mensagem_externa_id,e.chave_evento,"
-                "e.fingerprint,'audio',%s,40,'lab2.ogg',e.ocorrida_em FROM socialmei.crm_eventos_canal e "
-                "JOIN socialmei.me_messages m ON m.workspace_id=e.workspace_id AND m.id=e.inbox_message_id "
-                "WHERE e.mensagem_externa_id=%s RETURNING id", ('waha:'+booking_contact, sha, booking_mid)).fetchone()[0]
+            added = attach(conn, booking_mid, booking_contact, sha, 'lab2.ogg')
             conn.execute("INSERT INTO socialmei.me_attachment_ai(attachment_id,sha256,request_id,model,status,interpretation,finished_at) "
                          "VALUES(%s,%s,%s,'lab','completed','Quero agendar um horário',now())", (added, sha, uuid4()))
         booking = client.post(path+'/decisions', json={**request, 'external_message_id': booking_mid})
@@ -159,9 +159,23 @@ class Session(unittest.TestCase):
         self.assertEqual(plan['action'], 'booking_services')
         self.assertIn('Limpeza sintética', json.dumps(plan, ensure_ascii=False))
         self.assertFalse(any(choice['target'].get('step') == 'confirm' for choice in plan['choices']))
+        human_contact = '444@c.us'
+        human_mid, body, sig = audio_event(human_contact, now)
+        self.assertEqual(service.receive('media-lab', body, sig, 'sha512')['processed'], 1)
+        with psycopg.connect(db) as conn:
+            added = attach(conn, human_mid, human_contact, sha, 'lab3.ogg')
+            conn.execute("INSERT INTO socialmei.me_attachment_ai(attachment_id,sha256,request_id,model,status,interpretation,finished_at) "
+                         "VALUES(%s,%s,%s,'lab','completed','Quero agendar um horário',now())", (added, sha, uuid4()))
+            conn.execute("INSERT INTO socialmei.wa_bot_conversations(workspace_id,channel_id,conversation_id,state) "
+                         "SELECT workspace_id,channel_id,conversation_id,'human' FROM socialmei.me_inbound_attachments WHERE id=%s",
+                         (added,))
+        paused = client.post(path+'/decisions', json={**request, 'external_message_id': human_mid}).json()
+        self.assertEqual(paused['status'], 'skipped')
+        self.assertTrue(paused['handoff'])
+        self.assertFalse(client.post(path+'/decisions/'+paused['operation_id']+'/claim', json={}).json()['dispatch_allowed'])
         with psycopg.connect(db) as conn:
             self.assertEqual(conn.execute('SELECT count(*) FROM socialmei.agenda_appointments').fetchone(), (0,))
-            self.assertEqual(conn.execute('SELECT text FROM socialmei.me_messages').fetchall(), [('Áudio recebido',)]*2)
+            self.assertEqual(conn.execute('SELECT text FROM socialmei.me_messages').fetchall(), [('Áudio recebido',)]*3)
 
 
 if __name__ == '__main__':
