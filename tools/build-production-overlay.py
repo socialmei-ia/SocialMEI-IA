@@ -17,6 +17,8 @@ GATEWAY_FIXES = (
     '/srv/frontend/scripts/v79-central.js',
 )
 API_INBOX_FIXES = ('/app/message_enrichment.py',)
+MENU_MEDIA_FILES = ('/app/whatsapp_media_intent.py',)
+MENU_MEDIA_PATCH = REPO / 'deploy/production-candidates/whatsapp-media.patch'
 
 
 def verify(manifest):
@@ -34,7 +36,7 @@ def verify(manifest):
                 raise ValueError(f'Source hash mismatch: {role}:{name}')
 
 
-def build(role, entry, *, gateway_fixes=False, inbox_fixes=False):
+def build(role, entry, *, gateway_fixes=False, inbox_fixes=False, whatsapp_media=False):
     image = entry['image']
     base = f'socialmei-overlay-base:{role}-{image[7:19]}'
     subprocess.run(['docker', 'image', 'tag', image, base], check=True)
@@ -47,6 +49,8 @@ def build(role, entry, *, gateway_fixes=False, inbox_fixes=False):
         destinations.update(GATEWAY_FIXES)
     if inbox_fixes:
         destinations.update(API_INBOX_FIXES)
+    if whatsapp_media:
+        destinations.update(MENU_MEDIA_FILES)
     dockerfile.extend('COPY ' + json.dumps([name.lstrip('/'), name]) for name in sorted(destinations))
     with tempfile.TemporaryDirectory() as folder:
         root = Path(folder)
@@ -59,12 +63,16 @@ def build(role, entry, *, gateway_fixes=False, inbox_fixes=False):
                 source = REPO / name.removeprefix('/srv/')
             if inbox_fixes and name in API_INBOX_FIXES:
                 source = REPO / 'python-service' / Path(name).name
+            if whatsapp_media and name in MENU_MEDIA_FILES:
+                source = REPO / 'python-service' / Path(name).name
             data = source.read_bytes()
             target.write_bytes(data)
             if gateway_fixes and name in GATEWAY_FIXES:
                 print(f'{hashlib.sha256(data).hexdigest()}  {name}')
+        if whatsapp_media:
+            subprocess.run(['git', 'apply', '--no-index', str(MENU_MEDIA_PATCH)], cwd=root, check=True)
         (root / 'Dockerfile').write_text('\n'.join(dockerfile) + '\n', encoding='utf-8')
-        tag = f'socialmei-production-overlay:{role}-20261127' + ('-candidate' if gateway_fixes or inbox_fixes else '')
+        tag = f'socialmei-production-overlay:{role}-20261127' + ('-candidate' if gateway_fixes or inbox_fixes or whatsapp_media else '')
         subprocess.run(['docker', 'build', '--pull=false', '--network=none', '-t', tag, str(root)], check=True)
 
 
@@ -74,7 +82,10 @@ if __name__ == '__main__':
     parser.add_argument('--build', choices=sorted(manifest), help='Requires the exact local base image')
     parser.add_argument('--gateway-fixes', action='store_true', help='Include current app fixes in a separate gateway candidate')
     parser.add_argument('--inbox-fixes', action='store_true', help='Include inbox restoration API in a separate candidate, requires 043')
+    parser.add_argument('--whatsapp-media', action='store_true', help='Include WhatsApp media planning, requires 042 and an activation cutoff')
     args = parser.parse_args()
+    if args.whatsapp_media and args.build != 'menu':
+        parser.error('--whatsapp-media requires --build menu')
     if args.gateway_fixes and args.build != 'gateway':
         parser.error('--gateway-fixes requires --build gateway')
     if args.inbox_fixes and args.build != 'api':
@@ -82,4 +93,4 @@ if __name__ == '__main__':
     verify(manifest)
     print(f'Verified {sum(len(e["files"]) for e in manifest.values())} files across {len(manifest)} roles')
     if args.build:
-        build(args.build, manifest[args.build], gateway_fixes=args.gateway_fixes, inbox_fixes=args.inbox_fixes)
+        build(args.build, manifest[args.build], gateway_fixes=args.gateway_fixes, inbox_fixes=args.inbox_fixes, whatsapp_media=args.whatsapp_media)

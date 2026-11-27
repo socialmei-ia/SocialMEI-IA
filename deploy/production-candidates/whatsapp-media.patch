@@ -1,0 +1,176 @@
+--- a/app/whatsapp_public_continuous.py
++++ b/app/whatsapp_public_continuous.py
+@@ -10,6 +10,7 @@
+     return isinstance(value, str) and re.fullmatch(r'sm:[0-9a-f]{32}:[0-9]', value) is not None
+ 
+ import settings
++import whatsapp_media_intent as media
+ 
+ original_contact_scope = settings.whatsapp_bot_allowed_contacts
+ import public_app as original
+@@ -81,14 +82,17 @@
+             except ValueError:
+                 raise HTTPException(400, 'Corte invalido')
+ 
++        media_start = media.activation(channel)
++        source_kind = media.MEDIA_SOURCE if media_start is not None else media.SOURCE
++        media_params = [media_start, media_start] if media_start is not None else []
+         rows = conn.execute(
+-            "SELECT e.mensagem_externa_id AS external_message_id,COALESCE(e.dados_normalizados->>'wa_selection',m.text) AS text,s.state "
++            "SELECT e.mensagem_externa_id AS external_message_id,COALESCE(e.dados_normalizados->>'wa_selection',m.text) AS text,s.state,e.tipo "
+             "FROM socialmei.crm_eventos_canal e "
+             "JOIN socialmei.me_messages m ON m.workspace_id=e.workspace_id AND m.id=e.inbox_message_id AND m.origin='waha' "
+             "JOIN socialmei.me_conversations v ON v.workspace_id=m.workspace_id AND v.id=m.conversation_id "
+             "LEFT JOIN socialmei.wa_bot_conversations s ON s.workspace_id=e.workspace_id AND s.channel_id=e.canal_id AND s.conversation_id=m.conversation_id "
+             "LEFT JOIN socialmei.wa_bot_decisions d ON d.workspace_id=e.workspace_id AND d.channel_id=e.canal_id AND d.source_message_id=m.id "
+-            "WHERE e.workspace_id=%s AND e.canal_id=%s AND e.tipo='message' AND e.status='processado' "
++            f"WHERE e.workspace_id=%s AND e.canal_id=%s AND {source_kind} AND e.status='processado' "
+             "AND e.waha_account_snapshot=%s AND v.account_ref=%s "
+             + ("" if PUBLIC else "AND v.contact_ref=ANY(%s::text[]) ") +
+              "AND NOT (encode(sha256(convert_to(substring(v.contact_ref from 6),'UTF8')),'hex') = ANY(%s::text[])) "
+@@ -100,11 +104,11 @@
+             + ("AND q.created_at>=NOW()-INTERVAL '15 minutes')<10 " if PUBLIC
+                else "AND q.created_at>=NOW()-INTERVAL '45 minutes')<5 ") +
+             "ORDER BY m.occurred_at,m.id LIMIT 40",
+-            tuple([channel['workspace_id'],channel['channel_id'],channel['identificador_conta'], 'waha:' + channel['identificador_conta']]
++            tuple([channel['workspace_id'], channel['channel_id']] + media_params + [channel['identificador_conta'], 'waha:' + channel['identificador_conta']]
+                   + ([] if PUBLIC else [CONTACTS]) + [excluded, cutoff, cutoff]),
+         ).fetchall()
+         for row in rows:
+-            if original.permitted_text(row['text'], row['state']) or valid_token(row['text']):
++            if row['tipo'] == 'media' or original.permitted_text(row['text'], row['state']) or valid_token(row['text']):
+                 return {'isolation_version':'conversation-v1','sources': [{'instance': channel['instancia'], 'external_message_id': row['external_message_id']}]}
+     return {'isolation_version':'conversation-v1','sources': []}
+ 
+--- a/app/whatsapp_bot.py
++++ b/app/whatsapp_bot.py
+@@ -1,5 +1,6 @@
+ """Durable replies for verified WAHA inputs. This module never sends a message."""
+ import os
++import whatsapp_media_intent as media
+ import whatsapp_catalog_navigation as navigation
+ import re
+ import hashlib
+@@ -488,6 +489,43 @@
+ 
+ 
+ 
++def _everson_media_route(conn, channel, message, state, native):
++    workspace, cid, conv = channel['workspace_id'], channel['channel_id'], message['conversation_id']
++    skip = {'action': 'media_no_reply', 'text': '', 'choices': [], 'items': [],
++            'handoff': state['state'] == 'human'}
++    if state['state'] != 'menu' or pending_human_reply(conn, workspace, cid, conv, message['id']):
++        return state['state'], skip
++
++    requested = media.intent(message['media_kind'], message['interpretation'])
++    if requested == 'booking' and _sm_booking_ready(conn, channel):
++        import channel_booking_flow as flow
++        # A media interpretation can open the service picker. Later selections are explicit.
++        try:
++            with conn.transaction():
++                next_state, result = flow.advance(
++                    conn, channel, message, {'route': 'booking', 'step': 'services'}, native)
++        except HTTPException as error:
++            if error.status_code not in {409, 422, 503}:
++                raise
++        else:
++            return next_state, {**result, 'derived_from_media': True}
++    elif requested in {'products', 'services', 'quote'}:
++        command = {'products': '2', 'services': '3', 'quote': '4'}[requested]
++        next_state, result = _catalog_answer(conn, workspace, state['state'], command, None, native)
++        return next_state, {**result, 'derived_from_media': True}
++
++    if requested is None:
++        return state['state'], skip
++    text = (
++        'Recebi seu anexo. Para ajudar, diga por texto se quer consultar o catálogo, pedir um orçamento ou agendar.'
++        if requested == 'context_only'
++        else 'Para continuar, escolha no menu o que deseja consultar ou escreva seu pedido.'
++    )
++    _, menu = _catalog_answer(conn, workspace, 'menu', '0', None, native)
++    menu = _sm_booking_menu(conn, channel, message, state, menu)
++    return state['state'], {**menu, 'action': 'media_clarify', 'text': text, 'derived_from_media': True}
++
++
+ def _everson_original_prepare(payload: Source, request: Request):
+     require_bot()
+     with operation_database() as conn:
+@@ -495,13 +533,16 @@
+         if payload.instance != channel['instancia']:
+             raise HTTPException(401, 'Credencial de atendimento inválida.')
+         workspace, cid = channel['workspace_id'], channel['channel_id']
++        media_start = media.activation(channel)
++        source_kind = media.MEDIA_SOURCE if media_start is not None else media.SOURCE
++        media_params = (media_start, media_start) if media_start is not None else ()
+         message = conn.execute(
+-            "SELECT m.*,v.contact_ref,e.recebido_em AS batch_received_at,e.dados_normalizados AS ingress_data FROM socialmei.crm_eventos_canal e "
++            "SELECT m.*,v.contact_ref,e.tipo,e.recebido_em AS batch_received_at,e.dados_normalizados AS ingress_data FROM socialmei.crm_eventos_canal e "
+             "JOIN socialmei.me_messages m ON m.workspace_id=e.workspace_id AND m.id=e.inbox_message_id AND m.origin='waha' "
+             "JOIN socialmei.me_conversations v ON v.workspace_id=m.workspace_id AND v.id=m.conversation_id "
+             "WHERE e.workspace_id=%s AND e.canal_id=%s AND e.mensagem_externa_id=%s AND e.status='processado' "
+-            "AND e.waha_account_snapshot=%s AND v.account_ref=%s AND e.tipo='message'",
+-            (workspace, cid, payload.external_message_id, channel['identificador_conta'], 'waha:' + channel['identificador_conta']),
++            f"AND e.waha_account_snapshot=%s AND v.account_ref=%s AND {source_kind}",
++            (workspace, cid, payload.external_message_id, channel['identificador_conta'], 'waha:' + channel['identificador_conta'], *media_params),
+         ).fetchone()
+         if not message:
+             raise HTTPException(404, 'Mensagem recebida não encontrada neste canal.')
+@@ -522,7 +563,8 @@
+         nav_enabled = native_list_canary(channel, message['contact_ref'])
+         metadata = message.get('ingress_data') or {}
+         token = metadata.get('wa_selection')
+-        if nav_enabled and navigation.valid_token(token):
++        is_media = message['tipo'] == 'media'
++        if not is_media and nav_enabled and navigation.valid_token(token):
+             message['catalog_target'] = navigation.resolve(conn, channel, conv, token)
+             if message['catalog_target'].get('route') == 'resume' and not pending_human_reply(conn, workspace, cid, conv, message['id']):
+                 message['text'] = '0'
+@@ -541,6 +583,21 @@
+             if recent >= 20 and state['state'] != 'human' and str(message['text'] or '').strip().casefold() not in HUMAN_CHOICES:
+                 next_state = state['state']
+                 result = {'action': 'rate_limited', 'text': '', 'choices': [], 'items': [], 'handoff': False}
++            elif is_media:
++                interpreted = conn.execute(
++                    "SELECT media_result.* FROM socialmei.crm_eventos_canal e "
++                    "JOIN socialmei.me_conversations v ON v.workspace_id=e.workspace_id AND v.id=%s "
++                    f"JOIN LATERAL ({media.COMPLETED}) media_result ON true "
++                    "WHERE e.workspace_id=%s AND e.canal_id=%s AND e.tipo='media' "
++                    "AND e.status='processado' AND e.inbox_message_id=%s AND e.mensagem_externa_id=%s "
++                    "AND e.waha_account_snapshot=%s AND v.account_ref=%s",
++                    (conv, workspace, cid, message['id'], payload.external_message_id,
++                     channel['identificador_conta'], 'waha:' + channel['identificador_conta']),
++                ).fetchone()
++                if not interpreted:
++                    raise HTTPException(404, 'Interpretação de mídia indisponível.')
++                next_state, result = _everson_media_route(
++                    conn, channel, {**message, **interpreted}, state, nav_enabled)
+             else:
+                 # Nao repetir boas-vindas para varias mensagens livres seguidas.
+                 # Escolhas explicitas e pedidos de humano continuam imediatos.
+@@ -582,7 +639,7 @@
+         grouped=[]
+         last_message=message
+ 
+-        if not old and not outdated and next_state=='menu':
++        if not is_media and not old and not outdated and next_state=='menu':
+             try:
+                 with conn.transaction():
+                     group=_sm_batch_try_group(
+@@ -1116,6 +1173,8 @@
+                              (channel['workspace_id'], channel['channel_id'], row['conversation_id'])).fetchone()
+         permitted = row['status'] == 'planned' and row['created_at'] > datetime.now(timezone.utc) - timedelta(minutes=2) and row['state_revision'] == state['revision']
+         permitted = permitted and _public_direct(state["contact_ref"])
++        if row['result'].get('derived_from_media'):
++            permitted = permitted and media.activation(channel) is not None
+         contacts = _public_contacts(channel)
+         permitted = permitted and (contacts is None or state['contact_ref'] in contacts)
+         permitted = permitted and not pending_human_reply(
+@@ -2397,6 +2456,8 @@
+ _sm_dialog_original_generate=_everson_generate
+ 
+ def _everson_generate(planned,request):
++    if planned.get('derived_from_media'):
++        return planned
+     if planned.get('status')=='planned' and str(planned.get('action','')).startswith('booking_'):
+         try:
+             scope=_sm_booking_presence_scope(planned,request)
