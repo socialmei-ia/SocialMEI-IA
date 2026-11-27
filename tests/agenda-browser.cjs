@@ -91,6 +91,7 @@ module.exports = async function (browser, origin) {
         await page.goto(origin + "/frontend/socialmei-app.html#/agenda");
         const createButton = page.locator(".sm-agenda .ag-head").getByRole("button", { name: "Novo lembrete", exact: true });
         await page.getByText("Agenda temporariamente indisponível.", { exact: true }).waitFor();
+        assert.equal(await page.evaluate(() => meiCard()), "", "Connected accounts omit demo tax figures");
         assert(await createButton.isDisabled());
         await page.getByRole("button", { name: "Consultar agenda", exact: true }).click();
         await page.getByText("Nenhum lembrete neste período.", { exact: true }).waitFor();
@@ -153,8 +154,9 @@ module.exports = async function (browser, origin) {
           })
           .waitFor();
         assert.equal(rows[0].status, "done");
-        page.once("dialog", (dialog) => dialog.accept());
         await page.locator(".agi").getByRole("button", { name: "Cancelar", exact: true }).click();
+        assert.equal(rows[0].status, "done");
+        await page.locator(".agi").getByRole("button", { name: "Confirmar cancelamento", exact: true }).click();
         await page.getByText("Nenhum lembrete neste período.", { exact: true }).waitFor();
         assert.equal(rows[0].status, "cancelled");
         await page.evaluate(() => {

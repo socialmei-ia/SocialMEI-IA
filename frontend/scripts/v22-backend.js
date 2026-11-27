@@ -602,6 +602,7 @@ window.SocialMEIV22 = (() => {
         : { workspace_id: workspace, items: [] };
       if (!sameSession()) return;
       if (result.workspace_id !== workspace) throw Error("Resposta de outro negócio.");
+      if (!Array.isArray(result.items)) throw Error("Resposta da Caixa Unificada inválida.");
       inboxCapabilities = cap;
       inboxState = available ? "ok" : "unavailable";
       inboxLastOk = Date.now();
@@ -657,8 +658,9 @@ window.SocialMEIV22 = (() => {
       }
       if (silent && sameSession()) smInboxPaint();
     } catch (e) {
+      if (!sameSession()) return;
       inboxState = [403, 503].includes(e.status) ? "unavailable" : "error";
-      if (silent && sameSession()) smInboxPaint();
+      if (silent) smInboxPaint();
       if (!silent && ![403, 503].includes(e.status)) throw e;
     } finally {
       inboxPolling = false;
