@@ -41,7 +41,7 @@ class CommercialMediaTests(unittest.TestCase):
             'Quero consultar o catálogo, os preços ou a disponibilidade de produtos.',
             'Quero consultar opções de agendamento.',
         })
-        self.assertNotIn('Quero ver os produtos', json.dumps(data, ensure_ascii=False))
+        self.assertNotIn('Produto sintético', json.dumps(data, ensure_ascii=False))
         self.assertEqual(client.post(path+'/claims').json()['items'], [])
         for text, item in by_text.items():
             receipt = {'claim_id': item['claim_id'], 'sentiment': 'neutral',

@@ -109,7 +109,7 @@ class Session(unittest.TestCase):
         with psycopg.connect(db) as conn:
             attachment = attach(conn, mid, CONTACT, sha, 'lab.ogg')
             conn.execute("INSERT INTO socialmei.me_attachment_ai(attachment_id,sha256,request_id,model,status,interpretation,finished_at) "
-                         "VALUES(%s,%s,%s,'lab','completed','Quero ver os produtos',now())", (attachment, 'b'*64, uuid4()))
+                         "VALUES(%s,%s,%s,'lab','completed','Qual o preço do produto Produto sintético',now())", (attachment, 'b'*64, uuid4()))
             conn.execute("UPDATE socialmei.crm_eventos_canal SET recebido_em=now()-interval '5 seconds'")
         self.assertEqual(client.get(path+'/sources').json()['sources'], [])
         self.assertEqual(client.post(path+'/decisions', json=request).status_code, 404)
@@ -118,13 +118,13 @@ class Session(unittest.TestCase):
                          "WHERE attachment_id=%s", (sha, attachment))
         self.assertEqual(client.get(path+'/sources').json()['sources'], [])
         with psycopg.connect(db) as conn:
-            conn.execute("UPDATE socialmei.me_attachment_ai SET status='completed',interpretation='Quero ver os produtos',finished_at=now() "
+            conn.execute("UPDATE socialmei.me_attachment_ai SET status='completed',interpretation='Qual o preço do produto Produto sintético',finished_at=now() "
                          "WHERE attachment_id=%s AND sha256=%s", (attachment, sha))
         self.assertEqual(client.get(path+'/sources').json()['sources'], [request])
         plan = client.post(path+'/decisions', json=request)
         self.assertEqual(plan.status_code, 200, plan.text)
         decision = plan.json()
-        self.assertEqual(decision['action'], 'products')
+        self.assertEqual(decision['action'], 'product_detail')
         self.assertIn('Produto sintético', json.dumps(decision, ensure_ascii=False))
         self.assertEqual(client.post(path+'/decisions', json=request).json()['operation_id'], decision['operation_id'])
         self.assertEqual(client.get(path+'/sources').json()['sources'], [])

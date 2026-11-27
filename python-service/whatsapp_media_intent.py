@@ -60,6 +60,44 @@ def activation(channel):
     return start if start.utcoffset() is not None else None
 
 
+NAMED_CATALOG = re.compile(
+    r'(?P<request>(?:qual (?:e )?o |quero saber o )?(?:preco|valor) d[oe]|'
+    r'(?:qual (?:e )?a |quero saber a )?disponibilidade d[oe]|'
+    r'quanto custa (?:o )?|(?:quero|gostaria de) (?:um )?orcamento d[oe])'
+    r' *(?P<category>produto|servico) +(?P<item>[a-z0-9][a-z0-9 -]{1,78})'
+)
+
+
+def normalize(value):
+    text = unicodedata.normalize('NFKD', value.strip().casefold())
+    text = ''.join(char for char in text if not unicodedata.combining(char))
+    return ' '.join(re.sub(r'^transcricao:\s*', '', text).split()).strip('?"!. ')
+
+
+def catalog_lookup(conn, workspace, kind, interpretation):
+    if kind != 'audio' or not isinstance(interpretation, str) or len(interpretation) > 480:
+        return None
+    text = normalize(interpretation)
+    match = NAMED_CATALOG.fullmatch(text)
+    if not match:
+        return None
+    category = 'Produto' if match['category'] == 'produto' else 'Serviço'
+    # Compare only against this company's published catalog. Never store the transcript in a choice.
+    rows = conn.execute(
+        "SELECT id,nome FROM socialmei.crm_produtos WHERE workspace_id=%s AND tipo=%s "
+        "AND status='Ativo' ORDER BY id LIMIT 501",
+        (workspace, category),
+    ).fetchall()
+    if len(rows) > 500:
+        return None
+    ids = [row['id'] for row in rows if normalize(row['nome']) == match['item']]
+    if len(ids) != 1:
+        return None
+    route = 'quote' if 'orcamento' in match['request'] else 'stock' if 'disponibilidade' in match['request'] else 'item'
+    intent = 'quote' if route == 'quote' else 'products' if category == 'Produto' else 'services'
+    return intent, {'route': route, 'id': ids[0]}
+
+
 def intent(kind, interpretation):
     if not isinstance(interpretation, str) or len(interpretation) > 480:
         return None
@@ -67,10 +105,7 @@ def intent(kind, interpretation):
         return 'context_only'
     if kind != 'audio':
         return None
-    text = unicodedata.normalize('NFKD', interpretation.strip().casefold())
-    text = ''.join(char for char in text if not unicodedata.combining(char))
-    text = re.sub(r'^transcricao:\s*', '', text)
-    text = ' '.join(text.split()).strip('?"!. ')
+    text = normalize(interpretation)
     for name, pattern in REQUESTS.items():
         if re.fullmatch(PREFIX + '(?:' + pattern + ')', text):
             return name
