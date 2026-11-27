@@ -45,6 +45,16 @@ class RetentionTests(unittest.TestCase):
         self.assertEqual(sum(r['action'] == 'keep_external_restore_unproven' for r in result['records']), 6)
         self.assertEqual(len(list(self.folder.glob('*.dump'))), 30)
 
+    def test_046_backup_is_retained_without_external_restore(self):
+        path = self.paths[0]
+        receipt = json.loads(path.read_text())
+        receipt.update(schema=46, external_uploaded=False)
+        path.write_text(json.dumps(receipt))
+        result = m.retention(self.folder, self.now)
+        self.assertEqual(result['blocked'], [])
+        self.assertEqual(result['files_deleted'], 0)
+        self.assertTrue(any(row['receipt'] == path.name for row in result['records']))
+
     def test_old_backup_requires_matching_external_restore_and_still_never_deletes(self):
         path = self.paths[-1]
         self.proof(path)

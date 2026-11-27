@@ -11,7 +11,7 @@ import shutil
 import secrets
 import re
 import stat
-from urllib.parse import urlsplit, unquote, parse_qsl
+from urllib.parse import urlsplit, unquote, parse_qsl, quote, urlunsplit
 
 ROOT = Path('/home/ubuntu/.socialmei-postgres-relocation-20261112')
 NAME = 'socialmei-postgres-relocation-20261112'
@@ -287,6 +287,19 @@ def consistent_export(config, folder, stamp):
         raise RuntimeError('consistent_export_source_not_running')
     if json.loads(docker('image', 'inspect', image))[0]['Id'] != image:
         raise RuntimeError('consistent_export_image_mismatch')
+    if config.get('export_container_admin') is True:
+        if (profile not in ('041', '046') or transport != 'tls_verify_full'
+                or config.get('backup_target_approved') is not True
+                or config.get('current_production_backup') is not True
+                or config.get('admin_user') != 'relocation_admin'
+                or config.get('database') != 'socialmei_candidate040_20261114'):
+            raise RuntimeError('container_admin_export_scope_mismatch')
+        credentials = dict(item.split('=', 1) for item in source['Config']['Env'] if '=' in item)
+        if credentials.get('POSTGRES_USER') != 'relocation_admin' or not credentials.get('POSTGRES_PASSWORD'):
+            raise RuntimeError('container_admin_export_unavailable')
+        host_port = target.hostname + (':' + str(target.port) if target.port else '')
+        netloc = 'relocation_admin:' + quote(credentials['POSTGRES_PASSWORD'], safe='') + '@' + host_port
+        dsn = urlunsplit((target.scheme, netloc, target.path, target.query, ''))
     directory = folder / ('export-' + stamp)
     directory.mkdir(mode=0o700)
     owner = directory.stat()

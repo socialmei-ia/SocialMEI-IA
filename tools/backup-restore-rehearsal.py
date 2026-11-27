@@ -117,8 +117,13 @@ def cleanup(docker, name, token, network):
     run(docker, 'rm', '-f', '-v', name)
 
 
-def rehearse(dump, manifest, approval, docker='docker'):
+def rehearse(dump, manifest, approval, docker='docker', *, compact=False):
     auth, expected = inputs(dump, manifest, approval)
+    if compact:
+        require(dump.stat().st_size <= 8 * 1024**2)
+    database_memory = '176m' if compact else '512m'
+    database_storage = '125m' if compact else '512m'
+    validator_memory = '96m' if compact else '256m'
     require(not os.environ.get('DOCKER_HOST') or os.environ['DOCKER_HOST'].startswith(('unix://', 'npipe://')))
     context = json.loads(run(docker, 'context', 'inspect'))
     require(len(context) == 1 and context[0]['Endpoints']['docker']['Host'].startswith(('unix://', 'npipe://')))
@@ -136,12 +141,13 @@ def rehearse(dump, manifest, approval, docker='docker'):
         created.append((name, 'none'))
         identity = run(docker, 'create', '--name', name, '--label', label, '--network', 'none',
             '--user', 'postgres', '--read-only', '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges',
-            '--memory', '512m', '--cpus', '0.5', '--pids-limit', '128', '--restart', 'no',
-            '--tmpfs', '/var/lib/postgresql/data:rw,nosuid,noexec,size=512m,mode=1777',
+            '--memory', database_memory, '--cpus', '0.5', '--pids-limit', '128', '--restart', 'no',
+            '--tmpfs', f'/var/lib/postgresql/data:rw,nosuid,noexec,size={database_storage},mode=1777',
             '--tmpfs', '/var/run/postgresql:rw,nosuid,noexec,size=16m,mode=1777',
             '--tmpfs', '/tmp:rw,nosuid,noexec,size=16m,mode=1777',
             '-e', 'PGDATA=/var/lib/postgresql/data/pgdata', '-e', 'POSTGRES_USER=restore',
-            '-e', 'POSTGRES_DB=restore', '-e', 'POSTGRES_HOST_AUTH_METHOD=trust', image).decode().strip()
+            '-e', 'POSTGRES_DB=restore', '-e', 'POSTGRES_HOST_AUTH_METHOD=trust', image,
+            *(['postgres', '-c', 'shared_buffers=16MB', '-c', 'work_mem=1MB', '-c', 'max_connections=10'] if compact else [])).decode().strip()
         require(re.fullmatch(r'[0-9a-f]{64}', identity) is not None)
         run(docker, 'start', identity)
         for attempt in range(60):
@@ -167,7 +173,7 @@ def rehearse(dump, manifest, approval, docker='docker'):
         created.append((check_name, 'container:' + identity))
         check_id = run(docker, 'create', '--name', check_name, '--label', label, '--network', 'container:' + identity,
             '--read-only', '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges',
-            '--memory', '256m', '--cpus', '0.5', '--pids-limit', '64',
+            '--memory', validator_memory, '--cpus', '0.5', '--pids-limit', '64',
             '--mount', 'type=bind,src=' + str(ROOT / 'tools/postgres-copy-validate.py') + ',dst=/validator.py,readonly',
             '--entrypoint', 'python', validator_image, '-B', '-c', code).decode().strip()
         require(re.fullmatch(r'[0-9a-f]{64}', check_id) is not None)
@@ -278,6 +284,7 @@ def main(argv=None):
     parser.add_argument('--docker', default='docker')
     parser.add_argument('--package-output', type=Path, help='Create a private portable recovery tar; never upload')
     parser.add_argument('--restoration-proof', type=Path)
+    parser.add_argument('--compact', action='store_true', help='Use bounded resources for an archive up to 8 MiB')
     args = parser.parse_args(argv)
     if not args.run:
         print(json.dumps({'mode': 'plan', 'explicit_authorization_required': True,
@@ -285,7 +292,7 @@ def main(argv=None):
         return
     try:
         result = (package_recovery(args.dump, args.manifest, args.approval_receipt, args.restoration_proof, args.package_output)
-                  if args.package_output else rehearse(args.dump, args.manifest, args.approval_receipt, args.docker))
+                  if args.package_output else rehearse(args.dump, args.manifest, args.approval_receipt, args.docker, compact=args.compact))
         print(json.dumps(result, indent=2))
     except Exception:
         reason = 'private_recovery_package_failed_details_suppressed' if args.package_output else 'isolated_restore_failed_private_details_suppressed'
