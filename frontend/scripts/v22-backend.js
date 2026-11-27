@@ -721,6 +721,9 @@ window.SocialMEIV22 = (() => {
     S.user.email = auth.current.usuario.email;
     S.biz.nome = auth.current.negocio.nome;
     S.biz.email = "";
+    S.biz.seg = "";
+    S.biz.desc = "";
+    S.biz.logo = null;
     S.biz.tel = auth.current.negocio.configuracao?.telefone || "";
     S.biz.horario = auth.current.negocio.configuracao?.horario || "";
     /* SM_INSTAGRAM_LOGO_V2 */
@@ -731,7 +734,6 @@ window.SocialMEIV22 = (() => {
     } catch (e) {
       if (![403, 404, 503].includes(e.status)) throw e;
     }
-    S.biz.desc = "";
     C.splice(0, C.length);
     await refreshInbox();
     T1.splice(0, T1.length);

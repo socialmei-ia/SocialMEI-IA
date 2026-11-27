@@ -52,7 +52,7 @@
   document.body.appendChild(run);
   await new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "scripts/v22-backend.js?v=e7229ac4b326";
+    script.src = "scripts/v22-backend.js?v=connected-profile-1";
     script.onload = resolve;
     script.onerror = reject;
     document.body.appendChild(script);
