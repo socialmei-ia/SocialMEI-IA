@@ -9,3 +9,5 @@ O app versionado incorpora o frontend servido na AWS. Os arquivos identificados 
 O ledger produtivo registra a migration 041. A cadeia SQL versionada foi preservada. O ledger comprova o registro da migration e não certifica a equivalência de todo o schema instalado. Antes da próxima release, compare a estrutura efetiva com uma restauração descartável e ensaie a recriação com os mounts e aliases reais.
 
 Os overlays reproduzem o delta de arquivos observado sobre as imagens fixadas. A promoção exige validar as imagens construídas, as configurações privadas por serviço e os fluxos reais. Para rollback, preserve a imagem, configuração e mounts anteriores de cada componente. Pare qualquer remetente novo antes de restaurar o anterior e mantenha o ledger e os journals de envio.
+
+Para a candidata com as correções autenticadas, use `python tools/build-production-overlay.py --build gateway --gateway-fixes` a partir do commit revisado. A ferramenta valida a captura original e imprime os hashes dos quatro arquivos de aplicação incorporados na candidata.

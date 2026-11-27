@@ -618,6 +618,7 @@
     ttl.append(eyebrow, element("h1", "Seus horários e lembretes"), sub);
     const add = element("button", "Novo lembrete");
     add.type = "button";
+    add.setAttribute("aria-label", "Novo lembrete");
     add.className = "btn ag-add";
     add.title = "Atalho: tecla N";
     add.disabled = s.busy || s.phase !== "ready" || !canWrite();

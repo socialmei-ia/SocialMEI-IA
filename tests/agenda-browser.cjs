@@ -89,19 +89,20 @@ module.exports = async function (browser, origin) {
       });
       try {
         await page.goto(origin + "/frontend/socialmei-app.html#/agenda");
+        const createButton = page.locator(".sm-agenda .ag-head").getByRole("button", { name: "Novo lembrete", exact: true });
         await page.getByText("Agenda temporariamente indisponível.", { exact: true }).waitFor();
-        assert(await page.getByRole("button", { name: "Novo lembrete", exact: true }).isDisabled());
+        assert(await createButton.isDisabled());
         await page.getByRole("button", { name: "Consultar agenda", exact: true }).click();
         await page.getByText("Nenhum lembrete neste período.", { exact: true }).waitFor();
         if (role === "viewer") {
           assert(
-            await page.getByRole("button", { name: "Novo lembrete", exact: true }).isDisabled(),
+            await createButton.isDisabled(),
           );
           assert.equal(posts.length, 0);
           assert.deepEqual(errors, []);
           continue;
         }
-        await page.getByRole("button", { name: "Novo lembrete", exact: true }).click();
+        await createButton.click();
         await page.getByLabel("O que lembrar", { exact: false }).fill("Revisar orçamento de teste");
         await page.locator("#f_agenda_date").fill("2026-11-02");
         await page.locator("#f_agenda_time").fill("14:30");

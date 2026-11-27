@@ -95,7 +95,7 @@
   }
   if (auth.remote) {
     const agenda = document.createElement("script");
-    agenda.src = "scripts/v22-agenda.js?v=795-agenda-1";
+    agenda.src = "scripts/v22-agenda.js?v=795-agenda-2";
     agenda.onload = () => {
       const appointments = document.createElement("script");
       appointments.src = "scripts/v22-appointments.js?v=795-agenda-1";

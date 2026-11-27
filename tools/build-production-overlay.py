@@ -8,6 +8,13 @@ import subprocess
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1] / 'deploy/production-overlay/20261127'
+REPO = ROOT.parents[2]
+GATEWAY_FIXES = (
+    '/srv/frontend/socialmei-app.html',
+    '/srv/frontend/scripts/v22-agenda.js',
+    '/srv/frontend/scripts/v22-backend.js',
+    '/srv/frontend/scripts/v22-bootstrap.js',
+)
 
 
 def verify(manifest):
@@ -25,7 +32,7 @@ def verify(manifest):
                 raise ValueError(f'Source hash mismatch: {role}:{name}')
 
 
-def build(role, entry):
+def build(role, entry, *, gateway_fixes=False):
     image = entry['image']
     base = f'socialmei-overlay-base:{role}-{image[7:19]}'
     subprocess.run(['docker', 'image', 'tag', image, base], check=True)
@@ -33,25 +40,35 @@ def build(role, entry):
     if identity != image:
         raise RuntimeError('Frozen image mismatch')
     dockerfile = [f'FROM {base}']
-    dockerfile.extend('COPY ' + json.dumps([name.lstrip('/'), name]) for name in sorted(entry['files']))
+    destinations = set(entry['files'])
+    if gateway_fixes:
+        destinations.update(GATEWAY_FIXES)
+    dockerfile.extend('COPY ' + json.dumps([name.lstrip('/'), name]) for name in sorted(destinations))
     with tempfile.TemporaryDirectory() as folder:
         root = Path(folder)
-        for name in entry['files']:
+        for name in sorted(destinations):
             rel = name.lstrip('/')
             target = root / rel
             target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes((ROOT / role / rel).read_bytes())
+            source = (REPO / name.removeprefix('/srv/')) if gateway_fixes and name in GATEWAY_FIXES else ROOT / role / rel
+            data = source.read_bytes()
+            target.write_bytes(data)
+            if gateway_fixes and name in GATEWAY_FIXES:
+                print(f'{hashlib.sha256(data).hexdigest()}  {name}')
         (root / 'Dockerfile').write_text('\n'.join(dockerfile) + '\n', encoding='utf-8')
-        subprocess.run(['docker', 'build', '--pull=false', '--network=none',
-                        '-t', f'socialmei-production-overlay:{role}-20261127', str(root)], check=True)
+        tag = f'socialmei-production-overlay:{role}-20261127' + ('-candidate' if gateway_fixes else '')
+        subprocess.run(['docker', 'build', '--pull=false', '--network=none', '-t', tag, str(root)], check=True)
 
 
 if __name__ == '__main__':
     manifest = json.loads((ROOT / 'manifest.json').read_text(encoding='utf-8'))
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--build', choices=sorted(manifest), help='Requires the exact local base image')
+    parser.add_argument('--gateway-fixes', action='store_true', help='Include current app fixes in a separate gateway candidate')
     args = parser.parse_args()
+    if args.gateway_fixes and args.build != 'gateway':
+        parser.error('--gateway-fixes requires --build gateway')
     verify(manifest)
     print(f'Verified {sum(len(e["files"]) for e in manifest.values())} files across {len(manifest)} roles')
     if args.build:
-        build(args.build, manifest[args.build])
+        build(args.build, manifest[args.build], gateway_fixes=args.gateway_fixes)

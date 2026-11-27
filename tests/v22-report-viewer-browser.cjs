@@ -64,7 +64,9 @@ module.exports = async function (browser, origin) {
     await page.goto(origin + "/frontend/relatorios-leitura.html");
     await page.getByRole("heading", { name: "Relatórios do negócio" }).waitFor();
     await page.getByText("8", { exact: true }).waitFor();
-    await page.getByText(/Vendas Pago: 2/).waitFor();
+    const paid = page.getByRole("row").filter({ has: page.getByRole("cell", { name: "Pago", exact: true }) });
+    await paid.getByRole("cell", { name: "2", exact: true }).waitFor();
+    await paid.getByRole("cell", { name: /R\$\s*75,00/ }).waitFor();
     assert(!paths.some((p) => /clientes|financeiro|knowledge/.test(p)));
     assert.equal((await page.getByText(/somente leitura/i).count()) > 0, true);
     assert.deepEqual(errors, []);
