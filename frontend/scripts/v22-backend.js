@@ -524,6 +524,8 @@ window.SocialMEIV22 = (() => {
       handle: pick(row, ["contact_username", "contact_handle", "username", "handle"]),
       origin: row.origin || "",
       unreadCount: row.unread_count || 0,
+      pinned: row.pinned === true,
+      snoozedUntil: row.snoozed_until || null,
     };
   }
   let inboxPolling = false;
@@ -622,6 +624,8 @@ window.SocialMEIV22 = (() => {
           row.unread_count,
           row.unread,
           row.last_inbound_id,
+          row.pinned,
+          row.snoozed_until,
           row.origin,
           row.account_ref,
           row.contact_name,
@@ -1124,13 +1128,14 @@ window.SocialMEIV22 = (() => {
         throw Error('Lista indisponível para esta sessão.');
       return result.items;
     },
-    async updateInboxPreferences(action, ids, readThrough) {
+    async updateInboxPreferences(action, ids, readThrough, snoozedUntil) {
       const scope = identityKey();
       const workspace = auth.current?.negocio.id;
       if (!scope || !workspace || !ids.length || !ids.every(id => Number.isSafeInteger(id) && id > 0))
         throw Error('Conversa indisponível.');
       const payload = {action, conversation_ids: ids};
       if (readThrough != null) payload.read_through_id = readThrough;
+      if (snoozedUntil != null) payload.snoozed_until = snoozedUntil;
       const result = await request('/message-enrichment/inbox-preferences', 'POST', payload);
       if (scope !== identityKey() || result.workspace_id !== workspace || result.action !== action ||
           JSON.stringify(result.conversation_ids) !== JSON.stringify(ids))

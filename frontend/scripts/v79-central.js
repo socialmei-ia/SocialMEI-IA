@@ -40,7 +40,7 @@
     try {
       var f = JSON.parse(ls(FLT) || '{}');
       if (f.cc === 'wa' || f.cc === 'ig') S.cc = f.cc;
-      if (['Todas', 'Aguardando', 'Respondidas', 'Concluídas'].indexOf(f.cf) > -1) S.cf = f.cf;
+      if (['Todas', 'Não lidas', 'Aguardando', 'Respondidas', 'Concluídas', 'Adiadas'].indexOf(f.cf) > -1) S.cf = f.cf;
     } catch (e) {}
   })();
   function saveFilters() { ls(FLT, JSON.stringify({ cc: S.cc || '', cf: S.cf || 'Todas' })); }

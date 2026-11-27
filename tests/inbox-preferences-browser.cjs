@@ -50,8 +50,13 @@ module.exports = async (browser, origin) => {
           const row = rows.find(item => item.id === ids[0]);
           row.unread = action === "unread";
           row.unread_count = 0;
-        } else {
+        } else if (action === "archive" || action === "unarchive") {
           for (const id of ids) if (action === "archive") archived.add(id); else archived.delete(id);
+        } else {
+          const row = rows.find(item => item.id === ids[0]);
+          if (action === "pin") row.pinned = true;
+          if (action === "snooze") row.snoozed_until = payload.snoozed_until;
+          if (action === "unsnooze") row.snoozed_until = null;
         }
         return route.fulfill({json: {workspace_id: 17, action, conversation_ids: ids}});
       }
@@ -69,6 +74,18 @@ module.exports = async (browser, origin) => {
       await page.getByRole("menuitem", {name: "Marcar como lida", exact: true}).click();
       await page.waitForResponse(r => r.url().endsWith("/message-enrichment/conversations"));
       assert.deepEqual(calls[0], {action: "read", conversation_ids: [2], read_through_id: 72});
+      if (!(await page.getByRole("menuitem", {name: "Fixar no topo"}).isVisible())) await more.click();
+      await page.getByRole("menuitem", {name: "Fixar no topo"}).click();
+      await page.getByRole("img", {name: "Conversa fixada", exact: true}).waitFor();
+      if (!(await page.getByRole("menuitem", {name: "Adiar conversa"}).isVisible())) await more.click();
+      await page.getByRole("menuitem", {name: "Adiar conversa"}).click();
+      await page.getByRole("button", {name: "Daqui a 1 hora", exact: true}).click();
+      await page.getByText(/Adiada at?/).waitFor();
+      await page.reload();
+      await page.getByText(/Adiada at?/).waitFor();
+      await page.getByRole("button", {name: "Reativar", exact: true}).click();
+      await page.getByText(/Adiada at?/).waitFor({state: "hidden"});
+      assert.deepEqual(calls.slice(1,4).map(call => call.action), ["pin", "snooze", "unsnooze"]);
       await page.goto(origin + "/frontend/socialmei-app.html#/caixa");
       await page.getByRole("button", {name: "Selecionar conversas"}).click();
       const dialog = page.locator("dialog[open]");

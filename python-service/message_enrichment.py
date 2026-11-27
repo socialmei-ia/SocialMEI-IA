@@ -6,7 +6,7 @@ import re
 import time
 import unicodedata
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Annotated, Literal
 from uuid import UUID, uuid4
 
@@ -15,7 +15,7 @@ from fastapi import APIRouter, HTTPException, Query, Request, Response
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 from starlette.concurrency import run_in_threadpool
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StrictInt, StringConstraints, field_validator, model_validator
+from pydantic import AwareDatetime, AfterValidator, BaseModel, ConfigDict, Field, StrictInt, StringConstraints, field_validator, model_validator
 
 import settings
 from account_auth import current, require_enabled
@@ -171,9 +171,17 @@ class SignedEvent(Input):
 
 
 class InboxPreference(Strict):
-    action: Literal['read', 'unread', 'archive', 'unarchive', 'hide']
+    action: Literal['read', 'unread', 'archive', 'unarchive', 'hide', 'pin', 'unpin', 'snooze', 'unsnooze']
     conversation_ids: list[Id] = Field(min_length=1, max_length=50)
     read_through_id: Id | None = None
+    snoozed_until: Annotated[AwareDatetime, Field(strict=False)] | None = None
+
+    @field_validator('snoozed_until', mode='before')
+    @classmethod
+    def snooze_date(cls, value):
+        if value is not None and (not isinstance(value, str) or len(value) > 40):
+            raise ValueError('Informe a data e hora do adiamento.')
+        return value
 
     @model_validator(mode='after')
     def validate_action(self):
@@ -184,6 +192,12 @@ class InboxPreference(Strict):
                 raise ValueError('Informe a última mensagem exibida da conversa.')
         elif self.read_through_id is not None:
             raise ValueError('A ação não utiliza uma mensagem.')
+        if self.action == 'snooze':
+            now = datetime.now(timezone.utc)
+            if self.snoozed_until is None or not now < self.snoozed_until <= now + timedelta(days=2):
+                raise ValueError('Escolha uma data futura em até dois dias.')
+        elif self.snoozed_until is not None:
+            raise ValueError('A ação não utiliza uma data.')
         return self
 
 
@@ -446,7 +460,7 @@ def conversations(request: Request, response: Response):
     with db() as conn:
         if 'synthetic' in origins:
             invalidate_expired(conn, workspace)
-        items = conn.execute("SELECT c.id,c.channel,c.account_ref,c.contact_ref,c.contact_name,c.revision,c.origin,COALESCE(p.read_through_id,0) AS read_through_id,COALESCE(p.marked_unread,false) AS marked_unread\nFROM socialmei.me_conversations c\nLEFT JOIN socialmei.me_inbox_preferences p ON p.workspace_id=c.workspace_id AND p.conversation_id=c.id AND p.user_id=%s\nWHERE c.workspace_id=%s AND c.origin=ANY(%s) AND p.archived_at IS NULL\nAND NOT EXISTS (\n SELECT 1 FROM socialmei.me_inbox_hidden h\n WHERE h.workspace_id=c.workspace_id AND h.conversation_id=c.id AND h.user_id=%s AND h.restored_at IS NULL\n AND NOT EXISTS (SELECT 1 FROM socialmei.me_messages m\n   WHERE m.workspace_id=c.workspace_id AND m.conversation_id=c.id AND m.id>h.last_message_id)\n)\nORDER BY GREATEST(\n (SELECT max(m.occurred_at) FROM socialmei.me_messages m WHERE m.workspace_id=c.workspace_id AND m.conversation_id=c.id),\n (SELECT max(d.finished_at) FROM socialmei.wa_bot_decisions d WHERE d.workspace_id=c.workspace_id AND d.conversation_id=c.id AND d.status='confirmed'),\n (SELECT max(r.finished_at) FROM socialmei.wa_human_replies r WHERE r.workspace_id=c.workspace_id AND r.conversation_id=c.id AND r.status='confirmed'),\n (SELECT max(r.finished_at) FROM socialmei.ig_menu_replies r WHERE r.workspace_id=c.workspace_id AND r.conversation_id=c.id AND r.status='confirmed')\n) DESC NULLS LAST,c.id DESC LIMIT 100", (user['id'], workspace, origins, user['id'])).fetchall()
+        items = conn.execute("SELECT c.id,c.channel,c.account_ref,c.contact_ref,c.contact_name,c.revision,c.origin,COALESCE(p.read_through_id,0) AS read_through_id,COALESCE(p.marked_unread,false) AS marked_unread,COALESCE(p.pinned,false) AS pinned,CASE WHEN p.snoozed_until>now() THEN p.snoozed_until END AS snoozed_until\nFROM socialmei.me_conversations c\nLEFT JOIN socialmei.me_inbox_preferences p ON p.workspace_id=c.workspace_id AND p.conversation_id=c.id AND p.user_id=%s\nWHERE c.workspace_id=%s AND c.origin=ANY(%s) AND p.archived_at IS NULL\nAND NOT EXISTS (\n SELECT 1 FROM socialmei.me_inbox_hidden h\n WHERE h.workspace_id=c.workspace_id AND h.conversation_id=c.id AND h.user_id=%s AND h.restored_at IS NULL\n AND NOT EXISTS (SELECT 1 FROM socialmei.me_messages m\n   WHERE m.workspace_id=c.workspace_id AND m.conversation_id=c.id AND m.id>h.last_message_id)\n)\nORDER BY COALESCE(p.pinned,false) DESC,GREATEST(\n (SELECT max(m.occurred_at) FROM socialmei.me_messages m WHERE m.workspace_id=c.workspace_id AND m.conversation_id=c.id),\n (SELECT max(d.finished_at) FROM socialmei.wa_bot_decisions d WHERE d.workspace_id=c.workspace_id AND d.conversation_id=c.id AND d.status='confirmed'),\n (SELECT max(r.finished_at) FROM socialmei.wa_human_replies r WHERE r.workspace_id=c.workspace_id AND r.conversation_id=c.id AND r.status='confirmed'),\n (SELECT max(r.finished_at) FROM socialmei.ig_menu_replies r WHERE r.workspace_id=c.workspace_id AND r.conversation_id=c.id AND r.status='confirmed')\n) DESC NULLS LAST,c.id DESC LIMIT 100", (user['id'], workspace, origins, user['id'])).fetchall()
         messages_by_conversation = {row['id']: [] for row in items}
         if items:
             rows = conn.execute(
@@ -816,6 +830,18 @@ def update_inbox_preferences(payload: InboxPreference, request: Request, respons
                 "SELECT %s,%s,unnest(%s::bigint[]),true ON CONFLICT(workspace_id,user_id,conversation_id) DO UPDATE SET "
                 "marked_unread=true",
                 (workspace, user_id, ids),
+            )
+        elif payload.action in {'pin', 'unpin'}:
+            conn.execute(
+                "INSERT INTO socialmei.me_inbox_preferences(workspace_id,user_id,conversation_id,pinned) "
+                "SELECT %s,%s,unnest(%s::bigint[]),%s ON CONFLICT(workspace_id,user_id,conversation_id) "
+                "DO UPDATE SET pinned=EXCLUDED.pinned", (workspace, user_id, ids, payload.action == 'pin'),
+            )
+        elif payload.action in {'snooze', 'unsnooze'}:
+            conn.execute(
+                "INSERT INTO socialmei.me_inbox_preferences(workspace_id,user_id,conversation_id,snoozed_until) "
+                "SELECT %s,%s,unnest(%s::bigint[]),%s::timestamptz ON CONFLICT(workspace_id,user_id,conversation_id) "
+                "DO UPDATE SET snoozed_until=EXCLUDED.snoozed_until", (workspace, user_id, ids, payload.snoozed_until),
             )
         else:
             archive = payload.action == 'archive'

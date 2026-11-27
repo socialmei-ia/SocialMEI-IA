@@ -1,6 +1,6 @@
 """Isolated enrichment protocol and real PostgreSQL/session boundaries."""
 import copy
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import os
 import socket
 import time
@@ -162,6 +162,20 @@ class EnrichmentDatabaseTests(unittest.TestCase):
             self.assertEqual(act('unread', [first]).status_code, 200)
             self.assertTrue(items()[first]['unread'])
             self.assertEqual(items()[first]['unread_count'], 0)
+            self.assertEqual(act('pin', [first]).status_code, 200)
+            self.assertTrue(items()[first]['pinned'])
+            self.assertFalse(items()[second]['pinned'])
+            self.assertEqual(act('snooze', [first], snoozed_until='2020-01-01T00:00:00Z').status_code, 422)
+            self.assertEqual(act('snooze', [first], snoozed_until='2030-01-01T00:00:00').status_code, 422)
+            until = datetime.now(timezone.utc) + timedelta(hours=1)
+            self.assertEqual(act('snooze', [first], snoozed_until=until.isoformat()).status_code, 200)
+            self.assertIsNotNone(items()[first]['snoozed_until'])
+            with psycopg.connect(DB) as conn:
+                conn.execute("UPDATE socialmei.me_inbox_preferences SET snoozed_until=now()-interval '1 second' "
+                             "WHERE workspace_id=%s AND conversation_id=%s", (workspace, first))
+            self.assertIsNone(items()[first]['snoozed_until'])
+            self.assertEqual(act('unpin', [first]).status_code, 200)
+            self.assertFalse(items()[first]['pinned'])
             self.assertEqual(act('archive', [first, foreign]).status_code, 404)
             self.assertEqual(set(items()), {first, second})
             self.assertEqual(act('archive', [first, second]).status_code, 200)
