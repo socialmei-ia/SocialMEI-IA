@@ -143,7 +143,7 @@ def linked_client(cur, workspace_id, client_id):
 
 def linked_product(cur, workspace_id, product_id):
     cur.execute(
-        "SELECT id, nome, tipo, estoque FROM socialmei.crm_produtos WHERE workspace_id = %s AND id = %s FOR UPDATE",
+        "SELECT id, nome, tipo, estoque, status FROM socialmei.crm_produtos WHERE workspace_id = %s AND id = %s FOR UPDATE",
         (workspace_id, product_id),
     )
     product = cur.fetchone()
@@ -279,32 +279,38 @@ def create_sale(payload: VendaCreate):
     require_shared_data()
     with connect() as conn, conn.cursor(row_factory=dict_row) as cur:
         workspace_id = ensure_workspace(conn)
-        fingerprint, replay = begin_operation(cur, workspace_id, "criar", None, payload)
-        if replay:
-            return replay
-        client = linked_client(cur, workspace_id, payload.cliente_id)
-        product = linked_product(cur, workspace_id, payload.produto_id)
-        applied = move_stock(
-            cur,
-            workspace_id,
-            None,
-            product,
-            payload.quantidade,
-            payload.status == "Pendente",
-        )
-        values = payload.model_dump(exclude={"operation_id"})
-        values.update(
-            cliente=client["nome"],
-            item=product["nome"],
-            tipo_item=product["tipo"],
-            valor=payload.preco * payload.quantidade - payload.desconto,
-            estoque_aplicado=applied,
-        )
-        cur.execute(
-            f"INSERT INTO socialmei.crm_vendas (workspace_id, {', '.join(values)}) VALUES (%s, {', '.join(['%s'] * len(values))}) RETURNING {SALE_COLUMNS}",
-            [workspace_id, *values.values()],
-        )
-        return finish_operation(cur, workspace_id, payload, fingerprint, cur.fetchone())
+        return create_in_transaction(cur, workspace_id, payload)
+
+
+def create_in_transaction(cur, workspace_id, payload, *, action="criar"):
+    fingerprint, replay = begin_operation(cur, workspace_id, action, None, payload)
+    if replay:
+        return replay
+    client = linked_client(cur, workspace_id, payload.cliente_id)
+    product = linked_product(cur, workspace_id, payload.produto_id)
+    if action == "converter" and product["status"] != "Ativo":
+        raise HTTPException(409, "Escolha um item ativo do cat\u00e1logo.")
+    applied = move_stock(
+        cur,
+        workspace_id,
+        None,
+        product,
+        payload.quantidade,
+        payload.status == "Pendente",
+    )
+    values = payload.model_dump(exclude={"operation_id"})
+    values.update(
+        cliente=client["nome"],
+        item=product["nome"],
+        tipo_item=product["tipo"],
+        valor=payload.preco * payload.quantidade - payload.desconto,
+        estoque_aplicado=applied,
+    )
+    cur.execute(
+        f"INSERT INTO socialmei.crm_vendas (workspace_id, {', '.join(values)}) VALUES (%s, {', '.join(['%s'] * len(values))}) RETURNING {SALE_COLUMNS}",
+        [workspace_id, *values.values()],
+    )
+    return finish_operation(cur, workspace_id, payload, fingerprint, cur.fetchone())
 
 
 @router.patch("/{venda_id}", response_model=VendaOut)

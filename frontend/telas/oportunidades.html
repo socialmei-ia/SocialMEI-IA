@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR" data-theme="dark">
 <head>
-<script src="../scripts/v22-frame.js"></script>
+<script src="../scripts/v22-frame.js?v=opportunity-convert"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>SocialMEI.IA · Oportunidades</title>
@@ -342,9 +342,10 @@ function row(o){var x=!!S.x[o.id],po=o.r==="open",ik=IL[o.i];
  var acts=po?seg(o.i,"int")+'<div class="ro"><span class="mut">Retomar em:</span>'+[[1,"1 dia"],[3,"3 dias"],[7,"1 semana"],[0,"Sem data"]].map(function(p){return '<button class="btn sm" data-act="fu" data-d="'+p[0]+'">'+p[1]+'</button>'}).join("")+'</div><div class="ro"><button class="btn sm" data-act="tc">Registrei contato</button><button class="btn sm" data-act="closef">Encerrar…</button></div>':'<div class="ro"><button class="btn sm" data-act="reopenf">Reabrir…</button></div>';
  return '<article class="r'+(S.nw===o.id?" new":"")+'" data-id="'+o.id+'" data-x="'+x+'"><button class="rh" aria-expanded="'+x+'" aria-controls="x'+o.id+'" data-act="tog"><span class="av" aria-hidden="true">'+esc(ini)+'</span><span class="who"><b>'+esc(o.c)+'</b><small>'+esc(o.w)+'</small></span>'+int+'<span class="val">'+mny(o.v)+'</span>'+nx+'<span class="chev">'+ic("chev")+'</span></button>'
  +(po?'<div class="qa" role="group" aria-label="Ações rápidas de '+esc(nm(o))+'">'+(stale(o)>=7?'<span class="stg" title="Sem atualização desde '+fdt(o.u)+'">Parada há '+stale(o)+' dias</span>':'')+(o.n?'<span class="qn" title="'+esc(o.n)+'">“'+esc(o.n)+'”</span>':'')+'<button type="button" class="btn sm'+(isDue(o)?' pri':'')+'" data-act="tc">Registrei contato</button><button type="button" class="btn sm" data-act="fu" data-d="1">+1 dia</button><button type="button" class="btn sm" data-act="v70ag">Lembrete</button><button type="button" class="btn sm" data-act="v70cli">Cliente</button></div>':'')+'<div class="xp" id="x'+o.id+'"><div><div class="in"><div class="mut">Atualizado em '+fdt(o.u)+(o.reason?" · Motivo: "+esc(o.reason):"")+'</div>'+acts
+ +(V22Frame.remote&&o.saleId?'<p class="mut">Venda vinculada: '+esc(String(o.saleId))+'</p>':po&&V22Frame.canWrite?'<button type="button" class="btn sm pri" data-act="convert">Registrar venda</button>':'')
  +'<div class="ro v70-lk"><button class="btn sm" type="button" data-act="v70cli">Ver cliente</button><button class="btn sm" type="button" data-act="v70conv">Abrir conversa</button><button class="btn sm" type="button" data-act="v70ag">Criar lembrete</button></div>'
  +'<div class="ro"><label class="sr" for="n'+o.id+'">Anotação</label><input class="nt" id="n'+o.id+'" value="'+esc(o.n)+'" placeholder="Anotação de acompanhamento" maxlength="140"><label class="sr" for="v'+o.id+'">Valor</label><input class="vl" id="v'+o.id+'" inputmode="decimal" value="'+(o.v||"")+'" placeholder="Valor R$"><button class="btn sm" data-act="note">Salvar</button></div>'
- +'<div data-box="cf" hidden><div class="ro"><label class="sr" for="r'+o.id+'">Resultado</label><select id="r'+o.id+'"><option value="won">Venda realizada</option><option value="lost">Não avançou</option></select><input id="m'+o.id+'" placeholder="Motivo (obrigatório se não avançou)" maxlength="100"><button class="btn sm pri" data-act="close">Confirmar</button></div><div class="ro">'+["Preço","Sem resposta","Escolheu outro","Adiou"].map(function(w){return '<button class="chip" data-act="why" data-w="'+w+'">'+w+'</button>'}).join("")+'</div></div>'
+ +'<div data-box="cf" hidden><div class="ro"><label class="sr" for="r'+o.id+'">Resultado</label><select id="r'+o.id+'">'+(V22Frame.remote?'':'<option value="won">Venda realizada</option>')+'<option value="lost">Não avançou</option></select><input id="m'+o.id+'" placeholder="Motivo (obrigatório se não avançou)" maxlength="100"><button class="btn sm pri" data-act="close">Confirmar</button></div><div class="ro">'+["Preço","Sem resposta","Escolheu outro","Adiou"].map(function(w){return '<button class="chip" data-act="why" data-w="'+w+'">'+w+'</button>'}).join("")+'</div></div>'
  +'<div class="ro" data-box="rf" hidden><label class="sr" for="j'+o.id+'">Justificativa</label><input id="j'+o.id+'" placeholder="Justificativa para reabrir" maxlength="100"><button class="btn sm pri" data-act="reopen">Reabrir</button></div>'
  +'<ul class="tl" aria-label="Histórico">'+tl+'</ul></div></div></div></article>'}
 function colOf(o){if(!o.f)return"none";var d=off(o.f);return d<0?"late":d>6?"none":String(d)}
@@ -414,6 +415,7 @@ document.addEventListener("click",async function(e){
  if(a==="tog"){if(V22Frame.remote&&!S.x[id]){try{o.h=await V22Frame.history(id)}catch(e){toast(e.message,true);return}}S.x[id]=!S.x[id];cd.dataset.x=S.x[id];b.setAttribute("aria-expanded",S.x[id])}
  else if(a==="closef"||a==="reopenf"){var bx=cd.querySelector('[data-box="'+(a==="closef"?"cf":"rf")+'"]');bx.hidden=!bx.hidden;if(!bx.hidden)bx.querySelector("input").focus()}
  else if(a==="open"){S.f="open";S.q="";$("q").value="";S.x[id]=true;render();var t=document.querySelector('#list [data-id="'+id+'"]');if(t)t.scrollIntoView({behavior:"smooth",block:"center"})}
+ else if(a==="convert"){await convertSale(o)}
  else if(a==="int"){if(v===o.i)return;b.closest(".seg").style.setProperty("--k",IL[v][1]);setTimeout(function(){mut(function(){o.i=v;o.u=now();o.h.push({t:o.u,s:"Interesse alterado para "+IL[v][0]})},"Interesse alterado para "+IL[v][0]+".")},240)}
  else if(a==="fu"){var d=+b.dataset.d;mut(function(){o.f=d?now()+d*DAY:null;o.u=now();o.h.push({t:o.u,s:d?"Retomada agendada para "+new Date(o.f).toLocaleDateString("pt-BR"):"Retomada sem data"})},d?"Retorno marcado para "+rel(now()+d*DAY)+".":"Data de retorno removida.")}
  else if(a==="tc"){mut(function(){o.f=null;o.u=now();o.h.push({t:o.u,s:"Contato registrado"})},"Contato registrado.")}
@@ -421,6 +423,59 @@ document.addEventListener("click",async function(e){
   mut(function(){o.n=n;o.v=nv;o.u=now();o.h.push({t:o.u,s:"Informações atualizadas"+(n?": "+n:"")+(nv?" · valor "+BRL.format(nv):"")})},"Alterações salvas.")}
  else if(a==="close"){var r=$("r"+id).value,m=$("m"+id).value.trim();if(r==="lost"&&!m){toast("Informe o motivo para encerrar como Não avançou.",true);$("m"+id).focus();return}mut(function(){fin(o,r,m)},r==="won"?"Venda registrada. Oportunidade encerrada.":"Oportunidade encerrada.")}
  else if(a==="reopen"){var j=$("j"+id).value.trim();if(!j){toast("Escreva uma justificativa para reabrir.",true);$("j"+id).focus();return}mut(function(){o.r="open";o.u=now();o.h.push({t:o.u,s:"Oportunidade reaberta — "+j})},"Negociação reaberta.")}});
+
+async function convertSale(o) {
+ const host=await V22Frame.parentReady(), identity=host.identity;
+ const same=()=>host.identity?.usuario.id===identity?.usuario.id&&host.identity?.negocio.id===identity?.negocio.id;
+ if(!V22Frame.canWrite||!same()||document.getElementById("sm-convert-sale"))return;
+ const box=document.createElement("dialog");
+ box.id="sm-convert-sale";
+ box.className="card";
+ box.setAttribute("aria-labelledby","sm-convert-title");
+ box.style.cssText="max-width:min(32rem,95vw);max-height:85vh";
+ box.innerHTML='<form method="dialog"><button class="btn sm">Fechar</button></form><h2 id="sm-convert-title">Registrar venda</h2><p data-client></p><p role="status">Consultando cat\u00e1logo...</p><form data-sale hidden><div class="ro"><label>Produto ou servi\u00e7o <select name="item" required><option value="">Selecione</option></select></label></div><div class="ro"><label>Quantidade <input type="number" name="qty" min="1" step="1" value="1" required></label><label>Pre\u00e7o unit\u00e1rio <input type="number" name="price" min="0" step="0.01" required></label></div><div class="ro"><label>Desconto <input type="number" name="discount" min="0" step="0.01" value="0" required></label><label>Data <input type="date" name="date" required></label></div><div class="ro"><label>Condi\u00e7\u00e3o de pagamento <select name="payment"><option>Pix</option><option>Dinheiro</option><option>Cart\u00e3o</option><option>Transfer\u00eancia</option><option>Outro</option></select></label></div><p>Ao confirmar, a venda ficar\u00e1 pendente de pagamento.</p><button type="submit" class="btn pri">Confirmar venda</button></form>';
+ const form=box.querySelector("[data-sale]"), status=box.querySelector("[role=status]"), button=form.querySelector("button");
+ const choice=form.elements.namedItem("item");
+ box.querySelector("[data-client]").textContent=o.c+" \u2014 "+o.w;
+ form.elements.date.value=isoOf(Date.now());
+ box.addEventListener("close",()=>{clearInterval(watch);box.remove()},{once:true});
+ document.body.append(box);
+ box.showModal();
+ const watch=setInterval(()=>{if(!same())box.close()},250);
+ try {
+  const catalog=await host.request("/produtos");
+  if(!box.open||!same())return;
+  for(const item of catalog.filter(item=>item.status==="Ativo")){
+   const option=new Option(item.nome+" ("+item.tipo+")",String(item.id));
+   option.dataset.price=String(item.preco);
+   choice.add(option);
+  }
+  if(choice.options.length===1){status.textContent="Cadastre um produto ou servi\u00e7o ativo para registrar a venda.";return}
+  status.textContent="";
+  form.hidden=false;
+ }catch(error){if(box.open&&same())status.textContent=error.message;return}
+ choice.addEventListener("change",()=>{form.elements.price.value=choice.selectedOptions[0]?.dataset.price||""});
+ form.addEventListener("submit",async event=>{
+  event.preventDefault();
+  if(button.disabled||writing||!same())return;
+  const data=new FormData(form);
+  button.disabled=true;
+  writing=true;
+  try {
+   const items=await V22Frame.convert(o.id,{
+    produto_id:Number(data.get("item")),quantidade:Number(data.get("qty")),preco:data.get("price"),
+    desconto:data.get("discount"),data:data.get("date"),pagamento:data.get("payment"),
+   });
+   if(!same())return;
+   S.items=items;
+   box.close();
+   render();
+   toast("Venda registrada com pagamento pendente.");
+  }catch(error){if(same()&&box.open)status.textContent=error.message}
+  finally{writing=false;button.disabled=false}
+ });
+}
+
 var dg=null;
 function zAt(x,y){var el=document.elementFromPoint(x,y);return el&&el.closest(".bz")}
 $("board").addEventListener("pointerdown",function(e){var t=e.target.closest(".tk");if(!t||e.button)return;dg={t:t,id:t.dataset.id,x:e.clientX,y:e.clientY,on:false}});

@@ -165,7 +165,10 @@ window.SocialMEIV22 = (() => {
       const pending = JSON.parse(raw);
       const { path, method, payload } = JSON.parse(pending.signature);
       if (
-        !/^\/(vendas|financeiro)(\/[1-9]\d*(\/(registrar|pagar|cancelar|excluir))?)?$/.test(path) ||
+        !(
+          /^\/(vendas|financeiro)(\/[1-9]\d*(\/(registrar|pagar|cancelar|excluir))?)?$/.test(path) ||
+          (method === "POST" && /^\/opportunities\/[a-f0-9-]{36}\/convert$/i.test(path))
+        ) ||
         !["POST", "PATCH"].includes(method) ||
         !payload ||
         !/^[a-f0-9-]{36}$/i.test(pending.packet?.operation_id) ||
@@ -201,7 +204,7 @@ window.SocialMEIV22 = (() => {
         if (!pending) return render();
         const identity = identityKey();
         const key = operationKey();
-        const title = pending.path.startsWith("/vendas") ? "Venda" : "Lançamento financeiro";
+        const title = pending.path.startsWith("/financeiro") ? "Lan\u00e7amento financeiro" : "Venda";
         info(
           "Conferir operação pendente",
           "<p>" +
@@ -387,17 +390,71 @@ window.SocialMEIV22 = (() => {
       [
         field("n", "Nome", c?.nome || "", { req: 1 }),
         field("e", "E-mail", c?.email || "", { type: "email" }),
+        field("tel", "Telefone", c?.telefone || "", { type: "tel" }),
+        field("ig", "Instagram", c?.instagram || ""),
         field("o", "Observações", c?.observacao || "", { type: "textarea" }),
       ],
       (v) =>
         write("/clientes" + (c ? "/" + c.id : ""), c ? "PATCH" : "POST", {
           nome: v.n,
           email: v.e,
+          ...(!c || v.tel !== (c.telefone || "") ? { telefone: v.tel || null } : {}),
+          ...(!c || v.ig !== (c.instagram || "") ? { instagram: v.ig || null } : {}),
           observacao: v.o,
           ...(c ? { expected_version: c.versao } : {}),
         }),
     );
   }
+
+  async function clientHistory() {
+    if (!auth.current || dataScope !== identityKey()) return;
+    const customer = data.clients[S.cli];
+    if (!customer) return;
+    const scope = identityKey();
+    info("Histórico do cliente", '<p data-history-status role="status">Consultando histórico…</p>');
+    const original = dlg().querySelector("[data-history-status]");
+    try {
+      const result = await request("/clientes/" + customer.id + "/historico");
+      if (!auth.current || identityKey() !== scope || !dlg().open || !original.isConnected) return;
+      const stamp = (value) => value
+        ? new Date(value.length === 10 ? value + "T12:00:00" : value).toLocaleDateString("pt-BR")
+        : "Sem data";
+      const appointmentState = { pending: "Pendente", confirmed: "Confirmado", completed: "Concluído", cancelled: "Cancelado", no_show: "Ausência" };
+      const opportunityState = { open: "Em andamento", won: "Venda realizada", lost: "Não avançou" };
+      const groups = [
+        ["Conversas vinculadas", result.conversas, (row) => [row.channel === "whatsapp" ? "WhatsApp" : "Instagram", row.contact_name, stamp(row.last_message_at)]],
+        ["Agendamentos", result.agendamentos, (row) => [row.service_name, stamp(row.scheduled_for), appointmentState[row.status] || row.status]],
+        ["Vendas", result.vendas, (row) => [row.item, stamp(row.data), row.status, brl(Number(row.valor))]],
+        ["Oportunidades", result.oportunidades, (row) => [row.title, stamp(row.updated_at), opportunityState[row.outcome] || row.outcome]],
+      ];
+      const content = document.createDocumentFragment();
+      for (const [label, items, line] of groups) {
+        const title = document.createElement("h3");
+        title.textContent = label;
+        content.append(title);
+        const list = document.createElement("ul");
+        for (const row of items) {
+          const item = document.createElement("li");
+          item.textContent = line(row).filter(Boolean).join(" · ");
+          list.append(item);
+        }
+        if (items.length) content.append(list);
+        else {
+          const empty = document.createElement("p");
+          empty.textContent = "Nenhum registro.";
+          content.append(empty);
+        }
+      }
+      original.replaceWith(content);
+    } catch (error) {
+      if (auth.current && identityKey() === scope && original.isConnected)
+        original.textContent = error.message || "Não foi possível consultar.";
+    }
+  }
+  document.addEventListener("click", (event) => {
+    if (event.target.closest?.("[data-customer-history]")) void clientHistory();
+  });
+
   function productForm(edit = false) {
     const p = edit ? data.products[S.prod] : null;
     form(

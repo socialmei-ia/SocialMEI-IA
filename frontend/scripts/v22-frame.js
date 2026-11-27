@@ -82,6 +82,7 @@ window.V22Frame = (() => {
     v: Number(row.estimated_amount),
     h: [{ t: Date.parse(row.updated_at), s: "Registro compartilhado do negócio." }],
     reason: row.outcome_note,
+    saleId: row.sale_id,
   });
   async function history(id) {
     const result = await host.request("/opportunities/" + id + "/history");
@@ -150,8 +151,30 @@ window.V22Frame = (() => {
     rows.set(result.id, result);
     return [...rows.values()].map(project);
   }
+  async function convert(id, sale) {
+    const previous = rows.get(id);
+    if (!previous || previous.outcome !== "open" || previous.sale_id)
+      throw new Error("Atualize a oportunidade antes de registrar a venda.");
+    const result = await host.write(
+      "/opportunities/" + id + "/convert",
+      "POST",
+      {
+        expected_revision: previous.revision,
+        sale,
+      },
+      true,
+    );
+    rows.set(result.id, result);
+    // The receipt is committed even if a subsequent read fails.
+    host.refresh().catch(() => {});
+    return [...rows.values()].map(project);
+  }
   return {
     remote,
+    convert,
+    get canWrite() {
+      return remote && ["owner", "admin", "member"].includes(parentAuth.current?.papel);
+    },
     parentReady,
     load,
     persist,

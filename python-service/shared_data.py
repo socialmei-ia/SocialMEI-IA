@@ -236,6 +236,60 @@ def get_cliente(cliente_id: int):
     return normalize_row(row)
 
 
+@router.get("/clientes/{cliente_id}/historico")
+def customer_history(cliente_id: int, response: Response):
+    require_auth_enabled()
+    require_shared_data()
+    user = principal.get()
+    if not user or user["role"] not in {"owner", "admin", "member", "viewer"}:
+        raise HTTPException(403, "Histórico de clientes indisponível para este acesso.")
+    response.headers["Cache-Control"] = "no-store"
+    workspace = user["workspace_id"]
+    from inbox_customer import enabled_origins
+
+    with connect() as conn, conn.cursor(row_factory=dict_row) as cur:
+        cur.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+        cur.execute("SET LOCAL statement_timeout='4s'")
+        cur.execute(
+            "SELECT id FROM socialmei.crm_clientes WHERE workspace_id=%s AND id=%s",
+            (workspace, cliente_id),
+        )
+        if not cur.fetchone():
+            raise HTTPException(404, "Cliente não encontrado.")
+        origins = enabled_origins(workspace)
+        queries = {
+            "conversas": """
+                SELECT c.id,c.channel,c.contact_name,MAX(m.occurred_at) AS last_message_at
+                FROM socialmei.me_conversations c
+                LEFT JOIN socialmei.me_messages m ON m.workspace_id=c.workspace_id AND m.conversation_id=c.id
+                WHERE c.workspace_id=%s AND c.cliente_id=%s AND c.origin=ANY(%s)
+                GROUP BY c.id,c.channel,c.contact_name
+                ORDER BY last_message_at DESC NULLS LAST,c.id DESC LIMIT 20
+            """,
+            "agendamentos": """
+                SELECT id,service_name,scheduled_for,status
+                FROM socialmei.agenda_appointments WHERE workspace_id=%s AND cliente_id=%s
+                ORDER BY scheduled_for DESC,id DESC LIMIT 20
+            """,
+            "vendas": """
+                SELECT id,item,data,status,valor
+                FROM socialmei.crm_vendas WHERE workspace_id=%s AND cliente_id=%s AND NOT excluida
+                ORDER BY data DESC,id DESC LIMIT 20
+            """,
+            "oportunidades": """
+                SELECT id,title,outcome,updated_at
+                FROM socialmei.crm_opportunities WHERE workspace_id=%s AND client_id=%s
+                ORDER BY updated_at DESC,id DESC LIMIT 20
+            """,
+        }
+        history = {}
+        for key, sql in queries.items():
+            params = (workspace, cliente_id, origins) if key == "conversas" else (workspace, cliente_id)
+            cur.execute(sql, params)
+            history[key] = cur.fetchall()
+        return {"cliente_id": cliente_id, **history}
+
+
 @router.patch("/clientes/{cliente_id}", response_model=ClienteOut)
 def update_cliente(cliente_id: int, payload: ClienteUpdate):
     require_shared_data()

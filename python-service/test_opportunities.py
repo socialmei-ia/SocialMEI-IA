@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from uuid import UUID, uuid4
 from unittest.mock import patch
 
-from opportunities import Create, Edit, Close, Reopen, SaleLink, guard, transition
+from opportunities import Convert, Create, Edit, Close, Reopen, SaleLink, guard, transition
 from fastapi import HTTPException
 import psycopg
 from fastapi.testclient import TestClient
@@ -110,7 +110,7 @@ class DatabaseTests(unittest.TestCase):
 
     def test_customer_deletion_preserves_commercial_history_with_clear_conflict(self):
         row = self.create()
-        mutate('close', Close(operation_id=uuid4(), expected_revision=1, outcome='won', reason='sale_completed'), UUID(row['id']))
+        mutate('close', Close(operation_id=uuid4(), expected_revision=1, outcome='lost', reason='price'), UUID(row['id']))
         from shared_data import delete_cliente
         with patch('shared_data.ensure_workspace', return_value=self.identity['workspace_id']):
             with self.assertRaises(HTTPException) as error:
@@ -169,6 +169,55 @@ class DatabaseTests(unittest.TestCase):
             current_row = record(cursor, wid, UUID(row['id']))
         self.assertTrue(current_row['sale_unavailable'])
         self.assertEqual(current_row['outcome'], 'open')
+
+    def test_conversion_synchronizes_sale_stock_history_and_replay(self):
+        row = self.create()
+        oid = UUID(row['id'])
+        workspace = self.identity['workspace_id']
+        with psycopg.connect(DB) as conn:
+            product = conn.execute(
+                "INSERT INTO socialmei.crm_produtos(workspace_id,nome,tipo,preco,estoque,minimo) VALUES (%s,'Sample','Produto',10,5,0) RETURNING id",
+                (workspace,),
+            ).fetchone()[0]
+        with self.assertRaises(HTTPException) as error:
+            mutate('close', Close(operation_id=uuid4(), expected_revision=1, outcome='won', reason='sale_completed'), oid)
+        self.assertEqual(error.exception.status_code, 409)
+        sale = {'produto_id': product, 'quantidade': 2, 'preco': '10.00', 'desconto': '1.00', 'data': '2026-11-28', 'pagamento': 'Pix'}
+        excessive = Convert(operation_id=uuid4(), expected_revision=1, sale={**sale, 'quantidade': 6})
+        with self.assertRaises(HTTPException) as error:
+            mutate('convert', excessive, oid)
+        self.assertEqual(error.exception.status_code, 409)
+        payload = Convert(operation_id=uuid4(), expected_revision=1, sale=sale)
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results = list(pool.map(lambda _: mutate('convert', payload, oid), range(2)))
+        self.assertEqual(results[0]['sale_id'], results[1]['sale_id'])
+        self.assertEqual((results[0]['outcome'], results[0]['sale_status']), ('won', 'Pendente'))
+        with psycopg.connect(DB) as conn:
+            self.assertEqual(conn.execute('SELECT estoque FROM socialmei.crm_produtos WHERE id=%s', (product,)).fetchone(), (3,))
+            self.assertEqual(conn.execute('SELECT cliente_id,valor,estoque_aplicado FROM socialmei.crm_vendas WHERE workspace_id=%s', (workspace,)).fetchall(), [(self.clients[0], 19, True)])
+            self.assertEqual(conn.execute("SELECT count(*) FROM socialmei.crm_opportunity_events WHERE workspace_id=%s AND action='sale'", (workspace,)).fetchone(), (1,))
+        client = TestClient(app, base_url=ORIGIN)
+        client.cookies.set(COOKIE, 'a' * 64)
+        history = '/api/v1/clientes/' + str(self.clients[0]) + '/historico'
+        with patch('account_auth.session_identity', side_effect=lambda _: self.identity):
+            response = client.get(history)
+            self.assertEqual(response.status_code, 200, response.text)
+            self.assertEqual(response.headers.get('Cache-Control'), 'no-store')
+            result = response.json()
+            self.assertEqual(result['vendas'][0]['id'], results[0]['sale_id'])
+            self.assertEqual(result['oportunidades'][0]['id'], row['id'])
+            self.assertEqual(result['agendamentos'], [])
+            self.assertEqual(result['conversas'], [])
+            self.identity = {**self.users[0], 'role': 'report_viewer'}
+            self.assertEqual(client.get(history).status_code, 403)
+            self.identity = self.users[1]
+            self.assertEqual(client.get(history).status_code, 404)
+        self.identity = self.users[0]
+        other = self.create()
+        self.identity = self.users[1]
+        with self.assertRaises(HTTPException) as error:
+            mutate('convert', payload.model_copy(update={'operation_id': uuid4()}), UUID(other['id']))
+        self.assertEqual(error.exception.status_code, 404)
 
 
 if __name__ == '__main__':

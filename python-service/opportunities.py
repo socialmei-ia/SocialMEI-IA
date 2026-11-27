@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Literal, Annotated
 from datetime import date as CalendarDate
 from decimal import Decimal
-from sales_data import Money
+from sales_data import Money, VendaCreate, VendaFields, create_in_transaction
 from uuid import UUID, uuid4
 
 import psycopg
@@ -144,6 +144,14 @@ class SaleLink(Revision):
     sale_id: StrictInt = Field(ge=1, le=MAX_ID)
 
 
+class ConversionSale(VendaFields):
+    cliente_id: None = None
+
+
+class Convert(Revision):
+    sale: ConversionSale
+
+
 def guard(write=False):
     require_enabled()
     require_shared_data()
@@ -154,7 +162,7 @@ def guard(write=False):
 
 
 def transition(outcome, action):
-    if (action in {'edit', 'close'} and outcome != 'open') or (action == 'reopen' and outcome == 'open'):
+    if (action in {'edit', 'close', 'convert'} and outcome != 'open') or (action == 'reopen' and outcome == 'open'):
         raise HTTPException(409, 'O resultado mudou. Atualize a oportunidade antes de continuar.')
 
 
@@ -217,9 +225,24 @@ def mutate(action, payload, oid=None):
                 legacy=payload.legacy
                 fields={'estimated_amount':legacy.amount,'follow_up_date':CalendarDate.fromisoformat(legacy.date) if legacy.date else None,'planning_note':legacy.note,'contacted':legacy.contacted,'planning_initialized':True,'legacy_planning':Jsonb(legacy.model_dump(mode='json'))}
             elif action == 'close':
+                if payload.outcome == 'won' and (not before['sale_id'] or before['sale_unavailable']):
+                    raise HTTPException(409, 'Registre ou vincule uma venda ativa antes de fechar como realizada.')
                 fields = {'outcome': payload.outcome, 'outcome_reason': payload.reason, 'outcome_note': payload.note, 'closed_at': datetime.now(timezone.utc)}
             elif action == 'reopen':
                 fields = {'outcome': 'open', 'outcome_reason': '', 'outcome_note': '', 'closed_at': None}
+            elif action == 'convert':
+                if before['sale_id'] is not None:
+                    raise HTTPException(409, 'Esta oportunidade j\u00e1 tem uma venda vinculada.')
+                sale_data = payload.sale.model_dump(exclude={'cliente_id'})
+                sale = create_in_transaction(
+                    cur, workspace,
+                    VendaCreate(**sale_data, cliente_id=before['client_id'], operation_id=payload.operation_id),
+                    action='converter',
+                )
+                fields = {
+                    'sale_id': sale['id'], 'outcome': 'won', 'outcome_reason': 'sale_completed',
+                    'outcome_note': '', 'closed_at': datetime.now(timezone.utc),
+                }
             elif action == 'sale':
                 cur.execute('SELECT cliente_id,status,excluida FROM socialmei.crm_vendas WHERE workspace_id=%s AND id=%s FOR SHARE', (workspace, payload.sale_id))
                 sale = cur.fetchone()
@@ -230,7 +253,7 @@ def mutate(action, payload, oid=None):
             assignments = ','.join(key + '=%s' for key in fields)
             cur.execute(f'UPDATE socialmei.crm_opportunities SET {assignments},revision=revision+1,updated_at=now() WHERE workspace_id=%s AND id=%s', (*fields.values(), workspace, oid))
         result = record(cur, workspace, oid)
-        cur.execute('INSERT INTO socialmei.crm_opportunity_events(workspace_id,opportunity_id,actor_id,action,reason,previous,current) VALUES (%s,%s,%s,%s,%s,%s,%s)', (workspace, oid, user['id'], 'edit' if action=='import_planning' else action, 'planning_import' if action=='import_planning' else getattr(payload, 'reason', ''), Jsonb(before), Jsonb(result)))
+        cur.execute('INSERT INTO socialmei.crm_opportunity_events(workspace_id,opportunity_id,actor_id,action,reason,previous,current) VALUES (%s,%s,%s,%s,%s,%s,%s)', (workspace, oid, user['id'], {'import_planning':'edit','convert':'sale'}.get(action,action), {'import_planning':'planning_import','convert':'opportunity_conversion'}.get(action,getattr(payload,'reason','')), Jsonb(before), Jsonb(result)))
         cur.execute('INSERT INTO socialmei.crm_opportunity_operations(workspace_id,operation_id,fingerprint,response) VALUES (%s,%s,%s,%s)', (workspace, payload.operation_id, fingerprint, Jsonb(result)))
         return result
 
@@ -252,6 +275,11 @@ def create_opportunity(payload: Create):
 @router.patch('/{oid}')
 def edit_opportunity(oid: UUID, payload: Edit):
     return mutate('edit', payload, oid)
+
+
+@router.post('/{oid}/convert', status_code=201)
+def convert_opportunity(oid: UUID, payload: Convert):
+    return mutate('convert', payload, oid)
 
 
 @router.post('/{oid}/close')
