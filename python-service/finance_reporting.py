@@ -1,12 +1,16 @@
 """Recorded paid flows, kept separate from sales revenue and bank balances."""
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
+from uuid import UUID
 
 import psycopg
 from fastapi import APIRouter, HTTPException, Query
 from psycopg.rows import dict_row
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from account_auth import current as current_account
 from database import connect
+from sales_data import Money
 from workspace_reporting import scope, sales_period, _money
 import settings
 
@@ -47,12 +51,20 @@ def finance(start: date | None = Query(None), end: date | None = Query(None)):
             current = paid(conn, workspace, start, end)
             previous = paid(conn, workspace, prior_start, prior_end)
             pending = conn.execute(
-                "SELECT count(*) FILTER(WHERE status='aberto') AS count,"
-                "COALESCE(sum(valor) FILTER(WHERE status='aberto' AND tipo='receita'),0) AS incoming,"
-                "COALESCE(sum(valor) FILTER(WHERE status='aberto' AND tipo='despesa'),0) AS outgoing,"
+                "SELECT count(*) FILTER(WHERE status IN ('aberto','atrasado')) AS count,"
+                "COALESCE(sum(valor) FILTER(WHERE status IN ('aberto','atrasado') AND tipo='receita'),0) AS incoming,"
+                "COALESCE(sum(valor) FILTER(WHERE status IN ('aberto','atrasado') AND tipo='despesa'),0) AS outgoing,"
                 "count(*) FILTER(WHERE status='pago' AND data_pagamento IS NULL) AS undated_paid_count "
                 "FROM socialmei.crm_financeiro WHERE workspace_id=%s AND NOT excluida "
                 "AND vencimento BETWEEN %s AND %s", (workspace, start, end),
+            ).fetchone()
+            overdue = conn.execute(
+                "SELECT count(*) AS count,"
+                "COALESCE(sum(valor) FILTER(WHERE tipo='receita'),0) AS incoming,"
+                "COALESCE(sum(valor) FILTER(WHERE tipo='despesa'),0) AS outgoing "
+                "FROM socialmei.crm_financeiro WHERE workspace_id=%s AND NOT excluida "
+                "AND status IN ('aberto','atrasado') AND vencimento<%s",
+                (workspace, today),
             ).fetchone()
             daily = {r["day"]: r for r in conn.execute(
                 "SELECT data_pagamento AS day,"
@@ -78,6 +90,141 @@ def finance(start: date | None = Query(None), end: date | None = Query(None)):
             "balance_change": _money(Decimal(current["balance"]) - Decimal(previous["balance"])),
             "pending": {"count": pending["count"], "incoming": _money(pending["incoming"]),
                         "outgoing": _money(pending["outgoing"])},
+            "overdue": {"count": overdue["count"], "incoming": _money(overdue["incoming"]),
+                        "outgoing": _money(overdue["outgoing"]), "as_of": today.isoformat()},
             "undated_paid_count": pending["undated_paid_count"], "daily": series,
             "description": "Entradas e saídas registradas como pagas, pela data de pagamento. O saldo do período não representa lucro nem saldo bancário. Vendas não são somadas novamente.",
             "pending_description": "Pendências abertas por vencimento no período. Lançamentos pagos sem data de pagamento ficam fora do saldo e são sinalizados quando vencem neste intervalo."}
+
+
+MEI_2026_SOURCE = "https://www8.receita.fazenda.gov.br/SimplesNacional/Arquivos/manual/MANUAL_DESENQUADRAMENTO_SIMEI.pdf"
+MEI_LIMIT_UPDATE = "https://legis.senado.leg.br/norma/44276013/publicacao/44280206"
+
+
+class MeiTracking(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    operation_id: UUID
+    expected_revision: int = Field(ge=0, le=2_147_483_646, strict=True)
+    opened_on: date
+    prior_through: date | None = None
+    prior_amount: Money | None = None
+    source_note: str = Field(default="", max_length=300)
+
+    @model_validator(mode="after")
+    def valid_period(self):
+        if self.prior_through is None:
+            if self.prior_amount is not None or self.source_note:
+                raise ValueError("Informe a data final do período anterior.")
+        elif self.prior_amount is None or not self.source_note or self.prior_through < self.opened_on:
+            raise ValueError("Confira o valor, a data e a referência do faturamento anterior.")
+        if "\x00" in self.source_note or any(0xD800 <= ord(ch) <= 0xDFFF for ch in self.source_note):
+            raise ValueError("Referência inválida.")
+        return self
+
+
+def tracking_actor(write=False):
+    workspace = scope()
+    user = current_account()
+    roles = {"owner", "admin"} if write else {"owner", "admin", "member", "viewer"}
+    if user["role"] not in roles:
+        raise HTTPException(403, "Acompanhamento do MEI indisponível para este acesso.")
+    return workspace, user["id"]
+
+
+def mei_limit(year, opened_on):
+    # Later increases depend on the annual budgets under LC 238/2026 art. 3.
+    if not 2018 <= year <= 2026 or opened_on.year > year:
+        return None
+    if opened_on.year == year:
+        return (13 - opened_on.month) * Decimal("6750.00")
+    return Decimal("81000.00")
+
+
+def tracking_row(conn, workspace):
+    return conn.execute(
+        "SELECT * FROM socialmei.mei_tracking_revisions WHERE workspace_id=%s ORDER BY revision DESC LIMIT 1",
+        (workspace,),
+    ).fetchone()
+
+
+@router.get("/mei")
+def mei_tracking():
+    workspace, _ = tracking_actor()
+    try:
+        today = datetime.now(settings.business_timezone()).date()
+        start = today.replace(month=1, day=1)
+        with connect() as conn:
+            conn.row_factory = dict_row
+            conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+            conn.execute("SET LOCAL statement_timeout='3s'")
+            profile = tracking_row(conn, workspace)
+            boundary = profile["prior_through"] if profile else None
+            has_prior = boundary is not None and start <= boundary < today
+            recorded_from = max(start, profile["opened_on"]) if profile else start
+            if has_prior:
+                recorded_from = max(recorded_from, boundary + timedelta(days=1))
+            sales = conn.execute(
+                "SELECT COALESCE(sum(valor),0) AS annual,"
+                "COALESCE(sum(valor) FILTER(WHERE data >= %s),0) AS counted "
+                "FROM socialmei.crm_vendas WHERE workspace_id=%s AND NOT excluida "
+                "AND status IN ('Pago','Pendente') AND data BETWEEN %s AND %s",
+                (recorded_from, workspace, start, today),
+            ).fetchone()
+    except (psycopg.Error, ValueError):
+        raise HTTPException(503, "Acompanhamento do MEI indisponível.") from None
+    prior = profile["prior_amount"] if has_prior else Decimal(0)
+    estimated = sales["counted"] + prior
+    limit = mei_limit(today.year, profile["opened_on"]) if profile else None
+    usage = estimated / limit if limit is not None else None
+    level = None
+    if usage is not None:
+        level = "exceeded" if usage > 1 else "near" if usage >= Decimal("0.8") else "below"
+    return {
+        "workspace_id": workspace, "year": today.year, "as_of": today,
+        "revision": profile["revision"] if profile else 0,
+        "opened_on": profile["opened_on"] if profile else None,
+        "prior_through": boundary if has_prior else None, "prior_amount": _money(prior),
+        "source_note": profile["source_note"] if has_prior else "",
+        "system_sales": _money(sales["annual"]), "system_sales_used": _money(sales["counted"]),
+        "system_from": recorded_from, "estimate": _money(estimated),
+        "limit": _money(limit) if limit is not None else None, "level": level,
+        "limit_source": MEI_2026_SOURCE if today.year <= 2026 else MEI_LIMIT_UPDATE,
+    }
+
+
+@router.post("/mei")
+def save_mei_tracking(payload: MeiTracking):
+    workspace, actor = tracking_actor(write=True)
+    try:
+        today = datetime.now(settings.business_timezone()).date()
+        with connect() as conn:
+            conn.row_factory = dict_row
+            conn.execute("SET LOCAL lock_timeout='3s'")
+            conn.execute("SELECT id FROM socialmei.workspaces WHERE id=%s FOR UPDATE", (workspace,))
+            fields = ("opened_on", "prior_through", "prior_amount", "source_note")
+            values = tuple(getattr(payload, name) for name in fields)
+            prior = conn.execute(
+                "SELECT * FROM socialmei.mei_tracking_revisions WHERE workspace_id=%s AND operation_id=%s",
+                (workspace, payload.operation_id),
+            ).fetchone()
+            if prior:
+                if (tuple(prior[name] for name in fields) != values or prior["actor_id"] != actor
+                        or prior["revision"] != payload.expected_revision + 1):
+                    raise HTTPException(409, "Identificador usado com outros dados.")
+                return {"revision": prior["revision"]}
+            if payload.opened_on > today or (payload.prior_through is not None and not
+                                            today.replace(month=1, day=1) <= payload.prior_through < today):
+                raise HTTPException(422, "Use uma abertura já ocorrida e um período anterior completo deste ano.")
+            profile = tracking_row(conn, workspace)
+            revision = profile["revision"] if profile else 0
+            if payload.expected_revision != revision:
+                raise HTTPException(409, "O acompanhamento mudou. Reabra antes de salvar.")
+            conn.execute(
+                "INSERT INTO socialmei.mei_tracking_revisions "
+                "(workspace_id,revision,operation_id,actor_id,opened_on,prior_through,prior_amount,source_note) "
+                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",
+                (workspace, revision + 1, payload.operation_id, actor, *values),
+            )
+            return {"revision": revision + 1}
+    except (psycopg.Error, ValueError):
+        raise HTTPException(503, "Não foi possível salvar o acompanhamento do MEI.") from None

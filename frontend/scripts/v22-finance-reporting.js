@@ -15,8 +15,208 @@
     const [integer, fraction] = value.split(".");
     return "R$ " + integer.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "," + fraction;
   };
+
+  function downloadReport(data) {
+    const amounts = (row) => [row.incoming, row.outgoing, row.balance ?? ""];
+    const rows = [
+      ["Escopo", "In\u00edcio", "Fim", "Entradas", "Sa\u00eddas", "Saldo"],
+      ["Pago", data.period.start, data.period.end, ...amounts(data.paid)],
+      [
+        "Pago no per\u00edodo anterior",
+        data.previous.start,
+        data.previous.end,
+        ...amounts(data.previous),
+      ],
+      ["Em aberto por vencimento", data.period.start, data.period.end, ...amounts(data.pending)],
+      ...(data.overdue
+        ? [["Em atraso at\u00e9 a consulta", "", data.overdue.as_of, ...amounts(data.overdue)]]
+        : []),
+      ...data.daily.map((row) => ["Caixa por dia", row.date, row.date, ...amounts(row)]),
+    ];
+    const csv = rows
+      .map((row) => row.map((value) => '"' + String(value).replaceAll('"', '""') + '"').join(";"))
+      .join("\r\n");
+    const url = URL.createObjectURL(new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" }));
+    const link = el("a");
+    link.href = url;
+    link.download = "financeiro-" + data.period.start + "-" + data.period.end + ".csv";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function printReport(content, period, business) {
+    const popup = window.open("about:blank", "_blank");
+    if (!popup) throw Error("Permita abrir a janela de impress\u00e3o e tente novamente.");
+    popup.opener = null;
+    popup.document.title = "Financeiro registrado";
+    const style = popup.document.createElement("style");
+    style.textContent =
+      "body{font-family:system-ui,sans-serif;margin:24px}th,td{padding:4px;text-align:left}thead{display:table-header-group}tr{break-inside:avoid}";
+    popup.document.head.append(style);
+    popup.document.body.append(
+      popup.document.importNode(el("h1", "Financeiro registrado"), true),
+      popup.document.importNode(
+        el("p", business + " | " + period.start + " a " + period.end),
+        true,
+      ),
+      popup.document.importNode(content, true),
+    );
+    popup.print();
+  }
+
+  function mountMei(view) {
+    if (
+      !/^#\/negocio(?:\/resumo)?\/?$/.test(location.hash) ||
+      view.querySelector("[data-mei-tracking]")
+    )
+      return;
+    const owner = scope();
+    const section = el("section");
+    section.className = "pg";
+    section.dataset.meiTracking = "";
+    const message = el("p", "Consultando faturamento registrado…");
+    message.setAttribute("role", "status");
+    section.append(el("h2", "Acompanhamento do MEI"), message);
+    view.append(section);
+    const same = () => section.isConnected && owner === scope();
+    const canEdit = () => ["owner", "admin"].includes(auth.current?.papel);
+    async function load() {
+      try {
+        const report = await host.request("/reporting/mei");
+        if (!same() || report.workspace_id !== auth.current.negocio.id) return;
+        message.textContent =
+          "Ano-calendário " + report.year + " · vendas registradas: " + money(report.system_sales);
+        const summary = el("div");
+        summary.dataset.meiSummary = "";
+        if (report.opened_on) {
+          summary.append(el("p", "Estimativa para acompanhamento: " + money(report.estimate)));
+          if (report.prior_through)
+            summary.append(
+              el(
+                "p",
+                money(report.prior_amount) +
+                  " informado até " +
+                  report.prior_through +
+                  " · " +
+                  money(report.system_sales_used) +
+                  " em vendas a partir de " +
+                  report.system_from,
+              ),
+            );
+          if (report.limit) {
+            const status = {
+              near: " · atenção a partir de 80%",
+              exceeded: " · acima do limite de referência",
+            };
+            summary.append(
+              el(
+                "p",
+                "Limite de referência do MEI geral: " +
+                  money(report.limit) +
+                  (status[report.level] || ""),
+              ),
+            );
+          } else summary.append(el("p", "Limite de referência ainda indisponível para este ano."));
+          const source = el("a", "Consultar a fonte oficial do limite");
+          source.href = report.limit_source;
+          source.target = "_blank";
+          source.rel = "noopener noreferrer";
+          summary.append(source);
+        } else
+          summary.append(
+            el("p", "Informe a abertura se o negócio estiver enquadrado como MEI geral."),
+          );
+        summary.append(
+          el(
+            "p",
+            "O valor usa vendas registradas e os valores anteriores informados. Consulte a documentação fiscal para o faturamento completo.",
+          ),
+        );
+        const das = el("a", "Consultar guias e situação do DAS no Simples Nacional");
+        das.href =
+          "https://www8.receita.fazenda.gov.br/SimplesNacional/Aplicacoes/ATSPO/pgmei.app/Identificacao";
+        das.target = "_blank";
+        das.rel = "noopener noreferrer";
+        summary.append(das);
+        if (canEdit()) summary.append(editor(report));
+        section.querySelector("[data-mei-summary]")?.remove();
+        section.append(summary);
+      } catch (error) {
+        if (same()) message.textContent = error.message || "Acompanhamento do MEI indisponível.";
+      }
+    }
+    function editor(report) {
+      const panel = el("details");
+      panel.append(el("summary", "Configurar acompanhamento do MEI geral"));
+      const form = el("form");
+      form.className = "row wr";
+      panel.append(
+        el(
+          "p",
+          "Se informar faturamento anterior, some todas as vendas da abertura ou do começo do ano até a data final. As vendas desse intervalo ficam fora da soma automática.",
+        ),
+        form,
+      );
+      const input = (label, type, value) => {
+        const wrap = el("label", label);
+        const field = el("input");
+        field.className = "in";
+        field.type = type;
+        field.value = value ?? "";
+        wrap.append(field);
+        form.append(wrap);
+        return field;
+      };
+      const opening = input("Data de abertura no CNPJ", "date", report.opened_on);
+      opening.required = true;
+      const until = input("Faturamento anterior até (opcional)", "date", report.prior_through);
+      const amount = input(
+        "Valor anterior (R$)",
+        "number",
+        report.prior_through ? report.prior_amount : "",
+      );
+      amount.min = "0";
+      amount.step = "0.01";
+      const source = input("Referência do valor anterior", "text", report.source_note);
+      source.maxLength = 300;
+      const button = el("button", "Salvar acompanhamento");
+      button.className = "btn o";
+      button.type = "submit";
+      form.append(button);
+      let attempt;
+      form.onsubmit = async (event) => {
+        event.preventDefault();
+        if (!same() || !canEdit() || button.disabled) return;
+        const data = {
+          opened_on: opening.value,
+          prior_through: until.value || null,
+          prior_amount: amount.value || null,
+          source_note: source.value,
+          expected_revision: report.revision,
+        };
+        const signature = JSON.stringify(data);
+        if (!attempt || attempt.signature !== signature)
+          attempt = { signature, id: crypto.randomUUID() };
+        button.disabled = true;
+        try {
+          await host.request("/reporting/mei", "POST", { ...data, operation_id: attempt.id });
+          if (same()) await load();
+        } catch (error) {
+          if (same())
+            message.textContent = error.message || "Não foi possível salvar o acompanhamento.";
+          if (same() && error.status === 409) await load();
+        } finally {
+          button.disabled = false;
+        }
+      };
+      return panel;
+    }
+    load();
+  }
+
   function mount() {
     const view = document.getElementById("v");
+    if (view && scope()) mountMei(view);
     if (
       !view ||
       !scope() ||
@@ -72,6 +272,7 @@
       });
       message.textContent = "Consultando lançamentos persistidos…";
       content.replaceChildren();
+      section.querySelector("[data-finance-export]")?.remove();
       try {
         const query = custom
           ? "?" + new URLSearchParams({ start: dates[0].value, end: dates[1].value })
@@ -105,6 +306,14 @@
           list,
           el("p", "Comparação: " + data.previous.start + " a " + data.previous.end),
         );
+        if (data.overdue) {
+          const aging = el("ul");
+          aging.append(
+            el("li", "Recebimentos em atraso: " + money(data.overdue.incoming)),
+            el("li", "Pagamentos em atraso: " + money(data.overdue.outgoing)),
+          );
+          content.append(el("h3", "Contas vencidas at\u00e9 " + data.overdue.as_of), aging);
+        }
         if (data.undated_paid_count)
           content.append(
             el(
@@ -139,6 +348,30 @@
           content.append(table);
         }
         content.append(el("p", data.description), el("p", data.pending_description));
+        const exports = el("div");
+        exports.className = "row wr";
+        for (const [label, execute] of [
+          ["Exportar financeiro em CSV", () => downloadReport(data)],
+          [
+            "Imprimir ou salvar financeiro em PDF",
+            () => printReport(content, data.period, auth.current.negocio.nome),
+          ],
+        ]) {
+          const button = el("button", label);
+          button.type = "button";
+          button.className = "btn o";
+          button.onclick = () => {
+            if (!alive(id)) return;
+            try {
+              execute();
+            } catch (error) {
+              message.textContent = error.message;
+            }
+          };
+          exports.append(button);
+        }
+        content.after(exports);
+        exports.dataset.financeExport = "";
         message.textContent = "Financeiro consultado · fuso: " + data.period.timezone;
       } catch (error) {
         if (alive(id)) {
