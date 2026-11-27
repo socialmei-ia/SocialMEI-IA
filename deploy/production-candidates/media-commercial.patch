@@ -1,0 +1,57 @@
+--- a/app/provider_sentiment.py
++++ b/app/provider_sentiment.py
+@@ -6,6 +6,7 @@
+ import hashlib
+ import hmac
+ import json
++import os
+ import uuid
+ from contextlib import contextmanager
+ 
+@@ -17,6 +18,7 @@
+ 
+ import settings
+ from database import connect
++from whatsapp_media_intent import COMMERCIAL_DECISION, COMMERCIAL_HINTS
+ 
+ router = APIRouter(prefix="/internal/message-enrichment/provider", tags=["private provider analysis"])
+ MAX_BATCH = 2
+@@ -84,20 +86,25 @@
+ def claim_messages(request: Request, response: Response):
+     """Lease at most 10 verified provider messages; never include synthetic data."""
+     authorize(request, response)
++    media_enabled = os.getenv("SOCIALMEI_WHATSAPP_MEDIA_COMMERCIAL_ENABLED") == "YES"
++    media_join = f"LEFT JOIN LATERAL ({COMMERCIAL_DECISION}) media ON true" if media_enabled else ""
++    media_column = ",media.media_intent" if media_enabled else ""
++    allow_interpreted_media = "OR media.media_intent IS NOT NULL" if media_enabled else ""
+     with database() as conn:
+         conn.execute("SET LOCAL lock_timeout='2s'")
+         messages = conn.execute(
+-            """
+-            SELECT m.workspace_id,m.id,m.origin,m.text
++            f"""
++            SELECT m.workspace_id,m.id,m.origin,m.text{media_column}
+             FROM socialmei.me_messages AS m
++            {media_join}
+             LEFT JOIN socialmei.me_provider_sentiment_jobs AS j
+               ON j.workspace_id=m.workspace_id AND j.message_id=m.id
+             WHERE m.origin IN ('instagram','waha')
+-              AND NOT EXISTS (
++              AND (NOT EXISTS (
+                   SELECT 1 FROM socialmei.crm_eventos_canal e
+                   WHERE e.workspace_id=m.workspace_id
+                     AND e.inbox_message_id=m.id AND e.tipo='media'
+-              )
++              ) {allow_interpreted_media})
+               AND m.workspace_id = ANY(%s)
+               AND m.occurred_at >= NOW()-INTERVAL '7 days'
+               AND (
+@@ -156,7 +163,7 @@
+                     "claim_id": str(row["claim_id"]),
+                     "message_id": message["id"],
+                     "origin": message["origin"],
+-                    "text": message["text"],
++                    "text": COMMERCIAL_HINTS[message["media_intent"]] if message.get("media_intent") else message["text"],
+                     "attempt": row["attempt"],
+                 })
+         return {"items": tasks, "schema_version": 1, "send_enabled": False}

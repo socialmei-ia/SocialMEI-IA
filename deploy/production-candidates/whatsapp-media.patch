@@ -51,7 +51,7 @@
  import whatsapp_catalog_navigation as navigation
  import re
  import hashlib
-@@ -488,6 +489,43 @@
+@@ -488,6 +489,42 @@
  
  
  
@@ -68,17 +68,16 @@
 +        # A media interpretation can open the service picker. Later selections are explicit.
 +        try:
 +            with conn.transaction():
-+                next_state, result = flow.advance(
-+                    conn, channel, message, {'route': 'booking', 'step': 'services'}, native)
++                next_state, result = flow.start_from_media(conn, channel, message, native)
 +        except HTTPException as error:
 +            if error.status_code not in {409, 422, 503}:
 +                raise
 +        else:
-+            return next_state, {**result, 'derived_from_media': True}
++            return next_state, {**result, 'derived_from_media': True, 'media_intent': requested}
 +    elif requested in {'products', 'services', 'quote'}:
 +        command = {'products': '2', 'services': '3', 'quote': '4'}[requested]
 +        next_state, result = _catalog_answer(conn, workspace, state['state'], command, None, native)
-+        return next_state, {**result, 'derived_from_media': True}
++        return next_state, {**result, 'derived_from_media': True, 'media_intent': requested}
 +
 +    if requested is None:
 +        return state['state'], skip
@@ -95,7 +94,7 @@
  def _everson_original_prepare(payload: Source, request: Request):
      require_bot()
      with operation_database() as conn:
-@@ -495,13 +533,16 @@
+@@ -495,13 +532,16 @@
          if payload.instance != channel['instancia']:
              raise HTTPException(401, 'Credencial de atendimento inválida.')
          workspace, cid = channel['workspace_id'], channel['channel_id']
@@ -115,7 +114,7 @@
          ).fetchone()
          if not message:
              raise HTTPException(404, 'Mensagem recebida não encontrada neste canal.')
-@@ -522,7 +563,8 @@
+@@ -522,7 +562,8 @@
          nav_enabled = native_list_canary(channel, message['contact_ref'])
          metadata = message.get('ingress_data') or {}
          token = metadata.get('wa_selection')
@@ -125,7 +124,7 @@
              message['catalog_target'] = navigation.resolve(conn, channel, conv, token)
              if message['catalog_target'].get('route') == 'resume' and not pending_human_reply(conn, workspace, cid, conv, message['id']):
                  message['text'] = '0'
-@@ -541,6 +583,21 @@
+@@ -541,6 +582,21 @@
              if recent >= 20 and state['state'] != 'human' and str(message['text'] or '').strip().casefold() not in HUMAN_CHOICES:
                  next_state = state['state']
                  result = {'action': 'rate_limited', 'text': '', 'choices': [], 'items': [], 'handoff': False}
@@ -147,7 +146,7 @@
              else:
                  # Nao repetir boas-vindas para varias mensagens livres seguidas.
                  # Escolhas explicitas e pedidos de humano continuam imediatos.
-@@ -582,7 +639,7 @@
+@@ -582,7 +638,7 @@
          grouped=[]
          last_message=message
  
@@ -156,16 +155,26 @@
              try:
                  with conn.transaction():
                      group=_sm_batch_try_group(
-@@ -1116,6 +1173,8 @@
+@@ -1116,6 +1172,18 @@
                               (channel['workspace_id'], channel['channel_id'], row['conversation_id'])).fetchone()
          permitted = row['status'] == 'planned' and row['created_at'] > datetime.now(timezone.utc) - timedelta(minutes=2) and row['state_revision'] == state['revision']
          permitted = permitted and _public_direct(state["contact_ref"])
-+        if row['result'].get('derived_from_media'):
-+            permitted = permitted and media.activation(channel) is not None
++        if permitted and row['result'].get('derived_from_media'):
++            start = media.activation(channel)
++            permitted = start is not None and conn.execute(
++                "SELECT 1 FROM socialmei.crm_eventos_canal e "
++                "JOIN socialmei.me_messages m ON m.workspace_id=e.workspace_id AND m.id=e.inbox_message_id AND m.origin='waha' "
++                "JOIN socialmei.me_conversations v ON v.workspace_id=m.workspace_id AND v.id=m.conversation_id "
++                "WHERE e.workspace_id=%s AND e.canal_id=%s AND e.inbox_message_id=%s "
++                "AND e.tipo='media' AND e.status='processado' AND e.waha_account_snapshot=%s "
++                f"AND v.account_ref=%s AND {media.MEDIA_SOURCE}",
++                (channel['workspace_id'], channel['channel_id'], row['source_message_id'],
++                 channel['identificador_conta'], 'waha:' + channel['identificador_conta'], start, start),
++            ).fetchone() is not None
          contacts = _public_contacts(channel)
          permitted = permitted and (contacts is None or state['contact_ref'] in contacts)
          permitted = permitted and not pending_human_reply(
-@@ -2397,6 +2456,8 @@
+@@ -2397,6 +2465,8 @@
  _sm_dialog_original_generate=_everson_generate
  
  def _everson_generate(planned,request):
@@ -174,3 +183,51 @@
      if planned.get('status')=='planned' and str(planned.get('action','')).startswith('booking_'):
          try:
              scope=_sm_booking_presence_scope(planned,request)
+--- a/app/channel_booking.py
++++ b/app/channel_booking.py
+@@ -234,10 +234,14 @@
+ def services_for_message(workspace_id, conversation_id, source_message_id, origin, *, connection=None):
+     with transaction(connection) as conn:
+         context_for_message(conn, workspace_id, conversation_id, source_message_id, origin)
+-        active_policy(conn, workspace_id)
+-        rows = conn.execute("SELECT id,nome,preco,duracao_minutos FROM socialmei.crm_produtos "
+-            "WHERE workspace_id=%s AND tipo='Serviço' AND status='Ativo' AND duracao_minutos IS NOT NULL "
+-            "ORDER BY nome,id LIMIT 101", (workspace_id,)).fetchall()
++        return available_service_options(conn, workspace_id)
++
++
++def available_service_options(conn, workspace_id):
++    active_policy(conn, workspace_id)
++    rows = conn.execute("SELECT id,nome,preco,duracao_minutos FROM socialmei.crm_produtos "
++        "WHERE workspace_id=%s AND tipo='Serviço' AND status='Ativo' AND duracao_minutos IS NOT NULL "
++        "ORDER BY nome,id LIMIT 101", (workspace_id,)).fetchall()
+     return {'items': [{**row, 'preco': str(row['preco'])} for row in rows[:100]], 'truncated': len(rows)>100}
+ 
+ 
+--- a/app/channel_booking_flow.py
++++ b/app/channel_booking_flow.py
+@@ -103,7 +103,12 @@
+                         [option('6', 'Consultar horários', 'services'), *navigation()], native)
+ 
+ 
+-def _advance(conn, channel, message, target, native, *, origin='waha'):
++def start_from_media(conn, channel, message, native):
++    # Only list services. The next action must originate in an authenticated text/selection event.
++    return _advance(conn, channel, message, {'route': 'booking', 'step': 'services'}, native, media_start=True)
++
++
++def _advance(conn, channel, message, target, native, *, origin='waha', media_start=False):
+     context = (channel['workspace_id'], message['conversation_id'], message['id'], origin)
+     step = target.get('step')
+     page = target.get('page', 0)
+@@ -111,7 +116,9 @@
+         raise HTTPException(409, 'Esta opção mudou. Comece o agendamento novamente.')
+     if step in {'services', 'resources'}:
+         if step == 'services':
+-            rows = booking.services_for_message(*context, connection=conn)['items']
++            services = booking.available_service_options(conn, context[0]) if media_start else (
++                booking.services_for_message(*context, connection=conn))
++            rows = services['items']
+             label = 'Qual serviço você deseja agendar?'
+             choices = page_choices(rows, lambda row: {'step': 'resources', 'service_id': row['id']},
+                                    lambda row: row['nome'], page=page)

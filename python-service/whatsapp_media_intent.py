@@ -75,3 +75,25 @@ def intent(kind, interpretation):
         if re.fullmatch(PREFIX + '(?:' + pattern + ')', text):
             return name
     return 'clarify'
+
+
+COMMERCIAL_HINTS = {
+    'products': 'Quero consultar o catálogo, os preços ou a disponibilidade de produtos.',
+    'services': 'Quero consultar os serviços e os valores.',
+    'quote': 'Quero solicitar um orçamento.',
+    'booking': 'Quero consultar opções de agendamento.',
+}
+
+# These are allowlisted summaries. Transcriptions and attachment contents stay private.
+COMMERCIAL_DECISION = """
+    SELECT d.result->>'media_intent' AS media_intent
+    FROM socialmei.wa_bot_decisions d
+    JOIN socialmei.crm_eventos_canal e ON e.workspace_id=d.workspace_id
+      AND e.canal_id=d.channel_id AND e.inbox_message_id=d.source_message_id
+      AND e.tipo='media' AND e.status='processado' AND e.dados_normalizados->>'media_kind'='audio'
+    WHERE d.workspace_id=m.workspace_id AND d.conversation_id=m.conversation_id
+      AND d.source_message_id=m.id AND d.workspace_id=60 AND d.channel_id=3
+      AND d.status IN ('planned','claimed','confirmed') AND d.result->>'derived_from_media'='true'
+      AND d.result->>'media_intent' IN ('products','services','quote','booking')
+    LIMIT 1
+"""

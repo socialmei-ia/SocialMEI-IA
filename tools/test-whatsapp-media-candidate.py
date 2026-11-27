@@ -22,6 +22,17 @@ ACCOUNT, CONTACT = '111@c.us', '222@c.us'
 KEY = 'synthetic-lab-hmac-key-for-media-tests-20261127'
 
 
+def audio_event(contact, now):
+    mid = f'false_{contact}_{uuid4().hex}'
+    body = json.dumps({'event': 'message', 'id': uuid4().hex, 'timestamp': now*1000,
+                       'session': 'lab', 'engine': 'GOWS', 'me': {'id': ACCOUNT},
+                       'payload': {'id': mid, 'timestamp': now, 'from': contact,
+                                   'to': ACCOUNT, 'fromMe': False, 'hasMedia': True,
+                                   'type': 'ptt', 'media': {'mimetype': 'audio/ogg'}}}).encode()
+    sig = hmac.digest(KEY.encode(), body, 'sha512').hex()
+    return mid, body, sig
+
+
 class Session(unittest.TestCase):
     def test_verified_media_uses_existing_planner_once_without_a_new_inbound(self):
         self.assertEqual(intent('audio', 'Transcrição: Quero consultar os preços dos serviços.'), 'services')
@@ -77,13 +88,7 @@ class Session(unittest.TestCase):
         client = TestClient(app, headers={'Authorization': 'Bearer ' + token})
         path = '/internal/whatsapp/bot'
         now = int(datetime.now(timezone.utc).timestamp())
-        mid = f'false_{CONTACT}_{uuid4().hex}'
-        body = json.dumps({'event': 'message', 'id': uuid4().hex, 'timestamp': now*1000,
-                           'session': 'lab', 'engine': 'GOWS', 'me': {'id': ACCOUNT},
-                           'payload': {'id': mid, 'timestamp': now, 'from': CONTACT,
-                                       'to': ACCOUNT, 'fromMe': False, 'hasMedia': True,
-                                       'type': 'ptt', 'media': {'mimetype': 'audio/ogg'}}}).encode()
-        sig = hmac.digest(KEY.encode(), body, 'sha512').hex()
+        mid, body, sig = audio_event(CONTACT, now)
         self.assertEqual(service.receive('media-lab', body, sig, 'sha512')['processed'], 1)
         self.assertEqual(service.receive('media-lab', body, sig, 'sha512')['duplicates'], 1)
         self.assertEqual(client.get(path+'/sources').json()['sources'], [])
@@ -118,12 +123,45 @@ class Session(unittest.TestCase):
         self.assertEqual(client.post(path+'/decisions', json=request).json()['operation_id'], decision['operation_id'])
         self.assertEqual(client.get(path+'/sources').json()['sources'], [])
         claim = path+'/decisions/'+decision['operation_id']+'/claim'
+        with psycopg.connect(db) as conn:
+            conn.execute("UPDATE socialmei.me_messages SET occurred_at=now()-interval '3 minutes'")
+        self.assertFalse(client.post(claim, json={}).json()['dispatch_allowed'])
+        with psycopg.connect(db) as conn:
+            conn.execute("UPDATE socialmei.me_messages SET occurred_at=to_timestamp(%s)", (now,))
         response = client.post(claim, json={}).json()
         self.assertTrue(response['dispatch_allowed'])
         self.assertEqual(response['delivery']['path'], '/api/sendList')
         self.assertFalse(client.post(claim, json={}).json()['dispatch_allowed'])
+        booking_contact = '333@c.us'
+        booking_mid, body, sig = audio_event(booking_contact, now)
+        self.assertEqual(service.receive('media-lab', body, sig, 'sha512')['processed'], 1)
         with psycopg.connect(db) as conn:
-            self.assertEqual(conn.execute('SELECT text FROM socialmei.me_messages').fetchall(), [('Áudio recebido',)])
+            policy = {'revision': 1, 'policy': {'enabled': True, 'timezone': 'America/Recife',
+                      'hours': [{'weekday': 0, 'opens': '09:00', 'closes': '15:00'}]}}
+            conn.execute("UPDATE socialmei.workspaces SET configuracao=jsonb_build_object('channel_booking',%s::jsonb) WHERE id=60",
+                         (json.dumps(policy),))
+            conn.execute("INSERT INTO socialmei.crm_produtos(workspace_id,nome,tipo,preco,duracao_minutos) "
+                         "VALUES(60,'Limpeza sintética','Serviço',90,60)")
+            conn.execute("INSERT INTO socialmei.agenda_resources(workspace_id,id,nome,creation_fingerprint) "
+                         "VALUES(60,%s,'Recurso sintético',%s)", (uuid4(), 'c'*64))
+            added = conn.execute(
+                "INSERT INTO socialmei.me_inbound_attachments(workspace_id,channel_id,conversation_id,origin,account_ref,"
+                "contact_ref,external_message_id,source_event_key,source_fingerprint,media_kind,sha256,size_bytes,storage_key,occurred_at) "
+                "SELECT e.workspace_id,e.canal_id,m.conversation_id,'waha',e.waha_account_snapshot,%s,e.mensagem_externa_id,e.chave_evento,"
+                "e.fingerprint,'audio',%s,40,'lab2.ogg',e.ocorrida_em FROM socialmei.crm_eventos_canal e "
+                "JOIN socialmei.me_messages m ON m.workspace_id=e.workspace_id AND m.id=e.inbox_message_id "
+                "WHERE e.mensagem_externa_id=%s RETURNING id", ('waha:'+booking_contact, sha, booking_mid)).fetchone()[0]
+            conn.execute("INSERT INTO socialmei.me_attachment_ai(attachment_id,sha256,request_id,model,status,interpretation,finished_at) "
+                         "VALUES(%s,%s,%s,'lab','completed','Quero agendar um horário',now())", (added, sha, uuid4()))
+        booking = client.post(path+'/decisions', json={**request, 'external_message_id': booking_mid})
+        self.assertEqual(booking.status_code, 200, booking.text)
+        plan = booking.json()
+        self.assertEqual(plan['action'], 'booking_services')
+        self.assertIn('Limpeza sintética', json.dumps(plan, ensure_ascii=False))
+        self.assertFalse(any(choice['target'].get('step') == 'confirm' for choice in plan['choices']))
+        with psycopg.connect(db) as conn:
+            self.assertEqual(conn.execute('SELECT count(*) FROM socialmei.agenda_appointments').fetchone(), (0,))
+            self.assertEqual(conn.execute('SELECT text FROM socialmei.me_messages').fetchall(), [('Áudio recebido',)]*2)
 
 
 if __name__ == '__main__':
