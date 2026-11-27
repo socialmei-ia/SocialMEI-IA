@@ -122,6 +122,60 @@ class EnrichmentDatabaseTests(unittest.TestCase):
             self.post(path + '/hide', {})
             self.assertEqual(self.admin_client.get(BASE + '/hidden-conversations').json()['items'][0]['id'], cid)
 
+    def test_personal_inbox_read_cutoff_and_atomic_bulk_actions(self):
+        other = self.register('preferences-other@example.test')
+        workspace = self.admin_client.identity['negocio']['id']
+        with psycopg.connect(DB) as conn:
+            def create(tenant, contact):
+                return conn.execute(
+                    "INSERT INTO socialmei.me_conversations(workspace_id,channel,account_ref,contact_ref,contact_name,origin) "
+                    "VALUES(%s,'whatsapp','waha:111@c.us',%s,'Contato sintético','waha') RETURNING id",
+                    (tenant, contact),
+                ).fetchone()[0]
+
+            first = create(workspace, 'waha:201@c.us')
+            second = create(workspace, 'waha:202@c.us')
+            foreign = create(other.identity['negocio']['id'], 'waha:203@c.us')
+            delivered = conn.execute(
+                "INSERT INTO socialmei.me_messages(workspace_id,conversation_id,external_message_id,text,fingerprint,conversation_revision,origin) "
+                "VALUES(%s,%s,'m1','Um',%s,1,'waha'),(%s,%s,'m2','Dois',%s,2,'waha') RETURNING id",
+                (workspace, first, 'a'*64, workspace, first, 'b'*64),
+            ).fetchall()
+        first_message, second_message = (row[0] for row in delivered)
+        with patch('message_enrichment.provider_origins', return_value=['waha']), patch.dict(sys.modules, {
+                'contact_profiles': SimpleNamespace(attach=lambda *_: None)}):
+            def items(path='/conversations'):
+                response = self.admin_client.get(BASE + path)
+                self.assertEqual(response.status_code, 200, response.text)
+                return {row['id']: row for row in response.json()['items']}
+
+            def act(action, ids, **kwargs):
+                return self.admin_client.post(BASE + '/inbox-preferences',
+                    json={'action': action, 'conversation_ids': ids, **kwargs})
+
+            self.assertEqual(items()[first]['unread_count'], 2)
+            self.assertEqual(act('read', [first], read_through_id=first_message).status_code, 200)
+            self.assertEqual(items()[first]['unread_count'], 1)
+            self.assertEqual(act('read', [second], read_through_id=second_message).status_code, 404)
+            self.assertEqual(act('read', [first], read_through_id=second_message).status_code, 200)
+            self.assertFalse(items()[first]['unread'])
+            self.assertEqual(act('unread', [first]).status_code, 200)
+            self.assertTrue(items()[first]['unread'])
+            self.assertEqual(items()[first]['unread_count'], 0)
+            self.assertEqual(act('archive', [first, foreign]).status_code, 404)
+            self.assertEqual(set(items()), {first, second})
+            self.assertEqual(act('archive', [first, second]).status_code, 200)
+            self.assertEqual(items(), {})
+            self.assertEqual(set(items('/archived-conversations')), {first, second})
+            self.assertEqual(other.get(BASE + '/archived-conversations').json()['items'], [])
+            self.assertEqual(act('unarchive', [first, second]).status_code, 200)
+            self.assertTrue(items()[first]['unread'])
+            self.assertEqual(act('hide', [first, second]).status_code, 200)
+            self.assertEqual(items(), {})
+            self.assertEqual(set(items('/hidden-conversations')), {first, second})
+            self.assertEqual(self.admin_client.post(BASE+f'/conversations/{first}/restore').status_code, 200)
+            self.assertTrue(items()[first]['unread'])
+
     def test_out_of_order_incoming_keeps_source_time_and_stable_identity(self):
         latest, latest_input = self.incoming(occurred_at='2026-10-21T10:00:00-03:00')
         older, _ = self.incoming(occurred_at='2026-10-21T12:00:00Z', text='Mensagem anterior recebida depois')

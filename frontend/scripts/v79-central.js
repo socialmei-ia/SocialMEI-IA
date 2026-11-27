@@ -1,5 +1,5 @@
 /* SocialMEI-IA · v7.9 · Central de Atendimento Inteligente (camada de interface da Caixa Unificada).
-   Só interface: não cria endpoints, não envia mensagens e não grava dados no servidor.
+   Preferências autenticadas são gravadas pelos contratos da Caixa.
    - fotos: se a imagem falhar, voltam as iniciais
    - busca da lista preservada entre atualizações; canal e situação lembrados neste navegador
    - painel do contato: vínculo com o CRM (lê o estado que v22-inbox-customer já consulta), dados cadastrais reais
@@ -71,7 +71,127 @@
       restore.addEventListener('click', showHiddenConversations);
       label.after(restore);
     }
+    paintInboxPreferences(label);
   }
+  function canEditInbox() {
+    return ['owner', 'admin', 'member'].includes(window.SocialMEIAuth?.current?.papel);
+  }
+
+  function paintInboxPreferences(label) {
+    if (!remote || !host.updateInboxPreferences || !label) return;
+    if (!$('#v [data-v79-inbox-archive]')) {
+      var archived = E('button', 'btn o sm2', 'Conversas arquivadas');
+      archived.type = 'button';
+      archived.dataset.v79InboxArchive = '1';
+      archived.onclick = () => showInboxSelection(true);
+      label.after(archived);
+      if (canEditInbox()) {
+        var select = E('button', 'btn o sm2', 'Selecionar conversas');
+        select.type = 'button';
+        select.onclick = () => showInboxSelection(false);
+        archived.after(select);
+      }
+    }
+    var menu = $('#v .cx4-pop[data-for="cvmore"]');
+    var row = host.conversation(curId());
+    if (!menu || !row?.last_inbound_id || !canEditInbox() || $('[data-v79-mark-read]', menu)) return;
+    var mark = E('button', 'cx4-mi', row.unread ? 'Marcar como lida' : 'Marcar como não lida');
+    mark.type = 'button';
+    mark.setAttribute('role', 'menuitem');
+    mark.dataset.v79MarkRead = '1';
+    menu.prepend(mark);
+    mark.onclick = async () => {
+      var identity = host.identity;
+      mark.disabled = true;
+      try {
+        await host.updateInboxPreferences(row.unread ? 'read' : 'unread', [row.id],
+          row.unread ? row.last_inbound_id : null);
+      } catch (error) {
+        if (identity === host.identity && mark.isConnected) {
+          mark.disabled = false;
+          mark.textContent = error.message || 'Não foi possível alterar a leitura.';
+        }
+      }
+    };
+  }
+
+  async function showInboxSelection(archived) {
+    var dialog = dlg();
+    if (dialog.open) return;
+    var identity = host.identity;
+    var form = E('form'), title = E('h2', '', archived ? 'Conversas arquivadas' : 'Selecionar conversas');
+    title.id = 'v79-inbox-selection-title';
+    form.method = 'dialog';
+    form.setAttribute('aria-labelledby', title.id);
+    var live = () => dialog.open && form.isConnected && identity === host.identity;
+    var status = E('p', 'm', 'Carregando conversas…');
+    status.setAttribute('role', 'status');
+    var list = E('ul'), actions = E('div'), close = E('button', 'btn o', 'Fechar');
+    var buttons = [];
+    function addAction(label, action) {
+      var button = E('button', 'btn o', label);
+      button.type = 'button';
+      button.disabled = true;
+      actions.append(button);
+      buttons.push(button);
+      button.onclick = async () => {
+        var checked = $$('input:checked', list);
+        var ids = checked.map(input => Number(input.value));
+        if (!live() || !ids.length) return;
+        if (ids.length > 50) { status.textContent = 'Selecione até 50 conversas por operação.'; return; }
+        if (action !== 'unarchive' && !window.confirm(label + ' (' + ids.length + ')?')) return;
+        buttons.forEach(b => { b.disabled = true; });
+        $$('input', list).forEach(input => { input.disabled = true; });
+        try {
+          await host.updateInboxPreferences(action, ids);
+          if (!live()) return;
+          checked.forEach(input => input.closest('li').remove());
+          status.textContent = 'Alteração confirmada.';
+          if (!archived && ids.some(id => curId() === 'me-' + id)) location.hash = '#/caixa';
+          close.focus();
+        } catch (error) {
+          if (live()) status.textContent = error.message || 'Não foi possível concluir a alteração.';
+        } finally {
+          if (live()) {
+            $$('input', list).forEach(input => { input.disabled = false; });
+            buttons.forEach(b => { b.disabled = !$('input:checked', list); });
+          }
+        }
+      };
+    }
+    if (canEditInbox()) {
+      if (archived) addAction('Desarquivar selecionadas', 'unarchive');
+      else {
+        addAction('Arquivar selecionadas', 'archive');
+        addAction('Ocultar selecionadas', 'hide');
+      }
+    }
+    list.onchange = () => { buttons.forEach(b => { b.disabled = !$('input:checked', list); }); };
+    form.append(title, status, list, actions, close);
+    dialog.replaceChildren(form);
+    dialog.showModal();
+    try {
+      var rows = archived ? await host.archivedConversations() : host.activeInboxPreferences();
+      if (!live()) return;
+      status.textContent = rows.length ? '' : 'Nenhuma conversa disponível.';
+      for (const row of rows) {
+        const li = E('li'), label = E('label');
+        if (canEditInbox()) {
+          const input = E('input');
+          input.type = 'checkbox';
+          input.value = row.id;
+          label.append(input);
+        }
+        const channel = row.channel === 'instagram' ? 'Instagram' : 'WhatsApp';
+        label.append(E('span', '', (row.contact_name || 'Contato') + ' · ' + channel));
+        li.append(label);
+        list.append(li);
+      }
+    } catch (error) {
+      if (live()) status.textContent = error.message || 'Não foi possível consultar as conversas.';
+    }
+  }
+
   async function showHiddenConversations() {
     var dialog = dlg();
     if (dialog.open) return;

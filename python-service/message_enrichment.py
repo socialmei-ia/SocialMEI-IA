@@ -170,6 +170,23 @@ class SignedEvent(Input):
         return self
 
 
+class InboxPreference(Strict):
+    action: Literal['read', 'unread', 'archive', 'unarchive', 'hide']
+    conversation_ids: list[Id] = Field(min_length=1, max_length=50)
+    read_through_id: Id | None = None
+
+    @model_validator(mode='after')
+    def validate_action(self):
+        if len(set(self.conversation_ids)) != len(self.conversation_ids):
+            raise ValueError('Conversa repetida.')
+        if self.action == 'read':
+            if self.read_through_id is None or len(self.conversation_ids) != 1:
+                raise ValueError('Informe a última mensagem exibida da conversa.')
+        elif self.read_through_id is not None:
+            raise ValueError('A ação não utiliza uma mensagem.')
+        return self
+
+
 def guard(request, response, *, write=False, manage=False, capability=False, read_inbox=False):
     response.headers['Cache-Control'] = 'no-store'
     try:
@@ -429,7 +446,7 @@ def conversations(request: Request, response: Response):
     with db() as conn:
         if 'synthetic' in origins:
             invalidate_expired(conn, workspace)
-        items = conn.execute("SELECT c.id,c.channel,c.account_ref,c.contact_ref,c.contact_name,c.revision,c.origin\nFROM socialmei.me_conversations c\nWHERE c.workspace_id=%s AND c.origin=ANY(%s)\nAND NOT EXISTS (\n SELECT 1 FROM socialmei.me_inbox_hidden h\n WHERE h.workspace_id=c.workspace_id AND h.conversation_id=c.id AND h.user_id=%s AND h.restored_at IS NULL\n AND NOT EXISTS (SELECT 1 FROM socialmei.me_messages m\n   WHERE m.workspace_id=c.workspace_id AND m.conversation_id=c.id AND m.id>h.last_message_id)\n)\nORDER BY GREATEST(\n (SELECT max(m.occurred_at) FROM socialmei.me_messages m WHERE m.workspace_id=c.workspace_id AND m.conversation_id=c.id),\n (SELECT max(d.finished_at) FROM socialmei.wa_bot_decisions d WHERE d.workspace_id=c.workspace_id AND d.conversation_id=c.id AND d.status='confirmed'),\n (SELECT max(r.finished_at) FROM socialmei.wa_human_replies r WHERE r.workspace_id=c.workspace_id AND r.conversation_id=c.id AND r.status='confirmed'),\n (SELECT max(r.finished_at) FROM socialmei.ig_menu_replies r WHERE r.workspace_id=c.workspace_id AND r.conversation_id=c.id AND r.status='confirmed')\n) DESC NULLS LAST,c.id DESC LIMIT 100", (workspace, origins, user['id'])).fetchall()
+        items = conn.execute("SELECT c.id,c.channel,c.account_ref,c.contact_ref,c.contact_name,c.revision,c.origin,COALESCE(p.read_through_id,0) AS read_through_id,COALESCE(p.marked_unread,false) AS marked_unread\nFROM socialmei.me_conversations c\nLEFT JOIN socialmei.me_inbox_preferences p ON p.workspace_id=c.workspace_id AND p.conversation_id=c.id AND p.user_id=%s\nWHERE c.workspace_id=%s AND c.origin=ANY(%s) AND p.archived_at IS NULL\nAND NOT EXISTS (\n SELECT 1 FROM socialmei.me_inbox_hidden h\n WHERE h.workspace_id=c.workspace_id AND h.conversation_id=c.id AND h.user_id=%s AND h.restored_at IS NULL\n AND NOT EXISTS (SELECT 1 FROM socialmei.me_messages m\n   WHERE m.workspace_id=c.workspace_id AND m.conversation_id=c.id AND m.id>h.last_message_id)\n)\nORDER BY GREATEST(\n (SELECT max(m.occurred_at) FROM socialmei.me_messages m WHERE m.workspace_id=c.workspace_id AND m.conversation_id=c.id),\n (SELECT max(d.finished_at) FROM socialmei.wa_bot_decisions d WHERE d.workspace_id=c.workspace_id AND d.conversation_id=c.id AND d.status='confirmed'),\n (SELECT max(r.finished_at) FROM socialmei.wa_human_replies r WHERE r.workspace_id=c.workspace_id AND r.conversation_id=c.id AND r.status='confirmed'),\n (SELECT max(r.finished_at) FROM socialmei.ig_menu_replies r WHERE r.workspace_id=c.workspace_id AND r.conversation_id=c.id AND r.status='confirmed')\n) DESC NULLS LAST,c.id DESC LIMIT 100", (user['id'], workspace, origins, user['id'])).fetchall()
         messages_by_conversation = {row['id']: [] for row in items}
         if items:
             rows = conn.execute(
@@ -442,6 +459,17 @@ def conversations(request: Request, response: Response):
             ).fetchall()
             for message in rows:
                 messages_by_conversation[message.pop('conversation_id')].append(message)
+        unread_by_conversation = {}
+        if items:
+            rows = conn.execute(
+                "SELECT m.conversation_id,count(*) AS unread_count,"
+                "max(m.id) AS last_inbound_id "
+                "FROM unnest(%s::bigint[],%s::bigint[]) AS selected(conversation_id,read_through_id) "
+                "JOIN socialmei.me_messages m ON m.workspace_id=%s AND m.conversation_id=selected.conversation_id "
+                "AND m.id>selected.read_through_id AND m.origin IN ('waha','instagram') GROUP BY m.conversation_id",
+                ([row['id'] for row in items], [row['read_through_id'] for row in items], workspace),
+            ).fetchall()
+            unread_by_conversation = {row['conversation_id']: row for row in rows}
         real_ids = [message['id'] for conversation in items if conversation['origin'] in {'instagram', 'waha'}
                     for message in messages_by_conversation[conversation['id']]]
         synthetic_ids = [message['id'] for conversation in items if conversation['origin'] == 'synthetic'
@@ -505,6 +533,11 @@ def conversations(request: Request, response: Response):
                     'direction': 'outgoing', 'provider': 'instagram', 'enrichment': None,
                 })
         for conversation in items:
+            unread = unread_by_conversation.get(conversation['id'], {})
+            conversation['last_inbound_id'] = unread.get('last_inbound_id') or conversation['read_through_id'] or None
+            conversation['unread_count'] = unread.get('unread_count', 0)
+            conversation['unread'] = bool(conversation.pop('marked_unread') or conversation['unread_count'])
+            del conversation['read_through_id']
             messages = messages_by_conversation[conversation['id']]
             for message in messages:
                 if message['id'] in attachments:
@@ -738,3 +771,74 @@ def restore_inbox_conversation(conversation_id: int, request: Request, response:
             (workspace, user['id'], conversation_id),
         )
     return {'hidden': False, 'conversation_id': conversation_id}
+
+
+@router.post('/inbox-preferences')
+def update_inbox_preferences(payload: InboxPreference, request: Request, response: Response):
+    user = guard(request, response, write=True, read_inbox=True)
+    workspace, user_id = user['workspace_id'], user['id']
+    ids = payload.conversation_ids
+    with db() as conn:
+        lock_workspace(conn, workspace)
+        visible = conn.execute(
+            "SELECT id FROM socialmei.me_conversations WHERE workspace_id=%s AND id=ANY(%s) "
+            "AND origin=ANY(%s) ORDER BY id FOR UPDATE",
+            (workspace, ids, provider_origins(workspace)),
+        ).fetchall()
+        if len(visible) != len(ids):
+            raise HTTPException(404, 'Conversa indisponível.')
+        if payload.action == 'hide':
+            conn.execute(
+                "INSERT INTO socialmei.me_inbox_hidden(workspace_id,user_id,conversation_id,last_message_id) "
+                "SELECT %s,%s,target.id,COALESCE(max(m.id),0) FROM unnest(%s::bigint[]) AS target(id) "
+                "LEFT JOIN socialmei.me_messages m ON m.workspace_id=%s AND m.conversation_id=target.id "
+                "GROUP BY target.id ON CONFLICT(workspace_id,user_id,conversation_id) DO UPDATE SET "
+                "last_message_id=GREATEST(me_inbox_hidden.last_message_id,EXCLUDED.last_message_id),"
+                "hidden_at=now(),restored_at=NULL",
+                (workspace, user_id, ids, workspace),
+            )
+        elif payload.action == 'read':
+            if not conn.execute(
+                "SELECT 1 FROM socialmei.me_messages WHERE workspace_id=%s AND conversation_id=%s "
+                "AND id=%s AND origin IN ('waha','instagram')",
+                (workspace, ids[0], payload.read_through_id),
+            ).fetchone():
+                raise HTTPException(404, 'Mensagem indisponível.')
+            conn.execute(
+                "INSERT INTO socialmei.me_inbox_preferences(workspace_id,user_id,conversation_id,read_through_id) "
+                "VALUES (%s,%s,%s,%s) ON CONFLICT(workspace_id,user_id,conversation_id) DO UPDATE SET "
+                "read_through_id=GREATEST(me_inbox_preferences.read_through_id,EXCLUDED.read_through_id),marked_unread=false",
+                (workspace, user_id, ids[0], payload.read_through_id),
+            )
+        elif payload.action == 'unread':
+            conn.execute(
+                "INSERT INTO socialmei.me_inbox_preferences(workspace_id,user_id,conversation_id,marked_unread) "
+                "SELECT %s,%s,unnest(%s::bigint[]),true ON CONFLICT(workspace_id,user_id,conversation_id) DO UPDATE SET "
+                "marked_unread=true",
+                (workspace, user_id, ids),
+            )
+        else:
+            archive = payload.action == 'archive'
+            conn.execute(
+                "INSERT INTO socialmei.me_inbox_preferences(workspace_id,user_id,conversation_id,archived_at) "
+                "SELECT %s,%s,unnest(%s::bigint[]),CASE WHEN %s THEN now() END "
+                "ON CONFLICT(workspace_id,user_id,conversation_id) DO UPDATE SET archived_at="
+                "CASE WHEN EXCLUDED.archived_at IS NOT NULL THEN COALESCE(me_inbox_preferences.archived_at,EXCLUDED.archived_at) END",
+                (workspace, user_id, ids, archive),
+            )
+    return {'workspace_id': workspace, 'action': payload.action, 'conversation_ids': ids}
+
+
+@router.get('/archived-conversations')
+def archived_inbox_conversations(request: Request, response: Response):
+    user = guard(request, response, read_inbox=True)
+    workspace = user['workspace_id']
+    with db() as conn:
+        items = conn.execute(
+            "SELECT c.id,c.channel,c.contact_name FROM socialmei.me_inbox_preferences p "
+            "JOIN socialmei.me_conversations c ON c.workspace_id=p.workspace_id AND c.id=p.conversation_id "
+            "WHERE p.workspace_id=%s AND p.user_id=%s AND p.archived_at IS NOT NULL AND c.origin=ANY(%s) "
+            "ORDER BY p.archived_at DESC,c.id DESC LIMIT 100",
+            (workspace, user['id'], provider_origins(workspace)),
+        ).fetchall()
+    return {'workspace_id': workspace, 'items': items}

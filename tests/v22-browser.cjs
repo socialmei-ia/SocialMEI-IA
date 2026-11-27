@@ -55,6 +55,7 @@ async function run() {
     console.log(await require("./optional-sale-customer-browser.cjs")(browser, origin));
     console.log(await require("./sale-record-selection-browser.cjs")(browser, origin));
     await require("./inbox-restore-browser.cjs")(browser, origin);
+    await require("./inbox-preferences-browser.cjs")(browser, origin);
     await require("./inbox-customer-browser.cjs")(browser, origin);
     console.log(await require("./inbox-layout-browser.cjs")(browser, origin));
     await require("./functional-recovery-browser.cjs")(browser, origin);

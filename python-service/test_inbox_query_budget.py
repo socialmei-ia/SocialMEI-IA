@@ -6,6 +6,8 @@ from contextlib import ExitStack, nullcontext
 from pathlib import Path
 from unittest.mock import patch
 from uuid import UUID, uuid4
+from types import SimpleNamespace
+import sys
 
 import psycopg
 from fastapi import Response
@@ -15,7 +17,7 @@ import message_enrichment as module
 
 
 def inbox_settings(stack, workspace, *, stub=True, sentiment=True):
-    stack.enter_context(patch.object(module, 'guard', return_value={'workspace_id': workspace}))
+    stack.enter_context(patch.object(module, 'guard', return_value={'id': 1, 'workspace_id': workspace}))
     stack.enter_context(patch.object(module.settings, 'message_enrichment_mode', return_value='stub' if stub else 'disabled'))
     stack.enter_context(patch.object(module.settings, 'instagram_ingress_isolated_enabled', return_value=True))
     stack.enter_context(patch.object(module.settings, 'instagram_live_ingress_enabled', return_value=False))
@@ -37,7 +39,7 @@ class Connection:
         self.queries = []
         self.conversations = [{'id': i, 'channel': 'instagram' if origins[(i-1) % len(origins)] == 'instagram' else 'whatsapp',
                                'account_ref': 'fixture:account', 'contact_ref': str(i), 'contact_name': 'Fixture',
-                               'revision': 1, 'origin': origins[(i-1) % len(origins)]} for i in range(1, size+1)]
+                               'revision': 1, 'read_through_id': 0, 'marked_unread': False, 'origin': origins[(i-1) % len(origins)]} for i in range(1, size+1)]
         self.messages = [{'conversation_id': row['id'], 'id': row['id']*100 + index,
                           'external_message_id': str(index), 'text': 'Fixture',
                           'occurred_at': '2026-11-10T10:00:00Z', 'revision': 1}
@@ -51,10 +53,12 @@ class Connection:
 
     def execute(self, sql, params):
         self.queries.append((sql, params))
-        if 'FROM socialmei.wa_bot_decisions' in sql:
-            return Cursor(getattr(self, 'bot_replies', []))
-        if 'FROM socialmei.me_conversations' in sql:
+        if 'FROM socialmei.me_conversations c' in sql:
             return Cursor(self.conversations)
+        if 'FROM socialmei.wa_bot_decisions d' in sql:
+            return Cursor(getattr(self, 'bot_replies', []))
+        if 'AS unread_count' in sql:
+            return Cursor([])
         if 'CROSS JOIN LATERAL' in sql:
             return Cursor(self.messages)
         if 'FROM socialmei.me_provider_sentiment_jobs' in sql:
@@ -69,20 +73,21 @@ class InboxQueryBudgetTests(unittest.TestCase):
         with ExitStack() as stack:
             inbox_settings(stack, 17, sentiment=sentiment)
             stack.enter_context(patch.object(module, 'db', return_value=nullcontext(connection)))
+            stack.enter_context(patch.dict(sys.modules, {'contact_profiles': SimpleNamespace(attach=lambda *_: None)}))
             invalidation = stack.enter_context(patch.object(module, 'invalidate_expired'))
             result = module.conversations(None, Response())
             invalidation.assert_called_once_with(connection, 17)
             return result
 
-    def test_five_reads_for_mixed_inbox_independent_of_conversation_or_message_count(self):
+    def test_six_reads_for_mixed_inbox_independent_of_conversation_or_message_count(self):
         for size in (3, 100):
             with self.subTest(conversations=size):
                 connection = Connection(size, message_count=100 if size == 100 else 3)
                 result = self.read(connection)
-                self.assertEqual(len(connection.queries), 5)
+                self.assertEqual(len(connection.queries), 6)
                 self.assertEqual(len(result['items']), size)
                 for sql, params in connection.queries:
-                    self.assertIn('workspace_id=%s', sql)
+                    self.assertRegex(sql, r'workspace_id\s*=\s*%s')
                     self.assertIn(17, params)
                 sql, params = connection.queries[1]
                 self.assertIn('LIMIT 100', sql)
@@ -98,16 +103,16 @@ class InboxQueryBudgetTests(unittest.TestCase):
                     else:
                         self.assertIsNone(messages[0]['enrichment'])
                         self.assertEqual(messages[0]['provider_analysis']['source'], 'automation')
-                provider_ids = connection.queries[2][1][1]
-                job_ids = connection.queries[3][1][1]
+                provider_ids = connection.queries[3][1][1]
+                job_ids = connection.queries[4][1][1]
                 self.assertTrue(set(provider_ids).isdisjoint(job_ids))
-                self.assertIn('DISTINCT ON (message_id)', connection.queries[3][0])
-                self.assertIn('ORDER BY message_id,message_revision DESC,id DESC', connection.queries[3][0])
+                self.assertIn('DISTINCT ON (message_id)', connection.queries[4][0])
+                self.assertIn('ORDER BY message_id,message_revision DESC,id DESC', connection.queries[4][0])
 
     def test_disabled_sentiment_does_not_query_provider_table_or_add_analysis(self):
         connection = Connection(100, origins=('instagram', 'waha'))
         result = self.read(connection, sentiment=False)
-        self.assertEqual(len(connection.queries), 3)
+        self.assertEqual(len(connection.queries), 4)
         self.assertFalse(any('me_provider_sentiment_jobs' in sql for sql, _ in connection.queries))
         self.assertTrue(all('provider_analysis' not in message for row in result['items'] for message in row['messages']))
 

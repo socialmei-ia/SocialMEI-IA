@@ -523,9 +523,12 @@ window.SocialMEIV22 = (() => {
       phone: pick(row, ["contact_phone", "phone", "wa_id"]),
       handle: pick(row, ["contact_username", "contact_handle", "username", "handle"]),
       origin: row.origin || "",
+      unreadCount: row.unread_count || 0,
     };
   }
   let inboxPolling = false;
+  let inboxReadDone = null;
+  const inboxSettled = () => inboxReadDone || Promise.resolve();
   let inboxFingerprint = "";
   let inboxCapabilities = null;
   /* v7.9 · saúde da caixa (somente leitura para a interface) e conclusões marcadas neste navegador. */
@@ -589,6 +592,8 @@ window.SocialMEIV22 = (() => {
   async function refreshInbox({ silent = false } = {}) {
     if (inboxPolling || !remote || !auth.current) return;
     inboxPolling = true;
+    let finishInboxRead;
+    inboxReadDone = new Promise(resolve => { finishInboxRead = resolve; });
     const workspace = auth.current.negocio.id;
     const scope = identityKey();
     const epoch=smInboxEpoch;
@@ -614,6 +619,9 @@ window.SocialMEIV22 = (() => {
         result.items.map((row) => [
           row.id,
           row.revision,
+          row.unread_count,
+          row.unread,
+          row.last_inbound_id,
           row.origin,
           row.account_ref,
           row.contact_name,
@@ -649,8 +657,7 @@ window.SocialMEIV22 = (() => {
           row.channel === "instagram" ? "ig" : "wa",
           isDone("me-" + row.id, conversationMeta(row)) ? "Concluído" : "Aberto",
           listTime(last.occurred_at),
-          /* [9] segue reservado para "não lida" (o servidor não informa). */
-          false,
+          row.unread === true,
           /* [10] foto real validada ("" quando ausente) e [11] metadados reais da conversa. */
           safeAvatar(row.contact_avatar),
           conversationMeta(row),
@@ -664,6 +671,8 @@ window.SocialMEIV22 = (() => {
       if (!silent && ![403, 503].includes(e.status)) throw e;
     } finally {
       inboxPolling = false;
+      inboxReadDone = null;
+      finishInboxRead();
     }
   }
   // Never poll while hidden or without a session. No duplicate timers.
@@ -1099,6 +1108,45 @@ window.SocialMEIV22 = (() => {
       const index=C.findIndex(r=>r[0]===id);if(index>=0)C.splice(index,1);
       inboxFingerprint='';
       return true;
+    },
+    activeInboxPreferences() {
+      return auth.current && inboxScope === identityKey()
+        ? inbox.filter(row => ['waha', 'instagram'].includes(row.origin))
+            .map(({id, contact_name, channel}) => ({id, contact_name, channel}))
+        : [];
+    },
+    async archivedConversations() {
+      const scope = identityKey();
+      const workspace = auth.current?.negocio.id;
+      if (!scope || !workspace) throw Error('Sessão indisponível.');
+      const result = await request('/message-enrichment/archived-conversations');
+      if (scope !== identityKey() || result.workspace_id !== workspace || !Array.isArray(result.items))
+        throw Error('Lista indisponível para esta sessão.');
+      return result.items;
+    },
+    async updateInboxPreferences(action, ids, readThrough) {
+      const scope = identityKey();
+      const workspace = auth.current?.negocio.id;
+      if (!scope || !workspace || !ids.length || !ids.every(id => Number.isSafeInteger(id) && id > 0))
+        throw Error('Conversa indisponível.');
+      const payload = {action, conversation_ids: ids};
+      if (readThrough != null) payload.read_through_id = readThrough;
+      const result = await request('/message-enrichment/inbox-preferences', 'POST', payload);
+      if (scope !== identityKey() || result.workspace_id !== workspace || result.action !== action ||
+          JSON.stringify(result.conversation_ids) !== JSON.stringify(ids))
+        throw Error('Alteração não confirmada nesta sessão.');
+      smInboxEpoch++;
+      if (action === 'archive' || action === 'hide') {
+        inbox = inbox.filter(row => !ids.includes(row.id));
+        for (let i = C.length - 1; i >= 0; i--)
+          if (ids.includes(Number(C[i][0].slice(3)))) C.splice(i, 1);
+      }
+      inboxFingerprint = '';
+      if (inboxPolling) {
+        // The older request cannot paint after the epoch advanced. Refresh after it settles.
+        await inboxSettled();
+      }
+      if (scope === identityKey()) await refreshInbox({silent: true});
     },
     async hiddenConversations() {
       const scope = identityKey();
