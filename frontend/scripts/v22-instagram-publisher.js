@@ -4,6 +4,7 @@
   if (!host?.remote || window.SocialMEIInstagramPublisher) return;
   let available = false,
     connected = false,
+    scheduleAvailable = false,
     busy = false,
     dialog,
     previewURL,
@@ -36,6 +37,16 @@
         button.textContent = "Publicar foto";
         card.appendChild(button);
       }
+      let calendar = card.querySelector("[data-instagram-calendar]");
+      if (scheduleAvailable && !calendar) {
+        calendar = doc.createElement("button");
+        calendar.type = "button";
+        calendar.className = "btn o";
+        calendar.dataset.instagramCalendar = "1";
+        calendar.textContent = "Calendário editorial";
+        card.appendChild(calendar);
+      }
+      if (calendar) calendar.hidden = !(scheduleAvailable && owner());
       button.disabled = !(available && connected && owner()) || busy;
       button.title = !connected
         ? "Conecte o Instagram profissional"
@@ -50,11 +61,12 @@
     doc.addEventListener(
       "click",
       (e) => {
-        const button = e.target.closest?.("[data-instagram-publish]");
+        const button = e.target.closest?.("[data-instagram-publish], [data-instagram-calendar]");
         if (!button || button.disabled) return;
         e.preventDefault();
         e.stopImmediatePropagation();
-        open();
+        if (button.hasAttribute("data-instagram-calendar")) openCalendar();
+        else open();
       },
       true,
     );
@@ -271,16 +283,236 @@
     controls();
     if (attempt) check(true);
   }
+
+  function datePayload(value, timezone) {
+    const local = new Date(value);
+    if (!Number.isFinite(local.getTime()))
+      throw new Error("Informe uma data e um horário válidos.");
+    const pad = (number) => String(number).padStart(2, "0");
+    const entered = Date.UTC(
+      ...value.split(/[-T:]/).map((part, index) => Number(part) - (index === 1 ? 1 : 0)),
+    );
+    const offset = -local.getTimezoneOffset();
+    if (entered !== local.getTime() + offset * 60000)
+      throw new Error("Este horário não existe no fuso informado.");
+    return {
+      scheduled_at:
+        value +
+        (offset < 0 ? "-" : "+") +
+        pad(Math.floor(Math.abs(offset) / 60)) +
+        ":" +
+        pad(Math.abs(offset) % 60),
+      timezone,
+    };
+  }
+
+  async function openCalendar() {
+    if (!scheduleAvailable || !owner() || document.querySelector("#sm-instagram-calendar")) return;
+    const originalScope = scope();
+    const calendar = document.createElement("dialog");
+    calendar.id = "sm-instagram-calendar";
+    calendar.style.cssText =
+      "color:CanvasText;background:Canvas;max-width:min(40rem,95vw);max-height:90vh";
+    calendar.setAttribute("aria-labelledby", "sm-instagram-calendar-title");
+    calendar.innerHTML =
+      '<form method="dialog"><button type="submit">Fechar</button></form>' +
+      '<h2 id="sm-instagram-calendar-title">Calendário editorial</h2><p role="status"></p>' +
+      "<form data-schedule hidden><p data-profile></p>" +
+      '<label>URL HTTPS da foto JPEG <input name="image" type="url" required maxlength="2048"></label>' +
+      '<label>Legenda <textarea name="caption" required maxlength="2200"></textarea></label>' +
+      '<label>Data e horário <input name="when" type="datetime-local" required></label>' +
+      '<p data-timezone></p><button type="submit">Agendar foto</button></form><ul></ul>';
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const valid = () => calendar.open && originalScope === scope();
+    const request = (suffix = "", options) =>
+      host.request("/instagram/publishing/scheduled" + suffix, options?.method, options?.body);
+    const status = calendar.querySelector('[role="status"]');
+    const form = calendar.querySelector("[data-schedule]");
+    const list = calendar.querySelector("ul");
+    const submission = form.querySelector('button[type="submit"]');
+    const requestKey = "socialmei-instagram-schedule:" + originalScope;
+    const states = {
+      scheduled: "Agendada",
+      creating: "Preparando",
+      created: "Processando",
+      publishing: "Publicando",
+      published: "Publicada",
+      failed: "Falhou",
+      cancelled: "Cancelada",
+      uncertain: "Resultado incerto. Confira no Instagram antes de criar outra publicação.",
+    };
+    let pending = false;
+    let confirmedAccount;
+    let approval;
+    try {
+      approval = JSON.parse(sessionStorage.getItem(requestKey));
+    } catch {}
+    const showError = (error) => {
+      if (valid()) status.textContent = error.message || "Não foi poss?vel concluir.";
+    };
+    const run = async (action) => {
+      if (pending || !valid()) return;
+      pending = true;
+      calendar.querySelectorAll("fieldset, button:not([type=submit])").forEach((node) => {
+        node.disabled = true;
+      });
+      submission.disabled = true;
+      try {
+        await action();
+      } catch (error) {
+        showError(error);
+      } finally {
+        pending = false;
+        calendar.querySelectorAll("fieldset, button:not([type=submit])").forEach((node) => {
+          node.disabled = false;
+        });
+        submission.disabled = false;
+      }
+    };
+    async function load() {
+      const rows = await request();
+      if (!valid()) return;
+      const items = rows.items;
+      if (approval && items.some((row) => row.request_id === approval.request_id)) {
+        sessionStorage.removeItem(requestKey);
+        approval = null;
+      }
+      list.replaceChildren();
+      status.textContent = items.length ? "" : "Nenhuma publicação agendada.";
+      for (const row of items) {
+        const li = document.createElement("li");
+        const time = new Date(row.scheduled_at).toLocaleString("pt-BR", { timeZone: row.timezone });
+        li.textContent =
+          time +
+          " (" +
+          row.timezone +
+          ") ? " +
+          (states[row.status] || row.status) +
+          " — " +
+          row.caption;
+        if (row.status === "scheduled") {
+          const edit = document.createElement("form");
+          const fieldset = document.createElement("fieldset");
+          const date = document.createElement("input");
+          date.type = "datetime-local";
+          date.required = true;
+          date.setAttribute("aria-label", "Nova data e horário (" + timezone + ")");
+          const move = document.createElement("button");
+          move.textContent = "Reagendar";
+          const cancel = document.createElement("button");
+          cancel.type = "button";
+          cancel.textContent = "Cancelar publicação";
+          edit.addEventListener("submit", (event) => {
+            event.preventDefault();
+            run(async () => {
+              await request("/" + row.id, {
+                method: "PATCH",
+                body: { ...datePayload(date.value, timezone), revision: row.revision },
+              });
+              await load();
+            });
+          });
+          cancel.addEventListener("click", () => {
+            if (!window.confirm("Cancelar esta publicação agendada?")) return;
+            run(async () => {
+              await request("/" + row.id + "/cancel", {
+                method: "POST",
+                body: { revision: row.revision },
+              });
+              await load();
+            });
+          });
+          fieldset.append(date, move, cancel);
+          edit.append(fieldset);
+          li.append(edit);
+        }
+        list.append(li);
+      }
+    }
+    calendar.addEventListener(
+      "close",
+      () => {
+        clearInterval(scopeTimer);
+        calendar.remove();
+      },
+      { once: true },
+    );
+    document.body.append(calendar);
+    calendar.showModal();
+    const scopeTimer = setInterval(() => {
+      if (!valid()) calendar.close();
+    }, 250);
+    calendar.querySelector("[data-timezone]").textContent = "Fuso deste dispositivo: " + timezone;
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      run(async () => {
+        if (!confirmedAccount) return;
+        const values = new FormData(form);
+        const body = {
+          ...datePayload(values.get("when"), timezone),
+          connection_id: confirmedAccount.connection_id,
+          image_url: values.get("image").trim(),
+          caption: values.get("caption"),
+        };
+        const digest = await crypto.subtle.digest(
+          "SHA-256",
+          new TextEncoder().encode(JSON.stringify(body)),
+        );
+        if (!valid()) return;
+        const fingerprint = Array.from(new Uint8Array(digest), (byte) =>
+          byte.toString(16).padStart(2, "0"),
+        ).join("");
+        if (approval && approval.fingerprint !== fingerprint) {
+          throw new Error(
+            "Há uma tentativa sem confirmação. Reabra o calendário e confira a lista antes de agendar.",
+          );
+        }
+        const id = approval?.request_id || crypto.randomUUID();
+        approval = { request_id: id, fingerprint };
+        sessionStorage.setItem(requestKey, JSON.stringify(approval));
+        try {
+          await request("", { method: "POST", body: { ...body, request_id: id } });
+        } catch (error) {
+          if (valid() && [400, 403, 409, 422].includes(error.status)) {
+            sessionStorage.removeItem(requestKey);
+            approval = null;
+          }
+          throw error;
+        }
+        if (!valid()) return;
+        sessionStorage.removeItem(requestKey);
+        approval = null;
+        form.reset();
+        await load();
+      });
+    });
+    await run(load);
+    if (!valid()) return;
+    try {
+      confirmedAccount = await host.request("/instagram/publishing/account");
+      if (!valid()) return;
+      calendar.querySelector("[data-profile]").textContent =
+        "Instagram: @" + confirmedAccount.username;
+      form.hidden = false;
+    } catch {
+      if (valid()) status.textContent = "Confirme a conexão do Instagram para agendar uma foto.";
+    }
+  }
+
   async function refresh() {
+    const activeScope = scope();
     try {
       const [pub, ig] = await Promise.all([
         host.request("/instagram/publishing/status"),
         host.request("/instagram/meta/status"),
       ]);
+      if (activeScope !== scope()) return;
+      scheduleAvailable = pub.schedule_available === true;
       connected = ig.status === "connected" && ig.credential_available === true;
       available = pub.available === true && pub.connected === true && pub.upload_available === true;
     } catch {
-      available = connected = false;
+      if (activeScope !== scope()) return;
+      available = connected = scheduleAvailable = false;
     }
     paint();
     return { available, connected };
