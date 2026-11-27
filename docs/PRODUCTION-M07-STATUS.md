@@ -27,3 +27,9 @@ sudo -n python3 "$release/publish-r2.py" rollback "$release" \
 ## Etapa seguinte
 
 A rotina automática que usa a base da API ficou no perfil 040 após o banco atingir 041. O backup pontual verificado cobre a etapa publicada. A próxima etapa precisa alinhar e comprovar a rotina automática, fixar o plano da API e do gateway e autorizar as migrations produtivas 042–046. A candidata preserva os cinco arquivos privados da API por binds somente leitura e mantém o alias `socialmei-ig-api`. As migrations são mantidas durante rollback da aplicação. A 047 e as ativações de mídia ficam para uma etapa própria após a homologação real necessária.
+
+O ensaio integrado percorreu a dupla anterior, a candidata e a reversão sobre um PostgreSQL 17 descartável com a estrutura até 046. A API respondeu por HTTP, consultou o banco e manteve cinco redes, o alias privado do Instagram e sete mounts equivalentes. O gateway serviu o app nos três estados. O ensaio usou credenciais sintéticas e redes internas.
+
+As imagens e composições da etapa seguinte já estão congeladas na AWS. O plano privado `core-release-046.private.json` registra o hash `94c52c116bae9de5a6db1711a66b73dfd3800fb94547b71da2e8277e85dd3be7`. Ele fixa o SQL, o backup e os dois pares de Compose. O SQL rejeitou banco incorreto e reaplicação em laboratório. A reversão mantém a etapa de Agenda e Negócio já publicada.
+
+Os testes do backup em Linux passaram. Os helpers de exportação e recuperação também foram homologados com backups sintéticos completos nos perfis 046 e 047. Antes de executar o plano, alinhe a rotina automática ao perfil 041 atual e valide o primeiro ciclo. Depois, confirme a janela autorizada para 042–046 e prepare a transição da rotina para 046. Preserve o timer histórico e os dumps existentes.
