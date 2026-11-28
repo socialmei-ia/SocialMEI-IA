@@ -8,7 +8,7 @@ from types import SimpleNamespace
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, StrictBool, field_validator, model_validator
 
 from agenda import Strict, ReminderCreate, boundary, business_zone, configure, identity
 from database import connect
@@ -351,7 +351,89 @@ def list_appointments(from_date: date | None = Query(None), to_date: date | None
         configure(conn)
         cols = ",".join("a."+c for c in APPOINTMENT_COLUMNS.split(","))
         rows = conn.execute(f"SELECT {cols},r.nome AS resource_name FROM socialmei.agenda_appointments a JOIN socialmei.agenda_resources r ON r.workspace_id=a.workspace_id AND r.id=a.resource_id WHERE a.workspace_id=%s AND a.scheduled_for>=%s AND a.scheduled_for<%s AND (%s OR a.status!='cancelled') ORDER BY a.scheduled_for,a.id LIMIT 501", (user["workspace_id"], since, until, include_cancelled)).fetchall()
-    return {"items": [view(r) for r in rows[:500]], "from_date": start.isoformat(), "to_date": end.isoformat(), "truncated": len(rows)>500}
+    return {"items": [view(r) for r in rows[:500]], "from_date": start.isoformat(), "to_date": end.isoformat(), "truncated": len(rows)>500,
+            "reminder_preferences": True}
+
+
+class ReminderPreference(Strict):
+    appointment_revision: int = Field(strict=True, ge=1, le=MAX_SAFE_ID)
+    expected_revision: int = Field(strict=True, ge=0, le=MAX_SAFE_ID)
+    enabled: StrictBool
+    lead_minutes: Literal[30, 60, 120, 1440]
+    consent: StrictBool = False
+
+
+def reminder_response(current, stored):
+    enabled = bool(stored and stored["enabled"] and current["status"] == "pending")
+    due = current["scheduled_for"] - timedelta(minutes=stored["lead_minutes"]) if enabled else None
+    return {"appointment_revision": current["revision"], "revision": stored["revision"] if stored else 0,
+            "enabled": enabled, "lead_minutes": stored["lead_minutes"] if stored else 60,
+            "due_at": due.isoformat() if due else None}
+
+
+def read_reminder(conn, workspace, appointment_id, *, lock=False):
+    suffix = " FOR UPDATE" if lock else ""
+    current = conn.execute(
+        "SELECT revision,status,scheduled_for,NOW() AS clock FROM socialmei.agenda_appointments "
+        "WHERE workspace_id=%s AND id=%s" + suffix, (workspace, appointment_id),
+    ).fetchone()
+    if not current:
+        raise HTTPException(404, "Agendamento não encontrado.")
+    stored = conn.execute(
+        "SELECT revision,enabled,lead_minutes FROM socialmei.agenda_appointment_reminder_preferences "
+        "WHERE workspace_id=%s AND appointment_id=%s AND appointment_revision=%s",
+        (workspace, appointment_id, current["revision"]),
+    ).fetchone()
+    return current, stored
+
+
+@router.get("/appointments/{appointment_id}/reminder-preference")
+def appointment_reminder_preference(appointment_id: UUID):
+    user = identity()
+    with connect() as conn:
+        conn.execute("SET TRANSACTION READ ONLY")
+        configure(conn)
+        return reminder_response(*read_reminder(conn, user["workspace_id"], appointment_id))
+
+
+@router.put("/appointments/{appointment_id}/reminder-preference")
+def save_appointment_reminder_preference(appointment_id: UUID, payload: ReminderPreference):
+    user = identity(write=True)
+    workspace = user["workspace_id"]
+    with connect() as conn:
+        configure(conn)
+        current, stored = read_reminder(conn, workspace, appointment_id, lock=True)
+        if current["revision"] != payload.appointment_revision:
+            raise HTTPException(409, "O agendamento mudou. Consulte o horário novamente.")
+        if payload.enabled and not payload.consent:
+            raise HTTPException(422, "Confirme o consentimento do cliente para configurar o lembrete.")
+        existing = reminder_response(current, stored)
+        if (not stored and not payload.enabled) or (stored and stored["enabled"] == payload.enabled
+                and (not payload.enabled or stored["lead_minutes"] == payload.lead_minutes)):
+            return existing
+        if existing["revision"] != payload.expected_revision or existing["revision"] >= MAX_SAFE_ID:
+            raise HTTPException(409, "A configuração mudou. Consulte o lembrete novamente.")
+        key = (workspace, appointment_id, current["revision"])
+        if payload.enabled:
+            if current["status"] != "pending" or current["scheduled_for"] - timedelta(minutes=payload.lead_minutes) <= current["clock"]:
+                raise HTTPException(409, "Escolha uma antecedência que ainda esteja no futuro.")
+            row = conn.execute(
+                "INSERT INTO socialmei.agenda_appointment_reminder_preferences "
+                "(workspace_id,appointment_id,appointment_revision,revision,lead_minutes,enabled,consented_at,consented_by) "
+                "VALUES(%s,%s,%s,1,%s,true,NOW(),%s) "
+                "ON CONFLICT (workspace_id,appointment_id,appointment_revision) DO UPDATE "
+                "SET revision=agenda_appointment_reminder_preferences.revision+1,lead_minutes=EXCLUDED.lead_minutes,"
+                "enabled=true,consented_at=EXCLUDED.consented_at,consented_by=EXCLUDED.consented_by,"
+                "revoked_at=NULL,revoked_by=NULL RETURNING revision,enabled,lead_minutes",
+                (*key, payload.lead_minutes, user["id"]),
+            ).fetchone()
+        else:
+            row = conn.execute(
+                "UPDATE socialmei.agenda_appointment_reminder_preferences SET revision=revision+1,enabled=false,"
+                "revoked_at=NOW(),revoked_by=%s WHERE workspace_id=%s AND appointment_id=%s AND appointment_revision=%s "
+                "RETURNING revision,enabled,lead_minutes", (user["id"], *key),
+            ).fetchone()
+        return reminder_response(current, row)
 
 
 @router.get("/appointments/{appointment_id}/history")

@@ -22,7 +22,17 @@ const { chromium } = require("playwright");
             button = document.createElement("button");
           head.textContent = title;
           button.textContent = label;
-          form.append(head, button);
+          form.append(head);
+          for (const field of fields) {
+            const caption = document.createElement("label");
+            const input = document.createElement("input");
+            input.id = "f_" + field.id;
+            input.value = field.value;
+            caption.htmlFor = input.id;
+            caption.textContent = field.label;
+            form.append(caption, input);
+          }
+          form.append(button);
           window.dlg().replaceChildren(form);
           window.dlg().showModal();
         };
@@ -38,11 +48,22 @@ const { chromium } = require("playwright");
           ends_at: new Date(Date.now() + sign * 86400000 + 1800000).toISOString(),
         }));
         window.attendanceWrites = [];
+        window.reminderWrites = [];
+        let reminder = null;
         window.SocialMEIV22 = {
           remote: true,
           identity: { usuario: { id: 1 }, negocio: { id: 2 }, papel: "owner" },
           request: async (url, method, body) => {
-            if (method !== "POST") return { items: structuredClone(rows), truncated: false };
+            if (url.endsWith("/reminder-preference")) {
+              const row = rows[1];
+              if (method === "PUT") {
+                window.reminderWrites.push(body);
+                reminder = { ...body, revision: (reminder?.revision || 0) + 1 };
+              }
+              return reminder || { appointment_revision: row.revision, revision: 0, enabled: false, lead_minutes: 60 };
+            }
+            if (method !== "POST")
+              return { items: structuredClone(rows), truncated: false, reminder_preferences: true };
             const row = rows.find(
               (entry) => url === "/agenda/appointments/" + entry.id + "/attendance",
             );
@@ -76,9 +97,25 @@ const { chromium } = require("playwright");
         ["confirmed", "no_show"],
       );
       assert.notEqual(writes[0].operation_id, writes[1].operation_id);
+      await page.getByRole("button", { name: "Lembrete", exact: true }).click();
+      const dialog = page.locator("dialog");
+      await dialog.getByLabel("Antecedência").selectOption("120");
+      await dialog.getByRole("button", { name: "Salvar", exact: true }).click();
+      assert.equal(await page.evaluate(() => window.reminderWrites.length), 0);
+      await dialog.getByLabel("O cliente consentiu em receber lembrete").check();
+      await dialog.getByRole("button", { name: "Salvar", exact: true }).click();
+      await page.getByText("Horário do lembrete registrado. O envio está desativado.").waitFor();
+      await page.getByRole("button", { name: "Lembrete", exact: true }).click();
+      assert.equal(await dialog.getByLabel("Antecedência").inputValue(), "120");
+      await dialog.getByLabel("Antecedência").selectOption("0");
+      await dialog.getByRole("button", { name: "Salvar", exact: true }).click();
+      await page.getByText("Lembrete desativado.", { exact: true }).waitFor();
+      const reminders = await page.evaluate(() => window.reminderWrites);
+      assert.deepEqual(reminders.map(({ enabled, consent }) => [enabled, consent]), [[true, true], [false, false]]);
+      assert.equal(reminders[1].expected_revision, 1);
       await page.close();
     }
-    console.log("Attendance confirmation, absence and explicit submit passed at 390px and 1280px");
+    console.log("Attendance, absence and consent-based reminder settings passed at 390px and 1280px");
   } finally {
     await browser.close();
   }

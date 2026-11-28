@@ -77,6 +77,7 @@
         throw Error("Resposta de agendamentos inválida.");
       s.items = result.items;
       s.truncated = result.truncated;
+      s.reminderPreferences = result.reminder_preferences === true;
       s.phase = "ready";
     } catch (e) {
       if (live(s) && ticket === s.ticket) {
@@ -576,6 +577,56 @@
   const attendanceLabel = { confirmed: "Presença confirmada", no_show: "Ausência registrada" };
 
 
+  function editReminder(s, row) {
+    return prepare(s, async () => {
+      const path = "/agenda/appointments/" + row.id + "/reminder-preference";
+      const current = await host.request(path);
+      if (!live(s)) return;
+      if (current?.appointment_revision !== row.revision || !Number.isSafeInteger(current.revision))
+        throw Error("O agendamento mudou. Consulte a agenda novamente.");
+      const input = form(s, "Configurar lembrete", [
+        { id: "reminder_lead", label: "Antecedência", value: current.enabled ? current.lead_minutes : 0 },
+        { id: "reminder_consent", label: "O cliente consentiu em receber lembrete", value: "" },
+      ], async (get) => {
+        const lead = Number(get("reminder_lead").value);
+        const saved = await host.request(path, "PUT", {
+          appointment_revision: row.revision,
+          expected_revision: current.revision,
+          enabled: lead !== 0,
+          lead_minutes: lead || current.lead_minutes,
+          consent: get("reminder_consent").checked,
+        });
+        if (saved?.enabled !== (lead !== 0))
+          throw Error("Resposta inesperada ao salvar o lembrete.");
+        s.message = saved.enabled
+          ? "Horário do lembrete registrado. O envio está desativado."
+          : "Lembrete desativado.";
+      });
+      if (!input) return;
+      const previous = input("reminder_lead");
+      const select = node("select");
+      select.id = previous.id;
+      for (const [value, label] of [[0,"Desativado"], [30,"30 minutos"], [60,"1 hora"],
+        [120,"2 horas"], [1440,"24 horas"]]) {
+        const option = node("option", label);
+        option.value = value;
+        select.append(option);
+      }
+      select.value = current.enabled ? current.lead_minutes : 0;
+      previous.replaceWith(select);
+      const consent = input("reminder_consent");
+      consent.type = "checkbox";
+      consent.checked = false;
+      const syncConsent = () => { consent.required = select.value !== "0"; };
+      select.onchange = syncConsent;
+      syncConsent();
+      const details = summary(row, current.due_at
+        ? "Horário registrado: " + new Date(current.due_at).toLocaleString("pt-BR")
+        : "O envio de lembretes está desativado nesta versão.");
+      dlg().querySelector("h2")?.after(details);
+    });
+  }
+
   async function history(s, row) {
     try {
       const result = await host.request("/agenda/appointments/" + row.id + "/history");
@@ -803,6 +854,8 @@
             disabled || s.phase !== "ready",
           ),
         );
+      if (s.reminderPreferences && writer() && row.status === "pending" && start.getTime() > Date.now())
+        controls.append(button("Lembrete", () => editReminder(s, row), disabled || s.phase !== "ready"));
       controls.append(button("Histórico", () => history(s, row), s.busy));
       card.append(when, body, controls);
       list.append(card);

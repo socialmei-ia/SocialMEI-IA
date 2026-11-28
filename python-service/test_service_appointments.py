@@ -120,6 +120,37 @@ class AppointmentDatabaseTests(unittest.TestCase):
         self.assertEqual([r["status"] for r in history], ["pending","pending","cancelled"])
         self.assertEqual(self.post(PATH+"/appointments", payload)["status"], "cancelled")
 
+    def test_reminder_consent_concurrent_retry_revocation_and_reschedule(self):
+        now = datetime.now(timezone.utc)
+        row = self.post(PATH + "/appointments", self.payload(scheduled_for=(now + timedelta(days=2)).isoformat()))
+        appointment = PATH + "/appointments/" + row["id"]
+        url = appointment + "/reminder-preference"
+        data = {"appointment_revision": 1, "expected_revision": 0, "enabled": True, "lead_minutes": 60}
+        self.assertEqual(self.client.get(url).json()["revision"], 0)
+        self.assertEqual(self.client.put(url, json=data).status_code, 422)
+        data["consent"] = True
+        other = self.register("other-reminder@example.test")
+        self.assertEqual(other.get(url).status_code, 404)
+        self.assertEqual(other.put(url, json=data).status_code, 404)
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results = list(pool.map(lambda _: self.client.put(url, json=data), range(2)))
+        self.assertEqual([r.status_code for r in results], [200, 200])
+        self.assertEqual(results[0].json(), results[1].json())
+        saved = results[0].json()
+        self.assertEqual(saved["revision"], 1)
+        self.assertEqual(datetime.fromisoformat(saved["due_at"]), datetime.fromisoformat(row["scheduled_for"]) - timedelta(hours=1))
+        self.assertEqual(self.client.put(url, json={**data, "lead_minutes": 30}).status_code, 409)
+        self.assertEqual(self.client.put(url, json={**data, "expected_revision": 1, "enabled": False, "consent": False}).json()["revision"], 2)
+        self.assertFalse(self.login("admin@example.com").get(url).json()["enabled"])
+        moved = self.client.patch(appointment, json={"expected_revision": 1, "scheduled_for": (now + timedelta(days=3)).isoformat()})
+        self.assertEqual(moved.status_code, 200, moved.text)
+        self.assertEqual(self.client.get(url).json()["revision"], 0)
+        self.assertEqual(self.client.put(url, json=data).status_code, 409)
+        self.assertTrue(self.client.put(url, json={**data, "appointment_revision": 2}).json()["enabled"])
+        cancelled = self.client.patch(appointment, json={"expected_revision": 2, "status": "cancelled"})
+        self.assertEqual(cancelled.status_code, 200, cancelled.text)
+        self.assertFalse(self.client.get(url).json()["enabled"])
+
     def test_attendance_is_explicit_replay_safe_and_visible_in_client_history(self):
         now = datetime.now(timezone.utc)
         future = (now + timedelta(days=1)).isoformat()
