@@ -13,6 +13,7 @@ from shared_data import MAX_SAFE_ID, ensure_workspace, require_shared_data
 
 from database import connect
 from account_auth import current, require_enabled
+from auth_context import principal
 import settings
 
 router = APIRouter(prefix="/api/v1/vendas", tags=["vendas"])
@@ -161,7 +162,15 @@ def linked_product(cur, workspace_id, product_id):
     return product
 
 
-def move_stock(cur, workspace_id, previous, product, quantity, active):
+def stock_context(cur, workspace, reason, *, product_id=None, sale_id=None, operation_id=None):
+    identity = principal.get()
+    metadata = dict(workspace_id=workspace, product_id=product_id, sale_id=sale_id,
+                    operation_id=str(operation_id) if operation_id else None, reason=reason,
+                    actor_id=identity["id"] if identity and identity["workspace_id"] == workspace else None)
+    cur.execute("SELECT set_config('socialmei.stock_context', %s, true)", (json.dumps(metadata),))
+
+
+def move_stock(cur, workspace_id, previous, product, quantity, active, *, sale_id, operation_id, reason):
     deltas = {}
     if previous and previous["estoque_aplicado"]:
         if previous["produto_id"] is None:
@@ -182,6 +191,7 @@ def move_stock(cur, workspace_id, previous, product, quantity, active):
                 409,
                 "Estoque insuficiente ou estorno acima do limite. Nenhuma alteração foi salva.",
             )
+        stock_context(cur, workspace_id, reason, product_id=product_id, sale_id=sale_id, operation_id=operation_id)
         cur.execute(
             "UPDATE socialmei.crm_produtos SET estoque = estoque + %s, versao = versao + 1, atualizado_em = NOW() WHERE workspace_id = %s AND id = %s",
             (delta, workspace_id, product_id),
@@ -299,27 +309,23 @@ def create_in_transaction(cur, workspace_id, payload, *, action="criar"):
     product = linked_product(cur, workspace_id, payload.produto_id)
     if action == "converter" and product["status"] != "Ativo":
         raise HTTPException(409, "Escolha um item ativo do cat\u00e1logo.")
-    applied = move_stock(
-        cur,
-        workspace_id,
-        None,
-        product,
-        payload.quantidade,
-        payload.status == "Pendente",
-    )
     values = payload.model_dump(exclude={"operation_id"})
     values.update(
         cliente=client["nome"],
         item=product["nome"],
         tipo_item=product["tipo"],
         valor=payload.preco * payload.quantidade - payload.desconto,
-        estoque_aplicado=applied,
+        estoque_aplicado=payload.status == "Pendente" and product["tipo"] == "Produto",
     )
     cur.execute(
         f"INSERT INTO socialmei.crm_vendas (workspace_id, {', '.join(values)}) VALUES (%s, {', '.join(['%s'] * len(values))}) RETURNING {SALE_COLUMNS}",
         [workspace_id, *values.values()],
     )
-    return finish_operation(cur, workspace_id, payload, fingerprint, cur.fetchone())
+    sale = cur.fetchone()
+    move_stock(cur, workspace_id, None, product, payload.quantidade, payload.status == "Pendente",
+               sale_id=sale["id"], operation_id=payload.operation_id,
+               reason="Conversão de oportunidade" if action == "converter" else "Registro de venda")
+    return finish_operation(cur, workspace_id, payload, fingerprint, sale)
 
 
 @router.patch("/{venda_id}", response_model=VendaOut)
@@ -348,6 +354,9 @@ def edit_sale(venda_id: int, payload: VendaEdit):
             product,
             payload.quantidade,
             previous["status"] == "Pendente",
+            sale_id=venda_id,
+            operation_id=payload.operation_id,
+            reason="Correção de venda",
         )
         values = payload.model_dump(exclude={"operation_id", "expected_version"})
         values.update(
@@ -401,7 +410,9 @@ def change_sale(venda_id, payload, kind):
                     else None
                 )
                 applied = move_stock(
-                    cur, workspace_id, previous, product, previous["quantidade"], active
+                    cur, workspace_id, previous, product, previous["quantidade"], active,
+                    sale_id=venda_id, operation_id=payload.operation_id,
+                    reason="Registro de venda" if active else "Reposição por cancelamento de venda",
                 )
         cur.execute(
             f"UPDATE socialmei.crm_vendas SET status = %s, estoque_aplicado = %s, excluida = %s, versao = versao + 1, atualizado_em = NOW() WHERE workspace_id = %s AND id = %s RETURNING {SALE_COLUMNS}",

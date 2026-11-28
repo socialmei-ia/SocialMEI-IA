@@ -167,6 +167,7 @@ window.SocialMEIV22 = (() => {
         !(
           /^\/(vendas|financeiro)(\/[1-9]\d*(\/(registrar|pagar|cancelar|excluir|liquidacoes|estornar-parcela))?)?$/.test(path) ||
           (method === "POST" && /^\/financeiro\/de-venda\/[1-9]\d*$/.test(path)) ||
+          (method === "POST" && /^\/produtos\/[1-9]\d*\/estoque$/.test(path)) ||
           (method === "POST" && /^\/opportunities\/[a-f0-9-]{36}\/convert$/i.test(path))
         ) ||
         !["POST", "PATCH"].includes(method) ||
@@ -192,7 +193,7 @@ window.SocialMEIV22 = (() => {
     section.setAttribute("aria-label", "Operação sem confirmação");
     const message = document.createElement("p");
     message.textContent =
-      "Há uma venda ou lançamento sem confirmação. Confira o resultado antes de registrar outra operação.";
+      "Há uma operação sem confirmação. Confira o resultado antes de registrar outra.";
     message.setAttribute("role", "status");
     const button = document.createElement("button");
     button.type = "button";
@@ -204,7 +205,8 @@ window.SocialMEIV22 = (() => {
         if (!pending) return render();
         const identity = identityKey();
         const key = operationKey();
-        const title = pending.path.startsWith("/financeiro") ? "Lan\u00e7amento financeiro" : "Venda";
+        const title = pending.path.startsWith("/produtos") ? "Ajuste de estoque" :
+          pending.path.startsWith("/financeiro") ? "Lan\u00e7amento financeiro" : "Venda";
         info(
           "Conferir operação pendente",
           "<p>" +
@@ -725,6 +727,88 @@ window.SocialMEIV22 = (() => {
     type.addEventListener("change", inventory);
     inventory();
   }
+
+  function showStockHistory() {
+    if (!auth.current || dataScope !== identityKey()) return;
+    const product = data.products[S.prod];
+    if (!product || product.tipo !== "Produto") return;
+    const scope = identityKey();
+    info("Movimentações de estoque", '<div data-stock-dialog></div>');
+    const container = dlg().querySelector("[data-stock-dialog]");
+    const active = () => container.isConnected && dlg().open && auth.current && identityKey() === scope;
+    const add = (tag, text, parent = container) => {
+      const node = document.createElement(tag);
+      if (text) node.textContent = text;
+      parent.append(node);
+      return node;
+    };
+    add("h3", product.nome);
+    const summary = add("p");
+    summary.setAttribute("role", "status");
+    const select = add("select");
+    select.className = "in";
+    select.setAttribute("aria-label", "Tipo de movimentação");
+    for (const [value, text] of [["", "Todas"], ["entrada", "Entradas"], ["saida", "Saídas"]])
+      select.add(new Option(text, value));
+    const list = add("ol");
+    const more = add("button", "Carregar mais");
+    more.type = "button";
+    more.className = "btn o";
+    more.hidden = true;
+    let revision = 0, cursor = null;
+    async function load(append = false) {
+      const id = ++revision;
+      const query = new URLSearchParams();
+      if (select.value) query.set("tipo", select.value);
+      if (append && cursor) query.set("before_id", cursor);
+      if (!append) list.replaceChildren();
+      more.hidden = true;
+      summary.textContent = "Consultando histórico…";
+      try {
+        const data = await request("/produtos/" + product.id + "/movimentacoes?" + query);
+        if (!active() || id !== revision || data.workspace_id !== auth.current.negocio.id || data.produto_id !== product.id) return;
+        summary.textContent = "Saldo atual: " + data.estoque + (data.estoque_baixo ? " · Estoque baixo" : "") +
+          " | Histórico registrado: " + data.totais.entradas + " entradas e " + data.totais.saidas + " saídas.";
+        for (const row of data.items) {
+          add("li", new Date(row.occurred_at).toLocaleString("pt-BR") + " · " + row.reason +
+            " · " + row.previous_stock + " → " + row.current_stock +
+            (row.sale_id ? " · Venda #" + row.sale_id : "") +
+            (row.actor_id ? " · Usuário #" + row.actor_id : " · Responsável não identificado"), list);
+        }
+        if (!list.children.length) add("li", "Nenhuma movimentação registrada neste filtro.", list);
+        cursor = data.next_before_id;
+        more.hidden = !cursor;
+      } catch (failure) {
+        if (active() && id === revision) summary.textContent = failure.message;
+      }
+    }
+    select.onchange = () => load();
+    more.onclick = () => load(true);
+    if (canWriteFinance()) {
+      const adjust = add("button", "Registrar ajuste");
+      adjust.type = "button";
+      adjust.className = "btn o";
+      adjust.onclick = () => {
+        if (!active()) return;
+        dlg().close();
+        form("Registrar ajuste de estoque", [
+          field("delta", "Variação em unidades (+ entrada, − saída)", "", { req: 1 }),
+          field("reason", "Motivo", "", { req: 1, max: 240 }),
+        ], (values) => {
+          if (!/^[+-]?\d+$/.test(values.delta) || !Number.isSafeInteger(Number(values.delta)) || !Number(values.delta))
+            throw Error("Informe uma quantidade inteira diferente de zero.");
+          return write("/produtos/" + product.id + "/estoque", "POST", {
+            delta: Number(values.delta), motivo: values.reason, expected_version: product.versao,
+          }, true);
+        }, "Confirmar ajuste");
+      };
+    }
+    load();
+  }
+
+  document.addEventListener("click", (event) => {
+    if (event.target.closest?.("[data-stock-history]")) showStockHistory();
+  });
   // Incoming Meta webhooks persist server-side. Poll while the inbox is visible
   // so messages appear without requiring a full page reload.
   /* v7.9 · Fotos de perfil e iniciais. Somente data URI JPEG/PNG/WebP, com limite de tamanho. */

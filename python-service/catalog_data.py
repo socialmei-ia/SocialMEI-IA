@@ -1,6 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 from typing import Annotated, Literal
+from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query, Response
 from psycopg.rows import dict_row
@@ -14,8 +15,9 @@ from pydantic import (
     field_validator,
     model_validator,
 )
-from sales_data import Money
+from sales_data import Money, stock_context
 from shared_data import MAX_SAFE_ID, ensure_workspace, require_shared_data
+from account_auth import current
 
 from database import connect
 
@@ -107,9 +109,16 @@ class ProdutoOut(ProductSnapshot):
 
 
 class EstoqueUpdate(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     delta: int = Field(ge=-MAX_SAFE_ID, le=MAX_SAFE_ID, strict=True)
     expected_version: int = Field(ge=1, strict=True)
+    operation_id: UUID | None = None
+    motivo: str = Field(default="Ajuste de estoque", min_length=1, max_length=240)
+
+    @field_validator("motivo")
+    @classmethod
+    def valid_reason(cls, value):
+        return ProdutoFields.valid_detail_text(value)
 
     @model_validator(mode="after")
     def nonzero_delta(self):
@@ -125,6 +134,7 @@ def insert_product(cur, workspace_id, product):
     values = product.model_dump()
     for key in ("preco", "custo"):
         values[key] = Decimal(str(values[key]))
+    stock_context(cur, workspace_id, "Saldo inicial do produto")
     cur.execute(
         f"INSERT INTO socialmei.crm_produtos (workspace_id, {', '.join(values)}) "
         f"VALUES (%s, {', '.join(['%s'] * len(values))}) RETURNING {PRODUCT_COLUMNS}",
@@ -243,6 +253,8 @@ def update_product(produto_id: int, payload: ProdutoUpdate):
             ) from None
         if not values:
             return current
+        if "estoque" in values:
+            stock_context(cur, workspace_id, "Ajuste pelo cadastro do produto", product_id=produto_id)
         cur.execute(
             f"UPDATE socialmei.crm_produtos SET {', '.join(key + ' = %s' for key in values)}, "
             f"versao = versao + 1, atualizado_em = NOW() WHERE workspace_id = %s AND id = %s RETURNING {PRODUCT_COLUMNS}",
@@ -263,6 +275,24 @@ def adjust_stock(produto_id: int, payload: EstoqueUpdate):
     require_shared_data()
     with connect() as conn, conn.cursor(row_factory=dict_row) as cur:
         workspace_id = ensure_workspace(conn)
+        if payload.operation_id:
+            cur.execute(
+                "SELECT current_stock-previous_stock AS delta,reason,product_version FROM socialmei.stock_movements "
+                "WHERE workspace_id=%s AND product_id=%s AND operation_id=%s AND sale_id IS NULL",
+                (workspace_id, produto_id, payload.operation_id),
+            )
+            replay = cur.fetchone()
+            if replay:
+                if (replay["delta"], replay["reason"], replay["product_version"]) != (
+                    payload.delta, payload.motivo, payload.expected_version + 1
+                ):
+                    raise HTTPException(409, "Identificador de ajuste usado com outros dados.")
+                cur.execute(f"SELECT {PRODUCT_COLUMNS} FROM socialmei.crm_produtos WHERE workspace_id=%s AND id=%s",
+                            (workspace_id, produto_id))
+                product = cur.fetchone()
+                if not product:
+                    raise HTTPException(404, "Item não encontrado.")
+                return product
         current = lock_product(cur, workspace_id, produto_id, payload.expected_version)
         if current["tipo"] != "Produto":
             raise HTTPException(422, "Serviços não possuem estoque.")
@@ -271,12 +301,51 @@ def adjust_stock(produto_id: int, payload: EstoqueUpdate):
             raise HTTPException(
                 409, "Ajuste produziria estoque negativo ou acima do limite."
             )
+        stock_context(cur, workspace_id, payload.motivo, product_id=produto_id, operation_id=payload.operation_id)
         cur.execute(
             f"UPDATE socialmei.crm_produtos SET estoque = %s, versao = versao + 1, atualizado_em = NOW() "
             f"WHERE workspace_id = %s AND id = %s RETURNING {PRODUCT_COLUMNS}",
             (stock, workspace_id, produto_id),
         )
         return cur.fetchone()
+
+
+@router.get("/{produto_id}/movimentacoes")
+def stock_history(
+    produto_id: int,
+    tipo: Literal["entrada", "saida"] | None = None,
+    before_id: int | None = Query(default=None, ge=1),
+    limit: int = Query(default=30, ge=1, le=100),
+):
+    workspace = current()["workspace_id"]
+    require_shared_data()
+    with connect() as conn, conn.cursor(row_factory=dict_row) as cur:
+        cur.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+        cur.execute("SET LOCAL statement_timeout='4s'")
+        cur.execute("SELECT estoque,minimo,tipo FROM socialmei.crm_produtos WHERE workspace_id=%s AND id=%s",
+                    (workspace, produto_id))
+        product = cur.fetchone()
+        if product is None:
+            raise HTTPException(404, "Item não encontrado.")
+        params = (workspace, produto_id)
+        cur.execute(
+            "SELECT count(*) AS count,"
+            "COALESCE(sum(GREATEST(current_stock-previous_stock,0)),0)::text AS entradas,"
+            "COALESCE(sum(GREATEST(previous_stock-current_stock,0)),0)::text AS saidas "
+            "FROM socialmei.stock_movements WHERE workspace_id=%s AND product_id=%s", params,
+        )
+        totals = cur.fetchone()
+        cur.execute(
+            "SELECT id,sale_id,actor_id,previous_stock,current_stock,reason,occurred_at "
+            "FROM socialmei.stock_movements WHERE workspace_id=%s AND product_id=%s "
+            "AND (%s::bigint IS NULL OR id<%s) "
+            "AND (%s::text IS NULL OR (%s='entrada')=(current_stock>previous_stock)) "
+            "ORDER BY id DESC LIMIT %s", (*params, before_id, before_id, tipo, tipo, limit+1),
+        )
+        rows = cur.fetchall()
+        return {"workspace_id": workspace, "produto_id": produto_id, "estoque": product["estoque"],
+                "estoque_baixo": product["tipo"] == "Produto" and product["estoque"] <= product["minimo"],
+                "totais": totals, "items": rows[:limit], "next_before_id": rows[limit-1]["id"] if len(rows)>limit else None}
 
 
 @router.delete("/{produto_id}", status_code=204)
