@@ -1,6 +1,10 @@
 # Candidata 8.0
 
-A referência de produção disponível é a Missão 07 com schema 046. A candidata precisa do aceite manual dessa versão, da homologação integrada e das autorizações de publicação. A execução local usa dados sintéticos e mantém os envios externos desativados.
+A produção usa o backend da Missão 07 com schema 046 e o frontend Premium v7.9.11. A candidata precisa do aceite manual dessa versão, da homologação integrada e das autorizações de publicação. A execução local usa dados sintéticos e mantém os envios externos desativados.
+
+## Gateway após a Premium v7.9.11
+
+Na composição da 8.0, retire o bind de `/srv/frontend` da release Premium com perfil `schema046` para que o gateway exponha o perfil `candidate` incorporado à imagem. Preserve o mount pontual de `config.js` e os mounts privados do Caddy. Compare os hashes efetivamente servidos do HTML, do CSS base, do código nativo e dos adaptadores da 8.0 com o manifesto da candidata. Valide `window.SocialMEIVersion` e as funções condicionadas ao novo schema. A reversão deve usar a composição congelada da Premium, com o bind do perfil `schema046`.
 
 ## Preparar as imagens
 
