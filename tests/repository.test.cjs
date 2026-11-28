@@ -8,6 +8,7 @@ const { test } = require("node:test");
 const root = path.resolve(__dirname, "..");
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 const app = read("frontend/socialmei-app.html");
+const native = read("frontend/scripts/v22-native.js");
 
 test("tracked paths do not collide on case-insensitive Windows filesystems", () => {
   const paths = execFileSync("git", ["ls-files", "-z"], { cwd: root, encoding: "utf8" })
@@ -45,12 +46,14 @@ test("V22 inline and external scripts parse with their shared globals in load or
   ))
     new vm.Script(fs.readFileSync(file, "utf8"), { filename: file });
   new vm.Script(read("tools/devhub.js"));
-  assert.deepEqual(external, ["config.js", "scripts/auth-store.js", "scripts/v22-bootstrap.js"]);
+  assert.deepEqual(external.slice(0, 2), ["config.js", "scripts/auth-store.js"]);
+  assert(external.indexOf("scripts/v22-bootstrap.js") < external.indexOf("scripts/v797-evolucao.js"));
   assert.equal(new Set(external).size, external.length, "Each bootstrap controller is loaded once");
-  assert.match(app, /<script type="text\/plain" id="v22-native-source">/);
+  assert.doesNotMatch(app, /id="v22-native-source"/);
+  new vm.Script(native);
   const bootstrap = read("frontend/scripts/v22-bootstrap.js");
   assert.match(bootstrap, /await auth.ready/);
-  assert.match(bootstrap, /original.textContent/);
+  assert.match(bootstrap, /xhr\.open\("GET", "scripts\/v22-native\.js", false\)/);
   assert.match(bootstrap, /scripts\/v22-backend\.js/);
 });
 
@@ -96,7 +99,7 @@ test("V22 static DOM IDs are unique and native modules remain present", () => {
     "relatorios",
     "config",
   ])
-    assert(new RegExp("(?:function " + fn + "\\(|const " + fn + "=)").test(app), fn);
+    assert(new RegExp("(?:function " + fn + "\\(|(?:const|let) " + fn + "=)").test(native), fn);
   for (const route of [
     "inicio",
     "caixa",
@@ -107,9 +110,9 @@ test("V22 static DOM IDs are unique and native modules remain present", () => {
     "relatorios",
     "config",
   ])
-    assert(new RegExp("(?:['\"]" + route + "['\"]|" + route + ":)").test(app), route);
-  assert.match(app, /telas\/oportunidades\.html/);
-  assert.match(app, /telas\/divulgacao\.html/);
+    assert(new RegExp("(?:['\"]" + route + "['\"]|" + route + ":)").test(native), route);
+  assert.match(native, /telas\/oportunidades\.html/);
+  assert.match(native, /telas\/divulgacao\.html/);
   const entry = read("frontend/entrada.html");
   for (const id of ["fC", "fE", "cNome", "cMail", "cPass", "eMailL", "ePassL", "obCard", "stepper"])
     assert(entry.includes('id="' + id + '"'), id);

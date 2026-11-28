@@ -72,16 +72,16 @@ test("shared sample keeps support and refusal out of the sales queue without inv
         id: String(index),
         author: "customer",
         text: message.texto,
-        at: message.data + "T00:00:00-03:00",
+        at: message.data + "T" + message.hora + ":00-03:00",
       })),
     })),
     { referenceTime: "2026-10-19T15:00:00Z" },
   );
-  const forName = (name) => rows.find((row) => row.name.startsWith(name));
-  assert.equal(presentation.present(forName("Lia")).level, "quente");
-  assert.equal(presentation.present(forName("Bruno")).lane, "chance");
-  assert.equal(presentation.present(forName("Ana")).lane, "attention");
-  assert.equal(presentation.present(forName("Paulo")).lane, "attention");
-  assert.equal(presentation.present(forName("Leo")).lane, "excluded");
+  const presented = (id) => presentation.present(rows.find((row) => row.id === id));
+  assert.equal(presented("96001").level, "quente");
+  assert.equal(presented("96002").lane, "chance");
+  assert.equal(presented("96004").lane, "attention");
+  assert.equal(presented("96005").lane, "attention");
+  assert.equal(presented("96006").lane, "excluded");
   assert(rows.every((row) => !Object.hasOwn(row, "probability")));
 });

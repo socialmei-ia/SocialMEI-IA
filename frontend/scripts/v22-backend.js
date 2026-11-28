@@ -893,6 +893,8 @@ window.SocialMEIV22 = (() => {
     };
   }
   let inboxPolling = false;
+  let inboxRetry = { scope: null, failures: 0, at: 0 };
+  let inboxCapabilityCache = null;
   let inboxReadDone = null;
   const inboxSettled = () => inboxReadDone || Promise.resolve();
   let inboxFingerprint = "";
@@ -955,17 +957,24 @@ window.SocialMEIV22 = (() => {
     else if(ms)S.k10bot=true;
     render();
   }
-  async function refreshInbox({ silent = false } = {}) {
+  async function refreshInbox({ silent = false, background = false } = {}) {
     if (inboxPolling || !remote || !auth.current) return;
+    const scope = identityKey();
+    if (inboxRetry.scope !== scope) inboxRetry = { scope, failures: 0, at: 0 };
+    const now = Date.now();
+    if (background && now < inboxRetry.at) return;
     inboxPolling = true;
     let finishInboxRead;
     inboxReadDone = new Promise(resolve => { finishInboxRead = resolve; });
     const workspace = auth.current.negocio.id;
-    const scope = identityKey();
     const epoch=smInboxEpoch;
     const sameSession = () => auth.current && identityKey() === scope && epoch===smInboxEpoch;
     try {
-      const cap = await request("/message-enrichment/capabilities");
+      const cached = inboxCapabilityCache;
+      const cap = background && cached?.scope === scope && cached.epoch === epoch &&
+        now >= cached.at && now - cached.at < 30000
+        ? cached.cap
+        : await request("/message-enrichment/capabilities");
       if (!sameSession()) return;
       const available = cap.mode === "stub" || cap.instagram_inbox || cap.waha_inbox;
       const result = available
@@ -974,6 +983,8 @@ window.SocialMEIV22 = (() => {
       if (!sameSession()) return;
       if (result.workspace_id !== workspace) throw Error("Resposta de outro negócio.");
       if (!Array.isArray(result.items)) throw Error("Resposta da Caixa Unificada inválida.");
+      if (cap !== cached?.cap) inboxCapabilityCache = { scope, epoch, at: now, cap };
+      inboxRetry = { scope, failures: 0, at: 0 };
       window.SocialMEIInboxSound?.observe(scope, result.items);
       inboxCapabilities = cap;
       inboxState = available ? "ok" : "unavailable";
@@ -1035,6 +1046,11 @@ window.SocialMEIV22 = (() => {
       if (silent && sameSession()) smInboxPaint();
     } catch (e) {
       if (!sameSession()) return;
+      inboxCapabilityCache = null;
+      if (background) {
+        const failures = Math.min(inboxRetry.failures + 1, 5);
+        inboxRetry = { scope, failures, at: Date.now() + Math.min(6000 * 2 ** failures, 120000) };
+      }
       inboxState = [403, 503].includes(e.status) ? "unavailable" : "error";
       if (silent) smInboxPaint();
       if (!silent && ![403, 503].includes(e.status)) throw e;
@@ -1047,7 +1063,8 @@ window.SocialMEIV22 = (() => {
   // Never poll while hidden or without a session. No duplicate timers.
   if (remote)
     window.setInterval(() => {
-      if (!document.hidden && loaded && H.startsWith("/caixa")) refreshInbox({ silent: true });
+      if (!document.hidden && loaded && H.startsWith("/caixa"))
+        refreshInbox({ silent: true, background: true });
     }, 6000);
   function paintInboxLabels() {
     if (!H.startsWith("/caixa")) return;

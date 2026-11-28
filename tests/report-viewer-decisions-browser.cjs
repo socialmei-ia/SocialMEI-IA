@@ -110,9 +110,8 @@ module.exports = async (browser, origin) => {
       try {
         await page.goto(origin + "/frontend/relatorios-leitura.html");
         await page
-          .getByText("Indicadores atualizados; valores agregados sem dados individuais.", {
-            exact: true,
-          })
+          .locator("#status")
+          .filter({ hasText: /Dados reais do negócio .*Valores agregados, sem dados individuais\./ })
           .waitFor();
         await page.locator("[data-customer-report]").waitFor();
         assert.equal(

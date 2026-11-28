@@ -14,6 +14,9 @@ const analysis = (extra = {}) => ({
 function bridge() {
   let result = [];
   const context = {
+    addEventListener() {},
+    MutationObserver: class { observe() {} },
+    queueMicrotask,
     console,
     Date,
     location: { origin: "https://example.test" },
@@ -35,7 +38,9 @@ function bridge() {
       },
     },
     document: {
+      body: {},
       hidden: false,
+      addEventListener() {},
       getElementById: (id) => (id === "app" ? {} : null),
       querySelector: () => null,
       querySelectorAll: () => [],

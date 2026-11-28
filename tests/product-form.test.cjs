@@ -6,7 +6,7 @@ const { test } = require("node:test");
 
 const source = fs.readFileSync(path.join(__dirname, "../frontend/scripts/v22-backend.js"), "utf8");
 const start = source.indexOf("  function productForm(edit = false) {");
-const end = source.indexOf("  // Incoming Meta webhooks", start);
+const end = source.indexOf("  function showStockHistory()", start);
 assert(start > 0 && end > start);
 
 function open(product) {

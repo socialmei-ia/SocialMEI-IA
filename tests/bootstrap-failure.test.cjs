@@ -108,6 +108,6 @@ test("successful bootstrap keeps the backend-controlled app and loads existing i
   assert.equal(page.app.attributes.role, undefined);
   assert(page.requests.includes("scripts/v22-whatsapp-bot.js"));
   assert(page.requests.includes("scripts/v22-instagram.js"));
-  assert.deepEqual(page.styles, ["styles/v22-client-details.css"]);
+  assert.deepEqual(page.styles, ["styles/v22-client-details.css", "styles/connections-hub.css"]);
   assert.deepEqual(page.redirects, []);
 });

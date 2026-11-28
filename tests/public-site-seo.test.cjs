@@ -35,8 +35,10 @@ test("Search metadata identifies only the public page, with working OG and favic
   assert(html.includes('rel="canonical" href="' + host + '/sobre.html"'));
   assert(html.includes(host + "/assets/socialmei-og.png"));
   assert(fs.existsSync("frontend/assets/socialmei-og.png"), "social preview PNG not included");
-  assert(fs.existsSync("frontend/assets/socialmei-favicon.svg"), "favicon absent");
-  assert(app.includes('href="assets/socialmei-favicon.svg"'));
+  for (const size of [32, 64]) {
+    assert(fs.existsSync(`frontend/assets/favicon-${size}.png`), "favicon absent");
+    assert(app.includes(`href="assets/favicon-${size}.png"`));
+  }
   assert(app.includes('<meta name="robots" content="noindex,nofollow">'));
   assert(!app.includes("googletagmanager.com") && !app.includes("clarity.ms/tag/"));
 });

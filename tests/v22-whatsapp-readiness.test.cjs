@@ -100,10 +100,18 @@ function browser(result) {
   assert.equal(unconfigured.text.textContent, "Não configurado");
   assert.equal(unconfigured.classes.has("s-ok"), false);
 
+  const receivingWithSender = browser({
+    source: "server",
+    whatsapp: { configured: true, receiving_configured: true, sending_available: true },
+  });
+  await receivingWithSender.window.SocialMEIWhatsAppReadiness.refresh();
+  assert.equal(receivingWithSender.text.textContent, "Recebimento configurado");
+  assert(receivingWithSender.badge.title.includes("envio não verificados"));
+
   for (const response of [
     {
       source: "server",
-      whatsapp: { configured: true, receiving_configured: true, sending_available: true },
+      whatsapp: { configured: true, receiving_configured: true, sending_available: "true" },
     },
     {
       source: "local",

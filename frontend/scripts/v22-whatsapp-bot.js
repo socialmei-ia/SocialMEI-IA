@@ -57,16 +57,18 @@
   async function load(s) {
     if (!current(s) || s.busy) return;
     s.busy = true;
-    s.lastRead = Date.now();
     paint(s);
     try {
       await read(s);
+      s.readFailures = 0;
     } catch {
       if (current(s)) {
+        s.readFailures = Math.min(s.readFailures + 1, 2);
         s.data = null;
         s.message = "Não foi possível consultar o atendimento. Atualize para tentar novamente.";
       }
     } finally {
+      s.nextRead = Date.now() + 30000 * 2 ** s.readFailures;
       s.busy = false;
       paint(s);
     }
@@ -104,7 +106,7 @@
     if (!thread) return;
     if (!state || state.scope !== scope() || state.id !== row.id) {
       state?.panel.remove();
-      state = { id: row.id, scope: scope(), busy: false, lastRead: 0, data: null };
+      state = { id: row.id, scope: scope(), busy: false, nextRead: 0, readFailures: 0, data: null };
     }
     const s = state;
     if (!s.panel?.isConnected) {
@@ -132,7 +134,7 @@
       thread.append(s.panel);
     }
     paint(s);
-    if (Date.now() - s.lastRead > 5000) load(s);
+    if (!document.hidden && Date.now() >= s.nextRead) load(s);
   }
   const style = element("style");
   style.textContent =

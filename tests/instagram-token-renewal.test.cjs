@@ -32,8 +32,8 @@ function sandbox({ renewAvailable = true, connected = true, role = "owner", resp
     busy: false,
     paintAll() {},
     async refresh() {},
-    details(code) {
-      details.push(code);
+    details(code, operation, result) {
+      details.push({ code, operation, result });
     },
     toast(message) {
       notices.push(message);
@@ -54,7 +54,7 @@ test("owner renewal uses existing POST and never sends Direct or publications", 
   assert.equal(app.calls[0][1], "POST");
   assert.equal(JSON.stringify(app.calls[0][2]), "{}");
   assert.equal(app.details.length, 1);
-  assert.equal(app.notices.length, 1);
+  assert.deepEqual(app.details[0], { code: undefined, operation: "renew", result: "renewed" });
   assert.equal(app.ctx.busy, false);
 });
 
@@ -76,5 +76,5 @@ test("provider failure cannot be reported as a successful renewal", async () => 
   const app = sandbox({ response: failure });
   await app.ctx.renew();
   assert.equal(app.notices.length, 0);
-  assert.equal(app.details[0], "HTTP 409");
+  assert.equal(app.details[0].code, "HTTP 409");
 });

@@ -153,11 +153,12 @@
       const sync = () => { $("change").disabled = Number(sel.value) === data.active_workspace_id; };
       sel.onchange = sync; sync();
       $("change").onclick = async () => {
-        const b = $("change"); b.disabled = true; sel.disabled = true; say("Alternando de negócio…");
+        const b = $("change"); b.disabled = true; sel.disabled = true;
+        loading();
+        say("Alternando de negócio…");
         state.seq++; // invalida qualquer consulta em andamento do negócio anterior
         try {
-          const r = await auth.request("/auth/workspaces/switch", "POST", { workspace_id: Number(sel.value) });
-          location.replace(r.papel === "report_viewer" ? "relatorios-leitura.html" : "socialmei-app.html#/relatorios");
+          await auth.switchWorkspace(Number(sel.value));
         } catch (e) { say(e.message || "Não foi possível trocar de negócio.", "err"); sel.disabled = false; sync(); load(); }
       };
     } catch (e) { $("wsinfo").textContent = "Não foi possível listar os negócios autorizados."; }

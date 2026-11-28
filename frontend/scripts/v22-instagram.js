@@ -104,6 +104,7 @@
         event.stopImmediatePropagation();
         if (busy) return;
         if (button.dataset.igAction === "connect") connect();
+        else if (button.dataset.igAction === "authorize") connect(button.dataset.igScope);
         else if (button.dataset.igAction === "renew") renew();
         else if (button.dataset.igAction === "refresh") {
           const open = igDlg?.dlg.open;
@@ -228,20 +229,31 @@
       throw Error("URL de autorização não permitida.");
     return url.href;
   }
-  async function connect() {
+  async function connect(confirmedScope) {
     if (busy) return;
+    const startingScope = scope();
     busy = true;
     busyKind = "connect";
     paintAll();
     let phase = "readiness";
     try {
       await refresh();
+      if (scope() !== startingScope) return;
       if (!state.oauth || state.phase !== "ready") return details();
       phase = "permission";
       if (!["owner", "admin"].includes(host.identity?.papel))
         throw Error("Somente responsáveis pelo negócio podem conectar a conta.");
+      if (!confirmedScope) {
+        info(
+          "Vincular Instagram",
+          `<p>Confirme o vínculo com <strong>${esc(host.identity.negocio.nome)}</strong>.</p><button type="button" class="btn" data-ig-action="authorize" data-ig-scope="${esc(startingScope)}">Confirmar negócio e autorizar</button>`,
+        );
+        return;
+      }
+      if (confirmedScope !== startingScope) return;
       phase = "request";
       const value = await host.request("/instagram/meta/oauth/start", "POST", {});
+      if (scope() !== startingScope) return;
       phase = "validation";
       const url = authorization(value);
       phase = "navigation";

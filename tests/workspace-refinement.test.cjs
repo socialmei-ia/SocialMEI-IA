@@ -54,6 +54,9 @@ function inboxBridge(request) {
   const vm = require("node:vm");
   const app = { hidden: false };
   const context = {
+    addEventListener() {},
+    MutationObserver: class { observe() {} },
+    queueMicrotask,
     console,
     Date,
     location: { origin: "https://example.test" },
@@ -73,7 +76,9 @@ function inboxBridge(request) {
       },
     },
     document: {
+      body: {},
       hidden: false,
+      addEventListener() {},
       getElementById: (id) => (id === "app" ? app : null),
       querySelector: () => null,
       querySelectorAll: () => [],
