@@ -10,6 +10,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1] / 'deploy/production-overlay/20261127'
 REPO = ROOT.parents[2]
 GATEWAY_FIXES = (
+    '/srv/frontend/scripts/agenda-hours.js',
     '/srv/frontend/socialmei-app.html',
     '/srv/frontend/scripts/v22-agenda.js',
     '/srv/frontend/scripts/v22-backend.js',

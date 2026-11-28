@@ -102,7 +102,7 @@
       appointments.onerror = () => console.warn("Agendamentos de serviços indisponíveis.");
       document.body.appendChild(appointments);
       const agendaHours = document.createElement("script");
-      agendaHours.src = "scripts/agenda-hours.js?v=795-agenda-1";
+      agendaHours.src = "scripts/agenda-hours.js?v=80-special-days";
       agendaHours.onerror = () => console.warn("Funcionamento da agenda indisponível.");
       document.body.appendChild(agendaHours);
     };

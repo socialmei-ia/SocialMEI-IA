@@ -84,6 +84,7 @@
   const scope = () => `${host.identity?.usuario.id}:${host.identity?.negocio.id}`;
   const announce = () => document.dispatchEvent(new Event("socialmei-hours-changed"));
   function loadFromProfile() {
+    if (owner !== scope()) document.querySelector("[data-agenda-special-days]")?.close();
     owner = scope();
     raw = String(auth.current?.negocio?.configuracao?.horario || "");
     const p = parse(raw); unparsed = p === null && raw.trim() !== ""; model = p || empty(); dirty = false;
@@ -240,6 +241,116 @@
     }
     finally { busy = false; paint(); }
   }
+  async function editSpecialDay() {
+    if (!writer() || document.querySelector("[data-agenda-special-days]")) return;
+    const ownerKey = scope();
+    const dlg = node("dialog", "sm-ah");
+    dlg.dataset.agendaSpecialDays = "true";
+    dlg.setAttribute("aria-label", "Horários especiais e feriados");
+    const form = node("form", "sm-ah-body");
+    const status = node("p", "sm-hub-status", "Carregando horários…");
+    status.setAttribute("role", "status");
+    const day = node("input"); day.type = "date"; day.required = true;
+    const dates = node("select");
+    const mode = node("select");
+    for (const [value, label] of [["weekly", "Usar horário semanal"], ["closed", "Fechado"], ["hours", "Horário especial"]]) {
+      const opt = node("option", "", label); opt.value = value; mode.append(opt);
+    }
+    const ranges = node("div", "sm-ah-grid");
+    const add = node("button", "btn o", "Adicionar intervalo"); add.type = "button";
+    const saveDate = node("button", "btn", "Salvar data"); saveDate.disabled = true;
+    const close = node("button", "btn o", "Fechar"); close.type = "button";
+    const labelled = (label, control) => { const field = node("label", "", label + " "); field.append(control); return field; };
+    const current = () => dlg.isConnected && writer() && scope() === ownerKey;
+    let snapshot;
+    function addRange(opens = "", closes = "") {
+      const row = node("div", "sm-hub-actions");
+      const start = node("input"), end = node("input");
+      start.type = end.type = "time";
+      start.value = opens; end.value = closes;
+      const remove = node("button", "btn o", "Remover intervalo"); remove.type = "button";
+      remove.onclick = () => { row.remove(); paintRanges(); };
+      row.append(labelled("Abre", start), labelled("Fecha", end), remove);
+      ranges.append(row);
+    }
+    function paintRanges() {
+      ranges.hidden = add.hidden = mode.value !== "hours";
+      add.disabled = ranges.childElementCount >= 6;
+    }
+    function selectDay() {
+      const saved = snapshot?.policy.special_days?.find((item) => item.day === day.value);
+      ranges.replaceChildren();
+      mode.value = !saved ? "weekly" : saved.hours.length ? "hours" : "closed";
+      for (const range of saved?.hours || []) addRange(range.opens, range.closes);
+      paintRanges();
+    }
+    function loadDates() {
+      dates.replaceChildren(node("option", "", "Escolha uma data"));
+      dates.firstChild.value = "";
+      for (const entry of snapshot.policy.special_days || []) {
+        const option = node("option", "", entry.day); option.value = entry.day; dates.append(option);
+      }
+    }
+    dates.onchange = () => { if (dates.value) { day.value = dates.value; selectDay(); } };
+    day.onchange = selectDay;
+    add.onclick = () => { addRange(); paintRanges(); };
+    mode.onchange = () => { if (mode.value === "hours" && !ranges.childElementCount) addRange(); paintRanges(); };
+    close.onclick = () => dlg.close();
+    dlg.addEventListener("close", () => dlg.remove(), { once: true });
+    form.onsubmit = async (event) => {
+      event.preventDefault();
+      if (!current() || !snapshot || saveDate.disabled) return;
+      const hours = mode.value === "hours" ? [...ranges.children].map((row) => {
+        const [opens, closes] = [...row.querySelectorAll("input")].map((input) => input.value);
+        return { opens, closes };
+      }).sort((a, b) => a.opens.localeCompare(b.opens)) : [];
+      if (mode.value === "hours" && (!hours.length || hours.some((r, i) => !TIME.test(r.opens) ||
+          !TIME.test(r.closes) || r.closes <= r.opens || (i && hours[i - 1].closes > r.opens)))) {
+        status.textContent = "Informe intervalos válidos, sem sobreposição.";
+        return;
+      }
+      const special_days = (snapshot.policy.special_days || []).filter((entry) => entry.day !== day.value);
+      if (mode.value !== "weekly") special_days.push({ day: day.value, hours });
+      saveDate.disabled = true;
+      status.textContent = "Salvando…";
+      try {
+        const saved = await auth.request("/agenda/channel-booking", "PUT", {
+          expected_revision: snapshot.revision,
+          policy: { ...snapshot.policy, special_days: special_days.sort((a, b) => a.day.localeCompare(b.day)) },
+        });
+        if (!current()) return;
+        snapshot = saved;
+        loadDates();
+        status.textContent = "Horário salvo para os canais.";
+        saveDate.disabled = false;
+        announce();
+      } catch (error) {
+        if (!current()) return;
+        status.textContent = error?.status === 409
+          ? "A configuração mudou em outra sessão. Feche e abra para revisar a versão atual."
+          : "Feche e abra para conferir se o horário foi salvo.";
+      }
+    };
+    form.append(node("h2", "", "Horários especiais e feriados"), status,
+      labelled("Datas configuradas", dates), labelled("Data", day), labelled("Funcionamento", mode), ranges, add, saveDate, close);
+    dlg.append(form);
+    document.body.append(dlg);
+    dlg.showModal();
+    selectDay();
+    try {
+      const value = await auth.request("/agenda/channel-booking");
+      if (!current()) return;
+      snapshot = value;
+      loadDates();
+      selectDay();
+      status.textContent = "Horários no fuso " + value.policy.timezone + ".";
+      saveDate.disabled = false;
+    } catch {
+      if (current()) status.textContent = "Não foi possível consultar os horários dos canais.";
+    }
+  }
+
+
   async function run(name) {
     const fn = adapters[name]; if (!fn || busy || !writer()) return;
     busy = true; msg = { t: SLOTS[name] + "…", k: "" }; paint();
@@ -272,8 +383,8 @@
     const prep = node("details", "sm-hub-prepared"); prep.open = open; prep.addEventListener("toggle", () => { open = prep.open; });
     prep.append(node("summary", "", "Operações preparadas (dependem da API)")); const ul = node("ul");
     for (const [n, label] of Object.entries(SLOTS)) {
-      const li = node("li"), fn = adapters[n], b = node("button", "btn o", fn ? "Executar" : "Indisponível"); b.type = "button"; b.disabled = !fn || busy || !writer(); b.dataset.ahAction = n;
-      b.title = fn ? "" : "Interface pronta; falta a API correspondente."; b.addEventListener("click", () => run(n));
+      const li = node("li"), fn = n === "specialDays" ? editSpecialDay : adapters[n], b = node("button", "btn o", fn ? "Executar" : "Indisponível"); b.type = "button"; b.disabled = !fn || busy || !writer(); b.dataset.ahAction = n;
+      b.title = fn ? "" : "Interface pronta; falta a API correspondente."; b.addEventListener("click", () => n === "specialDays" ? editSpecialDay() : run(n));
       const badge = node("span", "sm-hub-badge sm-hub-" + (fn ? "ok" : "off"), fn ? "Disponível" : "Aguardando API");
       li.append(node("span", "", label), badge, b); ul.append(li);
     }
@@ -301,7 +412,7 @@
   /* Evita perder edições sem querer ao fechar ou recarregar a página. */
   window.addEventListener("beforeunload", (e) => { if (dirty && location.hash === "#/agenda") { e.preventDefault(); e.returnValue = ""; } });
   document.addEventListener("socialmei-agenda-painted", mount);
-  window.addEventListener("hashchange", () => queueMicrotask(mount));
+  window.addEventListener("hashchange", () => { document.querySelector("[data-agenda-special-days]")?.close(); queueMicrotask(mount); });
   window.SocialMEIAgendaConfig = { register, serialize, parse, validate, dayError, stats, slots: Object.freeze(Object.keys(SLOTS)) };
   queueMicrotask(mount);
 })();
