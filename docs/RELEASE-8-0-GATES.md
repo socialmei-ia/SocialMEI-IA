@@ -14,7 +14,7 @@ Use os IDs base do manifesto congelado. Registre o SHA do Git, os IDs das imagen
 ## Gates para produção
 
 1. Confirmar em produção o aceite manual da Missão 07, o ledger, a saúde e os mounts efetivos.
-2. Validar backup fresco com restauração isolada. Verificar instalação limpa e atualização de 046 até 058 com as permissões do papel da API. Conferir a view de caixa, o histórico de estoque (incluindo a escrita do gatilho e o acesso à sequência) e a biblioteca privada de imagens.
+2. Validar backup fresco com restauração isolada. Verificar instalação limpa e atualização de 046 até 059 com as permissões do papel da API. Conferir a view de caixa, o histórico de estoque (incluindo a escrita do gatilho e o acesso à sequência) e a biblioteca privada de imagens.
 3. Aprovar separadamente as migrations, o corte de API e gateway e qualquer ativação externa. Revalidar CI, uso de memória, isolamento, idempotência e journaling.
 4. Ensaiar reversão de API e gateway juntos com os mounts equivalentes. Antes de aceitar escritas da candidata, usar as imagens e configurações congeladas se houver regressão. Após escritas de parcelas e recebíveis, congelar as operações afetadas e manter o ledger. A versão anterior desconhece os vínculos e poderia aceitar baixas conflitantes. Corrigir na versão compatível ou manter Financeiro e Vendas indisponíveis até a recuperação.
 5. Testar HTTPS, autenticação, troca de empresa e as jornadas abaixo. Testar provedores somente com contas autorizadas e aprovação do envio. Preservar WAHA e n8n durante o corte da aplicação.
@@ -129,3 +129,31 @@ Na amostra dos 100 artefatos mais recentes, a soma dos maiores tamanhos observad
 Checklist de presença para o responsável: em ambiente de teste, confirme presença em uma reserva futura, recarregue, confira o detalhe e o CRM. Reagende e confira que o horário novo pede outra confirmação. Depois do fim de uma reserva passada, registre ausência e confira o histórico. Para o professor, use conta autorizada de leitura e confira a Agenda e o histórico do cliente de cada negócio permitido.
 
 Validações do incremento. 29 testes Python de Agenda e gerenciamento por canal, teste direcionado na imagem da API, caso de áudio na imagem do menu e navegador a 390 px e 1280 px. PostgreSQL 17 passou em instalação limpa e numa atualização da restauração isolada de 046 para 058, preservando a reserva anterior e restringindo a edição do histórico.
+
+## Presença por canal, histórico e som — schema 059
+
+- A migration 059 associa confirmações do cliente à mensagem autenticada, ao canal e ao negócio. A seleção que abre o resumo não grava presença. Somente a confirmação textual ou a seleção interativa verificada pode criar o recibo. Repetições retornam o resultado existente e o atendimento humano continua bloqueando o fluxo. Ativação por `SOCIALMEI_CHANNEL_ATTENDANCE_ENABLED=YES` e `SOCIALMEI_CHANNEL_ATTENDANCE_WORKSPACES`, desativada por padrão.
+- O histórico da Divulgação usa registros de publicações da conta ativa. A consulta opcional lê apenas curtidas e comentários do identificador confirmado pela publicação. Campo ausente aparece como indisponível. Uma publicação incerta continua identificada como incerta. [Campos oficiais de mídia da Meta](https://developers.facebook.com/docs/instagram-platform/reference/instagram-media/v21.0/)
+- O som da Caixa é uma preferência deste navegador, por usuário e negócio. Reaproveita a consulta existente da Caixa e ignora a primeira carga, mensagens antigas, repetições e conversas adiadas.
+
+```powershell
+python tools/build-production-overlay.py --build api --inbox-fixes --editorial --commercial --management --media-commercial --instagram-media --booking-special-days --instagram-media-ai --attendance --channel-attendance
+python tools/build-production-overlay.py --build menu --whatsapp-media --booking-special-days --channel-attendance
+python tools/build-production-overlay.py --build gateway --gateway-fixes --editorial --commercial --management --attendance
+```
+
+Identidades locais:
+
+- API `sha256:61377123f8820c589912d3c2533022195f6d18d10b8f6ba0f3b352243ce98c14`
+- Menu `sha256:7d3467523deed357b6d9069193f0d6d85c424f4290835e48d98c098e32676f59`
+- Gateway `sha256:7bde4e950b269c70ba1d30c94a7374b1e2ec3b066c537490a39df0fd41e881b5`
+
+A aplicação voltou a respeitar as variáveis já fornecidas ao container para validar o vínculo WAHA, mantendo os valores capturados como padrões. Antes do corte, compare a configuração efetiva de API e menu com o mesmo registry e com o hash revisado. Ambientes com divergência permanecem bloqueados pelo contrato existente.
+
+As duas rodadas de regressão passaram com 18 e 20 testes Python. O Chrome passou nas jornadas de som e histórico editorial com transporte controlado. O PostgreSQL descartável passou na instalação limpa e na atualização de uma restauração de 046 até 059, preservando as confirmações manuais de 058. Os testes de métricas e despacho permanecem confinados ao ambiente isolado.
+
+### Ensaio isolado do despachante
+
+`python tools/rehearse-8-0-dispatcher.py` executa o despachante congelado com o menu reconstruído e PostgreSQL 17. A rede interna não publica portas. Os aliases do menu e do GOWS são equivalentes aos do runtime e as credenciais sintéticas são montadas somente para leitura.
+
+O ensaio comprovou a recusa do token legado, o isolamento do segundo negócio, a recuperação após falha de leitura do GOWS, um único recibo confirmado e a preservação de um resultado incerto sem reenvio em uma nova execução. O provedor do ensaio é local. A execução cobre o modo `--run-once`. Os mounts privados efetivos e a continuidade do journal no serviço final ainda precisam ser confirmados antes do corte.

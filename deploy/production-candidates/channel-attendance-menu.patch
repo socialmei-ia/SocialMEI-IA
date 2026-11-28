@@ -33,3 +33,14 @@
          else:
              summary += '\nDeseja cancelar este agendamento? A vaga será liberada após confirmar.'
              choices = [option('1', 'Confirmar cancelamento', 'cancel_confirm', appointment=reference)]
+--- a/app/settings.py
++++ b/app/settings.py
+@@ -3,5 +3,7 @@
+ import os
+ 
+-os.environ.update({'SOCIALMEI_WAHA_PILOT_WORKSPACE_ID': '60', 'SOCIALMEI_WAHA_PILOT_BINDING_SHA256': 'a8dac7f41a293c634e23dbb096224abb5ddc4f84cebb8fb1496975f2ac85bd8f', 'SOCIALMEI_WHATSAPP_HUMAN_WORKSPACE_ID': '60'})
++for _key, _value in {'SOCIALMEI_WAHA_PILOT_WORKSPACE_ID': '60', 'SOCIALMEI_WAHA_PILOT_BINDING_SHA256': 'a8dac7f41a293c634e23dbb096224abb5ddc4f84cebb8fb1496975f2ac85bd8f', 'SOCIALMEI_WHATSAPP_HUMAN_WORKSPACE_ID': '60'}.items():
++    os.environ.setdefault(_key, _value)
++del _key, _value
+ import json
+ import re
