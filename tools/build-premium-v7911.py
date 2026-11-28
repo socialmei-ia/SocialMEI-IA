@@ -53,7 +53,7 @@ def main():
         shutil.copyfile(source, target)
         manifest["files"][relative.as_posix()] = hashlib.sha256(target.read_bytes()).hexdigest()
     (args.output / "manifest.json").write_text(
-        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8", newline="\n"
     )
     print(f"Premium 7.9.11 ({args.profile}): {len(manifest['files'])} files")
 

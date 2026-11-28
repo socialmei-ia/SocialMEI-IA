@@ -7,6 +7,7 @@ from pathlib import Path
 import secrets
 import subprocess
 import tempfile
+import time
 
 spec = importlib.util.spec_from_file_location("rollback", Path(__file__).with_name("rehearse-8-0-rollback.py"))
 rollback = importlib.util.module_from_spec(spec)
@@ -95,7 +96,7 @@ class Lab(rollback.Lab):
     def mode(self, value):
         docker("exec", "-i", self.name+"-"+WAHA, "sh", "-c", "cat > /tmp/lab-mode", stdin=value)
 
-    def dispatch(self, expected, status=0, secret="menu"):
+    def dispatch_env(self, secret="menu"):
         env = {
             "SOCIALMEI_MENU_SENDER_ACTIVE":"YES", "SOCIALMEI_PUBLIC_MENU_EXPLICIT_ENABLE":"YES",
             "SOCIALMEI_MENU_PUBLIC_INBOUND_ACTIVE":"YES",
@@ -105,14 +106,33 @@ class Lab(rollback.Lab):
             "SOCIALMEI_MENU_TOKEN_FILE":"/run/secrets/"+secret,
             "SOCIALMEI_MENU_WAHA_KEY_FILE":"/run/secrets/waha",
         }
-        args = [item for key, value in env.items() for item in ("-e", f"{key}={value}")]
+        return [item for key, value in env.items() for item in ("-e", f"{key}={value}")]
+
+    def dispatch(self, expected, status=0, secret="menu"):
         result = docker("run", "--rm", "--pull=never", "--network", self.name, "--entrypoint",
-                        "python", "-v", self.volume+":/run/secrets:ro", *args,
+                        "python", "-v", self.volume+":/run/secrets:ro", *self.dispatch_env(secret),
                         self.images["worker"], "/app/public_worker.py", "--run-once", check=False)
         if result.returncode != status or expected not in result.stdout:
             log=docker("logs","--tail","13",self.name+"-"+MENU,check=False)
             print((log.stdout+log.stderr).replace(self.password,"[synthetic]"))
             raise AssertionError((result.returncode,result.stdout[-300:]))
+
+    def start_guard(self, role, cutoff):
+        name = self.name + "-" + role
+        docker("run", "-d", "--pull=never", "--name", name, "--network", self.name,
+               "--entrypoint", "python", "-v", self.volume + ":/run/secrets:ro",
+               "-v", self.state_volume + ":/run/socialmei/continuous-state",
+               "-e", "SOCIALMEI_CONTINUOUS_START_UTC=" + cutoff, *self.dispatch_env(),
+               self.images["worker"], "/app/continuous_guard.py")
+        self.containers.append(name)
+        return name
+
+    def journal_matches(self, name, field, expected):
+        outcome = docker("exec", name, "python", "-c",
+                         "import json,sys; state=json.load(open('/run/socialmei/continuous-state/state.json')); "
+                         "assert state.get(sys.argv[1]) == json.loads(sys.argv[2]) and not state['in_flight']",
+                         field, json.dumps(expected), check=False)
+        return outcome
 
     def run(self):
         self.images = {**rollback.IMAGES, "menu": "sha256:7d3467523deed357b6d9069193f0d6d85c424f4290835e48d98c098e32676f59"}
@@ -135,7 +155,9 @@ class Lab(rollback.Lab):
             VALUES(60,3,'{hashlib.sha256(token.encode()).hexdigest()}','{digest([60,3,INSTANCE,"01",ACCOUNT,1])}');
         """)
         self.volume = self.name+"-secrets"
+        self.state_volume = self.name + "-journal"
         docker("volume","create",self.volume)
+        docker("volume", "create", self.state_volume)
         try:
             docker("run","--rm","--pull=never","-i","--network","none","--entrypoint","sh",
                    "-v",self.volume+":/secrets",self.images["worker"],"-ec",
@@ -181,22 +203,50 @@ class Lab(rollback.Lab):
             self.inside("worker",auth_check,f"http://{MENU}:8019/internal/whatsapp/bot/sources","200",token)
             self.dispatch("ENVIO_BLOQUEADO",3,secret="legacy")
             self.mode("unavailable")
-            self.dispatch("ENVIO_BLOQUEADO",3)
+            self.dispatch("ENVIO_BLOQUEADO", 3)
             assert self.db("SELECT count(*) FROM socialmei.wa_bot_decisions;").stdout.strip()=="0"
+            primary = self.start_guard("continuous", cutoff)
+            wait(lambda: self.journal_matches(primary, "source_read_failures", 1))
             self.mode("ready")
-            self.dispatch("ENVIO_CONFIRMADO")
-            self.dispatch("SEM_MENSAGENS_NOVAS")
+            wait(lambda: self.journal_matches(primary, "confirmed", 1))
+            contender = self.start_guard("contender", cutoff)
+            wait(lambda: docker("exec", contender, "sh", "-ec",
+                 "test -s /run/socialmei/continuous-state/state.json", check=False))
+            for _ in range(6):
+                log = docker("logs", contender)
+                if "CONTINUOUS_STARTUP_BLOCKED BlockingIOError" in log.stdout:
+                    break
+                time.sleep(1)
+            else:
+                raise RuntimeError("Exclusive continuous sender lock not verified")
             self.fixture("333@c.us","false_333@c.us_fixture-uncertain")
             self.mode("uncertain")
-            self.dispatch("RESULTADO_INCERTO_NAO_REENVIAR",2)
+            wait(lambda: self.journal_matches(primary, "isolated_uncertain", 1))
+            docker("stop", "--time", "1", primary)
+            def source_reads():
+                return docker("logs", self.name+"-"+MENU).stdout.count(
+                    "GET /internal/whatsapp/bot/sources")
+
+            reads = source_reads()
+            restarted = self.start_guard("restarted", cutoff)
+            wait(lambda: self.journal_matches(restarted, "isolated_uncertain", 1))
+            for _ in range(8):
+                log = docker("logs", restarted).stdout
+                if "CONTINUOUS_READY_PUBLIC_INBOUND" in log and source_reads() > reads:
+                    break
+                time.sleep(1)
+            else:
+                raise RuntimeError("Restarted guard did not poll")
             self.dispatch("SEM_MENSAGENS_NOVAS")
             assert docker("exec",name,"cat","/tmp/lab-count").stdout.strip()=="2"
             assert self.db("SELECT workspace_id||':'||status FROM socialmei.wa_bot_decisions ORDER BY status;").stdout.splitlines()==[
                 "60:confirmed","60:uncertain"]
-            print("Dispatcher: restored provider read, one confirmed receipt, uncertain not replayed, other tenant and old token denied")
+            print("Continuous dispatcher: exclusive lock, persistent journal, one confirmed receipt, "
+                  "uncertain not replayed after restart, other tenant and old token denied")
         finally:
             self.close()
             docker("volume","rm",self.volume,check=False)
+            docker("volume", "rm", self.state_volume, check=False)
 
 
 if __name__=="__main__":

@@ -165,3 +165,22 @@ O ensaio comprovou a recusa do token legado, o isolamento do segundo negócio, a
 ### Jornada isolada de contas
 
 Passaram 56 testes de recuperação de senha, autenticação, convites e configuração inicial de negócios sobre PostgreSQL 17 descartável. A rede interna não tinha acesso a serviços externos. O transporte de e-mail foi simulado. A entrega real pelo Brevo segue condicionada à autorização e à homologação com destinatário controlado.
+
+## Incremento da candidata após a publicação da Premium — schema 060
+
+- A suíte JavaScript passou com 455 testes e 2 pulados. As correções cobrem os fixtures de DOM, a arquitetura externalizada do ZIP, os contratos atuais de integração e as regressões de polling. A conexão do Instagram voltou a exigir confirmação do negócio e descarta a autorização se a sessão mudar. Os testes do professor passaram com API controlada, verificando indicadores agregados, consulta somente leitura, temas e resoluções.
+- A migration 060 cria uma preferência por revisão de agendamento. Requisições concorrentes idênticas gravam uma só configuração. Uma revisão nova pede nova autorização. O horário pode ser configurado e revogado na Agenda. O incremento registra a preferência e o consentimento, com disparos, fila de entrega e ativação de provedor pendentes.
+- O PostgreSQL 17 passou em instalação limpa e restauração sintética de 046 atualizada até 060. Foram preservados os dados anteriores e verificados os grants restritos. Passaram 30 testes de Agenda, lembretes e operações de agendamento por canal. O formulário foi exercitado em 390 e 1280 px.
+- O despachante contínuo passou com aliases sintéticos equivalentes, volumes de segredos e journal separados e rede sem saídas externas. Foi comprovada a recusa da credencial legada, a retomada após falha de leitura, a exclusividade do lock e o retorno à consulta após reinício, preservando o recibo incerto sem repetição. A conferência dos mounts efetivos continua obrigatória antes do corte. O rollback financeiro anterior permanece como evidência no schema em que foi ensaiado.
+- Imagens locais atualizadas. API `sha256:4ff11578ff9b10f3c2c26fa3c3cfca23bc90e72e7fa94a3c0bbb285d2831851f`. Gateway `sha256:6e6c599f2ec45a59230134e13f11a9b5bf9fea646684173a5a96381052ec61b1`. A release publicada da Premium continua reproduzível pelo perfil `schema046`.
+
+### Checklist consolidada para o responsável
+
+1. Entrar em Brilho e Bella, trocar de negócio, conferir os dados de cada um e abrir a conta de leitura do professor.
+2. Na Caixa, conferir leitura, arquivamento, respostas rápidas, pausa humana e exibição de mídias. Acionar testes de envio somente com autorização específica.
+3. Na Agenda, criar, reagendar, cancelar, conferir o histórico e alternar um lembrete com consentimento. Conferir que o horário antigo perde a configuração após a troca da revisão.
+4. Converter uma oportunidade de teste em venda, conferir estoque e recebível, registrar pagamento parcial e verificar os totais e o estorno.
+5. Em Divulgação, recuperar um rascunho, consultar o calendário e verificar que o estado incerto permanece sem repetição. Publicações reais exigem autorização.
+6. Homologar com credenciais e contatos autorizados os fluxos reais de WhatsApp, Instagram e Brevo após os gates próprios.
+
+Pendências de implementação incluem a central persistente de notificações, a entrega programada de lembretes, os formatos adicionais da Meta e os fluxos de inteligência comercial ainda registrados no backlog. PR e corte produtivo continuam condicionados à margem de armazenamento e autorização, aceite manual, CI, backup restaurado e validação final de rollback e mounts.
