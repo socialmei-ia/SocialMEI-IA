@@ -339,47 +339,7 @@
   const hookDlg = () => { const d = document.getElementById("dlg"); if (d && !d.dataset.g75) { d.dataset.g75 = "1"; new MutationObserver(scan).observe(d, { childList: true }); } };
   new MutationObserver(hookDlg).observe(document.body, { childList: true }); hookDlg();
 
-  /* ---------- RELATÓRIOS: comparação com o período anterior e leitura guiada ---------- */
-  function bounds() {
-    if (remote()) {
-      const end = new Date(); end.setHours(23, 59, 59, 999); const start = new Date(end);
-      if (S.rp === 0) start.setDate(1); else if (S.rp === 1) start.setDate(start.getDate() - 6); else if (S.rp === 2) start.setDate(start.getDate() - 2);
-      else { start.setDate(1); end.setDate(Math.min(10, end.getDate())); }
-      start.setHours(0, 0, 0, 0); return [start.getTime(), end.getTime()];
-    }
-    const p = PER[S.rp]; return p ? [p[1], p[2]] : null;
-  }
-  const delta = (cur, prev, invert) => {
-    if (!cur && !prev) return `<span class="g75-d">Sem movimento nos dois períodos</span>`;
-    if (!prev) return `<span class="g75-d">Sem dados no período anterior para comparar</span>`;
-    const pc = Math.round(((cur - prev) / prev) * 100);
-    return `<span class="g75-d" data-dir="${pc === 0 ? "eq" : pc > 0 ? "up" : "down"}">${pc === 0 ? "Igual ao" : (pc > 0 ? "▲ " : "▼ ") + Math.abs(pc) + "% vs."} período anterior (${brl(prev)})</span>`;
-  };
-  function enhanceReport() {
-    const root = document.getElementById("rp"); if (!root) return;
-    root.querySelectorAll(".g75-d,.g75-how").forEach((n) => n.remove());
-    const b = bounds(), vt = S.rt === "Vendas";
-    if (b && document.getElementById("rpc")?.style.display !== "none") {
-      const len = b[1] - b[0] + 1, pb = [b[0] - len, b[0] - 1];
-      const inB = (txt, r) => { const t = pdt(txt); return t >= r[0] && t <= r[1]; };
-      const cards = root.querySelectorAll("#rpc .kp > div");
-      let cur, prev;
-      if (vt) {
-        const c = V.filter((v) => inB(v[4], b)), p = V.filter((v) => inB(v[4], pb));
-        cur = [sum(c, (v) => v[6]), sum(c.filter((v) => v[5] === "Pago"), (v) => v[6]), sum(c.filter((v) => v[5] !== "Pago"), (v) => v[6])];
-        prev = [sum(p, (v) => v[6]), sum(p.filter((v) => v[5] === "Pago"), (v) => v[6]), sum(p.filter((v) => v[5] !== "Pago"), (v) => v[6])];
-      } else {
-        const c = F.filter((x) => inB(x[0], b)), p = F.filter((x) => inB(x[0], pb)), e = (a) => sum(a.filter((x) => x[3]), (x) => x[4]), s = (a) => sum(a.filter((x) => !x[3]), (x) => x[4]);
-        cur = [e(c), s(c), e(c) - s(c)]; prev = [e(p), s(p), e(p) - s(p)];
-      }
-      cards.forEach((el, n) => { if (n < 3) el.insertAdjacentHTML("beforeend", delta(cur[n], prev[n])); });
-    }
-    const how = vt
-      ? "<b>Como ler.</b> “Vendas registradas” soma todas as vendas pela data do registro. “Pagamentos registrados” são as vendas marcadas como pagas e “A receber” são as pendentes. Nenhum desses valores é lucro nem saldo do banco. A comparação usa um período do mesmo tamanho logo antes do escolhido, só com os registros que existem."
-      : "<b>Como ler.</b> “Entradas” e “Saídas” somam os lançamentos do período; o resultado é a diferença entre elas e não é saldo bancário. Vendas pendentes ainda não entraram aqui. A comparação usa um período do mesmo tamanho logo antes do escolhido, só com os registros que existem.";
-    const anchor = root.querySelector("#rpc"); if (anchor) anchor.insertAdjacentHTML("afterbegin", `<p class="m sm g75-how" style="margin:12px 0 0">${how}</p>`);
-  }
-  if (typeof repApply === "function") { const base = repApply; repApply = function (first) { const r = base.apply(this, arguments); try { enhanceReport(); } catch (_) {} return r; }; }
+  /* (v7.9.11) A comparação com o período anterior e o "Como ler" de Relatórios passaram a ser gerados em v22-native.js (repCompare / rpHow). */
 
   /* ---------- troca das visões ---------- */
   vendas = vendasView; produtos = produtosView; financeiro = financeiroView;

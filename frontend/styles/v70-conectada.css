@@ -36,6 +36,12 @@
 .two:has(.pn360){grid-template-columns:minmax(0,1fr) 420px}
 @media(max-width:1500px){.two:has(.pn360){grid-template-columns:minmax(0,1fr) 380px}}
 @media(max-width:900px){.two:has(.pn360){grid-template-columns:1fr}}
+/* Cliente 360° aberto: lista mais enxuta. Datas e valores não quebram; a coluna de e-mail sai (o e-mail aparece no painel e a busca continua achando por ele) */
+.two:has(.pn360) .tb td:nth-child(3),.two:has(.pn360) .tb td:nth-child(4){white-space:nowrap}
+@media(max-width:1700px){.two:has(.pn360) .tb th:nth-child(2),.two:has(.pn360) .tb td:nth-child(2){display:none}}
+/* selo ao lado do nome sem colisão: em linha própria */
+.two:has(.pn360) .tb td .tagv{display:table;margin:3px 0 2px}
+#v .row .cli-so{width:176px;min-width:0;flex:none}@media(max-width:560px){#v .row .cli-so{width:100%}}
 .c3 h2{font-size:24px;margin:0}.c3-who{display:flex;gap:12px;align-items:center;min-width:0}.c3-who h2{overflow-wrap:anywhere}
 .c3-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}.c3 .tagv.w{background:var(--yl);color:var(--t)}
 .c3-sub{margin:10px 0 14px;overflow-wrap:anywhere}
@@ -115,3 +121,16 @@
 .v72-kp{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.v72-kp>div{display:flex;flex-direction:column;padding:6px 8px;border-radius:8px;background:var(--s);min-width:0}.v72-kp span{font-size:11px;color:var(--m)}.v72-kp b{font-size:13px;overflow-wrap:anywhere}
 .v72-nx{font-size:12.5px;margin:0}.v72-nx span{font-weight:700;color:var(--m);text-transform:uppercase;font-size:10.5px;letter-spacing:.04em;margin-right:4px}.v72-nx[data-tone=warn]{color:var(--t)}
 @media(prefers-reduced-motion:reduce){.c3-sk i{animation:none}}
+
+/* celular: lista primeiro; painel abre ao toque, com botão de voltar; o botão flutuante não cobre o painel */
+.c3-back{display:none}
+@media(max-width:900px){
+  .c3-back{display:inline-flex;align-items:center;gap:6px;margin:0 0 10px;min-height:40px;font-weight:600}
+  .two:has(.pn360) .pn360{scroll-margin-top:64px}
+  #v:has(.pn360) .nhz .nhfab{display:none}
+}
+@media(max-width:700px){
+  .tb:has(tr[data-a^="cli:"]) :is(th,td):is(:nth-child(2),:nth-child(3),:nth-child(5)){display:none}
+  .tb:has(tr[data-a^="cli:"]) .tagv{display:table;margin:3px 0 2px;margin-left:0}
+  .tb:has(tr[data-a^="cli:"]) td:first-child{white-space:normal}
+}

@@ -1,0 +1,119 @@
+/* ============================================================
+   SocialMEI-IA · Hero v3 "do oi ao caixa"
+   Tudo escopado em .hero.hx. Carrega depois de entrada.css e landing-v2.css.
+   Composição: texto editorial à esquerda, mural inclinado em 3 profundidades à direita.
+   Mural: só sobe (transform), sem pausa no hover, sem clique. Sem blur animado, sem partículas.
+   Versão anterior: hero-original/ (entrada.html, styles/entrada.css, scripts/hero-wall.js)
+   ============================================================ */
+.hero.hx{--hx-ease:cubic-bezier(.2,.7,.2,1);position:relative;padding:0;overflow:clip;isolation:isolate;background:var(--h1)}
+.hero.hx::before,.hero.hx::after{content:none!important;animation:none!important}
+.hero.hx>*{position:relative;z-index:1}
+
+/* ---- luz e fundo: camadas estáticas (a única parte que se mexe é um holofote que segue o mouse, via translate) ---- */
+.hero.hx>.hfx{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;
+ background:
+  radial-gradient(760px 560px at 6% -6%,color-mix(in srgb,var(--p) 13%,transparent),transparent 70%),
+  radial-gradient(900px 640px at 92% 46%,color-mix(in srgb,var(--y) 17%,transparent),transparent 68%),
+  linear-gradient(180deg,transparent 70%,color-mix(in srgb,var(--w) 70%,transparent))}
+.hero.hx>.hfx::before{content:"";position:absolute;inset:0;opacity:.55;
+ background-image:linear-gradient(var(--b) 1px,transparent 1px),linear-gradient(90deg,var(--b) 1px,transparent 1px);background-size:64px 64px;
+ -webkit-mask-image:radial-gradient(ellipse 62% 70% at 24% 38%,#000,transparent 78%);mask-image:radial-gradient(ellipse 62% 70% at 24% 38%,#000,transparent 78%)}
+.hero.hx>.hfx::after{content:"";position:absolute;inset:auto;left:0;top:0;width:720px;height:720px;margin:-360px 0 0 -360px;opacity:.9;filter:none;
+ background:radial-gradient(circle,color-mix(in srgb,var(--p) 14%,transparent),transparent 62%);translate:var(--mx,34vw) var(--my,34vh);will-change:translate}
+[data-theme=dark] .hero.hx>.hfx::after{filter:none;opacity:.9}
+[data-theme=dark] .hero.hx>.hfx::before{opacity:.4}
+
+/* ---- grade da composição ---- */
+.hero.hx .hx-in{max-width:1480px;margin:0 auto;padding:clamp(26px,3.6vw,52px) clamp(20px,3vw,48px) clamp(20px,3vw,40px);display:grid;grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);gap:clamp(16px,3vw,48px);align-items:center;min-height:min(740px,calc(100vh - 76px))}
+.hero.hx .hero-top{max-width:none;margin:0;padding:0;text-align:left;align-items:flex-start}
+
+/* marca */
+.hero.hx .brand-line{display:flex;align-items:center;flex-wrap:wrap;gap:4px 12px;margin:0;font-size:inherit;color:var(--t)}
+.hero.hx .brand-line img{width:34px;height:34px;border-radius:10px;object-fit:cover}
+.hero.hx .brand-line .bn{font-size:21px;font-weight:800;letter-spacing:-.035em;color:var(--t)}
+.hero.hx .brand-line .bd{font-size:13px;font-weight:600;color:var(--m);padding-left:12px;border-left:1px solid var(--bl);line-height:1.2}
+
+/* título */
+.hero.hx h1{margin:clamp(18px,2.2vw,28px) 0 0;font-size:clamp(40px,4.5vw,66px);font-weight:800;letter-spacing:-.052em;line-height:.99;text-wrap:balance}
+.hero.hx h1 .l{display:block;overflow:visible;padding:0;margin:0;white-space:normal}
+.hero.hx h1 .l.hr,.hero.hx h1 .d.hr{animation:none;opacity:1;background:none;-webkit-text-fill-color:currentColor}
+.hero.hx h1 .d.hr{color:var(--m)}
+.hero.hx h1 .w{display:inline-block;animation:hxWord .85s var(--hx-ease) calc(var(--d) + var(--i)*70ms) both}
+.hero.hx h1 .mk{height:.09em;bottom:.02em;animation:markIn .8s var(--hx-ease) 1.1s both}
+@keyframes hxWord{from{opacity:0;transform:translateY(38%)}}
+.hero.hx p.lead{max-width:30em;margin:clamp(18px,2vw,26px) 0 0;font-size:clamp(17px,1.3vw,19px);line-height:1.55;color:var(--m)}
+
+/* chamadas */
+.hero.hx .cmd{display:flex;flex-wrap:wrap;gap:12px;width:auto;justify-content:flex-start;margin-top:clamp(22px,2.4vw,32px);position:static}
+.hero.hx .cmd .btn.lg{border-radius:14px}
+.hero.hx .cmd .btn.o{background:color-mix(in srgb,var(--w) 70%,transparent);border-color:var(--bl);color:var(--t)}
+.hero.hx .cmd .btn.o:hover{background:var(--w)}
+.hero.hx .badge{margin-top:18px;padding:0;border:0;background:none;font-size:13px;font-weight:600;color:var(--m);gap:8px}
+.hero.hx .rail{margin:12px 0 0;max-width:none;justify-content:flex-start;gap:6px 16px;font-size:13px;color:var(--m)}
+.hero.hx .rail .pill{padding:0;border:0;background:none;gap:6px;font-size:13px;font-weight:600;color:var(--t)}
+.hero.hx .rail .pill .i{color:var(--p)}
+
+/* ---- mural ---- */
+.hero.hx .wall-w{position:relative;margin:0;max-width:none;width:100%;align-self:stretch;display:flex;flex-direction:column;justify-content:center;will-change:translate;pointer-events:none}
+.hero.hx .wall-t{position:relative;width:114%;margin-right:-14%;height:clamp(560px,80vh,740px);transform:perspective(1900px) rotateX(9deg) rotateY(-16deg) rotateZ(3deg);transform-origin:28% 50%}
+.hero.hx .wall{position:relative;height:100%;margin:0;overflow:hidden;pointer-events:none;
+ -webkit-mask-image:linear-gradient(90deg,transparent,#000 11%,#000 78%,transparent),linear-gradient(180deg,transparent,#000 13%,#000 82%,transparent);-webkit-mask-composite:source-in;
+ mask-image:linear-gradient(90deg,transparent,#000 11%,#000 78%,transparent),linear-gradient(180deg,transparent,#000 13%,#000 82%,transparent);mask-composite:intersect}
+.hero.hx .wt{position:relative;left:0;width:100%;height:132%;margin:-7% 0 0;padding:0 clamp(14px,2vw,28px);display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(14px,1.8vw,26px);align-items:start;overflow:visible;transform:none;transition:none}
+.hero.hx .trk{display:flex;flex-direction:column;--sc:1;scale:var(--sc);translate:none;transform-origin:50% 0;will-change:transform;
+ animation:wallUp var(--dur,80s) linear var(--dl,0s) infinite,hxFade 1s var(--hx-ease) calc(.45s + var(--ci,0)*.14s) both}
+.hero.hx .trk.bk{--sc:.92;opacity:.88;margin-top:46px}
+.hero.hx .trk.fr{--sc:1.04;margin-top:-54px}
+.hero.hx .trk.md{--sc:.97;margin-top:10px}
+@keyframes hxFade{from{opacity:0}}
+.hero.hx .cp{gap:clamp(14px,1.8vw,26px);padding-bottom:clamp(14px,1.8vw,26px)}
+.hero.hx .it{pointer-events:none;cursor:default}
+.hero.hx .trk .cd,.hero.hx .trk.bk .cd{filter:none;border-radius:22px;box-shadow:0 1px 2px rgba(11,18,64,.06),0 22px 38px -24px rgba(11,18,64,.4)}
+[data-theme=dark] .hero.hx .trk .cd{box-shadow:0 1px 2px rgba(0,0,0,.4),0 22px 38px -24px rgba(0,0,0,.75)}
+/* o conteúdo dos cartões é parado: o único movimento é o dos cartões subindo (e o mural não tem notificações) */
+.hero.hx .cd *,.hero.hx .cd *::before,.hero.hx .cd *::after,.hero.hx .cd::before,.hero.hx .cd::after{animation:none!important;transition:none!important}
+.hero.hx .wall .q1,.hero.hx .wall .q2,.hero.hx .wall .q3,.hero.hx .wall .q4{opacity:1}
+.hero.hx .wall .it.dim{opacity:1;transform:none}
+.hero.hx .tag-ex{position:absolute;right:2%;bottom:4px;margin:0;z-index:2;background:color-mix(in srgb,var(--w) 80%,transparent);padding:3px 10px;border-radius:99px}
+
+/* ---- entrada dos blocos (opacidade + deslocamento curto) ---- */
+.hero.hx .hr{animation:hxIn .8s var(--hx-ease) var(--d,0ms) both}
+.hero.hx h1 .l.hr,.hero.hx h1 .d.hr{animation:none}
+@keyframes hxIn{from{opacity:0;transform:translateY(14px)}}
+.hero.hx .wall-w.hr{animation:hxFade .9s var(--hx-ease) var(--d,0ms) both}
+
+@media (min-width:1000px){.hero.hx h1 .l:first-child{white-space:nowrap}}
+/* ---- tablet: texto em cima, mural em faixa larga ---- */
+@media (max-width:999px){
+ .hero.hx .hx-in{grid-template-columns:minmax(0,1fr);gap:6px;min-height:0;padding-top:30px}
+ .hero.hx h1{font-size:clamp(40px,7.4vw,62px)}
+ .hero.hx .wall-w{margin-top:10px}
+ .hero.hx .wall-t{width:104%;margin:0 -2%;height:540px;transform:perspective(1700px) rotateX(7deg) rotateZ(-2.5deg)}
+}
+/* ---- celular: composição própria, 2 colunas, cartões legíveis, sem 3D ---- */
+@media (max-width:700px){
+ .hero.hx .hx-in{padding:22px 20px 8px}
+ .hero.hx .brand-line .bn{font-size:22px}
+ .hero.hx .brand-line .bd{flex-basis:100%;padding-left:0;border-left:0;margin-left:46px;margin-top:-6px}
+ .hero.hx h1{font-size:clamp(37px,11.2vw,48px);margin-top:20px}
+ .hero.hx p.lead{font-size:16.5px}
+ .hero.hx .cmd{flex-direction:column;align-items:stretch;width:100%;margin-top:22px}
+ .hero.hx .cmd .btn.lg{width:100%}
+ .hero.hx .cmd .btn.o{display:none}
+ .hero.hx .badge{margin-top:14px}
+ .hero.hx .rail{display:none}
+ .hero.hx .wall-w{margin:12px -20px 0}
+ .hero.hx .wall-t{width:100%;margin:0;height:430px;transform:rotateZ(-3deg) scale(1.05)}
+ .hero.hx .wt{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:0 16px;height:140%;margin-top:-4%}
+ .hero.hx .trk:nth-child(3){display:none}
+ .hero.hx .trk.bk{--sc:.95;margin-top:34px}
+ .hero.hx .trk.fr{--sc:1;margin-top:-28px}
+ .hero.hx .cp{gap:12px;padding-bottom:12px}
+ .hero.hx .tag-ex{right:20px;bottom:2px}
+}
+
+/* ---- movimento reduzido e modo calmo: composição estática, sem animação ---- */
+html.calm .hero.hx *,html.calm .hero.hx *::before,html.calm .hero.hx *::after{animation:none!important;transition:none!important}
+@media (prefers-reduced-motion:reduce){.hero.hx *,.hero.hx *::before,.hero.hx *::after{animation:none!important;transition:none!important}}
+/* fora da tela, o mural pausa (economia de GPU) */
+.hero.hx.off .trk{animation-play-state:paused}

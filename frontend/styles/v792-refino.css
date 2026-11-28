@@ -31,13 +31,14 @@ html{scrollbar-width:thin;scrollbar-color:var(--bl) transparent}
 .kp>div{--kc:var(--p);position:relative;border:1px solid var(--b)!important;border-top:1px solid var(--b)!important;border-radius:var(--rf-r);box-shadow:var(--rf-card);padding:16px 18px 16px 20px!important;overflow:hidden;transition:transform .25s var(--rf-ease),box-shadow .25s,border-color .25s}
 .kp>div::before{content:"";position:absolute;left:0;top:16px;bottom:16px;width:3px;border-radius:0 3px 3px 0;background:var(--kc)}
 .kp>div:nth-child(1){--kc:var(--g)}.kp>div:nth-child(2){--kc:var(--r)}.kp>div:nth-child(3){--kc:var(--p)}.kp>div:nth-child(4){--kc:var(--y)}
+/* Relatórios > Vendas: pagamento recebido não é negativo (verde); a receber é atenção (amarelo) */
+.kp[data-rt=vendas]>div:nth-child(1){--kc:var(--p)}.kp[data-rt=vendas]>div:nth-child(2){--kc:var(--g)}.kp[data-rt=vendas]>div:nth-child(3){--kc:var(--y)}
 .kp.au>div:nth-child(1){--kc:var(--p)}.kp.au>div:nth-child(2){--kc:var(--g)}.kp.au>div:nth-child(3){--kc:var(--y)}.kp.au>div:nth-child(4){--kc:var(--r)}.kp.au>div:nth-child(5){--kc:var(--m)}
 .kp>div:hover{transform:translateY(-2px);box-shadow:var(--rf-card-h)}
 .kp>div>span,.kp>div>small{color:var(--m);font-size:12.5px;font-weight:600;letter-spacing:.01em}
 .kp b{font-size:clamp(22px,2.4vw,28px);letter-spacing:-.025em;margin-top:2px}
 .g75-k,.ag-k{border-radius:var(--rf-r);box-shadow:var(--rf-card);transition:transform .25s var(--rf-ease),box-shadow .25s,border-color .25s}
 .g75-k:hover,.ag-k:hover{box-shadow:var(--rf-card-h)}
-.ag-k[data-tone=on]{background:linear-gradient(180deg,var(--pl),var(--w))}
 .g75-k>b,.ag-k b{letter-spacing:-.025em}
 
 /* Cartões e painéis */
@@ -159,8 +160,6 @@ html{scrollbar-width:thin;scrollbar-color:var(--bl) transparent}
 /* Ao remover .fx (1,3 s após trocar de tela) a animação base de .g2>* reiniciava e o conteúdo sumia e voltava. */
 #v:not(.fx) .g2>*,#v:not(.fx) .pg>*,#v:not(.fx) .kb>*,#v:not(.fx) .two>section>*{animation:none!important}
 /* Abas da Caixa: rolagem sem barra e borda esmaecida, para o corte parecer intencional */
-.cx4-seg{scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 26px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 26px),transparent);scroll-snap-type:x proximity}
-.cx4-seg::-webkit-scrollbar{display:none}.cx4-seg>*{scroll-snap-align:start}
 .tabs{-webkit-mask-image:none}
 
 /* Entrada única: a animação 'up' não recomeça quando a 'pgIn' (classe pgo) termina. */

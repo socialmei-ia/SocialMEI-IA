@@ -87,6 +87,7 @@ label{display:block;font-size:13px;color:var(--mu);margin-bottom:5px}
 .z-cold .tk{border-color:var(--cold)}.z-warm .tk{border-color:var(--warm)}.z-hot .tk{border-color:var(--late);background:rgba(255,112,96,.16)}
 .tk:hover{box-shadow:0 0 0 4px var(--hov)}.tk:focus-visible{outline:2px solid var(--ac);outline-offset:3px}
 .tk.due{outline:2px dashed var(--late);outline-offset:3px}
+.tkinfo{margin:10px 2px 0;min-height:1.4em;font-size:13px}
 .tk.drag{pointer-events:none;z-index:9;cursor:grabbing;position:relative;box-shadow:0 14px 28px rgba(0,0,0,.35)}
 @media(max-width:560px){.board{grid-template-columns:1fr 1fr}.bz:nth-child(3){border-left:0}.bz:nth-child(n+3){border-top:1px solid var(--bd)}.board::after{display:none}}
 @keyframes rise{from{transform:translateY(100%);opacity:0}}@keyframes fade{from{opacity:0;transform:translateY(8px)}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes hl{from{background:var(--hov);box-shadow:inset 3px 0 var(--ac)}}
@@ -167,6 +168,9 @@ label{display:block;font-size:13px;color:var(--mu);margin-bottom:5px}
 .o65-act{display:flex;gap:8px;align-items:center;flex-wrap:wrap;position:relative}
 .o65-act .wide,.o65-act .btn,.o65-act .hb{min-height:40px}
 .o65-kp{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 12px}
+/* resumo em uma linha (v7.9.11): os 4 cartões repetiam o funil e o Retomar hoje; seus elementos seguem no HTML (atualizados por kpi()) mas ficam ocultos */
+.o65-kp{display:none}
+.o65-sum{margin:0 0 6px;font-size:14px;color:var(--m);min-height:1.4em}.o65-sum b{color:var(--late)}
 .o65-k{padding:12px 16px;border:1px solid var(--b);border-radius:14px;background:var(--w);display:grid;gap:2px;transition:border-color .2s,box-shadow .2s,transform .2s}
 .o65-k:hover{border-color:var(--bl);box-shadow:0 6px 18px #0b12400f;transform:translateY(-1px)}
 .o65-k span{font-size:12.5px;color:var(--m);font-weight:600}
@@ -211,7 +215,7 @@ label{display:block;font-size:13px;color:var(--mu);margin-bottom:5px}
 .seg i{background:var(--pl);box-shadow:inset 0 0 0 1px var(--bl)}
 .seg button[aria-pressed=true]{color:var(--p)}
 @media(max-width:860px){.o65-kp{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:560px){.o65-act{display:grid;grid-template-columns:1fr 1fr;width:100%}.o65-act .btn.pri{grid-column:1/-1;order:-1;justify-content:center}.o65-act .wide,.o65-act .hb{justify-content:center;width:100%}.o65-act .hb{white-space:nowrap;font-size:13px;padding:0 10px;gap:6px}.o65-k b{font-size:21px}.sech{flex-wrap:wrap;gap:2px 12px}}}
+@media(max-width:560px){.o65-act{display:grid;grid-template-columns:1fr 1fr;width:100%}.o65-act .btn.pri{grid-column:1/-1;order:-1;justify-content:center}.o65-act .wide,.o65-act .hb{justify-content:center;width:100%}.o65-act .hb{white-space:nowrap;font-size:13px;padding:0 10px;gap:6px}.sech{flex-wrap:wrap;gap:2px 12px}}
 @media(prefers-reduced-motion:reduce){.o65-k{transition:none}.o65-k:hover{transform:none}}
 </style>
 </head>
@@ -246,7 +250,7 @@ label{display:block;font-size:13px;color:var(--mu);margin-bottom:5px}
 <main class="wrap">
 <section class="hero2 o65-h"><div class="hl"><h1><span>Oportunidades</span></h1><p class="lead up">Quem acompanhar hoje e qual o próximo passo de cada cliente.</p></div><div class="o65-act"><button class="wide" id="refresh"><svg class="ic" aria-hidden="true"><use href="#i-sync"/></svg><span>Atualizar</span></button><button class="btn pri" type="button" data-act="newop"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>Nova oportunidade</button><div class="mw opt"><button class="hb" data-menu="mo" aria-expanded="false"><span>Opções da análise</span><svg class="ic" aria-hidden="true"><use href="#i-more"/></svg></button><div class="menu" id="mo" hidden><button class="mi" data-act="view" data-v="list">Ver como lista</button><button class="mi" data-act="view" data-v="board">Ver como termômetro</button><button class="mi" data-act="view" data-v="week">Ver como semana</button><button class="mi" data-act="newop">Nova oportunidade</button></div></div></div></section>
 <div class="o65-kp" id="kp" aria-label="Resumo das oportunidades"><div class="o65-k"><span>Em andamento</span><b id="k1">0</b></div><div class="o65-k o65-due"><span>Pedem retorno hoje</span><b id="k2">0</b></div><div class="o65-k"><span>Quentes</span><b id="k3">0</b></div><div class="o65-k"><span>Em negociação</span><b id="k4">R$ 0</b></div></div>
-<p class="sum sr" id="sum" role="status"></p>
+<p class="sum o65-sum" id="sum" role="status"></p>
 <details class="o65-how"><summary>Como funciona</summary><p class="desc">Frio, Morno e Quente indicam interesse. Venda realizada e Não avançou encerram a oportunidade e saem dos contadores de interesse. Sem resposta continua em andamento.</p></details>
 
 <section class="panel cr" aria-labelledby="cn"><div class="crh"><span class="tile big" aria-hidden="true"><svg class="ic"><use href="#i-plus"/></svg></span><div><h2 id="cn">Criar nova oportunidade</h2><p class="mut">Registre um interesse e comece o acompanhamento.</p></div></div>
@@ -269,7 +273,7 @@ label{display:block;font-size:13px;color:var(--mu);margin-bottom:5px}
 <div class="cols" aria-hidden="true" id="cols"><span></span><span>Cliente</span><span>Interesse</span><span>Valor</span><span>Retorno</span><span></span></div>
 <div class="list"><div id="list"></div><div class="lt" id="lt"></div></div></section>
 
-<section id="vb" hidden aria-label="Termômetro das negociações"><div class="sech"><h2>Termômetro das negociações</h2><span class="mut">Arraste uma ficha para mudar o interesse. Tamanho = valor. Anel tracejado = pede retorno.</span></div><div class="board" id="board"></div></section>
+<section id="vb" hidden aria-label="Termômetro das negociações"><div class="sech"><h2>Termômetro das negociações</h2><span class="mut">Arraste uma ficha para mudar o interesse. Tamanho = valor. Anel tracejado = pede retorno.</span></div><div class="board" id="board"></div><p class="mut tkinfo" id="tkinfo">Passe o mouse, toque ou use Tab em uma ficha para ver quem é.</p></section>
 
 <section id="vw" hidden aria-labelledby="wt"><div class="sech"><h2 id="wt">Semana</h2><span class="mut">Arraste um cliente para outro dia, ou toque nele e depois no dia</span></div>
 <div class="selbar" id="sel" hidden><span id="sn"></span><button class="btn sm" data-act="selopen">Abrir</button><button class="btn sm" data-act="pick">Cancelar</button></div>
@@ -368,7 +372,7 @@ function view(v){S.v=v;S.sel=null;var s=document.querySelector(".views");s.style
 function moveTo(o,col){var f=col==="none"?null:+col===0?now():sd(now())+(+col)*DAY+9*36e5;mut(function(){o.f=f;o.u=now();o.h.push({t:o.u,s:f?"Retorno movido para "+rel(f)+" ("+new Date(f).toLocaleDateString("pt-BR")+")":"Retorno removido"})},f?nm(o)+": retorno "+rel(f)+".":"Retorno removido.")}
 function setErr(i,f,m){$(f).className="f"+(m?" err":"");$(i).textContent=m||""}
 function pv(s){s=String(s).trim();if(!s)return 0;var n=parseFloat(s.replace(/\./g,"").replace(",","."));return isNaN(n)||n<0?NaN:n}
-function openRow(id){var o=S.items.find(function(r){return r.id===id});if(!o)return;S.f=o.r==="open"?"open":o.r;S.q="";$("q").value="";S.x[id]=true;view("list");var t=document.querySelector('#list [data-id="'+id+'"]');if(t)t.scrollIntoView({behavior:"smooth",block:"center"})}
+function openRow(id){var o=S.items.find(function(r){return r.id===id});if(!o)return;S.f=o.r==="open"?"open":o.r;S.q="";$("q").value="";S.x[id]=true;view("list");render();var t=document.querySelector('#list [data-id="'+id+'"]');if(t)t.scrollIntoView({behavior:"smooth",block:"center"})}
 function copyDue(){var d=S.items.filter(isDue);if(!d.length){toast("Nenhum retorno pendente hoje.");return}
  var tx="Retornos de hoje:\n"+d.map(function(o){return "• "+nm(o)+" — "+o.w+" ("+IL[o.i][0]+")"}).join("\n");
  if(!navigator.clipboard){toast("Seu navegador não permite copiar daqui.",true);return}navigator.clipboard.writeText(tx).then(function(){toast("Lista copiada.")},function(){toast("Não foi possível copiar.",true)})}
@@ -481,13 +485,20 @@ function zAt(x,y){var el=document.elementFromPoint(x,y);return el&&el.closest(".
 $("board").addEventListener("pointerdown",function(e){var t=e.target.closest(".tk");if(!t||e.button)return;dg={t:t,id:t.dataset.id,x:e.clientX,y:e.clientY,on:false}});
 document.addEventListener("pointermove",function(e){if(!dg)return;var dx=e.clientX-dg.x,dy=e.clientY-dg.y;if(!dg.on){if(Math.abs(dx)+Math.abs(dy)<8)return;dg.on=true;dg.t.classList.add("drag")}
  dg.t.style.transform="translate("+dx+"px,"+dy+"px) scale(1.1)";var z=zAt(e.clientX,e.clientY);document.querySelectorAll(".bz").forEach(function(q){q.classList.toggle("ov",q===z)})});
-function dEnd(e,cancel){if(!dg)return;var d=dg;dg=null;if(!d.on){if(!cancel)openRow(d.id);return}
+function dEnd(e,cancel){if(!dg)return;var d=dg;dg=null;if(!d.on){if(!cancel){var gc=function(ev){ev.stopPropagation();ev.preventDefault()};document.addEventListener("click",gc,{capture:true,once:true});setTimeout(function(){document.removeEventListener("click",gc,true)},500);openRow(d.id)}return}
  var z=cancel?null:zAt(e.clientX,e.clientY),o=S.items.find(function(r){return r.id===d.id});document.querySelectorAll(".bz").forEach(function(q){q.classList.remove("ov")});
  if(z&&o&&z.dataset.zone!==o.i){setInt(o,z.dataset.zone);return}
  var cur=d.t.style.transform;d.t.classList.remove("drag");d.t.style.transform="";d.t.animate([{transform:cur},{transform:"none"}],{duration:300,easing:"cubic-bezier(.22,1,.36,1)"})}
 document.addEventListener("pointerup",function(e){dEnd(e,false)});document.addEventListener("pointercancel",function(e){dEnd(e,true)});
 $("board").addEventListener("click",function(e){var t=e.target.closest(".tk");if(t&&e.detail===0)openRow(t.dataset.id)});
 $("board").addEventListener("keydown",function(e){var t=e.target.closest(".tk");if(!t||(e.key!=="ArrowLeft"&&e.key!=="ArrowRight"))return;e.preventDefault();var o=S.items.find(function(r){return r.id===t.dataset.id}),i=IL[o.i][1]+(e.key==="ArrowRight"?1:-1);if(i<0||i>3)return;setInt(o,IK[i])});
+/* nome da ficha à vista ao passar o mouse, tocar ou focar (só leitura; os dados e o arrastar não mudam) */
+var tki=$("tkinfo"),tkd=tki.textContent;
+function tkShow(t){if(!t){tki.textContent=tkd;return}var o=S.items.find(function(r){return r.id===t.dataset.id});if(!o){tki.textContent=tkd;return}tki.textContent=nm(o)+" · "+IL[o.i][0]+(o.v?" · "+BRL.format(o.v):"")+(isDue(o)?" · pede retorno":"")}
+["pointerover","focusin"].forEach(function(n){$("board").addEventListener(n,function(e){var t=e.target.closest&&e.target.closest(".tk");if(t)tkShow(t)})});
+["pointerout","focusout"].forEach(function(n){$("board").addEventListener(n,function(e){var r=e.relatedTarget;if(!(r&&r.closest&&r.closest(".tk")))tkShow(null)})});
+/* celular: ao trocar para Quadro/Semana, os controles sobem ao topo e o conteúdo aparece logo abaixo (só rolagem) */
+document.querySelector(".views").addEventListener("click",function(e){var b=e.target.closest("button[data-v]");if(!b||b.dataset.v==="list"||window.innerWidth>560)return;setTimeout(function(){var s=document.querySelector(".views");s&&s.scrollIntoView({block:"start",behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"})},80)});
 var wk=$("wk");
 wk.addEventListener("dragstart",function(e){var c=e.target.closest(".ch");if(c){e.dataTransfer.setData("text/plain",c.dataset.id);e.dataTransfer.effectAllowed="move"}});
 wk.addEventListener("dragover",function(e){var c=e.target.closest(".dc");if(c&&c.dataset.col!=="late"){e.preventDefault();c.classList.add("ov")}});

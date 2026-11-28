@@ -9,15 +9,6 @@ html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 #v .card>h2,#v .au74-grid>.card>h2{font-size:clamp(18px,1.5vw,20px)!important;letter-spacing:-.02em;margin-bottom:12px}
 
 /* 2. Caixa Unificada: situações em grade 3+2 (rótulo e contador lado a lado), sem rolagem nem cortes */
-.cx4-seg{display:grid!important;grid-template-columns:repeat(10,minmax(0,1fr));gap:3px;padding:3px;margin-inline:0!important;width:100%;box-sizing:border-box;border-radius:12px;background:var(--s);overflow:visible!important;-webkit-mask-image:none!important;mask-image:none!important}
-.cx4-seg button{grid-column:span 3;flex-direction:row;justify-content:center;gap:5px;min-width:0;padding:8px 3px;font-size:12px;font-weight:600;line-height:1.2;letter-spacing:0;white-space:nowrap;border-radius:9px;transition:background .2s var(--rf-ease),color .2s,box-shadow .2s,transform .15s}
-.cx4-seg button:nth-child(3){grid-column:span 4}
-.cx4-seg button:nth-child(n+4){grid-column:span 5}
-.cx4-seg .n{margin-left:0!important;font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--m);min-width:18px;padding:1px 6px!important;border-radius:99px;background:color-mix(in srgb,var(--m) 14%,transparent)!important;text-align:center}
-.cx4-seg button:not(.on):hover{background:color-mix(in srgb,var(--w) 60%,transparent);color:var(--t)}
-.cx4-seg button.on{background:var(--w);color:var(--t);box-shadow:0 1px 2px rgba(11,18,64,.08),0 4px 10px -6px rgba(10,92,245,.35)}
-.cx4-seg button.on .n{color:var(--p);background:var(--pl)!important}
-.cx4-seg button:focus-visible{outline:2px solid var(--p);outline-offset:1px}
 /* canais em uma linha, compactos */
 .cx79-chs{gap:4px!important;flex-wrap:nowrap!important;overflow:hidden}
 .cx79-chs>button{padding:3px 8px!important;gap:5px!important;letter-spacing:0!important;justify-content:flex-start;font-size:12px;min-height:30px;flex:none;white-space:nowrap}
@@ -52,14 +43,12 @@ dialog.dlg::backdrop{background:rgba(8,12,40,.42);-webkit-backdrop-filter:blur(4
   #v .pg:has(.nhfab){padding-bottom:108px}
   .tabs{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent)}
   .au74-grid .tabs{-webkit-mask-image:none;mask-image:none}
-  .cx4-seg button{padding:10px 6px}
 }
 
 /* canais: especificidade reforçada (sobrepõe regras antigas de .cx4-chb) */
 #v .cx79-chs{gap:4px!important}
 #v .cx79-chs>button{font-size:12px!important;padding:3px 6px!important;gap:4px!important;min-width:0!important;border-width:1px!important}
 #v .cx79-chs>button .n{padding:0 3px!important;min-width:0!important;margin-left:1px!important;font-size:11px!important}
-.cx4-seg button.on::after,.cx4-seg button.on::before{display:none!important}
 .au74-grid .tabs>*{padding-inline:6px!important;font-size:13px}
 .au74-grid .tabs .n,.au74-grid .tabs span{margin-left:4px}
 

@@ -1,0 +1,228 @@
+/* ============================================================
+   SocialMEI-IA · Experiência Premium v5
+   Carrega por último na landing (depois de sections-v3.css). Escopo: landing (entrada.html).
+   1. Escala natural de ~90% em telas largas (sem zoom global, sem transform): tamanhos reais menores só a partir de 1025px.
+   2. Hero: seletor de ramo.
+   3. "Cada parte do negócio": índice + palco (substitui o bento).
+   4. Três passos: escolhas reais.
+   5. FAQ: transições suaves.
+   Movimento: transform/opacity/height curtos. Modo calmo e prefers-reduced-motion: tudo instantâneo.
+   ============================================================ */
+
+/* ---------- 1. escala natural ~90% (desktop) ---------- */
+@media (min-width:1025px){
+ .nav-in{max-width:1120px;min-height:64px;padding:8px 22px}
+ .links a{font-size:14px;padding:8px 12px}
+ .btn{min-height:44px;font-size:14px;padding:0 20px}
+ .btn.lg{min-height:50px;font-size:15px;padding:0 24px}
+ .kick{font-size:12px}
+ .hero.hx .hx-in{max-width:1330px;padding-left:clamp(20px,2.7vw,44px);padding-right:clamp(20px,2.7vw,44px);min-height:min(670px,calc(100svh - 64px))}
+ .hero.hx h1{font-size:clamp(36px,4.05vw,59px)}
+ .hero.hx p.lead{font-size:clamp(16px,1.2vw,17px)}
+ .hero.hx .wall-t{height:clamp(500px,72vh,670px)}
+ .sx{padding-top:clamp(68px,8vw,122px);padding-bottom:clamp(68px,8vw,122px)}
+ .sx>.wrap{max-width:1134px}
+ .sx h2.sx-h2{font-size:clamp(31px,4.2vw,59px)}
+ .sx-sub,.sx-head .sub{font-size:16px}
+}
+
+/* ---------- 2. hero: seletor de ramo ---------- */
+.hx-ramo{margin-top:clamp(18px,2vw,26px);max-width:34em}
+.hx-ramo-l{margin:0 0 10px;font-size:14px;font-weight:700;color:var(--t);display:flex;flex-wrap:wrap;gap:2px 10px;align-items:baseline}
+.hx-ramo-l small{font-size:12.5px;font-weight:500;color:var(--m)}
+.hx-chips{display:flex;flex-wrap:wrap;gap:8px}
+.hx-chip{min-height:40px;padding:0 15px;border-radius:99px;border:1px solid var(--bl);background:color-mix(in srgb,var(--w) 70%,transparent);color:var(--t);font:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s,border-color .2s,color .2s,transform .2s var(--sx-ease,ease)}
+.hx-chip:hover{background:color-mix(in srgb,var(--pb) 9%,var(--w));border-color:color-mix(in srgb,var(--pb) 50%,var(--bl))}
+.hx-chip:active{transform:scale(.97)}
+.hx-chip[aria-pressed=true]{background:var(--pb);border-color:var(--pb);color:#fff}
+.hx-chip:focus-visible,.pv-t:focus-visible,.pv-next:focus-visible,.sx-chs button:focus-visible,.sx-sws button:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.hx-ramo-st{min-height:1.4em;margin:10px 0 0;font-size:13px;color:var(--m);opacity:0;transform:translateY(4px);transition:opacity .25s,transform .25s}
+.hx-ramo-st.on{opacity:1;transform:none}
+.hero.hx .cmd{margin-top:clamp(16px,1.8vw,22px)}
+@media (max-width:640px){.hx-chip{min-height:44px}}
+
+/* ---------- 3. Cada parte do negócio: índice + palco ---------- */
+.pvx{display:grid;grid-template-columns:minmax(0,8fr) minmax(0,4fr);gap:clamp(20px,3vw,44px);margin-top:clamp(34px,4vw,60px);align-items:stretch}
+.pv-stage{position:relative;display:grid;min-width:0}
+.pv-stage>.pv-panel{grid-area:1/1!important;order:0!important;min-width:0;opacity:0;visibility:hidden;pointer-events:none;transform:translateY(14px);transition:opacity .4s var(--sx-ease),transform .5s var(--sx-ease),visibility 0s .4s,border-color .3s,box-shadow .35s}
+.pv-stage>.pv-panel.on{opacity:1;visibility:visible;pointer-events:auto;transform:none;transition-delay:0s}
+.pv-panel{border-radius:26px;--bp:clamp(22px,2.4vw,34px);min-height:clamp(400px,42vw,540px)}
+.pv-panel .sx-bc-txt{max-width:26em}
+.pv-panel h3{font-size:clamp(22px,2vw,28px)}
+.pv-panel .sx-bc-txt p{font-size:15px}
+.pv-next{justify-self:start;margin-top:10px;min-height:40px;padding:0 16px 0 18px;border-radius:99px;border:1px solid var(--b);background:transparent;color:var(--p);font:inherit;font-size:14px;font-weight:700;display:inline-flex;gap:8px;align-items:center;cursor:pointer;transition:background .2s,border-color .2s}
+.pv-next:hover{background:color-mix(in srgb,var(--pb) 9%,transparent);border-color:color-mix(in srgb,var(--pb) 45%,var(--b))}
+.pv-next .i{transition:transform .25s var(--sx-ease)}.pv-next:hover .i{transform:translateX(3px)}
+/* telas de exemplo: aproveitam a largura do palco, encostadas no canto inferior direito */
+.pv-panel .sx-bc-vis{align-self:flex-end;width:min(100%,560px);margin:auto calc(var(--bp)*-1) calc(var(--bp)*-1) auto}
+.pv-panel.sx-b-caixa .sx-bc-vis{width:calc(100% + var(--bp));margin-left:0}
+.pv-panel .sx-scr{width:100%}
+.pv-panel.sx-b-fin .sx-bars{height:132px}
+/* índice */
+.pv-idx{display:flex;flex-direction:column;align-self:center;min-width:0}
+.pv-t{--pg:0;position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:center;text-align:left;width:100%;padding:16px 8px 16px 14px;border:0;border-top:1px solid var(--b);background:transparent;color:var(--m);font:inherit;cursor:pointer;transition:background .25s,color .25s}
+.pv-t:last-child{border-bottom:1px solid var(--b)}
+.pv-t::before{content:"";position:absolute;left:0;top:-1px;bottom:-1px;width:3px;background:linear-gradient(var(--pb),var(--y));transform:scaleY(0);transform-origin:top;transition:transform .35s var(--sx-ease)}
+.pv-t[aria-selected=true]::before{transform:none}
+.pv-t:hover{background:color-mix(in srgb,var(--pb) 7%,transparent)}
+.pv-n{font-size:12px;font-weight:800;letter-spacing:.08em;font-variant-numeric:tabular-nums;color:var(--m)}
+.pv-tt{display:grid;gap:2px;min-width:0}
+.pv-tt b{font-size:clamp(17px,1.5vw,21px);font-weight:800;letter-spacing:-.03em;line-height:1.15;color:var(--t)}
+.pv-tt small{font-size:13px;line-height:1.35;max-height:0;opacity:0;overflow:hidden;transition:max-height .35s var(--sx-ease),opacity .3s}
+.pv-t[aria-selected=true] .pv-tt small{max-height:3em;opacity:1}
+.pv-t .i{color:var(--p);opacity:0;transform:translateX(-6px);transition:opacity .25s,transform .3s var(--sx-ease)}
+.pv-t[aria-selected=true] .i{opacity:1;transform:none}
+.pv-t[aria-selected=true] .pv-n{color:var(--p)}
+.pv-t:not([aria-selected=true]) .pv-tt b{color:color-mix(in srgb,var(--t) 78%,var(--m))}
+@media (max-width:900px){
+ .pvx{grid-template-columns:1fr;gap:18px}
+ .pv-idx{order:-1;flex-direction:row;overflow-x:auto;gap:8px;padding:2px 2px 8px;scroll-snap-type:x proximity;scrollbar-width:none;margin:0 -4px}
+ .pv-idx::-webkit-scrollbar{display:none}
+ .pv-t{flex:none;width:auto;grid-template-columns:auto auto;gap:8px;min-height:46px;padding:0 16px 0 14px;border:1px solid var(--b);border-radius:99px;scroll-snap-align:start;background:var(--sx-card)}
+ .pv-t:last-child{border-bottom:1px solid var(--b)}
+ .pv-t::before,.pv-t .i,.pv-tt small{display:none}
+ .pv-t[aria-selected=true]{background:var(--pb);border-color:var(--pb)}
+ .pv-t[aria-selected=true] .pv-n,.pv-t[aria-selected=true] .pv-tt b{color:#fff}
+ .pv-tt b{font-size:15px;white-space:nowrap}
+ .pv-panel{min-height:0}
+ .pv-panel .sx-bc-vis{width:calc(100% + var(--bp));margin:6px calc(var(--bp)*-1) calc(var(--bp)*-1) 0;align-self:stretch}
+}
+@media (max-width:560px){.pv-panel{border-radius:22px}.pv-panel .sx-bc-vis{margin-top:14px}}
+@media (hover:none){.pv-t:hover{background:transparent}}
+
+/* ---------- 4. Três passos: escolhas reais ---------- */
+.sx-how{--pick:var(--pb)}
+.sx-chs button{padding:0 15px;min-height:40px;border-radius:99px;border:1px solid var(--b);background:var(--bg2);font:inherit;font-size:13.5px;font-weight:600;color:var(--m);cursor:pointer;transition:background .2s,color .2s,border-color .2s,transform .2s var(--sx-ease)}
+.sx-chs button:hover{border-color:color-mix(in srgb,var(--pb) 50%,var(--b));color:var(--t)}
+.sx-chs button:active{transform:scale(.97)}
+.sx-chs button[aria-pressed=true]{background:var(--pick);border-color:var(--pick);color:#fff}
+.sx-sws button{width:36px;height:36px;border-radius:50%;border:0;padding:0;background:var(--sw);cursor:pointer;transition:box-shadow .2s,transform .2s var(--sx-ease)}
+.sx-sws button:hover{transform:scale(1.08)}
+.sx-sws button[aria-pressed=true]{box-shadow:0 0 0 3px var(--sx-card),0 0 0 5px var(--t)}
+.st-todo{display:grid;gap:8px}
+.pv-ck{display:flex;gap:12px;align-items:center;min-height:44px;padding:8px 12px;border-radius:12px;background:var(--bg2);cursor:pointer;font-size:14px;font-weight:700;color:var(--t);transition:background .2s}
+.pv-ck:hover{background:color-mix(in srgb,var(--pb) 8%,var(--bg2))}
+.pv-ck input{appearance:none;-webkit-appearance:none;margin:0;flex:none;width:20px;height:20px;border-radius:6px;border:2px solid var(--bl);display:grid;place-items:center;cursor:pointer;transition:background .2s,border-color .2s}
+.pv-ck input::after{content:"";width:9px;height:5px;border-left:2.5px solid #fff;border-bottom:2.5px solid #fff;transform:rotate(-45deg) scale(0);margin-top:-2px;transition:transform .2s var(--sx-ease)}
+.pv-ck input:checked{background:var(--g);border-color:var(--g)}
+.pv-ck input:checked::after{transform:rotate(-45deg) scale(1)}
+.pv-ck input:checked+span{color:var(--m);text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--m) 50%,transparent)}
+.pv-ck input:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+/* os três exemplos começam alinhados no mesmo topo; o trilho continua ligando os números */
+.sx-step:nth-child(n) .sx-mini{margin-top:28px}
+@media (max-width:1000px){.sx-step:nth-child(n) .sx-mini{margin-top:22px}}
+
+/* ---------- 5. FAQ suave ---------- */
+.sx-faq-l .faq{transition:border-color .3s,box-shadow .35s,background .3s}
+.sx-faq-l .faq summary svg{transition:transform .35s var(--sx-ease),background .25s,color .25s}
+.sx-faq-l .faq[data-state=open] summary svg{transform:rotate(180deg);background:var(--pb);color:#fff}
+.sx-faq-l .faq[open]:not([data-state=open]) summary svg{transform:none;background:var(--pl);color:var(--p)}
+.sx-faq-l .faq[data-state=open]{border-color:var(--pb);box-shadow:var(--sx-sh)}
+.sx-faq-l .faq[open]:not([data-state=open]){border-color:var(--b);box-shadow:none}
+.sx-faq-l .faq .fa{will-change:height}
+html.calm .pv-panel,html.calm .pv-t::before,html.calm .pv-tt small{transition:none}
+@media (prefers-reduced-motion:reduce){
+ .pv-stage>.pv-panel,.pv-t,.pv-t::before,.pv-tt small,.pv-t .i,.hx-ramo-st,.sx-faq-l .faq summary svg{transition:none!important}
+}
+
+/* palco: as telas menores ficam ao lado do texto (composição em duas colunas), a Caixa ocupa a largura toda */
+@media (min-width:901px){
+ .pv-panel:not(.sx-b-caixa){flex-direction:row;align-items:center;gap:clamp(24px,3vw,44px)}
+ .pv-panel:not(.sx-b-caixa) .sx-bc-txt{flex:0 0 34%;max-width:none}
+ .pv-panel:not(.sx-b-caixa) .sx-bc-vis{flex:1;width:auto;min-width:0;margin:0;align-self:center}
+ .pv-panel:not(.sx-b-caixa) .sx-bc-vis .sx-scr{border:1px solid var(--b);border-radius:20px;padding:20px;box-shadow:var(--sx-sh)}
+ .pv-panel:not(.sx-b-caixa) .sx-bc:hover .sx-bc-vis{transform:none}
+}
+
+/* marca com mais presença na hero */
+.hero.hx .brand-line img{width:44px;height:44px;border-radius:12px}
+.hero.hx .brand-line .bn{font-size:clamp(26px,2.6vw,34px);letter-spacing:-.045em}
+.hero.hx .brand-line .bd{font-size:13px}
+@media (max-width:640px){.hero.hx .brand-line img{width:38px;height:38px}.hero.hx .brand-line .bn{font-size:26px}}
+
+/* ---------- alinhamento: navegação, hero e seções usam a mesma coluna ---------- */
+@media (min-width:1025px){
+ :root{--gut:clamp(20px,3vw,48px);--col:1134px}
+ .nav-in,.hero.hx .hx-in{max-width:calc(var(--col) + 2*var(--gut));padding-left:var(--gut);padding-right:var(--gut)}
+}
+
+/* ---------- escala natural nas demais seções (antes dependiam do zoom global) ---------- */
+@media (min-width:1025px){
+ .sx-tab{min-height:clamp(132px,17vh,164px);padding-top:12px;padding-bottom:20px}
+ .sx-tt{font-size:clamp(19px,1.7vw,25px)}
+ .sx-stage{min-height:min(630px,calc(100svh - 110px))}
+ .sx-phone{height:min(600px,calc(100svh - 140px));min-height:500px;border-radius:42px}
+ .sx-hist-grid{gap:clamp(28px,4.5vw,86px)}
+}
+@media (min-width:1025px){
+ .sx-phone-d{height:min(590px,calc(100svh - 110px));min-height:500px}
+ .sx-plans .plan{padding:clamp(22px,2vw,28px)}
+}
+
+/* hero compacta o bastante para mostrar botões e prova social em notebooks (sem zoom global) */
+.hx-ramo-st{min-height:0;height:0;margin:0;overflow:hidden}
+.hx-ramo-st.on{height:auto;min-height:1.4em;margin:10px 0 0}
+@media (min-width:1025px){
+ .hero.hx .hx-in{padding-top:clamp(20px,3.2vh,36px);padding-bottom:clamp(20px,3vh,34px);min-height:0}
+ .hero.hx h1{font-size:clamp(36px,3.7vw,54px);margin-top:clamp(12px,2vh,18px)}
+ .hero.hx p.lead{font-size:16px;margin-top:18px}
+ .hx-ramo{margin-top:16px}
+ .hx-chip{min-height:36px;padding:0 13px;font-size:13.5px}
+ .hero.hx .wall-t{height:clamp(470px,66vh,620px)}
+}
+
+/* demonstração: card "cliente ao lado" sem texto espremido (o selo desce para a linha de baixo) */
+.sx-cli{grid-template-columns:34px minmax(0,1fr);align-items:start;row-gap:6px}
+.sx-cli>i{grid-column:2;justify-self:start}
+.sx-cli em{display:block;margin-top:1px;line-height:1.35;overflow-wrap:anywhere}
+.sx-cli small{white-space:nowrap}
+.sx-ramo-pick .sx-chip{min-height:40px;padding:0 16px;font-size:14px}
+
+/* ---------- Para MEI: título + dia de exemplo no alto, benefícios numa faixa única ---------- */
+.sx-mei-grid{row-gap:clamp(40px,4.5vw,72px)}
+.sx-mei-head .sx-sub{max-width:30em;margin-top:18px}
+@media (min-width:1001px){
+ .sx-mei-head{grid-column:1/7}
+ .sx-today-w{grid-column:8/13}
+ .sx-benef{gap:0;border:1px solid var(--b);border-radius:28px;background:var(--sx-card);box-shadow:var(--sx-sh);overflow:hidden}
+ .sx-bf{padding:clamp(20px,2vw,28px);border-left:1px solid var(--b);margin-top:0!important;transition:background .3s}
+ .sx-bf:first-child{border-left:0}
+ .sx-bf:hover{background:color-mix(in srgb,var(--pb) 6%,transparent)}
+ .sx-bf-vis{height:120px;border:0;box-shadow:none;background:var(--bg2);border-radius:16px;margin-bottom:18px}
+}
+@media (max-width:560px){.sx-benef{grid-template-columns:1fr!important}}
+.sx-bf-vis.opts{padding:10px 12px;gap:6px}
+.sx-bf-vis.opts span{padding:5px 10px;font-size:12px}
+
+/* ---------- Planos: hierarquia clara (o recomendado se destaca; os outros ficam mais leves) ---------- */
+.sx-plans .plans{align-items:stretch}
+.sx-plans .plan{border-radius:26px;transition:transform .35s var(--sx-ease),border-color .25s,box-shadow .35s,background .3s}
+.sx-plans .plan:not(.feat){background:color-mix(in srgb,var(--sx-card) 55%,transparent);box-shadow:none}
+.sx-plans .plan h3{font-size:clamp(24px,2.2vw,30px)}
+.sx-plans .plan .sx-tier i{height:6px;border-radius:99px}
+.sx-plans .plan li{font-size:15px}
+.sx-plans .plan.feat{background:linear-gradient(180deg,color-mix(in srgb,var(--pb) 10%,var(--sx-card)),var(--sx-card) 60%);box-shadow:0 34px 60px -34px color-mix(in srgb,var(--pb) 55%,transparent),var(--sx-sh)}
+@media (min-width:1001px){.sx-plans .plan.feat{transform:translateY(-14px)}.sx-plans .plan.feat:hover{transform:translateY(-18px)}}
+.sx-plans .plan:not(.feat):hover{background:var(--sx-card)}
+
+/* ---------- Ritmo: a seção escura vira um "palco" arredondado, sem corte seco entre claro e escuro ---------- */
+.sx-ink{margin:clamp(10px,1.8vw,26px) clamp(8px,1.6vw,28px);border-radius:clamp(24px,3.2vw,46px);overflow:clip}
+
+/* Passo 1 da landing: formulário real (nome e e-mail seguem para o cadastro) */
+.sx-start .sx-field{display:block;cursor:text}
+.sx-start .sx-field small span{font-weight:400}
+.sx-start .sx-field input{display:block;width:100%;margin:0;padding:0;border:0;background:none;color:var(--t);font:inherit;font-size:14.5px;font-weight:700;outline:0}
+.sx-start .sx-field input::placeholder{color:var(--m);font-weight:500;opacity:.8}
+.sx-start .sx-field:focus-within{border-color:var(--pb);box-shadow:0 0 0 3px color-mix(in srgb,var(--pb) 22%,transparent)}
+.sx-start .sx-field.bad{border-color:var(--r)}
+.links a[aria-current="location"]{background:var(--pl);color:var(--p)}
+.links a[aria-current="location"]:hover{background:var(--pl);color:var(--p)}
+.links a:focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.sx-hint{font-size:12.5px;color:var(--m);margin:-2px 2px 0}
+.sx-clear{align-self:flex-start;background:none;border:0;padding:6px 2px;margin:-2px 0 0;font:inherit;font-size:12.5px;color:var(--p);text-decoration:underline;text-underline-offset:3px;cursor:pointer;min-height:32px}
+.sx-clear[hidden]{display:none}
+.sx-clear:focus-visible{outline:2px solid var(--p);outline-offset:2px;border-radius:4px}
+.sx-err{font-size:12.5px;color:var(--r);min-height:0;margin:-4px 2px 0}.sx-err:empty{display:none}
+.sx-start .sx-fake-btn{border:0;cursor:pointer;font-family:inherit;transition:transform .18s,filter .2s}
+.sx-start .sx-fake-btn:hover{transform:translateY(-2px);filter:brightness(1.07)}.sx-start .sx-fake-btn:active{transform:scale(.97)}
+.sx-start .sx-fake-btn:focus-visible{outline:2px solid var(--p);outline-offset:3px}

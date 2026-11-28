@@ -46,10 +46,19 @@
     }
   }
   document.getElementById("app").hidden = auth.remote;
-  const original = document.getElementById("v22-native-source");
-  const run = document.createElement("script");
-  run.textContent = original.textContent;
-  document.body.appendChild(run);
+  /* v7.9.11: o código nativo (antes embutido no HTML como text/plain) agora é o arquivo scripts/v22-native.js.
+     Ele continua sendo executado AQUI, de forma síncrona e como script clássico, exatamente no momento em que o
+     texto embutido era executado antes. Carregar por <script src> assíncrono atrasaria a base em relação ao
+     DOMContentLoaded e quebraria scripts que a esperam (ex.: v74-automacoes.js). */
+  {
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", "scripts/v22-native.js", false);
+    xhr.send();
+    if (xhr.status < 200 || xhr.status >= 300 || !xhr.responseText) throw new Error("Não foi possível carregar scripts/v22-native.js");
+    const run = document.createElement("script");
+    run.textContent = xhr.responseText + "\n//# sourceURL=scripts/v22-native.js";
+    document.body.appendChild(run);
+  }
   await new Promise((resolve, reject) => {
     const script = document.createElement("script");
     script.src = "scripts/v22-backend.js?v=80-inbox-sound";

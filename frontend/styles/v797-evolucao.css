@@ -1,0 +1,116 @@
+/* SocialMEI-IA · v7.9.11 · Evolução criativa (camada final de apresentação).
+   Absorve v7.9.6 a v7.9.10. Ids, textos de dados e funções seguem iguais. */
+
+/* Negócio: mesma barra amarela dos outros títulos; as sub-telas não repetem a barra */
+#v .nhz h1::before{content:"";display:block;width:34px;height:4px;margin-bottom:12px;border-radius:2px;background:var(--y)}
+#v .nhz~.pg h1::before,#v .nhz~* .pg h1::before{display:none}
+
+/* ================= Lia ================= */
+.lia-glyph.lg{width:44px;height:44px;border-radius:14px}
+.lia-welcome{gap:8px}
+.lia-welcome h2{font-size:20px}
+.lia-ctx{font-size:12.5px}
+.lia-chip{white-space:nowrap;flex:none}
+.lia-foot{padding:0 18px 12px;font-size:11.5px;line-height:1.45;opacity:.85}
+
+/* Automações: o selo de estado vai para baixo do título, em vez de espremer o texto da rotina */
+#v .rt.au74c{grid-template-columns:auto minmax(0,1fr) auto}
+#v .rt.au74c .ico{grid-row:1/3;align-self:start}
+#v .rt.au74c .au74-chip{grid-column:2;grid-row:2;justify-self:start}
+#v .rt.au74c .tg{grid-column:3;grid-row:1}
+
+/* ================= Lia · disponibilidade sempre visível ================= */
+.lia-badge{display:inline-flex;align-items:center;gap:6px;flex:none;max-width:44%;padding:3px 10px 3px 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--pl,#e8f0ff);color:var(--p,#0a5cf5);border:1px solid var(--bl,#b9cdf5)}
+.lia-badge::before{content:"";width:7px;height:7px;border-radius:50%;flex:none;background:currentColor;opacity:.9}
+.lia-badge.ai{background:var(--gl,#e4f6ec);color:var(--g,#0f7a40);border-color:transparent}
+.lia-badge.ai::before{box-shadow:0 0 0 3px color-mix(in srgb,currentColor 22%,transparent)}
+.lia-badge.off{background:var(--yl,#fff8e6);color:var(--t,#0b1240);border-color:var(--y,#f5b301)}
+.lia-badge.off::before{background:var(--y,#f5b301)}
+[data-theme=dark] .lia-badge.off{background:#f5b30118;color:#fbd77a}
+.lia-badge:focus-visible{outline:2px solid var(--p,#0a5cf5);outline-offset:2px}
+
+/* ================= Esmaecido lateral: só quando há mais itens para rolar ================= */
+[data-more]{--fade:28px}
+[data-more=end]{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - var(--fade)),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - var(--fade)),transparent)}
+[data-more=start]{-webkit-mask-image:linear-gradient(270deg,#000 calc(100% - var(--fade)),transparent);mask-image:linear-gradient(270deg,#000 calc(100% - var(--fade)),transparent)}
+[data-more=both]{-webkit-mask-image:linear-gradient(90deg,transparent,#000 var(--fade),#000 calc(100% - var(--fade)),transparent);mask-image:linear-gradient(90deg,transparent,#000 var(--fade),#000 calc(100% - var(--fade)),transparent)}
+.lia-chips{padding:4px 14px 10px}
+.lia-chip{white-space:nowrap;flex:none}
+.lia-foot{padding:0 18px 12px;font-size:11.5px;line-height:1.45;opacity:.85}
+
+/* ================= Caixa · filtros de status: quebram em 2 linhas, nenhum fica escondido ================= */
+#v .cx4-ph{gap:8px;padding:12px 12px 8px}
+/* filtros de status: todos visíveis (quebra de linha em vez de rolagem), selecionado em azul claro */
+#v .cx4-seg{display:flex;flex-wrap:wrap;gap:2px 2px;width:100%;margin:0;padding:0;background:none;border:0;border-radius:0}
+#v .cx4-seg button{flex:none;display:flex;align-items:center;gap:5px;min-height:32px;padding:0 10px;border:0;border-radius:8px;background:none;box-shadow:none;color:var(--m);font:inherit;font-size:12.5px;font-weight:600;white-space:nowrap;cursor:pointer;transition:background .18s,color .18s}
+#v .cx4-seg button:hover:not(.on){color:var(--t);background:var(--hov)}
+#v .cx4-seg button.on{background:var(--pl);color:var(--p)}
+#v .cx4-seg button .n{padding:0;min-width:0;background:none;color:inherit;font-size:12px;font-weight:500;opacity:.8}
+#v .cx4-ph .cx79-chs{gap:4px}
+
+/* ================= Agenda · mesmo cabeçalho das demais telas ================= */
+#v .sm-agenda .ag-eyebrow{display:block;font-size:0;height:4px;width:34px;margin-bottom:12px;border-radius:2px;background:var(--y)}
+#v .sm-agenda .ag-title h1{font-size:30px}
+#v .sm-agenda .ag-k{position:relative;padding-left:18px;overflow:hidden}
+#v .sm-agenda .ag-k::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:0 3px 3px 0;background:var(--b)}
+#v .sm-agenda .ag-k[data-tone=on]::before{background:var(--p)}
+#v .sm-agenda .ag-k[data-tone=warn]::before{background:var(--r)}
+#v .sm-agenda .ag-k b{color:var(--t)}
+#v .sm-agenda .ag-k[data-tone=on] b{color:var(--p)}
+#v .sm-agenda .ag-k[data-tone=warn] b{color:var(--r)}
+#v .sm-agenda .agi{transition:border-color .18s,box-shadow .18s}
+#v .sm-agenda .agi:hover{border-color:var(--bl,#b9cdf5)}
+
+/* ================= Oportunidades · filtros com esmaecido condicional ================= */
+#v .stg-bar,#v .op-chips{scrollbar-width:none}
+
+/* ================= Foco visível consistente ================= */
+#v a:focus-visible,#v button:focus-visible,#v [role=button]:focus-visible{outline:2px solid var(--p,#0a5cf5);outline-offset:2px;border-radius:8px}
+
+/* ================= Celular ================= */
+@media(max-width:560px){
+  #v .sm-agenda .ag-title h1{font-size:clamp(24px,7vw,30px)}
+  #v .sm-agenda .ag-add{width:100%}
+}
+@media(prefers-reduced-motion:reduce){#v .sm-agenda .agi{transition:none}}
+
+/* atalhos da Caixa */
+.v797-keys{margin:14px 0 0;text-align:center}
+.v797-keys kbd{padding:1px 6px;border:1px solid var(--b);border-radius:6px;background:var(--s);font:inherit;font-size:11.5px}
+@media(hover:none),(max-width:900px){.v797-keys{display:none}}
+
+/* Celular estreito: botões do topo mais compactos para o nome da tela caber */
+@media(max-width:430px){
+  .top .r2{gap:4px}
+  .top .r2 .ib,.top .r2 .nb2,.top .r2 .lia-launch{width:34px;min-width:34px;height:34px;padding:0}
+  .top .r2 .nb2 .nbt{display:none}
+  .top .r2 .av{width:34px;height:34px}
+  .top .top-mark{display:none}
+  .top .crumb b{font-size:15px}
+}
+
+/* ================= v7.9.8 · Agenda: cartões de resumo são filtros ================= */
+#v .sm-agenda button.ag-k{font:inherit;color:inherit;text-align:left;cursor:pointer;width:100%;appearance:none;-webkit-appearance:none}
+#v .sm-agenda button.ag-k:hover{border-color:var(--bl,#b9cdf5)}
+#v .sm-agenda button.ag-k[aria-pressed=true]{border-color:var(--p);background:var(--pl)}
+#v .sm-agenda .ag-fshow b{color:var(--t)}
+#v .sm-agenda .ag-clr{padding:0;border:0;background:none;color:var(--p);font:inherit;font-weight:600;text-decoration:underline;cursor:pointer;min-height:24px}
+#v .sm-agenda .ag-fl{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+#v .sm-agenda .ag-fl::-webkit-scrollbar{display:none}
+#v .sm-agenda .ag-fc{flex:none;white-space:nowrap}
+
+/* ================= Caixa no celular (v7.9.10/v7.9.11): menos blocos acima da lista; filtros de situação sempre em quebra de linha, sem cortar rótulos ================= */
+@media(max-width:900px){
+  /* o topo já diz "Caixa Unificada": o h1 fica só para leitores de tela */
+  #v .cxl-t{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  #v .cx4-pgl{padding-top:8px}
+  #v .cxl-h{margin:0 0 8px;padding-top:0;gap:8px}
+}
+
+/* Relatórios: "Como ler" recolhível com indicador */
+#v .g75-how>summary{list-style:none;display:flex;align-items:center;gap:6px;min-height:28px}
+#v .g75-how>summary::-webkit-details-marker{display:none}
+#v .g75-how>summary::before{content:"▸";font-size:11px;transition:transform .15s}
+#v .g75-how[open]>summary::before{transform:rotate(90deg)}
+#v .g75-how>summary:focus-visible{outline:2px solid var(--p);outline-offset:2px;border-radius:6px}
+@media(prefers-reduced-motion:reduce){#v .g75-how>summary::before{transition:none}}

@@ -4,6 +4,7 @@ import hashlib
 import json
 from pathlib import Path, PurePosixPath
 import re
+import runpy
 import subprocess
 import tempfile
 
@@ -60,8 +61,13 @@ def build(role, entry, *, gateway_fixes=False, inbox_fixes=False, whatsapp_media
         raise RuntimeError('Frozen image mismatch')
     dockerfile = [f'FROM {base}']
     destinations = set(entry['files'])
+    premium = {}
     if gateway_fixes:
         destinations.update(GATEWAY_FIXES)
+        release_files = runpy.run_path(str(REPO / 'tools/build-premium-v7911.py'))['release_files']
+        premium = {f'/srv/frontend/{name.as_posix()}': source
+                   for name, source in release_files('candidate')}
+        destinations.update(premium)
     if inbox_fixes:
         destinations.update(API_INBOX_FIXES)
     if whatsapp_media or media_commercial:
@@ -85,7 +91,7 @@ def build(role, entry, *, gateway_fixes=False, inbox_fixes=False, whatsapp_media
             rel = name.lstrip('/')
             target = root / rel
             target.parent.mkdir(parents=True, exist_ok=True)
-            source = ROOT / role / rel
+            source = premium.get(name, ROOT / role / rel)
             if gateway_fixes and name in GATEWAY_FIXES:
                 source = REPO / name.removeprefix('/srv/')
             if inbox_fixes and name in API_INBOX_FIXES:

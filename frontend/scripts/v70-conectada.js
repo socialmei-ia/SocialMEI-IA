@@ -310,6 +310,7 @@
     m.src.forEach(function (x) { if (x.st.s !== 'ok' && x.st.msg) limits.push('<b>' + x.k + ':</b> ' + esc(x.st.msg)); });
     if (remote) limits.push('Conversas: a Caixa não oferece busca por cliente; abra a conversa pela Caixa.');
     return '<div class="c3" data-c3="' + m.idx + '">' +
+      '<button type="button" class="lk c3-back" data-a="cli:-1">' + i('back', 16) + ' Voltar à lista de clientes</button>' +
       '<div class="row sp"><div class="c3-who"><span class="av" style="width:52px;height:52px;background:' + c[6] + ';color:' + c[7] + '" aria-hidden="true">' + c[2] + '</span><div><h2>' + nome + '</h2><div class="c3-tags">' + tags + '</div></div></div><button class="lk" data-a="cli:-1" aria-label="Fechar detalhes">' + i('x') + '</button></div>' +
       '<p class="m sm c3-sub">' + esc(c[3] || 'Sem e-mail') + (m.first ? ' · Cliente desde ' + dShort(m.first) + ' de ' + new Date(m.first).getFullYear() : '') + '</p>' +
       '<div class="c3-kp" role="list">' + (ok ? kp('Total pago', brl(m.tPaid), m.paid.length + (m.paid.length === 1 ? ' pedido' : ' pedidos')) + kp('Em aberto', brl(m.tOpen), m.open.length ? m.open.length + (m.open.length === 1 ? ' pendente' : ' pendentes') : 'Nada pendente') + kp('Ticket médio', ticket, '') + kp('Última compra', m.last ? relDays(m.last) : '—', m.last ? dShort(m.last) : 'Nenhuma ainda') : kp('Total pago', '—', na) + kp('Em aberto', '—', na) + kp('Ticket médio', '—', na) + kp('Última compra', '—', na)) + '</div>' +
@@ -369,6 +370,8 @@
     var body = '';
     if (agView === 'week' && W) {
       body = '<div id="wk70"></div>';
+    } else if (!items.length && total) {
+      body = '<div class="ag-empty"><p class="ag-et">Nenhum lembrete em “' + AGF[agFilter] + '”.</p><p class="ag-eh">Use “Ver todos” para voltar à lista completa.</p></div>';
     } else if (!items.length) {
       body = '<div class="ag-empty"><span class="ag-ei" aria-hidden="true">' + i('cal', 28) + '</span><p class="ag-et">Nenhum lembrete por aqui.</p><p class="ag-eh">Comece por um atalho ou crie o seu.</p><div class="ag-ex">' +
         '<button class="btn o sm2" data-a="agnew:amanha">Retorno amanhã</button><button class="btn o sm2" data-a="agnew:cobranca">Cobrar em 3 dias</button><button class="btn" data-a="agnew">' + i('plus') + 'Novo lembrete</button></div></div>';

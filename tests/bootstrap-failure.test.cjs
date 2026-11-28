@@ -9,7 +9,7 @@ const source = fs.readFileSync(
   "utf8",
 );
 
-function browser(failBackend) {
+function browser(failBackend, nativeStatus = 200) {
   const app = {
     hidden: false,
     textContent: "",
@@ -45,9 +45,12 @@ function browser(failBackend) {
     body: {
       appendChild(script) {
         if (!script.src) return;
-        requests.push(script.src);
-        if (script.src === "scripts/v22-backend.js")
+        const source = script.src.split("?")[0];
+        requests.push(source);
+        if (source === "scripts/v22-backend.js")
           queueMicrotask(() => (failBackend ? script.onerror(Error("Offline")) : script.onload()));
+        if (source === "scripts/v781-atendimento-ui.js")
+          queueMicrotask(() => script.onload());
       },
     },
   };
@@ -55,6 +58,17 @@ function browser(failBackend) {
     window,
     document,
     Storage: function Storage() {},
+    XMLHttpRequest: class {
+      open(method, url, async) {
+        assert.equal(method, "GET");
+        assert.equal(async, false);
+        requests.push(url.split("?")[0]);
+      }
+      send() {
+        this.status = nativeStatus;
+        this.responseText = "void 0;";
+      }
+    },
     localStorage: storage,
     location: {
       pathname: "/frontend/socialmei-app.html",
@@ -75,8 +89,16 @@ test("backend script outage exposes a visible accessible error instead of a hidd
   assert.equal(page.app.hidden, false);
   assert.equal(page.app.attributes.role, "alert");
   assert.match(page.app.textContent, /Atualize a página/);
-  assert.deepEqual(page.requests, ["scripts/v22-backend.js"]);
+  assert.deepEqual(page.requests, ["scripts/v22-native.js", "scripts/v22-backend.js"]);
   assert.deepEqual(page.redirects, []);
+});
+
+test("a failed external native script blocks the backend and exposes the startup error", async () => {
+  const page = browser(false, 404);
+  await page.ready;
+  assert.equal(page.app.hidden, false);
+  assert.equal(page.app.attributes.role, "alert");
+  assert.deepEqual(page.requests, ["scripts/v22-native.js"]);
 });
 
 test("successful bootstrap keeps the backend-controlled app and loads existing integrations", async () => {

@@ -21,13 +21,6 @@
 #v .cx79-chs button .n{font-weight:500;opacity:.75}
 #v .cx79-chs button:hover{border-color:var(--p);color:var(--t)}
 #v .cx79-chs button.on{background:var(--pl);border-color:var(--p);color:var(--p)}
-#v .cx4-seg{display:flex;gap:0;margin:2px -14px 0;padding:0 8px;overflow-x:auto;scrollbar-width:none}
-#v .cx4-seg::-webkit-scrollbar{display:none}
-#v .cx4-seg button{flex:none;position:relative;padding:9px 9px 10px;border:0;background:transparent;color:var(--m);font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
-#v .cx4-seg button .n{margin-left:5px;padding:1px 6px;border-radius:99px;background:var(--h2);font-size:11px;font-weight:600;color:var(--m)}
-#v .cx4-seg button.on{color:var(--p)}
-#v .cx4-seg button.on:after{content:"";position:absolute;left:9px;right:9px;bottom:0;height:2px;border-radius:2px;background:var(--p)}
-#v .cx4-seg button.on .n{background:var(--pl);color:var(--p)}
 #v .cx4-rows .cx4-cap{padding:14px 16px 6px;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--m);font-weight:700}
 #v a.ci{display:flex;gap:12px;align-items:center;padding:11px 14px;border-bottom:1px solid transparent;position:relative;min-height:64px}
 #v a.ci:hover{background:var(--h1)}
@@ -169,9 +162,6 @@ html.v79 .v70-ctx .v72-top,html.v79 .v70-ctx .v72-nm{display:none}
 @media (forced-colors:active){#v .cx79-dot{background:Highlight}#v a.ci.on:before{background:Highlight}}
 
 /* ---------- compositor e abas compactos ---------- */
-#v .cx4-seg button{padding:9px 7px 10px;font-size:12.5px}
-#v .cx4-seg button:not(.on) .n{background:transparent;padding:0 0 0 4px;font-weight:500}
-#v .cx4-seg button.on:after{left:7px;right:7px}
 @container ct (max-width:820px){#v .cx4-k{display:none}#v .qw .qlb{display:none}}
 @container ct (max-width:640px){#v .cx4-sl{display:none}#v .cx4-send{min-width:46px;padding:0 14px}}
 

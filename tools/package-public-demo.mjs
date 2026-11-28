@@ -36,6 +36,11 @@ const manifest = {
 };
 for (const [source, target] of files) {
   const original = await readFile(resolve(root, source), "utf8");
+  const standalone = target === "index.html"
+    ? original
+        .replace('href="telas/oportunidades.html"', 'href="reference/Oportunidades-V8-original.html"')
+        .replace('href="telas/divulgacao.html"', 'href="reference/Divulgacao-V4-original.html"')
+    : original;
   const notice =
     target === "index.html"
       ? ""
@@ -44,7 +49,7 @@ for (const [source, target] of files) {
   const containment = target.includes("Oportunidades")
     ? "<style>@media(max-width:980px){.tbi,.tbr{flex-wrap:wrap}.tbr{max-width:100%}.tbi{align-items:flex-start}.wrap,.wk,.filters{min-width:0;max-width:100%}}</style>"
     : "";
-  const html = original
+  const html = standalone
     .replace(
       /<head>/i,
       '<head><meta name="robots" content="noindex,nofollow"><meta http-equiv="Content-Security-Policy" content="' +

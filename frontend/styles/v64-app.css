@@ -55,12 +55,6 @@ body.v63-dragging .cv{transition:none}
 .cx4-chb:hover{background:var(--hov)}
 .cx4-chb.on{border-color:var(--p);background:var(--pl);box-shadow:0 0 0 2px var(--pl)}
 .cx4-chb:active,.cx4-seg button:active,.cx4-act .sel:active{transform:scale(.97)}
-.cx4-seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px;padding:3px;border-radius:11px;background:var(--s)}
-.cx4-seg button{display:flex;align-items:center;justify-content:center;gap:5px;min-width:0;padding:6px 4px;border:0;border-radius:8px;background:transparent;color:var(--m);font-family:inherit;font-size:12.5px;font-weight:600;line-height:1.2;cursor:pointer;white-space:nowrap;transition:background .14s,color .14s}
-.cx4-seg button:hover{color:var(--t)}
-.cx4-seg button.on{background:var(--w);color:var(--t);box-shadow:0 1px 3px #0b124020}
-.cx4-seg .n{font-size:11px;font-weight:700;color:var(--m);background:transparent;padding:0;min-width:0}
-.cx4-seg .on .n{color:var(--p)}
 #v .cx4-rows{display:block;padding:6px 8px 14px}
 #v .ci{display:grid;grid-template-columns:42px minmax(0,1fr);gap:0 11px;align-items:center;padding:9px 10px;border-radius:12px;margin:1px 0;position:relative;box-shadow:none;transition:background .12s}
 #v .ci:hover{background:var(--hov)}
@@ -387,8 +381,8 @@ body.v63-dragging .cv{transition:none}
 .ag-k{display:grid;gap:2px;padding:12px 16px;border:1px solid var(--b);border-radius:14px;background:var(--w)}
 .ag-k span{font-size:12.5px;font-weight:600;color:var(--m)}
 .ag-k b{font-size:24px;letter-spacing:-.02em;line-height:1.15}
-.ag-k[data-tone=on]{border-color:var(--p)}.ag-k[data-tone=on] b{color:var(--p)}
-.ag-k[data-tone=warn]{border-color:color-mix(in srgb,var(--r) 45%,var(--b))}.ag-k[data-tone=warn] b{color:var(--r)}
+.ag-k[data-tone=on] b{color:var(--p)}
+.ag-k[data-tone=warn] b{color:var(--r)}
 #v .sm-agenda .ag-card{padding:clamp(16px,2.4vw,24px);border:1px solid var(--b);border-radius:18px;background:var(--w);min-width:0}
 .ag-ch{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px}
 #v .sm-agenda .ag-ch h2,#v .bs-head h2,#v .sm-agenda .ag-body h3,#v .sm-agenda .ag-apc h3{margin:0!important;padding:0!important}

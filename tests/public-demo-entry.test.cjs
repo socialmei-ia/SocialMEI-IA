@@ -10,9 +10,12 @@ const references = [
   "reference/Divulgacao-V4-original.html",
 ];
 
-test("public prototype landing links to the two immutable local HTML references", () => {
-  for (const href of references) {
-    assert(source.includes('href="' + href + '"'), "Missing original reference: " + href);
+test("Premium lab uses the new demos and the separate offline package retains its references", () => {
+  const builder = fs.readFileSync(path.resolve(frontend, "../tools/package-public-demo.mjs"), "utf8");
+  for (const [index, href] of references.entries()) {
+    const demo = ["telas/oportunidades.html", "telas/divulgacao.html"][index];
+    assert(source.includes('href="' + demo + '"'), "Missing Premium demo: " + demo);
+    assert(builder.includes(`.replace('href="${demo}"', 'href="${href}"')`));
     const file = path.resolve(frontend, href);
     assert(file.startsWith(frontend + path.sep), "Reference escapes frontend directory");
     assert(fs.existsSync(file), "Missing reference: " + href);

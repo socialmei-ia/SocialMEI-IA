@@ -4,11 +4,8 @@ const path = require("node:path");
 const { test } = require("node:test");
 
 const root = path.resolve(__dirname, "..");
-const markup = fs.readFileSync(path.join(root, "frontend/socialmei-app.html"), "utf8");
-
-const nativeCSS = [...markup.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)]
-  .map((match) => match[1])
-  .join("\n");
+const markup = fs.readFileSync(path.join(root, "frontend/scripts/v22-native.js"), "utf8");
+const nativeCSS = fs.readFileSync(path.join(root, "frontend/styles/app-base.css"), "utf8");
 
 test("V22 Home keeps sales, Inbox and content shortcuts in the native hero", () => {
   assert.match(markup, /class="hc" href="#\/negocio\/vendas"/);

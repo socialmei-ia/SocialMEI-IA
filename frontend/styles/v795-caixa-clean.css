@@ -16,18 +16,11 @@
 #v .cx79-chs>button{flex:1 1 0!important;justify-content:center!important;min-height:34px!important;min-width:0!important;padding:0 4px!important;gap:4px!important;border:0!important;border-radius:9px!important;background:transparent!important;color:var(--m)!important;font-size:12px!important;font-weight:600!important;box-shadow:none;white-space:nowrap}
 #v .cx79-chs>button .ch{width:14px!important;height:14px!important}
 #v .cx79-chs>button:hover:not(.on){color:var(--t)!important}
-#v .cx79-chs>button.on{background:var(--w)!important;color:var(--t)!important;box-shadow:0 1px 2px rgba(11,18,64,.08),0 3px 8px -4px rgba(10,92,245,.3)}
+#v .cx79-chs>button.on{background:var(--pl)!important;color:var(--p)!important;box-shadow:none}
 #v .cx79-chs>button .n{padding:0!important;min-width:0!important;margin-left:0!important;background:none!important;color:var(--m);font-size:12px!important;font-weight:500}
 #v .cx79-chs>button.on .n{color:var(--p)}
 
 /* situação: texto simples, sem caixa */
-#v .cx4-seg{display:flex!important;flex-wrap:wrap;gap:2px 2px!important;width:100%;margin:0!important;padding:0!important;border:0;border-radius:0!important;background:none!important;box-shadow:none}
-#v .cx4-seg button{flex:0 0 auto;grid-column:auto!important;flex-direction:row;min-height:32px;padding:0 9px!important;border-radius:8px!important;background:none!important;box-shadow:none!important;color:var(--m);font-size:12.5px!important;font-weight:600;gap:5px}
-#v .cx4-seg button:hover:not(.on){color:var(--t)}
-#v .cx4-seg button .n,#v .cx4-seg button:not(.on) .n{padding:0!important;min-width:0!important;background:none!important;color:var(--m);font-size:12px;font-weight:500}
-#v .cx4-seg button.on{background:var(--pl)!important;color:var(--p)}
-#v .cx4-seg button.on .n{color:var(--p)!important;background:none!important}
-#v .cx4-seg button.on::after{display:none!important}
 
 /* grupos e linhas */
 #v .cx4-rows .cx4-cap{padding:18px 18px 6px;font-size:12px;font-weight:650;letter-spacing:0;text-transform:none;color:var(--m)}
