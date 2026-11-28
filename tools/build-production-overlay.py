@@ -18,7 +18,7 @@ GATEWAY_FIXES = (
 )
 API_INBOX_FIXES = ('/app/message_enrichment.py', '/app/instagram_inbound_media.py')
 EDITORIAL_API = ('/app/instagram_publishing.py', '/app/instagram_publication_worker.py')
-EDITORIAL_GATEWAY = '/srv/frontend/scripts/v22-instagram-publisher.js'
+EDITORIAL_GATEWAY = ('/srv/frontend/scripts/v22-instagram-publisher.js', '/srv/frontend/telas/divulgacao.html')
 COMMERCIAL_API = ('/app/opportunities.py', '/app/sales_data.py', '/app/shared_data.py')
 COMMERCIAL_GATEWAY = ('/srv/frontend/scripts/v22-frame.js', '/srv/frontend/telas/oportunidades.html')
 MANAGEMENT_API = ('/app/finance_data.py', '/app/finance_reporting.py')
@@ -60,7 +60,7 @@ def build(role, entry, *, gateway_fixes=False, inbox_fixes=False, whatsapp_media
     if whatsapp_media or media_commercial:
         destinations.update(MENU_MEDIA_FILES)
     if editorial:
-        destinations.update(EDITORIAL_API if role == 'api' else (EDITORIAL_GATEWAY,))
+        destinations.update(EDITORIAL_API if role == 'api' else EDITORIAL_GATEWAY)
     if commercial:
         destinations.update(COMMERCIAL_API if role == 'api' else COMMERCIAL_GATEWAY)
     if management:
@@ -88,7 +88,7 @@ def build(role, entry, *, gateway_fixes=False, inbox_fixes=False, whatsapp_media
                     if not found:
                         raise RuntimeError('Missing production content AI route')
                     data = data.rstrip() + b'\n\n' + marker + content_ai
-            if editorial and name == EDITORIAL_GATEWAY:
+            if editorial and name in EDITORIAL_GATEWAY:
                 data = (REPO / name.removeprefix('/srv/')).read_bytes()
             if commercial and role == 'api' and name in COMMERCIAL_API:
                 data = (REPO / 'python-service' / Path(name).name).read_bytes()

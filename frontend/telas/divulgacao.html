@@ -336,9 +336,9 @@ const ls={get(k,d){if(GL.includes(k))return rawGet(k,d);if(!SC.ok)return k in me
 const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches,FN={story:'Story',feed:'Feed',reel:'Reel'};
 const ymd=d=>d.toLocaleDateString('sv');
 const F=['tema','prod','obj','tom','titulo','leg','cta','tags','alt','zoom'];
-let cur=ls.get('smei4_cur',{}),S={f:cur.f||'story',media:null,edit:null},drafts=ls.get('smei4_d',[]),sched=ls.get('smei4_s',[]),biz=ls.get('smei4_b',{n:defName(),b:''}),conn=ls.get('smei4_c',{});
-let trash=ls.get('smei4_x',[]).filter(t=>t&&t.d&&Date.now()-t.at<12096e5).slice(0,20);
-const sv=()=>{const r=[ls.set('smei4_d',drafts),ls.set('smei4_s',sched),ls.set('smei4_c',conn),ls.set('smei4_x',trash)];const ok=r.every(Boolean);if(!ok){failTick=1;Promise.resolve().then(()=>failTick=0);scpPaint()}return ok};
+let cur=ls.get('smei4_cur',{}),S={f:cur.f||'story',media:null,edit:null},drafts=SC.m==='remoto'?[]:ls.get('smei4_d',[]),sched=ls.get('smei4_s',[]),biz=ls.get('smei4_b',{n:defName(),b:''}),conn=ls.get('smei4_c',{});
+let trash=(SC.m==='remoto'?[]:ls.get('smei4_x',[])).filter(t=>t&&t.d&&Date.now()-t.at<12096e5).slice(0,20);
+const sv=()=>{const r=[ls.set('smei4_s',sched),ls.set('smei4_c',conn)];if(SC.m!=='remoto')r.push(ls.set('smei4_d',drafts),ls.set('smei4_x',trash));const ok=r.every(Boolean);if(!ok){failTick=1;Promise.resolve().then(()=>failTick=0);scpPaint()}return ok};
 let tt;const toast=(m,e,act)=>{if(failTick){m=SC.ok?'Não foi possível guardar neste navegador. A alteração vale só até você sair desta tela.':'Sem identificação do negócio: nada foi guardado. A alteração vale só até você sair desta tela.';e=1;act=0}const t=$('#toast');t.textContent=m;if(act){const b=document.createElement('button');b.className='tb';b.textContent=act[0];b.onclick=()=>{act[1]();t.className=''};t.append(' ',b)}t.className='on'+(e?' e':'')+(act?' a':'');clearTimeout(tt);tt=setTimeout(()=>t.className='',act?6000:2600)};
 const bs=(b,s)=>{b.dataset.s=s;if(s!=='load')setTimeout(()=>delete b.dataset.s,1200)};
 
@@ -365,7 +365,7 @@ function scpPaint(){
  if(!SC.ok)it.push({k:'er',t:'Não foi possível identificar seu usuário e negócio.',d:'Para não misturar dados de empresas, nada é lido nem guardado agora. O que você escrever vale só até sair desta tela.',a:[['Tentar de novo',()=>location.reload()]]});
  else if(stoBad)it.push({k:'er',t:'Este navegador não está guardando os dados.',d:'Rascunhos e simulações valem só até você sair desta tela. Exporte um backup para não perder.'});
  else if(S0.corrupt)it.push({k:'wa',t:'Um dado guardado estava ilegível.',d:'Uma cópia ficou no navegador e essa parte começou do zero.'});
- if(SC.ok&&!lgHide){const L=legacy(),cl=claims();if(L.n&&!cl.includes(SC.k)){
+ if(SC.ok&&SC.m!=='remoto'&&!lgHide){const L=legacy(),cl=claims();if(L.n&&!cl.includes(SC.k)){
   it.push({k:'wa',t:'Há dados antigos neste navegador ('+L.d.length+' rascunho(s), '+L.s.length+' simulação(ões), '+L.x.length+' excluído(s)).',
    d:'Foram salvos antes de a Divulgação separar tudo por negócio. Não dá para saber de qual negócio são, então não aparecem em nenhum.'+(cl.length?' Já foram trazidos para outro negócio.':'')+' Os originais continuam guardados.',
    a:[['Trazer para este negócio',()=>{if(confirm('Trazer os dados antigos para “'+biz.n+'”? Faça isso só se eles forem deste negócio.'))bringLegacy()}],['Agora não',()=>{lgHide=1;scpPaint()}]]})}}
@@ -461,13 +461,77 @@ const dirty=()=>snap()!==S.snap&&(g('titulo')||g('leg')||g('tema')||g('prod')||S
 function saveD(force){const t=$('#titulo');if(!g('titulo')){open(3);t.classList.add('bad');t.focus();toast('Falta o título do rascunho.',1);return null}
  const d={id:S.edit||Date.now()+'',f:S.f,at:Date.now()};F.forEach(k=>d[k]=$('#'+k).value);d.titulo=d.titulo.trim();
  if(!force){const dup=drafts.find(x=>x.id!==d.id&&plain(x.titulo)===plain(d.titulo)&&x.f===d.f&&plain(x.leg).trim()===plain(d.leg).trim());if(dup){open(3);toast('Já existe um rascunho '+FN[d.f]+' com este título e esta legenda.',1,['Salvar mesmo assim',()=>{if(saveD(true)){sstat();toast('Rascunho salvo neste navegador.')}}]);return null}}d.th=thumb();const i=drafts.findIndex(x=>x.id===d.id);i>-1?drafts[i]=d:drafts.unshift(d);S.edit=d.id;S.snap=snap();sv();sstat();return d}
-$('#save').onclick=e=>{const b=e.currentTarget;bs(b,'load');setTimeout(()=>{if(saveD()){bs(b,'ok');toast('Rascunho salvo neste navegador.')}else bs(b,'x')},reduce?0:450)};
+
+const draftApi='/instagram/publishing/drafts';
+let remoteDraftBusy=false, pendingDraft;
+const remoteDraftWriter=()=>V22Frame.canWrite===true;
+const remoteDraftDocument=(d,format)=>({f:format,...Object.fromEntries(F.map(k=>[k,String(d[k]|| (k==='zoom'?'1':''))]))});
+const projectRemoteDraft=row=>({...row.document,id:row.id,revision:row.revision,at:Date.parse(row.updated_at)});
+async function refreshRemoteDrafts(){
+ const host=await V22Frame.parentReady(),result=await host.request(draftApi);
+ if(!same()||result.workspace_id!==host.identity?.negocio.id||!Array.isArray(result.items))return false;
+ drafts=result.items.map(projectRemoteDraft);
+ const confirmed=pendingDraft&&drafts.find(d=>d.id===pendingDraft.id&&d.revision===pendingDraft.revision+1);
+ if(confirmed&&Object.keys(pendingDraft.document).every(key=>pendingDraft.document[key]===confirmed[key]))pendingDraft=null;
+ rD();
+ return true;
+}
+async function commitRemoteDraft(document,original=null,archived=false){
+ if(!same()||!remoteDraftWriter()||remoteDraftBusy)return null;
+ const revision=original?.revision||0, signature=JSON.stringify([original?.id||null,revision,document,archived]);
+ if(pendingDraft&&pendingDraft.signature!==signature){
+  toast('H\u00e1 uma tentativa sem confirma\u00e7\u00e3o. Atualize a biblioteca ou repita a mesma opera\u00e7\u00e3o.',1);return null;
+ }
+ if(!pendingDraft)pendingDraft={signature,id:original?.id||crypto.randomUUID(),operation:crypto.randomUUID(),revision,document};
+ const request=pendingDraft;
+ remoteDraftBusy=true;
+ try{
+  const host=await V22Frame.parentReady();
+  if(!same())return null;
+  const result=await host.request(draftApi+'/'+request.id,'PUT',{operation_id:request.operation,expected_revision:revision,archived,document});
+  if(!same())return null;
+  const row=projectRemoteDraft(result);
+  pendingDraft=null;
+  drafts=drafts.filter(d=>d.id!==row.id);
+  if(!archived)drafts.unshift(row);
+  rD();
+  return row;
+ }catch(error){
+  if(same()){
+   if([400,403,409,422].includes(error.status))pendingDraft=null;
+   toast(error.message||'N\u00e3o foi poss\u00edvel confirmar o rascunho.',1);
+  }
+ }finally{remoteDraftBusy=false}
+ return null;
+}
+
+$('#save').onclick=async e=>{const b=e.currentTarget;
+ if(SC.m==='remoto'){
+  if(!g('titulo')){open(3);$('#titulo').focus();return toast('Informe o t\u00edtulo.',1)}
+  const values=Object.fromEntries(F.map(k=>[k,$('#'+k).value]));values.titulo=values.titulo.trim();
+  const snapshot=snap(),row=await commitRemoteDraft(remoteDraftDocument(values,S.f),drafts.find(d=>d.id===S.edit));
+  if(row){S.edit=row.id;S.snap=snapshot;sstat();toast('Rascunho salvo no neg\u00f3cio.')}
+  return;
+ }
+ bs(b,'load');setTimeout(()=>{if(saveD()){bs(b,'ok');toast('Rascunho salvo neste navegador.')}else bs(b,'x')},reduce?0:450)};
 $('#week').onclick=()=>{const d=saveD();if(!d)return;[1,3,5].forEach(n=>{const x=new Date();x.setDate(x.getDate()+n);sched.push({id:Date.now()+''+n,did:d.id,date:ymd(x),time:'10:00',st:'Simulado'})});sv();sel=ymd(new Date(Date.now()+864e5));go(2);toast('3 publicações simuladas nesta semana. Nada foi enviado.')};
 // rascunhos
 const fd=t=>new Date(t).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
 ['q','ff','fo','fs'].forEach(i=>$('#'+i).oninput=rD);
-$('#dg').onclick=e=>{const b=e.target.closest('button[data-a]');if(!b)return;if(b.dataset.a==='n'){$('#k0').click();setTimeout(()=>{open(1);const f=$('.fmt[aria-checked="true"]');f&&f.focus()},reduce?0:380);return}const c=b.closest('.dc'),id=c.dataset.id,d=drafts.find(x=>x.id===id);
+$('#dg').onclick=async e=>{const b=e.target.closest('button[data-a]');if(!b)return;if(b.dataset.a==='n'){$('#k0').click();setTimeout(()=>{open(1);const f=$('.fmt[aria-checked="true"]');f&&f.focus()},reduce?0:380);return}const c=b.closest('.dc'),id=c.dataset.id,d=drafts.find(x=>x.id===id);
  if(b.dataset.a==='e'){if(dirty()&&!confirm('Você tem alterações não salvas no editor. Abrir este rascunho mesmo assim?'))return;$$('#media img,#media video,#media canvas').forEach(x=>x.remove());S.media=S.el=null;S.px=S.py=50;$('#fn').textContent='Escolher imagem ou vídeo. O arquivo fica só no seu navegador.';F.forEach(k=>$('#'+k).value=d[k]||'');$('#zoom').value=d.zoom||1;S.th=d.th||null;S.edit=id;S.f=d.f;scr.dataset.f=d.f;$$('.fmt').forEach(x=>x.setAttribute('aria-checked',x.dataset.f===d.f));S.snap=snap();pv();go(0);open(3);toast('Editando "'+d.titulo+'".')}
+ if(SC.m==='remoto'&&['d','x'].includes(b.dataset.a)){
+  if(!d||!remoteDraftWriter())return;
+  const archive=b.dataset.a==='x';
+  if(archive&&!confirm('Arquivar este rascunho da biblioteca?'))return;
+  const source=archive?d:{...d,titulo:(d.titulo+' (c\u00f3pia)').slice(0,50)};
+  const saved=await commitRemoteDraft(remoteDraftDocument(source,d.f),archive?d:null,archive);
+  if(saved){
+   if(archive&&S.edit===d.id){S.edit=null;sstat()}
+   toast(archive?'Rascunho arquivado.':'C\u00f3pia salva na biblioteca.');
+  }
+  return;
+ }
  if(b.dataset.a==='d'){drafts.unshift({...d,id:Date.now()+'',titulo:(d.titulo+' (cópia)').slice(0,50),at:Date.now()});sv();rD();toast('Rascunho duplicado.')}
  if(b.dataset.a==='x'){const i=drafts.findIndex(x=>x.id===id),dd=drafts[i],ss=sched.filter(x=>x.did===id);c.classList.add('rm');setTimeout(()=>{drafts.splice(i,1);sched=sched.filter(x=>x.did!==id);trash.unshift({d:dd,ss,at:Date.now()});trash=trash.slice(0,20);sv();rD();toast('Rascunho excluído. Dá para restaurar em “Excluídos recentemente”.',0,['Desfazer',()=>{drafts.splice(i,0,dd);sched.push(...ss);trash=trash.filter(t=>t.d.id!==dd.id);sv();rD()}])},reduce?0:300)}
  if(b.dataset.a==='p'){S.pick=id;go(2)}};
@@ -540,7 +604,7 @@ $('#tips').onclick=e=>{const b=e.target.closest('button[data-tip]');if(!b)return
  else if(k==='alt'){open(3);$('#alt').focus()}else if(k==='file'){$('#file').click()}};
 function input(id,v){const el=$('#'+id);el.value=v;el.dispatchEvent(new Event('input',{bubbles:true}))}
 function sstat(){const el=$('#sst');if(!el)return;const has=g('titulo')||g('leg')||g('tema')||g('prod')||S.media;
- const t=!has?'':S.edit?(dirty()?'Alterações ainda não salvas neste rascunho.':'Rascunho salvo neste navegador.'):'Ainda não salvo como rascunho. O que você digita fica guardado neste navegador.';
+ const t=!has?'':S.edit?(dirty()?'Alterações ainda não salvas neste rascunho.':(SC.m==='remoto'?'Rascunho salvo no neg\u00f3cio.':'Rascunho salvo neste navegador.')):'Ainda não salvo como rascunho. O que você digita fica guardado neste navegador.';
  el.textContent=t;el.dataset.k=S.edit&&!dirty()?'ok':t?'warn':'';
  const b=$('#rnext'),n=S.nx;b.hidden=!has&&!n?true:false;
  if(!has){b.hidden=true;return}
@@ -568,7 +632,7 @@ function rD(){const q=plain($('#q').value),f=$('#ff').value,o=$('#fo').value,fs=
  a.sort((x,y)=>o==='az'?x.titulo.localeCompare(y.titulo):o==='old'?x.at-y.at:o==='inc'?(missing(y).length-missing(x).length)||(y.at-x.at):y.at-x.at);
  const nw=drafts.filter(d=>stOf(d)==='work').length,np=drafts.filter(d=>stOf(d)==='plan').length;
  $('#dsum').textContent=drafts.length?`${drafts.length} rascunho${drafts.length>1?'s':''} · ${nw} em elaboração · ${np} planejado${np===1?'':'s'} (simulação)`:'';
- $('#dg').innerHTML=a.length?a.map(d=>{const m=missing(d),p=planOf(d),c=compOf(d);return `<article class="dc" data-id="${d.id}"><div class="th"><svg><use href="#${d.f}"/></svg>${d.th?`<img src="${d.th}" alt="">`:''}</div><div class="b"><b>${esc(d.titulo)}</b><small>${FN[d.f]} · ${fd(d.at)}</small></div><div class="st74">${m.length?`<span class="chip c-er">Em elaboração · falta ${m.join(', ')}</span>`:p.length?'':'<span class="chip c-ok">Pronto</span>'}${p.length?`<span class="chip c-wa">Planejado (simulação) · ${fdate(p[0].date)} ${p[0].time}</span>`:''}</div><div class="cb${c===5?' full':''}" role="img" aria-label="Completude: ${c} de 5 itens (título, legenda, chamada, hashtags, imagem)"><i style="width:${c*20}%"></i></div><div class="r"><button data-a="e">Editar</button><button data-a="p">Planejar</button><button data-a="d">Duplicar</button><button data-a="x">Excluir</button></div></article>`}).join(''):drafts.length?`<div class="empty-s">Nada encontrado com esses filtros.</div>`:`<div class="empty-s empty-first"><span class="ei" aria-hidden="true"><svg><use href="#doc"/></svg></span><b>Você ainda não tem rascunhos</b><p>Rascunhos guardam o que você criou na aba Criar (título, legenda, imagem e formato) para você retomar depois. Ficam só neste navegador e nada é publicado.</p><button class="btn" type="button" data-a="n"><svg><use href="#pen"/></svg><span>Criar meu primeiro rascunho</span></button></div>`;
+ $('#dg').innerHTML=a.length?a.map(d=>{const m=missing(d),p=planOf(d),c=compOf(d);return `<article class="dc" data-id="${d.id}"><div class="th"><svg><use href="#${d.f}"/></svg>${d.th?`<img src="${d.th}" alt="">`:''}</div><div class="b"><b>${esc(d.titulo)}</b><small>${FN[d.f]} · ${fd(d.at)}</small></div><div class="st74">${m.length?`<span class="chip c-er">Em elaboração · falta ${m.join(', ')}</span>`:p.length?'':'<span class="chip c-ok">Pronto</span>'}${p.length?`<span class="chip c-wa">Planejado (simulação) · ${fdate(p[0].date)} ${p[0].time}</span>`:''}</div><div class="cb${c===5?' full':''}" role="img" aria-label="Completude: ${c} de 5 itens (título, legenda, chamada, hashtags, imagem)"><i style="width:${c*20}%"></i></div><div class="r"><button data-a="e">Editar</button><button data-a="p">Planejar</button><button data-a="d">Duplicar</button><button data-a="x">Excluir</button></div></article>`}).join(''):drafts.length?`<div class="empty-s">Nada encontrado com esses filtros.</div>`:`<div class="empty-s empty-first"><span class="ei" aria-hidden="true"><svg><use href="#doc"/></svg></span><b>Você ainda não tem rascunhos</b><p>${SC.m==='remoto'?'O texto e o formato ficam na biblioteca do neg\u00f3cio. Escolha a m\u00eddia novamente ao abrir.':'O rascunho fica neste navegador para voc\u00ea retomar depois.'}</p><button class="btn" type="button" data-a="n"><svg><use href="#pen"/></svg><span>Criar meu primeiro rascunho</span></button></div>`;
  rT()}
 const ago=t=>{const h=Math.round((Date.now()-t)/36e5);return h<1?'agora há pouco':h<24?`há ${h} h`:`há ${Math.round(h/24)} d`};
 function rT(){const t=$('#trash');t.hidden=!trash.length;if(!trash.length)return;$('#trs').textContent=`Excluídos recentemente (${trash.length}). Ficam 14 dias neste navegador.`;
@@ -597,6 +661,18 @@ $('#cal74').addEventListener('drop',e=>{const c=e.target.closest('.cal-c');if(!c
 // restaurar trabalho em andamento
 F.forEach(k=>{if(cur[k]!=null)$('#'+k).value=cur[k]});scr.dataset.f=S.f;$$('.fmt').forEach(x=>x.setAttribute('aria-checked',x.dataset.f===S.f));
 pv();
+if(SC.m==='remoto'){
+ $('#week').disabled=true;
+ $('#imp').disabled=true;
+ if(!remoteDraftWriter())$('#save').disabled=true;
+ const notice=document.createElement('p');notice.textContent='Biblioteca do neg\u00f3cio. Rascunhos guardados neste navegador antes da integra\u00e7\u00e3o foram preservados.';$('#p1').prepend(notice);
+ const reload=document.createElement('button');
+ reload.type='button';reload.className='btn sec';reload.textContent='Atualizar biblioteca';
+ const fetchDrafts=()=>refreshRemoteDrafts().catch(error=>{if(same())toast(error.message||'Biblioteca indispon\u00edvel.',1)});
+ reload.onclick=fetchDrafts;
+ $('#p1').prepend(reload);
+ fetchDrafts();
+}
 })();
 </script>
 

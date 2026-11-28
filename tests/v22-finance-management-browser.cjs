@@ -72,9 +72,27 @@ module.exports = async (browser, origin) => {
         json = { ...data, id: 2, versao: 1, data_pagamento: null };
         entries.push(json);
       } else if (path === "/financeiro") json = entries;
+      if (path === "/financeiro/2/liquidacoes") {
+        const item = req.postDataJSON();
+        writes.push(item);
+        entries[1] = {
+          ...entries[1],
+          versao: 2,
+          liquidado_parcial: "10.00",
+          parcelas: [{ valor: "10.00", data: item.data }],
+        };
+        json = entries[1];
+      }
       if (path === "/financeiro/2/pagar") {
         writes.push(req.postDataJSON());
-        entries[1] = { ...entries[1], status: "pago", versao: 2, data_pagamento: "2026-11-27" };
+        entries[1] = {
+          ...entries[1],
+          status: "pago",
+          versao: 3,
+          liquidado_parcial: "29.50",
+          data_pagamento: "2026-11-27",
+          parcelas: [...entries[1].parcelas, { valor: "19.50", data: "2026-11-27" }],
+        };
         json = entries[1];
       }
       if (path === "/reporting/finance")
@@ -117,14 +135,21 @@ module.exports = async (browser, origin) => {
     await form.locator("#f_cc").fill("Material");
     await form.locator("#f_due").fill("2026-12-07");
     await form.locator("button[type=submit]").click();
-    await page.getByText(/Conta futura de teste/).waitFor();
+    await page.getByText(/^A receber .*Conta futura de teste/).waitFor();
     assert.equal(writes[0].status, "aberto");
     assert.equal(writes[0].categoria, "Material");
     assert.equal(writes[0].vencimento, "2026-12-07");
+    await page.getByRole("button", { name: "Registrar parcela" }).click();
+    await form.locator("#f_v").fill("10,00");
+    await form.locator("#f_pd").fill("2026-11-26");
+    await form.locator("button[type=submit]").click();
+    await page.getByText(/^A receber .*19,50 em aberto/).waitFor();
+    assert.equal(writes[1].valor, "10");
+    assert.equal(writes[1].expected_version, 1);
     page.once("dialog", (dlg) => dlg.accept());
     await page.getByRole("button", { name: "Registrar recebimento" }).click();
     await page.getByText("Nenhuma conta a pagar ou a receber.").waitFor();
-    assert.equal(writes[1].expected_version, 1);
+    assert.equal(writes[2].expected_version, 2);
 
     await page.evaluate(() => {
       location.hash = "/relatorios";
@@ -155,7 +180,7 @@ module.exports = async (browser, origin) => {
     await page.goto(base + "?viewer=1#/negocio/financeiro");
     await page.getByRole("heading", { name: "Contas em aberto" }).waitFor();
     assert.ok(await page.locator('button[data-a="novo:lanc"]').first().isDisabled());
-    assert.equal(writes.length, 2);
+    assert.equal(writes.length, 3);
     assert.deepEqual(errors, []);
     await page.close();
   }

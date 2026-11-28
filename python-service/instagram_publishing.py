@@ -11,6 +11,7 @@ import os
 import re
 from datetime import datetime, timedelta, timezone
 from ipaddress import ip_address
+from typing import Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from urllib.parse import urlsplit
 from uuid import UUID, uuid4
@@ -20,6 +21,7 @@ from psycopg import Error as DatabaseError
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import AwareDatetime, Field, field_validator, model_validator
 from psycopg.rows import dict_row
+from psycopg.types.json import Jsonb
 
 from account_auth import COOKIE, Strict, current, digest, require_enabled
 from database import connect
@@ -148,6 +150,109 @@ class Reschedule(ScheduleTime):
 
 class CancelSchedule(Strict):
     revision: int = Field(ge=1)
+
+
+class DraftDocument(Strict):
+    f: Literal["story", "feed", "reel"]
+    titulo: str = Field(min_length=1, max_length=50)
+    leg: str = Field(default="", max_length=2200)
+    tema: str = Field(default="", max_length=1000)
+    prod: str = Field(default="", max_length=240)
+    obj: str = Field(default="", max_length=120)
+    tom: str = Field(default="", max_length=120)
+    cta: str = Field(default="", max_length=240)
+    tags: str = Field(default="", max_length=500)
+    alt: str = Field(default="", max_length=400)
+    zoom: str = Field(default="1", pattern=r"^\d(?:\.\d{1,2})?$")
+
+    @field_validator("*", mode="after")
+    @classmethod
+    def safe_content(cls, value):
+        if "\x00" in value or any(0xD800 <= ord(char) <= 0xDFFF for char in value):
+            raise ValueError("Texto inválido para o rascunho.")
+        return value
+
+    @field_validator("titulo", mode="after")
+    @classmethod
+    def title_present(cls, value):
+        if not value.strip():
+            raise ValueError("Informe um título.")
+        return value.strip()
+
+
+class DraftUpdate(Strict):
+    operation_id: UUID
+    expected_revision: int = Field(ge=0, le=2_147_483_646, strict=True)
+    archived: bool = False
+    document: DraftDocument
+
+
+def draft_user(write=False):
+    require_enabled()
+    user = current()
+    roles = {"owner", "admin", "member"} if write else {"owner", "admin", "member", "viewer"}
+    if user["role"] not in roles:
+        raise HTTPException(403, "Acesso à biblioteca de conteúdo indisponível para este papel.")
+    return user
+
+
+@router.get("/drafts")
+def library_drafts():
+    user = draft_user()
+    try:
+        with connect() as conn:
+            conn.row_factory = dict_row
+            conn.execute("SET TRANSACTION READ ONLY")
+            conn.execute("SET LOCAL statement_timeout='3s'")
+            rows = conn.execute(
+                "SELECT id,revision,document,updated_at FROM ("
+                "SELECT DISTINCT ON (draft_id) draft_id AS id,revision,document,archived,updated_at "
+                "FROM socialmei.editorial_draft_revisions WHERE workspace_id=%s ORDER BY draft_id,revision DESC"
+                ") latest WHERE NOT archived ORDER BY updated_at DESC,id LIMIT 101",
+                (user["workspace_id"],),
+            ).fetchall()
+        return {"workspace_id": user["workspace_id"], "items": rows[:100], "truncated": len(rows) > 100}
+    except DatabaseError:
+        raise HTTPException(503, "Biblioteca indisponível. Seus rascunhos foram preservados.") from None
+
+
+@router.put("/drafts/{draft_id}")
+def save_library_draft(draft_id: UUID, payload: DraftUpdate):
+    user = draft_user(write=True)
+    workspace, actor = user["workspace_id"], user["id"]
+    document = payload.document.model_dump()
+    try:
+        with connect() as conn:
+            conn.row_factory = dict_row
+            conn.execute("SET LOCAL lock_timeout='3s'")
+            conn.execute("SELECT id FROM socialmei.workspaces WHERE id=%s FOR UPDATE", (workspace,))
+            receipt = conn.execute(
+                "SELECT draft_id AS id,revision,document,updated_at,archived,actor_id "
+                "FROM socialmei.editorial_draft_revisions WHERE workspace_id=%s AND operation_id=%s",
+                (workspace, payload.operation_id),
+            ).fetchone()
+            if receipt:
+                if (receipt["id"] != draft_id or receipt["document"] != document
+                        or receipt["archived"] != payload.archived or receipt["actor_id"] != actor
+                        or receipt["revision"] != payload.expected_revision + 1):
+                    raise HTTPException(409, "Identificador usado com outros dados.")
+                return {key: receipt[key] for key in ("id", "revision", "document", "updated_at")}
+            latest = conn.execute(
+                "SELECT revision,archived FROM socialmei.editorial_draft_revisions "
+                "WHERE workspace_id=%s AND draft_id=%s ORDER BY revision DESC LIMIT 1",
+                (workspace, draft_id),
+            ).fetchone()
+            revision = latest["revision"] if latest else 0
+            if revision != payload.expected_revision or (latest and latest["archived"]) or (payload.archived and not latest):
+                raise HTTPException(409, "Este rascunho mudou ou foi arquivado. Atualize a biblioteca.")
+            return conn.execute(
+                "INSERT INTO socialmei.editorial_draft_revisions "
+                "(workspace_id,draft_id,revision,operation_id,actor_id,document,archived) VALUES(%s,%s,%s,%s,%s,%s,%s) "
+                "RETURNING draft_id AS id,revision,document,updated_at",
+                (workspace, draft_id, revision + 1, payload.operation_id, actor, Jsonb(document), payload.archived),
+            ).fetchone()
+    except DatabaseError:
+        raise HTTPException(503, "Não foi possível confirmar o rascunho.") from None
 
 
 def scheduler_role(conn, workspace, user):
