@@ -55,3 +55,25 @@ Depois de confirmar orçamento do GitHub Actions, permissão e a base de revisã
 - PostgreSQL 17 descartável. Instalação limpa 001–056 e restauração de cópia sintética do schema 046 seguida de atualização até 056. O saldo legado foi preservado, sem movimentos retroativos. Um papel SQL restrito registrou uma alteração pelo gatilho e teve a exclusão do histórico negada.
 - 43 testes Python passaram em catálogo, estoque, vendas, oportunidades, biblioteca, agendamento editorial e relatórios. Navegador em 390 px e 1280 px verificou o histórico de estoque, o novo gerenciamento do rascunho com imagem e a sugestão de texto com resposta de teste.
 - AWS permanece na publicação conhecida da Missão 07. Os bots e os serviços externos mantêm o estado anterior à candidata. O corte da aplicação, o aceite manual, a homologação real de provedores e o ensaio de rollback conjunto continuam pendentes.
+
+
+## Fechamento das integrações da Missão 10
+
+### Instagram e Agenda
+
+- A migration 057 adiciona uma interpretação por mensagem e vincula o resultado ao anexo, negócio, mensagem e hash. O anexo já pertence ao evento autenticado e à conta Meta. A legenda original continua intacta. Resultado incerto fica registrado sem nova tentativa.
+- A ativação requer o ingresso de anexos habilitado, o opt-in `SOCIALMEI_INSTAGRAM_MEDIA_AI_ENABLED=YES`, a lista de negócios em `SOCIALMEI_INSTAGRAM_MEDIA_AI_WORKSPACES`, um corte ISO 8601 com fuso em `SOCIALMEI_INSTAGRAM_MEDIA_AI_START_UTC` e a credencial privada `SOCIALMEI_INSTAGRAM_MEDIA_AI_KEY`. Rodar `python -m instagram_media_interpretation --workspace ID` processa no máximo um anexo elegível por execução. O limite por negócio é de 12 tentativas em 24 horas, com uma em andamento e 2 MiB por arquivo. Mídias fora da janela de dois minutos não entram na fila de interpretação.
+- Respostas de mídia e evidências comerciais têm flags próprias e desativadas por padrão: `SOCIALMEI_INSTAGRAM_MEDIA_AI_REPLIES_ENABLED` e `SOCIALMEI_INSTAGRAM_MEDIA_AI_COMMERCIAL_ENABLED`. Apenas intenções permitidas viram opções do menu ou descrições comerciais padronizadas. A interpretação de imagem permanece como contexto privado. Um pedido de horário em áudio pode listar serviços, e a confirmação exige uma resposta textual separada.
+- A política da Agenda aceita `special_days` pela configuração existente. A data substitui os intervalos semanais daquele dia. Uma lista `hours` vazia fecha o dia. Intervalos separados preservam pausas. A mesma política controla apresentação de datas, oferta e revalidação do horário. O agendamento público permanece desativado.
+- O checkout tem a integração de mídia. Antes de congelar novas imagens, portar o delta para os módulos capturados de Instagram, Agenda e análise comercial, preservando o menu personalizado e as regras de classificação já usadas na AWS. As imagens candidatas anteriores continuam sendo a referência do incremento até 056.
+
+### PR e CI
+
+- Rascunho proposto: **SocialMEI-IA 8.0 — consolidação e homologação**. Base de revisão `release/functional-completion-20261112`, ancestral da consolidação, com gatilhos de `Repository checks`, `MEI demo isolated gates` e `WhatsApp GOWS release gates`. A abertura do PR nessa base aciona validações. Os workflows de publicação exigem disparo manual.
+- O repositório é público, o acesso consultado permite escrita e Actions está habilitado. Os workflows de validação usam runners padrão. Segundo [GitHub Actions billing](https://docs.github.com/en/billing/concepts/product-billing/github-actions), a execução desses runners é gratuita em repositórios públicos. Há etapas de upload de artefatos, cuja margem de armazenamento ainda não foi confirmada. A consulta de cobrança retornou 404. O PR e a CI aguardam a confirmação dessa margem.
+- Checklist do rascunho: CI no SHA candidato, ensaio integrado com os mounts, rollback compatível depois de escritas financeiras e aceite manual da Missão 07. Manter mídia, envios, publicação na Meta e agendamento público desativados até homologação e autorizações correspondentes.
+
+
+- PostgreSQL 17 descartável: instalação limpa até 057 e restauração sintética do schema 046 seguida de atualização até 057 com dados preservados e gravação da interpretação autorizada pelo papel restrito. A instalação não enfileira mídias antigas.
+- A regressão de mídia, Agenda e publicação pública de horários em isolamento passou. O ensaio final sem rede externa confirmou deduplicação do anexo, evidência comercial sem transcrição, atendimento humano, abertura da lista real de serviços por áudio sem criar reserva, confirmação textual e regras de dias especiais.
+- Nenhuma ativação da Meta, do Gemini ou da publicação externa foi executada. A decisão para produção continua bloqueada até validar os serviços e mounts efetivos, o rollback conjunto, a CI e as autorizações.
