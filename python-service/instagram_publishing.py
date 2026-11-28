@@ -5,12 +5,14 @@ owner/admin, live session, installed schema and opt-in env. Unlike the n8n flow,
 this endpoint never triggers a background send or retries uncertain operations.
 Meta fetches a public JPEG URL or an expiring locally uploaded JPEG.
 """
+import base64
 import hashlib
 import json
 import os
 import re
 from datetime import datetime, timedelta, timezone
 from ipaddress import ip_address
+from threading import BoundedSemaphore
 from typing import Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from urllib.parse import urlsplit
@@ -19,7 +21,8 @@ from uuid import UUID, uuid4
 from psycopg import Error as DatabaseError
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import AwareDatetime, Field, field_validator, model_validator
+from pydantic import AwareDatetime, Field, ValidationError, field_validator, model_validator
+from starlette.concurrency import run_in_threadpool
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
@@ -164,11 +167,14 @@ class DraftDocument(Strict):
     tags: str = Field(default="", max_length=500)
     alt: str = Field(default="", max_length=400)
     zoom: str = Field(default="1", pattern=r"^\d(?:\.\d{1,2})?$")
+    image_id: UUID | None = None
+    image_x: float = Field(default=50, ge=0, le=100, allow_inf_nan=False)
+    image_y: float = Field(default=50, ge=0, le=100, allow_inf_nan=False)
 
     @field_validator("*", mode="after")
     @classmethod
     def safe_content(cls, value):
-        if "\x00" in value or any(0xD800 <= ord(char) <= 0xDFFF for char in value):
+        if isinstance(value, str) and ("\x00" in value or any(0xD800 <= ord(char) <= 0xDFFF for char in value)):
             raise ValueError("Texto inválido para o rascunho.")
         return value
 
@@ -220,7 +226,7 @@ def library_drafts():
 def save_library_draft(draft_id: UUID, payload: DraftUpdate):
     user = draft_user(write=True)
     workspace, actor = user["workspace_id"], user["id"]
-    document = payload.document.model_dump()
+    document = payload.document.model_dump(mode="json")
     try:
         with connect() as conn:
             conn.row_factory = dict_row
@@ -232,7 +238,7 @@ def save_library_draft(draft_id: UUID, payload: DraftUpdate):
                 (workspace, payload.operation_id),
             ).fetchone()
             if receipt:
-                if (receipt["id"] != draft_id or receipt["document"] != document
+                if (receipt["id"] != draft_id or DraftDocument.model_validate(receipt["document"]).model_dump(mode="json") != document
                         or receipt["archived"] != payload.archived or receipt["actor_id"] != actor
                         or receipt["revision"] != payload.expected_revision + 1):
                     raise HTTPException(409, "Identificador usado com outros dados.")
@@ -245,14 +251,104 @@ def save_library_draft(draft_id: UUID, payload: DraftUpdate):
             revision = latest["revision"] if latest else 0
             if revision != payload.expected_revision or (latest and latest["archived"]) or (payload.archived and not latest):
                 raise HTTPException(409, "Este rascunho mudou ou foi arquivado. Atualize a biblioteca.")
+            asset = payload.document.image_id
+            if asset is not None and not conn.execute(
+                "SELECT 1 FROM socialmei.editorial_draft_assets WHERE workspace_id=%s AND id=%s FOR KEY SHARE",
+                (workspace, asset),
+            ).fetchone():
+                raise HTTPException(404, "Imagem indisponível neste negócio.")
             return conn.execute(
                 "INSERT INTO socialmei.editorial_draft_revisions "
-                "(workspace_id,draft_id,revision,operation_id,actor_id,document,archived) VALUES(%s,%s,%s,%s,%s,%s,%s) "
+                "(workspace_id,draft_id,revision,operation_id,actor_id,document,archived,asset_id) VALUES(%s,%s,%s,%s,%s,%s,%s,%s) "
                 "RETURNING draft_id AS id,revision,document,updated_at",
-                (workspace, draft_id, revision + 1, payload.operation_id, actor, Jsonb(document), payload.archived),
+                (workspace, draft_id, revision + 1, payload.operation_id, actor, Jsonb(document), payload.archived, asset),
             ).fetchone()
     except DatabaseError:
         raise HTTPException(503, "Não foi possível confirmar o rascunho.") from None
+
+
+class DraftAssetUpload(Strict):
+    image_base64: str = Field(min_length=1, max_length=2796204)
+
+
+_asset_normalizers = BoundedSemaphore(value=2)
+
+
+def store_draft_asset(user, payload):
+    from instagram_media import normalize_image
+
+    if not _asset_normalizers.acquire(blocking=False):
+        raise HTTPException(429, "Aguarde um instante para salvar outra imagem.")
+    try:
+        raw = normalize_image(payload.image_base64, library=True)
+    finally:
+        _asset_normalizers.release()
+    digest = hashlib.sha256(raw).hexdigest()
+    workspace = user["workspace_id"]
+    with connect() as conn:
+        conn.execute("SET LOCAL lock_timeout='3s'")
+        conn.execute("SELECT id FROM socialmei.workspaces WHERE id=%s FOR UPDATE", (workspace,))
+        existing = conn.execute(
+            "SELECT id FROM socialmei.editorial_draft_assets WHERE workspace_id=%s AND fingerprint=%s",
+            (workspace, digest),
+        ).fetchone()
+        if existing:
+            return {"id": existing[0]}
+        count, size = conn.execute(
+            "SELECT count(*),COALESCE(sum(octet_length(image_bytes)),0) "
+            "FROM socialmei.editorial_draft_assets WHERE workspace_id=%s", (workspace,),
+        ).fetchone()
+        if count >= 50 or size + len(raw) > 24 * 1024 * 1024:
+            raise HTTPException(409, "A biblioteca atingiu o limite de 50 imagens ou 24 MiB.")
+        asset = uuid4()
+        conn.execute(
+            "INSERT INTO socialmei.editorial_draft_assets(workspace_id,id,fingerprint,image_bytes,actor_id) "
+            "VALUES(%s,%s,%s,%s,%s)", (workspace, asset, digest, raw, user["id"]),
+        )
+        return {"id": asset}
+
+
+@router.post("/draft-assets")
+async def upload_draft_asset(request: Request):
+    user = draft_user(write=True)
+    body = bytearray()
+    async for chunk in request.stream():
+        if len(body) + len(chunk) > 2_797_000:
+            raise HTTPException(413, "A foto deve ter até 2 MiB.")
+        body.extend(chunk)
+    try:
+        payload = DraftAssetUpload.model_validate_json(bytes(body))
+    except ValidationError:
+        raise HTTPException(422, "Informe os dados válidos de uma imagem.") from None
+    try:
+        return await run_in_threadpool(store_draft_asset, user, payload)
+    except DatabaseError:
+        raise HTTPException(503, "Biblioteca de imagens indisponível.") from None
+
+
+@router.get("/draft-assets")
+def list_draft_assets():
+    workspace = draft_user()["workspace_id"]
+    with connect() as conn:
+        conn.row_factory = dict_row
+        rows = conn.execute(
+            "SELECT id,created_at FROM socialmei.editorial_draft_assets WHERE workspace_id=%s "
+            "ORDER BY created_at DESC,id LIMIT 50", (workspace,),
+        ).fetchall()
+    return {"workspace_id": workspace, "items": rows}
+
+
+@router.get("/draft-assets/{asset_id}")
+def read_draft_asset(asset_id: UUID):
+    workspace = draft_user()["workspace_id"]
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT image_bytes FROM socialmei.editorial_draft_assets WHERE workspace_id=%s AND id=%s",
+            (workspace, asset_id),
+        ).fetchone()
+    if row is None:
+        raise HTTPException(404, "Imagem indisponível.")
+    return {"id": asset_id, "workspace_id": workspace, "image_base64": base64.b64encode(row[0]).decode("ascii")}
 
 
 def scheduler_role(conn, workspace, user):

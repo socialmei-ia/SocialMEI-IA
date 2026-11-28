@@ -23,7 +23,8 @@ MAX_IMAGE_BYTES = 2 * 1024 * 1024
 KEY = re.compile(r'[A-Za-z0-9_-]{43}\Z')
 
 
-def normalize_image(encoded):
+def normalize_image(encoded, *, library=False):
+    low, high = (0.5, 2.0) if library else (0.8, 1.91)
     if len(encoded) > ((MAX_IMAGE_BYTES + 2) // 3) * 4:
         raise HTTPException(413, 'A foto deve ter até 2 MiB.')
     try:
@@ -36,11 +37,11 @@ def normalize_image(encoded):
                 if image.format not in {'JPEG', 'PNG', 'WEBP'} or getattr(image, 'n_frames', 1) != 1:
                     raise ValueError()
                 width, height = image.size
-                if width * height > 16_000_000 or not 0.8 <= width / height <= 1.91:
+                if width * height > 16_000_000 or not low <= width / height <= high:
                     raise ValueError()
                 image.load()
                 image = ImageOps.exif_transpose(image)
-                if not 0.8 <= image.width / image.height <= 1.91:
+                if not low <= image.width / image.height <= high:
                     raise ValueError()
                 image.thumbnail((1440, 1440))
                 # A new RGB surface deliberately drops EXIF, GPS and embedded metadata.
@@ -58,7 +59,10 @@ def normalize_image(encoded):
                 return result
     except (ValueError, OSError, binascii.Error, UnidentifiedImageError,
             Image.DecompressionBombError, Image.DecompressionBombWarning):
-        raise HTTPException(422, 'Use uma foto JPEG, PNG ou WebP estática, com proporção de 4:5 a 1,91:1 e até 16 megapixels.') from None
+        message = 'Use JPEG, PNG ou WebP estático, com proporção de 1:2 a 2:1 e até 16 megapixels.' if library else (
+            'Use uma foto JPEG, PNG ou WebP estática, com proporção de 4:5 a 1,91:1 e até 16 megapixels.'
+        )
+        raise HTTPException(422, message) from None
 
 
 class ImageUpload(Strict):

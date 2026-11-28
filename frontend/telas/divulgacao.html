@@ -423,11 +423,11 @@ function setF(f){if(f===S.f)return;vt(()=>{S.f=f;scr.dataset.f=f;$$('.fmt').forE
 $$('.fmt').forEach(b=>b.onclick=()=>{setF(b.dataset.f);setTimeout(()=>open(2),350)});
 $('#fmts').onkeydown=e=>{const a=$$('.fmt'),i=a.indexOf(document.activeElement),k={ArrowRight:1,ArrowLeft:-1}[e.key];if(k&&i>-1){e.preventDefault();a[(i+k+3)%3].focus();a[(i+k+3)%3].click()}};
 // mídia
-function setMedia(f){if(!f)return;const ext=(f.name.split('.').pop()||'').toLowerCase();
+function setMedia(f){if(!f)return;const choice=++imageChoice;const ext=(f.name.split('.').pop()||'').toLowerCase();
  const v=f.type?f.type.startsWith('video/'):/^(mp4|mov|webm|m4v|ogv)$/.test(ext),im=f.type?f.type.startsWith('image/'):/^(jpe?g|png|gif|webp|avif|bmp|svg|heic|heif)$/.test(ext);
  if(!v&&!im)return toast('Esse arquivo não é uma imagem nem um vídeo.',1);
  const fail=()=>toast('Não consegui abrir esse arquivo ('+(ext||'?').toUpperCase()+'). Tente outro JPG, PNG ou MP4.',1);
- const ok=(el,u)=>{S.el=el;S.th=null;S.px=S.py=50;$('#zoom').value=1;if(S.media&&S.media.u)URL.revokeObjectURL(S.media.u);S.media={u,v};const m=$('#media');m.querySelectorAll('img,video,canvas').forEach(x=>x.remove());m.prepend(el);$('#fn').textContent=f.name+' (só nesta sessão)';pv();toast('Mídia aplicada à prévia.')};
+ const ok=(el,u)=>{if(choice!==imageChoice){if(u)URL.revokeObjectURL(u);return}S.asset=null;S.el=el;S.th=null;S.px=S.py=50;$('#zoom').value=1;if(S.media&&S.media.u)URL.revokeObjectURL(S.media.u);S.media={u,v,file:f};const m=$('#media');m.querySelectorAll('img,video,canvas').forEach(x=>x.remove());m.prepend(el);$('#fn').textContent=f.name+' (só nesta sessão)';pv();toast('Mídia aplicada à prévia.')};
  const viaTag=(src,u,next)=>{const el=document.createElement(v?'video':'img');el.onerror=()=>next?next():fail();if(v){el.muted=el.loop=el.playsInline=true;el.preload='auto';el.onloadeddata=()=>{ok(el,u);el.play().catch(()=>{})}}else{el.alt='Mídia escolhida';el.onload=()=>ok(el,u)}el.src=src};
  const viaData=()=>{const r=new FileReader();r.onload=()=>viaTag(r.result,null);r.onerror=fail;r.readAsDataURL(f)};
  const viaBlob=()=>{const u=URL.createObjectURL(f);viaTag(u,u,viaData)};
@@ -450,7 +450,7 @@ $('#sugs').onclick=e=>{const b=e.target.closest('button');if(!b)return;$('#leg')
 const sugList=()=>T[$('#tom').value].map(x=>x.replace('{t}',g('tema')).replace('{p}',g('prod'))+' '+O[$('#obj').value]);
 ['tom','obj'].forEach(k=>$('#'+k).addEventListener('change',()=>{if(!$('#sugs').children.length||!g('tema')||!g('prod'))return;const old=S.ls,l=sugList();$('#sugs').innerHTML=l.map((x,i)=>`<button style="--i:${i}" data-t="${esc(x)}">${esc(x)}</button>`).join('');if(old&&$('#leg').value===old){S.ls=l[0];$('#leg').value=l[0];pv();if(!reduce)pc.animate([{opacity:0,transform:'translateY(6px)'},{opacity:1,transform:'none'}],{duration:350});toast('Legenda atualizada para o novo tom.')}}));
 // ações
-function clear(){F.forEach(k=>{const e=$('#'+k);e.value=e.tagName==='SELECT'?e.options[0].value:''});$('#sugs').innerHTML='';S.edit=null;S.th=null;S.el=null;S.px=S.py=50;$('#zoom').value=1;if(S.media){$$('#media img,#media video,#media canvas').forEach(x=>x.remove());S.media=null;$('#file').value='';$('#fn').textContent='Escolher imagem ou vídeo. O arquivo fica só no seu navegador.'}pv()}
+function clear(){imageChoice++;S.asset=null;F.forEach(k=>{const e=$('#'+k);e.value=e.tagName==='SELECT'?e.options[0].value:''});$('#sugs').innerHTML='';S.edit=null;S.th=null;S.el=null;S.px=S.py=50;$('#zoom').value=1;if(S.media){$$('#media img,#media video,#media canvas').forEach(x=>x.remove());S.media=null;$('#file').value='';$('#fn').textContent='Escolher imagem ou vídeo. O arquivo fica só no seu navegador.'}pv()}
 $('#clr').onclick=()=>{if(dirty()&&!confirm('Apagar o que você escreveu e começar de novo?'))return;clear();open(1);toast('Tudo limpo. Pode começar de novo.')};
 $('#copy').onclick=async e=>{const v=$('#leg').value.trim();if(!v)return toast('Ainda não há legenda para copiar.',1);try{await navigator.clipboard.writeText(v)}catch{const t=$('#leg');t.select();document.execCommand('copy')}bs(e.currentTarget,'ok');toast('Legenda copiada.')};
 const cp=t=>(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).catch(()=>{const a=document.createElement('textarea');a.value=t;document.body.append(a);a.select();document.execCommand('copy');a.remove()});
@@ -463,10 +463,107 @@ function saveD(force){const t=$('#titulo');if(!g('titulo')){open(3);t.classList.
  if(!force){const dup=drafts.find(x=>x.id!==d.id&&plain(x.titulo)===plain(d.titulo)&&x.f===d.f&&plain(x.leg).trim()===plain(d.leg).trim());if(dup){open(3);toast('Já existe um rascunho '+FN[d.f]+' com este título e esta legenda.',1,['Salvar mesmo assim',()=>{if(saveD(true)){sstat();toast('Rascunho salvo neste navegador.')}}]);return null}}d.th=thumb();const i=drafts.findIndex(x=>x.id===d.id);i>-1?drafts[i]=d:drafts.unshift(d);S.edit=d.id;S.snap=snap();sv();sstat();return d}
 
 const draftApi='/instagram/publishing/drafts';
-let remoteDraftBusy=false, pendingDraft;
+let remoteDraftBusy=false, remoteMediaBusy=false, pendingDraft, imageChoice=0;
 const remoteDraftWriter=()=>V22Frame.canWrite===true;
-const remoteDraftDocument=(d,format)=>({f:format,...Object.fromEntries(F.map(k=>[k,String(d[k]|| (k==='zoom'?'1':''))]))});
+const remoteDraftDocument=(d,format)=>({f:format,image_id:d.image_id||null,image_x:d.image_x??50,image_y:d.image_y??50,...Object.fromEntries(F.map(k=>[k,String(d[k]|| (k==='zoom'?'1':''))]))});
 const projectRemoteDraft=row=>({...row.document,id:row.id,revision:row.revision,at:Date.parse(row.updated_at)});
+
+const assetApi='/instagram/publishing/draft-assets';
+function fileAsBase64(file){
+ return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(',')[1]);reader.onerror=reject;reader.readAsDataURL(file)});
+}
+async function displayRemoteAsset(asset,x=50,y=50){
+ const choice=++imageChoice;
+ try{
+  const host=await V22Frame.parentReady(),result=await host.request(assetApi+'/'+encodeURIComponent(asset));
+  if(!same()||choice!==imageChoice||result.workspace_id!==host.identity?.negocio.id||result.id!==asset)return;
+  if(!/^[a-z0-9+/=]+$/i.test(result.image_base64))throw Error('Imagem inv\u00e1lida.');
+  if(S.media?.u)URL.revokeObjectURL(S.media.u);
+  $$('#media img,#media video,#media canvas').forEach(el=>el.remove());
+  const photo=document.createElement('img');photo.alt='Imagem da biblioteca';photo.src='data:image/jpeg;base64,'+result.image_base64;
+  S.el=photo;S.media={v:false};S.asset=asset;S.px=x;S.py=y;
+  $('#media').prepend(photo);$('#fn').textContent='Imagem salva na biblioteca.';pv();
+ }catch(error){if(same()&&choice===imageChoice)toast(error.message||'N\u00e3o foi poss\u00edvel abrir a imagem.',1)}
+}
+async function saveSelectedAsset(media){
+ if(!media?.file||media.v)return S.asset||null;
+ if(media.file.size>2*1024*1024)throw Error('Selecione uma imagem de at\u00e9 2 MiB ou remova a m\u00eddia.');
+ const host=await V22Frame.parentReady(),image=await fileAsBase64(media.file);
+ if(!same()||media!==S.media)throw Error('A m\u00eddia selecionada mudou.');
+ const result=await host.request(assetApi,'POST',{image_base64:image});
+ if(!same()||media!==S.media)throw Error('A m\u00eddia selecionada mudou.');
+ S.asset=result.id;media.file=null;
+ return result.id;
+}
+function mountDraftImageControls(){
+ const panel=document.createElement('div');panel.className='acts';
+ const library=document.createElement('button'),remove=document.createElement('button'),list=document.createElement('select');
+ library.type=remove.type='button';library.className=remove.className='btn sec';
+ library.textContent='Biblioteca de imagens';remove.textContent='Remover imagem';
+ list.className='in';list.hidden=true;list.setAttribute('aria-label','Imagem salva');
+ library.onclick=async()=>{
+  try{
+   const host=await V22Frame.parentReady(),data=await host.request(assetApi);
+   if(!same()||data.workspace_id!==host.identity?.negocio.id)return;
+   list.replaceChildren(new Option(data.items.length?'Selecione uma imagem':'Nenhuma imagem salva',''));
+   for(const [index,item] of data.items.entries())list.add(new Option('Imagem '+(index+1)+' \u00b7 '+fd(Date.parse(item.created_at)),item.id));
+   list.hidden=false;list.focus();
+  }catch(error){if(same())toast(error.message,1)}
+ };
+ list.onchange=()=>{if(list.value)displayRemoteAsset(list.value)};
+ remove.onclick=()=>{
+  imageChoice++;S.asset=null;
+  if(S.media?.u)URL.revokeObjectURL(S.media.u);
+  S.media=S.el=null;$('#zoom').value='1';
+  $$('#media img,#media video,#media canvas').forEach(el=>el.remove());
+  $('#fn').textContent='Escolher imagem ou v\u00eddeo.';pv();
+ };
+ panel.append(library,list,remove);$('#file').parentElement.append(panel);
+}
+
+
+function mountEditorialText(){
+ const area=document.createElement('div');area.className='sug';
+ const controls=document.createElement('div');controls.className='acts';
+ const message=document.createElement('p');message.setAttribute('role','status');
+ const output=document.createElement('p');output.style.whiteSpace='pre-wrap';
+ const apply=document.createElement('button');apply.type='button';apply.className='btn sec';
+ apply.textContent='Usar como legenda';apply.hidden=true;
+ const buttons=[];
+ let proposal=null,busy=false;
+ for(const [mode,label] of [['caption','Gerar legenda com IA'],['art_direction','Sugerir ideia de conte\u00fado']]){
+  const button=document.createElement('button');button.type='button';button.className='btn sec';button.textContent=label;
+  button.onclick=async()=>{
+   if(busy||!same())return;
+   const theme=$('#tema').value.trim();
+   if(!theme){$('#tema').focus();message.textContent='Informe o tema.';return}
+   const options={mode,format:S.f==='reel'?'reels':S.f,theme,
+    details:[$('#prod').value,$('#obj').value,$('#tom').value,$('#cta').value].filter(Boolean).join(' | ')};
+   busy=true;buttons.forEach(node=>node.disabled=true);apply.hidden=true;proposal=null;output.textContent='';
+   message.textContent='Consultando a ferramenta de texto\u2026';
+   try{
+    const host=await V22Frame.parentReady();
+    if(!same())return;
+    const result=await host.request('/instagram/publishing/content-ai','POST',options);
+    if(!same())return;
+    if(result.mode!==mode||typeof result.text!=='string'||!result.text.trim())throw Error('Sugest\u00e3o indispon\u00edvel.');
+    proposal=result.text;
+    output.textContent=proposal;apply.hidden=mode!=='caption';
+    message.textContent='Revise a sugest\u00e3o antes de usar.';
+   }catch(error){if(same())message.textContent=error.message||'N\u00e3o foi poss\u00edvel gerar o texto.'}
+   finally{busy=false;buttons.forEach(node=>node.disabled=false)}
+  };
+  controls.append(button);buttons.push(button);
+ }
+ apply.onclick=()=>{
+  if(!same()||!proposal)return;
+  if($('#leg').value.trim()&&!confirm('Substituir a legenda atual por esta sugest\u00e3o?'))return;
+  $('#leg').value=proposal.slice(0,2200);pv();open(3);
+ };
+ area.append(controls,message,output,apply);$('#sugs').after(area);
+ const hint=$('#d2 summary small');if(hint)hint.textContent='Use modelos locais ou consulte a ferramenta de texto.';
+}
+
 async function refreshRemoteDrafts(){
  const host=await V22Frame.parentReady(),result=await host.request(draftApi);
  if(!same()||result.workspace_id!==host.identity?.negocio.id||!Array.isArray(result.items))return false;
@@ -509,8 +606,16 @@ $('#save').onclick=async e=>{const b=e.currentTarget;
  if(SC.m==='remoto'){
   if(!g('titulo')){open(3);$('#titulo').focus();return toast('Informe o t\u00edtulo.',1)}
   const values=Object.fromEntries(F.map(k=>[k,$('#'+k).value]));values.titulo=values.titulo.trim();
-  const snapshot=snap(),row=await commitRemoteDraft(remoteDraftDocument(values,S.f),drafts.find(d=>d.id===S.edit));
-  if(row){S.edit=row.id;S.snap=snapshot;sstat();toast('Rascunho salvo no neg\u00f3cio.')}
+  if(remoteMediaBusy||remoteDraftBusy)return;
+  const snapshot=snap(),format=S.f,original=drafts.find(d=>d.id===S.edit),media=S.media;
+  remoteMediaBusy=true;b.disabled=true;
+  try{
+   const image=await saveSelectedAsset(media);
+   if(!same()||media!==S.media)return;
+   const row=await commitRemoteDraft(remoteDraftDocument({...values,image_id:image,image_x:S.px,image_y:S.py},format),original);
+   if(row){S.edit=row.id;S.snap=snapshot;sstat();toast(media?.v?'Texto salvo no neg\u00f3cio. O v\u00eddeo permanece na pr\u00e9via local.':'Rascunho salvo no neg\u00f3cio.')}
+  }catch(error){if(same())toast(error.message,1)}
+  finally{remoteMediaBusy=false;b.disabled=!remoteDraftWriter()}
   return;
  }
  bs(b,'load');setTimeout(()=>{if(saveD()){bs(b,'ok');toast('Rascunho salvo neste navegador.')}else bs(b,'x')},reduce?0:450)};
@@ -519,7 +624,7 @@ $('#week').onclick=()=>{const d=saveD();if(!d)return;[1,3,5].forEach(n=>{const x
 const fd=t=>new Date(t).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
 ['q','ff','fo','fs'].forEach(i=>$('#'+i).oninput=rD);
 $('#dg').onclick=async e=>{const b=e.target.closest('button[data-a]');if(!b)return;if(b.dataset.a==='n'){$('#k0').click();setTimeout(()=>{open(1);const f=$('.fmt[aria-checked="true"]');f&&f.focus()},reduce?0:380);return}const c=b.closest('.dc'),id=c.dataset.id,d=drafts.find(x=>x.id===id);
- if(b.dataset.a==='e'){if(dirty()&&!confirm('Você tem alterações não salvas no editor. Abrir este rascunho mesmo assim?'))return;$$('#media img,#media video,#media canvas').forEach(x=>x.remove());S.media=S.el=null;S.px=S.py=50;$('#fn').textContent='Escolher imagem ou vídeo. O arquivo fica só no seu navegador.';F.forEach(k=>$('#'+k).value=d[k]||'');$('#zoom').value=d.zoom||1;S.th=d.th||null;S.edit=id;S.f=d.f;scr.dataset.f=d.f;$$('.fmt').forEach(x=>x.setAttribute('aria-checked',x.dataset.f===d.f));S.snap=snap();pv();go(0);open(3);toast('Editando "'+d.titulo+'".')}
+ if(b.dataset.a==='e'){if(dirty()&&!confirm('Você tem alterações não salvas no editor. Abrir este rascunho mesmo assim?'))return;imageChoice++;if(S.media?.u)URL.revokeObjectURL(S.media.u);$$('#media img,#media video,#media canvas').forEach(x=>x.remove());S.media=S.el=null;S.asset=d.image_id||null;S.px=S.py=50;$('#fn').textContent='Escolher imagem ou vídeo. O arquivo fica só no seu navegador.';F.forEach(k=>$('#'+k).value=d[k]||'');$('#zoom').value=d.zoom||1;S.th=d.th||null;S.edit=id;S.f=d.f;scr.dataset.f=d.f;$$('.fmt').forEach(x=>x.setAttribute('aria-checked',x.dataset.f===d.f));S.snap=snap();pv();go(0);open(3);if(S.asset)displayRemoteAsset(S.asset,d.image_x,d.image_y);toast('Editando "'+d.titulo+'".')}
  if(SC.m==='remoto'&&['d','x'].includes(b.dataset.a)){
   if(!d||!remoteDraftWriter())return;
   const archive=b.dataset.a==='x';
@@ -624,7 +729,7 @@ if('IntersectionObserver' in window)new IntersectionObserver(en=>{stageVis=en[0]
 // rascunhos: situação, completude, lixeira
 const today0=()=>ymd(new Date());
 const planOf=d=>sched.filter(x=>x.did===d.id&&x.st==='Simulado'&&x.date>=today0()).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
-const compOf=d=>['titulo','leg','cta','tags'].filter(k=>String(d[k]||'').trim()).length+(d.th?1:0);
+const compOf=d=>['titulo','leg','cta','tags'].filter(k=>String(d[k]||'').trim()).length+(d.th||d.image_id?1:0);
 const fdate=k=>new Date(k+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}).replace('.','');
 function rD(){const q=plain($('#q').value),f=$('#ff').value,o=$('#fo').value,fs=$('#fs').value;
  const stOf=d=>missing(d).length?'work':planOf(d).length?'plan':'ready';
@@ -632,7 +737,7 @@ function rD(){const q=plain($('#q').value),f=$('#ff').value,o=$('#fo').value,fs=
  a.sort((x,y)=>o==='az'?x.titulo.localeCompare(y.titulo):o==='old'?x.at-y.at:o==='inc'?(missing(y).length-missing(x).length)||(y.at-x.at):y.at-x.at);
  const nw=drafts.filter(d=>stOf(d)==='work').length,np=drafts.filter(d=>stOf(d)==='plan').length;
  $('#dsum').textContent=drafts.length?`${drafts.length} rascunho${drafts.length>1?'s':''} · ${nw} em elaboração · ${np} planejado${np===1?'':'s'} (simulação)`:'';
- $('#dg').innerHTML=a.length?a.map(d=>{const m=missing(d),p=planOf(d),c=compOf(d);return `<article class="dc" data-id="${d.id}"><div class="th"><svg><use href="#${d.f}"/></svg>${d.th?`<img src="${d.th}" alt="">`:''}</div><div class="b"><b>${esc(d.titulo)}</b><small>${FN[d.f]} · ${fd(d.at)}</small></div><div class="st74">${m.length?`<span class="chip c-er">Em elaboração · falta ${m.join(', ')}</span>`:p.length?'':'<span class="chip c-ok">Pronto</span>'}${p.length?`<span class="chip c-wa">Planejado (simulação) · ${fdate(p[0].date)} ${p[0].time}</span>`:''}</div><div class="cb${c===5?' full':''}" role="img" aria-label="Completude: ${c} de 5 itens (título, legenda, chamada, hashtags, imagem)"><i style="width:${c*20}%"></i></div><div class="r"><button data-a="e">Editar</button><button data-a="p">Planejar</button><button data-a="d">Duplicar</button><button data-a="x">Excluir</button></div></article>`}).join(''):drafts.length?`<div class="empty-s">Nada encontrado com esses filtros.</div>`:`<div class="empty-s empty-first"><span class="ei" aria-hidden="true"><svg><use href="#doc"/></svg></span><b>Você ainda não tem rascunhos</b><p>${SC.m==='remoto'?'O texto e o formato ficam na biblioteca do neg\u00f3cio. Escolha a m\u00eddia novamente ao abrir.':'O rascunho fica neste navegador para voc\u00ea retomar depois.'}</p><button class="btn" type="button" data-a="n"><svg><use href="#pen"/></svg><span>Criar meu primeiro rascunho</span></button></div>`;
+ $('#dg').innerHTML=a.length?a.map(d=>{const m=missing(d),p=planOf(d),c=compOf(d);return `<article class="dc" data-id="${d.id}"><div class="th"><svg><use href="#${d.f}"/></svg>${d.th?`<img src="${d.th}" alt="">`:''}</div><div class="b"><b>${esc(d.titulo)}</b><small>${FN[d.f]} · ${fd(d.at)}</small></div><div class="st74">${m.length?`<span class="chip c-er">Em elaboração · falta ${m.join(', ')}</span>`:p.length?'':'<span class="chip c-ok">Pronto</span>'}${p.length?`<span class="chip c-wa">Planejado (simulação) · ${fdate(p[0].date)} ${p[0].time}</span>`:''}</div><div class="cb${c===5?' full':''}" role="img" aria-label="Completude: ${c} de 5 itens (título, legenda, chamada, hashtags, imagem)"><i style="width:${c*20}%"></i></div><div class="r"><button data-a="e">Editar</button><button data-a="p">Planejar</button><button data-a="d">Duplicar</button><button data-a="x">Excluir</button></div></article>`}).join(''):drafts.length?`<div class="empty-s">Nada encontrado com esses filtros.</div>`:`<div class="empty-s empty-first"><span class="ei" aria-hidden="true"><svg><use href="#doc"/></svg></span><b>Você ainda não tem rascunhos</b><p>${SC.m==='remoto'?'Texto, formato e imagens salvas ficam na biblioteca do neg\u00f3cio. V\u00eddeos ficam na pr\u00e9via local.':'O rascunho fica neste navegador para voc\u00ea retomar depois.'}</p><button class="btn" type="button" data-a="n"><svg><use href="#pen"/></svg><span>Criar meu primeiro rascunho</span></button></div>`;
  rT()}
 const ago=t=>{const h=Math.round((Date.now()-t)/36e5);return h<1?'agora há pouco':h<24?`há ${h} h`:`há ${Math.round(h/24)} d`};
 function rT(){const t=$('#trash');t.hidden=!trash.length;if(!trash.length)return;$('#trs').textContent=`Excluídos recentemente (${trash.length}). Ficam 14 dias neste navegador.`;
@@ -665,6 +770,8 @@ if(SC.m==='remoto'){
  $('#week').disabled=true;
  $('#imp').disabled=true;
  if(!remoteDraftWriter())$('#save').disabled=true;
+ else mountDraftImageControls();
+ if(['owner','admin'].includes(window.parent.SocialMEIV22?.identity?.papel))mountEditorialText();
  const notice=document.createElement('p');notice.textContent='Biblioteca do neg\u00f3cio. Rascunhos guardados neste navegador antes da integra\u00e7\u00e3o foram preservados.';$('#p1').prepend(notice);
  const reload=document.createElement('button');
  reload.type='button';reload.className='btn sec';reload.textContent='Atualizar biblioteca';
