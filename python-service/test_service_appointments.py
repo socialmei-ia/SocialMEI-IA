@@ -4,7 +4,7 @@ import unittest
 import hashlib
 import json
 from concurrent.futures import ThreadPoolExecutor
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 from threading import Event
 from unittest.mock import patch
@@ -119,6 +119,37 @@ class AppointmentDatabaseTests(unittest.TestCase):
         self.assertEqual([r["revision"] for r in history], [1,2,3])
         self.assertEqual([r["status"] for r in history], ["pending","pending","cancelled"])
         self.assertEqual(self.post(PATH+"/appointments", payload)["status"], "cancelled")
+
+    def test_attendance_is_explicit_replay_safe_and_visible_in_client_history(self):
+        now = datetime.now(timezone.utc)
+        future = (now + timedelta(days=1)).isoformat()
+        row = self.post(PATH + "/appointments", self.payload(scheduled_for=future))
+        url = PATH + "/appointments/" + row["id"]
+        packet = {"operation_id": str(uuid4()), "expected_revision": 1, "status": "confirmed"}
+        other = self.register("attendance-other@example.test")
+        self.assertEqual(other.post(url + "/attendance", json=packet).status_code, 404)
+        self.assertEqual(self.client.post(url + "/attendance", json={**packet, "status": "no_show"}).status_code, 409)
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results = list(pool.map(lambda _: self.client.post(url + "/attendance", json=packet), range(2)))
+        self.assertEqual([item.status_code for item in results], [200, 200])
+        self.assertEqual(results[0].json(), results[1].json())
+        self.assertEqual(results[0].json()["revision"], 2)
+        history_path = f"/api/v1/clientes/{self.person['id']}/historico"
+        self.assertEqual(self.client.get(history_path).json()["agendamentos"][0]["attendance"], "confirmed")
+        self.assertEqual(self.client.post(url + "/attendance", json={**packet, "status": "no_show"}).status_code, 409)
+        moved = self.client.patch(url, json={"expected_revision": 2,
+            "scheduled_for": (now + timedelta(days=2)).isoformat()})
+        self.assertEqual(moved.status_code, 200, moved.text)
+        self.assertIsNone(moved.json()["attendance"])
+        self.assertEqual([x["attendance"] for x in self.client.get(url+"/history").json()["items"]],
+                         [None, "confirmed", None])
+
+        past = self.post(PATH + "/appointments", self.payload(scheduled_for=(now - timedelta(days=1)).isoformat()))
+        marked = self.client.post(PATH + "/appointments/" + past["id"] + "/attendance", json={
+            "operation_id": str(uuid4()), "expected_revision": 1, "status": "no_show"
+        })
+        self.assertEqual(marked.status_code, 200, marked.text)
+        self.assertEqual(marked.json()["attendance"], "no_show")
 
     def test_overlap_boundary_distinct_resources_and_concurrent_booking(self):
         first, second = self.payload(), self.payload()

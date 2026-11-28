@@ -267,7 +267,7 @@ def customer_history(cliente_id: int, response: Response):
                 ORDER BY last_message_at DESC NULLS LAST,c.id DESC LIMIT 20
             """,
             "agendamentos": """
-                SELECT id,service_name,scheduled_for,status
+                SELECT id,service_name,scheduled_for,status,attendance
                 FROM socialmei.agenda_appointments WHERE workspace_id=%s AND cliente_id=%s
                 ORDER BY scheduled_for DESC,id DESC LIMIT 20
             """,

@@ -30,6 +30,8 @@ INSTAGRAM_MEDIA_PATCH = REPO / 'deploy/production-candidates/instagram-media.pat
 MEDIA_COMMERCIAL_PATCH = REPO / 'deploy/production-candidates/media-commercial.patch'
 CHANNEL_PATCHES = REPO / 'deploy/production-candidates'
 INSTAGRAM_INTERPRETATION = '/app/instagram_media_interpretation.py'
+ATTENDANCE_API = '/app/appointments.py'
+ATTENDANCE_GATEWAY = '/srv/frontend/scripts/v22-appointments.js'
 
 
 def verify(manifest):
@@ -47,7 +49,7 @@ def verify(manifest):
                 raise ValueError(f'Source hash mismatch: {role}:{name}')
 
 
-def build(role, entry, *, gateway_fixes=False, inbox_fixes=False, whatsapp_media=False, media_commercial=False, instagram_media=False, editorial=False, commercial=False, management=False, booking_special_days=False, instagram_media_ai=False):
+def build(role, entry, *, gateway_fixes=False, inbox_fixes=False, whatsapp_media=False, media_commercial=False, instagram_media=False, editorial=False, commercial=False, management=False, booking_special_days=False, instagram_media_ai=False, attendance=False):
     image = entry['image']
     base = f'socialmei-overlay-base:{role}-{image[7:19]}'
     subprocess.run(['docker', 'image', 'tag', image, base], check=True)
@@ -64,6 +66,8 @@ def build(role, entry, *, gateway_fixes=False, inbox_fixes=False, whatsapp_media
         destinations.update(MENU_MEDIA_FILES)
     if instagram_media_ai:
         destinations.add(INSTAGRAM_INTERPRETATION)
+    if attendance:
+        destinations.add(ATTENDANCE_API if role == 'api' else ATTENDANCE_GATEWAY)
     if editorial:
         destinations.update(EDITORIAL_API if role == 'api' else EDITORIAL_GATEWAY)
     if commercial:
@@ -99,6 +103,10 @@ def build(role, entry, *, gateway_fixes=False, inbox_fixes=False, whatsapp_media
                 data = (REPO / 'python-service' / Path(name).name).read_bytes()
             if commercial and name in COMMERCIAL_GATEWAY:
                 data = (REPO / name.removeprefix('/srv/')).read_bytes()
+            if attendance and name == ATTENDANCE_API:
+                data = (REPO / 'python-service/appointments.py').read_bytes()
+            if attendance and name == ATTENDANCE_GATEWAY:
+                data = (REPO / 'frontend/scripts/v22-appointments.js').read_bytes()
             if instagram_media_ai and name == INSTAGRAM_INTERPRETATION:
                 data = (REPO / 'python-service' / Path(name).name).read_bytes()
             if management and name in MANAGEMENT_API:
@@ -129,6 +137,8 @@ def build(role, entry, *, gateway_fixes=False, inbox_fixes=False, whatsapp_media
             tag += '-special-days'
         if instagram_media_ai:
             tag += '-media-ai'
+        if attendance:
+            tag += '-attendance'
         subprocess.run(['docker', 'build', '--pull=false', '--network=none', '-t', tag, str(root)], check=True)
 
 
@@ -148,7 +158,12 @@ if __name__ == '__main__':
                         help='Include calendar closures and specific dates in API or menu')
     parser.add_argument('--instagram-media-ai', action='store_true',
                         help='Include disabled-by-default Instagram interpretation, requires migration 057 for activation')
+    parser.add_argument('--attendance', action='store_true',
+                        help='Include Agenda attendance with migration 058')
     args = parser.parse_args()
+    if args.attendance and not ((args.build == 'api' and args.commercial)
+                                or (args.build == 'gateway' and args.gateway_fixes)):
+        parser.error('--attendance requires --build api --commercial or --build gateway --gateway-fixes')
     if args.booking_special_days and args.build not in {'api', 'menu'}:
         parser.error('--booking-special-days requires --build api or menu')
     if args.instagram_media_ai and (not args.instagram_media or not args.booking_special_days):
@@ -172,4 +187,4 @@ if __name__ == '__main__':
     verify(manifest)
     print(f'Verified {sum(len(e["files"]) for e in manifest.values())} files across {len(manifest)} roles')
     if args.build:
-        build(args.build, manifest[args.build], gateway_fixes=args.gateway_fixes, inbox_fixes=args.inbox_fixes, whatsapp_media=args.whatsapp_media, media_commercial=args.media_commercial, instagram_media=args.instagram_media, editorial=args.editorial, commercial=args.commercial, management=args.management, booking_special_days=args.booking_special_days, instagram_media_ai=args.instagram_media_ai)
+        build(args.build, manifest[args.build], gateway_fixes=args.gateway_fixes, inbox_fixes=args.inbox_fixes, whatsapp_media=args.whatsapp_media, media_commercial=args.media_commercial, instagram_media=args.instagram_media, editorial=args.editorial, commercial=args.commercial, management=args.management, booking_special_days=args.booking_special_days, instagram_media_ai=args.instagram_media_ai, attendance=args.attendance)

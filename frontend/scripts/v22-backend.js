@@ -421,11 +421,11 @@ window.SocialMEIV22 = (() => {
       const stamp = (value) => value
         ? new Date(value.length === 10 ? value + "T12:00:00" : value).toLocaleDateString("pt-BR")
         : "Sem data";
-      const appointmentState = { pending: "Pendente", confirmed: "Confirmado", completed: "Concluído", cancelled: "Cancelado", no_show: "Ausência" };
+      const appointmentState = { pending: "Pendente", confirmed: "Presença confirmada", completed: "Concluído", done: "Concluído", cancelled: "Cancelado", no_show: "Ausência" };
       const opportunityState = { open: "Em andamento", won: "Venda realizada", lost: "Não avançou" };
       const groups = [
         ["Conversas vinculadas", result.conversas, (row) => [row.channel === "whatsapp" ? "WhatsApp" : "Instagram", row.contact_name, stamp(row.last_message_at)]],
-        ["Agendamentos", result.agendamentos, (row) => [row.service_name, stamp(row.scheduled_for), appointmentState[row.status] || row.status]],
+        ["Agendamentos", result.agendamentos, (row) => [row.service_name, stamp(row.scheduled_for), appointmentState[row.attendance] || appointmentState[row.status] || row.status]],
         ["Vendas", result.vendas, (row) => [row.item, stamp(row.data), row.status, brl(Number(row.valor))]],
         ["Oportunidades", result.oportunidades, (row) => [row.title, stamp(row.updated_at), opportunityState[row.outcome] || row.outcome]],
       ];

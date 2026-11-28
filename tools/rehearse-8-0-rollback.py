@@ -203,8 +203,8 @@ class Lab:
         wait(lambda: docker("exec", self.name+"-db", "pg_isready", "-h", "127.0.0.1", "-U", "postgres", check=False))
         self.db("CREATE SCHEMA socialmei; CREATE TABLE socialmei.schema_migrations "
                 "(version text PRIMARY KEY, applied_at timestamptz DEFAULT now());")
-        files = sorted((ROOT/"database/migrations").glob("*.sql"))
-        assert len(files) == 57
+        files = sorted((ROOT/"database/migrations").glob("*.sql"))[:57]
+        assert len(files) == 57 and files[-1].name.startswith("057_")
         self.apply(files[:46])
         for role in ("legacy", "candidate"):
             self.db(f"CREATE ROLE {role} LOGIN PASSWORD '{self.password}'; "

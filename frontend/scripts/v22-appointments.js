@@ -558,6 +558,24 @@
       }
     }
   }
+  function attendance(s, row, status) {
+    const operation = crypto.randomUUID();
+    const title = status === "confirmed" ? "Confirmar presença" : "Registrar ausência";
+    const input = form(s, title, [], async () => {
+      const result = await host.request("/agenda/appointments/" + row.id + "/attendance", "POST", {
+        operation_id: operation,
+        expected_revision: row.revision,
+        status,
+      });
+      if (result?.attendance !== status || result.revision !== row.revision + 1)
+        throw Error("Confirmação inválida. Consulte a agenda antes de repetir.");
+      s.message = "Presença atualizada pelo servidor.";
+    }, title);
+    if (input) dlg().querySelector("h2")?.after(summary(row));
+  }
+  const attendanceLabel = { confirmed: "Presença confirmada", no_show: "Ausência registrada" };
+
+
   async function history(s, row) {
     try {
       const result = await host.request("/agenda/appointments/" + row.id + "/history");
@@ -565,7 +583,7 @@
       const labels = { pending: "Agendado", done: "Concluído", cancelled: "Cancelado" };
       const lines = result.items.map(
         (r) =>
-          `${new Date(r.recorded_at).toLocaleString("pt-BR")} · revisão ${r.revision}: ${labels[r.status] || r.status} · ${new Date(r.scheduled_for).toLocaleString("pt-BR")}`,
+          `${new Date(r.recorded_at).toLocaleString("pt-BR")} · revisão ${r.revision}: ${attendanceLabel[r.attendance] || labels[r.status] || r.status} · ${new Date(r.scheduled_for).toLocaleString("pt-BR")}`,
       );
       openForm(
         "Histórico do agendamento",
@@ -744,7 +762,12 @@
       st.className = "ag-st";
       st.dataset.s = row.status;
       chips.append(st);
-      if (row.status === "pending" && Date.parse(row.ends_at) < Date.now()) {
+      if (attendanceLabel[row.attendance]) {
+        const badge = node("span", attendanceLabel[row.attendance]);
+        badge.className = "ag-st";
+        chips.append(badge);
+      }
+      if (row.status === "pending" && row.attendance !== "no_show" && Date.parse(row.ends_at) < Date.now()) {
         const lt = node("span", "Passou do horário · conclua ou cancele");
         lt.className = "ag-st ag-late";
         chips.append(lt);
@@ -764,6 +787,12 @@
       if (row.notes) body.append(node("p", row.notes));
       const controls = node("div");
       controls.className = "ag-ctl";
+      if (row.status === "pending" && Object.hasOwn(row, "attendance")) {
+        const action = Date.parse(row.ends_at) <= Date.now() ? "no_show" : "confirmed";
+        if (row.attendance !== action)
+          controls.append(button(action === "no_show" ? "Registrar ausência" : "Confirmar presença",
+            () => attendance(s, row, action), disabled || s.phase !== "ready"));
+      }
       if (row.status === "pending")
         controls.append(
           button("Reagendar", () => update(s, row), disabled || s.phase !== "ready"),

@@ -14,7 +14,7 @@ Use os IDs base do manifesto congelado. Registre o SHA do Git, os IDs das imagen
 ## Gates para produção
 
 1. Confirmar em produção o aceite manual da Missão 07, o ledger, a saúde e os mounts efetivos.
-2. Validar backup fresco com restauração isolada. Verificar instalação limpa e atualização de 046 até 057 com as permissões do papel da API. Conferir a view de caixa, o histórico de estoque (incluindo a escrita do gatilho e o acesso à sequência) e a biblioteca privada de imagens.
+2. Validar backup fresco com restauração isolada. Verificar instalação limpa e atualização de 046 até 058 com as permissões do papel da API. Conferir a view de caixa, o histórico de estoque (incluindo a escrita do gatilho e o acesso à sequência) e a biblioteca privada de imagens.
 3. Aprovar separadamente as migrations, o corte de API e gateway e qualquer ativação externa. Revalidar CI, uso de memória, isolamento, idempotência e journaling.
 4. Ensaiar reversão de API e gateway juntos com os mounts equivalentes. Antes de aceitar escritas da candidata, usar as imagens e configurações congeladas se houver regressão. Após escritas de parcelas e recebíveis, congelar as operações afetadas e manter o ledger. A versão anterior desconhece os vínculos e poderia aceitar baixas conflitantes. Corrigir na versão compatível ou manter Financeiro e Vendas indisponíveis até a recuperação.
 5. Testar HTTPS, autenticação, troca de empresa e as jornadas abaixo. Testar provedores somente com contas autorizadas e aprovação do envio. Preservar WAHA e n8n durante o corte da aplicação.
@@ -102,3 +102,30 @@ Rode `python tools/rehearse-8-0-rollback.py`. O ensaio fixa os IDs locais e cria
 ### Confirmação de armazenamento para abrir o PR
 
 Na conta proprietária, abra **Settings → Billing & Licensing → Usage** e filtre por **Actions** e pelo SKU de armazenamento de artefatos no período atual. Confira a franquia, o consumo e o orçamento aplicável. Em **Settings → Actions → General** do repositório, confira **Artifact and log retention**. O workflow define 14 dias para `SocialMEI-public-demo`. `release-candidate-readiness`, `frontend-regression` e `isolated-preview` herdam a retenção do repositório. Valide margem para esses uploads antes de abrir o rascunho. [Orientação de uso e cobrança do GitHub](https://docs.github.com/en/billing/how-tos/products/view-productlicense-use) [Retenção de artefatos e logs](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository)
+
+## Workers e presença — schema 058
+
+- Execute `python tools/rehearse-8-0-workers.py` para o observer e o edge. O ensaio usa a imagem de observação revisada, dois negócios sintéticos e CA temporária montada em `/run/database-ca.crt`. Verifica TLS `verify-full`, contagens separadas, exclusividade do lease no PostgreSQL, recuperação do checkpoint após reinício e rejeição da credencial legada. O observer tem papel somente leitura. Os envios ficaram em zero.
+- O edge rejeitou permissões abertas no registry e assinaturas inválidas. Quatro entregas concorrentes da mesma entrada criaram uma linha. Uma falha 503 manteve o evento no spool. Após reabrir a fila, a repetição preservou os bytes e aceitou o recibo de duplicata como entrega. O teste do menu empacotado passou em ingresso assinado de áudio, seleção e claim únicos e pausa humana. A ligação conjunta do despachante com os aliases e mounts efetivos da AWS permanece um gate.
+- Na Agenda, um responsável confirma presença ou registra ausência depois do horário. O registro tem revisão e recibo idempotente, aparece no histórico da Agenda e no CRM, e fica associado ao horário original. Reagendar limpa a presença vigente e conserva o histórico. A migration 058 não cria presença para reservas anteriores. Lembretes externos, agendamento público e envio pelos provedores permanecem desativados.
+
+```powershell
+python tools/build-production-overlay.py --build api --inbox-fixes --editorial --commercial --management --media-commercial --instagram-media --booking-special-days --instagram-media-ai --attendance
+python tools/build-production-overlay.py --build gateway --gateway-fixes --editorial --commercial --management --attendance
+```
+
+Identidades locais deste incremento:
+
+- API `sha256:b8088831064d175523f067499abb8f0442f390fb71e58d116a9bb8fb1f3e94de`
+- Gateway `sha256:ff2a4781e63297cb97baabf13d5b43b53625762d835a7919ad734b19fc57741c`
+- Menu `sha256:ecf7c82f5b1ee1440d9ccc27b4d3f28d94a76277d7a0200cdb3489600f946db1`
+
+O ensaio de rollback financeiro continua congelado nos artefatos e no schema 057 usados na sua homologação. Para o corte produtivo, aprove a sequência **manutenção → drenagem → backup e restauração isolada → migrations aditivas → API privada, API e gateway → smoke tests → liberação das escritas**. Em caso de falha antes de escritas, use os artefatos anteriores homologados. Após escritas novas, preserve o ledger e os recibos e mantenha bloqueada a credencial legada até a recuperação compatível. Reavalie a permissão de alteração da Agenda antes de reabrir o tráfego. A ativação dos workers e provedores tem autorização separada.
+
+### CI e teste manual
+
+Na amostra dos 100 artefatos mais recentes, a soma dos maiores tamanhos observados para os quatro uploads do workflow foi de 24.251.450 bytes (23,13 MiB) por execução como estimativa, sujeita à variação dos testes. A retenção observada foi de 14 dias para o demo público e 90 dias para os outros três. A margem de cobrança pertence à conta proprietária. O rascunho fica pronto para abertura após essa confirmação. [Histórico de artefatos pela API do GitHub](https://api.github.com/repos/socialmei-ia/SocialMEI-IA/actions/artifacts?per_page=100)
+
+Checklist de presença para o responsável: em ambiente de teste, confirme presença em uma reserva futura, recarregue, confira o detalhe e o CRM. Reagende e confira que o horário novo pede outra confirmação. Depois do fim de uma reserva passada, registre ausência e confira o histórico. Para o professor, use conta autorizada de leitura e confira a Agenda e o histórico do cliente de cada negócio permitido.
+
+Validações do incremento. 29 testes Python de Agenda e gerenciamento por canal, teste direcionado na imagem da API, caso de áudio na imagem do menu e navegador a 390 px e 1280 px. PostgreSQL 17 passou em instalação limpa e numa atualização da restauração isolada de 046 para 058, preservando a reserva anterior e restringindo a edição do histórico.

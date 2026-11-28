@@ -98,7 +98,7 @@
     agenda.src = "scripts/v22-agenda.js?v=795-agenda-2";
     agenda.onload = () => {
       const appointments = document.createElement("script");
-      appointments.src = "scripts/v22-appointments.js?v=795-agenda-1";
+      appointments.src = "scripts/v22-appointments.js?v=80-attendance";
       appointments.onerror = () => console.warn("Agendamentos de serviços indisponíveis.");
       document.body.appendChild(appointments);
       const agendaHours = document.createElement("script");

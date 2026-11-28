@@ -19,7 +19,7 @@ from channel_booking import (BookingPolicyUpdate, MessageContext, ResourceReques
 
 router = APIRouter(prefix="/api/v1/agenda", tags=["agenda"], dependencies=[Depends(boundary)])
 RESOURCE_COLUMNS = "id,nome,ativo,revision,created_at,updated_at"
-APPOINTMENT_COLUMNS = "id,cliente_id,servico_id,resource_id,client_name,service_name,duration_minutes,price,scheduled_for,ends_at,notes,status,revision,created_at,updated_at"
+APPOINTMENT_COLUMNS = "id,cliente_id,servico_id,resource_id,client_name,service_name,duration_minutes,price,scheduled_for,ends_at,notes,status,revision,created_at,updated_at,attendance"
 
 
 @router.get("/channel-booking")
@@ -126,6 +126,12 @@ class AppointmentCreate(Strict):
     @classmethod
     def valid_text(cls, value):
         return ReminderCreate.valid_text(value, SimpleNamespace(field_name="notes"))
+
+
+class AttendanceUpdate(Strict):
+    operation_id: UUID
+    expected_revision: int = Field(ge=1, le=MAX_SAFE_ID, strict=True)
+    status: Literal["confirmed","no_show"]
 
 
 class AppointmentUpdate(Strict):
@@ -354,10 +360,59 @@ def appointment_history(appointment_id: UUID):
     with connect() as conn:
         conn.execute("SET TRANSACTION READ ONLY")
         configure(conn)
-        rows = conn.execute("SELECT revision,scheduled_for,ends_at,status,recorded_at FROM socialmei.agenda_appointment_history WHERE workspace_id=%s AND appointment_id=%s ORDER BY revision", (user["workspace_id"], appointment_id)).fetchall()
+        rows = conn.execute("SELECT h.revision,h.scheduled_for,h.ends_at,h.status,h.recorded_at,e.status AS attendance FROM socialmei.agenda_appointment_history h LEFT JOIN socialmei.agenda_attendance_events e ON (e.workspace_id,e.appointment_id,e.revision)=(h.workspace_id,h.appointment_id,h.revision) WHERE h.workspace_id=%s AND h.appointment_id=%s ORDER BY h.revision", (user["workspace_id"], appointment_id)).fetchall()
     if not rows:
         raise HTTPException(404, "Agendamento não encontrado.")
     return {"items": [view(row) for row in rows]}
+
+
+@router.post("/appointments/{appointment_id}/attendance")
+def record_attendance(appointment_id: UUID, payload: AttendanceUpdate):
+    user = identity(write=True)
+    workspace = user["workspace_id"]
+    with connect() as conn:
+        configure(conn)
+        lock_workspace(conn, workspace)
+        current = conn.execute(
+            "SELECT revision,status,attendance,scheduled_for,ends_at,now() AS clock "
+            "FROM socialmei.agenda_appointments WHERE workspace_id=%s AND id=%s FOR UPDATE",
+            (workspace, appointment_id),
+        ).fetchone()
+        if not current:
+            raise HTTPException(404, "Agendamento não encontrado.")
+        receipt = conn.execute(
+            "SELECT appointment_id,expected_revision,status,revision,recorded_at "
+            "FROM socialmei.agenda_attendance_events WHERE workspace_id=%s AND operation_id=%s",
+            (workspace, payload.operation_id),
+        ).fetchone()
+        if receipt:
+            if (receipt["appointment_id"], receipt["expected_revision"], receipt["status"]) != (
+                    appointment_id, payload.expected_revision, payload.status):
+                raise HTTPException(409, "Esta operação já foi usada para outro registro.")
+            return view({"attendance": receipt["status"], "revision": receipt["revision"], "recorded_at": receipt["recorded_at"]})
+        if current["revision"] != payload.expected_revision or current["revision"] >= MAX_SAFE_ID:
+            raise HTTPException(409, "O agendamento mudou. Recarregue antes de salvar.")
+        if current["status"] != "pending" or current["attendance"] == payload.status:
+            raise HTTPException(409, "Este agendamento não aceita a alteração solicitada.")
+        if payload.status == "confirmed" and current["ends_at"] <= current["clock"]:
+            raise HTTPException(409, "Só é possível confirmar presença antes do fim do horário.")
+        if payload.status == "no_show" and current["ends_at"] > current["clock"]:
+            raise HTTPException(409, "Registre a ausência depois do horário reservado.")
+        saved = conn.execute(
+            f"UPDATE socialmei.agenda_appointments SET attendance=%s,revision=revision+1,updated_at=now() "
+            f"WHERE workspace_id=%s AND id=%s RETURNING {APPOINTMENT_COLUMNS}",
+            (payload.status, workspace, appointment_id),
+        ).fetchone()
+        history(conn, workspace, saved)
+        receipt = conn.execute(
+            "INSERT INTO socialmei.agenda_attendance_events(workspace_id,operation_id,appointment_id,"
+            "expected_revision,revision,status,scheduled_for,actor_id) VALUES(%s,%s,%s,%s,%s,%s,%s,%s) "
+            "RETURNING recorded_at",
+            (workspace, payload.operation_id, appointment_id, payload.expected_revision, saved["revision"],
+             payload.status, saved["scheduled_for"], user["id"]),
+        ).fetchone()
+        return view({"attendance": payload.status, "revision": saved["revision"], **receipt})
+
 
 
 @router.patch("/appointments/{appointment_id}")
