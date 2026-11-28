@@ -157,3 +157,7 @@ As duas rodadas de regressão passaram com 18 e 20 testes Python. O Chrome passo
 `python tools/rehearse-8-0-dispatcher.py` executa o despachante congelado com o menu reconstruído e PostgreSQL 17. A rede interna não publica portas. Os aliases do menu e do GOWS são equivalentes aos do runtime e as credenciais sintéticas são montadas somente para leitura.
 
 O ensaio comprovou a recusa do token legado, o isolamento do segundo negócio, a recuperação após falha de leitura do GOWS, um único recibo confirmado e a preservação de um resultado incerto sem reenvio em uma nova execução. O provedor do ensaio é local. A execução cobre o modo `--run-once`. Os mounts privados efetivos e a continuidade do journal no serviço final ainda precisam ser confirmados antes do corte.
+
+### Jornada isolada de contas
+
+Passaram 56 testes de recuperação de senha, autenticação, convites e configuração inicial de negócios sobre PostgreSQL 17 descartável. A rede interna não tinha acesso a serviços externos. O transporte de e-mail foi simulado. A entrega real pelo Brevo segue condicionada à autorização e à homologação com destinatário controlado.
