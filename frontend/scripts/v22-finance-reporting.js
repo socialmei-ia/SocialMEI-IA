@@ -32,6 +32,14 @@
         ? [["Em atraso at\u00e9 a consulta", "", data.overdue.as_of, ...amounts(data.overdue)]]
         : []),
       ...data.daily.map((row) => ["Caixa por dia", row.date, row.date, ...amounts(row)]),
+      ...(data.categories || []).map((row) => [
+        "Categoria paga: " + (row.category || "Sem categoria"),
+        data.period.start,
+        data.period.end,
+        row.kind === "receita" ? row.total : "",
+        row.kind === "despesa" ? row.total : "",
+        "",
+      ]),
     ];
     const csv = rows
       .map((row) => row.map((value) => '"' + String(value).replaceAll('"', '""') + '"').join(";"))
@@ -313,6 +321,23 @@
             el("li", "Pagamentos em atraso: " + money(data.overdue.outgoing)),
           );
           content.append(el("h3", "Contas vencidas at\u00e9 " + data.overdue.as_of), aging);
+        }
+        if (data.categories?.length) {
+          const categories = el("ul");
+          for (const row of data.categories) {
+            const kind = row.kind === "receita" ? "Entrada" : "Saída";
+            categories.append(
+              el("li", [row.category || "Sem categoria", kind, money(row.total)].join(" · ")),
+            );
+          }
+          content.append(el("h3", "Lançamentos pagos por categoria"), categories);
+          if (data.categories_truncated)
+            content.append(
+              el(
+                "p",
+                "São exibidas as 100 maiores categorias por tipo. Os totais incluem todos os lançamentos.",
+              ),
+            );
         }
         if (data.undated_paid_count)
           content.append(

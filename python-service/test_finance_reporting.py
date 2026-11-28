@@ -140,6 +140,32 @@ class FinanceReportDatabase(unittest.TestCase):
             self.assertEqual(self.admin_client.get(path).status_code, 200)
             self.assertEqual(self.admin_client.post(path, json=payload).status_code, 403)
 
+    def test_categories_persist_and_report_by_payment_date(self):
+        path = '/api/v1/financeiro'
+        payload = {
+            'operation_id': str(uuid4()), 'descricao': 'Fixture',
+            'tipo': 'despesa', 'valor': '12.00', 'vencimento': '2026-12-10',
+            'categoria': 'Material',
+        }
+        created = self.admin_client.post(path, json=payload)
+        self.assertEqual(created.status_code, 201, created.text)
+        self.assertEqual(self.admin_client.post(path, json=payload).json(), created.json())
+        entry_path = f"{path}/{created.json()['id']}"
+        changed = self.admin_client.patch(entry_path, json={
+            **{key: payload[key] for key in ('descricao', 'tipo', 'valor', 'vencimento')},
+            'operation_id': str(uuid4()), 'expected_version': 1,
+        })
+        self.assertEqual(changed.json()['categoria'], 'Material')
+        with patch('finance_data.payment_date', return_value=date(2026, 11, 6)):
+            paid = self.admin_client.post(entry_path+'/pagar', json={
+                'operation_id': str(uuid4()), 'expected_version': 2,
+            })
+        self.assertEqual(paid.status_code, 200, paid.text)
+        categories = self.report().json()['categories']
+        self.assertIn({'category': 'Material', 'kind': 'despesa', 'total': '12.00', 'count': 1}, categories)
+        other = self.register('finance-category-other@example.test')
+        self.assertEqual(self.report(other).json()['categories'], [])
+
     def test_database_and_timezone_failures_do_not_expose_details(self):
         with patch('finance_reporting.connect', side_effect=psycopg.OperationalError('private connection')):
             response = self.report()

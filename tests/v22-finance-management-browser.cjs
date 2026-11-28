@@ -43,6 +43,18 @@ module.exports = async (browser, origin) => {
       if (path === "/auth/preferences") json = { preferences: { theme: "dark" }, revision: 0 };
       if (path === "/workspace-profile") json = { profile: {} };
       if (path === "/message-enrichment/capabilities") json = { mode: "disabled" };
+      if (path === "/produtos")
+        json = [
+          {
+            id: 9,
+            nome: "Limpeza",
+            tipo: "Serviço",
+            categoria: "Serviços",
+            status: "Ativo",
+            preco: 40,
+            estoque: 0,
+          },
+        ];
       if (path === "/clientes")
         json = [
           {
@@ -102,10 +114,12 @@ module.exports = async (browser, origin) => {
     const form = page.locator("dialog[open]");
     await form.locator("#f_d").fill("Conta futura de teste");
     await form.locator("#f_v").fill("29,50");
+    await form.locator("#f_cc").fill("Material");
     await form.locator("#f_due").fill("2026-12-07");
     await form.locator("button[type=submit]").click();
     await page.getByText(/Conta futura de teste/).waitFor();
     assert.equal(writes[0].status, "aberto");
+    assert.equal(writes[0].categoria, "Material");
     assert.equal(writes[0].vencimento, "2026-12-07");
     page.once("dialog", (dlg) => dlg.accept());
     await page.getByRole("button", { name: "Registrar recebimento" }).click();
@@ -123,6 +137,8 @@ module.exports = async (browser, origin) => {
     assert.match(download.suggestedFilename(), /financeiro-2026-11-01/);
     await page.evaluate(() => window.SocialMEILia.ask("Contas em atraso"));
     await page.locator(".lia-panel").getByText("A receber em atraso", { exact: true }).waitFor();
+    await page.evaluate(() => window.SocialMEILia.ask("Preço de Limpeza"));
+    await page.locator(".lia-panel").getByText("Limpeza", { exact: true }).waitFor();
     await page.evaluate(() => window.SocialMEILia.close());
 
     await page.evaluate(() => {

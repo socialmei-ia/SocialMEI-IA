@@ -74,6 +74,13 @@ def finance(start: date | None = Query(None), end: date | None = Query(None)):
                 "AND status='pago' AND data_pagamento BETWEEN %s AND %s GROUP BY data_pagamento",
                 (workspace, start, end),
             ).fetchall()}
+            categories = conn.execute(
+                "SELECT NULLIF(categoria,'') AS category,tipo AS kind,count(*) AS count,sum(valor) AS total "
+                "FROM socialmei.crm_financeiro WHERE workspace_id=%s AND NOT excluida "
+                "AND status='pago' AND data_pagamento BETWEEN %s AND %s "
+                "GROUP BY categoria,tipo ORDER BY total DESC,categoria,tipo LIMIT 101",
+                (workspace, start, end),
+            ).fetchall()
     except psycopg.Error:
         raise HTTPException(503, "Não foi possível consultar o financeiro. Tente novamente.") from None
     series = []
@@ -93,6 +100,9 @@ def finance(start: date | None = Query(None), end: date | None = Query(None)):
             "overdue": {"count": overdue["count"], "incoming": _money(overdue["incoming"]),
                         "outgoing": _money(overdue["outgoing"]), "as_of": today.isoformat()},
             "undated_paid_count": pending["undated_paid_count"], "daily": series,
+            "categories": [{"category": row["category"], "kind": row["kind"], "count": row["count"],
+                            "total": _money(row["total"])} for row in categories[:100]],
+            "categories_truncated": len(categories) > 100,
             "description": "Entradas e saídas registradas como pagas, pela data de pagamento. O saldo do período não representa lucro nem saldo bancário. Vendas não são somadas novamente.",
             "pending_description": "Pendências abertas por vencimento no período. Lançamentos pagos sem data de pagamento ficam fora do saldo e são sinalizados quando vencem neste intervalo."}
 

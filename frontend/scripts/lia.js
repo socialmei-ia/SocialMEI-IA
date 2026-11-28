@@ -755,6 +755,50 @@
     if (e.kind === "guide") return answerGuide(e);
     if (e.kind === "special") return special(e);
   }
+  function findRecords(query) {
+    const match = query.match(/^(?:buscar|localizar|procurar) (cliente|produto|servico) (.+)$/) ||
+      query.match(/^(preco) (?:de|do|da) (.+)$/);
+    if (!match) return false;
+    const [ , type, term] = match;
+    const bridge = window.SocialMEIV22;
+    if (!bridge?.searchScope?.records) {
+      noData();
+      return true;
+    }
+    if (term.length < 2) {
+      say([B.text("Informe pelo menos duas letras do nome.")]);
+      return true;
+    }
+    const client = type === "cliente";
+    const path = client ? "/negocio/clientes" : "/negocio/produtos";
+    const all = () => client ? bridge.clients : bridge.products;
+    const normalized = term.replace(/^@/, "");
+    const matches = all().filter((row) => {
+      const kind = row.tipo && norm(row.tipo);
+      if (!client && (!["preco", kind].includes(type) || row.status !== "Ativo")) return false;
+      const keys = client ? [row.nome, row.instagram, row.email] : [row.nome, row.categoria];
+      return keys.some((key) => norm(key).replace(/^@/, "").includes(normalized));
+    }).slice(0, 5);
+    const context = ctxNow();
+    say([
+      B.text(matches.length ? "Resultados do negócio ativo." : "Nenhum cadastro encontrado com esse termo."),
+      ...(matches.length ? [B.list(matches.map((row) => ({
+        title: row.nome,
+        detail: client ? (row.instagram || "") : row.tipo + " · " + brlFmt(row.preco),
+        run: () => {
+          if (stale(context)) return;
+          const index = all().findIndex((item) => item.id === row.id);
+          if (index < 0) return;
+          if (client) S.cli = index;
+          else S.prod = index;
+          return navigate(path);
+        },
+      })))] : []),
+      B.src("Cadastros do negócio ativo"),
+    ]);
+    return true;
+  }
+
   async function handle(text) {
     text = String(text || "").replace(/\s+/g, " ").trim().slice(0, 400);
     if (!text || st.busy) return;
@@ -768,6 +812,7 @@
     if (/\b(obrigad[oa]|valeu|brigad[oa]|agradeco)\b/.test(n) && q.content.length <= 3) return say([B.text("Por nada! Se precisar, é só chamar.")]);
     if (/^(limpar|apagar|zerar|resetar)\b.*\b(conversa|historico|chat)\b/.test(n)) { hardReset(true); return; }
     if (MODE === "public" && PRIVATE_ASK.test(n)) return say([B.text("Aqui no site eu só falo do que é público. Para ver ou usar os seus dados, entre na sua conta."), signupActs()]);
+    if (MODE === "app" && remote() && findRecords(n)) return;
     if (MODE === "app" && !canWrite() && q.create) {
       const f = KB.forms.map((e) => ({ e: { ...e, kind: "form" }, s: 0 })).map((x) => ({ ...x, s: score(x.e, q) })).sort((a, b) => b.s - a.s)[0];
       if (f && f.s >= 3.5) return say([B.text(reasonMsg("role")), B.acts([askBtn("Mostrar vendas pendentes"), askBtn("Organizar meu dia")])]);

@@ -135,7 +135,7 @@ window.SocialMEIV22 = (() => {
         .map((f) => [
           date(f.data_pagamento),
           f.descricao,
-          f.tipo,
+          f.categoria || "Sem categoria",
           f.tipo === "receita" ? 1 : 0,
           f.valor,
         ]),
@@ -464,6 +464,7 @@ window.SocialMEIV22 = (() => {
       record ? "Corrigir lan\u00e7amento em aberto" : "Novo lan\u00e7amento",
       [
         field("d", "Descri\u00e7\u00e3o", record?.descricao || "", { req: 1 }),
+        field("cc", "Categoria", record?.categoria || "", { max: 80 }),
         field("t", "Tipo", record?.tipo === "despesa" ? "Sa\u00edda" : "Entrada", {
           type: "select",
           options: ["Entrada", "Sa\u00edda"],
@@ -481,6 +482,7 @@ window.SocialMEIV22 = (() => {
           record ? "PATCH" : "POST",
           {
             descricao: v.d,
+            categoria: v.cc,
             tipo: v.t === "Entrada" ? "receita" : "despesa",
             valor: money(v.v),
             vencimento: v.due,
@@ -1213,6 +1215,9 @@ window.SocialMEIV22 = (() => {
     },
     get clients() {
       return auth.current && dataScope === identityKey() ? data.clients : [];
+    },
+    get products() {
+      return auth.current && dataScope === identityKey() ? data.products : [];
     },
     /* v7.0.1: vendas do escopo atual com cliente_id (somente leitura); null quando o escopo mudou. */
     get sales() {

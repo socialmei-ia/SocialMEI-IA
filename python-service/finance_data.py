@@ -6,7 +6,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException
 from psycopg.rows import dict_row
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sales_data import Money, linked_client
 from shared_data import MAX_SAFE_ID, ensure_workspace, require_shared_data
 
@@ -14,7 +14,7 @@ from database import connect
 import settings
 
 router = APIRouter(prefix="/api/v1/financeiro", tags=["financeiro"])
-FINANCE_COLUMNS = "id, cliente_id, descricao, pessoa, tipo, valor, vencimento, status, data_pagamento, importada, excluida, versao, criado_em, atualizado_em"
+FINANCE_COLUMNS = "id, cliente_id, descricao, pessoa, tipo, valor, vencimento, status, data_pagamento, importada, excluida, versao, criado_em, atualizado_em, categoria"
 
 
 def payment_date() -> date:
@@ -34,12 +34,23 @@ class FinanceFields(BaseModel):
     vencimento: date
 
 
-class FinanceCreate(FinanceFields):
+class CategorizedFinanceFields(FinanceFields):
+    categoria: str | None = Field(default=None, max_length=80)
+
+    @field_validator("categoria")
+    @classmethod
+    def valid_category(cls, value):
+        if value is not None and any(ord(char) < 32 or 0xD800 <= ord(char) <= 0xDFFF for char in value):
+            raise ValueError("Confira a categoria informada.")
+        return value
+
+
+class FinanceCreate(CategorizedFinanceFields):
     operation_id: UUID
     status: Literal["aberto", "pago"] = "aberto"
 
 
-class FinanceEdit(FinanceFields):
+class FinanceEdit(CategorizedFinanceFields):
     operation_id: UUID
     expected_version: int = Field(ge=1, strict=True)
 
@@ -65,14 +76,17 @@ class FinanceOut(BaseModel):
     versao: int
     criado_em: datetime
     atualizado_em: datetime
+    categoria: str = ""
 
 
 def begin_operation(cur, workspace_id, kind, entry_id, payload):
+    # Packets from before category support must keep the same idempotency fingerprint.
+    excluded = {"categoria"} if "categoria" not in payload.model_fields_set else set()
     serialized = json.dumps(
         {
             "acao": kind,
             "lancamento_id": entry_id,
-            "dados": payload.model_dump(mode="json"),
+            "dados": payload.model_dump(mode="json", exclude=excluded),
         },
         sort_keys=True,
         separators=(",", ":"),
@@ -113,7 +127,12 @@ def lock_entry(cur, workspace_id, entry_id, version):
 
 
 def entry_values(cur, workspace_id, payload):
-    values = payload.model_dump(exclude={"operation_id", "expected_version"})
+    excluded = {"operation_id", "expected_version"}
+    if "categoria" not in payload.model_fields_set:
+        excluded.add("categoria")
+    values = payload.model_dump(exclude=excluded)
+    if "categoria" in values:
+        values["categoria"] = values["categoria"] or ""
     if payload.cliente_id is not None:
         values["pessoa"] = linked_client(cur, workspace_id, payload.cliente_id)["nome"]
     return values
