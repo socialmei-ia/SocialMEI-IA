@@ -1,4 +1,5 @@
 from datetime import date, datetime, timezone
+from concurrent.futures import ThreadPoolExecutor
 import os
 import unittest
 from unittest.mock import patch
@@ -165,6 +166,108 @@ class FinanceReportDatabase(unittest.TestCase):
         self.assertIn({'category': 'Material', 'kind': 'despesa', 'total': '12.00', 'count': 1}, categories)
         other = self.register('finance-category-other@example.test')
         self.assertEqual(self.report(other).json()['categories'], [])
+
+    def test_partial_cash_completion_correction_and_isolation(self):
+        entry = self.entry('receita', '50.00', '2026-11-01')
+        path = f"/api/v1/financeiro/{entry['id']}"
+        payload = {'operation_id': str(uuid4()), 'expected_version': 1, 'valor': '18.15', 'data': '2026-11-07'}
+        with patch('finance_data.payment_date', return_value=date(2026, 11, 28)):
+            def send(_):
+                return self.admin_client.post(path+'/liquidacoes', json=payload)
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                results = list(pool.map(send, range(2)))
+            self.assertTrue(all(response.status_code == 200 for response in results), results[0].text)
+            self.assertEqual(results[0].json(), results[1].json())
+            self.assertEqual(results[0].json()['liquidado_parcial'], '18.15')
+            self.assertEqual(self.admin_client.post(path+'/liquidacoes', json={
+                **payload, 'operation_id': str(uuid4()), 'expected_version': 2, 'valor': '32',
+            }).status_code, 409)
+            report = self.report().json()
+            self.assertEqual(report['pending']['incoming'], '34.85')
+            self.assertEqual(report['paid']['incoming'], '18.45')
+            self.assertEqual(self.admin_client.post(path+'/excluir', json={
+                'operation_id': str(uuid4()), 'expected_version': 2,
+            }).status_code, 409)
+            completion = self.admin_client.post(path+'/pagar', json={
+                'operation_id': str(uuid4()), 'expected_version': 2,
+            })
+        self.assertEqual(completion.json()['status'], 'pago', completion.text)
+        self.assertEqual(self.report().json()['paid']['incoming'], '50.30')
+        correction = {'operation_id': str(uuid4()), 'expected_version': 3,
+                      'parcela_id': payload['operation_id'], 'motivo': 'Data lançada incorretamente'}
+        reversed_item = self.admin_client.post(path+'/estornar-parcela', json=correction)
+        self.assertEqual(reversed_item.status_code, 200, reversed_item.text)
+        self.assertEqual(reversed_item.json()['liquidado_parcial'], '31.85')
+        self.assertEqual(self.admin_client.post(path+'/estornar-parcela', json=correction).json(), reversed_item.json())
+        self.assertEqual(self.report().json()['paid']['incoming'], '32.15')
+        self.assertEqual(len(self.admin_client.get(path+'/liquidacoes').json()['items']), 2)
+        other = self.register('partial-settlement-other@example.test')
+        self.assertEqual(other.get(path+'/liquidacoes').status_code, 404)
+        self.assertEqual(other.post(path+'/estornar-parcela', json=correction).status_code, 404)
+
+    def test_linked_sale_has_one_receivable_and_only_finance_moves_cash(self):
+        workspace = self.admin_client.identity['negocio']['id']
+        with psycopg.connect(accounts.DB) as conn:
+            sale = conn.execute(
+                "INSERT INTO socialmei.crm_vendas(workspace_id,cliente,item,data,valor,status,quantidade,pagamento,preco) "
+                "VALUES(%s,'Fixture','Item',CURRENT_DATE,35,'Pendente',1,'Pix',35) RETURNING id",
+                (workspace,),
+            ).fetchone()[0]
+        link = f'/api/v1/financeiro/de-venda/{sale}'
+        sale_path = f'/api/v1/vendas/{sale}'
+        payload = {'operation_id': str(uuid4()), 'expected_version': 1, 'vencimento': '2026-11-30'}
+        response = self.admin_client.post(link, json=payload)
+        self.assertEqual(response.status_code, 201, response.text)
+        self.assertEqual(self.admin_client.post(link, json=payload).json(), response.json())
+        path = f"/api/v1/financeiro/{response.json()['id']}"
+        self.assertEqual(self.admin_client.post(link, json={**payload, 'operation_id': str(uuid4())}).status_code, 409)
+        self.assertEqual(self.admin_client.post(sale_path+'/pagar', json={
+            'operation_id': str(uuid4()), 'expected_version': 1,
+        }).status_code, 409)
+        operation = str(uuid4())
+        with patch('finance_data.payment_date', return_value=date(2026, 11, 10)):
+            receipt = self.admin_client.post(path+'/pagar', json={'operation_id': operation, 'expected_version': 1})
+        self.assertEqual(receipt.status_code, 200, receipt.text)
+        self.assertEqual(self.report().json()['paid']['incoming'], '35.30')
+        self.assertEqual(self.admin_client.get(sale_path).json()['status'], 'Pago')
+        reversal = self.admin_client.post(path+'/estornar-parcela', json={
+            'operation_id': str(uuid4()), 'expected_version': 2,
+            'parcela_id': operation, 'motivo': 'Quitação digitada em duplicidade',
+        })
+        self.assertEqual(reversal.status_code, 200, reversal.text)
+        self.assertEqual(self.admin_client.get(sale_path).json()['status'], 'Pendente')
+        self.assertEqual(self.report().json()['paid']['incoming'], '0.30')
+        other = self.register('linked-sale-other@example.test')
+        self.assertEqual(other.post(link, json=payload).status_code, 404)
+
+    def test_das_declaration_has_revisions_replay_permissions_and_no_cash_effect(self):
+        path = '/api/v1/reporting/mei/das'
+        receipt = {'operation_id': str(uuid4()), 'expected_revision': 0,
+                   'competencia': '2026-10-01', 'pago_em': '2026-11-01',
+                   'valor': '85.68', 'referencia': 'Recibo fictício'}
+        with patch('finance_reporting.datetime') as clock:
+            clock.now.return_value = datetime(2026, 11, 27, tzinfo=timezone.utc)
+            stored = self.admin_client.post(path, json=receipt)
+            self.assertEqual(stored.status_code, 200, stored.text)
+            self.assertEqual(self.admin_client.post(path, json=receipt).json(), {'revision': 1})
+            self.assertEqual(self.admin_client.post(path, json={
+                **receipt, 'operation_id': str(uuid4()),
+            }).status_code, 409)
+            self.assertEqual(self.admin_client.get(path).json()['items'][0]['valor'], '85.68')
+            revocation = self.admin_client.post(path, json={
+                **receipt, 'operation_id': str(uuid4()), 'expected_revision': 1,
+                'pago_em': None, 'valor': None, 'referencia': 'Recibo de outra competência',
+            })
+            self.assertEqual(revocation.status_code, 200, revocation.text)
+            history = self.admin_client.get(path+'?competencia=2026-10-01').json()['items']
+            self.assertEqual([row['valor'] for row in history], [None, '85.68'])
+            self.assertEqual(self.report().json()['paid']['outgoing'], '0.40')
+            other = self.register('das-other@example.test')
+            self.assertEqual(other.get(path).json()['items'], [])
+            with psycopg.connect(accounts.DB) as conn:
+                conn.execute("UPDATE socialmei.workspace_members SET role='viewer' WHERE user_id=%s", (self.admin_id,))
+            self.assertEqual(self.admin_client.get(path).status_code, 200)
+            self.assertEqual(self.admin_client.post(path, json=receipt).status_code, 403)
 
     def test_database_and_timezone_failures_do_not_expose_details(self):
         with patch('finance_reporting.connect', side_effect=psycopg.OperationalError('private connection')):

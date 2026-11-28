@@ -130,15 +130,14 @@ window.SocialMEIV22 = (() => {
     F.splice(
       0,
       F.length,
-      ...finance
-        .filter((f) => f.status === "pago" && f.data_pagamento)
-        .map((f) => [
-          date(f.data_pagamento),
-          f.descricao,
-          f.categoria || "Sem categoria",
-          f.tipo === "receita" ? 1 : 0,
-          f.valor,
-        ]),
+      ...finance.flatMap((f) => {
+        const common = [f.descricao, f.categoria || "Sem categoria", f.tipo === "receita" ? 1 : 0];
+        if (f.parcelas?.length)
+          return f.parcelas.map((item) => [date(item.data), ...common, Number(item.valor), f.id, true]);
+        if (f.status === "pago" && f.data_pagamento)
+          return [[date(f.data_pagamento), ...common, f.valor, f.id, false]];
+        return [];
+      }),
     );
     document
       .querySelectorAll("iframe")
@@ -166,7 +165,8 @@ window.SocialMEIV22 = (() => {
       const { path, method, payload } = JSON.parse(pending.signature);
       if (
         !(
-          /^\/(vendas|financeiro)(\/[1-9]\d*(\/(registrar|pagar|cancelar|excluir))?)?$/.test(path) ||
+          /^\/(vendas|financeiro)(\/[1-9]\d*(\/(registrar|pagar|cancelar|excluir|liquidacoes|estornar-parcela))?)?$/.test(path) ||
+          (method === "POST" && /^\/financeiro\/de-venda\/[1-9]\d*$/.test(path)) ||
           (method === "POST" && /^\/opportunities\/[a-f0-9-]{36}\/convert$/i.test(path))
         ) ||
         !["POST", "PATCH"].includes(method) ||
@@ -511,6 +511,41 @@ window.SocialMEIV22 = (() => {
     const title = document.createElement("h2");
     title.textContent = "Contas em aberto";
     section.append(title);
+    if (canWriteFinance()) {
+      const activeSales = new Set(data.finance.filter((entry) => entry.venda_id != null).map((entry) => entry.venda_id));
+      const choices = data.sales.filter((sale) => sale.status === "Pendente" && sale.valor > 0 && !activeSales.has(sale.id));
+      if (choices.length) {
+        const link = document.createElement("button");
+        link.type = "button";
+        link.className = "btn o";
+        link.textContent = "Criar recebível de venda";
+        const opened = identityKey();
+        link.onclick = () => {
+          if (!auth.current || identityKey() !== opened || !canWriteFinance()) return;
+          form(
+            "Criar recebível de venda",
+            [
+              field("sale", "Venda pendente ainda sem recebível", "", {
+                type: "select", req: 1, options: [""],
+                choices: [{ value: "", label: "Selecione" }, ...choices.map((sale) => ({
+                  value: String(sale.id), label: "#" + sale.id + " · " + sale.item + " · " + brl(sale.valor),
+                }))],
+              }),
+              field("due", "Vencimento", new Date().toLocaleDateString("sv-SE"), { type: "date", req: 1 }),
+            ],
+            (values) => {
+              const sale = choices.find((entry) => String(entry.id) === values.sale);
+              if (!sale) throw Error("Selecione uma venda da lista.");
+              if (!window.confirm("Confirme que esta venda ainda não foi registrada como recebível avulso.")) throw Error("Operação cancelada.");
+              return write("/financeiro/de-venda/" + sale.id, "POST", {
+                expected_version: sale.versao, vencimento: values.due,
+              }, true);
+            },
+          );
+        };
+        section.append(link);
+      }
+    }
     const records = data.finance.filter((row) => ["aberto", "atrasado"].includes(row.status));
     if (!records.length) {
       const empty = document.createElement("p");
@@ -523,7 +558,8 @@ window.SocialMEIV22 = (() => {
       line.className = "row sp wr";
       const label = document.createElement("p");
       const kind = row.tipo === "receita" ? "A receber" : "A pagar";
-      label.textContent = kind + " \u00b7 " + row.descricao + " \u00b7 " + brl(row.valor) + " \u00b7 vencimento " + date(row.vencimento);
+      const balance = (Math.round(Number(row.valor) * 100) - Math.round(Number(row.liquidado_parcial || 0) * 100)) / 100;
+      label.textContent = kind + " \u00b7 " + row.descricao + " \u00b7 " + brl(balance) + " em aberto \u00b7 vencimento " + date(row.vencimento);
       line.append(label);
       if (canWriteFinance()) {
         const buttons = document.createElement("div");
@@ -538,12 +574,23 @@ window.SocialMEIV22 = (() => {
           };
           buttons.append(button);
         };
-        action("Corrigir", () => financeForm(row));
+        if (!Number(row.liquidado_parcial) && !row.venda_id) action("Corrigir", () => financeForm(row));
+        action("Registrar parcela", () => form(
+          "Registrar parcela",
+          [
+            field("v", "Valor da parcela (R$)", "", { req: 1, type: "money" }),
+            field("pd", "Data de pagamento", new Date().toLocaleDateString("sv-SE"), { req: 1, type: "date" }),
+          ],
+          (values) => write("/financeiro/" + row.id + "/liquidacoes", "POST", {
+            expected_version: row.versao, valor: String(money(values.v)), data: values.pd,
+          }, true),
+        ));
         for (const [text, permission, route] of [
           [row.tipo === "receita" ? "Registrar recebimento" : "Registrar pagamento",
             "Confirma o registro interno da quita\u00e7\u00e3o de \"" + row.descricao + "\"?", "pagar"],
           ["Cancelar conta", "Cancelar a conta em aberto \"" + row.descricao + "\"?", "excluir"],
         ]) {
+          if (route === "excluir" && Number(row.liquidado_parcial)) continue;
           action(text, async () => {
             if (!window.confirm(permission)) return;
             try {
@@ -556,9 +603,67 @@ window.SocialMEIV22 = (() => {
         }
         line.append(buttons);
       }
+      line.append(financeHistoryButton(row, active));
       section.append(line);
     }
+    const settled = data.finance.filter((row) => row.status === "pago" && Number(row.liquidado_parcial));
+    if (settled.length) {
+      const details = document.createElement("details"),
+        summary = document.createElement("summary");
+      summary.textContent = "Contas quitadas com parcelas";
+      details.append(summary);
+      for (const row of settled) details.append(financeHistoryButton(row, active));
+      section.append(details);
+    }
     view.append(section);
+  }
+
+  function financeHistoryButton(row, scope) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "btn o sm2";
+    button.textContent = "Parcelas: " + row.descricao;
+    button.onclick = async () => {
+      const active = () => auth.current && identityKey() === scope;
+      if (!active()) return;
+      info("Histórico de parcelas", '<p data-finance-history role="status">Consultando…</p>');
+      const original = dlg().querySelector("[data-finance-history]");
+      try {
+        const { items } = await request("/financeiro/" + row.id + "/liquidacoes");
+        if (!active() || !dlg().open || !original.isConnected) return;
+        const list = document.createElement("ul");
+        for (const item of items) {
+          const entry = document.createElement("li");
+          entry.textContent = date(item.data) + " · " + brl(Number(item.valor)) +
+            (item.estornado_em ? " · Corrigida: " + item.motivo_estorno : "");
+          if (!item.estornado_em && canWriteFinance()) {
+            const reverse = document.createElement("button");
+            reverse.type = "button";
+            reverse.className = "btn o sm2";
+            reverse.textContent = "Estornar registro";
+            reverse.onclick = () => {
+              if (!active()) return;
+              dlg().close();
+              form(
+                "Estornar registro da parcela",
+                [field("why", "Motivo da correção", "", { req: 1, max: 300 })],
+                ({ why }) => write("/financeiro/" + row.id + "/estornar-parcela", "POST", {
+                  expected_version: row.versao, parcela_id: item.id, motivo: why,
+                }, true),
+                "Confirmar correção",
+              );
+            };
+            entry.append(reverse);
+          }
+          list.append(entry);
+        }
+        if (items.length) original.replaceWith(list);
+        else original.textContent = "Nenhuma parcela registrada.";
+      } catch (failure) {
+        if (active() && original.isConnected) original.textContent = failure.message;
+      }
+    };
+    return button;
   }
 
   function productForm(edit = false) {
@@ -1041,7 +1146,9 @@ window.SocialMEIV22 = (() => {
     };
     A.fx = async (index) => {
       try {
-        const record = data.finance.filter((f) => f.status === "pago" && f.data_pagamento)[+index];
+        const cash = F[+index];
+        if (!cash || cash[6]) return false;
+        const record = data.finance.find((row) => row.id === cash[5]);
         if (!canWriteFinance() || !record || !window.confirm("Cancelar este lan\u00e7amento registrado?")) return false;
         await write(
           "/financeiro/" + record.id + "/excluir",

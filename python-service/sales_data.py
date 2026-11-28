@@ -128,6 +128,15 @@ def lock_sale(cur, workspace_id, sale_id, version):
     return sale
 
 
+def require_sale_without_receivable(cur, workspace_id, sale_id):
+    cur.execute(
+        "SELECT 1 FROM socialmei.crm_financeiro WHERE workspace_id=%s AND venda_id=%s AND NOT excluida",
+        (workspace_id, sale_id),
+    )
+    if cur.fetchone():
+        raise HTTPException(409, "Esta venda tem um recebível no Financeiro. Gerencie a quitação ou a correção por lá.")
+
+
 def linked_client(cur, workspace_id, client_id):
     if client_id is None:
         return {"nome": "Sem cliente"}
@@ -324,6 +333,7 @@ def edit_sale(venda_id: int, payload: VendaEdit):
         if replay:
             return replay
         previous = lock_sale(cur, workspace_id, venda_id, payload.expected_version)
+        require_sale_without_receivable(cur, workspace_id, venda_id)
         if previous["importada"] or previous["status"] not in {"Pendente", "Rascunho"}:
             raise HTTPException(
                 409,
@@ -378,6 +388,7 @@ def change_sale(venda_id, payload, kind):
             raise HTTPException(409, "Venda já paga não retorna a pendente.")
         if previous["status"] == target and kind != "excluir":
             return finish_operation(cur, workspace_id, payload, fingerprint, previous)
+        require_sale_without_receivable(cur, workspace_id, venda_id)
         active = target in {"Pendente", "Pago"}
         applied = False
         if not previous["importada"]:

@@ -22,8 +22,7 @@ def paid(conn, workspace, start, end):
         "SELECT count(*) AS count,"
         "COALESCE(sum(valor) FILTER(WHERE tipo='receita'),0) AS incoming,"
         "COALESCE(sum(valor) FILTER(WHERE tipo='despesa'),0) AS outgoing "
-        "FROM socialmei.crm_financeiro WHERE workspace_id=%s AND NOT excluida "
-        "AND status='pago' AND data_pagamento BETWEEN %s AND %s",
+        "FROM socialmei.crm_financeiro_caixa WHERE workspace_id=%s AND data BETWEEN %s AND %s",
         (workspace, start, end),
     ).fetchone()
     return {"count": row["count"], "incoming": _money(row["incoming"]),
@@ -52,32 +51,30 @@ def finance(start: date | None = Query(None), end: date | None = Query(None)):
             previous = paid(conn, workspace, prior_start, prior_end)
             pending = conn.execute(
                 "SELECT count(*) FILTER(WHERE status IN ('aberto','atrasado')) AS count,"
-                "COALESCE(sum(valor) FILTER(WHERE status IN ('aberto','atrasado') AND tipo='receita'),0) AS incoming,"
-                "COALESCE(sum(valor) FILTER(WHERE status IN ('aberto','atrasado') AND tipo='despesa'),0) AS outgoing,"
+                "COALESCE(sum(valor-liquidado_parcial) FILTER(WHERE status IN ('aberto','atrasado') AND tipo='receita'),0) AS incoming,"
+                "COALESCE(sum(valor-liquidado_parcial) FILTER(WHERE status IN ('aberto','atrasado') AND tipo='despesa'),0) AS outgoing,"
                 "count(*) FILTER(WHERE status='pago' AND data_pagamento IS NULL) AS undated_paid_count "
                 "FROM socialmei.crm_financeiro WHERE workspace_id=%s AND NOT excluida "
                 "AND vencimento BETWEEN %s AND %s", (workspace, start, end),
             ).fetchone()
             overdue = conn.execute(
                 "SELECT count(*) AS count,"
-                "COALESCE(sum(valor) FILTER(WHERE tipo='receita'),0) AS incoming,"
-                "COALESCE(sum(valor) FILTER(WHERE tipo='despesa'),0) AS outgoing "
+                "COALESCE(sum(valor-liquidado_parcial) FILTER(WHERE tipo='receita'),0) AS incoming,"
+                "COALESCE(sum(valor-liquidado_parcial) FILTER(WHERE tipo='despesa'),0) AS outgoing "
                 "FROM socialmei.crm_financeiro WHERE workspace_id=%s AND NOT excluida "
                 "AND status IN ('aberto','atrasado') AND vencimento<%s",
                 (workspace, today),
             ).fetchone()
             daily = {r["day"]: r for r in conn.execute(
-                "SELECT data_pagamento AS day,"
+                "SELECT data AS day,"
                 "COALESCE(sum(valor) FILTER(WHERE tipo='receita'),0) AS incoming,"
                 "COALESCE(sum(valor) FILTER(WHERE tipo='despesa'),0) AS outgoing "
-                "FROM socialmei.crm_financeiro WHERE workspace_id=%s AND NOT excluida "
-                "AND status='pago' AND data_pagamento BETWEEN %s AND %s GROUP BY data_pagamento",
+                "FROM socialmei.crm_financeiro_caixa WHERE workspace_id=%s AND data BETWEEN %s AND %s GROUP BY data",
                 (workspace, start, end),
             ).fetchall()}
             categories = conn.execute(
                 "SELECT NULLIF(categoria,'') AS category,tipo AS kind,count(*) AS count,sum(valor) AS total "
-                "FROM socialmei.crm_financeiro WHERE workspace_id=%s AND NOT excluida "
-                "AND status='pago' AND data_pagamento BETWEEN %s AND %s "
+                "FROM socialmei.crm_financeiro_caixa WHERE workspace_id=%s AND data BETWEEN %s AND %s "
                 "GROUP BY categoria,tipo ORDER BY total DESC,categoria,tipo LIMIT 101",
                 (workspace, start, end),
             ).fetchall()
@@ -103,7 +100,7 @@ def finance(start: date | None = Query(None), end: date | None = Query(None)):
             "categories": [{"category": row["category"], "kind": row["kind"], "count": row["count"],
                             "total": _money(row["total"])} for row in categories[:100]],
             "categories_truncated": len(categories) > 100,
-            "description": "Entradas e saídas registradas como pagas, pela data de pagamento. O saldo do período não representa lucro nem saldo bancário. Vendas não são somadas novamente.",
+            "description": "Entradas e saídas registradas, incluindo parcelas, por data de pagamento. O saldo representa movimentações internas. Vendas não são somadas novamente.",
             "pending_description": "Pendências abertas por vencimento no período. Lançamentos pagos sem data de pagamento ficam fora do saldo e são sinalizados quando vencem neste intervalo."}
 
 
@@ -238,3 +235,89 @@ def save_mei_tracking(payload: MeiTracking):
             return {"revision": revision + 1}
     except (psycopg.Error, ValueError):
         raise HTTPException(503, "Não foi possível salvar o acompanhamento do MEI.") from None
+
+
+class DasRecord(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    operation_id: UUID
+    expected_revision: int = Field(ge=0, le=2_147_483_646, strict=True)
+    competencia: date
+    pago_em: date | None = None
+    valor: Money | None = None
+    referencia: str = Field(min_length=1, max_length=300)
+
+    @model_validator(mode="after")
+    def valid_receipt(self):
+        if self.competencia.day != 1 or self.competencia.year < 2009:
+            raise ValueError("Informe a competência como mês válido.")
+        if self.pago_em is None:
+            if self.valor is not None or not self.expected_revision:
+                raise ValueError("Sinalize a correção de um registro existente.")
+        elif self.pago_em < self.competencia or self.valor is None or self.valor <= 0:
+            raise ValueError("Confira a data e o valor do pagamento informado.")
+        if any(ord(ch) < 32 or 0xD800 <= ord(ch) <= 0xDFFF for ch in self.referencia):
+            raise ValueError("Referência inválida.")
+        return self
+
+
+@router.get("/mei/das")
+def das_records(competencia: date | None = None):
+    workspace, _ = tracking_actor()
+    try:
+        with connect() as conn:
+            conn.row_factory = dict_row
+            conn.execute("SET TRANSACTION READ ONLY")
+            conn.execute("SET LOCAL statement_timeout='3s'")
+            columns = "competencia,revision,pago_em,valor::text,referencia,registrado_em"
+            if competencia is None:
+                query = (f"SELECT DISTINCT ON (competencia) {columns} FROM socialmei.mei_das_revisions "
+                         "WHERE workspace_id=%s ORDER BY competencia DESC,revision DESC LIMIT 60")
+                params = (workspace,)
+            else:
+                query = (f"SELECT {columns} FROM socialmei.mei_das_revisions "
+                         "WHERE workspace_id=%s AND competencia=%s ORDER BY revision DESC LIMIT 60")
+                params = (workspace, competencia)
+            return {"workspace_id": workspace, "items": conn.execute(query, params).fetchall()}
+    except psycopg.Error:
+        raise HTTPException(503, "Histórico do DAS indisponível.") from None
+
+
+@router.post("/mei/das")
+def record_das(payload: DasRecord):
+    workspace, actor = tracking_actor(write=True)
+    try:
+        today = datetime.now(settings.business_timezone()).date()
+        with connect() as conn:
+            conn.row_factory = dict_row
+            conn.execute("SET LOCAL lock_timeout='3s'")
+            conn.execute("SELECT id FROM socialmei.workspaces WHERE id=%s FOR UPDATE", (workspace,))
+            fields = ("competencia", "pago_em", "valor", "referencia")
+            values = tuple(getattr(payload, field) for field in fields)
+            receipt = conn.execute(
+                "SELECT * FROM socialmei.mei_das_revisions WHERE workspace_id=%s AND operation_id=%s",
+                (workspace, payload.operation_id),
+            ).fetchone()
+            if receipt:
+                if (tuple(receipt[name] for name in fields) != values or receipt["actor_id"] != actor
+                        or receipt["revision"] != payload.expected_revision + 1):
+                    raise HTTPException(409, "Identificador usado com outros dados.")
+                return {"revision": receipt["revision"]}
+            if payload.competencia > today or (payload.pago_em and payload.pago_em > today):
+                raise HTTPException(422, "Informe uma competência e uma data que já ocorreram.")
+            latest = conn.execute(
+                "SELECT revision,pago_em FROM socialmei.mei_das_revisions "
+                "WHERE workspace_id=%s AND competencia=%s ORDER BY revision DESC LIMIT 1",
+                (workspace, payload.competencia),
+            ).fetchone()
+            revision = latest["revision"] if latest else 0
+            if revision != payload.expected_revision or (payload.pago_em is None and not latest["pago_em"]):
+                raise HTTPException(409, "O registro do DAS mudou. Atualize e confira o histórico.")
+            conn.execute(
+                "INSERT INTO socialmei.mei_das_revisions"
+                "(workspace_id,revision,operation_id,actor_id,competencia,pago_em,valor,referencia) "
+                "VALUES(%s,%s,%s,%s,%s,%s,%s,%s)",
+                (workspace, revision + 1, payload.operation_id, actor, *values),
+            )
+            return {"revision": revision + 1}
+    except (psycopg.Error, ValueError):
+        raise HTTPException(503, "Não foi possível registrar o DAS.") from None

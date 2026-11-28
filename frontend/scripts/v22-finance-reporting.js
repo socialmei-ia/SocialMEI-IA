@@ -220,6 +220,139 @@
       return panel;
     }
     load();
+    mountDas(section, same, canEdit);
+  }
+
+  function mountDas(section, same, canEdit) {
+    const details = el("details");
+    const message = el("p");
+    message.setAttribute("role", "status");
+    const content = el("div");
+    details.append(
+      el("summary", "Registros manuais do DAS"),
+      el("p", "Declarações internas. A confirmação oficial continua no PGMEI."),
+      message,
+      content,
+    );
+    section.append(details);
+    const query = "/reporting/mei/das";
+    let attempt;
+    async function load() {
+      try {
+        message.textContent = "Consultando registros…";
+        const result = await host.request(query);
+        if (!same() || result.workspace_id !== auth.current.negocio.id) return;
+        content.replaceChildren();
+        message.textContent = result.items.length ? "" : "Nenhum registro manual.";
+        if (canEdit()) content.append(editor());
+        for (const row of result.items) {
+          const month = el("details");
+          month.append(
+            el(
+              "summary",
+              row.competencia.slice(0, 7) +
+                " · " +
+                (row.pago_em
+                  ? "Informado em " + row.pago_em + " · " + money(row.valor)
+                  : "Registro corrigido"),
+            ),
+          );
+          const history = el("ul");
+          month.append(history);
+          if (canEdit()) month.append(editor(row));
+          month.addEventListener("toggle", async () => {
+            if (!month.open || history.children.length) return;
+            try {
+              const data = await host.request(
+                query + "?competencia=" + encodeURIComponent(row.competencia),
+              );
+              if (!same() || !history.isConnected || data.workspace_id !== auth.current.negocio.id)
+                return;
+              for (const item of data.items) {
+                const label = item.pago_em
+                  ? "Pagamento declarado em " + item.pago_em + " · " + money(item.valor)
+                  : "Correção";
+                history.append(
+                  el("li", "Revisão " + item.revision + " · " + label + " · " + item.referencia),
+                );
+              }
+            } catch (error) {
+              if (same() && history.isConnected) message.textContent = error.message;
+            }
+          });
+          content.append(month);
+        }
+      } catch (error) {
+        if (same()) message.textContent = error.message || "Registros do DAS indisponíveis.";
+      }
+    }
+    function editor(row) {
+      const form = el("form");
+      form.className = "row wr";
+      const input = (type, label, value) => {
+        const wrapper = el("label", label);
+        const field = el("input");
+        field.type = type;
+        field.className = "in";
+        field.value = value || "";
+        wrapper.append(field);
+        form.append(wrapper);
+        return field;
+      };
+      const month = input("month", "Competência", row?.competencia.slice(0, 7));
+      const day = input("date", "Data paga informada", row?.pago_em);
+      const amount = input("number", "Valor (R$)", row?.valor);
+      const note = input("text", "Referência do comprovante ou motivo da correção");
+      month.required = note.required = true;
+      note.maxLength = 300;
+      month.readOnly = !!row;
+      amount.min = "0.01";
+      amount.step = "0.01";
+      const save = el("button", row ? "Atualizar declaração" : "Declarar pagamento");
+      save.className = "btn o";
+      save.type = "submit";
+      form.append(save);
+      if (row?.pago_em) {
+        const cancel = el("button", "Revogar declaração");
+        cancel.type = "submit";
+        cancel.className = "btn o";
+        cancel.dataset.revokeDas = "";
+        form.append(cancel);
+      }
+      form.onsubmit = async (event) => {
+        event.preventDefault();
+        if (!same() || !canEdit() || save.disabled) return;
+        const remove = event.submitter?.hasAttribute("data-revoke-das");
+        if (remove && !window.confirm("Revogar o registro interno desta competência?")) return;
+        if (!remove && (!day.value || !amount.value)) {
+          message.textContent = "Informe a data e o valor.";
+          return;
+        }
+        const formData = {
+          competencia: month.value + "-01",
+          expected_revision: row?.revision || 0,
+          pago_em: remove ? null : day.value,
+          valor: remove ? null : amount.value,
+          referencia: note.value,
+        };
+        const signature = JSON.stringify(formData);
+        if (attempt?.signature !== signature) attempt = { signature, id: crypto.randomUUID() };
+        save.disabled = true;
+        try {
+          await host.request(query, "POST", { ...formData, operation_id: attempt.id });
+          if (same()) await load();
+        } catch (error) {
+          if (same())
+            message.textContent = error.message || "Não foi possível confirmar o registro.";
+        } finally {
+          save.disabled = false;
+        }
+      };
+      return form;
+    }
+    details.addEventListener("toggle", () => {
+      if (details.open && !content.children.length) void load();
+    });
   }
 
   function mount() {
