@@ -20,7 +20,7 @@ from uuid import UUID, uuid4
 
 from psycopg import Error as DatabaseError
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import AwareDatetime, Field, ValidationError, field_validator, model_validator
 from starlette.concurrency import run_in_threadpool
 from psycopg.rows import dict_row
@@ -611,6 +611,44 @@ class InstagramPublishingService:
             ).fetchone()
         return public_view(row) if row else None
 
+    def engagement(self, user, session, publication_id):
+        with connect() as conn:
+            conn.row_factory = dict_row
+            _authorize(conn, user, session)
+            row = conn.execute(
+                "SELECT connection_id,external_account_id,media_id FROM socialmei.ig_meta_publications "
+                "WHERE workspace_id=%s AND id=%s AND status='published'",
+                (user["workspace_id"], publication_id),
+            ).fetchone()
+            if not row:
+                raise HTTPException(404, "Publicação confirmada não encontrada.")
+            connection = self._connection(conn, user)
+            if (connection["id"], connection["external_account_id"]) != (row["connection_id"], row["external_account_id"]):
+                raise HTTPException(409, "Conecte a conta que publicou este conteúdo.")
+            token = self._token(user, connection)
+        try:
+            media = external_id(row["media_id"])
+            result = self.adapter._request(ProviderRequest(
+                "GET", f"https://graph.instagram.com/{self.adapter._version}/{media}",
+                headers={"Authorization": "Bearer " + token},
+                params={"fields": "id,like_count,comments_count"},
+            ), retryable=True)
+            if external_id(result.get("id")) != media:
+                raise ProviderError()
+        except ProviderError:
+            raise HTTPException(503, "Métricas temporariamente indisponíveis no Instagram.") from None
+        finally:
+            token = None
+        with connect() as conn:
+            conn.row_factory = dict_row
+            _authorize(conn, user, session, lock=False)
+        metrics = {}
+        for name in ("like_count", "comments_count"):
+            value = result.get(name)
+            metrics[name] = value if type(value) is int and 0 <= value <= 9007199254740991 else None
+        return metrics
+
+
     def advance(self, user, session, publication_id):
         # Explicit POST continuation of an existing approved intention. GETs never send.
         with connect() as conn:
@@ -730,6 +768,15 @@ def recent(request: Request, publisher: InstagramPublishingService = Depends(ser
             (user["workspace_id"],),
         ).fetchall()
     return {"items": [public_view(row) for row in rows]}
+
+
+@router.post("/{publication_id}/engagement")
+def publication_engagement(publication_id: UUID, request: Request, response: Response,
+                           publisher: InstagramPublishingService = Depends(service)):
+    user, session = actor(request)
+    response.headers["Cache-Control"] = "no-store"
+    return publisher.engagement(user, session, publication_id)
+
 
 
 @router.post("/{publication_id}/continue")

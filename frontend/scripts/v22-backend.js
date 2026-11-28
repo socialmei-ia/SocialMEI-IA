@@ -974,6 +974,7 @@ window.SocialMEIV22 = (() => {
       if (!sameSession()) return;
       if (result.workspace_id !== workspace) throw Error("Resposta de outro negócio.");
       if (!Array.isArray(result.items)) throw Error("Resposta da Caixa Unificada inválida.");
+      window.SocialMEIInboxSound?.observe(scope, result.items);
       inboxCapabilities = cap;
       inboxState = available ? "ok" : "unavailable";
       inboxLastOk = Date.now();
@@ -1050,6 +1051,7 @@ window.SocialMEIV22 = (() => {
     }, 6000);
   function paintInboxLabels() {
     if (!H.startsWith("/caixa")) return;
+    if (remote && auth.current) window.SocialMEIInboxSound?.mount(identityKey());
     // Replace only label text; retain the native icons, layout and motion hooks.
     const label = (selector, value) => {
       const element = document.querySelector(selector);

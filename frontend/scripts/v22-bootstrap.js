@@ -52,7 +52,7 @@
   document.body.appendChild(run);
   await new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "scripts/v22-backend.js?v=mission06-mode";
+    script.src = "scripts/v22-backend.js?v=80-inbox-sound";
     script.onload = resolve;
     script.onerror = reject;
     document.body.appendChild(script);
@@ -140,6 +140,9 @@
     connectionsHub.src = "scripts/connections-hub.js";
     connectionsHub.onerror = () => console.warn("Central de Conexões indisponível.");
     document.body.appendChild(connectionsHub);
+    const inboxSound = document.createElement("script");
+    inboxSound.src = "scripts/inbox-notification-sound.js?v=1";
+    document.body.appendChild(inboxSound);
     const inboxAssist = document.createElement("script");
     inboxAssist.src = "scripts/inbox-assist.js";
     inboxAssist.onerror = () => console.warn("Assistente da Caixa indisponível.");
@@ -203,7 +206,7 @@
       direct.onerror = () => console.warn("Respostas Instagram indisponíveis.");
       document.body.appendChild(direct);
       const publishing = document.createElement("script");
-      publishing.src = "scripts/v22-instagram-publisher.js";
+      publishing.src = "scripts/v22-instagram-publisher.js?v=80-history";
       publishing.onerror = () => console.warn("Publicação Instagram indisponível.");
       document.body.appendChild(publishing);
       const media = document.createElement("script");

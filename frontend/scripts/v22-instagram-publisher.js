@@ -369,6 +369,41 @@
         submission.disabled = false;
       }
     };
+    const history = document.createElement("details");
+    const historyTitle = document.createElement("summary");
+    historyTitle.textContent = "Histórico de publicações";
+    const historyRows = document.createElement("ul");
+    const historyStatus = document.createElement("p");
+    historyStatus.setAttribute("role", "status");
+    history.append(historyTitle, historyStatus, historyRows);
+    calendar.append(history);
+    history.addEventListener("toggle", () => {
+      if (!history.open || historyRows.children.length) return;
+      run(async () => {
+        const { items } = await host.request("/instagram/publishing/recent");
+        if (!valid()) return;
+        historyStatus.textContent = items.length ? "" : "Nenhuma publicação registrada.";
+        for (const row of items) {
+          const li = document.createElement("li");
+          li.textContent = new Date(row.scheduled_at || row.created_at).toLocaleString("pt-BR") +
+            " · " + (states[row.status] || row.status);
+          if (row.status === "published") {
+            const button = document.createElement("button");
+            const metrics = document.createElement("span");
+            metrics.setAttribute("role", "status");
+            button.type = "button";
+            button.textContent = "Consultar engajamento";
+            button.addEventListener("click", () => run(async () => {
+              const result = await host.request("/instagram/publishing/" + row.id + "/engagement", "POST", {});
+              if (valid()) metrics.textContent = " Curtidas: " + (result.like_count ?? "indisponível") +
+                " · Comentários: " + (result.comments_count ?? "indisponível");
+            }));
+            li.append(button, metrics);
+          }
+          historyRows.append(li);
+        }
+      });
+    });
     async function load() {
       const rows = await request();
       if (!valid()) return;

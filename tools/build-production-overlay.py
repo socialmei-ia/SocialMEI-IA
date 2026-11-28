@@ -10,6 +10,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1] / 'deploy/production-overlay/20261127'
 REPO = ROOT.parents[2]
 GATEWAY_FIXES = (
+    '/srv/frontend/scripts/inbox-notification-sound.js',
     '/srv/frontend/scripts/agenda-hours.js',
     '/srv/frontend/socialmei-app.html',
     '/srv/frontend/scripts/v22-agenda.js',
@@ -31,6 +32,7 @@ MEDIA_COMMERCIAL_PATCH = REPO / 'deploy/production-candidates/media-commercial.p
 CHANNEL_PATCHES = REPO / 'deploy/production-candidates'
 INSTAGRAM_INTERPRETATION = '/app/instagram_media_interpretation.py'
 ATTENDANCE_API = '/app/appointments.py'
+CHANNEL_ATTENDANCE = '/app/channel_attendance.py'
 ATTENDANCE_GATEWAY = '/srv/frontend/scripts/v22-appointments.js'
 
 
@@ -49,7 +51,7 @@ def verify(manifest):
                 raise ValueError(f'Source hash mismatch: {role}:{name}')
 
 
-def build(role, entry, *, gateway_fixes=False, inbox_fixes=False, whatsapp_media=False, media_commercial=False, instagram_media=False, editorial=False, commercial=False, management=False, booking_special_days=False, instagram_media_ai=False, attendance=False):
+def build(role, entry, *, gateway_fixes=False, inbox_fixes=False, whatsapp_media=False, media_commercial=False, instagram_media=False, editorial=False, commercial=False, management=False, booking_special_days=False, instagram_media_ai=False, attendance=False, channel_attendance=False):
     image = entry['image']
     base = f'socialmei-overlay-base:{role}-{image[7:19]}'
     subprocess.run(['docker', 'image', 'tag', image, base], check=True)
@@ -66,6 +68,8 @@ def build(role, entry, *, gateway_fixes=False, inbox_fixes=False, whatsapp_media
         destinations.update(MENU_MEDIA_FILES)
     if instagram_media_ai:
         destinations.add(INSTAGRAM_INTERPRETATION)
+    if channel_attendance:
+        destinations.add(CHANNEL_ATTENDANCE)
     if attendance:
         destinations.add(ATTENDANCE_API if role == 'api' else ATTENDANCE_GATEWAY)
     if editorial:
@@ -103,6 +107,8 @@ def build(role, entry, *, gateway_fixes=False, inbox_fixes=False, whatsapp_media
                 data = (REPO / 'python-service' / Path(name).name).read_bytes()
             if commercial and name in COMMERCIAL_GATEWAY:
                 data = (REPO / name.removeprefix('/srv/')).read_bytes()
+            if channel_attendance and name == CHANNEL_ATTENDANCE:
+                data = (REPO / "python-service/channel_attendance.py").read_bytes()
             if attendance and name == ATTENDANCE_API:
                 data = (REPO / 'python-service/appointments.py').read_bytes()
             if attendance and name == ATTENDANCE_GATEWAY:
@@ -121,7 +127,8 @@ def build(role, entry, *, gateway_fixes=False, inbox_fixes=False, whatsapp_media
         patches = [(whatsapp_media, MENU_MEDIA_PATCH), (media_commercial, MEDIA_COMMERCIAL_PATCH),
                    (instagram_media, INSTAGRAM_MEDIA_PATCH),
                    (booking_special_days, CHANNEL_PATCHES / f'booking-special-days-{role}.patch'),
-                   (instagram_media_ai, CHANNEL_PATCHES / 'instagram-media-interpretation.patch')]
+                   (instagram_media_ai, CHANNEL_PATCHES / 'instagram-media-interpretation.patch'),
+                   (channel_attendance, CHANNEL_PATCHES / f'channel-attendance-{role}.patch')]
         for active, patch in patches:
             if active:
                 subprocess.run(['git', 'apply', '--no-index', str(patch)], cwd=root, check=True)
@@ -139,6 +146,8 @@ def build(role, entry, *, gateway_fixes=False, inbox_fixes=False, whatsapp_media
             tag += '-media-ai'
         if attendance:
             tag += '-attendance'
+        if channel_attendance:
+            tag += '-channel-attendance'
         subprocess.run(['docker', 'build', '--pull=false', '--network=none', '-t', tag, str(root)], check=True)
 
 
@@ -160,7 +169,12 @@ if __name__ == '__main__':
                         help='Include disabled-by-default Instagram interpretation, requires migration 057 for activation')
     parser.add_argument('--attendance', action='store_true',
                         help='Include Agenda attendance with migration 058')
+    parser.add_argument('--channel-attendance', action='store_true',
+                        help='Include opt-in channel presence confirmation with migration 059')
     args = parser.parse_args()
+    if args.channel_attendance and not ((args.build == 'api' and args.attendance and args.instagram_media_ai)
+                                         or (args.build == 'menu' and args.whatsapp_media and args.booking_special_days)):
+        parser.error('--channel-attendance requires API attendance + Instagram media AI or menu WhatsApp media + special days')
     if args.attendance and not ((args.build == 'api' and args.commercial)
                                 or (args.build == 'gateway' and args.gateway_fixes)):
         parser.error('--attendance requires --build api --commercial or --build gateway --gateway-fixes')
@@ -187,4 +201,4 @@ if __name__ == '__main__':
     verify(manifest)
     print(f'Verified {sum(len(e["files"]) for e in manifest.values())} files across {len(manifest)} roles')
     if args.build:
-        build(args.build, manifest[args.build], gateway_fixes=args.gateway_fixes, inbox_fixes=args.inbox_fixes, whatsapp_media=args.whatsapp_media, media_commercial=args.media_commercial, instagram_media=args.instagram_media, editorial=args.editorial, commercial=args.commercial, management=args.management, booking_special_days=args.booking_special_days, instagram_media_ai=args.instagram_media_ai, attendance=args.attendance)
+        build(args.build, manifest[args.build], gateway_fixes=args.gateway_fixes, inbox_fixes=args.inbox_fixes, whatsapp_media=args.whatsapp_media, media_commercial=args.media_commercial, instagram_media=args.instagram_media, editorial=args.editorial, commercial=args.commercial, management=args.management, booking_special_days=args.booking_special_days, instagram_media_ai=args.instagram_media_ai, attendance=args.attendance, channel_attendance=args.channel_attendance)

@@ -95,6 +95,29 @@ class ScheduledImageTests(unittest.TestCase):
         self.assertEqual([args.args[0].method for args in self.provider._request.call_args_list], ["POST", "GET", "POST"])
         self.assertEqual(self.create(payload)["id"], row["id"])
 
+    def test_published_engagement_verifies_identity_and_handles_unavailable_counts(self):
+        row = self.create()
+        url = BASE.removesuffix('/scheduled') + '/' + row["id"] + '/engagement'
+        self.assertEqual(self.client.post(url, headers=self.headers).status_code, 404)
+        self.assertEqual(self.provider._request.call_count, 0)
+        self.make_due(row["id"])
+        self.publisher.process_scheduled_once()
+        self.publisher.process_scheduled_once()
+        self.provider._request.side_effect = [{"id":"200","like_count":0},{"id":"201","like_count":17}]
+        result = self.client.post(url, headers=self.headers)
+        self.assertEqual(result.status_code, 200, result.text)
+        self.assertEqual(result.json(), {"like_count":0,"comments_count":None})
+        request = self.provider._request.call_args.args[0]
+        self.assertEqual(request.method,"GET")
+        self.assertTrue(request.url.endswith('/200'))
+        self.assertEqual(self.client.post(url, headers=self.headers).status_code, 503)
+        self.identity = self.identities[1]
+        self.client.cookies.set(oauth.COOKIE, "c" * 64)
+        headers = {"Origin": oauth.ORIGIN,"X-SocialMEI-CSRF": oauth.csrf("c" * 64)}
+        calls = self.provider._request.call_count
+        self.assertEqual(self.client.post(url, headers=headers).status_code, 404)
+        self.assertEqual(self.provider._request.call_count,calls)
+
     def test_cancel_and_reschedule_are_scoped_and_versioned(self):
         row = self.create()
         path = "/" + row["id"]
