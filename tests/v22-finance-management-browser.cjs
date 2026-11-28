@@ -54,7 +54,36 @@ module.exports = async (browser, origin) => {
             preco: 40,
             estoque: 0,
           },
+          {
+            id: 10,
+            nome: "Pano teste",
+            tipo: "Produto",
+            status: "Ativo",
+            preco: 5,
+            estoque: 3,
+            minimo: 4,
+            versao: 2,
+          },
         ];
+      if (path === "/produtos/10/movimentacoes")
+        json = {
+          workspace_id: 17,
+          produto_id: 10,
+          estoque: 3,
+          estoque_baixo: true,
+          totais: { entradas: "4", saidas: "1" },
+          next_before_id: null,
+          items: [
+            {
+              occurred_at: "2026-11-27T15:00:00Z",
+              reason: "Registro de venda",
+              previous_stock: 4,
+              current_stock: 3,
+              sale_id: 1,
+              actor_id: 91,
+            },
+          ],
+        };
       if (path === "/clientes")
         json = [
           {
@@ -176,6 +205,13 @@ module.exports = async (browser, origin) => {
     await page.locator("#pal-in").fill("contatoteste");
     await page.locator("#pal-ul").getByText("Cliente teste").click();
     await page.waitForURL(/#\/negocio\/clientes$/);
+    await page.evaluate(() => {
+      location.hash = "/negocio/produtos";
+    });
+    await page.getByText("Pano teste", { exact: true }).click();
+    await page.getByRole("button", { name: "Movimentações de estoque" }).click();
+    await page.getByText(/Registro de venda.*Venda #1.*Usuário #91/).waitFor();
+    await page.getByText(/Saldo atual: 3.*Estoque baixo/).waitFor();
     identity.papel = "viewer";
     await page.goto(base + "?viewer=1#/negocio/financeiro");
     await page.getByRole("heading", { name: "Contas em aberto" }).waitFor();

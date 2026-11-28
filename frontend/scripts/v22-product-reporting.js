@@ -181,6 +181,54 @@
           table.append(body);
           content.append(table);
         }
+        if (data.movement_totals) {
+          const movements = data.movement_totals;
+          if (![movements.incoming, movements.outgoing].every((value) => /^\d+$/.test(value)))
+            throw Error("Movimentações não confirmadas.");
+          content.append(
+            el(
+              "p",
+              "Movimentações registradas no período: " +
+                movements.incoming +
+                " unidades de entrada e " +
+                movements.outgoing +
+                " de saída. Inclui saldos iniciais registrados na criação de itens.",
+            ),
+          );
+        }
+        const csv = el("button", "Exportar produtos exibidos em CSV");
+        csv.type = "button";
+        csv.className = "btn o";
+        csv.disabled = !items.length;
+        csv.onclick = () => {
+          if (!alive(id)) return;
+          const escape = (value) => {
+            const text = String(value);
+            const safe = /^\s*[=+\-@]/.test(text) ? "'" + text : text;
+            return '"' + safe.replaceAll('"', '""') + '"';
+          };
+          const rows = [
+            ["Produto", "Categoria", "Preço atual", "Estoque atual", "Mínimo"],
+            ...items.map((item) => [
+              item.name,
+              item.category,
+              item.price,
+              item.stock,
+              item.minimum,
+            ]),
+          ];
+          const address = URL.createObjectURL(
+            new Blob(["\ufeff", rows.map((row) => row.map(escape).join(";")).join("\r\n")], {
+              type: "text/csv;charset=utf-8",
+            }),
+          );
+          const link = el("a");
+          link.href = address;
+          link.download = "produtos-" + data.period.start + "-" + data.period.end + ".csv";
+          link.click();
+          setTimeout(() => URL.revokeObjectURL(address), 1000);
+        };
+        content.append(csv);
         content.append(el("p", data.description), el("p", data.sales_description));
         more.hidden = next === null;
         message.textContent = "Catálogo consultado · fuso: " + data.period.timezone;

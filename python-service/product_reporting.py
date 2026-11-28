@@ -45,12 +45,21 @@ def products(start: date | None = Query(None), end: date | None = Query(None),
             # kind is a closed enum; all user values remain bound parameters.
             predicate = 'low_stock' if kind == 'low_stock' else 'no_sales'
             rows = conn.execute(base + "SELECT * FROM items WHERE " + predicate + " AND id>%s ORDER BY id LIMIT %s", (*args, after, limit + 1)).fetchall()
+            movements = conn.execute(
+                "SELECT count(*) AS count,"
+                "COALESCE(sum(GREATEST(current_stock-previous_stock,0)),0)::text AS incoming,"
+                "COALESCE(sum(GREATEST(previous_stock-current_stock,0)),0)::text AS outgoing "
+                "FROM socialmei.stock_movements WHERE workspace_id=%s AND occurred_at>=%s::date "
+                "AND occurred_at<(%s::date + 1)",
+                (workspace, start, end),
+            ).fetchone()
     except psycopg.Error:
         raise HTTPException(503, "Não foi possível consultar os produtos. Tente novamente.") from None
     page = rows[:limit]
     return {"workspace_id": workspace, "kind": kind,
             "period": {"start": start.isoformat(), "end": end.isoformat(), "days": days, "timezone": zone},
             "as_of": clock['as_of'].isoformat(), "totals": dict(totals),
+            "movement_totals": dict(movements),
             "products": [{"id": r['id'], "name": r['nome'], "category": r['categoria'],
                           "price": _money(r['preco']), "stock": r['estoque'], "minimum": r['minimo']} for r in page],
             "next_after": page[-1]['id'] if len(rows) > limit else None,

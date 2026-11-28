@@ -81,6 +81,17 @@ class ProductReportDatabase(unittest.TestCase):
         self.admin_client.post('/api/v1/auth/logout', json={})
         self.assertEqual(self.report().status_code, 401)
 
+    def test_recorded_movement_period_is_independent_of_sale_date(self):
+        workspace = self.admin_client.identity['negocio']['id']
+        with psycopg.connect(accounts.DB) as conn:
+            conn.execute(
+                "UPDATE socialmei.stock_movements SET occurred_at='2026-11-20 14:30:00Z' WHERE workspace_id=%s",
+                (workspace,),
+            )
+        self.assertEqual(self.report().json()['movement_totals'], {'count': 7, 'incoming': '22', 'outgoing': '3'})
+        other = self.register('product-movements-other@example.test')
+        self.assertEqual(self.report(other).json()['movement_totals'], {'count': 0, 'incoming': '0', 'outgoing': '0'})
+
     def test_error_details_are_private(self):
         with patch('product_reporting.connect', side_effect=psycopg.OperationalError('private host')):
             response = self.report()

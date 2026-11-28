@@ -14,7 +14,7 @@ Use os IDs base do manifesto congelado. Registre o SHA do Git, os IDs das imagen
 ## Gates para produção
 
 1. Confirmar em produção o aceite manual da Missão 07, o ledger, a saúde e os mounts efetivos.
-2. Validar backup fresco com restauração isolada. Verificar instalação limpa e atualização de 046 até 054 com as permissões do papel da API. Conferir leitura da view de caixa e escrita restrita das tabelas novas.
+2. Validar backup fresco com restauração isolada. Verificar instalação limpa e atualização de 046 até 056 com as permissões do papel da API. Conferir a view de caixa, o histórico de estoque (incluindo a escrita do gatilho e o acesso à sequência) e a biblioteca privada de imagens.
 3. Aprovar separadamente as migrations, o corte de API e gateway e qualquer ativação externa. Revalidar CI, uso de memória, isolamento, idempotência e journaling.
 4. Ensaiar reversão de API e gateway juntos com os mounts equivalentes. Antes de aceitar escritas da candidata, usar as imagens e configurações congeladas se houver regressão. Após escritas de parcelas e recebíveis, congelar as operações afetadas e manter o ledger. A versão anterior desconhece os vínculos e poderia aceitar baixas conflitantes. Corrigir na versão compatível ou manter Financeiro e Vendas indisponíveis até a recuperação.
 5. Testar HTTPS, autenticação, troca de empresa e as jornadas abaixo. Testar provedores somente com contas autorizadas e aprovação do envio. Preservar WAHA e n8n durante o corte da aplicação.
@@ -36,4 +36,22 @@ Use os IDs base do manifesto congelado. Registre o SHA do Git, os IDs das imagen
 
 - Aceite manual da Missão 07, CI do commit de release e rollback conjunto com mounts equivalentes.
 - Homologação e autorizações para áudio/mídias, Meta e Brevo. Lembretes, presença e agendamento público exigem seus próprios testes e autorizações.
-- Manter no backlog relatórios, notificações, histórico de estoque e formatos de mídia/publicação ainda incompletos. O rascunho de texto salvo no servidor mantém a mídia no editor local. Dados legados de navegador continuam no navegador.
+- Manter no backlog os formatos de publicação e as métricas da Meta, atendimento por mídias, jornada da Agenda pelos canais, notificações e homologação de onboarding/Brevo.
+
+## Continuação da Missão 10
+
+- **Estoque.** A migration 055 registra movimentos posteriores à instalação. Em um produto novo, a primeira entrada registra o saldo inicial. Em produtos preexistentes, a primeira linha indica o saldo real anterior àquela operação. Faça uma venda, repita a solicitação, cancele e confira a reposição e o vínculo no histórico do produto. Confira o estoque mínimo atual e a movimentação do período no relatório.
+- **Divulgação.** A migration 056 guarda imagens compatíveis por negócio. Selecione uma foto, salve o rascunho, recarregue com outra sessão autorizada e confira a imagem e o enquadramento. Reutilize a imagem em outro rascunho e confira que o outro negócio não tem acesso. Limites de 2 MiB por imagem e de 50 imagens ou 24 MiB por negócio. Vídeos permanecem na prévia local. Dados legados de navegador continuam preservados no navegador.
+- **Texto na Divulgação.** Os botões de legenda e ideia chamam o contrato existente de geração de texto depois de um clique explícito. A sugestão de legenda tem botão próprio para aplicação. A validação isolada usa transporte sintético. A homologação com o provedor exige autorização de consumo.
+
+### CI do commit candidato
+
+O workflow `Repository checks` dispara por push em `main` ou por pull request para as branches-base listadas no arquivo. O push para a branch de consolidação, sem PR, não dispara essa CI. Os workflows manuais de deploy têm outra finalidade.
+
+Depois de confirmar orçamento do GitHub Actions, permissão e a base de revisão, abrir um PR em rascunho para uma base coberta pelo workflow e verificar a execução do SHA candidato. Revisar primeiro o diff acumulado, pois a branch contém a consolidação desde as missões anteriores. Disparos manuais de deploy ficam fora da validação. Conservar a evidência dos testes isolados até a confirmação da CI remota.
+
+### Evidências desta continuação
+
+- PostgreSQL 17 descartável. Instalação limpa 001–056 e restauração de cópia sintética do schema 046 seguida de atualização até 056. O saldo legado foi preservado, sem movimentos retroativos. Um papel SQL restrito registrou uma alteração pelo gatilho e teve a exclusão do histórico negada.
+- 43 testes Python passaram em catálogo, estoque, vendas, oportunidades, biblioteca, agendamento editorial e relatórios. Navegador em 390 px e 1280 px verificou o histórico de estoque, o novo gerenciamento do rascunho com imagem e a sugestão de texto com resposta de teste.
+- AWS permanece na publicação conhecida da Missão 07. Os bots e os serviços externos mantêm o estado anterior à candidata. O corte da aplicação, o aceite manual, a homologação real de provedores e o ensaio de rollback conjunto continuam pendentes.

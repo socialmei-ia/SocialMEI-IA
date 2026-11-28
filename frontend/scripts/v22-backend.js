@@ -809,6 +809,18 @@ window.SocialMEIV22 = (() => {
   document.addEventListener("click", (event) => {
     if (event.target.closest?.("[data-stock-history]")) showStockHistory();
   });
+
+  function paintStockHistoryAction() {
+    if (location.hash !== "#/negocio/produtos" || !auth.current || dataScope !== identityKey()) return;
+    const panel = document.querySelector("#v .pn");
+    if (!panel || data.products[S.prod]?.tipo !== "Produto" || panel.querySelector("[data-stock-history]")) return;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "btn o";
+    button.dataset.stockHistory = "";
+    button.textContent = "Movimentações de estoque";
+    panel.append(button);
+  }
   // Incoming Meta webhooks persist server-side. Poll while the inbox is visible
   // so messages appear without requiring a full page reload.
   /* v7.9 · Fotos de perfil e iniciais. Somente data URI JPEG/PNG/WebP, com limite de tamanho. */
@@ -1307,6 +1319,7 @@ window.SocialMEIV22 = (() => {
       oldRender();
       paintPendingOperation();
       paintOpenFinance();
+      queueMicrotask(paintStockHistoryAction);
       const phone = document.getElementById("b_tel");
       if (phone && !document.getElementById("b_horario")) {
         const field = document.createElement("div"),

@@ -17,12 +17,12 @@ GATEWAY_FIXES = (
     '/srv/frontend/scripts/v79-central.js',
 )
 API_INBOX_FIXES = ('/app/message_enrichment.py', '/app/instagram_inbound_media.py')
-EDITORIAL_API = ('/app/instagram_publishing.py', '/app/instagram_publication_worker.py')
+EDITORIAL_API = ('/app/instagram_publishing.py', '/app/instagram_publication_worker.py', '/app/instagram_media.py')
 EDITORIAL_GATEWAY = ('/srv/frontend/scripts/v22-instagram-publisher.js', '/srv/frontend/telas/divulgacao.html')
-COMMERCIAL_API = ('/app/opportunities.py', '/app/sales_data.py', '/app/shared_data.py')
+COMMERCIAL_API = ('/app/catalog_data.py', '/app/opportunities.py', '/app/sales_data.py', '/app/shared_data.py')
 COMMERCIAL_GATEWAY = ('/srv/frontend/scripts/v22-frame.js', '/srv/frontend/telas/oportunidades.html')
-MANAGEMENT_API = ('/app/finance_data.py', '/app/finance_reporting.py')
-MANAGEMENT_GATEWAY = ('/srv/frontend/scripts/v22-finance-reporting.js', '/srv/frontend/scripts/lia.js')
+MANAGEMENT_API = ('/app/finance_data.py', '/app/finance_reporting.py', '/app/product_reporting.py')
+MANAGEMENT_GATEWAY = ('/srv/frontend/scripts/v22-finance-reporting.js', '/srv/frontend/scripts/v22-product-reporting.js', '/srv/frontend/scripts/lia.js')
 MENU_MEDIA_FILES = ('/app/whatsapp_media_intent.py',)
 MENU_MEDIA_PATCH = REPO / 'deploy/production-candidates/whatsapp-media.patch'
 INSTAGRAM_MEDIA_PATCH = REPO / 'deploy/production-candidates/instagram-media.patch'
