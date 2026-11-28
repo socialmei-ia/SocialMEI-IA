@@ -56,7 +56,6 @@ Depois de confirmar orçamento do GitHub Actions, permissão e a base de revisã
 - 43 testes Python passaram em catálogo, estoque, vendas, oportunidades, biblioteca, agendamento editorial e relatórios. Navegador em 390 px e 1280 px verificou o histórico de estoque, o novo gerenciamento do rascunho com imagem e a sugestão de texto com resposta de teste.
 - AWS permanece na publicação conhecida da Missão 07. Os bots e os serviços externos mantêm o estado anterior à candidata. O corte da aplicação, o aceite manual, a homologação real de provedores e o ensaio de rollback conjunto continuam pendentes.
 
-
 ## Fechamento das integrações da Missão 10
 
 ### Instagram e Agenda
@@ -86,7 +85,20 @@ A API passou em seis testes empacotados com PostgreSQL isolado, chave sintética
 - O repositório é público, o acesso consultado permite escrita e Actions está habilitado. Os workflows de validação usam runners padrão. Segundo [GitHub Actions billing](https://docs.github.com/en/billing/concepts/product-billing/github-actions), a execução desses runners é gratuita em repositórios públicos. Há etapas de upload de artefatos, cuja margem de armazenamento ainda não foi confirmada. A consulta de cobrança retornou 404. O PR e a CI aguardam a confirmação dessa margem.
 - Checklist do rascunho: CI no SHA candidato, ensaio integrado com os mounts, rollback compatível depois de escritas financeiras e aceite manual da Missão 07. Manter mídia, envios, publicação na Meta e agendamento público desativados até homologação e autorizações correspondentes.
 
-
 - PostgreSQL 17 descartável: instalação limpa até 057 e restauração sintética do schema 046 seguida de atualização até 057 com dados preservados e gravação da interpretação autorizada pelo papel restrito. A instalação não enfileira mídias antigas.
 - A regressão de mídia, Agenda e publicação pública de horários em isolamento passou. O ensaio final sem rede externa confirmou deduplicação do anexo, evidência comercial sem transcrição, atendimento humano, abertura da lista real de serviços por áudio sem criar reserva, confirmação textual e regras de dias especiais.
 - Nenhuma ativação da Meta, do Gemini ou da publicação externa foi executada. A decisão para produção continua bloqueada até validar os serviços e mounts efetivos, o rollback conjunto, a CI e as autorizações.
+
+## Ensaio conjunto desta candidata
+
+Rode `python tools/rehearse-8-0-rollback.py`. O ensaio fixa os IDs locais e cria um PostgreSQL 17 descartável com o ledger no formato efetivo. A rede Docker interna não publica portas. Configurações sintéticas entram por mounts somente leitura. Edge, Instagram e worker despachante permanecem ociosos. O ensaio cobre a API principal, o gateway e a API privada do menu. O processamento dos workers com o conjunto final de mounts ainda é um gate separado.
+
+- **Antes de escritas.** A API e o gateway legados e a API privada do menu voltaram com saúde no schema 057. O estado do banco ficou igual.
+- **Depois de escritas.** Pelo gateway, o ensaio registrou uma venda com repetição concorrente da chave, vinculou o recebível, reaplicou a mesma parcela e verificou o isolamento. Durante a reversão, o gateway retornou 503 e o papel legado ficou sem login. A recuperação iniciou as imagens compatíveis e conferiu os hashes de vendas, recebíveis, parcelas, movimentos de estoque e ledger. Nenhuma restauração de banco foi executada nessa reversão.
+- **Condição para repetir em produção.** Vincular os IDs e mounts efetivos, identificar credenciais compartilhadas e provar que a imagem antiga não consegue autenticar depois do bloqueio. Drenar os serviços e desligar consumidores antes da transição. Manter a borda em manutenção e preservar o ledger enquanto os componentes compatíveis são recuperados. Se uma credencial for compartilhada, não reaproveitá-la na versão antiga. Testar segregação ou suspensão no plano produtivo antes de liberar escritas.
+- **Agenda no navegador.** Em Funcionamento e disponibilidade, abra Horários especiais e feriados. Registre um dia fechado, configure dois intervalos separados para outro dia e confira as opções oferecidas nos canais. O ensaio de interface passou em 390 px e 1280 px, incluindo proteção por revisão e troca de negócio. Não altera o horário descritivo do perfil, a habilitação dos canais ou o agendamento público.
+- **Gateway deste incremento.** `sha256:5c0a593957309d1e0b920ae086725971abffbc9767e71419f0c93c7035ed296e`. A API e o remetente mantêm os IDs da seção anterior. O ensaio verifica o carregamento de `agenda-hours.js` no gateway.
+
+### Confirmação de armazenamento para abrir o PR
+
+Na conta proprietária, abra **Settings → Billing & Licensing → Usage** e filtre por **Actions** e pelo SKU de armazenamento de artefatos no período atual. Confira a franquia, o consumo e o orçamento aplicável. Em **Settings → Actions → General** do repositório, confira **Artifact and log retention**. O workflow define 14 dias para `SocialMEI-public-demo`. `release-candidate-readiness`, `frontend-regression` e `isolated-preview` herdam a retenção do repositório. Valide margem para esses uploads antes de abrir o rascunho. [Orientação de uso e cobrança do GitHub](https://docs.github.com/en/billing/how-tos/products/view-productlicense-use) [Retenção de artefatos e logs](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository)

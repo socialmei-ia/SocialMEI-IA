@@ -25,14 +25,20 @@ const { chromium } = require("playwright");
           async request(path, method, payload) {
             if (path !== "/agenda/channel-booking") throw Error("Wrong API path");
             if (method === "PUT") {
-              if (payload.expected_revision !== window.savedHours.revision) throw Object.assign(Error(), { status: 409 });
-              window.savedHours = { revision: payload.expected_revision + 1, policy: payload.policy };
+              if (payload.expected_revision !== window.savedHours.revision)
+                throw Object.assign(Error(), { status: 409 });
+              window.savedHours = {
+                revision: payload.expected_revision + 1,
+                policy: payload.policy,
+              };
             }
             return structuredClone(window.savedHours);
           },
         };
       });
-      await page.addScriptTag({ path: path.join(__dirname, "../frontend/scripts/agenda-hours.js") });
+      await page.addScriptTag({
+        path: path.join(__dirname, "../frontend/scripts/agenda-hours.js"),
+      });
       await page.getByText("Funcionamento e disponibilidade", { exact: true }).click();
       await page.locator(".sm-hub-prepared > summary").click();
       await page.locator('[data-ah-action="specialDays"]').click();
@@ -53,7 +59,9 @@ const { chromium } = require("playwright");
       await dialog.getByText("Horário salvo para os canais.").waitFor();
       state = await page.evaluate(() => window.savedHours);
       assert.deepEqual(state.policy.special_days[0].hours, [{ opens: "09:00", closes: "12:00" }]);
-      await page.evaluate(() => { window.savedHours.revision++; });
+      await page.evaluate(() => {
+        window.savedHours.revision++;
+      });
       await dialog.getByRole("button", { name: "Salvar data" }).click();
       await dialog.getByText("A configuração mudou em outra sessão.", { exact: false }).waitFor();
       await page.evaluate(() => {
@@ -64,7 +72,9 @@ const { chromium } = require("playwright");
       assert.deepEqual(failures, []);
       await page.close();
     }
-    console.log("Agenda: closure, intervals, revision conflict and workspace switch passed at 390px and 1280px");
+    console.log(
+      "Agenda: closure, intervals, revision conflict and workspace switch passed at 390px and 1280px",
+    );
   } finally {
     await browser.close();
   }
