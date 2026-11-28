@@ -208,11 +208,19 @@ def advance(conn, channel, message, target, native, *, origin='waha', media_serv
     lock_workspace(conn, context[0])
     identity = booking.context_for_message(conn, *context)
     row = booking.owned_appointment(conn, context[0], identity, reference)
+    from channel_attendance import confirm, enabled
+    attendance_enabled = enabled(context[0])
+    if step in {'attendance_review', 'attendance_confirm'} and not attendance_enabled:
+        raise HTTPException(409, 'A confirmação de presença pelo canal está indisponível.')
+    if step == 'attendance_confirm':
+        confirm(conn, *context, reference)
+        return response('booking_attendance_confirmed', 'Presença confirmada para este agendamento.',
+                        navigation(), native)
     if step not in {'cancel_confirm', 'confirm'} and (
             row['revision'] != reference['revision'] or booking.appointment_snapshot(row) != reference.get('snapshot')
             or row['status'] != 'pending' or row['scheduled_for'] <= datetime.now(timezone.utc)):
         raise HTTPException(409, 'O agendamento mudou. Consulte seus agendamentos novamente.')
-    if step in {'manage', 'cancel_review'}:
+    if step in {'manage', 'cancel_review', 'attendance_review'}:
         zone = booking.read_policy(conn, context[0])['policy']['timezone']
         start = row['scheduled_for'].astimezone(ZoneInfo(zone))
         summary = row['service_name'] + '\n' + start.strftime('%d/%m/%Y às %H:%M')
@@ -220,6 +228,11 @@ def advance(conn, channel, message, target, native, *, origin='waha', media_serv
             choices = [option('1', 'Cancelar agendamento', 'cancel_review', appointment=reference),
                        option('2', 'Reagendar', 'days', appointment=reference,
                               service_id=row['servico_id'], resource_id=str(row['resource_id']))]
+            if attendance_enabled and row.get('attendance') is None:
+                choices.append(option('3', 'Confirmar presença', 'attendance_review', appointment=reference))
+        elif step == 'attendance_review':
+            summary += '\nConfirme sua presença neste horário.'
+            choices = [option('1', 'Sim, estarei presente', 'attendance_confirm', appointment=reference)]
         else:
             summary += '\nDeseja cancelar este agendamento? A vaga será liberada após confirmar.'
             choices = [option('1', 'Confirmar cancelamento', 'cancel_confirm', appointment=reference)]

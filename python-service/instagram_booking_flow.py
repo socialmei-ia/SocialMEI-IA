@@ -15,7 +15,7 @@ MAX_OUTPUT_BYTES = 1000
 MAX_DECODED_BYTES = 7000
 REPLY_TTL = timedelta(minutes=10)
 CHOICE_IDS = {'1', '2', '3', '6', '7', '8'}
-STEPS = {'services', 'resources', 'days', 'slots', 'review_ref', 'confirm_ref', 'appointments', 'manage', 'cancel_review', 'cancel_confirm'}
+STEPS = {'services', 'resources', 'days', 'slots', 'review_ref', 'confirm_ref', 'appointments', 'manage', 'cancel_review', 'cancel_confirm', 'attendance_review', 'attendance_confirm'}
 
 
 def _offer_details(offer):

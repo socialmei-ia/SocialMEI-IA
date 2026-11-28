@@ -251,6 +251,46 @@ class AutoMenuDatabaseTests(unittest.TestCase):
         self.assertEqual(inbox.status_code, 200, inbox.text)
         self.assertNotIn(booking.MARKER, inbox.text)
 
+    def test_instagram_presence_review_and_text_confirmation_write_one_event(self):
+        from instagram_meta_adapter import ProviderResponse
+        with psycopg.connect(DB) as conn:
+            slug,name,config=conn.execute("SELECT slug,nome,configuracao FROM socialmei.workspaces WHERE id=%s",
+                                          (self.workspace,)).fetchone()
+        self.identity.update(workspace_slug=slug,nome_negocio=name,configuracao=config)
+        def create(path, body):
+            response=self.client.post(path,json=body,headers=self.headers)
+            self.assertEqual(response.status_code,201,response.text)
+            return response.json()
+        customer=create('/api/v1/clientes',{'nome':'Contato fixture'})
+        service=create('/api/v1/produtos',{'nome':'Atendimento fixture','tipo':'Serviço','preco':40,'duracao_minutos':30})
+        resource=create('/api/v1/agenda/resources',{'operation_id':str(uuid4()),'nome':'Equipe'})
+        appointment=create('/api/v1/agenda/appointments',{
+            'operation_id':str(uuid4()),'cliente_id':customer['id'],'servico_id':service['id'],
+            'resource_id':resource['id'],'scheduled_for':(datetime.now(timezone.utc)+timedelta(days=1)).isoformat(),
+        })
+        with psycopg.connect(DB) as conn:
+            conn.execute("UPDATE socialmei.me_conversations SET cliente_id=%s WHERE workspace_id=%s",
+                         (customer['id'],self.workspace))
+        def text_reply(value):
+            self.send_response=ProviderResponse(200,('{"recipient_id":"123456789","message_id":"fixture-'
+                +uuid4().hex+'"}').encode())
+            mid=self.incoming(text=value)
+            self.assertEqual(menu.reply(self.runtime,self.workspace,mid,self.start),'confirmed')
+            return mid
+        with patch.dict(os.environ,{'SOCIALMEI_CHANNEL_ATTENDANCE_ENABLED':'YES',
+                                    'SOCIALMEI_CHANNEL_ATTENDANCE_WORKSPACES':str(self.workspace)}):
+            text_reply('8')
+            text_reply('1')
+            text_reply('3')
+            with psycopg.connect(DB) as conn:
+                self.assertEqual(conn.execute("SELECT attendance FROM socialmei.agenda_appointments WHERE id=%s",
+                                              (appointment['id'],)).fetchone(),(None,))
+            mid=text_reply('1')
+            self.assertEqual(menu.reply(self.runtime,self.workspace,mid,self.start),'duplicate')
+        with psycopg.connect(DB) as conn:
+            self.assertEqual(conn.execute("SELECT source_channel,source_message_id FROM socialmei.agenda_attendance_events "
+                                          "WHERE appointment_id=%s",(appointment['id'],)).fetchall(),[('instagram',mid)])
+
     def test_full_direct_booking_in_two_isolated_stores_without_provider(self):
         """Meta-like inbound events, existing sender and real disposable agenda."""
         from instagram_meta_adapter import ProviderResponse

@@ -193,6 +193,36 @@ class ChannelBookingDatabaseTests(unittest.TestCase):
         return (client or self.client).post(PATH + '/confirm', json={**(context or self.context),
                                             'confirmation': token, 'confirmed': True})
 
+    def test_whatsapp_explicit_attendance_uses_verified_origin_and_replays_once(self):
+        from channel_booking_flow import advance
+        created = self.confirm(self.offer()).json()
+        workspace = self.workspace
+        with psycopg.connect(accounts.DB, row_factory=dict_row) as conn:
+            reference = booking.appointments_for_message(workspace, self.context['conversation_id'],
+                self.context['source_message_id'], 'waha', connection=conn)[0]['reference']
+        message = {'conversation_id': self.context['conversation_id'], 'id': self.context['source_message_id']}
+        with patch.dict(os.environ, {'SOCIALMEI_CHANNEL_ATTENDANCE_ENABLED': 'YES',
+                                     'SOCIALMEI_CHANNEL_ATTENDANCE_WORKSPACES': str(workspace)}):
+            with psycopg.connect(accounts.DB, row_factory=dict_row) as conn:
+                _, result = advance(conn, {'workspace_id':workspace}, message,
+                    {'step':'manage', 'appointment':reference}, False)
+                review = next(choice['target'] for choice in result['choices'] if choice['id']=='3')
+                _, result = advance(conn, {'workspace_id':workspace}, message, review, False)
+                final = result['choices'][0]['target']
+                self.assertEqual(conn.execute("SELECT count(*) AS n FROM socialmei.agenda_attendance_events "
+                                              "WHERE workspace_id=%s",(workspace,)).fetchone()['n'],0)
+            confirmation = self.incoming()
+            actual = {'conversation_id': confirmation['conversation_id'], 'id': confirmation['source_message_id']}
+            def submit(_):
+                with psycopg.connect(accounts.DB, row_factory=dict_row) as conn:
+                    return advance(conn, {'workspace_id':workspace}, actual, final, False)[1]['action']
+            with ThreadPoolExecutor(2) as pool:
+                self.assertEqual(list(pool.map(submit, range(2))), ['booking_attendance_confirmed']*2)
+        with psycopg.connect(accounts.DB) as conn:
+            self.assertEqual(conn.execute("SELECT appointment_id::text,source_channel,actor_id,source_message_id "
+                "FROM socialmei.agenda_attendance_events WHERE workspace_id=%s",(workspace,)).fetchall(),
+                [(created['id'],'waha',self.person['id'],actual['id'])])
+
     def test_management_cancel_concurrent_replay_writes_one_history_revision(self):
         created = self.confirm(self.offer()).json()
         args = (self.workspace,self.context['conversation_id'],self.context['source_message_id'],'waha')
