@@ -96,7 +96,7 @@ def respond(conn, channel, message, state, *, native=False):
                         [option('6', 'Consultar horários', 'services'), *navigation()], native)
 
 
-def _advance(conn, channel, message, target, native, *, origin='waha'):
+def _advance(conn, channel, message, target, native, *, origin='waha', media_service_list=False):
     context = (channel['workspace_id'], message['conversation_id'], message['id'], origin)
     step = target.get('step')
     page = target.get('page', 0)
@@ -104,7 +104,7 @@ def _advance(conn, channel, message, target, native, *, origin='waha'):
         raise HTTPException(409, 'Esta opção mudou. Comece o agendamento novamente.')
     if step in {'services', 'resources'}:
         if step == 'services':
-            rows = booking.services_for_message(*context, connection=conn)['items']
+            rows = booking.services_for_message(*context, connection=conn, allow_media_read=media_service_list)['items']
             label = 'Qual serviço você deseja agendar?'
             choices = page_choices(rows, lambda row: {'step': 'resources', 'service_id': row['id']},
                                    lambda row: row['nome'], page=page)
@@ -183,7 +183,7 @@ def _advance(conn, channel, message, target, native, *, origin='waha'):
     return response('booking_' + step, label, choices + navigation(), native)
 
 
-def advance(conn, channel, message, target, native, *, origin='waha'):
+def advance(conn, channel, message, target, native, *, origin='waha', media_service_list=False):
     from appointments import lock_workspace
     context = (channel['workspace_id'], message['conversation_id'], message['id'], origin)
     step = target.get('step')
@@ -204,7 +204,7 @@ def advance(conn, channel, message, target, native, *, origin='waha'):
         return response('booking_appointments', 'Escolha seu agendamento.' if rows else
                         'Não há agendamentos futuros vinculados ao seu cadastro.', choices + navigation(), native)
     if reference is None:
-        return _advance(conn, channel, message, target, native, origin=origin)
+        return _advance(conn, channel, message, target, native, origin=origin, media_service_list=media_service_list)
     lock_workspace(conn, context[0])
     identity = booking.context_for_message(conn, *context)
     row = booking.owned_appointment(conn, context[0], identity, reference)

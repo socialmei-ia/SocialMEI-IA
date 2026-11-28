@@ -464,3 +464,41 @@ class ChannelBookingDatabaseTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+
+class SpecialDayTests(unittest.TestCase):
+    def test_closure_and_split_hours_control_dates_and_final_slot_validation(self):
+        from datetime import date, datetime, timezone
+        from channel_booking import BookingPolicy, allowed_start, bookable_days, dump_policy
+
+        now = datetime(2026, 1, 5, 8, tzinfo=timezone.utc)
+        weekly = {'timezone': 'UTC', 'lead_minutes': 0,
+                  'hours': [{'weekday': 0, 'opens': '09:00', 'closes': '17:00'}]}
+        self.assertNotIn('special_days', dump_policy(BookingPolicy(**weekly)))
+        policy = BookingPolicy(**weekly, special_days=[
+            {'day': '2026-01-05'},
+            {'day': '2026-01-06', 'hours': [{'opens': '10:15', 'closes': '12:00'},
+                                           {'opens': '14:00', 'closes': '16:00'}]},
+        ])
+        def at(day, hour, minute=0):
+            return datetime(2026, 1, day, hour, minute, tzinfo=timezone.utc)
+
+        self.assertNotIn(date(2026, 1, 5), bookable_days(policy, 30, now))
+        self.assertIn(date(2026, 1, 6), bookable_days(policy, 30, now))
+        self.assertFalse(allowed_start(policy, at(5, 9), 30, now))
+        self.assertTrue(allowed_start(policy, at(6, 10, 15), 30, now))
+        self.assertFalse(allowed_start(policy, at(6, 11, 45), 30, now))
+        self.assertFalse(allowed_start(policy, at(6, 12), 30, now))
+        self.assertTrue(allowed_start(policy, at(6, 14), 30, now))
+        self.assertTrue(allowed_start(policy, at(12, 9), 30, now))
+        self.assertEqual(BookingPolicy.model_validate(dump_policy(policy)), policy)
+
+    def test_rejects_duplicate_days_and_overlapping_hours(self):
+        from pydantic import ValidationError
+        from channel_booking import BookingPolicy
+        for dates in ([{'day': '2026-01-06'}, {'day': '2026-01-06'}],
+                      [{'day': '2026-01-06', 'hours': [{'opens': '10:00', 'closes': '12:00'},
+                                                      {'opens': '11:30', 'closes': '13:00'}]}]):
+            with self.assertRaises(ValidationError):
+                BookingPolicy(special_days=dates)

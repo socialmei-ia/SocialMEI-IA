@@ -305,9 +305,7 @@ def slots(slug: str, payload: SlotsRequest):
             raise unavailable()
         now = datetime.now(timezone.utc)
         found = []
-        for window in policy.hours:
-            if window.weekday != payload.day.weekday():
-                continue
+        for window in booking.windows_for_day(policy, payload.day):
             start = datetime.combine(payload.day, time.fromisoformat(window.opens), tzinfo=zone)
             close = datetime.combine(payload.day, time.fromisoformat(window.closes), tzinfo=zone)
             while start < close:

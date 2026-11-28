@@ -6,6 +6,7 @@ stores inbox messages. This module never contacts providers or sends replies.
 import hashlib
 import hmac
 import json
+import os
 import uuid
 from contextlib import contextmanager
 
@@ -17,6 +18,8 @@ from typing import Literal
 
 import settings
 from database import connect
+from instagram_media_interpretation import activation, COMPLETED, SCOPES
+from whatsapp_media_intent import COMMERCIAL_HINTS
 
 router = APIRouter(prefix="/internal/message-enrichment/provider", tags=["private provider analysis"])
 MAX_BATCH = 10
@@ -81,20 +84,51 @@ def fingerprint(result):
 def claim_messages(request: Request, response: Response):
     """Lease at most 10 verified provider messages; never include synthetic data."""
     authorize(request, response)
+    workspaces = list(settings.provider_sentiment_allowed_workspaces())
+    cutoffs = {workspace: activation(workspace) for workspace in workspaces
+               if os.getenv('SOCIALMEI_INSTAGRAM_MEDIA_AI_COMMERCIAL_ENABLED') == 'YES'}
+    cutoffs = {workspace: start for workspace, start in cutoffs.items() if start}
+    join = ''
+    column = 'NULL::text'
+    eligible_media = ''
+    media_params = ()
+    if cutoffs:
+        join = f"""LEFT JOIN LATERAL (
+            SELECT evidence.intent FROM socialmei.ig_meta_ingress_events e
+            JOIN socialmei.ig_meta_connections c ON c.workspace_id=e.workspace_id AND c.id=e.connection_id
+                AND c.external_account_id=e.external_account_id
+            JOIN socialmei.me_conversations v ON v.workspace_id=m.workspace_id AND v.id=m.conversation_id
+            CROSS JOIN LATERAL ({COMPLETED}) evidence
+            JOIN unnest(%s::bigint[],%s::timestamptz[]) cutoff(workspace,start) ON cutoff.workspace=e.workspace_id
+            WHERE m.origin='instagram' AND e.workspace_id=m.workspace_id AND e.message_id=m.id AND e.kind='media'
+                AND e.status='processed' AND v.origin='instagram' AND v.account_ref='instagram:' || c.external_account_id
+                AND m.occurred_at>=cutoff.start AND e.received_at>=cutoff.start
+                AND m.occurred_at>=now()-INTERVAL '2 minutes'
+                AND c.status='connected' AND c.expires_at>now() AND c.scopes @> {SCOPES}
+                AND evidence.intent=ANY(%s)
+                AND NOT EXISTS (
+                    SELECT 1 FROM socialmei.ig_menu_conversations h
+                    WHERE h.workspace_id=m.workspace_id AND h.conversation_id=m.conversation_id AND h.state='human'
+                )
+        ) media ON true"""
+        column = 'media.intent'
+        eligible_media = ' OR media.intent IS NOT NULL'
+        media_params = (list(cutoffs), list(cutoffs.values()), list(COMMERCIAL_HINTS))
     with database() as conn:
         conn.execute("SET LOCAL lock_timeout='2s'")
         messages = conn.execute(
-            """
-            SELECT m.workspace_id,m.id,m.origin,m.text
+            f"""
+            SELECT m.workspace_id,m.id,m.origin,m.text,{column} AS media_intent
             FROM socialmei.me_messages AS m
+            {join}
             LEFT JOIN socialmei.me_provider_sentiment_jobs AS j
               ON j.workspace_id=m.workspace_id AND j.message_id=m.id
             WHERE m.origin IN ('instagram','waha')
-              AND NOT EXISTS (
+              AND (NOT EXISTS (
                   SELECT 1 FROM socialmei.ig_meta_ingress_events e
                   WHERE e.workspace_id=m.workspace_id AND e.message_id=m.id
                     AND e.kind='media' AND m.origin='instagram'
-              )
+              ){eligible_media})
               AND m.workspace_id = ANY(%s)
               AND m.occurred_at >= NOW()-INTERVAL '7 days'
               AND (
@@ -104,7 +138,7 @@ def claim_messages(request: Request, response: Response):
             ORDER BY m.id ASC
             LIMIT %s FOR UPDATE OF m SKIP LOCKED
             """,
-            (list(settings.provider_sentiment_allowed_workspaces()), MAX_BATCH),
+            (*media_params, workspaces, MAX_BATCH),
         ).fetchall()
         tasks = []
         for message in messages:
@@ -131,7 +165,7 @@ def claim_messages(request: Request, response: Response):
                     "claim_id": str(row["claim_id"]),
                     "message_id": message["id"],
                     "origin": message["origin"],
-                    "text": message["text"],
+                    "text": COMMERCIAL_HINTS.get(message.get("media_intent"), message["text"]),
                     "attempt": row["attempt"],
                 })
         return {"items": tasks, "schema_version": 1, "send_enabled": False}
