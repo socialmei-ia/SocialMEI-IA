@@ -189,11 +189,18 @@ def claim(conn, workspace):
     ).fetchone()
 
 
+def media_connection():
+    from psycopg import connect
+    from settings import database_url
+
+    return connect(database_url(), connect_timeout=5,
+                   options='-c statement_timeout=5000 -c lock_timeout=3000')
+
+
 def process_one(workspace):
-    from database import connect
     from psycopg.rows import dict_row
 
-    with connect(worker=True) as conn:
+    with media_connection() as conn:
         conn.row_factory = dict_row
         locked = conn.execute(
             "SELECT pg_try_advisory_lock(hashtextextended(%s,0)) AS acquired",

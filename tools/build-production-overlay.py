@@ -27,6 +27,8 @@ MENU_MEDIA_FILES = ('/app/whatsapp_media_intent.py',)
 MENU_MEDIA_PATCH = REPO / 'deploy/production-candidates/whatsapp-media.patch'
 INSTAGRAM_MEDIA_PATCH = REPO / 'deploy/production-candidates/instagram-media.patch'
 MEDIA_COMMERCIAL_PATCH = REPO / 'deploy/production-candidates/media-commercial.patch'
+CHANNEL_PATCHES = REPO / 'deploy/production-candidates'
+INSTAGRAM_INTERPRETATION = '/app/instagram_media_interpretation.py'
 
 
 def verify(manifest):
@@ -44,7 +46,7 @@ def verify(manifest):
                 raise ValueError(f'Source hash mismatch: {role}:{name}')
 
 
-def build(role, entry, *, gateway_fixes=False, inbox_fixes=False, whatsapp_media=False, media_commercial=False, instagram_media=False, editorial=False, commercial=False, management=False):
+def build(role, entry, *, gateway_fixes=False, inbox_fixes=False, whatsapp_media=False, media_commercial=False, instagram_media=False, editorial=False, commercial=False, management=False, booking_special_days=False, instagram_media_ai=False):
     image = entry['image']
     base = f'socialmei-overlay-base:{role}-{image[7:19]}'
     subprocess.run(['docker', 'image', 'tag', image, base], check=True)
@@ -59,6 +61,8 @@ def build(role, entry, *, gateway_fixes=False, inbox_fixes=False, whatsapp_media
         destinations.update(API_INBOX_FIXES)
     if whatsapp_media or media_commercial:
         destinations.update(MENU_MEDIA_FILES)
+    if instagram_media_ai:
+        destinations.add(INSTAGRAM_INTERPRETATION)
     if editorial:
         destinations.update(EDITORIAL_API if role == 'api' else EDITORIAL_GATEWAY)
     if commercial:
@@ -94,6 +98,8 @@ def build(role, entry, *, gateway_fixes=False, inbox_fixes=False, whatsapp_media
                 data = (REPO / 'python-service' / Path(name).name).read_bytes()
             if commercial and name in COMMERCIAL_GATEWAY:
                 data = (REPO / name.removeprefix('/srv/')).read_bytes()
+            if instagram_media_ai and name == INSTAGRAM_INTERPRETATION:
+                data = (REPO / 'python-service' / Path(name).name).read_bytes()
             if management and name in MANAGEMENT_API:
                 data = (REPO / 'python-service' / Path(name).name).read_bytes()
             if management and name in MANAGEMENT_GATEWAY:
@@ -104,7 +110,9 @@ def build(role, entry, *, gateway_fixes=False, inbox_fixes=False, whatsapp_media
             if gateway_fixes and name in GATEWAY_FIXES:
                 print(f'{hashlib.sha256(data).hexdigest()}  {name}')
         patches = [(whatsapp_media, MENU_MEDIA_PATCH), (media_commercial, MEDIA_COMMERCIAL_PATCH),
-                   (instagram_media, INSTAGRAM_MEDIA_PATCH)]
+                   (instagram_media, INSTAGRAM_MEDIA_PATCH),
+                   (booking_special_days, CHANNEL_PATCHES / f'booking-special-days-{role}.patch'),
+                   (instagram_media_ai, CHANNEL_PATCHES / 'instagram-media-interpretation.patch')]
         for active, patch in patches:
             if active:
                 subprocess.run(['git', 'apply', '--no-index', str(patch)], cwd=root, check=True)
@@ -116,6 +124,10 @@ def build(role, entry, *, gateway_fixes=False, inbox_fixes=False, whatsapp_media
             tag += '-commercial'
         if management:
             tag += '-management'
+        if booking_special_days:
+            tag += '-special-days'
+        if instagram_media_ai:
+            tag += '-media-ai'
         subprocess.run(['docker', 'build', '--pull=false', '--network=none', '-t', tag, str(root)], check=True)
 
 
@@ -131,7 +143,15 @@ if __name__ == '__main__':
     parser.add_argument('--editorial', action='store_true', help='Include Instagram photo scheduler, requires 048 for activation')
     parser.add_argument('--commercial', action='store_true', help='Include opportunity-to-sale conversion')
     parser.add_argument('--management', action='store_true', help='Include finance, MEI reporting, search and Lia updates')
+    parser.add_argument('--booking-special-days', action='store_true',
+                        help='Include calendar closures and specific dates in API or menu')
+    parser.add_argument('--instagram-media-ai', action='store_true',
+                        help='Include disabled-by-default Instagram interpretation, requires migration 057 for activation')
     args = parser.parse_args()
+    if args.booking_special_days and args.build not in {'api', 'menu'}:
+        parser.error('--booking-special-days requires --build api or menu')
+    if args.instagram_media_ai and (not args.instagram_media or not args.booking_special_days):
+        parser.error('--instagram-media-ai requires --instagram-media and --booking-special-days')
     if args.management and (args.build not in {'api','gateway'} or (args.build == 'gateway' and not args.gateway_fixes)):
         parser.error('--management requires --build api or --build gateway --gateway-fixes')
     if args.commercial and (args.build not in {'api','gateway'} or (args.build == 'gateway' and not args.gateway_fixes)):
@@ -151,4 +171,4 @@ if __name__ == '__main__':
     verify(manifest)
     print(f'Verified {sum(len(e["files"]) for e in manifest.values())} files across {len(manifest)} roles')
     if args.build:
-        build(args.build, manifest[args.build], gateway_fixes=args.gateway_fixes, inbox_fixes=args.inbox_fixes, whatsapp_media=args.whatsapp_media, media_commercial=args.media_commercial, instagram_media=args.instagram_media, editorial=args.editorial, commercial=args.commercial, management=args.management)
+        build(args.build, manifest[args.build], gateway_fixes=args.gateway_fixes, inbox_fixes=args.inbox_fixes, whatsapp_media=args.whatsapp_media, media_commercial=args.media_commercial, instagram_media=args.instagram_media, editorial=args.editorial, commercial=args.commercial, management=args.management, booking_special_days=args.booking_special_days, instagram_media_ai=args.instagram_media_ai)

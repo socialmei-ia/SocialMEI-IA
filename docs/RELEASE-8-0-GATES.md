@@ -14,7 +14,7 @@ Use os IDs base do manifesto congelado. Registre o SHA do Git, os IDs das imagen
 ## Gates para produção
 
 1. Confirmar em produção o aceite manual da Missão 07, o ledger, a saúde e os mounts efetivos.
-2. Validar backup fresco com restauração isolada. Verificar instalação limpa e atualização de 046 até 056 com as permissões do papel da API. Conferir a view de caixa, o histórico de estoque (incluindo a escrita do gatilho e o acesso à sequência) e a biblioteca privada de imagens.
+2. Validar backup fresco com restauração isolada. Verificar instalação limpa e atualização de 046 até 057 com as permissões do papel da API. Conferir a view de caixa, o histórico de estoque (incluindo a escrita do gatilho e o acesso à sequência) e a biblioteca privada de imagens.
 3. Aprovar separadamente as migrations, o corte de API e gateway e qualquer ativação externa. Revalidar CI, uso de memória, isolamento, idempotência e journaling.
 4. Ensaiar reversão de API e gateway juntos com os mounts equivalentes. Antes de aceitar escritas da candidata, usar as imagens e configurações congeladas se houver regressão. Após escritas de parcelas e recebíveis, congelar as operações afetadas e manter o ledger. A versão anterior desconhece os vínculos e poderia aceitar baixas conflitantes. Corrigir na versão compatível ou manter Financeiro e Vendas indisponíveis até a recuperação.
 5. Testar HTTPS, autenticação, troca de empresa e as jornadas abaixo. Testar provedores somente com contas autorizadas e aprovação do envio. Preservar WAHA e n8n durante o corte da aplicação.
@@ -65,7 +65,20 @@ Depois de confirmar orçamento do GitHub Actions, permissão e a base de revisã
 - A ativação requer o ingresso de anexos habilitado, o opt-in `SOCIALMEI_INSTAGRAM_MEDIA_AI_ENABLED=YES`, a lista de negócios em `SOCIALMEI_INSTAGRAM_MEDIA_AI_WORKSPACES`, um corte ISO 8601 com fuso em `SOCIALMEI_INSTAGRAM_MEDIA_AI_START_UTC` e a credencial privada `SOCIALMEI_INSTAGRAM_MEDIA_AI_KEY`. Rodar `python -m instagram_media_interpretation --workspace ID` processa no máximo um anexo elegível por execução. O limite por negócio é de 12 tentativas em 24 horas, com uma em andamento e 2 MiB por arquivo. Mídias fora da janela de dois minutos não entram na fila de interpretação.
 - Respostas de mídia e evidências comerciais têm flags próprias e desativadas por padrão: `SOCIALMEI_INSTAGRAM_MEDIA_AI_REPLIES_ENABLED` e `SOCIALMEI_INSTAGRAM_MEDIA_AI_COMMERCIAL_ENABLED`. Apenas intenções permitidas viram opções do menu ou descrições comerciais padronizadas. A interpretação de imagem permanece como contexto privado. Um pedido de horário em áudio pode listar serviços, e a confirmação exige uma resposta textual separada.
 - A política da Agenda aceita `special_days` pela configuração existente. A data substitui os intervalos semanais daquele dia. Uma lista `hours` vazia fecha o dia. Intervalos separados preservam pausas. A mesma política controla apresentação de datas, oferta e revalidação do horário. O agendamento público permanece desativado.
-- O checkout tem a integração de mídia. Antes de congelar novas imagens, portar o delta para os módulos capturados de Instagram, Agenda e análise comercial, preservando o menu personalizado e as regras de classificação já usadas na AWS. As imagens candidatas anteriores continuam sendo a referência do incremento até 056.
+- O delta foi portado para os arquivos capturados da API e do remetente, preservando a personalização do menu, a seleção de conversas e as regras comerciais congeladas. As flags de mídia e despacho permanecem desativadas em produção.
+
+```powershell
+python tools/build-production-overlay.py --build api --inbox-fixes --editorial --commercial --management --media-commercial --instagram-media --booking-special-days --instagram-media-ai
+python tools/build-production-overlay.py --build menu --whatsapp-media --booking-special-days
+```
+
+Os builds verificaram os 62 arquivos congelados e usaram as bases fixadas no manifesto. O gateway permanece o da candidata anterior. Identidades locais:
+
+- API `sha256:92eefdb2f8a7cec7b69341fc48d01c39808feae9ff46e712834a1574a02b8374`
+- Remetente WhatsApp `sha256:ecf7c82f5b1ee1440d9ccc27b4d3f28d94a76277d7a0200cdb3489600f946db1`
+- Gateway `sha256:c08e80bd6f15bb03a38c285cfcee43bdbbb1688a279702e8533e456b425ba02d`
+
+A API passou em seis testes empacotados com PostgreSQL isolado, chave sintética em mount somente leitura e sem Internet. A imagem do remetente passou nos dois testes de horários especiais, sem rede. O próximo gate da release é o ensaio conjunto com mounts equivalentes e reversão compatível após escritas financeiras.
 
 ### PR e CI
 

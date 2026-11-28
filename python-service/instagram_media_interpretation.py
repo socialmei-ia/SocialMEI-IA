@@ -9,8 +9,7 @@ from fastapi import HTTPException
 from psycopg import Error
 from psycopg.rows import dict_row
 
-from database import connect
-from instagram_inbound_media import enabled as intake_enabled, file_data
+from instagram_inbound_media import enabled as intake_enabled, file_data, media_connection
 from queue_wakeup import instagram_channel, notify_queue
 from whatsapp_media_intent import intent as allowed_intent
 
@@ -127,7 +126,7 @@ def process_one(workspace):
     key = os.getenv('SOCIALMEI_INSTAGRAM_MEDIA_AI_KEY')
     if not start or not key:
         return False
-    with connect(worker=True) as conn:
+    with media_connection() as conn:
         conn.row_factory = dict_row
         job = claim(conn, workspace, start)
     if not job:
@@ -135,7 +134,7 @@ def process_one(workspace):
     attachment = job['attachment_id']
     status, value, intent = 'unavailable', None, None
     try:
-        with connect(worker=True) as conn:
+        with media_connection() as conn:
             conn.row_factory = dict_row
             file = file_data(conn, workspace, attachment)
         raw = provider(file, key)
@@ -148,7 +147,7 @@ def process_one(workspace):
         pass
     except (OSError, http.client.HTTPException):
         status = 'uncertain'
-    with connect(worker=True) as conn:
+    with media_connection() as conn:
         conn.execute(
             "UPDATE socialmei.ig_inbound_media_ai SET status=%s,interpretation=%s,intent=%s,finished_at=now() "
             "WHERE workspace_id=%s AND attachment_id=%s AND status='processing'",

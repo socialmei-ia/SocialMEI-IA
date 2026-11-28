@@ -1,0 +1,234 @@
+--- a/app/instagram_auto_menu.py
++++ b/app/instagram_auto_menu.py
+@@ -14,8 +14,10 @@
+ from instagram_persistent_oauth import _lock
+ from instagram_token_vault import TokenBinding
+ from whatsapp_bot import answer, HUMAN_CHOICES
++import channel_booking
+ import channel_booking_flow
+ import instagram_booking_flow
++import instagram_media_interpretation as media_ai
+ 
+ router = APIRouter(prefix='/api/v1/instagram/menu', tags=['Instagram automatic menu'])
+ 
+@@ -44,26 +46,40 @@
+                  (workspace, conversation))
+ 
+ 
+-def source(conn, workspace, message):
++def eligibility(workspace, start):
++    media_start = (media_ai.activation(workspace)
++                   if os.getenv('SOCIALMEI_INSTAGRAM_MEDIA_AI_REPLIES_ENABLED') == 'YES' else None)
++    if not media_start:
++        return "e.kind='message'", "NULL::text", []
++    cutoff = max(start, media_start)
++    result = f"({media_ai.COMPLETED})"
++    return (f"(e.kind='message' OR (e.kind='media' AND e.received_at>=%s AND m.occurred_at>=%s "
++            f"AND {result} NOT IN ('context_only')))", result, [cutoff, cutoff])
++
++
++def source(conn, workspace, message, start=None):
++    condition, result, params = eligibility(workspace, start) if start else ("e.kind='message'", "NULL::text", [])
+     return conn.execute(
+-        "SELECT m.id,m.conversation_id,m.text,m.occurred_at,v.contact_ref,c.id AS connection_id,c.external_account_id,c.encrypted_token "
++        "SELECT m.id,m.conversation_id,m.text,m.occurred_at,v.contact_ref,c.id AS connection_id,c.external_account_id,c.encrypted_token,"
++        f"CASE WHEN e.kind='media' THEN {result} END AS media_intent "
+         "FROM socialmei.me_messages m JOIN socialmei.me_conversations v ON v.workspace_id=m.workspace_id AND v.id=m.conversation_id "
+         "JOIN socialmei.ig_meta_ingress_events e ON e.workspace_id=m.workspace_id AND e.message_id=m.id "
+         "JOIN socialmei.ig_meta_connections c ON c.workspace_id=e.workspace_id AND c.id=e.connection_id "
+         "AND c.external_account_id=e.external_account_id "
+         "WHERE m.workspace_id=%s AND m.id=%s AND m.origin='instagram' AND v.origin='instagram' "
+-        "AND e.kind='message' AND e.status='processed' AND c.status='connected' AND c.expires_at>NOW() "
++        f"AND {condition} AND e.status='processed' AND c.status='connected' AND c.expires_at>NOW() "
+         "AND c.scopes @> ARRAY['instagram_business_basic','instagram_business_manage_messages']::text[] "
+         "AND v.account_ref='instagram:' || c.external_account_id "
+         "AND v.contact_ref ~ '^instagram:[0-9]{1,40}$' "
+         "AND m.occurred_at>=NOW()-INTERVAL '2 minutes' AND m.occurred_at<=NOW()+INTERVAL '30 seconds' "
+-        "FOR SHARE OF c,v", (workspace, message),
++        "FOR SHARE OF c,v", (workspace, message, *params),
+     ).fetchone()
+ 
+ 
+ def next_source(workspace, start):
+     if not enabled(workspace):
+         return None
++    condition, _, params = eligibility(workspace, start)
+     with db() as conn:
+         conn.execute('SET TRANSACTION READ ONLY')
+         row = conn.execute(
+@@ -72,7 +88,7 @@
+             "JOIN socialmei.me_conversations v ON v.workspace_id=m.workspace_id AND v.id=m.conversation_id "
+             "JOIN socialmei.ig_meta_connections c ON c.workspace_id=e.workspace_id AND c.id=e.connection_id "
+             "AND c.external_account_id=e.external_account_id "
+-            "WHERE m.workspace_id=%s AND m.origin='instagram' AND e.kind='message' AND e.status='processed' "
++            f"WHERE m.workspace_id=%s AND m.origin='instagram' AND {condition} AND e.status='processed' "
+             "AND v.origin='instagram' AND v.account_ref='instagram:' || c.external_account_id "
+             "AND v.contact_ref ~ '^instagram:[0-9]{1,40}$' "
+             "AND c.status='connected' AND c.expires_at>NOW() "
+@@ -80,14 +96,33 @@
+             "AND e.received_at>=%s AND m.occurred_at>=%s "
+             "AND m.occurred_at>=NOW()-INTERVAL '2 minutes' AND m.occurred_at<=NOW()+INTERVAL '30 seconds' "
+             "AND NOT EXISTS(SELECT 1 FROM socialmei.ig_menu_replies r WHERE r.workspace_id=m.workspace_id AND r.source_message_id=m.id) "
+-            "AND (lower(btrim(m.text))=ANY(%s) OR ((SELECT COUNT(*) FROM socialmei.ig_menu_replies r WHERE r.workspace_id=m.workspace_id "
++            "AND ((e.kind='message' AND lower(btrim(m.text))=ANY(%s)) OR ((SELECT COUNT(*) FROM socialmei.ig_menu_replies r WHERE r.workspace_id=m.workspace_id "
+             "AND r.conversation_id=m.conversation_id AND r.status IN ('dispatching','confirmed','uncertain') "
+             "AND r.created_at>NOW()-INTERVAL '15 minutes')<10 "
+             "AND (SELECT COUNT(*) FROM socialmei.ig_menu_replies r WHERE r.workspace_id=m.workspace_id "
+             "AND r.status IN ('dispatching','confirmed','uncertain') AND r.created_at>NOW()-INTERVAL '15 minutes')<60 "
+-            ")) ORDER BY m.occurred_at,m.id LIMIT 1", (workspace, start, start, sorted(HUMAN_CHOICES)),
++            ")) ORDER BY m.occurred_at,m.id LIMIT 1", (workspace, *params, start, start, sorted(HUMAN_CHOICES)),
+         ).fetchone()
+     return row['id'] if row else None
++
++
++def media_reply(conn, workspace, row, intent):
++    if intent == 'booking':
++        target = {'route': 'booking', 'step': 'services'}
++        try:
++            if channel_booking.read_policy(conn, workspace)['policy']['enabled']:
++                state, result = channel_booking_flow.advance(conn, {'workspace_id': workspace}, row,
++                                                             target, False, origin='instagram', media_service_list=True)
++                return state, instagram_booking_flow.render(result, target)
++        except (HTTPException, ValueError):
++            pass
++        return 'menu', 'Não consegui consultar os horários. Digite 6 para tentar ou 5 para atendimento.'
++    if intent in {'products', 'services', 'quote'}:
++        choice = {'products': '1', 'services': '3', 'quote': '4'}[intent]
++        from whatsapp_bot import answer as catalog_answer
++        state, result = catalog_answer(conn, workspace, 'menu', choice)
++        return state, result['text'].encode('utf-8')[:1000].decode('utf-8', errors='ignore')
++    return 'menu', 'Não consegui entender o áudio. Pode escrever o que precisa ou digitar 5 para atendimento?'
+ 
+ 
+ def reply(runtime, workspace, message, start):
+@@ -98,7 +133,7 @@
+     job_id = uuid4()
+     with db() as conn:
+         _lock(conn, workspace)
+-        row = source(conn, workspace, message)
++        row = source(conn, workspace, message, start)
+         if not row:
+             return 'skipped'
+         if not conn.execute("SELECT 1 FROM socialmei.ig_meta_ingress_events e JOIN socialmei.me_messages m "
+@@ -117,7 +152,8 @@
+                               "AND status IN ('dispatching','confirmed','uncertain') "
+                               "AND created_at>NOW()-INTERVAL '15 minutes'", (row['conversation_id'], workspace)).fetchone()
+         limited = counts['total'] >= 60 or counts['contact'] >= 10
+-        if limited and row['text'].strip().casefold() not in HUMAN_CHOICES:
++        media_intent = row['media_intent']
++        if limited and (media_intent or row['text'].strip().casefold() not in HUMAN_CHOICES):
+             return 'rate_limited'
+         conn.execute("INSERT INTO socialmei.ig_menu_conversations(workspace_id,conversation_id) VALUES(%s,%s) "
+                      "ON CONFLICT DO NOTHING", (workspace, row['conversation_id']))
+@@ -126,14 +162,14 @@
+         pending = conn.execute("SELECT 1 FROM socialmei.ig_direct_jobs WHERE workspace_id=%s AND conversation_id=%s "
+                                "AND status IN ('draft','approved','dispatching','retry_ready','uncertain') LIMIT 1",
+                                (workspace, row['conversation_id'])).fetchone()
+-        if workspace in (60,61):
++        if not media_intent and workspace in (60,61):
+             command=sm_ig_command(row['text'])
+             if command:
+                 row['text']=command
+ 
+-        if human_requested(row['text']):
++        if not media_intent and human_requested(row['text']):
+             row['text'] = '5'
+-        resume = row['text'].strip().casefold() in {'0','menu','inicio','início'}
++        resume = not media_intent and row['text'].strip().casefold() in {'0','menu','inicio','início'}
+         current_state = 'menu' if resume and not pending else state['state']
+         stale = state['last_occurred_at'] is not None and row['occurred_at'] < state['last_occurred_at']
+         # A customer's human handoff survives send limits without sending an acknowledgement.
+@@ -142,8 +178,13 @@
+         blocked = bool(pending) or current_state == 'human' or stale
+         text = ''
+         general_quick=[]
++        booking_plan = None
+         if blocked:
+-            new_state, result = answer(conn, workspace, current_state, row['text'])
++            new_state = current_state
++            if not media_intent:
++                new_state, _ = answer(conn, workspace, current_state, row['text'])
++        elif media_intent:
++            new_state, text = media_reply(conn, workspace, row, media_intent)
+         else:
+             booking_plan = None if workspace in (60,61) and sm_ig_greeting(row['text']) else instagram_booking_flow.respond(conn, workspace, row)
+             if booking_plan is not None:
+--- a/app/provider_sentiment.py
++++ b/app/provider_sentiment.py
+@@ -18,6 +18,7 @@
+ 
+ import settings
+ from database import connect
++from instagram_media_interpretation import activation, COMPLETED, SCOPES
+ from whatsapp_media_intent import COMMERCIAL_DECISION, COMMERCIAL_HINTS
+ 
+ router = APIRouter(prefix="/internal/message-enrichment/provider", tags=["private provider analysis"])
+@@ -86,25 +87,55 @@
+ def claim_messages(request: Request, response: Response):
+     """Lease at most 10 verified provider messages; never include synthetic data."""
+     authorize(request, response)
++    workspaces = list(settings.provider_sentiment_allowed_workspaces())
++    cutoffs = {workspace: activation(workspace) for workspace in workspaces
++               if os.getenv('SOCIALMEI_INSTAGRAM_MEDIA_AI_COMMERCIAL_ENABLED') == 'YES'}
++    cutoffs = {workspace: start for workspace, start in cutoffs.items() if start}
++    ig_join = ''
++    eligible_media = ''
++    media_params = ()
++    if cutoffs:
++        ig_join = f"""LEFT JOIN LATERAL (
++            SELECT evidence.intent FROM socialmei.ig_meta_ingress_events e
++            JOIN socialmei.ig_meta_connections c ON c.workspace_id=e.workspace_id AND c.id=e.connection_id
++                AND c.external_account_id=e.external_account_id
++            JOIN socialmei.me_conversations v ON v.workspace_id=m.workspace_id AND v.id=m.conversation_id
++            CROSS JOIN LATERAL ({COMPLETED}) evidence
++            JOIN unnest(%s::bigint[],%s::timestamptz[]) cutoff(workspace,start) ON cutoff.workspace=e.workspace_id
++            WHERE m.origin='instagram' AND e.workspace_id=m.workspace_id AND e.message_id=m.id AND e.kind='media'
++                AND e.status='processed' AND v.origin='instagram' AND v.account_ref='instagram:' || c.external_account_id
++                AND m.occurred_at>=cutoff.start AND e.received_at>=cutoff.start
++                AND m.occurred_at>=now()-INTERVAL '2 minutes'
++                AND c.status='connected' AND c.expires_at>now() AND c.scopes @> {SCOPES}
++                AND evidence.intent=ANY(%s)
++                AND NOT EXISTS (
++                    SELECT 1 FROM socialmei.ig_menu_conversations h
++                    WHERE h.workspace_id=m.workspace_id AND h.conversation_id=m.conversation_id AND h.state='human'
++                )
++        ) ig_media ON true"""
++        eligible_media = ' OR ig_media.intent IS NOT NULL'
++        media_params = (list(cutoffs), list(cutoffs.values()), list(COMMERCIAL_HINTS))
+     media_enabled = os.getenv("SOCIALMEI_WHATSAPP_MEDIA_COMMERCIAL_ENABLED") == "YES"
+     media_join = f"LEFT JOIN LATERAL ({COMMERCIAL_DECISION}) media ON true" if media_enabled else ""
+-    media_column = ",media.media_intent" if media_enabled else ""
++    wa_column = "media.media_intent" if media_enabled else "NULL::text"
++    ig_column = "ig_media.intent" if cutoffs else "NULL::text"
+     allow_interpreted_media = "OR media.media_intent IS NOT NULL" if media_enabled else ""
+     with database() as conn:
+         conn.execute("SET LOCAL lock_timeout='2s'")
+         messages = conn.execute(
+             f"""
+-            SELECT m.workspace_id,m.id,m.origin,m.text{media_column}
++            SELECT m.workspace_id,m.id,m.origin,m.text,coalesce({wa_column},{ig_column}) AS media_intent
+             FROM socialmei.me_messages AS m
+             {media_join}
++            {ig_join}
+             LEFT JOIN socialmei.me_provider_sentiment_jobs AS j
+               ON j.workspace_id=m.workspace_id AND j.message_id=m.id
+             WHERE m.origin IN ('instagram','waha')
+-              AND NOT EXISTS (
++              AND (NOT EXISTS (
+                   SELECT 1 FROM socialmei.ig_meta_ingress_events e
+                   WHERE e.workspace_id=m.workspace_id AND e.message_id=m.id
+                     AND e.kind='media' AND m.origin='instagram'
+-              )
++              ){eligible_media})
+               AND (NOT EXISTS (
+                   SELECT 1 FROM socialmei.crm_eventos_canal e
+                   WHERE e.workspace_id=m.workspace_id
+@@ -141,7 +172,7 @@
+             m.occurred_at DESC,m.id DESC
+             LIMIT %s FOR UPDATE OF m SKIP LOCKED
+             """,
+-            (list(settings.provider_sentiment_allowed_workspaces()), MAX_BATCH),
++            (*media_params, workspaces, MAX_BATCH),
+         ).fetchall()
+         tasks = []
+         for message in messages:
